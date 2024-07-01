@@ -1,0 +1,22 @@
+# PDM dependencies directory
+__pypackages__/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.so
+
+# PDM lock file
+pdm.lock
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
+
+# Log files
+*.log
