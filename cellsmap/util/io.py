@@ -12,11 +12,11 @@ def extract_key_from_config(key: str) -> str:
 
     return config_data.get(key)
 
-def get_tp(filename):
+def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def load_movie(movie_name: str, time_start:int = 0, time_end: int=576) -> np.ndarray:
+def load_dataset(movie_name: str, time_start:int = 0, time_end: int=576) -> np.ndarray:
     movie_path = Path(extract_key_from_config('cdh5_dir'))
-    movie = np.stack([imread(fn) for fn in sorted(movie_path.glob('*tif*')) if time_start <= get_tp(fn) <= time_end])
+    movie = np.stack([imread(fn) for fn in sorted(movie_path.glob('*tif*')) if time_start <= get_frame(fn) <= time_end])
 
     return movie

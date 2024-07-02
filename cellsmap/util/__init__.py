@@ -1,1 +1,1 @@
-from .io import load_movie
+from .io import load_dataset
