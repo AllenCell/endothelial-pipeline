@@ -9,7 +9,6 @@ def test_load_dataset():
     assert movie.shape[0] == 2
     # check resolution specification
     movie = load_dataset('cdh5_path', time_start=1, time_end = 2, resolution=1)
-    print(movie.shape)
     assert movie.shape[1:] == (856, 4796)
 
     
