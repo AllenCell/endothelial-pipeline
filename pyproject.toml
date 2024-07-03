@@ -5,7 +5,15 @@ description = ""
 authors = [
     {name = "", email = ""},
 ]
-dependencies = []
+dependencies = [
+    "pytest>=8.2.2",
+    "pathlib>=1.0.1",
+    "numpy>=1.2.3",
+    "bioio>=1.0.1",
+    "bioio-ome-tiff>=1.0.0",
+    "bioio-base>=1.0.1",
+    "bioio-ome-zarr>=1.0.1",
+]
 requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "AISL"}
@@ -16,3 +24,6 @@ license = {text = "AISL"}
 [build-system]
 requires = ["pdm-pep517>=1.0"]
 build-backend = "pdm.pep517.api"
+
+[tool.pytest.ini_options]
+testpaths = "tests/"
