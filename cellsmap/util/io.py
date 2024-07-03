@@ -1,7 +1,8 @@
 import yaml
 from pathlib import Path
 import numpy as np
-from bioio.bio_image import imread
+from bioio import BioImage
+import dask.array
 
 def extract_key_from_config(key: str) -> str:
     parent_folder = Path(__file__).resolve().parent
@@ -15,8 +16,10 @@ def extract_key_from_config(key: str) -> str:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def load_dataset(movie_name: str, time_start:int = 0, time_end: int=576) -> np.ndarray:
-    movie_path = Path(extract_key_from_config('cdh5_dir'))
-    movie = np.stack([imread(fn) for fn in sorted(movie_path.glob('*tif*')) if time_start <= get_frame(fn) <= time_end])
-
-    return movie
+def load_dataset(movie_name: str, time_start:int = 0, time_end: int=576, resolution:int=0) -> dask.array.Array:
+    movie_path = extract_key_from_config(movie_name)
+    img = BioImage(movie_path)
+    assert resolution in img.resolution_levels, f'Invalid resolution level {resolution}. Available levels are {img.resolution_levels}'
+    img.set_resolution_level(resolution)
+    img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1) )
+    return img
