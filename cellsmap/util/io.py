@@ -20,4 +20,4 @@ def load_dataset(movie_name: str, time_start:int = 0, time_end: int=576) -> np.n
 
     img = BioImage(movie_path).get_image_dask_data("TYX",T=range(time_start, time_end+1) )
 
-    return img.compute()
+    return img
