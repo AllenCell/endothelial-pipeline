@@ -5,7 +5,7 @@ tags:
 - dev
 train: true
 test: true
-ckpt_path: 
+ckpt_path: null
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.dataframe.DataframeDatamodule
@@ -61,8 +61,8 @@ data:
         keys:
         - raw
         prob: 1.0
-        min_zoom: 0.8
-        max_zoom: 1.2
+        min_zoom: 0.9
+        max_zoom: 1.0
       - _target_: monai.transforms.RandShiftIntensityd
         keys:
         - raw
@@ -90,10 +90,10 @@ data:
         spatial_axis: 1
       - _target_: monai.transforms.RandZoomd
         keys:
-        - raw
+        - raw_aug
         prob: 1.0
-        min_zoom: 0.8
-        max_zoom: 1.2
+        min_zoom: 0.95
+        max_zoom: 1.0
       - _target_: monai.transforms.RandShiftIntensityd
         keys:
         - raw_aug
@@ -185,8 +185,8 @@ data:
         keys:
         - raw
         prob: 1.0
-        min_zoom: 0.8
-        max_zoom: 1.2
+        min_zoom: 0.95
+        max_zoom: 1.0
       - _target_: monai.transforms.RandShiftIntensityd
         keys:
         - raw
@@ -214,10 +214,10 @@ data:
         spatial_axis: 1
       - _target_: monai.transforms.RandZoomd
         keys:
-        - raw
+        - raw_aug
         prob: 1.0
-        min_zoom: 0.8
-        max_zoom: 1.2
+        min_zoom: 0.95
+        max_zoom: 1.0
       - _target_: monai.transforms.RandShiftIntensityd
         keys:
         - raw_aug
@@ -272,8 +272,11 @@ model:
     loss:
       _target_: cyto_dl.nn.losses.vic_reg.VICRegLoss
       num_features: 256
-    dimensions:
+    dims:
     - 256
+    - 1024
+    hidden_layers:
+    - 1024
     - 1024
     - 1024
     - 1024
@@ -284,7 +287,7 @@ model:
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.001
+    max_lr: 0.0001
     epochs: ${trainer.max_epochs}
     steps_per_epoch: 1
     pct_start: 0.02
@@ -340,6 +343,7 @@ trainer:
   deterministic: false
   detect_anomaly: false
   max_time: null
+  gradient_clip_val: 5
 paths:
   root_dir: ${oc.env:PROJECT_ROOT, './'}
   data_dir: ${paths.root_dir}/data/
