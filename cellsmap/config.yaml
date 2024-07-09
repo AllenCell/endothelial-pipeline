@@ -4,6 +4,5 @@
   zarr_path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
-  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  contrastive_feature: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/outputs/2024-07-05/15-16-35/predictions.csv"
+  flow: [[0, 24, 20], [24, 48, 6]] #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
 }]
