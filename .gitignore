@@ -7,10 +7,10 @@ __pycache__/
 *.pyo
 *.pyd
 *.pyc.so
-
+*.DS_Store
 # PDM lock file
 pdm.lock
-
+.pdm-python
 # Environment variables
 .env
 
@@ -20,3 +20,7 @@ pdm.lock
 
 # Log files
 *.log
+
+# image files
+*.tiff
+*.tif
