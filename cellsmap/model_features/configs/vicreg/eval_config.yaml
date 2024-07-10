@@ -78,7 +78,7 @@ model:
     pct_start: 0.02
 callbacks:
   csv_saver:
-    _target_: cellsmap.contrastive.utils.csv_saver_vicreg.CSVSaver
+    _target_: cellsmap.model_features.utils.csv_saver_vicreg.CSVSaver
     save_dir: ${paths.output_dir}
 logger:
 trainer:
@@ -102,8 +102,8 @@ paths:
   output_dir: 
 extras:
   ignore_warnings: true
-  enforce_tags: true
-  print_config: true
+  enforce_tags: false
+  print_config: false
   precision:
     _target_: torch.set_float32_matmul_precision
     precision: medium

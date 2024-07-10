@@ -5,7 +5,7 @@ from cellsmap.util import get_dataset_info
 import json
 
 
-def apply_model(cfg_path:str, dataset_name, save_dir, overrides:Dict={}):
+def apply_model(cfg_path:str, dataset_name, save_dir='results', overrides:Dict={}):
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):

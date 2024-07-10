@@ -5,6 +5,7 @@ from pathlib import Path
 class CSVSaver(Callback):
     def __init__(self, save_dir, meta_keys=[]):
         self.save_dir = Path(save_dir)
+        self.save_dir.mkdir(parents=True, exist_ok=True)
         self.meta_keys = meta_keys
 
     def on_predict_epoch_end(self, trainer, pl_module):
