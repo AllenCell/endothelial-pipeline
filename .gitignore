@@ -20,3 +20,6 @@ pdm.lock
 
 # Log files
 *.log
+
+# ignore locally generated results
+results/
