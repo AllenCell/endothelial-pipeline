@@ -7,9 +7,6 @@ class CSVSaver(Callback):
         self.save_dir = Path(save_dir)
         self.meta_keys = meta_keys
 
-    def parse_location(self, location):
-        return [f'({l[0]},{l[1]})' for l in location.squeeze().numpy().T]
-
     def on_predict_epoch_end(self, trainer, pl_module):
         # Access the list of predictions from all predict_steps
         predictions = trainer.predict_loop.predictions

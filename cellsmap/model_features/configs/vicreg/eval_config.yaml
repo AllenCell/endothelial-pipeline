@@ -5,13 +5,13 @@ tags:
 - dev
 train: true
 test: false
-ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/vicreg/2024-07-03_15-49-15/checkpoints/epoch_929.ckpt"
+ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/logs/train/runs/endo_time/vicreg/2024-07-03_15-49-15/checkpoints/epoch_929.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
   batch_size: 1
   pin_memory: true
-  num_workers: 8
+  num_workers: 1
   spatial_dims: 2
   dict_meta:
     path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr
@@ -21,8 +21,6 @@ data:
     - _target_: monai.transforms.NormalizeIntensity
     - _target_: monai.transforms.ToTensor
       dtype: float16
-    # - _target_: monai.transforms.GridPatch
-    #   patch_size: [512, 512]
     - _target_: monai.transforms.GridSplit
       grid: [6, 9]
       size: [512, 512]
@@ -79,11 +77,8 @@ model:
     steps_per_epoch: 1
     pct_start: 0.02
 callbacks:
-  # csv_saver:
-  #   _target_: cellsmap.contrastive.utils.csv_saver.CSVSaver
-  #   save_dir: ${paths.output_dir}
   csv_saver:
-    _target_: cyto_dl.callbacks.csv_saver.CSVSaver
+    _target_: cellsmap.contrastive.utils.csv_saver_vicreg.CSVSaver
     save_dir: ${paths.output_dir}
 logger:
 trainer:
@@ -104,8 +99,7 @@ paths:
   root_dir: ${oc.env:PROJECT_ROOT, './'}
   data_dir: ${paths.root_dir}/data/
   log_dir: ${paths.root_dir}/logs/
-  output_dir: ${hydra:runtime.output_dir}
-  work_dir: ${hydra:runtime.cwd}
+  output_dir: 
 extras:
   ignore_warnings: true
   enforce_tags: true

@@ -1,0 +1,112 @@
+experiment_name: endo_time
+run_name: mae
+task_name: train
+tags:
+- dev
+train: true
+test: true
+ckpt_path: null
+seed: 12345
+data:
+  _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
+  batch_size: 1
+  pin_memory: true
+  num_workers: 1
+  spatial_dims: 2
+  dict_meta:
+    path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr
+    channel: 0
+  out_key: raw
+  transforms: 
+    - _target_: monai.transforms.NormalizeIntensity
+    - _target_: monai.transforms.ToTensor
+      dtype: float16
+    - _target_: monai.transforms.GridSplit
+      grid: [6, 9]
+      size: [512, 512]
+model:
+  _target_: cyto_dl.models.im2im.MultiTaskIm2Im
+  save_images_every_n_epochs: 1
+  save_dir: ${paths.output_dir}
+  x_key: raw
+  backbone:
+    _target_: cyto_dl.nn.vits.MAE_ViT
+    spatial_dims: 2
+    base_patch_size:
+    - 16
+    - 16
+    num_patches:
+    - 32
+    - 32
+    emb_dim: 256
+    encoder_layer: 16
+    encoder_head: 8
+    decoder_layer: 4
+    decoder_dim: 128
+    mask_ratio: 0.75
+    use_crossmae: true
+  task_heads: ${kv_to_dict:${model._aux._tasks}}
+  optimizer:
+    generator:
+      _partial_: true
+      _target_: torch.optim.AdamW
+      weight_decay: 0.05
+  lr_scheduler:
+    generator:
+      _partial_: true
+      _target_: torch.optim.lr_scheduler.OneCycleLR
+      max_lr: 0.0001
+      epochs: ${trainer.max_epochs}
+      steps_per_epoch: 1
+      pct_start: 0.1
+  inference_args:
+    sw_batch_size: 1
+    roi_size:
+    - 512
+    - 512
+    overlap: 0.25
+    mode: gaussian
+  _aux:
+    _tasks:
+    - - raw
+      - _target_: cyto_dl.nn.head.mae_head.MAEHead
+        loss: null
+        postprocess:
+          input:
+            _target_: cyto_dl.models.im2im.utils.postprocessing.ActThreshLabel
+            rescale_dtype: numpy.uint8
+          prediction:
+            _target_: cyto_dl.models.im2im.utils.postprocessing.ActThreshLabel
+            rescale_dtype: numpy.uint8
+callbacks:
+  csv_saver:
+    _target_: cellsmap.contrastive.utils.csv_saver_mae.CSVSaver
+    save_dir: ${paths.output_dir}
+logger:
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 1
+  max_epochs: 1000
+  accelerator: gpu
+  devices:
+  - 0
+  precision: 16
+  check_val_every_n_epoch: 10
+  deterministic: false
+  detect_anomaly: false
+  max_time: null
+  gradient_clip_val: 5
+paths:
+  root_dir: ${oc.env:PROJECT_ROOT, './'}
+  data_dir: ${paths.root_dir}/data/
+  log_dir: ${paths.root_dir}/logs/
+  output_dir: 
+extras:
+  ignore_warnings: true
+  enforce_tags: true
+  print_config: true
+  precision:
+    _target_: torch.set_float32_matmul_precision
+    precision: medium
+persist_cache: true
