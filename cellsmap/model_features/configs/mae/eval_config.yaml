@@ -4,8 +4,8 @@ task_name: train
 tags:
 - dev
 train: true
-test: true
-ckpt_path: null
+test: false
+ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/mae/2024-07-09_15-37-27/checkpoints/epoch_909.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
@@ -25,59 +25,40 @@ data:
       grid: [6, 9]
       size: [512, 512]
 model:
-  _target_: cyto_dl.models.im2im.MultiTaskIm2Im
-  save_images_every_n_epochs: 1
-  save_dir: ${paths.output_dir}
-  x_key: raw
+  _target_: cyto_dl.models.contrastive.Contrastive
+  anchor_key: raw
+
   backbone:
     _target_: cyto_dl.nn.vits.MAE_ViT
     spatial_dims: 2
-    base_patch_size:
-    - 16
-    - 16
-    num_patches:
-    - 32
-    - 32
+    # base_patch_size* num_patches should be your patch shape
+    base_patch_size: [16, 16]
+    num_patches: [32, 32]
     emb_dim: 256
     encoder_layer: 16
     encoder_head: 8
     decoder_layer: 4
     decoder_dim: 128
-    mask_ratio: 0.75
-    use_crossmae: true
-  task_heads: ${kv_to_dict:${model._aux._tasks}}
+    mask_ratio: 0
+    use_crossmae: True
+    features_only: True
+
+  task_head:
+
   optimizer:
     generator:
-      _partial_: true
+      _partial_: True
       _target_: torch.optim.AdamW
       weight_decay: 0.05
+
   lr_scheduler:
     generator:
-      _partial_: true
+      _partial_: True
       _target_: torch.optim.lr_scheduler.OneCycleLR
       max_lr: 0.0001
       epochs: ${trainer.max_epochs}
       steps_per_epoch: 1
       pct_start: 0.1
-  inference_args:
-    sw_batch_size: 1
-    roi_size:
-    - 512
-    - 512
-    overlap: 0.25
-    mode: gaussian
-  _aux:
-    _tasks:
-    - - raw
-      - _target_: cyto_dl.nn.head.mae_head.MAEHead
-        loss: null
-        postprocess:
-          input:
-            _target_: cyto_dl.models.im2im.utils.postprocessing.ActThreshLabel
-            rescale_dtype: numpy.uint8
-          prediction:
-            _target_: cyto_dl.models.im2im.utils.postprocessing.ActThreshLabel
-            rescale_dtype: numpy.uint8
 callbacks:
   csv_saver:
     _target_: cellsmap.model_features.utils.csv_saver_mae.CSVSaver
