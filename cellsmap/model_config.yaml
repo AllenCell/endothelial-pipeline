@@ -1,0 +1,10 @@
+[{
+  "name": "mae",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/train_config.yaml",
+},
+{
+  "name": "vicreg",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg/train_config.yaml",
+}]
