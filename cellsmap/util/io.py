@@ -52,3 +52,19 @@ def get_flow_info(dataset_name: str) -> list:
 
 
 # model methods
+
+def get_available_models() -> list:
+    model_info = load_config('model')
+    for model in model_info:
+        print(model['name'])
+
+def get_model_info(model_name: str) -> dict:
+    config = load_config('model')
+    for model in config:
+        if model['name'] == model_name:
+            return model
+    raise ValueError(f'Model {model_name} not found in config file')
+
+def get_model_config_path(model_name: str) -> str:
+    model_info = load_config('model')
+    return model_info[model_name]['config_path']
