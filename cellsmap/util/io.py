@@ -1,20 +1,25 @@
+import os
 import yaml
 import dask
 import numpy as np
 from pathlib import Path
 from bioio import BioImage
 
+
+# general methods
+
 def load_config(config_type='data') -> dict:
     if config_type not in ['data', 'model']:
         raise ValueError('Invalid config type. Must be either "data" or "model"')
     parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f'{config_type}_config.yaml'
+    config_file = os.path.join(parent_folder.parent, f'{config_type}_config.yaml')
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
     return config_data
 
 
 # dataset methods
+
 def get_available_datasets() -> list:
     config = load_config()
     for dataset in config:
