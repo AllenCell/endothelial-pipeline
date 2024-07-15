@@ -69,6 +69,7 @@ def get_model_info(model_name: str) -> dict:
             return model
     raise ValueError(f'Model {model_name} not found in config file')
 
-def get_model_config_path(model_name: str) -> str:
+def get_model_config_path(model_name: str, task: str = 'eval') -> str:
+    assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = load_config('model')
-    return model_info[model_name]['config_path']
+    return model_info[model_name][f'{task}_config_path']

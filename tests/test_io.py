@@ -41,4 +41,4 @@ def test_get_model_info():
     # check if the model info is returned correctly
     model_info = io.get_model_info('mae')
     assert model_info['name'] == 'mae'
-    assert model_info['config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml"
+    assert model_info['eval_config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml"
