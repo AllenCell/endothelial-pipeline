@@ -38,6 +38,10 @@ def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resol
     img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1) )
     return img
 
+def get_zarr_path(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['zarr_path']
+
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['pixel_size_xy_in_um']

@@ -1,5 +1,7 @@
+import json
 import fire
 from typing import Dict
+from cellsmap.util import io
 from cyto_dl.api import CytoDLModel
 from cellsmap.util import get_dataset_info, get_model_config_path
 import json
@@ -15,7 +17,7 @@ def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict
     cfg_path = get_model_config_path(model_name)
     model.load_config_from_file(cfg_path)
     # apply overrides
-    movie_path = get_dataset_info(dataset_name)['zarr_path']
+    movie_path = io.get_zarr_path(dataset_name)
     overrides['data.dict_meta.path'] = movie_path
     overrides['paths.output_dir'] = save_dir
 
