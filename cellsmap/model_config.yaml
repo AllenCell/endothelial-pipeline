@@ -1,0 +1,8 @@
+[{
+  "name": "mae",
+  "config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml",
+},
+{
+  "name": "vicreg",
+  "config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg/eval_config.yaml",
+}]
