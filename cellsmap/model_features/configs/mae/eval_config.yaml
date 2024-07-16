@@ -13,6 +13,7 @@ data:
   pin_memory: true
   num_workers: 1
   spatial_dims: 2
+  shuffle: False
   dict_meta:
     path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr
     channel: 0
@@ -22,8 +23,12 @@ data:
     - _target_: monai.transforms.ToTensor
       dtype: float16
     - _target_: monai.transforms.GridSplit
-      grid: [6, 9]
+      grid: [3, 18]
       size: [512, 512]
+    - _target_: cellsmap.model_features.utils.save.Save
+      save_dir: ${paths.output_dir}
+
+
 model:
   _target_: cyto_dl.models.contrastive.Contrastive
   anchor_key: raw

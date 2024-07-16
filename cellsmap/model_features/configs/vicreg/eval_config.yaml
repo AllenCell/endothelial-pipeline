@@ -22,8 +22,10 @@ data:
     - _target_: monai.transforms.ToTensor
       dtype: float16
     - _target_: monai.transforms.GridSplit
-      grid: [6, 9]
+      grid: [3, 18]
       size: [512, 512]
+    - _target_: cellsmap.model_features.utils.save.Save
+      save_dir: ${paths.output_dir}
 
 model:
   _target_: cyto_dl.models.contrastive.contrastive.Contrastive
