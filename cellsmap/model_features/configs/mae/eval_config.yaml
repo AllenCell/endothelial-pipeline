@@ -66,7 +66,7 @@ model:
       pct_start: 0.1
 callbacks:
   csv_saver:
-    _target_: cellsmap.model_features.utils.csv_saver_mae.CSVSaver
+    _target_: cellsmap.model_features.utils.csv_saver.MAESaver
     save_dir: ${paths.output_dir}
 logger:
 trainer:
