@@ -3,7 +3,7 @@ import fire
 from typing import Dict
 from cellsmap.util import io
 from cyto_dl.api import CytoDLModel
-from cellsmap.util import get_dataset_info, get_model_config_path
+from cellsmap.util import get_model_config_path
 import json
 
 
