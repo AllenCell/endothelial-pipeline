@@ -1,18 +1,16 @@
 import numpy as np
 import sys
 import sympy
-sys.path.append('//allen/aics/assay-dev/users/Erin/cell-state/git-repos/hcs-data-analysis/pycode')
-import langevin as lg
+import langevin_sindy as lg
 
 stride = 9
 dt = 5
 X_t_high = np.load('MAE_95pctVarPCs_highFlow.npy')
 
 num_loc = X_t_high.shape[0]
-num_t = X_t_high.shape[1]
 num_feats = X_t_high.shape[2]
 
-data = [X_t_high[i,:-5,:2] for i in range(num_loc)] # high flow data, pass as list into KM_avg
+data = [X_t_high[i,:,:2] for i in range(num_loc)] # high flow data, pass as list into KM_avg
 
 N = 32
 min0 = min([min(traj[:,0]) for traj in data])
@@ -53,18 +51,22 @@ for k in range(len(f_expr)):
     lamb_expr = sympy.lambdify([x1,x2], f_expr[k])
     lib_f[k] = lamb_expr(centers0,centers1)
 
+lib_f = lib_f.T
+
 lib_s = np.zeros([len(s_expr),N,N])
 for k in range(len(s_expr)):
     lamb_expr = sympy.lambdify([x1,x2], s_expr[k])
     lib_s[k] = lamb_expr(centers0,centers1)
+
+lib_s = lib_s.T
 
 # Initialize Xi with least squares regression (no finite-time corrections)
 
 m=len(f_expr)+len(s_expr)
 Xi0 = np.zeros((m,2))
 mask = np.where(np.isfinite(f_KM[:,:,0])*np.isfinite(f_KM[:,:,1]))
-Xi0[:len(f_expr)] = np.linalg.lstsq( lib_f[:,mask[0],mask[1]].T, f_KM[mask[0],mask[1],:], rcond=None)[0]   # Regression against drift f1
-Xi0[len(f_expr):] = np.linalg.lstsq( lib_s[:,mask[0],mask[1]].T, np.sqrt(2*a_KM[mask[0],mask[1],:]), rcond=None)[0]  # Regression against diffusion a1
+Xi0[:len(f_expr)] = np.linalg.lstsq( lib_f[mask[0],mask[1]], f_KM[mask[0],mask[1]], rcond=None)[0]   # Regression against drift f1
+Xi0[len(f_expr):] = np.linalg.lstsq( lib_s[mask[0],mask[1]], np.sqrt(2*a_KM[mask[0],mask[1]]), rcond=None)[0]  # Regression against diffusion a1
 
 ### Weights: uncertainties in Kramers-Moyal
 # This is helpful, but not that critical.  The specific choice of weights doesn't matter that much
