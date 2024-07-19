@@ -1,6 +1,8 @@
 import numpy as np
 import sys
+sys.path.append('//allen/aics/assay-dev/users/Erin/cell-state/git-repos/cellsmap/cellsmap/analyses/langevin-sindy')
 import sympy
+import fp_solvers as fp
 import langevin_sindy as lg
 
 stride = 9
@@ -42,31 +44,55 @@ f_KM, a_KM, f_err, a_err = lg.KM_avg_2D(data, bins, stride=stride, dt=dt, multi_
 x1 = sympy.symbols('x1')
 x2 = sympy.symbols('x2')
 
-f_expr = np.array([(x1**i)*(x2**j) for i in np.arange(4) for j in np.arange(4)])  # Polynomial library for drift
-s_expr = np.array([(x1**i)*(x2**j) for i in np.arange(3) for j in np.arange(3)])  # Polynomial library for diffusion
+f_expr = np.tile(np.array([(x1**i)*(x2**j) for i in np.arange(3) for j in np.arange(3)]),2)  # Polynomial library for drift
+s_expr = np.tile(np.array([(x1**i)*(x2**j) for i in np.arange(2) for j in np.arange(2)]),2)  # Polynomial library for diffusion
 
 # Convert sympy expressions into library matrices
-lib_f = np.zeros([len(f_expr),N,N])
-for k in range(len(f_expr)):
+lib_f1 = np.zeros([len(f_expr)//2,N,N])
+for k in range(len(f_expr)//2):
     lamb_expr = sympy.lambdify([x1,x2], f_expr[k])
-    lib_f[k] = lamb_expr(centers0,centers1)
+    lib_f1[k] = lamb_expr(centers0,centers1)
 
-lib_f = lib_f.T
+lib_f2 = np.zeros([len(f_expr)//2,N,N])
+for k in range(len(f_expr)//2):
+    lamb_expr = sympy.lambdify([x1,x2], f_expr[k+len(f_expr)//2])
+    lib_f2[k] = lamb_expr(centers0,centers1)
 
-lib_s = np.zeros([len(s_expr),N,N])
-for k in range(len(s_expr)):
+lib_f1 = lib_f1.T.reshape(N**2,-1)
+lib_f2 = lib_f2.T.reshape(N**2,-1)
+
+lib_f = np.block([[lib_f1, np.zeros((N**2,len(f_expr)//2))], [np.zeros((N**2,len(f_expr)//2)),lib_f2]])
+
+lib_s1 = np.zeros([len(s_expr)//2,N,N])
+for k in range(len(s_expr)//2):
     lamb_expr = sympy.lambdify([x1,x2], s_expr[k])
-    lib_s[k] = lamb_expr(centers0,centers1)
+    lib_s1[k] = lamb_expr(centers0,centers1)
 
-lib_s = lib_s.T
+lib_s2 = np.zeros([len(s_expr)//2,N,N])
+for k in range(len(s_expr)//2):
+    lamb_expr = sympy.lambdify([x1,x2], s_expr[k+len(s_expr)//2])
+    lib_s2[k] = lamb_expr(centers0,centers1)
+
+lib_s1 = lib_s1.T.reshape(N**2,-1)
+lib_s2 = lib_s2.T.reshape(N**2,-1)
+
+lib_s = np.block([[lib_s1, np.zeros((N**2,len(s_expr)//2))], [np.zeros((N**2,len(s_expr)//2)),lib_s2]])
 
 # Initialize Xi with least squares regression (no finite-time corrections)
 
 m=len(f_expr)+len(s_expr)
-Xi0 = np.zeros((m,2))
-mask = np.where(np.isfinite(f_KM[:,:,0])*np.isfinite(f_KM[:,:,1]))
-Xi0[:len(f_expr)] = np.linalg.lstsq( lib_f[mask[0],mask[1]], f_KM[mask[0],mask[1]], rcond=None)[0]   # Regression against drift f1
-Xi0[len(f_expr):] = np.linalg.lstsq( lib_s[mask[0],mask[1]], np.sqrt(2*a_KM[mask[0],mask[1]]), rcond=None)[0]  # Regression against diffusion a1
+Xi0 = np.zeros(m)
+mask = (np.where(np.isfinite(f_KM[:,:,0].flatten())*np.isfinite(f_KM[:,:,1].flatten())))[0]
+n_mask = len(mask)
+A1 = np.block([[lib_f1[mask], np.zeros((n_mask,len(f_expr)//2))], [np.zeros((n_mask,len(f_expr)//2)),lib_f2[mask]]])
+b1 = np.hstack((f_KM[:,:,0].flatten()[mask],f_KM[:,:,1].flatten()[mask])).T
+Xi0[:len(f_expr)] = np.linalg.lstsq(A1, b1, rcond=None)[0]   # Regression against drift
+
+mask = (np.where(np.isfinite(a_KM[:,:,0].flatten())*np.isfinite(a_KM[:,:,1].flatten())))[0]
+n_mask = len(mask)
+A2 = np.block([[lib_s1[mask], np.zeros((n_mask,len(s_expr)//2))], [np.zeros((n_mask,len(s_expr)//2)),lib_s2[mask]]])
+b2 = np.hstack((a_KM[:,:,0].flatten()[mask],a_KM[:,:,1].flatten()[mask])).T
+Xi0[len(f_expr):] = np.linalg.lstsq(A2,b2, rcond=None)[0]  # Regression against diffusion a
 
 ### Weights: uncertainties in Kramers-Moyal
 # This is helpful, but not that critical.  The specific choice of weights doesn't matter that much
@@ -81,10 +107,10 @@ p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1
 
 # Initialize adjoint solver
 centers = np.vstack([centers0,centers1])
-afp = lg.AdjFP(centers,ndim=2)
+afp = fp.AdjFP(centers,ndim=2)
 
 # Initialize forward steady-state solver
-fp = lg.SteadyFP((N,N), dx)
+fp = fp.SteadyFP((N,N), dx)
 
 # Optimization parameters
 params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
