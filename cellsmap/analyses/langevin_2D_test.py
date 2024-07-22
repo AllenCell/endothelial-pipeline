@@ -2,8 +2,17 @@ import numpy as np
 import sys
 sys.path.append('//allen/aics/assay-dev/users/Erin/cell-state/git-repos/cellsmap/cellsmap/analyses/langevin-sindy')
 import sympy
-import fp_solvers as fp
+import fp_solvers as fps
 import langevin_sindy as lg
+import torch
+import logging
+from time import time
+
+logging.basicConfig(filename="2d_highFlow.log", level=logging.INFO)
+
+logging.info("GPU available: "+str(torch.cuda.is_available()))
+logging.info("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu")))
+
 
 stride = 9
 dt = 5
@@ -107,10 +116,10 @@ p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1
 
 # Initialize adjoint solver
 centers = np.vstack([centers0,centers1])
-afp = fp.AdjFP(centers,ndim=2)
+afp = fps.AdjFP(centers,ndim=2)
 
 # Initialize forward steady-state solver
-fp = fp.SteadyFP((N,N), dx)
+fp = fps.SteadyFP((N,N), dx)
 
 # Optimization parameters
 params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
@@ -122,8 +131,12 @@ params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
 
 # Use anonymous function to automatically pass the cost function
 opt_fun = lambda params: lg.AFP_opt(lg.cost2, params)
+start_time = time()
+logging.info("Optimizing...")
 Xi, V = lg.SSR_loop(opt_fun, params)
+logging.info("Full optimization took "+str(time()-start_time)+" seconds")
 
 # Save the results
+logging.info("Saving results...")
 np.save('coeffs_highFlow.npy',Xi)
 np.save('cost_highFlow.npy',V)

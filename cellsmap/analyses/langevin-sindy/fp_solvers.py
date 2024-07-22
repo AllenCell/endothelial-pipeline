@@ -3,8 +3,11 @@ from numpy.fft import fftn, fftfreq, ifftn
 
 from scipy import linalg, sparse
 
-from torch import from_numpy, einsum
+import torch
 import torch.linalg as tla
+
+global device
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class AdjFP:
     """
@@ -117,12 +120,12 @@ class AdjFP:
             print("Need to initialize operator")
             return None
         
-        L_tau = tla.matrix_exp(from_numpy(self.L.todense()*tau))
+        L_tau = tla.matrix_exp(torch.from_numpy(self.L.todense()*tau).to(device)).to(device)
 
-        f_tau = einsum('...ij,...ij->...i', L_tau, from_numpy(self.m1[d]))/tau
-        a_tau = einsum('...ij,...ij->...i', L_tau, from_numpy(self.m2[d]))/(2*tau)
+        f_tau = torch.einsum('...ij,...ij->...i', L_tau, torch.from_numpy(self.m1[d]).to(device))/tau
+        a_tau = torch.einsum('...ij,...ij->...i', L_tau, torch.from_numpy(self.m2[d]).to(device))/(2*tau)
         
-        return f_tau.numpy(), a_tau.numpy()
+        return f_tau.cpu().numpy(), a_tau.cpu().numpy()
 
 # Steady-state Fokker-Planck solver
 
@@ -214,7 +217,7 @@ class SteadyFP:
         #print('%%%% Computing FP operator time: {0} seconds %%%%'.format(time() - start_fp_op))
 
         #start_fp = time()
-        q_hat = tla.lstsq(from_numpy(self.A[1:, 1:]), from_numpy(-self.A[1:, 0]), rcond=1e-6)[0].numpy()
+        q_hat = tla.lstsq(torch.from_numpy(self.A[1:, 1:]).to(device), torch.from_numpy(-self.A[1:, 0]).to(device), rcond=1e-6)[0].cpu().numpy()
         q_hat = np.append([1], q_hat)
         p = np.real(ifftn( np.reshape(q_hat, self.N) ))/np.prod(self.dx) # take ifft of solution to get probability density p
         #print('%%%% Solving FP time: {0} seconds %%%%'.format(time() - start_fp))

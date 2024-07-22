@@ -265,7 +265,7 @@ def AFP_opt(cost, params):
         func = lambda Xi: cost(Xi, params)
 
     res = minimize(func, Xi0, method='nelder-mead',
-              options={'disp': False, 'maxfev':int(1e2)})
+              options={'disp': False, 'maxfev':int(1e4)})
     print('%%%% Optimization time: {0} seconds,   Cost: {1} %%%%'.format(time() - start_time, res.fun) )
     
     # Return coefficients and cost function
@@ -291,10 +291,7 @@ def SSR_loop(opt_fun, params):
     
     m = len(f_expr) + len(s_expr)
 
-    if params['afp'].ndim > 1:
-        Xi = np.zeros((m, m-1,Xi0.shape[-1]), dtype=Xi0.dtype)  # Output results
-    else:
-        Xi = np.zeros((m, m-1), dtype=Xi0.dtype)  # Output results
+    Xi = np.zeros((m, m-1), dtype=Xi0.dtype)  # Output results
     V = np.zeros((m-1))      # Cost at each step
     
     # Full regression problem as baseline
