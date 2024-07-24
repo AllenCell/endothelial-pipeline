@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append('//allen/aics/assay-dev/users/Erin/cell-state/git-repos/cellsmap/cellsmap/analyses/langevin-sindy')
+sys.path.append('//allen/aics/assay-dev/users/Erin/cell-state/git-repos/cellsmap/cellsmap/analyses/utils/langevin-sindy')
 import sympy
 import fp_solvers as fps
 import langevin_sindy as lg
@@ -8,15 +8,15 @@ import torch
 import logging
 from time import time
 
-logging.basicConfig(filename="2d_highFlow.log", level=logging.INFO)
+logging.basicConfig(filename="logs/2d_highFlow.log", level=logging.INFO, filemode = 'w')
 
-logging.info("GPU available: "+str(torch.cuda.is_available()))
-logging.info("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu")))
+logging.info("GPU available: "+str(torch.cuda.is_available())+"\n")
+logging.info("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n")
 
 
 stride = 9
 dt = 5
-X_t_high = np.load('MAE_95pctVarPCs_highFlow.npy')
+X_t_high = np.load('data/MAE_95pctVarPCs_highFlow.npy')
 
 num_loc = X_t_high.shape[0]
 num_feats = X_t_high.shape[2]
@@ -45,16 +45,24 @@ bins = [bins0,bins1]
 centers = [centers0,centers1]
 
 p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
+np.save('outputs/bins_highFlow.npy',bins)
+np.save('outputs/p_hist_highFlow.npy',p_hist)
 
 ## KM average (coarse grained subsampling)
 f_KM, a_KM, f_err, a_err = lg.KM_avg_2D(data, bins, stride=stride, dt=dt, multi_traj=True)
+np.save('outputs/KM_drift_highFlow.npy',f_KM)
+np.save('outputs/KM_diff_highFlow.npy',a_KM)
+np.save('outputs/KM_drift_err_highFlow.npy',f_err)
+np.save('outputs/KM_diff_err_highFlow.npy',a_err)
 
 ### Build SINDy libraries with sympy
 x1 = sympy.symbols('x1')
 x2 = sympy.symbols('x2')
 
-f_expr = np.tile(np.array([(x1**i)*(x2**j) for i in np.arange(3) for j in np.arange(3)]),2)  # Polynomial library for drift
-s_expr = np.tile(np.array([(x1**i)*(x2**j) for i in np.arange(2) for j in np.arange(2)]),2)  # Polynomial library for diffusion
+nf=3
+f_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(nf+1) for k in range(m+1)]),2)  # Polynomial library for drift
+ns=2
+s_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(ns+1) for k in range(m+1)]),2)  # Polynomial library for diffusion
 
 # Convert sympy expressions into library matrices
 lib_f1 = np.zeros([len(f_expr)//2,N,N])
@@ -111,9 +119,6 @@ W[np.logical_not(np.isfinite(W))] = 1e6                 # Set NaN entries to lar
 W = 1/W  # Invert error for weights
 W = W/np.nansum(W.flatten())
 
-# Compute empirical PDF
-p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
-
 # Initialize adjoint solver
 centers = np.vstack([centers0,centers1])
 afp = fps.AdjFP(centers,ndim=2)
@@ -132,11 +137,11 @@ params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
 # Use anonymous function to automatically pass the cost function
 opt_fun = lambda params: lg.AFP_opt(lg.cost2, params)
 start_time = time()
-logging.info("Optimizing...")
+logging.info("Optimizing... \n")
 Xi, V = lg.SSR_loop(opt_fun, params)
-logging.info("Full optimization took "+str(time()-start_time)+" seconds")
+logging.info("Full optimization took "+str(time()-start_time)+" seconds \n")
 
 # Save the results
-logging.info("Saving results...")
-np.save('coeffs_highFlow.npy',Xi)
-np.save('cost_highFlow.npy',V)
+logging.info("Saving results.")
+np.save('outputs/coeffs_highFlow.npy',Xi)
+np.save('outputs/cost_highFlow.npy',V)
