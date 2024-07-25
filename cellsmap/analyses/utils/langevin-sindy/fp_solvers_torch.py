@@ -238,8 +238,8 @@ class SteadyFP:
             a_hat = self.dx*fftn(a)
 
             # Set up spectral projection operator
-            self.A = torch.einsum('i,ij->ij', -1j*self.k, f_hat[self.idx]) \
-                   + torch.einsum('i,ij->ij', -self.k**2, a_hat[self.idx])
+            self.A = (torch.einsum('i,ij->ij', -1j*self.k, f_hat[self.idx]) \
+                   + torch.einsum('i,ij->ij', -self.k**2, a_hat[self.idx])).to(device)
 
         if self.ndim == 2:
             # Initialize Fourier transformed coefficients
@@ -254,7 +254,7 @@ class SteadyFP:
                      -torch.einsum('i,ijkl->ijkl', self.k[0]**2, a_hat[0, self.idx[0], self.idx[1]]) \
                      -torch.einsum('j,ijkl->ijkl', self.k[1]**2, a_hat[1, self.idx[0], self.idx[1]])
 
-            self.A = torch.reshape(self.A, (np.prod(self.N), np.prod(self.N)))
+            self.A = torch.reshape(self.A, (np.prod(self.N), np.prod(self.N))).to(device)
 
     def solve(self, f, a):
         """
@@ -267,7 +267,7 @@ class SteadyFP:
         # print('%%%% Computing FP operator time: {0} seconds %%%%'.format(time() - start_fp_op))
 
         # start_fp = time()
-        q_hat = tla.lstsq(self.A[1:, 1:], -self.A[1:, 0], rcond=1e-6)[0]
+        q_hat = tla.lstsq(self.A[1:, 1:], -self.A[1:, 0], rcond=1e-6)[0].cpu()
         q_hat = torch.cat((torch.ones(1), q_hat))
         p = torch.real(ifftn( torch.reshape(q_hat, self.N) ))/torch.prod(self.dx) # take ifft of solution to get probability density p
         # print('%%%% Solving FP time: {0} seconds %%%%'.format(time() - start_fp))

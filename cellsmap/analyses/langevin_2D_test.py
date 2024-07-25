@@ -8,10 +8,11 @@ import torch
 import logging
 from time import time
 
-logging.basicConfig(filename="logs/2d_highFlow.log", level=logging.INFO, filemode = 'w')
+logfile="logs/2d_highFlow.txt"
 
-logging.info("GPU available: "+str(torch.cuda.is_available())+"\n")
-logging.info("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n")
+with open(logfile, 'w') as f:
+    print("GPU available: "+str(torch.cuda.is_available())+"\n", file=f)
+    print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
 
 
 stride = 9
@@ -137,11 +138,19 @@ params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
 # Use anonymous function to automatically pass the cost function
 opt_fun = lambda params: lg.AFP_opt(lg.cost2, params)
 start_time = time()
-logging.info("Optimizing... \n")
+with open(logfile, 'w') as f:
+    print("Optimizing... \n")
+
 Xi, V = lg.SSR_loop(opt_fun, params)
-logging.info("Full optimization took "+str(time()-start_time)+" seconds \n")
+with open(logfile, 'w') as f:
+    print("Full optimization took "+str(time()-start_time)+" seconds \n")
+
+coeff_file = 'outputs/coeffs_highFlow.npy'
+cost_file = 'outputs/cost_highFlow.npy'
 
 # Save the results
-logging.info("Saving results.")
-np.save('outputs/coeffs_highFlow.npy',Xi)
-np.save('outputs/cost_highFlow.npy',V)
+with open(logfile, 'w') as f:
+    print("Saving results to " + coeff_file + " and " + cost_file + "\n")
+
+np.save(coeff_file,Xi)
+np.save(cost_file,V)
