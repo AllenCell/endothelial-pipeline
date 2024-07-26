@@ -21,6 +21,8 @@ X_feats = pp.get_array(df,metadata_col=['crop_path','loc_idx','time'])
 # z-score
 X_scaled = pp.scale_features(X_feats)
 
+np.save('../data/MAE_feats_normed',X_scaled)
+
 # build dataframe of scaled data, leaving out crop path metadata
 data_scaled = np.hstack((X_scaled,df['time'].values[:,None],df['loc_idx'].values[:,None]))
 cols = df.columns[~df.columns.isin(['crop_path'])]

@@ -98,8 +98,7 @@ def KM_avg_2D(X, bins, stride, dt, multi_traj=False):
 
             for uid in uids:
                 mask = np.where((id1==uid[0])*(id2==uid[1]))[0]
-            # make this more efficient - can be done in one loop?
-            # At each histogram bin, find time series points where the state falls into this bin
+                # At each histogram bin, find time series points where the state falls into this bin
                 f_KM[uid[0]-1,uid[1]-1,:,j] = np.mean(dY[mask],axis=0) # Conditional average  ~ drift
                 a_KM[uid[0]-1,uid[1]-1,:,j] = 0.5*np.mean(dY2[mask],axis=0) # Conditional variance  ~ diffusion
 
