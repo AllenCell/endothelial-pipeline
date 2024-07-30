@@ -4,3 +4,7 @@ GPU available: True
 
 Optimizing... 
 
+Full optimization took 64042.81926989555 seconds 
+
+Saving results to outputs/coeffs_highFlow.npy and outputs/cost_highFlow.npy
+

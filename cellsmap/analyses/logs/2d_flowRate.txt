@@ -1,5 +1,4 @@
 GPU available: True
-
     Device: cuda:0
 
 Optimizing... 

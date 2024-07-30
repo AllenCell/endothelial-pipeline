@@ -14,7 +14,7 @@ with open(logfile, 'w') as f:
     print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
 
 
-stride = 30
+stride = 12
 dt = 5
 X_t = np.load('data/MAE_95pctVarPCs_all.npy')
 
@@ -23,7 +23,7 @@ num_t = X_t.shape[1]
 num_feats = X_t.shape[2]
 
 t_change = (24*60 - 25)//5 # time point (frame number) at which to change from high to low flow occurs (25 minutes before 24 hours)
-flow_rate = (20-6)*(1-np.heaviside(np.arange(num_t)-t_change,1)) + 6 # flow rate in dyn/cym^2 as a function of time
+flow_rate = (20-6)*(1-1/(1+np.exp(-0.5*(np.arange(num_t)-t_change)))) + 6 # flow rate in dyn/cym^2 as a function of time (continuous sigmoidal function)
 
 data = [np.vstack((X_t[i,:,0],flow_rate)).T for i in range(num_loc)] # augment each trajectory with flow rate, pass as list into KM_avg
 
