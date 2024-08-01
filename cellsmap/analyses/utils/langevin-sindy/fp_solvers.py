@@ -47,14 +47,19 @@ class AdjFP:
         hx, hy = x[1]-x[0], y[1]-y[0]
         Nx, Ny = len(x), len(y)
 
-        Dy = sparse.diags( [-1, 1], [-1, 1], shape=(Ny, Ny) ).toarray()
-        
-        # Second-order forward/backwards at boundaries
-        Dy[0, :3] = np.array([-3, 4, -1])
-        Dy[-1, -3:] = np.array([1, -4, 3])
-        # Repeat for each x-location
-        Dy = linalg.block_diag(*Dy.reshape(1, Ny, Ny).repeat(Nx,axis=0))/(2*hy)
-        Dy = sparse.csr_matrix(Dy)
+        if Ny == 2:
+            Dy = np.array([[-1, 1], [-1, 1]])
+            Dy = linalg.block_diag(*Dy.reshape(1, Ny, Ny).repeat(Nx,axis=0))/hy
+            Dy = sparse.csr_matrix(Dy)
+        else:
+            Dy = sparse.diags( [-1, 1], [-1, 1], shape=(Ny, Ny) ).toarray()
+            
+            # Second-order forward/backwards at boundaries
+            Dy[0, :3] = np.array([-3, 4, -1])
+            Dy[-1, -3:] = np.array([1, -4, 3])
+            # Repeat for each x-location
+            Dy = linalg.block_diag(*Dy.reshape(1, Ny, Ny).repeat(Nx,axis=0))/(2*hy)
+            Dy = sparse.csr_matrix(Dy)
 
         Dx = sparse.diags( [-1, 1], [-Ny, Ny], shape=(Nx*Ny, Nx*Ny)).toarray()
         # Second-order forwards/backwards at boundaries

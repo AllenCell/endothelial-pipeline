@@ -14,7 +14,7 @@ with open(logfile, 'w') as f:
     print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
 
 
-stride = 12
+stride = 30
 dt = 5
 X_t = np.load('data/MAE_95pctVarPCs_all.npy')
 
@@ -25,7 +25,11 @@ num_feats = X_t.shape[2]
 t_change = (24*60 - 25)//5 # time point (frame number) at which to change from high to low flow occurs (25 minutes before 24 hours)
 flow_rate = (20-6)*(1-1/(1+np.exp(-0.5*(np.arange(num_t)-t_change)))) + 6 # flow rate in dyn/cym^2 as a function of time (continuous sigmoidal function)
 
-data = [np.vstack((X_t[i,:,0],flow_rate)).T for i in range(num_loc)] # augment each trajectory with flow rate, pass as list into KM_avg
+nospike = np.r_[0:t_change, (t_change+5):num_t]
+data = [np.vstack((X_t[i,nospike,0],flow_rate[nospike])).T for i in range(num_loc)] # augment each trajectory with flow rate, pass as list into KM_avg
+
+stationary = np.r_[100:t_change, (t_change+100):num_t]
+data_stationary = [np.vstack((X_t[i,stationary,0],flow_rate[stationary])).T for i in range(num_loc)] # for stationary dist.
 
 N = 32
 min0 = min([min(traj[:,0]) for traj in data])
@@ -47,7 +51,7 @@ dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
 bins = [bins0,bins1]
 centers = [centers0,centers1]
 
-p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
+p_hist, _, _ = np.histogram2d(np.concatenate(data_stationary)[:,0],np.concatenate(data_stationary)[:,1], bins, density=True)
 np.save('outputs/bins_flowRate.npy',np.array(bins,dtype=object),allow_pickle=True)
 np.save('outputs/p_hist_flowRate.npy',p_hist)
 
@@ -147,7 +151,7 @@ params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "radial": False}
 
 # Use anonymous function to automatically pass the cost function
-opt_fun = lambda params: lg.AFP_opt(lg.cost2, params)
+opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
 start_time = time()
 with open(logfile, 'a') as f:
     print("Optimizing... \n", file=f)

@@ -147,57 +147,11 @@ def sindy_model(Xi, expr_list):
 ##### functions for optimization problem #####
 
 def cost(Xi, params):
-    """
-    Least-squares cost function for optimization (regularized by KL divergence between p_fit and p_hist)
-    This version is only good in 1D, but could be extended pretty easily
-    Xi - current coefficient estimates
-    param - inputs to optimization problem: grid points, list of candidate expressions, regularizations
-        W, f_KM, a_KM, x_pts, y_pts, x_msh, y_msh, f_expr, a_expr, l1_reg, l2_reg, kl_reg, p_hist, etc
-    """
-    # Unpack parameters
-    W = params['W']  # Optimization weights
-    
-    # Kramers-Moyal coefficients
-    f_KM, a_KM = params['f_KM'].flatten(), params['a_KM'].flatten()
-    
-    fp, afp = params['fp'], params['afp'] # Fokker-Planck solvers
-    lib_f, lib_s = params['lib_f'], params['lib_s']
-    N = params['N']
-    
-    # Construct parameterized drift and diffusion functions from libraries and current coefficients
-    f_vals = lib_f @ Xi[:lib_f.shape[-1]]
-    a_vals = 0.5*(lib_s @ Xi[lib_f.shape[-1]:])**2
-        
-    # Solve AFP equation to find finite-time corrected drift/diffusion
-    #    corresponding to the current parameters Xi
-    afp.precompute_operator(np.reshape(f_vals, N), np.reshape(a_vals, N))
-    f_tau, a_tau = afp.solve(params['tau'])
-            
-    # Histogram points without data have NaN values in K-M average - ignore these in the average
-    mask = np.nonzero(np.isfinite(f_KM))[0]
-    V = np.sum(W[0, mask]*abs(f_tau[mask] - f_KM[mask])**2) \
-      + np.sum(W[1, mask]*abs(a_tau[mask] - a_KM[mask])**2)
-    
-    # Include PDF constraint via Kullbeck-Leibler divergence regularization
-    if params['kl_reg'] > 0:
-        p_hist = params['p_hist']  # Empirical PDF
-        p_est = fp.solve(f_vals, a_vals)  # Solve Fokker-Planck equation for steady-state PDF
-        kl = kl_divergence(p_hist, p_est, dx=fp.dx, tol=1e-6)
-        kl = max(0, kl)  # Numerical integration can occasionally produce small negative values
-        V += params['kl_reg']*kl
-    
-    return V
-
-def cost2(Xi, params):
-    '''2d version of cost function.
-
+    '''
     Xi - current coefficient estimates (vector)
     param - inputs to optimization problem: grid points, list of candidate expressions, regularizations
         W, f_KM, a_KM, x_pts, y_pts, x_msh, y_msh, f_expr, a_expr, l1_reg, l2_reg, kl_reg, p_hist, etc
-
-    Note, can probably combine with 1d version with a simple ndim check, only 
-    difference is in what is passed into afp solve (and then taking the transpose
-    of the outputs f_tau and a_tau)'''
+    '''
 
     #start_cost = time()
     # Unpack parameters
@@ -221,14 +175,19 @@ def cost2(Xi, params):
     afp.precompute_operator(f_vals.reshape((afp.ndim,np.prod(afp.N))),a_vals.reshape((afp.ndim,np.prod(afp.N))))
     #print('%%%% Computing AdjFP operator time: {0} seconds %%%%'.format(time() - start_afp_op))
     #start_afp = time()
-    f_tau, a_tau = afp.solve(params['tau'],d=[0,1])
+    if afp.ndim == 1:
+        f_tau, a_tau = afp.solve(params['tau'])
+    elif afp.ndim == 2:
+        f_tau, a_tau = afp.solve(params['tau'],d=[0,1])
+        f_tau = f_tau.T
+        a_tau = a_tau.T
     #print('%%%% Solving AdjFP time: {0} seconds %%%%'.format(time() - start_afp))
 
             
     # Histogram points without data have NaN values in K-M average - ignore these in the average
     mask = np.where(np.isfinite(f_KM))
-    V = np.sum(W[0, mask]*np.abs(f_tau.T[mask] - f_KM[mask])**2) \
-        + np.sum(W[1, mask]*np.abs(a_tau.T[mask] - a_KM[mask])**2)
+    V = np.sum(W[0, mask]*np.abs(f_tau[mask] - f_KM[mask])**2) \
+        + np.sum(W[1, mask]*np.abs(a_tau[mask] - a_KM[mask])**2)
 
     # Include PDF constraint via Kullbeck-Leibler divergence regularization
     if params['kl_reg'] > 0:

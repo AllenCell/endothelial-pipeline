@@ -21,7 +21,8 @@ X_t_low = np.load('data/MAE_95pctVarPCs_lowFlow.npy')
 num_loc = X_t_low.shape[0]
 num_feats = X_t_low.shape[2]
 
-data = [X_t_low[i,:,:2] for i in range(num_loc)] # high flow data, pass as list into KM_avg
+data = [X_t_low[i,5:,:2] for i in range(num_loc)] # low flow data, pass as list into KM_avg
+data_stationary = [X_t_low[i,100:,:] for i in range(num_loc)] # "Steady state" low flow data, for histogram
 
 N = 32
 min0 = min([min(traj[:,0]) for traj in data])
@@ -44,7 +45,7 @@ dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
 bins = [bins0,bins1]
 centers = [centers0,centers1]
 
-p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
+p_hist, _, _ = np.histogram2d(np.concatenate(data_stationary)[:,0],np.concatenate(data_stationary)[:,1], bins, density=True)
 np.save('outputs/bins_lowFlow.npy',bins)
 np.save('outputs/p_hist_lowFlow.npy',p_hist)
 
@@ -144,7 +145,7 @@ params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "radial": False}
 
 # Use anonymous function to automatically pass the cost function
-opt_fun = lambda params: lg.AFP_opt(lg.cost2, params)
+opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
 start_time = time()
 with open(logfile, 'a') as f:
     print("Optimizing... \n",file=f)
