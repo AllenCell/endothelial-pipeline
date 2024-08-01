@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils/langevin-sindy')
+sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils/langevin_sindy')
 import sympy
 import fp_solvers as fps
 import langevin_sindy as lg
