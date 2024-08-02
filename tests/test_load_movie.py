@@ -1,4 +1,6 @@
 from cellsmap.util import load_dataset
+from cellpose import models
+
 
 def test_load_dataset():
     # check end point specification
@@ -11,4 +13,8 @@ def test_load_dataset():
     movie = load_dataset('cdh5_path', time_start=1, time_end = 2, resolution=1)
     assert movie.shape[1:] == (856, 4796)
 
+    
+if __name__ == '__main__':
+
+    dat = test_load_dataset()
     
