@@ -5,6 +5,7 @@ from cellsmap.util import io
 from cyto_dl.api import CytoDLModel
 from cellsmap.util import get_model_config_path
 import json
+from pathlib import Path
 
 
 def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict={}):
@@ -24,6 +25,7 @@ def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict
     model.override_config(overrides)
     model.print_config()
 
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
     # apply model
     model.predict()
 
