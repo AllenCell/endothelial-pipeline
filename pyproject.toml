@@ -14,9 +14,9 @@ dependencies = [
     "bioio-base>=1.0.1",
     "bioio-ome-zarr>=1.0.1",
     "cellpose==2.3.2",
-    "aicsimageio>=4.14.0"
+    "aicsimageio>=4.14.0",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 readme = "README.md"
 license = {text = "AISL"}
 
