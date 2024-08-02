@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils/langevin-sindy')
+sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils/langevin_sindy')
 import sympy
 import fp_solvers as fps
 import langevin_sindy as lg
@@ -145,7 +145,7 @@ params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "radial": False}
 
 # Use anonymous function to automatically pass the cost function
-opt_fun = lambda params: lg.AFP_opt(lg.cost2, params)
+opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
 start_time = time()
 with open(logfile, 'a') as f:
     print("Optimizing... \n",file=f)
