@@ -56,14 +56,14 @@ def findroot(func, init):
 def get_fps(myFlow,ICs):
     '''Return the list of unique fixed points of the system x' = myFlow(x) starting around ICs
     '''
-    fps = [] 
+    fpts = [] 
     # find each of the fixed points near the starting points numerically using the function findroot
     roots = [findroot(myFlow, ic) for ic in ICs]
     # Only keep unique fixed points and throw away 'nan' entries (findroot did not converge)
     for r in roots:
-        if (not any(np.isnan(r)) and not any([all(np.isclose(r, x)) for x in fps])):
-            fps.append(r)
-    return fps
+        if (not any(np.isnan(r)) and not any([all(np.isclose(r, x)) for x in fpts])):
+            fpts.append(r)
+    return list(set(map(tuple,np.round(fpts,4)))) # round to 4 decimal places, get unique elements of list
 
 def find_stability(J):
     """ Determines stability of a fixed point given its associated 2x2 Jacobian matrix. 
@@ -130,6 +130,7 @@ def plot_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,par
     x2_coarse = np.linspace(x2[0],x2[-1],N2_coarse)
     init_coarse = [(x1_coarse[i],x2_coarse[j]) for i in range(N1_coarse) for j in range(N2_coarse)]
     fpts = get_fps(myFlow,init_coarse) # get fixed points
+
     fpt_types = []
     if len(fpts) > 0: # check if there are fixed points
         # define Jacobian as a function of x - for getting stability:

@@ -22,6 +22,7 @@ num_loc = X_t_high.shape[0]
 num_feats = X_t_high.shape[2]
 
 data = [X_t_high[i,:,:2] for i in range(num_loc)] # high flow data, pass as list into KM_avg
+data_stationary = [X_t_high[i,100:,:] for i in range(num_loc)] # "Steady state" low flow data, for histogram
 
 N = 32
 min0 = min([min(traj[:,0]) for traj in data])
@@ -44,7 +45,7 @@ dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
 bins = [bins0,bins1]
 centers = [centers0,centers1]
 
-p_hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
+p_hist, _, _ = np.histogram2d(np.concatenate(data_stationary)[:,0],np.concatenate(data_stationary)[:,1], bins, density=True)
 np.save('outputs/bins_highFlow.npy',bins)
 np.save('outputs/p_hist_highFlow.npy',p_hist)
 
