@@ -297,6 +297,10 @@ def SSR_loop(opt_fun, params):
         print("Cost: {0}".format(V[k]))
         # Delete least important term
         active = np.delete(active, min_idx)  # Remove inactive index
+        print(active)
+        print(min_Xi.shape)
+        print(Xi0.shape)
+        print(Xi.shape)
         Xi0[active] = min_Xi  # Re-initialize with best results from previous
         Xi[active, k] = min_Xi
         print(Xi[:, k])
