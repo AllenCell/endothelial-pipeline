@@ -13,7 +13,7 @@ nuclei_segmentation_workflow.py
 
 # Note: This requires Ultrack to be installed. However, I could not get the installation requirements compatible with this repo's toml file. Therefore, we can either install it as a standalone tool in a new environment or use the conda environment goutham_ultrack on the slurm cluster
 
-tracking_ultrack_endo_multiseg.py
+tracking_ultrack_endo_multiseg.py # This is what is used to reproduce the nuclei tracking
 
 tracking_ultrack_endo_multiseg_cell.py # Don't think we are using this anymore(This is for cell)
 
