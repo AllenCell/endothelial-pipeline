@@ -4,7 +4,7 @@
 The nuclei were segmented using cellpose.
 
 ```
-# Nuclei segmentation workflow - This applies two cellpose models to the raw images
+# Nuclei segmentation workflow - This applies two cellpose models to the raw images. The model weights are set as the defualt arguments
 nuclei_segmentation_workflow.py
 ```
 
