@@ -8,7 +8,7 @@ The nuclei were segmented using cellpose.
 nuclei_segmentation_workflow.py
 ```
 
-# Tracking workflow
+# Tracking workflow (Don't think this is being used)
 ```
 
 # Note: This requires Ultrack to be installed. However, I could not get the installation requirements compatible with this repo's toml file. Therefore, we can either install it as a standalone tool in a new environment or use the conda environment goutham_ultrack on the slurm cluster
