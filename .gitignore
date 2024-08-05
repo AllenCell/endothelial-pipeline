@@ -28,3 +28,6 @@ pdm.lock
 
 # Data files
 *.npy
+
+# ignore locally generated results
+results/
