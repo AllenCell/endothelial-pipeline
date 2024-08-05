@@ -10,7 +10,7 @@ def get_array(df:pd.DataFrame,metadata_col=None) -> np.ndarray:
     to be left out of the numpy array.'''
 
     if metadata_col is not None:
-        X = df[df.columns[~df.columns.isin(['crop_path','loc_idx','time'])]].values
+        X = df[df.columns[~df.columns.isin(metadata_col)]].values
     else:
         X = df.values
     return X

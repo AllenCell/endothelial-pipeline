@@ -162,7 +162,10 @@ def cost(Xi, params):
     N = params['N']
 
     # Kramers-Moyal coefficients (N[1] x N[2] x ... x N[ndim] x ndim arrays, reshaped to 2D)
-    f_KM, a_KM = params['f_KM'].reshape((np.prod(N),afp.ndim)), params['a_KM'].reshape((np.prod(N),afp.ndim))
+    if afp.ndim == 1:
+        f_KM, a_KM = params['f_KM'].flatten(), params['a_KM'].flatten()
+    elif afp.ndim == 2:
+        f_KM, a_KM = params['f_KM'].reshape((np.prod(N),afp.ndim)), params['a_KM'].reshape((np.prod(N),afp.ndim))
 
     # Construct parameterized drift and diffusion functions from libraries and current coefficients
     # shape is ndim x N[1] x N[2] x ... x N[ndim] (needed for fp.solve, specifically fp.precompute_operator)
@@ -172,12 +175,14 @@ def cost(Xi, params):
     # Solve AFP equation to find finite-time corrected drift/diffusion
     #    corresponding to the current parameters Xi
     #start_afp_op = time()
-    afp.precompute_operator(f_vals.reshape((afp.ndim,np.prod(afp.N))),a_vals.reshape((afp.ndim,np.prod(afp.N))))
+    
     #print('%%%% Computing AdjFP operator time: {0} seconds %%%%'.format(time() - start_afp_op))
     #start_afp = time()
     if afp.ndim == 1:
-        f_tau, a_tau = afp.solve(params['tau'])
+        afp.precompute_operator(f_vals.reshape(N),a_vals.reshape(N))
+        f_tau, a_tau = afp.solve(params['tau'],d=0)
     elif afp.ndim == 2:
+        afp.precompute_operator(f_vals.reshape((afp.ndim,np.prod(afp.N))),a_vals.reshape((afp.ndim,np.prod(afp.N))))
         f_tau, a_tau = afp.solve(params['tau'],d=[0,1])
         f_tau = f_tau.T
         a_tau = a_tau.T
