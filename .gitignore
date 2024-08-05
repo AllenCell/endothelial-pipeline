@@ -20,6 +20,14 @@ pdm.lock
 
 # Log files
 *.log
+*.txt
+
+# Image files
+*.png
+*.tiff
+
+# Data files
+*.npy
 
 # ignore locally generated results
 results/
