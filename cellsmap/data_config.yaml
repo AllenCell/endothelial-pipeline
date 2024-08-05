@@ -5,5 +5,8 @@
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  contrastive_feature: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/outputs/2024-07-05/15-16-35/predictions.csv"
+  vicreg_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/vic_reg/predictions.csv,
+  mae_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_with_crops/predictions.csv,
+  jepa_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/jepa/predictions.csv,
+  vicreg_no_rot_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/vic_reg_no_rot/predictions.csv,
 }]

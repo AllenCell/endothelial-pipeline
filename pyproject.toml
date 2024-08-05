@@ -22,7 +22,8 @@ dependencies = [
     "sympy==1.13.1",
     "scipy==1.13.1",
     "ipykernel>=6.29.5",
-    "fire>=0.6.0"
+    "cyto-dl @ git+https://github.com/AllenCellModeling/cyto-dl.git@feature/jepa",
+    "fire>=0.6.0",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
@@ -41,3 +42,8 @@ build-backend = "pdm.pep517.api"
 
 [tool.pytest.ini_options]
 testpaths = "tests/"
+
+[tool.pdm]
+
+[tool.pdm.dev-dependencies]
+
