@@ -18,12 +18,16 @@ class CSVSaver(Callback):
         for pred, meta in predictions:
             # exclude cls token
             batch_feats = self.to_dataframe(pred)
-            batch_feats['time'] = meta['T']
-            batch_feats['crop_path'] = meta['crop_path'] 
+            for k in self.meta_keys:
+                batch_feats[k] = meta[k]
             feats.append(batch_feats)
         pd.concat(feats).to_csv(self.save_dir / 'predictions.csv', index=False)
 
 class MAESaver(CSVSaver):
     def to_dataframe(self, x):
         return pd.DataFrame(x[1:].mean(axis=0))
+    
+class JEPASaver(CSVSaver):
+    def to_dataframe(self, x):
+        return pd.DataFrame(x.mean(axis=1))
     

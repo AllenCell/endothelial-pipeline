@@ -7,4 +7,6 @@
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   vicreg_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/vic_reg/predictions.csv,
   mae_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_with_crops/predictions.csv,
+  jepa_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/jepa/predictions.csv,
+  vicreg_no_rot_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/vic_reg_no_rot/predictions.csv,
 }]

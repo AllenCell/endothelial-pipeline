@@ -13,7 +13,7 @@ dependencies = [
     "bioio-ome-tiff>=1.0.0",
     "bioio-base>=1.0.1",
     "bioio-ome-zarr>=1.0.1",
-    "cyto-dl @ git+https://github.com/AllenCellModeling/cyto-dl.git@feature/timelapse_inference_dataloader",
+    "cyto-dl @ git+https://github.com/AllenCellModeling/cyto-dl.git@feature/jepa",
     "fire>=0.6.0",
 ]
 requires-python = "<3.11,>=3.10"
@@ -21,11 +21,14 @@ readme = "README.md"
 license = {text = "AISL"}
 
 
-[tool.pdm]
-
 [build-system]
 requires = ["pdm-pep517>=1.0"]
 build-backend = "pdm.pep517.api"
 
 [tool.pytest.ini_options]
 testpaths = "tests/"
+
+[tool.pdm]
+
+[tool.pdm.dev-dependencies]
+
