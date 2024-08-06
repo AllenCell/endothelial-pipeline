@@ -291,6 +291,9 @@ def SSR_loop(opt_fun, params):
             if len(s_active) > 0 and len(f_active) > 0:
                 tmp_Xi, tmp_V = opt_fun(params)
 
+                if np.isnan(tmp_V):
+                    print('Warning: NaN cost')
+                    tmp_V = 1e8
                 # Keep minimum cost
                 if tmp_V < V[k]:
                     # Ensure that there is at least one drift and diffusion term left
