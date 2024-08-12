@@ -11,11 +11,14 @@ from skimage import morphology
 from skimage.exposure import rescale_intensity
 from pathlib import Path
 from bioio.writers import OmeTiffWriter
+from bioio import BioImage
+from bioio_base.types import PhysicalPixelSizes
 
 from cellsmap.util import load_dataset
+from cellsmap.util import extract_key_from_config
 
-## TODO ADD LINES TO PROPAGATE PIXEL SIZES
-## BETWEEN ORIGINAL AND NEWLY SAVED IMAGES
+
+
 
 def get_dim_map(dim_order: str):
     dims = [a for a in dim_order]
@@ -115,6 +118,7 @@ DIM_MAP = get_dim_map(DIM_ORDER)
 
 movie_name = 'cdh5_path'
 img_bin = 0
+px_sizes = BioImage(Path(extract_key_from_config(movie_name))).physical_pixel_sizes
 
 
 out_dir = Path('//allen/aics/assay-dev/users/Serge/')
@@ -190,12 +194,18 @@ for t in t_list:
 
     # SAVE OUTPUTS
     assert seg2_lab.max() < np.iinfo(np.uint16).max
-    merged_img = np.stack([seg2_lab, bounds2, raw_arr]).astype(np.uint16)
+    merged_img = np.stack([seg2_lab, bounds2, hyst_clean, raw_arr]).astype(np.uint16)
 
     out_path = prj_dir/f'{movie_name}_{t}.ome.tiff'
-    ch_colors = [[(0,255,255), (255,0,255), (255,255,255)]]
-    ch_names = [('segmentations', 'segmentation_borders', 'raw')]
-    OmeTiffWriter.save(merged_img, out_path, dim_order='CYX', channel_names=ch_names, channel_colors=ch_colors)
+    ch_colors = [(0,255,255), (255,0,255), (255,255,0), (255,255,255)]
+    ch_names = [('segmentations', 'segmentation_borders', 'hysteresis_threshold', 'raw')]
+    OmeTiffWriter.save(merged_img,
+                       out_path,
+                       physical_pixel_sizes=px_sizes,
+                       dim_order='CYX',
+                       image_name=movie_name,
+                       channel_names=ch_names,
+                       channel_colors=ch_colors)
 
 if IS_TEST:
     print(f'T={t} -- plotting watershed overlaid on image')
