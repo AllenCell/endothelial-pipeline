@@ -12,7 +12,6 @@ from skimage.exposure import rescale_intensity
 from pathlib import Path
 from bioio.writers import OmeTiffWriter
 from bioio import BioImage
-from bioio_base.types import PhysicalPixelSizes
 
 from cellsmap.util import load_dataset
 from cellsmap.util import extract_key_from_config
@@ -21,10 +20,9 @@ from cellsmap.util import extract_key_from_config
 
 
 def get_dim_map(dim_order: str):
+
     dims = [a for a in dim_order]
-
     dim_nums = tuple(range(len(dims)))
-
     dim_map = dict(zip(dims, dim_nums))
 
     return dim_map# -> tuple(int)
@@ -38,12 +36,6 @@ def preprocess(raw_arr):
     sub = gauss - rolling_ball(gauss, radius=20)
 
     return sub
-
-
-
-def get_threshold_img(img_arr):
-    
-    return img_arr
 
 
 
@@ -65,9 +57,8 @@ def get_noodly_regions(binary_img_arr, axis_ratio_filter=2.5, solidity_filter=0.
                         if (hyst_props_axes_ratio[prop.label] < axis_ratio_filter
                             and hyst_props_solidity[prop.label] > solidity_filter)]
 
-    ## KEEP ONLY THE NOODLY PIECES
+    ## SPLIT UP NOODLY PIECES AND OTHER PIECES
     hyst_clean = np.isin(hyst_labeled, hyst_props_noodly)
-
     hyst_removed = np.isin(hyst_labeled, hyst_props_squat)
 
     return hyst_clean, hyst_removed
@@ -115,24 +106,25 @@ def clean_labeled_img(labeled_img, eccentricity_filter=0.5, size_filter_conditio
 IS_TEST = True
 DIM_ORDER = 'TYX' # 'TCZYX'
 DIM_MAP = get_dim_map(DIM_ORDER)
+SCT_NAME = Path(__file__).stem
 
 movie_name = 'cdh5_path'
 img_bin = 0
 px_sizes = BioImage(Path(extract_key_from_config(movie_name))).physical_pixel_sizes
 
 
-out_dir = Path('//allen/aics/assay-dev/users/Serge/')
-assert out_dir.exists()
-prj_dir = out_dir / 'cellsmap_out'
-Path.mkdir(prj_dir, exist_ok=True)
+prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
+assert prj_dir.exists()
+out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
+Path.mkdir(out_dir, exist_ok=True)
 
 raw = load_dataset(movie_name, time_start=0, resolution=img_bin)
 if IS_TEST:
-    t_list = range(0,3)
+    t_list = range(0,5)
     crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
     crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
 else:
-    # in hte line below: replace '20' with what follows
+    # in the line below: replace '20' with what follows
     # in the comment to analyze the whole timelapse
     t_list = range(20) # raw.shape[DIM_MAP["T"]])
     crop_y = slice(None, None)
@@ -196,7 +188,7 @@ for t in t_list:
     assert seg2_lab.max() < np.iinfo(np.uint16).max
     merged_img = np.stack([seg2_lab, bounds2, hyst_clean, raw_arr]).astype(np.uint16)
 
-    out_path = prj_dir/f'{movie_name}_{t}.ome.tiff'
+    out_path = out_dir/f'{movie_name}_T{t}.ome.tiff'
     ch_colors = [(0,255,255), (255,0,255), (255,255,0), (255,255,255)]
     ch_names = [('segmentations', 'segmentation_borders', 'hysteresis_threshold', 'raw')]
     OmeTiffWriter.save(merged_img,

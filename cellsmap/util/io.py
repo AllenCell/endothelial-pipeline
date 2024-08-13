@@ -24,3 +24,11 @@ def load_dataset(movie_name: str, time_start:int = 0, time_end: int=576, resolut
     img.set_resolution_level(resolution)
     img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1) )
     return img
+
+def get_dim_map(dim_order: str):
+
+    dims = [a for a in dim_order]
+    dim_nums = tuple(range(len(dims)))
+    dim_map = dict(zip(dims, dim_nums))
+
+    return dim_map# -> tuple(int)
