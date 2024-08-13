@@ -43,7 +43,5 @@ build-backend = "pdm.pep517.api"
 [tool.pytest.ini_options]
 testpaths = "tests/"
 
-[tool.pdm]
-
 [tool.pdm.dev-dependencies]
 
