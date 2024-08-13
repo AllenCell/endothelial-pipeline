@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils/langevin-sindy')
+sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils/langevin_sindy')
 import sympy
 import fp_solvers as fps
 import langevin_sindy as lg
@@ -46,15 +46,15 @@ bins = [bins0,bins1]
 centers = [centers0,centers1]
 
 p_hist, _, _ = np.histogram2d(np.concatenate(data_stationary)[:,0],np.concatenate(data_stationary)[:,1], bins, density=True)
-np.save('../outputs/bins_lowFlow.npy',bins)
-np.save('../outputs/p_hist_lowFlow.npy',p_hist)
+np.save('../outputs/bins_mae_lowFlow.npy',bins)
+np.save('../outputs/p_hist_mae_lowFlow.npy',p_hist)
 
 ## KM average (coarse grained subsampling)
 f_KM, a_KM, f_err, a_err = lg.KM_avg_2D(data, bins, stride=stride, dt=dt, multi_traj=True)
-np.save('../outputs/KM_drift_lowFlow.npy',f_KM)
-np.save('../outputs/KM_diff_lowFlow.npy',a_KM)
-np.save('../outputs/KM_drift_err_lowFlow.npy',f_err)
-np.save('../outputs/KM_diff_err_lowFlow.npy',a_err)
+np.save('../outputs/KM_drift_mae_lowFlow.npy',f_KM)
+np.save('../outputs/KM_diff_mae_lowFlow.npy',a_KM)
+np.save('../outputs/KM_drift_err_mae_lowFlow.npy',f_err)
+np.save('../outputs/KM_diff_err_mae_lowFlow.npy',a_err)
 
 ### Build SINDy libraries with sympy
 x1 = sympy.symbols('x1')
@@ -154,8 +154,8 @@ Xi, V = lg.SSR_loop(opt_fun, params)
 with open(logfile, 'a') as f:
     print("Full optimization took "+str(time()-start_time)+" seconds \n",file=f)
 
-coeff_file = '../outputs/coeffs_lowFlow.npy'
-cost_file = '../outputs/cost_lowFlow.npy'
+coeff_file = '../outputs/coeffs_mae_lowFlow.npy'
+cost_file = '../outputs/cost_mae_lowFlow.npy'
 
 # Save the results
 with open(logfile, 'a') as f:

@@ -12,6 +12,10 @@ def stochastic_sim_EM(x0,drift,noise,n_timepoints,dt,rng=rnd.default_rng()):
     ensemble[:,0,:] = x0
     x = x0
     for j in range(1,n_timepoints):
+        if np.any(np.isnan(x)):
+            print(np.where(np.isnan(x)))
+            print(ensemble[:,j-1,:])
+            raise ValueError('NaN encountered at timepoint {}'.format(j))
         x = x + drift(x)*dt + np.sqrt(dt)*noise(x)*rng.standard_normal(size=(n_dim,n_traj))
         ensemble[:,j,:] = x
 

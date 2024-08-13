@@ -7,7 +7,7 @@ import langevin_sindy as lg
 import torch
 from time import time
 
-logfile="../logs/2d_flowRate.txt"
+logfile="../logs/2d_mae_flowRate.txt"
 
 with open(logfile, 'w') as f:
     print("GPU available: "+str(torch.cuda.is_available()), file=f)
@@ -52,15 +52,15 @@ bins = [bins0,bins1]
 centers = [centers0,centers1]
 
 p_hist, _, _ = np.histogram2d(np.concatenate(data_stationary)[:,0],np.concatenate(data_stationary)[:,1], bins, density=True)
-np.save('../outputs/bins_flowRate.npy',np.array(bins,dtype=object),allow_pickle=True)
-np.save('../outputs/p_hist_flowRate.npy',p_hist)
+np.save('../outputs/bins_mae_flowRate.npy',np.array(bins,dtype=object),allow_pickle=True)
+np.save('../outputs/p_hist_mae_flowRate.npy',p_hist)
 
 ## KM average (coarse grained subsampling)
 f_KM, a_KM, f_err, a_err = lg.KM_avg_2D(data, bins, stride=stride, dt=dt, multi_traj=True)
-np.save('../outputs/KM_drift_flowRate.npy',f_KM)
-np.save('../outputs/KM_diff_flowRate.npy',a_KM)
-np.save('../outputs/KM_drift_err_flowRate.npy',f_err)
-np.save('../outputs/KM_diff_err_flowRate.npy',a_err)
+np.save('../outputs/KM_drift_mae_flowRate.npy',f_KM)
+np.save('../outputs/KM_diff_mae_flowRate.npy',a_KM)
+np.save('../outputs/KM_drift_err_mae_flowRate.npy',f_err)
+np.save('../outputs/KM_diff_err_mae_flowRate.npy',a_err)
 
 ### Build SINDy libraries with sympy
 x = sympy.symbols('x')
@@ -156,12 +156,12 @@ start_time = time()
 with open(logfile, 'a') as f:
     print("Optimizing... \n", file=f)
 
-Xi, V = lg.SSR_loop(opt_fun, params)
+Xi, V = lg.SSR_loop(opt_fun, params, logfile=logfile)
 with open(logfile, 'a') as f:
     print("Full optimization took "+str(time()-start_time)+" seconds \n",file=f)
 
-coeff_file = '../outputs/coeffs_flowRate.npy'
-cost_file = '../outputs/cost_flowRate.npy'
+coeff_file = '../outputs/coeffs_mae_flowRate.npy'
+cost_file = '../outputs/cost_mae_flowRate.npy'
 
 # Save the results
 with open(logfile, 'a') as f:

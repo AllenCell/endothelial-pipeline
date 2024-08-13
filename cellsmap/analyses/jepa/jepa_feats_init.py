@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import sys
+sys.path.append('/allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils')
 import preprocess as pp
 
 path_to_jepa = "//allen/aics/assay-dev/users/Benji/cellsmap/results/jepa/predictions.csv"

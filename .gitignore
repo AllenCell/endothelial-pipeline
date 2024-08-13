@@ -11,6 +11,9 @@ __pycache__/
 # PDM lock file
 pdm.lock
 
+# PDM virtual environment directory
+.pdm-python
+
 # Environment variables
 .env
 

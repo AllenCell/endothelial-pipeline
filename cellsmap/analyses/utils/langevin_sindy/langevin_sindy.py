@@ -171,6 +171,9 @@ def cost(Xi, params):
     # shape is ndim x N[1] x N[2] x ... x N[ndim] (needed for fp.solve, specifically fp.precompute_operator)
     f_vals = lib_f @ Xi[:lib_f.shape[-1]]
     a_vals = 0.5*(lib_s @ Xi[lib_f.shape[-1]:])**2
+    if afp.ndim >= 1 and f_vals.ndim == 1:
+        f_vals = f_vals.reshape((afp.ndim,)+N)
+        a_vals = a_vals.reshape((afp.ndim,)+N)
         
     # Solve AFP equation to find finite-time corrected drift/diffusion
     #    corresponding to the current parameters Xi
@@ -186,6 +189,7 @@ def cost(Xi, params):
         f_tau, a_tau = afp.solve(params['tau'],d=[0,1])
         f_tau = f_tau.T
         a_tau = a_tau.T
+
     #print('%%%% Solving AdjFP time: {0} seconds %%%%'.format(time() - start_afp))
 
             
@@ -239,7 +243,7 @@ def AFP_opt(cost, params):
     else:
         return res.x, res.fun
 
-def SSR_loop(opt_fun, params):
+def SSR_loop(opt_fun, params, logfile=None):
     """
     Stepwise sparse regression: general function for a given optimization problem
        opt_fun should take the parameters and return coefficients and cost
@@ -291,9 +295,13 @@ def SSR_loop(opt_fun, params):
             if len(s_active) > 0 and len(f_active) > 0:
                 tmp_Xi, tmp_V = opt_fun(params)
 
-                if np.isnan(tmp_V):
-                    print('Warning: NaN cost')
-                    tmp_V = 1e8
+                if not np.isfinite(tmp_V):
+                    if logfile is not None:
+                        with open(logfile, 'a') as f:
+                            print('Warning: Inf or NaN cost, setting cost to 1e7', file=f)
+                    else:
+                        print('Warning: Inf or NaN cost, setting cost to 1e7')
+                    tmp_V = 1e7
                 # Keep minimum cost
                 if tmp_V < V[k]:
                     # Ensure that there is at least one drift and diffusion term left
@@ -301,17 +309,23 @@ def SSR_loop(opt_fun, params):
                     min_idx = j
                     V[k] = tmp_V
                     min_Xi = tmp_Xi
-            
-        print("Cost: {0}".format(V[k]))
+
+        if logfile is not None:
+            with open(logfile, 'a') as f:
+                print("Cost: {0}".format(V[k]), file=f)
+        else:    
+            print("Cost: {0}".format(V[k]))
         # Delete least important term
         active = np.delete(active, min_idx)  # Remove inactive index
-        print(active)
-        print(min_Xi.shape)
-        print(Xi0.shape)
-        print(Xi.shape)
         Xi0[active] = min_Xi  # Re-initialize with best results from previous
         Xi[active, k] = min_Xi
-        print(Xi[:, k])
+        if logfile is not None:
+            with open(logfile, 'a') as f:
+                print("Active terms: {0}".format(active), file=f)
+                print("Coefficients: {0}".format(Xi[:, k]), file=f)
+        else:
+            print("Active terms: {0}".format(active))
+            print("Coefficients: {0}".format(Xi[:, k]))
         
     return Xi, V
 
