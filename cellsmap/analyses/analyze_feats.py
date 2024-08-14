@@ -6,7 +6,7 @@ from utils.sparse_vfc import sparseVFC as svfc
 from utils import preprocess as pp
 
 def get_inputs():
-    print("\n       ******* Cellsmap dynamical systems model fitting workflow ******* \n")
+    print("\n","******* Cellsmap dynamical systems model fitting workflow ******* \n",sep='')
     print("Before continuing, make sure the time series data contains metadata for the trajectory index (column label `index`) and time point (column label `time`). \n")
     print("The data should be saved in .csv format, where columns are the features + metadata, and rows are instances of each trajectory at each timepoint. \n")
     path_to_data = input("Enter the path to the data: ").replace('"', '')
@@ -17,24 +17,30 @@ def get_inputs():
         ndim_temp = input("Do you want to analyze the data along the top PCs (explaining 95 pct of the variance)? (y/n): ")
         if ndim_temp == 'y':
             ndim = 0
+            if model == 'langevin_sindy':
+                print("\n","WARNING: The Langevin SINDy model is only implemented for up to 2D data. Continuing may result in an error. \n",sep='')
         else:
             ndim = int(input("Enter the number of PCs on which you want to project the data: "))    
     else:
         print("The data will be analyzed in the original feature space. \n")
-        ndim_temp = input("Is the dimensionality of the data greater than 2? (y/n): ")
-        if ndim_temp == 'y' and model == 'langevin_sindy':
-            raise NotImplementedError("The Langevin SINDy model is only implemented for up to 2D data. Please choose another model.")
+        feat_temp = input("Do you want to fit the model on a subset of the features? (y/n): ")
+        if feat_temp == 'y':
+            ndim_temp = input("Enter which feature(s) by index (separated by commas if multiple): ")
+            ndim = tuple(map(int, ndim_temp.split(',')))
+            if len(ndim) == 1:
+                ndim = ndim[0]
+            elif len(ndim) > 2 and model == 'langevin_sindy':
+                raise NotImplementedError("The Langevin SINDy model is only implemented for up to 2D data. Please choose another model.")
         else:
-            feat_temp = input("Do you want to fit the model on a subset of the features? (y/n): ")
-            if feat_temp == 'y':
-                ndim_temp = input("Enter which feature(s) by index (separated by commas if multiple): ")
-                ndim = tuple(map(int, ndim_temp.split(',')))
-                if len(ndim) == 1:
-                    ndim = ndim[0]
-            else:
-                ndim = int(input("Enter a number n to fit the model on the first n features: "))
-                if model == 'langevin_sindy' and ndim > 2:
+            ndim = int(input("Enter a number n to fit the model on the first n features (enter 0 to analyze all): "))
+            if model == 'langevin_sindy':
+                if ndim > 2:
                     raise NotImplementedError("The Langevin SINDy model is only implemented for up to 2D data. Please choose another model.")
+                elif ndim == 0:
+                    ndim_temp = input("Is the dimensionality of the data great than 2? (y/n): ")
+                    if ndim_temp == 'y':
+                        raise NotImplementedError("The Langevin SINDy model is only implemented for up to 2D data. Please choose another model.")
+                    
     savedir = input("Enter the path to the directory where you want to save the model outputs: ")
     return path_to_data,model,PCA,ndim,savedir
 
@@ -107,6 +113,9 @@ def fit_model(X_t,model,savedir):
 def main():
     path_to_data,model,PCA,ndim,savedir = get_inputs()
     X_t = get_scaled_traj(path_to_data,PCA,ndim)
+    if model == 'langevin_sindy':
+        if X_t.shape[2] > 2:
+            raise NotImplementedError("The Langevin SINDy model is only implemented for up to 2D data. Please choose another model.")
     fit_model(X_t,model,savedir)
     print("Test complete.")
 
