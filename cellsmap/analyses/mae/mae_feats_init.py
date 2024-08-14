@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import sys
 sys.path.append('/allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/utils')
-import preprocess as pp
+from ..utils import preprocess as pp
 
 path_to_mae = "//allen/aics/assay-dev/users/Benji/cellsmap/results/mae_with_crops/predictions.csv"
 df = pd.read_csv(path_to_mae)

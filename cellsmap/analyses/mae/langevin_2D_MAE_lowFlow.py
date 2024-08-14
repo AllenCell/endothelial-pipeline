@@ -7,7 +7,7 @@ import langevin_sindy as lg
 import torch
 from time import time
 
-logfile="../logs/2d_lowFlow.txt"
+logfile="../logs/2d_mae_lowFlow.txt"
 
 with open(logfile, 'w') as f:
     print("GPU available: "+str(torch.cuda.is_available()), file=f)
@@ -123,8 +123,8 @@ Xi0[len(f_expr):] = np.linalg.lstsq(A2,b2, rcond=None)[0]  # Regression against 
 
 ### Weights: uncertainties in Kramers-Moyal
 # This is helpful, but not that critical.  The specific choice of weights doesn't matter that much
-W = np.array((f_err.flatten(), a_err.flatten()))
-W[np.less(abs(W), 1e-12, where=np.isfinite(W))] = 1e6  # Set zero entries to large weights
+W = np.array((f_err.reshape((N*N,2)), a_err.reshape(N*N,2)))
+W[np.less(abs(W), 1e-12, where=np.isfinite(W))] = 1e6  # Set zero entries to large numbers (small weights)
 W[np.logical_not(np.isfinite(W))] = 1e6                 # Set NaN entries to large numbers (small weights)
 W = 1/W  # Invert error for weights
 W = W/np.nansum(W.flatten())
@@ -140,7 +140,7 @@ fp = fps.SteadyFP((N,N), dx)
 params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "f_expr": f_expr, "s_expr": s_expr,
           "lib_f": lib_f, "lib_s": lib_s, "N": (N,N),
-          "kl_reg": 10,
+          "kl_reg": 0.5,
           "fp": fp, "afp": afp, "p_hist": p_hist, "tau": stride*dt,
           "radial": False}
 

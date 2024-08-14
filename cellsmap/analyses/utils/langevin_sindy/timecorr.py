@@ -46,7 +46,7 @@ def autocorr_func_2D(x, norm=True):
 def ntrapz(I, dx):
     '''Numerical integration for arbitrary dimensions'''
     if isinstance(dx, int) or isinstance(dx, float) or len(dx)==1:
-        return np.trapz(I, dx=dx, axis=0)
+        return np.trapz(I, dx=dx, axis=-1)
     else:
         return np.trapz( ntrapz(I, dx[1:]), dx=dx[0])
 

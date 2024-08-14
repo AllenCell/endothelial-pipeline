@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 from time import time
-from timecorr import kl_divergence
-import torch
+from .timecorr import kl_divergence
 
 # adapted from https://github.com/dynamicslab/langevin-regression
 # AFP solver object
@@ -95,6 +94,8 @@ def KM_avg_2D(X, bins, stride, dt, multi_traj=False):
             id1 = np.digitize(Y[:-1,0],bins[0]) # which dimension 1 bin
             id2 = np.digitize(Y[:-1,1],bins[1]) # which dimension 2 bin
             uids = list(set(zip(id1,id2))) # unique bin ids
+            if len(bins[0]) in id1 or len(bins[1]) in id2:
+                raise ValueError('Data point outside of histogram bins')
 
             for uid in uids:
                 mask = np.where((id1==uid[0])*(id2==uid[1]))[0]
@@ -172,8 +173,8 @@ def cost(Xi, params):
     f_vals = lib_f @ Xi[:lib_f.shape[-1]]
     a_vals = 0.5*(lib_s @ Xi[lib_f.shape[-1]:])**2
     if afp.ndim >= 1 and f_vals.ndim == 1:
-        f_vals = f_vals.reshape((afp.ndim,)+N)
-        a_vals = a_vals.reshape((afp.ndim,)+N)
+        f_vals = np.swapaxes(f_vals.reshape((afp.ndim,N[1],N[0])),1,2)
+        a_vals = np.swapaxes(a_vals.reshape((afp.ndim,N[1],N[0])),1,2)
         
     # Solve AFP equation to find finite-time corrected drift/diffusion
     #    corresponding to the current parameters Xi
@@ -194,7 +195,7 @@ def cost(Xi, params):
 
             
     # Histogram points without data have NaN values in K-M average - ignore these in the average
-    mask = np.where(np.isfinite(f_KM))
+    mask = np.where(np.isfinite(f_KM))[0]
     V = np.sum(W[0, mask]*np.abs(f_tau[mask] - f_KM[mask])**2) \
         + np.sum(W[1, mask]*np.abs(a_tau[mask] - a_KM[mask])**2)
 
@@ -203,7 +204,7 @@ def cost(Xi, params):
         #start_fp = time()
         p_hist = params['p_hist']  # Empirical PDF
         p_est = fp.solve(f_vals, a_vals)  # Solve Fokker-Planck equation for steady-state PDF
-        kl = kl_divergence(p_hist, p_est, dx=fp.dx, tol=1e-6)
+        kl = kl_divergence(p_hist, p_est, dx=fp.dx, tol=1e-4)
         kl = max(0, kl)  # Numerical integration can occasionally produce small negative values
         V += params['kl_reg']*kl
         #print('%%%% FP solver time: {0} seconds %%%%'.format(time() - start_fp))
