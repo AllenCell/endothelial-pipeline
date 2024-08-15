@@ -18,6 +18,7 @@ class CSVSaver(Callback):
         for pred, meta in predictions:
             # exclude cls token
             batch_feats = self.to_dataframe(pred)
+            batch_feats['crop_index'] = range(len(batch_feats))
             for k in self.meta_keys:
                 batch_feats[k] = meta[k]
             feats.append(batch_feats)
