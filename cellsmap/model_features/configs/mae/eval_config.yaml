@@ -5,13 +5,14 @@ tags:
 - dev
 train: true
 test: false
-ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/mae/2024-07-09_15-37-27/checkpoints/epoch_909.ckpt"
+checkpoint:
+  ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/mae/2024-07-09_15-37-27/checkpoints/epoch_909.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
   batch_size: 1
   pin_memory: true
-  num_workers: 1
+  num_workers: 8
   spatial_dims: 2
   shuffle: False
   dict_meta:
@@ -25,8 +26,6 @@ data:
     - _target_: monai.transforms.GridSplit
       grid: [3, 18]
       size: [512, 512]
-    - _target_: cellsmap.model_features.utils.save.Save
-      save_dir: ${paths.output_dir}
 
 
 model:
@@ -68,6 +67,8 @@ callbacks:
   csv_saver:
     _target_: cellsmap.model_features.utils.csv_saver.MAESaver
     save_dir: ${paths.output_dir}
+    meta_keys: ['T']
+
 logger:
 trainer:
   _target_: lightning.Trainer

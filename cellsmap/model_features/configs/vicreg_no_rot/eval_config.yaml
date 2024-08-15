@@ -5,13 +5,14 @@ tags:
 - dev
 train: true
 test: false
-ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/vicreg_no_flip/2024-07-19_15-22-51/checkpoints/epoch_889.ckpt"
+checkpoint:
+  ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/vicreg_no_flip/2024-07-19_15-22-51/checkpoints/epoch_889.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
   batch_size: 1
   pin_memory: true
-  num_workers: 1
+  num_workers: 8
   spatial_dims: 2
   dict_meta:
     path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr
