@@ -5,13 +5,14 @@ tags:
 - dev
 train: true
 test: false
-ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/jepa/2024-07-29_11-25-34/checkpoints/epoch_319.ckpt"
+checkpoint:
+  ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/jepa/2024-07-29_11-25-34/checkpoints/epoch_319.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
   batch_size: 1
   pin_memory: true
-  num_workers: 1
+  num_workers: 8
   spatial_dims: 2
   shuffle: False
   dict_meta:
