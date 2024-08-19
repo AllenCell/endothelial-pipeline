@@ -13,8 +13,7 @@ pdm.lock
 .pdm-python
 
 # Environment variables
-.env
-.venv
+venv/
 
 # IDE files
 .vscode/
