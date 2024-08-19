@@ -10,6 +10,7 @@ __pycache__/
 
 # PDM lock file
 pdm.lock
+.pdm-python
 
 # Environment variables
 .env
@@ -20,6 +21,16 @@ pdm.lock
 
 # Log files
 *.log
+*.txt
+
+# Image files
+*.png
+*.tiff
+
+# Data files
+*.npy
 
 # ignore locally generated results
 results/
+
+

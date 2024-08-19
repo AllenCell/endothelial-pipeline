@@ -5,14 +5,16 @@ tags:
 - dev
 train: true
 test: false
-ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/mae/2024-07-09_15-37-27/checkpoints/epoch_909.ckpt"
+checkpoint:
+  ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/mae/2024-07-09_15-37-27/checkpoints/epoch_909.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
   batch_size: 1
   pin_memory: true
-  num_workers: 1
+  num_workers: 8
   spatial_dims: 2
+  shuffle: False
   dict_meta:
     path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr
     channel: 0
@@ -22,8 +24,10 @@ data:
     - _target_: monai.transforms.ToTensor
       dtype: float16
     - _target_: monai.transforms.GridSplit
-      grid: [6, 9]
+      grid: [3, 18]
       size: [512, 512]
+
+
 model:
   _target_: cyto_dl.models.contrastive.Contrastive
   anchor_key: raw
@@ -61,8 +65,10 @@ model:
       pct_start: 0.1
 callbacks:
   csv_saver:
-    _target_: cellsmap.model_features.utils.csv_saver_mae.CSVSaver
+    _target_: cellsmap.model_features.utils.csv_saver.MAESaver
     save_dir: ${paths.output_dir}
+    meta_keys: ['T']
+
 logger:
 trainer:
   _target_: lightning.Trainer

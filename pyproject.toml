@@ -5,6 +5,7 @@ description = ""
 authors = [
     {name = "", email = ""},
 ]
+
 dependencies = [
     "pytest>=8.2.2",
     "pathlib>=1.0.1",
@@ -13,15 +14,27 @@ dependencies = [
     "bioio-ome-tiff>=1.0.0",
     "bioio-base>=1.0.1",
     "bioio-ome-zarr>=1.0.1",
-    "cyto-dl @ git+https://github.com/AllenCellModeling/cyto-dl.git@feature/timelapse_inference_dataloader",
+    "matplotlib==3.9.1",
+    "notebook==7.2.1",
+    "numdifftools==0.9.41",
+    "pandas==2.2.2",
+    "scikit-learn==1.5.1",
+    "sympy==1.13.1",
+    "scipy==1.13.1",
+    "ipykernel>=6.29.5",
+    "cyto-dl>=0.4.0",
     "fire>=0.6.0",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
 license = {text = "AISL"}
 
-
 [tool.pdm]
+
+[[tool.pdm.source]]
+url = "https://download.pytorch.org/whl/cu116"
+verify_ssl = true
+name = "torch"
 
 [build-system]
 requires = ["pdm-pep517>=1.0"]
@@ -29,3 +42,6 @@ build-backend = "pdm.pep517.api"
 
 [tool.pytest.ini_options]
 testpaths = "tests/"
+
+[tool.pdm.dev-dependencies]
+
