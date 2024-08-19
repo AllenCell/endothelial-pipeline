@@ -7,6 +7,7 @@ train: true
 test: false
 checkpoint:
   ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/logs/train/runs/endo_time/vicreg/2024-07-03_15-49-15/checkpoints/epoch_929.ckpt"
+  strict: True
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
@@ -102,7 +103,7 @@ paths:
   root_dir: ${oc.env:PROJECT_ROOT, './'}
   data_dir: ${paths.root_dir}/data/
   log_dir: ${paths.root_dir}/logs/
-  output_dir: 
+  output_dir: ${paths.root_dir}
 extras:
   ignore_warnings: true
   enforce_tags: false
