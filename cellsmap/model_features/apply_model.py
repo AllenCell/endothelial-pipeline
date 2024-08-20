@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 
-def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict={}):
+def apply_model(model_name:str, dataset_name, save_dir='results', structure: str = 'cdh5', overrides:Dict={}):
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):

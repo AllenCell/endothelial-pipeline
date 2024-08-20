@@ -14,10 +14,10 @@ def test_get_available_datasets(capsys):
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
     dataset_info = io.get_dataset_info('20240305_T01_001')
-    assert dataset_info['zarr_path'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
+    assert dataset_info['zarr_path']['cdh5'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
 
 def test_get_zarr_path():
-    path = io.get_zarr_path('20240305_T01_001')
+    path = io.get_zarr_path('20240305_T01_001', structure='cdh5')
     assert path == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
 
 def test_load_dataset():

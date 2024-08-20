@@ -30,17 +30,17 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resolution:int=0) -> dask.array.Array:
-    dataset_info = get_dataset_info(dataset_name)
-    img = BioImage(dataset_info['zarr_path'])
+def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resolution:int=0, structure: str='cdh5') -> dask.array.Array:
+    path = get_zarr_path(dataset_name, structure)
+    img = BioImage(path)
     assert resolution in img.resolution_levels, f'Invalid resolution level {resolution}. Available levels are {img.resolution_levels}'
     img.set_resolution_level(resolution)
     img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1) )
     return img
 
-def get_zarr_path(dataset_name: str) -> str:
+def get_zarr_path(dataset_name: str, structure: str = 'cdh5') -> str:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['zarr_path']
+    return dataset_info['zarr_path'][structure]
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
