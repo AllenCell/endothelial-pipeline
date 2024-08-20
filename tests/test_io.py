@@ -35,10 +35,10 @@ def test_get_available_models(capsys):
     # check if the available models are printed correctly
     io.get_available_models()
     captured = capsys.readouterr()
-    assert captured.out == 'mae\nvicreg\n'
+    assert captured.out == 'mae_cdh5\nvicreg_cdh5\nvicreg_no_rot_cdh5\njepa_cdh5\nmae_std_bf\n'
 
 def test_get_model_info():
     # check if the model info is returned correctly
-    model_info = io.get_model_info('mae')
-    assert model_info['name'] == 'mae'
-    assert model_info['eval_config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml"
+    model_info = io.get_model_info('mae_cdh5')
+    assert model_info['name'] == 'mae_cdh5'
+    assert model_info['eval_config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/eval_config.yaml"

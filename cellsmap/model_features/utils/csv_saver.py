@@ -24,6 +24,12 @@ class CSVSaver(Callback):
             feats.append(batch_feats)
         pd.concat(feats).to_csv(self.save_dir / 'predictions.csv', index=False)
 
+class CLSSaver(CSVSaver):
+    """Save CLS token only
+    """
+    def to_dataframe(self, x):
+        return pd.DataFrame(x[1])
+
 class MAESaver(CSVSaver):
     def to_dataframe(self, x):
         return pd.DataFrame(x[1:].mean(axis=0))
