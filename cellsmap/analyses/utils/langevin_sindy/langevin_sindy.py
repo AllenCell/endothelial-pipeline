@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 from time import time
-from .timecorr import kl_divergence
+from timecorr import kl_divergence
 
 # adapted from https://github.com/dynamicslab/langevin-regression
 # AFP solver object
@@ -172,9 +172,9 @@ def cost(Xi, params):
     # shape is ndim x N[1] x N[2] x ... x N[ndim] (needed for fp.solve, specifically fp.precompute_operator)
     f_vals = lib_f @ Xi[:lib_f.shape[-1]]
     a_vals = 0.5*(lib_s @ Xi[lib_f.shape[-1]:])**2
-    if afp.ndim >= 1 and f_vals.ndim == 1:
-        f_vals = np.swapaxes(f_vals.reshape((afp.ndim,N[1],N[0])),1,2)
-        a_vals = np.swapaxes(a_vals.reshape((afp.ndim,N[1],N[0])),1,2)
+    if afp.ndim > 1 and f_vals.ndim == 1:
+        f_vals = np.swapaxes(f_vals.reshape((afp.ndim,N[1],N[0])),1,2).reshape((afp.ndim,np.prod(N)))
+        a_vals = np.swapaxes(a_vals.reshape((afp.ndim,N[1],N[0])),1,2).reshape((afp.ndim,np.prod(N)))
         
     # Solve AFP equation to find finite-time corrected drift/diffusion
     #    corresponding to the current parameters Xi
@@ -183,10 +183,10 @@ def cost(Xi, params):
     #print('%%%% Computing AdjFP operator time: {0} seconds %%%%'.format(time() - start_afp_op))
     #start_afp = time()
     if afp.ndim == 1:
-        afp.precompute_operator(f_vals.reshape(N),a_vals.reshape(N))
+        afp.precompute_operator(f_vals,a_vals)
         f_tau, a_tau = afp.solve(params['tau'],d=0)
     elif afp.ndim == 2:
-        afp.precompute_operator(f_vals.reshape((afp.ndim,np.prod(afp.N))),a_vals.reshape((afp.ndim,np.prod(afp.N))))
+        afp.precompute_operator(f_vals,a_vals)
         f_tau, a_tau = afp.solve(params['tau'],d=[0,1])
         f_tau = f_tau.T
         a_tau = a_tau.T
@@ -203,8 +203,11 @@ def cost(Xi, params):
     if params['kl_reg'] > 0:
         #start_fp = time()
         p_hist = params['p_hist']  # Empirical PDF
-        p_est = fp.solve(f_vals, a_vals)  # Solve Fokker-Planck equation for steady-state PDF
-        kl = kl_divergence(p_hist, p_est, dx=fp.dx, tol=1e-4)
+        if afp.ndim == 1:
+            p_est = fp.solve(f_vals,a_vals)
+        elif afp.ndim == 2:
+            p_est = fp.solve(f_vals.reshape(afp.ndim,N[0],N[1]), a_vals.reshape(afp.ndim,N[0],N[1]))  # Solve Fokker-Planck equation for steady-state PDF
+        kl = kl_divergence(p_hist, p_est, dx=fp.dx, tol=1e-6)
         kl = max(0, kl)  # Numerical integration can occasionally produce small negative values
         V += params['kl_reg']*kl
         #print('%%%% FP solver time: {0} seconds %%%%'.format(time() - start_fp))
@@ -256,13 +259,14 @@ def SSR_loop(opt_fun, params, logfile=None):
     # Lists of candidate expressions... coefficients are optimized
     f_expr, s_expr = params['f_expr'].copy(), params['s_expr'].copy()
     lib_f, lib_s = params['lib_f'].copy(), params['lib_s'].copy()
+    ndim = params['afp'].ndim
 
     Xi0 = params['Xi0'].copy()
     
     m = len(f_expr) + len(s_expr)
 
-    Xi = np.zeros((m, m-1), dtype=Xi0.dtype)  # Output results
-    V = np.zeros((m-1))      # Cost at each step
+    Xi = np.zeros((m, m-(2*ndim-1)), dtype=Xi0.dtype)  # Output results
+    V = np.zeros((m-(2*ndim-1)))      # Cost at each step
     
     # Full regression problem as baseline
     Xi[:, 0], V[0] = opt_fun(params)
@@ -271,7 +275,7 @@ def SSR_loop(opt_fun, params, logfile=None):
     active = np.array([i for i in range(m)])
     
     # Iterate and threshold
-    for k in range(1, m-1):
+    for k in range(1, m-(2*ndim-1)):
         # Loop through remaining terms and find the one that increases the cost function the least
         min_idx = -1
         V[k] = 1e8
@@ -282,6 +286,13 @@ def SSR_loop(opt_fun, params, logfile=None):
             # Break off masks for drift/diffusion
             f_active = tmp_active[tmp_active < len(f_expr)]
             s_active = tmp_active[tmp_active >= len(f_expr)] - len(f_expr)
+
+            if ndim == 2:
+                f1_active = f_active[f_active < len(f_expr)//2]
+                f2_active = f_active[f_active >= len(f_expr)//2]
+                s1_active = s_active[s_active < len(s_expr)//2]
+                s2_active = s_active[s_active >= len(s_expr)//2]
+
             print(f_active)
             print(s_active)
         
@@ -292,8 +303,12 @@ def SSR_loop(opt_fun, params, logfile=None):
             params['lib_s'] = lib_s.T[s_active].T
             params['Xi0'] = Xi0[tmp_active]
         
-            # Ensure that there is at least one drift and diffusion term left
-            if len(s_active) > 0 and len(f_active) > 0:
+            # Ensure that there is at least one drift and diffusion term left for all components
+            if ndim == 1:
+                my_cond = len(f_active)*len(s_active) > 0
+            elif ndim == 2:
+                my_cond = len(f1_active)*len(f2_active)*len(s1_active)*len(s2_active) > 0
+            if my_cond:
                 tmp_Xi, tmp_V = opt_fun(params)
 
                 if not np.isfinite(tmp_V):
@@ -305,8 +320,6 @@ def SSR_loop(opt_fun, params, logfile=None):
                     tmp_V = 1e7
                 # Keep minimum cost
                 if tmp_V < V[k]:
-                    # Ensure that there is at least one drift and diffusion term left
-                    #if (IS_DRIFT and len(f_active)>1) or (not IS_DRIFT and len(a_active)>1):
                     min_idx = j
                     V[k] = tmp_V
                     min_Xi = tmp_Xi

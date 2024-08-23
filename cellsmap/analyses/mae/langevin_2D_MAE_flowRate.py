@@ -31,12 +31,12 @@ data = [np.vstack((X_t[i,nospike,0],flow_rate[nospike])).T for i in range(num_lo
 stationary = np.r_[100:t_change, (t_change+100):num_t]
 data_stationary = [np.vstack((X_t[i,stationary,0],flow_rate[stationary])).T for i in range(num_loc)] # for stationary dist.
 
-N = 32
+Nx = 32
 min0 = min([min(traj[:,0]) for traj in data])
 max0 = max([max(traj[:,0]) for traj in data])
 bin0_min = 0.5*(np.floor(min0)+np.round(min0,1))
 bin0_max = 0.5*(np.ceil(max0)+np.round(max0,1))
-bins0 = np.linspace(bin0_min, bin0_max, N+1)
+bins0 = np.linspace(bin0_min, bin0_max, Nx+1)
 centers0 = 0.5*(bins0[1:]+bins0[:-1])
 
 bin1_min = 5.75
@@ -72,45 +72,46 @@ ns=2
 s_expr = np.tile(np.array([(x**k)*(u**(m-k)) for m in range(ns+1) for k in range(m+1)]),2)  # Polynomial library for diffusion
 
 # Convert sympy expressions into library matrices
-c0,c1 = np.meshgrid(centers0,centers1,indexing='ij')
-lib_f1 = np.zeros([len(f_expr)//2,N,Ny])
+X1,X2 = np.meshgrid(centers0,centers1)
+# Convert sympy expressions into library matrices
+# Convert sympy expressions into library matrices
+lib_f1 = np.zeros([len(f_expr)//2,Nx,Ny])
 for k in range(len(f_expr)//2):
     lamb_expr = sympy.lambdify([x,u], f_expr[k])
-    for i in range(N):
+    for i in range(Nx):
         for j in range(Ny):
-            lib_f1[k,i,j] = lamb_expr(c0[i,j],c1[i,j])
+            lib_f1[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-lib_f2 = np.zeros([len(f_expr)//2,N,Ny])
+lib_f2 = np.zeros([len(f_expr)//2,Nx,Ny])
 for k in range(len(f_expr)//2):
     lamb_expr = sympy.lambdify([x,u], f_expr[k+len(f_expr)//2])
-    for i in range(N):
+    for i in range(Nx):
         for j in range(Ny):
-            lib_f2[k,i,j] = lamb_expr(c0[i,j],c1[i,j])
+            lib_f2[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-lib_f1 = lib_f1.T.reshape(N*Ny,-1)
-lib_f2 = lib_f2.T.reshape(N*Ny,-1)
+lib_f1 = lib_f1.T.reshape(Nx*Ny,-1)
+lib_f2 = lib_f2.T.reshape(Nx*Ny,-1)
 
-lib_f = np.block([[lib_f1, np.zeros((N*Ny,len(f_expr)//2))], [np.zeros((N*Ny,len(f_expr)//2)),lib_f2]])
+lib_f = np.block([[lib_f1, np.zeros((Nx*Ny,len(f_expr)//2))], [np.zeros((Nx*Ny,len(f_expr)//2)),lib_f2]])
 
-lib_s1 = np.zeros([len(s_expr)//2,N,Ny])
+lib_s1 = np.zeros([len(s_expr)//2,Nx,Ny])
 for k in range(len(s_expr)//2):
     lamb_expr = sympy.lambdify([x,u], s_expr[k])
-    for i in range(N):
+    for i in range(Nx):
         for j in range(Ny):
-            lib_s1[k,i,j] = lamb_expr(c0[i,j],c1[i,j])
+            lib_s1[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-lib_s2 = np.zeros([len(s_expr)//2,N,Ny])
+lib_s2 = np.zeros([len(s_expr)//2,Nx,Ny])
 for k in range(len(s_expr)//2):
     lamb_expr = sympy.lambdify([x,u], s_expr[k+len(s_expr)//2])
-    for i in range(N):
+    for i in range(Nx):
         for j in range(Ny):
-            lib_s2[k] = lamb_expr(c0[i,j],c1[i,j])
+            lib_s2[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-lib_s1 = lib_s1.T.reshape(N*Ny,-1)
-lib_s2 = lib_s2.T.reshape(N*Ny,-1)
+lib_s1 = lib_s1.T.reshape(Nx*Ny,-1)
+lib_s2 = lib_s2.T.reshape(Nx*Ny,-1)
 
-lib_s = np.block([[lib_s1, np.zeros((N*Ny,len(s_expr)//2))], [np.zeros((N*Ny,len(s_expr)//2)),lib_s2]])
-
+lib_s = np.block([[lib_s1, np.zeros((Nx*Ny,len(s_expr)//2))], [np.zeros((Nx*Ny,len(s_expr)//2)),lib_s2]])
 # Initialize Xi with least squares regression (no finite-time corrections)
 
 m=len(f_expr)+len(s_expr)
@@ -129,7 +130,7 @@ Xi0[len(f_expr):] = np.linalg.lstsq(A2,b2, rcond=None)[0]  # Regression against 
 
 ### Weights: uncertainties in Kramers-Moyal
 # This is helpful, but not that critical.  The specific choice of weights doesn't matter that much
-W = np.array((f_err.reshape((N*Ny,2)), a_err.reshape(N*Ny,2)))
+W = np.array((f_err.reshape((Nx*Ny,2)), a_err.reshape(Nx*Ny,2)))
 W[np.less(abs(W), 1e-12, where=np.isfinite(W))] = 1e6  # Set zero entries to large numbers (small weights)
 W[np.logical_not(np.isfinite(W))] = 1e6                 # Set NaN entries to large numbers (small weights)
 W = 1/W  # Invert error for weights
@@ -140,13 +141,13 @@ centers = [centers0,centers1]
 afp = fps.AdjFP(centers,ndim=2)
 
 # Initialize forward steady-state solver
-fp = fps.SteadyFP((N,Ny), dx)
+fp = fps.SteadyFP((Nx,Ny), dx)
 
 # Optimization parameters
 params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "f_expr": f_expr, "s_expr": s_expr,
-          "lib_f": lib_f, "lib_s": lib_s, "N": (N,Ny),
-          "kl_reg": 0.5,
+          "lib_f": lib_f, "lib_s": lib_s, "N": (Nx,Ny),
+          "kl_reg": 0,
           "fp": fp, "afp": afp, "p_hist": p_hist, "tau": stride*dt,
           "radial": False}
 

@@ -16,10 +16,13 @@ with open(logfile, 'w') as f:
     print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
 
 def f(x1,x2):
-    return np.array([(x1+5)*(x2-4), (x2+2)*(x1-3)])
+    return np.array([(x1 + 5)*(x2 - 4), (x2 + 2)*(x1 - 3)])
+
+def sigma(x1,x2):
+    return np.array([0.5*x1 + 0.01,0.075*x2 + 0.01])
 
 def a(x1,x2):
-    return np.array([0*x1 + 0.01,0*x2 + 0.01])
+    return 0.5*sigma(x1,x2)**2
 
 Nx=30
 Ny=20
@@ -30,9 +33,9 @@ centers = [0.5*(bins[0][1:]+bins[0][:-1]),0.5*(bins[1][1:]+bins[1][:-1])]
 
 X1,X2=np.meshgrid(centers[0],centers[1])
 
-inits = np.random.uniform(low = [-5,-5], high = [5,5], size = (1000,2)).T
+inits = np.random.uniform(low = [-7,-7], high = [7,7], size = (1000,2)).T
 dt = 0.01
-trajs = stochastic_sim_EM(inits, lambda x: f(x[0],x[1]), lambda x: np.sqrt(2*a(x[0],x[1])), dt = dt, n_timepoints = 5000)
+trajs = stochastic_sim_EM(inits, lambda x: f(x[0],x[1]), lambda x: sigma(x[0],x[1]), dt = dt, n_timepoints = 5000)
 
 stride = 5
 X_t = np.swapaxes(trajs,0,2)
@@ -45,13 +48,14 @@ data = []
 data_stationary = []
 for j in range(num_traj):
     my_idx = []
+    idx_stat = []
     for i in range(num_t):
-        my_cond = np.all(np.isfinite(X_t[j,i,:])) and bins[0][0] <= X_t[j,i,0] <= bins[0][-1] and bins[1][0] <= X_t[j,i,1] <= bins[1][-1]
+        my_cond = (bins[0][0] <= X_t[j,i,0] <= bins[0][-1]) and (bins[1][0] <= X_t[j,i,1] <= bins[1][-1])
         if my_cond:
             my_idx.append(i) 
     if len(my_idx) > 0:
         idx_stat = [i for i in my_idx if i >= num_t-200]
-    data.append(X_t[j,my_idx,:])
+        data.append(X_t[j,my_idx,:])
     if len(idx_stat) > 0:
         data_stationary.append(X_t[j,idx_stat,:])
 
@@ -141,13 +145,13 @@ W = W/np.nansum(W.flatten())
 afp = fps.AdjFP(centers,ndim=2)
 
 # Initialize forward steady-state solver
-fp = fps.SteadyFP((Nx,Ny), dx)
+fp = fps.SteadyFP(centers,ndim=2)
 
 # Optimization parameters
 params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "f_expr": f_expr, "s_expr": s_expr,
           "lib_f": lib_f, "lib_s": lib_s, "N": (Nx,Ny),
-          "kl_reg": 0.5,
+          "kl_reg": 0,
           "fp": fp, "afp": afp, "p_hist": p_hist, "tau": stride*dt,
           "radial": False}
 

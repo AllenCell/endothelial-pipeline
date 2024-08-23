@@ -2,7 +2,7 @@ import numpy as np
 import numpy.random as rnd
 import scipy as sc
 
-from .kernels import *
+from kernels import *
 
 global kernel_func_dict
 kernel_func_dict = {'rbf':rbf_kernel,'laplace':laplace_kernel,'linear':linear_kernel,'polynomial':polynomial_kernel}
