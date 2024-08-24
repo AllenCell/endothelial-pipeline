@@ -14,22 +14,24 @@ def test_get_available_datasets(capsys):
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
     dataset_info = io.get_dataset_info('20240305_T01_001')
-    assert dataset_info['zarr_path']['cdh5'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
+    assert dataset_info['zarr_path'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
 
 def test_get_zarr_path():
-    path = io.get_zarr_path('20240305_T01_001', structure='cdh5')
-    assert path == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
+    path = io.get_zarr_path('20240305_T01_001')
+    assert path == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
 
 def test_load_dataset():
     # check end point specification
-    movie = io.load_dataset('20240305_T01_001', time_end = 2)
-    assert movie.shape[0] == 3
+    movie = io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin"], time_end = 2)
+    assert movie.shape == (3, 1, 1712, 9592)
     # check start point specification
-    movie = io.load_dataset('20240305_T01_001', time_start=1, time_end = 2)
-    assert movie.shape[0] == 2
+    movie = io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin"], time_start=1, time_end = 2)
+    assert movie.shape == (2, 1, 1712, 9592)
     # check resolution specification
-    movie = io.load_dataset('20240305_T01_001', time_start=1, time_end = 2, resolution=1)
-    assert movie.shape[1:] == (856, 4796)
+    movie = io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin"], time_start=1, time_end=2, level=1)
+    assert movie.shape == (2, 1, 856, 4796)
+    movie = io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin", "Nuc_Seg"], time_start=1, time_end=2, level=1)
+    assert movie.shape == (2, 2, 856, 4796)
 
 def test_get_available_models(capsys):
     # check if the available models are printed correctly

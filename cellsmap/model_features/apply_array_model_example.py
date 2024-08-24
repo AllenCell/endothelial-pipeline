@@ -1,7 +1,7 @@
 import numpy as np
 from cyto_dl.api import CytoDLModel
 from cyto_dl.utils import extract_array_predictions
-from cellsmap.util import get_dataset_info
+from cellsmap.util import io
 
 model = CytoDLModel()
 model.load_config_from_file("//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/array_eval_config.yaml")
