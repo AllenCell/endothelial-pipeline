@@ -1,0 +1,92 @@
+experiment_name: endo_time
+run_name: mae
+task_name: train
+tags:
+- dev
+train: true
+test: false
+checkpoint:
+  ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/jepa/2024-07-29_11-25-34/checkpoints/epoch_319.ckpt"
+  weights_only: null
+  strict: True
+seed: 12345
+data:
+  _target_: cyto_dl.datamodules.array.make_array_dataloader
+  data:
+  num_workers: 1
+  batch_size: 1
+  source_key: raw
+  transforms:
+    - _target_: monai.transforms.NormalizeIntensityd
+      channel_wise: true
+      keys:
+        - raw
+    - _target_: monai.transforms.ToTensord
+      keys:
+        - raw
+model:
+  _target_: cyto_dl.models.jepa.ijepa.IJEPA
+  x_key: raw
+  max_epochs: ${trainer.max_epochs}
+  save_dir: ${paths.output_dir}
+  encoder:
+    _target_: cyto_dl.nn.vits.jepa.JEPAEncoder
+    num_patches: ${model._aux.num_patches}
+    patch_size:
+    - 16
+    - 16
+    emb_dim: 256
+    num_head: 8
+    num_layer: 4
+    spatial_dims: 2
+  predictor:
+    _target_: cyto_dl.nn.vits.jepa.JEPAPredictor
+    num_patches: ${model._aux.num_patches}
+    input_dim: ${model.encoder.emb_dim}
+    emb_dim: 128
+    num_layer: 8
+    num_head: 4
+  optimizer:
+    _partial_: true
+    _target_: torch.optim.AdamW
+    weight_decay: 0.05
+  lr_scheduler:
+    _partial_: true
+    _target_: torch.optim.lr_scheduler.OneCycleLR
+    max_lr: 0.003
+    epochs: ${trainer.max_epochs}
+    steps_per_epoch: 1
+    pct_start: 0.1
+  _aux:
+    num_patches:
+    - 32
+    - 32
+callbacks:
+logger:
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 1
+  max_epochs: 1000
+  accelerator: gpu
+  devices:
+  - 0
+  precision: 16
+  check_val_every_n_epoch: 10
+  deterministic: false
+  detect_anomaly: false
+  max_time: null
+  gradient_clip_val: 5
+paths:
+  root_dir: ${oc.env:PROJECT_ROOT, './'}
+  data_dir: ${paths.root_dir}/data/
+  log_dir: ${paths.root_dir}/logs/
+  output_dir: './'
+extras:
+  ignore_warnings: true
+  enforce_tags: false
+  print_config: false
+  precision:
+    _target_: torch.set_float32_matmul_precision
+    precision: medium
+persist_cache: true
