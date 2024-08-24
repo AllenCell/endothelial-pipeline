@@ -1,6 +1,7 @@
 import yaml
 import dask
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 
@@ -60,12 +61,17 @@ def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['flow']
 
+
 # model methods
 
 def get_available_models() -> list:
     model_info = load_config('model')
     for model in model_info:
         print(model['name'])
+
+def load_precomputed_features(dataset_name:str, model_name:str) -> pd.DataFrame:
+    dataset_info = get_dataset_info(dataset_name)
+    return pd.read_csv(dataset_info["features"][model_name])
 
 def get_model_info(model_name: str) -> dict:
     config = load_config('model')
