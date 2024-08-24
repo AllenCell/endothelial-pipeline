@@ -1,12 +1,19 @@
 [{
   name: 20240305_T01_001,
   original_path: "/allen/aics/assay-dev/MicroscopyData/John Paul/2024/20240305/20240305_T01_001_3D_MTG_FULL.dir/20240305_T01_001 - Position 1 [6] 3DMontage Complete-1710177899-789.imgdir",
-  zarr_path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr,
+  zarr_path: {
+    cdh5: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr,
+    bf: "//allen/aics/assay-dev/computational/data/endothileal_cell_data/Timelapse_20x_dataset/full_movie_track_test/zarr/bf.ome.zarr",
+    bf_std: "//allen/aics/assay-dev/computational/data/endothileal_cell_data/Timelapse_20x_dataset/full_movie_track_test/zarr/bf.ome.zarr"
+  },
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  vicreg_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
-  mae_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae/predictions.csv,
-  jepa_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/jepa/predictions.csv,
-  vicreg_no_rot_features: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg_no_rot/predictions.csv,
+  features: {
+    vicreg_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
+    mae_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae/predictions.csv,
+    jepa_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/jepa/predictions.csv,
+    vicreg_no_rot_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg_no_rot/predictions.csv,
+    mae_std_bf: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv
+  }
 }]

@@ -14,10 +14,10 @@ def test_get_available_datasets(capsys):
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
     dataset_info = io.get_dataset_info('20240305_T01_001')
-    assert dataset_info['zarr_path'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
+    assert dataset_info['zarr_path']['cdh5'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
 
 def test_get_zarr_path():
-    path = io.get_zarr_path('20240305_T01_001')
+    path = io.get_zarr_path('20240305_T01_001', structure='cdh5')
     assert path == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr'
 
 def test_load_dataset():
@@ -35,10 +35,10 @@ def test_get_available_models(capsys):
     # check if the available models are printed correctly
     io.get_available_models()
     captured = capsys.readouterr()
-    assert captured.out == 'mae\nvicreg\n'
+    assert captured.out == 'mae_cdh5\nvicreg_cdh5\nvicreg_no_rot_cdh5\njepa_cdh5\nmae_std_bf\n'
 
 def test_get_model_info():
     # check if the model info is returned correctly
-    model_info = io.get_model_info('mae')
-    assert model_info['name'] == 'mae'
-    assert model_info['eval_config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml"
+    model_info = io.get_model_info('mae_cdh5')
+    assert model_info['name'] == 'mae_cdh5'
+    assert model_info['eval_config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/eval_config.yaml"
