@@ -30,17 +30,21 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resolution:int=0, structure: str='cdh5') -> dask.array.Array:
-    path = get_zarr_path(dataset_name, structure)
+def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resolution:int=0, structure: str='CDH5_Tubulin') -> dask.array.Array:
+    path = get_zarr_path(dataset_name)
     img = BioImage(path)
     assert resolution in img.resolution_levels, f'Invalid resolution level {resolution}. Available levels are {img.resolution_levels}'
     img.set_resolution_level(resolution)
-    img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1) )
+
+    assert structure in img.channel_names, f"Invalid structure name {structure}, availabel structures are {img.channel_names}"
+    structure_ch = img.channel_names.index(structure)
+
+    img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1), C=structure_ch)
     return img
 
-def get_zarr_path(dataset_name: str, structure: str = 'cdh5') -> str:
+def get_zarr_path(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['zarr_path'][structure]
+    return dataset_info['zarr_path']
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
