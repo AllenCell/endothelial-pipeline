@@ -23,8 +23,6 @@ data:
     - _target_: cyto_dl.image.transforms.clip.Clipd
       keys: raw
     - _target_: monai.transforms.NormalizeIntensityd
-      subtrahend: 116
-      divisor: 9.5
       keys: raw
 model:
   _target_: cyto_dl.models.contrastive.Contrastive
