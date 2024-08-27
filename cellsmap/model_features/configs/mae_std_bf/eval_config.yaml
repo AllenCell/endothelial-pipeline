@@ -19,7 +19,7 @@ data:
   shuffle: False
   dict_meta:
     path: //allen/aics/assay-dev/computational/data/endothileal_cell_data/Timelapse_20x_dataset/full_movie_track_test/zarr/bf.ome.zarr
-    channel: 0
+    channel: 3
   out_key: raw
   transforms: 
     - _target_: cyto_dl.image.transforms.clip.Clip

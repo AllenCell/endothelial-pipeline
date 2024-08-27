@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 
-def apply_model(model_name:str, dataset_name, save_dir='results', structure: str = 'cdh5', overrides:Dict={}):
+def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict={}):
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):
@@ -18,7 +18,7 @@ def apply_model(model_name:str, dataset_name, save_dir='results', structure: str
     cfg_path = get_model_config_path(model_name)
     model.load_config_from_file(cfg_path)
     # apply overrides
-    movie_path = io.get_zarr_path(dataset_name, structure)
+    movie_path = io.get_zarr_path(dataset_name)
     overrides['data.dict_meta.path'] = movie_path
     overrides['paths.output_dir'] = save_dir
 
