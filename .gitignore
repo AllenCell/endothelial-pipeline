@@ -10,9 +10,10 @@ __pycache__/
 
 # PDM lock file
 pdm.lock
+.pdm-python
 
 # Environment variables
-.env
+venv/
 
 # IDE files
 .vscode/
@@ -20,9 +21,16 @@ pdm.lock
 
 # Log files
 *.log
+*.txt
 
-# Rough work
-initial_test_tubulin.py
-cdh5_classic_seg_rough.py
-cdh5_nodes_and_edges_rough.py
-Nellie_test/
+# Image files
+*.png
+*.tiff
+
+# Data files
+*.npy
+
+# ignore locally generated results
+results/
+
+
