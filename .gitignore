@@ -20,3 +20,9 @@ pdm.lock
 
 # Log files
 *.log
+
+# Rough work
+initial_test_tubulin.py
+cdh5_classic_seg_rough.py
+cdh5_nodes_and_edges_rough.py
+Nellie_test/
