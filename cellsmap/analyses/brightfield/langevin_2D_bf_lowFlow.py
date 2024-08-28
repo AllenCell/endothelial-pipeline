@@ -14,7 +14,7 @@ with open(logfile, 'w') as f:
     print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
 
 
-stride = 15
+stride = 20
 dt = 5
 X_t_low = np.load('../data/bf_95pctVarPCs_lowFlow.npy')
 

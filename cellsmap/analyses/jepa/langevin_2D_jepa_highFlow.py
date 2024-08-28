@@ -15,7 +15,7 @@ with open(logfile, 'w') as f:
     print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
 
 
-stride = 9
+stride = 15
 dt = 5
 X_t_high = np.load('../data/JEPA_95pctVarPCs_highFlow.npy')
 
@@ -141,7 +141,7 @@ fp = fps.SteadyFP((Nx,Ny), dx)
 params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
           "f_expr": f_expr, "s_expr": s_expr,
           "lib_f": lib_f, "lib_s": lib_s, "N": (Nx,Ny),
-          "kl_reg": 0.5,
+          "kl_reg": 0,
           "fp": fp, "afp": afp, "p_hist": p_hist, "tau": stride*dt,
           "radial": False}
 
