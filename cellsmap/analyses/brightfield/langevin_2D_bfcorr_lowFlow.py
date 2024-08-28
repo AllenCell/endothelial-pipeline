@@ -66,7 +66,7 @@ x1 = sympy.symbols('x1')
 x2 = sympy.symbols('x2')
 
 nf=3
-ns=0
+ns=1
 f_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(nf+1) for k in range(m+1)]),2)  # Polynomial library for drift
 s_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(ns+1) for k in range(m+1)]),2)  # Polynomial library for diffusion
 
