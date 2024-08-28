@@ -10,10 +10,9 @@ from bioio.writers import OmeTiffWriter
 from bioio import BioImage
 
 from cellsmap.util import load_dataset
-from cellsmap.util import extract_key_from_config
+from cellsmap.util import get_zarr_path
 from cellsmap.util import arr2graph
 from cellsmap.util import get_dim_map
-from cellsmap.util import extract_T
 from cellsmap.util import get_neighbor_nodes_and_edges
 from cellsmap.util import numpy_mesh_coords
 from cellsmap.util import get_angle
@@ -69,9 +68,9 @@ DIM_ORDER = 'TYX' # 'TCZYX'
 DIM_MAP = get_dim_map(DIM_ORDER)
 SCT_NAME = Path(__file__).stem
 
-movie_name = 'cdh5_path'
+movie_name = '20240305_T01_001'
 img_bin = 0
-px_sizes = BioImage(Path(extract_key_from_config(movie_name))).physical_pixel_sizes
+px_sizes = BioImage(Path(get_zarr_path(movie_name))).physical_pixel_sizes
 
 
 prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
@@ -86,9 +85,6 @@ plots_out_dir = out_dir / 'plots'
  [images_out_dir, tables_out_dir, plots_out_dir]]
 
 
-img_paths = [p for p in img_dir.glob('*')]
-img_paths = sorted(img_paths, key=lambda filepath: extract_T(filepath.stem))
-
 
 raw = load_dataset(movie_name, time_start=0, resolution=img_bin)
 
@@ -100,7 +96,7 @@ if IS_TEST:
 else:
     ## in the line below: replace '20' with what follows
     ## in the comment to analyze the whole timelapse
-    t_list = range(20) # raw.shape[DIM_MAP["T"]])
+    t_list = range(0, raw.shape[DIM_MAP["T"]], 6)
     crop_y = slice(None, None)
     crop_x = slice(None, None)
 
@@ -183,7 +179,7 @@ for t in t_list:
     ## save a table of the results
     if SAVE_OUTPUT:
         print(f'T={t} -- saving output to a table')
-        table = pd.DataFrame({'filepath_raw_image':Path(extract_key_from_config(movie_name)),
+        table = pd.DataFrame({'filepath_raw_image':Path(get_zarr_path(movie_name)),
                             'T':t,
                             'origin_node': home_nodes_filtered,
                             'neighbor_node': neighbor_nodes_filtered,

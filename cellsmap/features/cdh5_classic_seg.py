@@ -15,7 +15,7 @@ from bioio.writers import OmeTiffWriter
 from bioio import BioImage
 
 from cellsmap.util import load_dataset
-from cellsmap.util import extract_key_from_config
+from cellsmap.util import get_zarr_path
 
 
 
@@ -163,9 +163,9 @@ DIM_ORDER = 'TYX' # 'TCZYX'
 DIM_MAP = get_dim_map(DIM_ORDER)
 SCT_NAME = Path(__file__).stem
 
-movie_name = 'cdh5_path'
+movie_name = '20240305_T01_001'
 img_bin = 0
-img = BioImage(Path(extract_key_from_config(movie_name)))
+img = BioImage(Path(get_zarr_path(movie_name)))
 px_res = img.physical_pixel_sizes
 
 prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
@@ -239,9 +239,9 @@ for t in t_list:
     ## perform hierarchical merging of a RAG
     ## (this seems to work well but is is still imperfect)
     seg2_lab_no_mask = segmentation.watershed(processed_img, seg2_lab)
-    processed_img_normd_new = rescale_intensity(processed_img, out_range=(0, 1))
-    rag = initialize_rag(seg2_lab_no_mask, processed_img_normd_new)#, as_directed=True)
-    merge_thresh = np.percentile(processed_img_normd_new, q=80)
+    processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
+    rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)#, as_directed=True)
+    merge_thresh = np.percentile(processed_img_normd, q=80)
 
     seg2_lab_no_mask_merge = graph.merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
                                                     rag_copy=False, in_place_merge=True,
@@ -249,7 +249,15 @@ for t in t_list:
 
     cell_size_filter = 2000 # number of pixels of segmented area
     seg2_filtered = morphology.remove_small_objects(seg2_lab_no_mask_merge, min_size=cell_size_filter)
-    seg2_lab_no_mask_merge = segmentation.watershed(image=processed_img_normd_new, markers=seg2_filtered)
+    seg2_lab_no_mask_merge = segmentation.watershed(image=processed_img_normd, markers=seg2_filtered)
+
+    rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)#, as_directed=True)
+    merge_thresh = np.percentile(processed_img_normd, q=80)
+
+    seg2_lab_no_mask_merge = graph.merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
+                                                    rag_copy=False, in_place_merge=True,
+                                                    merge_func=dummy_func, weight_func=weight_boundary)
+
     seg2_lab_no_mask_merge_bounds = segmentation.find_boundaries(seg2_lab_no_mask_merge)
 
     # SAVE OUTPUTS
