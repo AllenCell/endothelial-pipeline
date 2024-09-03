@@ -1,104 +1,15 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.ndimage import distance_transform_edt
-from skimage import filters
-from skimage import segmentation
-from skimage.restoration import rolling_ball
-from skimage.feature import peak_local_max
-from skimage import measure
-from skimage import color
-from skimage import morphology
+from skimage import morphology, segmentation, measure, color, graph
 from skimage.exposure import rescale_intensity
-from skimage import graph
 from pathlib import Path
-from bioio.writers import OmeTiffWriter
 from bioio import BioImage
+from bioio.writers import OmeTiffWriter
+from multiprocessing import Pool
+from tqdm import tqdm
+import fire
+from cellsmap.util import io, cdh5_preprocessing as preproc
 
-from cellsmap.util import load_dataset
-from cellsmap.util import get_zarr_path
-
-
-
-def get_dim_map(dim_order: str):
-
-    dims = [a for a in dim_order]
-    dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums))
-
-    return dim_map# -> tuple(int)
-
-def preprocess(raw_arr):
-    # smooth image and then subtract background with rolling ball method
-    gauss = filters.gaussian(raw_arr, sigma=3)
-    gauss = rescale_intensity(gauss, out_range=np.uint16)
-    radius = 20
-    bg_img = rolling_ball(gauss, radius=radius)
-    sub = gauss - bg_img
-
-    return sub
-
-def get_noodly_regions(binary_img_arr, axis_ratio_filter=2.5, solidity_filter=0.6):
-
-    hyst_labeled = measure.label(binary_img_arr)
-    hyst_props = measure.regionprops(hyst_labeled)
-
-    axis_ratio_filter = 2.5 # NOTE 1 = perfect circle, higher numbers == more elongated ovals
-    solidity_filter = 0.6
-
-    hyst_props_axes_ratio = {}
-    for prop in hyst_props:
-        if prop.axis_minor_length:
-            hyst_props_axes_ratio[prop.label] = (prop.axis_major_length / prop.axis_minor_length)
-        else:
-            hyst_props_axes_ratio[prop.label] = np.inf
-
-    hyst_props_solidity = {prop.label: prop.solidity for prop in hyst_props}
-
-    hyst_props_noodly = [prop.label for prop in hyst_props
-                        if (hyst_props_axes_ratio[prop.label] >= axis_ratio_filter
-                            or hyst_props_solidity[prop.label] <= solidity_filter)]
-    hyst_props_squat = [prop.label for prop in hyst_props
-                        if (hyst_props_axes_ratio[prop.label] < axis_ratio_filter
-                            and hyst_props_solidity[prop.label] > solidity_filter)]
-
-    ## SPLIT UP NOODLY PIECES AND OTHER PIECES
-    hyst_clean = np.isin(hyst_labeled, hyst_props_noodly)
-    hyst_removed = np.isin(hyst_labeled, hyst_props_squat)
-
-    return hyst_clean, hyst_removed
-
-def get_watershed_seeds_and_basins(binary_img_arr, min_dist=50):
-    dist = distance_transform_edt(binary_img_arr)
-    dist_labels = measure.label(binary_img_arr)
-    basins = 1 - rescale_intensity(dist, out_range=(0,1))
-    peaks = peak_local_max(dist, min_distance=min_dist, labels=dist_labels, exclude_border=False)
-    peaks_arr = np.zeros(binary_img_arr.shape, dtype=binary_img_arr.dtype)
-    peaks_arr[tuple(zip(*peaks))] = 1
-
-    peaks_arr = morphology.binary_dilation(peaks_arr, footprint=morphology.disk(5))
-
-    seeds = measure.label(peaks_arr)
-
-    return seeds, basins
-
-def clean_labeled_img(labeled_img, eccentricity_filter=0.5, size_filter_conditional=2000, size_filter_strict=500):
-    # size_filter_conditional = int(np.pi * 25**2) = approx 2000
-    labeled_props = measure.regionprops(labeled_img)
-
-    labeled_props_sm_round = [prop.label for prop in labeled_props 
-                              if (prop.eccentricity < eccentricity_filter
-                                  and prop.num_pixels < size_filter_conditional)
-                                  or prop.num_pixels < size_filter_strict]
-    labeled_props_lrg_oblong = [prop.label for prop in labeled_props
-                                if (prop.eccentricity >= eccentricity_filter
-                                    or prop.num_pixels >= size_filter_conditional)
-                                    and prop.num_pixels >= size_filter_strict]
-
-    labeled_img_clean = np.isin(labeled_img, labeled_props_lrg_oblong) * labeled_img
-
-    labeled_img_removed = np.isin(labeled_img, labeled_props_sm_round)
-
-    return labeled_img_clean, labeled_img_removed
 
 def initialize_rag(labeled_image, intensity_image, as_directed=False):
     rag = graph.rag_boundary(labels=labeled_image, edge_map=intensity_image, connectivity=2)
@@ -155,51 +66,25 @@ def weight_boundary(graph, src, dst, n):
         'weight': (count_src * weight_src + count_dst * weight_dst) / count,
     }
 
+def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
+    # NOTE: this function is slightly different than the
+    # one found in 'cdh5_nodes_and_edges.py'
+    SCT_NAME = Path(__file__).stem
 
+    prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
+    assert prj_dir.exists()
+    out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
+    if SAVE_OUTPUT:
+        Path.mkdir(out_dir, exist_ok=True, parents=True)
 
-IS_TEST = False
-SAVE_OUTPUT = True
-DIM_ORDER = 'TYX' # 'TCZYX'
-DIM_MAP = get_dim_map(DIM_ORDER)
-SCT_NAME = Path(__file__).stem
+    img = BioImage(Path(io.get_zarr_path(dataset_name)))
+    px_res = img.physical_pixel_sizes
+    img_metadata = {'physical_pixel_sizes': px_res,
+                    }
 
-movie_name = '20240305_T01_001'
-img_bin = 0
-img = BioImage(Path(get_zarr_path(movie_name)))
-px_res = img.physical_pixel_sizes
+    return out_dir, img_metadata
 
-prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
-assert prj_dir.exists()
-out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
-Path.mkdir(out_dir, exist_ok=True)
-
-raw = load_dataset(movie_name, time_start=0, resolution=img_bin)
-if IS_TEST:
-    t_list = range(0,1)
-    crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
-    crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
-else:
-    # in the line below: replace '20' with what follows
-    # in the comment to analyze the whole timelapse
-    t_list = range(0, raw.shape[DIM_MAP["T"]])
-    crop_y = slice(None, None)
-    crop_x = slice(None, None)
-
-for t in t_list:
-    print(f'T={t} -- loading dataset')
-    img_crop = (slice(t, t+1), crop_y, crop_x)
-    raw_arr = raw[img_crop].compute().squeeze()
-
-    print(f'T={t} -- preprocessing image')
-    processed_img = preprocess(raw_arr)
-
-    print(f'T={t} -- getting image thresholds')
-    low_thresh, high_thresh = np.percentile(processed_img, q=(66,80))
-    hyst = filters.apply_hysteresis_threshold(processed_img, low=low_thresh, high=high_thresh)
-
-    print(f'T={t} -- cleaning image thresholds')
-    hyst_clean, hyst_removed = get_noodly_regions(hyst, axis_ratio_filter=2.5, solidity_filter=0.6)
-
+def generate_segmentations(processed_img, hyst, hyst_clean, hyst_removed):
     # create a version of the processed image where regions of the thresholded image
     # that were removed are changed to be equal to the median of the non-thresholded
     # regions
@@ -207,130 +92,212 @@ for t in t_list:
     sub_no_hyst_removed = processed_img.copy()
     sub_no_hyst_removed[hyst_removed] = bg_intensity_median
 
-    if IS_TEST:
-        # clip and rescale images for matplotlib visualization purposes
-        # (not used in any further computational processing or analysis)
-        img_clipped = np.clip(processed_img, a_min=0, a_max=high_thresh)
-        img_rescaled = rescale_intensity(img_clipped, out_range=np.uint16)
+    # get seeds and basins for the watershed
+    seeds, basins = preproc.get_watershed_seeds_and_basins(~hyst)
 
-    print(f'T={t} -- preprocessing image')
-    # GET SEEDS AND BASINS FOR THE WATERSHED
-    seeds, basins = get_watershed_seeds_and_basins(~hyst)
-
-    # RUN WATERSHED
-    print(f'T={t} -- running watershed')
-    seg_lab = segmentation.watershed(sub_no_hyst_removed * basins, seeds, mask=~hyst_clean)#, compactness=1e-4)
+    # run watershed
+    seg_lab = segmentation.watershed(sub_no_hyst_removed * basins, seeds, mask=~hyst_clean)
     bounds = segmentation.find_boundaries(seg_lab)
 
-    ## RE-RUN WATERSHED AFTER REMOVING SMALL REGIONS THAT DID NOT GROW
-    print(f'T={t} -- cleaning watershed')
-    seg_clean, seg_removed = clean_labeled_img(seg_lab)
+    # re-run watershed after removing small regions that did not grow
+    seg_clean, seg_removed = preproc.clean_labeled_img(seg_lab)
 
-    print(f'T={t} -- re-running watershed')
-    seeds2, basins2 = get_watershed_seeds_and_basins(~segmentation.find_boundaries(seg_clean))
+    seeds2, basins2 = preproc.get_watershed_seeds_and_basins(~segmentation.find_boundaries(seg_clean))
 
-    seg_on_img = segmentation.watershed(sub_no_hyst_removed, seeds2, mask=~hyst_clean)#, compactness=1e-4)
-    # seg_on_img = segmentation.watershed(sub_no_hyst_removed, seeds2)#, compactness=1e-4)
-    seg_on_basins = segmentation.watershed(basins, seeds2, mask=~hyst_clean)#, compactness=1e-4)
+    seg_on_img = segmentation.watershed(sub_no_hyst_removed, seeds2, mask=~hyst_clean)
+    seg_on_basins = segmentation.watershed(basins, seeds2, mask=~hyst_clean)
     seg2_lab = segmentation.join_segmentations(seg_on_img, seg_on_basins)
     seg2_lab = measure.label(seg2_lab)
-    bounds2 = segmentation.find_boundaries(seg2_lab)
 
-    ## perform hierarchical merging of a RAG
-    ## (this seems to work well but is is still imperfect)
+    # perform hierarchical merging of a RAG
+    # (this seems to work well but is is still imperfect)
     seg2_lab_no_mask = segmentation.watershed(processed_img, seg2_lab)
     processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
-    rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)#, as_directed=True)
+    rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
     seg2_lab_no_mask_merge = graph.merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
                                                     rag_copy=False, in_place_merge=True,
                                                     merge_func=dummy_func, weight_func=weight_boundary)
 
-    cell_size_filter = 2000 # number of pixels of segmented area
+    cell_size_filter = 2000 # number of pixels of segmented area that is considered too small
     seg2_filtered = morphology.remove_small_objects(seg2_lab_no_mask_merge, min_size=cell_size_filter)
     seg2_lab_no_mask_merge = segmentation.watershed(image=processed_img_normd, markers=seg2_filtered)
 
-    rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)#, as_directed=True)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
+    rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
 
     seg2_lab_no_mask_merge = graph.merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
                                                     rag_copy=False, in_place_merge=True,
                                                     merge_func=dummy_func, weight_func=weight_boundary)
 
+    return seg2_lab_no_mask_merge, seg2_lab
+
+def save_image_output(out_path, images, images_metadata):
+
+    assert all([img.max() < np.iinfo(np.uint16).max for img in images])
+
+    merged_img = np.stack(images).astype(np.uint16)
+
+    image_name = images_metadata['image_name']
+    ch_colors = images_metadata['channel_colors']
+    ch_names = images_metadata['channel_names']
+    px_res = images_metadata['physical_pixel_sizes']
+    dim_order_out = images_metadata['dim_order']
+
+    OmeTiffWriter.save(merged_img,
+                       out_path,
+                       physical_pixel_sizes=px_res,
+                       dim_order=dim_order_out,
+                       image_name=image_name,
+                       channel_names=ch_names,
+                       channel_colors=ch_colors)
+
+def build_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+    # done via single processing
+    analysis_args_queue = []
+    for dataset_name in DATASET_NAME_LIST:
+
+        img_bin = 0
+        DIM_MAP = io.get_dim_map('TYX')
+        raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
+
+        if IS_TEST:
+            T_list = range(0,1)
+            crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
+            crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
+            for T in T_list:
+                analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
+        else:
+            # in the line below: replace 'raw.shape[DIM_MAP["T"]]' with an integer
+            # to analyze a subset of timepoints in the timelapse
+            T_list = range(0, raw.shape[DIM_MAP["T"]])
+            crop_y = slice(None, None)
+            crop_x = slice(None, None)
+            for T in T_list:
+                analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
+
+    return analysis_args_queue
+
+def generate_results_multiproc_wrapper(args):
+    dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
+    generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+
+def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+
+    print(f'Working on {dataset_name} -- T={T}...')
+    print(f'T={T} -- initializing workflow') if VERBOSE else None
+    out_dir, img_metadata = initialize_workflow(dataset_name)
+
+    print(f'T={T} -- loading dataset') if VERBOSE else None
+    raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
+    img_crop = (slice(T, T+1), crop_y, crop_x)
+    raw_arr = raw[img_crop].compute().squeeze()
+
+    print(f'T={T} -- preprocessing image') if VERBOSE else None
+    processed_img = preproc.preprocess(raw_arr)
+
+    print(f'T={T} -- getting and cleaning image thresholds') if VERBOSE else None
+    hyst, hyst_clean, hyst_removed = preproc.get_thresholds(processed_img)
+
+    print(f'T={T} -- getting and cleaning segmentations') if VERBOSE else None
+    seg2_lab_no_mask_merge, seg2_lab = generate_segmentations(processed_img, hyst, hyst_clean, hyst_removed)
     seg2_lab_no_mask_merge_bounds = segmentation.find_boundaries(seg2_lab_no_mask_merge)
 
-    # SAVE OUTPUTS
     if SAVE_OUTPUT:
-        assert seg2_lab.max() < np.iinfo(np.uint16).max
-        merged_img = np.stack([seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds, seg2_lab, bounds2, hyst_clean, raw_arr]).astype(np.uint16)
-
-        out_path = out_dir/f'{movie_name}_T{t}.ome.tiff'
-        ch_colors = [(0,255,255), (255,0,255), (0,255,255), (255,0,255), (255,255,0), (255,255,255)]
-        ch_names = [('merged_segmentations', 'merged_segmentation_borders', 'segmentations', 'segmentation_borders', 'hysteresis_threshold', 'raw')]
-        OmeTiffWriter.save(merged_img,
-                           out_path,
-                           physical_pixel_sizes=px_res,
-                           dim_order='CYX',
-                           image_name=movie_name,
-                           channel_names=ch_names,
-                           channel_colors=ch_colors)
+        print(f'T={T} -- saving image input and output overlays') if VERBOSE else None
+        out_path = out_dir/f'{dataset_name}_T{T}.ome.tiff'
+        images_out = [raw_arr, hyst_clean, seg2_lab, seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds]
+        images_out_metadata = {'image_name': dataset_name,
+                                'channel_names': [('raw', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders')], 
+                                'channel_colors': [(255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
+                                'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
+                                'dim_order': 'CYX'
+                                }
+        save_image_output(out_path, images_out, images_out_metadata)
     else:
         pass
 
+    if IS_TEST:
+        # clip and rescale images for matplotlib visualization purposes
+        # (not used in any further computational processing or analysis)
+        low_thresh, high_thresh = np.percentile(processed_img, q=(66, 80))
+        img_clipped = np.clip(processed_img, a_min=0, a_max=high_thresh)
+        img_rescaled = rescale_intensity(img_clipped, out_range=np.uint16)
+
+        print(f'T={T} -- plotting watershed overlaid on image') if VERBOSE else None
+        seg2_lab_for_overlays = seg2_lab.copy()
+
+        bounds2 = segmentation.find_boundaries(seg2_lab)
+        bounds2 = morphology.binary_dilation(bounds2, footprint=morphology.disk(5))
+        seg2_lab_for_overlays[bounds2 != 0] = seg2_lab_for_overlays.max() + 1
+
+        fig, (ax1, ax2) = plt.subplots(figsize=(24,12), nrows=2)
+        overlay6 = color.label2rgb(seg2_lab_for_overlays, 
+                                image=img_rescaled, 
+                                alpha=0.3)
+        ax2.imshow(overlay6, interpolation='nearest')
+        ax1.imshow(img_rescaled, cmap='grey')
+        ax1.tick_params(axis='both', which='both',
+                        bottom=False, left=False, top=False, right=False,
+                        labelbottom=False, labelleft=False, labeltop=False, labelright=False)
+        ax2.tick_params(axis='both', which='both',
+                        bottom=False, left=False, top=False, right=False,
+                        labelbottom=False, labelleft=False, labeltop=False, labelright=False)
+        plt.tight_layout()
+        plt.show(block=False)
+
+        # weights, counts = zip(*[(rag.adj[home][n]['weight'], rag.adj[home][n]['count']) for home in rag.adj for n in rag.adj[home]])
+        # plt.scatter(weights, counts, marker='.', alpha=0.5)
+        # plt.axvline(merge_thresh, c='k', ls='--')
+        # plt.semilogx()
+        # plt.show()
+
+        print(f'T={T} -- plotting merged watershed overlaid on image') if VERBOSE else None
+        seg2_lab_no_mask_merge_for_overlays = seg2_lab_no_mask_merge.copy()
+        seg2_lab_no_mask_merge_bounds = segmentation.find_boundaries(seg2_lab_no_mask_merge_for_overlays)
+
+        seg2_lab_no_mask_merge_bounds = morphology.binary_dilation(seg2_lab_no_mask_merge_bounds, footprint=morphology.disk(5))
+        seg2_lab_no_mask_merge_for_overlays[seg2_lab_no_mask_merge_bounds != 0] = seg2_lab_no_mask_merge_for_overlays.max() + 1
+
+        fig, (ax1, ax2) = plt.subplots(figsize=(24,12), nrows=2)
+        overlay7 = color.label2rgb(seg2_lab_no_mask_merge_for_overlays, 
+                                image=img_rescaled, 
+                                alpha=0.3)
+        overlay8 = color.label2rgb(seg2_lab_for_overlays, 
+                                image=img_rescaled, 
+                                alpha=0.3)
+        ax1.imshow(overlay8, interpolation='nearest')
+        ax1.tick_params(axis='both', which='both',
+                        bottom=False, left=False, top=False, right=False,
+                        labelbottom=False, labelleft=False, labeltop=False, labelright=False)
+        ax2.imshow(overlay7, interpolation='nearest')
+        ax2.tick_params(axis='both', which='both',
+                        bottom=False, left=False, top=False, right=False,
+                        labelbottom=False, labelleft=False, labeltop=False, labelright=False)
+        plt.tight_layout()
+        plt.show()
 
 
-if IS_TEST:
-    print(f'T={t} -- plotting watershed overlaid on image')
-    seg2_lab_for_overlays = seg2_lab.copy()
 
-    bounds2 = morphology.binary_dilation(bounds2, footprint=morphology.disk(5))
-    seg2_lab_for_overlays[bounds2 != 0] = seg2_lab_for_overlays.max() + 1
+def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
-    fig, (ax1, ax2) = plt.subplots(figsize=(24,12), nrows=2)
-    overlay6 = color.label2rgb(seg2_lab_for_overlays, 
-                               image=img_rescaled, 
-                               alpha=0.3)
-    ax2.imshow(overlay6, interpolation='nearest')
-    ax1.imshow(img_rescaled, cmap='grey')
-    ax1.tick_params(axis='both', which='both',
-                    bottom=False, left=False, top=False, right=False,
-                    labelbottom=False, labelleft=False, labeltop=False, labelright=False)
-    ax2.tick_params(axis='both', which='both',
-                    bottom=False, left=False, top=False, right=False,
-                    labelbottom=False, labelleft=False, labeltop=False, labelright=False)
-    plt.tight_layout()
-    plt.show()
+    DATASET_NAME_LIST = ['20240305_T01_001']
 
+    analysis_args_queue = build_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
-    weights, counts = zip(*[(rag.adj[home][n]['weight'], rag.adj[home][n]['count']) for home in rag.adj for n in rag.adj[home]])
-    plt.scatter(weights, counts, marker='.', alpha=0.5)
-    plt.axvline(merge_thresh, c='k', ls='--')
-    plt.semilogx()
-    plt.show()
+    if N_PROC > 1:
+            if __name__ == '__main__':
+                print('Starting multiprocessing...')
+                with Pool(processes=N_PROC) as pool:
+                    list(tqdm(pool.imap(generate_results_multiproc_wrapper, analysis_args_queue, chunksize=5), total=len(analysis_args_queue)))
+                    pool.close()
+                    pool.join()
+                print('Done multiprocessing.')
+    else:
+        for dataset_name_and_args in analysis_args_queue:
+            generate_results_multiproc_wrapper(dataset_name_and_args)
 
+    print('\N{microscope} Done analysis.')
 
-    print(f'T={t} -- plotting merged watershed overlaid on image')
-    seg2_lab_no_mask_merge_for_overlays = seg2_lab_no_mask_merge.copy()
-    seg2_lab_no_mask_merge_bounds = segmentation.find_boundaries(seg2_lab_no_mask_merge_for_overlays)
-
-    seg2_lab_no_mask_merge_bounds = morphology.binary_dilation(seg2_lab_no_mask_merge_bounds, footprint=morphology.disk(5))
-    seg2_lab_no_mask_merge_for_overlays[seg2_lab_no_mask_merge_bounds != 0] = seg2_lab_no_mask_merge_for_overlays.max() + 1
-
-    fig, (ax1, ax2) = plt.subplots(figsize=(24,12), nrows=2)
-    overlay7 = color.label2rgb(seg2_lab_no_mask_merge_for_overlays, 
-                               image=img_rescaled, 
-                               alpha=0.3)
-    overlay8 = color.label2rgb(seg2_lab_for_overlays, 
-                               image=img_rescaled, 
-                               alpha=0.3)
-    ax1.imshow(overlay8, interpolation='nearest')
-    ax1.tick_params(axis='both', which='both',
-                    bottom=False, left=False, top=False, right=False,
-                    labelbottom=False, labelleft=False, labeltop=False, labelright=False)
-    ax2.imshow(overlay7, interpolation='nearest')
-    ax2.tick_params(axis='both', which='both',
-                    bottom=False, left=False, top=False, right=False,
-                    labelbottom=False, labelleft=False, labeltop=False, labelright=False)
-    plt.tight_layout()
-    plt.show()
+if __name__ == '__main__':
+    fire.Fire(main)

@@ -14,7 +14,7 @@ dependencies = [
     "bioio-ome-tiff>=1.0.0",
     "bioio-base>=1.0.1",
     "bioio-ome-zarr>=1.0.1",
-    "matplotlib==3.9.1",
+    "matplotlib>=3.9.2",
     "notebook==7.2.1",
     "numdifftools==0.9.41",
     "pandas==2.2.2",
@@ -25,6 +25,9 @@ dependencies = [
     "jupyter>=1.0.0",
     "cyto-dl>=0.4.0",
     "fire>=0.6.0",
+    "tqdm>=4.66.5",
+    # specifying wasmtime < 24.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
+    "wasmtime==21.0"
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
@@ -43,6 +46,4 @@ build-backend = "pdm.pep517.api"
 
 [tool.pytest.ini_options]
 testpaths = "tests/"
-
-[tool.pdm.dev-dependencies]
 

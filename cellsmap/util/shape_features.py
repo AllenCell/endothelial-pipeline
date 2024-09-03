@@ -11,10 +11,7 @@ def arr2graph(arr):
     and edges as well as their connections. """
 
     ## Make sure that the array is either 2D or 3D
-    try:
-        assert(arr.ndim == 2 or arr.ndim == 3)
-    except AssertionError:
-        print('Input array must be 2D or 3D.')
+    assert(arr.ndim == 2 or arr.ndim == 3), 'Input array must be 2D or 3D.'
 
     if arr.ndim == 2:
         footprint = morphology.square(3)
@@ -116,8 +113,8 @@ def get_neighbor_nodes_and_edges(nodes_lab, edges_lab, bad_neighbors=[0], as_dic
     ## we are ensuring that only one node shows up when querying for neighbors in a
     ## window by setting nodes_lab == l (i.e. only show pixels that equal the label
     ## associated with the window)
-    node_neighbors_edgelabs = [(l, get_neighboring_labels(nodes_lab[*w]==l, edges_lab[*w], bad_neighbors=bad_neighbors)) for l,w in nodes_lab_windows]
-    edge_neighbors_nodelabs = [(l, get_neighboring_labels(edges_lab[*w]==l, nodes_lab[*w], bad_neighbors=bad_neighbors)) for l,w in edges_lab_windows]
+    node_neighbors_edgelabs = [(l, get_neighboring_labels(nodes_lab[(*w,)]==l, edges_lab[(*w,)], bad_neighbors=bad_neighbors)) for l,w in nodes_lab_windows]
+    edge_neighbors_nodelabs = [(l, get_neighboring_labels(edges_lab[(*w,)]==l, nodes_lab[(*w,)], bad_neighbors=bad_neighbors)) for l,w in edges_lab_windows]
 
 
     ## Use the combination of node_neighbors_edgelabs and edge_neighbors_nodelabs to
@@ -144,7 +141,6 @@ def get_neighbor_nodes_and_edges(nodes_lab, edges_lab, bad_neighbors=[0], as_dic
     return node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs
 
 
-
 def numpy_mesh_coords(coord1_ls, coord2_ls, indexing='ij', return_indiv_coord_meshes=False):
     """Coordinate lists are lists of tuples, e.g.
     [(z1, y1, x1), (z2, y2, x2), ...]"""
@@ -159,8 +155,6 @@ def numpy_mesh_coords(coord1_ls, coord2_ls, indexing='ij', return_indiv_coord_me
         coord_meshes = [np.dstack(coords) for coords in zip(*coord_meshes)]
 
     return coord_meshes
-
-
 
 def get_angle(vec1, vec2, in_deg=False, axis=None):
     ## a dot b = mag(a) * mag(b) * cos(theta)
@@ -191,7 +185,6 @@ def get_angle(vec1, vec2, in_deg=False, axis=None):
     return np.rad2deg(rad) if in_deg else rad
 
 
-
 def rasterize_edges_between_nodes(node_coord_pairs, arr_to_draw_on, label_lines=False):
     """
     node_coord_pairs = [((z1,y1,x1), (z2,y2,x2)),
@@ -216,7 +209,7 @@ def rasterize_edges_between_nodes(node_coord_pairs, arr_to_draw_on, label_lines=
     for label in sorted(lines, key=lambda x: len(list(zip(*lines[x]))), reverse=True):
         locs = lines[label]
         label_dict[label] = locs
-        arr_to_draw_on[*locs] = label if label_lines else True
+        arr_to_draw_on[(*locs,)] = label if label_lines else True
     label_dict = {label: label_dict[label] for label in sorted(label_dict.keys())}
 
     return (arr_to_draw_on, label_dict) if label_lines else arr_to_draw_on
