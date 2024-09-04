@@ -23,4 +23,29 @@
   "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/eval_config.yaml",
   "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/train_config.yaml",
 },
+{
+  "name": "mae_cdh5_intensity_aug",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5_intensity_aug/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5_intensity_aug/train_config.yaml",
+},
+{
+  "name": "mae_cdh5_small_patch",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5_small_patch/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5_small_patch/train_config.yaml",
+},
+{
+  "name": "mae_cdh5_adversarial",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5_adversarial/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5_adversarial/train_config.yaml",
+},
+{
+  "name": "mae_seg",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_seg/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_seg/train_config.yaml",
+},
+{
+  "name": "vicreg_timepoint_cdh5",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_timepoint_cdh5/config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_timepoint_cdh5/_config.yaml",
+},
 ]

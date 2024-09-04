@@ -1,0 +1,258 @@
+experiment_name: endo_time
+run_name: mae_small_patch_patch_norm
+task_name: train
+tags:
+- dev
+train: true
+test: true
+checkpoint:
+  ckpt_path: null
+  weights_only: null
+  strict: true
+seed: 12345
+data:
+  _target_: cyto_dl.datamodules.dataframe.DataframeDatamodule
+  path: //allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/data/endo_time_contrastive/cdh5
+  cache_dir: /storage/benji.the.kid/cache/endo_time_unnormed
+  num_workers: 4
+  batch_size: 8
+  pin_memory: true
+  persistent_workers: false
+  split_column: null
+  columns: null
+  transforms:
+    train:
+      _target_: monai.transforms.Compose
+      transforms:
+      - _target_: monai.transforms.LoadImaged
+        keys:
+        - raw
+        reader:
+        - _target_: cyto_dl.image.io.MonaiBioReader
+          dimension_order_out: CYX
+          dask_load: false
+      - _target_: cyto_dl.image.transforms.clip.Clipd
+        keys: raw
+      - _target_: monai.transforms.ToTensord
+        keys:
+        - raw
+        dtype: float16
+      - _target_: monai.transforms.RandSpatialCropSamplesd
+        keys: raw
+        roi_size: ${data._aux.patch_shape}
+        random_size: false
+        num_samples: 32
+      - _target_: monai.transforms.NormalizeIntensityd
+        keys:
+        - raw
+      - _target_: monai.transforms.RandFlipd
+        keys:
+        - raw
+        prob: 0.5
+        spatial_axis: 0
+      - _target_: monai.transforms.RandFlipd
+        keys:
+        - raw
+        prob: 0.5
+        spatial_axis: 1
+      - _target_: monai.transforms.RandRotate90d
+        keys:
+        - raw
+        prob: 0.5
+        max_k: 3
+    test:
+      _target_: monai.transforms.Compose
+    predict:
+      _target_: monai.transforms.Compose
+      transforms:
+      - _target_: monai.transforms.LoadImaged
+        keys:
+        - raw
+        reader:
+        - _target_: cyto_dl.image.io.MonaiBioReader
+          dimension_order_out: CYX
+          C: 0
+          dask_load: false
+      - _target_: cyto_dl.image.transforms.add_meta.AddMeta
+        image_key: raw
+        meta_keys:
+        - timepoint
+      - _target_: cyto_dl.image.transforms.clip.Clipd
+        keys: raw
+      - _target_: monai.transforms.NormalizeIntensityd
+        keys:
+        - raw
+      - _target_: monai.transforms.ToTensord
+        keys:
+        - raw
+        dtype: float16
+      - _target_: monai.transforms.GridPatchd
+        keys:
+        - raw
+        patch_size: ${data._aux.patch_shape}
+    valid:
+      _target_: monai.transforms.Compose
+      transforms:
+      - _target_: monai.transforms.LoadImaged
+        keys:
+        - raw
+        reader:
+        - _target_: cyto_dl.image.io.MonaiBioReader
+          dimension_order_out: CYX
+          dask_load: false
+      - _target_: cyto_dl.image.transforms.clip.Clipd
+        keys: raw
+      - _target_: monai.transforms.ToTensord
+        keys:
+        - raw
+        dtype: float16
+      - _target_: monai.transforms.RandSpatialCropSamplesd
+        keys: raw
+        roi_size: ${data._aux.patch_shape}
+        random_size: false
+        num_samples: 32
+      - _target_: monai.transforms.NormalizeIntensityd
+        keys:
+        - raw
+  _aux:
+    patch_shape:
+    - 480
+    - 480
+model:
+  _target_: cyto_dl.models.im2im.MultiTaskIm2Im
+  save_images_every_n_epochs: 1
+  save_dir: ${paths.output_dir}
+  x_key: raw
+  backbone:
+    _target_: cyto_dl.nn.vits.MAE
+    spatial_dims: 2
+    patch_size:
+    - 10
+    - 10
+    num_patches:
+    - 48
+    - 48
+    emb_dim: 256
+    encoder_layer: 16
+    encoder_head: 8
+    decoder_layer: 4
+    decoder_dim: 128
+    mask_ratio: 0.75
+    use_crossmae: true
+    learnable_pos_embedding: false
+  task_heads: ${kv_to_dict:${model._aux._tasks}}
+  optimizer:
+    generator:
+      _partial_: true
+      _target_: torch.optim.AdamW
+      weight_decay: 0.05
+  lr_scheduler:
+    generator:
+      _partial_: true
+      _target_: torch.optim.lr_scheduler.OneCycleLR
+      max_lr: 0.0001
+      epochs: ${trainer.max_epochs}
+      steps_per_epoch: 1
+      pct_start: 0.1
+  inference_args:
+    sw_batch_size: 1
+    roi_size:
+    - 512
+    - 512
+    overlap: 0.25
+    mode: gaussian
+  _aux:
+    _tasks:
+    - - raw
+      - _target_: cyto_dl.nn.head.mae_head.MAEHead
+        loss: null
+        postprocess:
+          input:
+            _target_: cyto_dl.models.im2im.utils.postprocessing.ActThreshLabel
+            rescale_dtype: numpy.uint8
+          prediction:
+            _target_: cyto_dl.models.im2im.utils.postprocessing.ActThreshLabel
+            rescale_dtype: numpy.uint8
+callbacks:
+  model_checkpoint:
+    _target_: lightning.pytorch.callbacks.ModelCheckpoint
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: epoch_{epoch:03d}
+    monitor: val/loss
+    verbose: false
+    save_last: true
+    save_top_k: 1
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: 1
+    save_on_train_epoch_end: null
+  early_stopping:
+    _target_: lightning.pytorch.callbacks.EarlyStopping
+    monitor: val/loss
+    min_delta: 0.0
+    patience: 100
+    verbose: false
+    mode: min
+    strict: true
+    check_finite: true
+    stopping_threshold: null
+    divergence_threshold: null
+    check_on_train_epoch_end: null
+  model_summary:
+    _target_: lightning.pytorch.callbacks.RichModelSummary
+    max_depth: -1
+  rich_progress_bar:
+    _target_: lightning.pytorch.callbacks.RichProgressBar
+  csv_saver:
+    _target_: cyto_dl.callbacks.csv_saver.CSVSaver
+    save_dir: ${paths.output_dir}
+    meta_keys:
+    - timepoint
+  train_saving:
+    _target_: cyto_dl.callbacks.ImageSaver
+    save_dir: ${paths.output_dir}
+    save_every_n_epochs: ${model.save_images_every_n_epochs}
+    stages:
+    - train
+    - test
+    - val
+    save_input: true
+    heads:
+    - raw
+logger:
+  csv:
+    _target_: lightning.pytorch.loggers.csv_logs.CSVLogger
+    save_dir: ${paths.output_dir}
+    name: csv/
+    prefix: ''
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 1
+  max_epochs: 1000
+  accelerator: gpu
+  devices:
+  - 0
+  precision: 16
+  check_val_every_n_epoch: 10
+  deterministic: false
+  detect_anomaly: false
+  max_time: null
+  gradient_clip_val: 5
+paths:
+  root_dir: ${oc.env:PROJECT_ROOT, './'}
+  data_dir: ${paths.root_dir}/data/
+  log_dir: ${paths.root_dir}/logs/
+  output_dir: ${hydra:runtime.output_dir}
+  work_dir: ${hydra:runtime.cwd}
+extras:
+  ignore_warnings: true
+  enforce_tags: true
+  print_config: true
+  precision:
+    _target_: torch.set_float32_matmul_precision
+    precision: medium
+persist_cache: true
