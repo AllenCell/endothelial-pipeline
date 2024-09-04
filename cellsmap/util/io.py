@@ -3,6 +3,7 @@ import dask
 import numpy as np
 from pathlib import Path
 from bioio import BioImage
+import dask.array
 
 def load_config(config_type='data') -> dict:
     if config_type not in ['data', 'model']:
@@ -58,6 +59,13 @@ def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['flow']
 
+def get_dim_map(dim_order: str) -> dict:
+
+    dims = [a for a in dim_order]
+    dim_nums = tuple(range(len(dims)))
+    dim_map = dict(zip(dims, dim_nums))
+
+    return dim_map
 
 # model methods
 
