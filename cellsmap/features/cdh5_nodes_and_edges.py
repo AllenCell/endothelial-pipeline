@@ -63,6 +63,10 @@ def build_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=False, VER
 
     return analysis_args_queue
 
+def build_vector(stop_position, start_position):
+    vec = stop_position - start_position
+    return vec
+
 def calculate_node_to_node_distances_and_angles(binary_image: np.array, VERBOSE=True):
     """
     Takes a binary image representation of one or more structures that look
@@ -93,24 +97,28 @@ def calculate_node_to_node_distances_and_angles(binary_image: np.array, VERBOSE=
     """
     ## convert cleaned up threshold of cadherin signal to nodes and edges
     nodes, edges, skel, conn = feat.arr2graph(binary_image)
+    del skel, conn # remove unused images to save on memory
 
     ## construct lines between all nodes
     node_props = measure.regionprops(nodes)
     node_labels, node_centroids = zip(*[(n.label, n.centroid) for n in node_props])
 
-    print(f'    -- calculating angles and distances of lines between neighboring nodes') if VERBOSE else None
+    print(f'    -- getting home node and neighboring node centroids') if VERBOSE else None
     node_label_grid1, node_label_grid2 = np.meshgrid(node_labels, node_labels, indexing='ij')
-    node_coord_grid1, node_coord_grid2 = feat.numpy_mesh_coords(node_centroids, node_centroids, indexing='ij')
+    ## construct vectors from the node centroids
+    vec_nodes = build_vector(*feat.numpy_mesh_coords(node_centroids, node_centroids, indexing='ij'))
     node_labels_index_dict = dict(zip(node_labels, range(len(node_labels))))
-    dists = np.linalg.norm(node_coord_grid1 - node_coord_grid2, axis=2)
+    print(f'    -- array shape = {vec_nodes.shape}') if VERBOSE else None
 
+    print(f'    -- calculating distances of lines between neighboring nodes') if VERBOSE else None
+    dists = np.linalg.norm(vec_nodes, axis=2)
+
+    print(f'    -- calculating angles of lines between neighboring nodes') if VERBOSE else None
     ## determine angle of these lines relative to the horizontal
     ## (fluid flow direction is horizontal)
     ## construct a horizontal vector for reference
     ## indexing is ij, not xy, therefore (0,1) is horizontal
     vec_horizontal = np.array((0,1), ndmin=3)
-    ## construct vectors from the node centroids
-    vec_nodes = node_coord_grid1 - node_coord_grid2
     ## calculate angles between node-node lines and the horizontal line
     angles = feat.get_angle(vec_horizontal, vec_nodes, in_deg=False, axis=2)
 
@@ -120,8 +128,10 @@ def calculate_node_to_node_distances_and_angles(binary_image: np.array, VERBOSE=
     ## 90-180 to be between 0-90
     angles[angles > np.pi/2] = abs(angles[angles > np.pi/2] - np.pi)
 
+    print(f'    -- getting node neighbors') if VERBOSE else None
     ## get the node neighbors
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = feat.get_neighbor_nodes_and_edges(nodes, edges)
+    del node_neighbors_edgelabs, edge_neighbors_nodelabs # remove unused images to save on memory
 
     ## create a connectivity matrix mask
     print(f'    -- creating node connectivity mask') if VERBOSE else None
