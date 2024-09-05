@@ -600,7 +600,7 @@ def update(i):
 
     data = Pt[i, :-1,:-1]
     im.set_array(np.ravel(data))
-    im.set_clim(vmax=1.1*np.max(Pt))
+    im.set_clim(vmax=0.95*np.max(data))
     ax2.set_xlim(xlim)
     ax2.set_ylim(ylim)
     
