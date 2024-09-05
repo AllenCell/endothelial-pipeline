@@ -4,7 +4,7 @@ import os
 
 # from utils.langevin_sindy import langevin_sindy as lg
 # from utils.sparse_vfc import sparseVFC as svfc
-from utils import preprocess as pp
+from cellsmap.analyses.utils import preprocess as pp
 
 def find_git_root(test, dirs=(".git",), default=None):
     '''Find the root of a git repository given a path to a file or directory within the repository.'''

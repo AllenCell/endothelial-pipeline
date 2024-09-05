@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 from time import time
-from timecorr import kl_divergence
+from cellsmap.analyses.utils.langevin_sindy.timecorr import kl_divergence
 
 # adapted from https://github.com/dynamicslab/langevin-regression
 # AFP solver object
