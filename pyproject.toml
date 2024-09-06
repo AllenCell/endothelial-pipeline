@@ -27,7 +27,8 @@ dependencies = [
     "fire>=0.6.0",
     "tqdm>=4.66.5",
     # specifying wasmtime < 24.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
-    "wasmtime==21.0"
+    "wasmtime<24.0",
+    "seaborn>=0.13.2",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
