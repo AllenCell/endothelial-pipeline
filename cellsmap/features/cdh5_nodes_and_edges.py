@@ -238,7 +238,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
                               'neighbor_node': neighbor_nodes_filtered,
                               'node_to_node_distance': dists_filtered,
                               'angle_relative_to_horizontal': angles_filtered})
-        table.to_csv(tables_out_dir / f'{dataset_name}_T{T}_alignments.csv')
+        table.to_csv(tables_out_dir / f'{dataset_name}_T{T}_alignments.csv', index=False)
 
         ## save plots of the angles and dists
         ## (note that polar plots use radians as inputs, not degrees)
@@ -289,7 +289,7 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
         out_dir_list, _ = initialize_workflow(dataset_name)
         _, tables_out_dir, _, out_dir = out_dir_list
         master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir.glob('*.csv')])
-        master_table.to_csv(out_dir / f'{dataset_name}_alignments.csv')
+        master_table.to_csv(out_dir / f'{dataset_name}_alignments.csv', index=False)
 
     print('\N{microscope} Done analysis.')
 

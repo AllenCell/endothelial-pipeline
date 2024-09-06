@@ -34,4 +34,5 @@ venv/
 # ignore locally generated results
 results/
 
-
+# ignore files that might not be committed
+cdh5_classic_seg_v2.py
