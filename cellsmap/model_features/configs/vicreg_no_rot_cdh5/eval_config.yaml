@@ -20,6 +20,8 @@ data:
   out_key: raw
   transforms: 
     - _target_: monai.transforms.NormalizeIntensity
+      subtrahend: 116
+      divisor: 9.5
     - _target_: monai.transforms.ToTensor
       dtype: float16
     - _target_: monai.transforms.GridSplit
