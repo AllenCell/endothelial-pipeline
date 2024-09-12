@@ -1,0 +1,310 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+import sympy
+
+import torch
+from time import time
+
+# in utils/langevin_sindy folder, includes all the langevin-regression code implemented for 2d
+import cellsmap.analyses.utils.langevin_sindy.langevin_sindy as lg
+import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
+
+import os
+#from cellsmap.analyses.workflows.analyze_feats import find_git_root
+import cellsmap.analyses.workflows.model_config as mconfig
+
+def get_bins(ndim, data):
+    '''Generate histogram bins for the data.'''
+    if ndim == 1: # if data are 1D...
+        min = min([min(traj) for traj in data])
+        max = max([max(traj) for traj in data])
+        bin_min = 0.5*(np.floor(min)+np.round(min,1))
+        bin_max = 0.5*(np.ceil(max)+np.round(max,1))
+        bins = np.linspace(bin_min,bin_max, mconfig.N+1)
+        dx = bins[1]-bins[0]
+        centers = (bins[:-1]+bins[1:])/2
+    else: # else, data are 2D...
+        Nx = mconfig.N[0]
+        min0 = min([min(traj[:,0]) for traj in data])
+        max0 = max([max(traj[:,0]) for traj in data])
+        bin0_min = 0.5*(np.floor(min0)+np.round(min0,1))
+        bin0_max = 0.5*(np.ceil(max0)+np.round(max0,1))
+        bins0 = np.linspace(bin0_min, bin0_max, Nx+1)
+        centers0 = 0.5*(bins0[1:]+bins0[:-1])
+
+        Ny= mconfig.N[1]
+        min1 = min([min(traj[:,1]) for traj in data])
+        max1 = max([max(traj[:,1]) for traj in data])
+        bin1_min = 0.5*(np.floor(min1)+np.round(min1,1))
+        bin1_max = 0.5*(np.ceil(max1)+np.round(max1,1))
+        bins1 = np.linspace(bin1_min, bin1_max, Ny+1)
+        centers1 = 0.5*(bins1[1:]+bins1[:-1])
+
+        dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
+
+        bins = [bins0,bins1]
+        centers = [centers0,centers1]
+
+    return bins, centers, dx
+
+def get_hist(ndim, data, bins):
+    '''Generate histogram for the data.'''
+    if ndim == 1:
+        hist = np.histogram(np.concatenate(data), bins, density=True)
+    else:
+        hist = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
+    return hist
+
+def get_lib(ndim,nf,ns):
+    if ndim == 1:
+        x = sympy.symbols('x')
+        f_expr = np.array([x**k for k in range(nf+1)])
+        s_expr = np.array([x**k for k in range(ns+1)])
+    else:
+        x1 = sympy.symbols('x1')
+        x2 = sympy.symbols('x2')
+        f_expr = np.array([(x1**k)*(x2**(m-k)) for m in range(nf+1) for k in range(m+1)])
+        s_expr = np.array([(x1**k)*(x2**(m-k)) for m in range(ns+1) for k in range(m+1)])
+    return f_expr, s_expr
+
+def eval_lib(ndim, centers, f_expr, s_expr):
+    '''Evaluate sympy function libraries for drift and diffusion on histogram grid.'''
+    if ndim == 1: # 1D
+        x = sympy.symbols('x')
+        lib_f = np.zeros([len(f_expr), mconfig.N])
+        for k in range(len(f_expr)):
+            lamb_expr = sympy.lambdify(x, f_expr[k])
+            lib_f[k] = lamb_expr(centers)
+        lib_f = lib_f.T
+
+        lib_s = np.zeros([len(s_expr), mconfig.N])
+        for k in range(len(s_expr)):
+            lamb_expr = sympy.lambdify(x, s_expr[k])
+            lib_s[k] = lamb_expr(centers)
+        lib_s = lib_s.T
+    else: # 2D
+        x1 = sympy.symbols('x1')
+        x2 = sympy.symbols('x2')
+        X1,X2 = np.meshgrid(centers[0],centers[1])
+        # Convert sympy expressions into library matrices
+        lib_f1 = np.zeros([len(f_expr)//2,mconfig.N[0],mconfig.N[1]])
+        for k in range(len(f_expr)//2):
+            lamb_expr = sympy.lambdify([x1,x2], f_expr[k])
+            for i in range(mconfig.N[0]):
+                for j in range(mconfig.N[1]):
+                    lib_f1[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
+
+        lib_f2 = np.zeros([len(f_expr)//2,mconfig.N[0],mconfig.N[1]])
+        for k in range(len(f_expr)//2):
+            lamb_expr = sympy.lambdify([x1,x2], f_expr[k+len(f_expr)//2])
+            for i in range(mconfig.N[0]):
+                for j in range(mconfig.N[1]):
+                    lib_f2[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
+
+        lib_f1 = lib_f1.T.reshape(np.prod(mconfig.N),-1)
+        lib_f2 = lib_f2.T.reshape(np.prod(mconfig.N),-1)
+
+        lib_f = np.block([[lib_f1, np.zeros((np.prod(mconfig.N),len(f_expr)//2))], [np.zeros((np.prod(mconfig.N),len(f_expr)//2)),lib_f2]])
+
+        lib_s1 = np.zeros([len(s_expr)//2,mconfig.N[0],mconfig.N[1]])
+        for k in range(len(s_expr)//2):
+            lamb_expr = sympy.lambdify([x1,x2], s_expr[k])
+            for i in range(mconfig.N[0]):
+                for j in range(mconfig.N[1]):
+                    lib_s1[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
+
+        lib_s2 = np.zeros([len(s_expr)//2,mconfig.N[0],mconfig.N[1]])
+        for k in range(len(s_expr)//2):
+            lamb_expr = sympy.lambdify([x1,x2], s_expr[k+len(s_expr)//2])
+            for i in range(mconfig.N[0]):
+                for j in range(mconfig.N[1]):
+                    lib_s2[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
+
+        lib_s1 = lib_s1.T.reshape(np.prod(mconfig.N),-1)
+        lib_s2 = lib_s2.T.reshape(np.prod(mconfig.N),-1)
+
+        lib_s = np.block([[lib_s1, np.zeros((np.prod(mconfig.N),len(s_expr)//2))], [np.zeros((np.prod(mconfig.N),len(s_expr)//2)),lib_s2]])
+    
+    return lib_f, lib_s
+
+def init_Xi(ndim,lib_f,lib_s, f_KM, a_KM):
+    '''Initialize coefficients Xi with least squares regression against SINDy libraries (no finite-time corrections)'''
+    m=lib_f.shape[-1]+lib_s.shape[-1]
+    Xi0 = np.zeros(m)
+    if ndim == 1:
+        mask = np.nonzero(np.isfinite(f_KM))[0]
+        Xi0[:lib_f.shape[-1]] = np.linalg.lstsq( lib_f[mask], f_KM[mask], rcond=None)[0]   # Regression against drift
+        Xi0[lib_f.shape[-1]:] = np.linalg.lstsq( lib_s[mask], np.sqrt(2*a_KM[mask]), rcond=None)[0]  # Regression against diffusion
+
+    else: # 2D
+        lib_f1 = lib_f[:np.prod(mconfig.N),:lib_f.shape[-1]//2]
+        lib_f2 = lib_f[np.prod(mconfig.N):,lib_f.shape[-1]//2:]
+        lib_s1 = lib_s[:np.prod(mconfig.N),:lib_s.shape[-1]//2]
+        lib_s2 = lib_s[np.prod(mconfig.N):,lib_s.shape[-1]//2:]
+        mask = (np.where(np.isfinite(f_KM[:,:,0].flatten())*np.isfinite(f_KM[:,:,1].flatten())))[0]
+        n_mask = len(mask)
+        A1 = np.block([[lib_f1[mask], np.zeros((n_mask,lib_f.shape[-1]//2))], [np.zeros((n_mask,lib_f.shape[-1]//2)),lib_f2[mask]]])
+        b1 = np.hstack((f_KM[:,:,0].flatten()[mask],f_KM[:,:,1].flatten()[mask])).T
+        Xi0[:lib_f.shape[-1]] = np.linalg.lstsq(A1, b1, rcond=None)[0]   # Regression against drift
+
+        mask = (np.where(np.isfinite(a_KM[:,:,0].flatten())*np.isfinite(a_KM[:,:,1].flatten())))[0]
+        n_mask = len(mask)
+        A2 = np.block([[lib_s1[mask], np.zeros((n_mask,lib_s.shape[-1]//2))], [np.zeros((n_mask,lib_s.shape[-1]//2)),lib_s2[mask]]])
+        b2 = np.hstack((a_KM[:,:,0].flatten()[mask],a_KM[:,:,1].flatten()[mask])).T
+        Xi0[lib_f.shape[-1]:] = np.linalg.lstsq(A2,b2, rcond=None)[0]  # Regression against diffusion
+    return Xi0
+
+def get_weights(ndim,f_err, a_err):
+    '''Get weigthts for the optimization problem based on uncertainties in Kramers-Moyal coefficients.'''
+    if ndim == 1: # 1D
+        W = np.array((f_err.flatten(), a_err.flatten()))
+    else: # 2D
+        W = np.array((f_err.reshape((np.prod(mconfig.N),2)), a_err.reshape(np.prod(mconfig.N),2)))
+
+    W[np.less(abs(W), 1e-12, where=np.isfinite(W))] = 1e6  # Set zero entries to large numbers (small weights)
+    W[np.logical_not(np.isfinite(W))] = 1e6 # Set NaN entries to large numbers (small weights)
+    W = 1/W  # Invert error for weights
+    W = W/np.nansum(W.flatten()) # Normalize weights
+    return W
+
+def plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr):
+    '''Plot cost function V versus sparsity of SINDy solution along with
+      visualization of which terms are active (Xi nonzero) at these levels of sparsity.'''
+    # labels for terms in SINDy library
+    labels = [r'${0}$'.format(sympy.latex(t)) for t in np.concatenate((f_expr, s_expr))]
+    n_terms = len(labels)
+    # term is "active" if Xi is nonzero, mask for active terms
+    active = abs(Xi) > 1e-8
+
+    if ndim == 1:
+        fig, ax = plt.subplots(2,1,figsize=(12, 4))
+        ax[0].scatter(np.arange(len(V)), V, c='k')
+
+        ax[0].set_xticks(np.arange(n_terms-1))
+        ax[0].set_xticklabels(np.arange(n_terms, 1, -1))
+        ax[0].set_xlabel('Sparsity')
+        ax[0].set_ylabel('Cost')
+        ax[0].set_yscale('log')
+        ax[0].grid()
+
+        ax[1].pcolor(active, cmap='bone_r', edgecolors='gray')
+        ax[1].gca().set_yticks(0.5+np.arange(n_terms))
+        ax[1].set_yticklabels(labels)
+        ax[1].set_xticks(0.5+np.arange(n_terms-1))
+        ax[1].set_xticklabels(np.arange(n_terms, 1, -1))
+        ax[1].set_xlabel('Sparsity')
+        ax[1].set_ylabel('Active terms (f, D)')
+    else: # 2D
+        fig, ax = plt.subplots(3,1,figsize=(15, 4))
+
+        ax[0].scatter(np.arange(len(V)), V, c='k')
+
+        ax[0].set_xticks(np.arange(0,n_terms-(2*ndim-1),2))
+        ax[0].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
+        ax[0].set_xlabel('Sparsity')
+        ax[0].set_ylabel('Cost')
+        ax[0].set_yscale('log')
+        ax[0].grid()
+
+        active_1 = np.concatenate((active[:len(f_expr)//2], active[len(f_expr):len(f_expr)+len(s_expr)//2]))
+        labels_1 = np.concatenate((labels[:len(f_expr)//2], labels[len(f_expr):len(f_expr)+len(s_expr)//2]))
+        ax[1].pcolor(active_1, cmap='bone_r', edgecolors='gray')
+        ax[1].set_yticks(0.5+np.arange(active_1.shape[0]))
+        ax[1].set_yticklabels(labels_1)
+        ax[1].set_xticks(0.5+np.arange(0,n_terms-(2*ndim-1),2))
+        ax[1].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
+        ax[1].set_xlabel('Sparsity')
+        ax[1].set_ylabel('Active terms (f1, D1)')
+
+
+        active_2 = np.concatenate((active[len(f_expr)//2:len(f_expr)], active[len(f_expr)+len(s_expr)//2:]))
+        labels_2 = np.concatenate((labels[len(f_expr)//2:len(f_expr)], labels[len(f_expr)+len(s_expr)//2:]))
+        ax[2].pcolor(active_2, cmap='bone_r', edgecolors='gray')
+        ax[2].set_yticks(0.5+np.arange(active_2.shape[0]))
+        ax[2].set_yticklabels(labels_2)
+        ax[2].set_xticks(0.5+np.arange(0,n_terms-(2*ndim-1),2))
+        ax[2].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
+        ax[2].set_xlabel('Sparsity')
+        ax[2].set_ylabel('Active terms (f2, D2)')
+
+    plt.show()
+    return fig
+
+def langevin_regression(ndim,data, lag_step, dt, savedir, logfile=None):
+    '''Fit Langevin SINDy model to data.'''
+    if logfile is None:
+        logfile = os.path.join(savedir,"/logs/fit_model_log.txt")
+    else:
+        logfile = os.path.join(savedir,logfile)
+
+    with open(logfile, 'w') as f:
+        print("GPU available: "+str(torch.cuda.is_available()), file=f)
+        print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
+
+    num_traj = len(data)
+    num_t = data[0].shape[0]
+
+    data_stationary = [data[i][num_t//2:] for i in range(num_traj)] # "Steady state" data, for histogram
+
+    # Generate histogram bins
+    bins, centers, dx = get_bins(ndim,data)
+
+    p_hist, _, _ = get_hist(ndim,data_stationary, bins)
+    np.save(savedir+'/outputs/histogram_bins.npy',np.array(bins,dtype=object),allow_pickle=True)
+    np.save(savedir+'/outputs/histogram.npy',p_hist)
+
+    ## KM average (coarse grained subsampling)
+    if ndim == 1:
+        f_KM, a_KM, f_err, a_err = lg.KM_avg(data, bins, stride=lag_step, dt=dt, multi_traj=True)
+        np.save(savedir+'/outputs/KM_drift.npy',f_KM)
+        np.save(savedir+'/outputs/KM_diff.npy',a_KM)
+        np.save(savedir+'/outputs/KM_drift_err.npy',f_err)
+        np.save(savedir+'/outputs/KM_diff_err.npy',a_err)
+    else:
+        f_KM, a_KM, f_err, a_err = lg.KM_avg_2D(data, bins, stride=lag_step, dt=dt, multi_traj=True)
+        np.save(savedir+'/outputs/KM_drift.npy',f_KM)
+        np.save(savedir+'/outputs/KM_diff.npy',a_KM)
+        np.save(savedir+'/outputs/KM_drift_err.npy',f_err)
+        np.save(savedir+'/outputs/KM_diff_err.npy',a_err)
+
+    ### Build SINDy libraries with sympy, evaluate on histogram grid
+    f_expr, s_expr = get_lib(ndim,mconfig.nf,mconfig.ns)
+    lib_f, lib_s = eval_lib(ndim, centers, f_expr, s_expr)
+    
+    ### Initialize Xi with least squares regression (no finite-time corrections)
+    Xi0 = init_Xi(ndim,lib_f,lib_s,f_KM,a_KM)
+
+    ### Weights: uncertainties in Kramers-Moyal
+    W = get_weights(ndim,f_err, a_err)
+
+    # Initialize adjoint solver
+    afp = fps.AdjFP(centers,ndim=ndim)
+
+    # Initialize forward steady-state solver
+    fp = fps.SteadyFP(mconfig.N, dx)
+
+    # Optimization parameters
+    params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
+            "f_expr": f_expr, "s_expr": s_expr,
+            "lib_f": lib_f, "lib_s": lib_s, "N": mconfig.N,
+            "kl_reg": 0,
+            "fp": fp, "afp": afp, "p_hist": p_hist, "tau": lag_step*dt,
+            "radial": False}
+
+    # Use anonymous function to automatically pass the cost function
+    opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
+    start_time = time()
+    with open(logfile, 'a') as f:
+        print("Optimizing... \n",file=f)
+
+    Xi, V = lg.SSR_loop(opt_fun, params)
+
+    with open(logfile, 'a') as f:
+        print("Full optimization took "+str(time()-start_time)+" seconds \n",file=f)
+
+    # plot cost function and active terms
+    V_fig = plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr)
+
+    return Xi, V_fig
+

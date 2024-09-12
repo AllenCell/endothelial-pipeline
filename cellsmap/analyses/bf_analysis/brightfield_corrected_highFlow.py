@@ -18,6 +18,7 @@ from scipy import constants
 import sympy
 
 # in utils/langevin_sindy folder, includes all the langevin-regression code implemented for 2d
+from cellsmap.analyses.workflows.fit_langevin_sindy import select_tau
 import cellsmap.analyses.utils.langevin_sindy.langevin_sindy as lg
 import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
@@ -165,48 +166,10 @@ ax.imshow(p_hist.T,interpolation='nearest', origin='lower',
            extent=[bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]],
            cmap='inferno', aspect=(bins[0][-1]-bins[0][0])/(bins[1][-1]-bins[1][0]))
 
-
 # %%
-# autocorrelation function (average across all locations)
-tau = dt*np.arange(0, data[0].shape[0])
-acf = np.zeros((len(tau),2,2))
-for loc_idx in range(num_loc):
-    acf = acf + tc.autocorr_func_2D(data[loc_idx])
-acf = acf/num_loc
+# autocorrelation and Markov test to select time delay tau
 
-fig, axs = plt.subplots(1,3, figsize=(18, 4))
-tup_list = [(0,0),(0,1),(1,1)]
-for ii in range(3):
-    i,j = tup_list[ii]
-    axs[ii].plot(tau, acf[:,i,j], 'k')
-    axs[ii].set_ylabel(r'Autocorrelation $C_{('+str(i+1)+','+str(j+1)+')}(\\tau)$')
-    axs[ii].set_xlabel(r'Time lag $\tau$')
-    axs[ii].vlines(stride*dt, acf.min()-0.1, acf.max()+0.1, 'r', '--')
-    axs[ii].set_ylim([-0.05, 1.15])
-    axs[ii].set_xlim([0.5*dt, 1e3])
-    axs[ii].set_xscale('log')
-    axs[ii].grid()
-
-# %%
-# Markov test
-lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
-kl_div = np.zeros((num_loc,len(lag)))
-for loc_idx in range(num_loc):
-    kl_div[loc_idx,:] = np.array([tc.markov_test(data[loc_idx][:,0], delta, N=Nx) for delta in lag])
-kl_div = np.nanmean(kl_div,axis=0)
-
-plt.figure(figsize=(8, 3))
-ax = plt.gca()
-ax.set_xscale('log')
-ax.plot(dt*lag, kl_div, 'k.')
-ax.vlines(dt*stride, -0.3, 1.2, 'r', '--')
-
-ax.set_ylabel(r'$\mathcal{D}_{KL}(\tau)$')
-ax.set_xlabel(r'Sampling time $\tau$')
-ax.set_xlim([dt*lag.min()-0.05, dt*lag.max()+0.05])
-ax.set_ylim([1e-2, np.max([np.nanmax(kl_div)+0.05,1])])
-plt.grid()
-
+select_tau(data, dt)
 # %%
 
 # Load outputs from `langevin_2D_bfcorr_highFlow.py`
@@ -426,13 +389,14 @@ a_vals_new = a_high(X1,X2)
 # Potential U, vector field decomposition
 U, grad_term, flux_term = gp.grad_flux_decomposition(np.swapaxes(f_vals_new,1,2),np.swapaxes(a_vals_new,1,2),centers_new)
 
-#grad = grad_term.copy()
+# %%
+grad = grad_term.copy()
 # normalize gradient
-grad = grad_term/np.sqrt(grad_term[0]**2+grad_term[1]**2)
+# grad = grad_term/np.sqrt(grad_term[0]**2+grad_term[1]**2)
 
-#flux = flux_term.copy()
+flux = flux_term.copy()
 # normalize flux
-flux = flux_term/np.sqrt(flux_term[0]**2+flux_term[1]**2)
+#flux = flux_term/np.sqrt(flux_term[0]**2+flux_term[1]**2)
 
 # %%
 fig, ax = plt.subplots()
@@ -443,8 +407,9 @@ im = ax.imshow(U.T,interpolation='nearest', origin='lower',
            cmap='jet', aspect=(xvec[-1]-xvec[0])/(yvec[-1]-yvec[0]))
 
 downsample=8
-plt.quiver(xvec[::downsample],yvec[::downsample],grad[0][::downsample,::downsample].T,grad[1][::downsample,::downsample].T,color='w',pivot='tail')
-plt.quiver(xvec[::downsample],yvec[::downsample],flux[0][::downsample,::downsample].T,flux[1][::downsample,::downsample].T,color='m',pivot='tail')
+ydownsample=12
+plt.quiver(xvec[::downsample],yvec[::ydownsample],grad[0][::downsample,::ydownsample].T,grad[1][::downsample,::ydownsample].T,color='w',pivot='tail')
+plt.quiver(xvec[::downsample],yvec[::ydownsample],flux[0][::downsample,::ydownsample].T,flux[1][::downsample,::ydownsample].T,color='m',pivot='tail')
 plt.xlabel('PC1')
 plt.ylabel('PC2')
 fig.colorbar(im,label='$-\ln P$')
@@ -464,31 +429,74 @@ f_vals_pad = f_high(X1,X2)
 grad_pad = gp.gradient_flow_term(U_pad,np.swapaxes(a_vals_pad,1,2),[xvec,y_pad],isConstant=False)
 flux_pad = np.swapaxes(f_vals_pad,1,2) - grad_pad
 
+# normalize gradient
 grad_pad = grad_pad/np.sqrt(grad_pad[0]**2+grad_pad[1]**2)
 
-#flux = flux_term.copy()
 # normalize flux
 flux_pad = flux_pad/np.sqrt(flux_pad[0]**2+flux_pad[1]**2)
 # %%
+# mask out the region where the potential is too high
+# mask = np.where(U_pad<U.max()-0.5)
+# U_mask = U_pad[mask[0],mask[1]]
+mask_cond = U_pad>=U.max()-0.5
+U_mask = np.ma.masked_where(mask_cond,U_pad)
+grad_mask0 = np.ma.masked_where(mask_cond,grad_pad[0])
+grad_mask1 = np.ma.masked_where(mask_cond,grad_pad[1])
+grad_mask = np.ma.concatenate((grad_mask0[np.newaxis],grad_mask1[np.newaxis]),axis=0)
+flux_mask0 = np.ma.masked_where(mask_cond,flux_pad[0])
+flux_mask1 = np.ma.masked_where(mask_cond,flux_pad[1])
+flux_mask = np.ma.concatenate((flux_mask0[np.newaxis],flux_mask1[np.newaxis]),axis=0)
+
+x_, y_ = np.meshgrid(xvec,y_pad,indexing='ij')
+x_mask = np.ma.masked_where(mask_cond,x_)
+y_mask = np.ma.masked_where(mask_cond-0.5,y_)
+
+
+# %%
 fig, ax = plt.subplots()
-# plot potential and gradient/flux fields
-im = ax.imshow(U_pad.T,interpolation='nearest', origin='lower',
+# plot potential and f(x)
+im = ax.imshow(U_mask.T,interpolation='nearest', origin='lower',
            extent=[xvec[0], xvec[-1], y_pad[0], y_pad[-1]],
            cmap='jet', aspect=(xvec[-1]-xvec[0])/(y_pad[-1]-y_pad[0]))
 
-downsample=8
-plt.quiver(xvec[::downsample],y_pad[::downsample],grad_pad[0][::downsample,::downsample].T,grad_pad[1][::downsample,::downsample].T,color='w',pivot='tail')
-plt.quiver(xvec[::downsample],y_pad[::downsample],flux_pad[0][::downsample,::downsample].T,flux_pad[1][::downsample,::downsample].T,color='m',pivot='tail')
+# downsampling for quiver plots
+ds_x=5
+ds_y=10
+
+f_mask0 = np.ma.masked_where(mask_cond,f_vals_pad[0].T)
+f_mask1 = np.ma.masked_where(mask_cond,f_vals_pad[1].T)
+
+# normalize f 
+# f_mask0_ = f_mask0/np.sqrt(f_mask0**2+f_mask1**2)
+# f_mask1_ = f_mask1/np.sqrt(f_mask0**2+f_mask1**2)
+
+plt.quiver(x_mask[::ds_x,::ds_y].T,y_mask[::ds_x,::ds_y].T,f_mask0[::ds_x,::ds_y].T,f_mask1[::ds_x,::ds_y].T,edgecolor='k',facecolor='w',linewidth=0.35)
 plt.xlabel('PC1')
 plt.ylabel('PC2')
 fig.colorbar(im,label='$-\ln P$')
 
+
+# %%
+fig, ax = plt.subplots()
+# plot potential and gradient/flux fields
+im = ax.imshow(U_mask.T,interpolation='nearest', origin='lower',
+           extent=[xvec[0], xvec[-1], y_pad[0], y_pad[-1]],
+           cmap='jet', aspect=(xvec[-1]-xvec[0])/(y_pad[-1]-y_pad[0]))
+
+# downsampling for quiver plots
+ds_x=5
+ds_y=10
+
+plt.quiver(x_mask[::ds_x,::ds_y].T,y_mask[::ds_x,::ds_y].T,grad_mask[0][::ds_x,::ds_y].T,grad_mask[1][::ds_x,::ds_y].T,edgecolor='k',facecolor='w',linewidth=0.25)
+plt.quiver(x_mask[::ds_x,::ds_y].T,y_mask[::ds_x,::ds_y].T,flux_mask[0][::ds_x,::ds_y].T,flux_mask[1][::ds_x,::ds_y].T,edgecolor='k',facecolor='m',linewidth=0.25)
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+fig.colorbar(im,label='$-\ln P$')
 # %%
 # plot U as a 3D surface
-X1, X2 = np.meshgrid(xvec,y_pad,indexing='ij')
 fig = plt.figure(figsize=plt.figaspect(1/3))
 ax1 = fig.add_subplot(1,2,1, projection='3d')
-surf = ax1.plot_surface(X1,X2, U_pad, cmap='jet')
+surf = ax1.plot_surface(x_mask,y_mask, U_mask, cmap='jet')
 ax1.set_xlabel('PC1')
 ax1.set_ylabel('PC2')
 ax1.set_zlabel('$-\ln P$')

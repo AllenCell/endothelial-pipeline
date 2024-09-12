@@ -7,7 +7,6 @@ from IPython.display import HTML
 mpl.rcParams['animation.embed_limit'] = 2**128
 
 import matplotlib.pyplot as plt
-import sys
 
 # from fplanck import fokker_planck, boundary
 
@@ -428,13 +427,14 @@ a_vals_new = a_low(X1,X2)
 # Potential U, vector field decomposition
 U, grad_term, flux_term = gp.grad_flux_decomposition(np.swapaxes(f_vals_new,1,2),np.swapaxes(a_vals_new,1,2),centers_new)
 
-#grad = grad_term.copy()
+# %%
+grad = grad_term.copy()
 # normalize gradient
-grad = grad_term/np.sqrt(grad_term[0]**2+grad_term[1]**2)
+#grad = grad_term/np.sqrt(grad_term[0]**2+grad_term[1]**2)
 
-#flux = flux_term.copy()
+flux = flux_term.copy()
 # normalize flux
-flux = flux_term/np.sqrt(flux_term[0]**2+flux_term[1]**2)
+#flux = flux_term/np.sqrt(flux_term[0]**2+flux_term[1]**2)
 
 # %%
 fig, ax = plt.subplots()
@@ -452,45 +452,69 @@ plt.ylabel('PC2')
 fig.colorbar(im,label='$-\ln P$')
 
 # %%
+# mask out the region where the potential is too high
+# mask = np.where(U_pad<U.max()-0.5)
+# U_mask = U_pad[mask[0],mask[1]]
+mask_cond = U>=U.max()-0.5
+U_mask = np.ma.masked_where(mask_cond,U)
+grad_mask0 = np.ma.masked_where(mask_cond,grad[0])
+grad_mask1 = np.ma.masked_where(mask_cond,grad[1])
+grad_mask = np.ma.concatenate((grad_mask0[np.newaxis],grad_mask1[np.newaxis]),axis=0)
+flux_mask0 = np.ma.masked_where(mask_cond,flux[0])
+flux_mask1 = np.ma.masked_where(mask_cond,flux[1])
+flux_mask = np.ma.concatenate((flux_mask0[np.newaxis],flux_mask1[np.newaxis]),axis=0)
 
-# pad for extended PC2 grid - having numerical trouble computing U over extended ylim
-num_pad = int(1 + (15+30)/(yvec[1]-yvec[0]))
-mat_padding = U.max()*np.ones((len(xvec),num_pad-len(yvec)))
-U_pad = np.concatenate((mat_padding,U),axis=1)
-y_pad = np.linspace(-30,15,num_pad)
+x_, y_ = np.meshgrid(xvec,yvec,indexing='ij')
+x_mask = np.ma.masked_where(mask_cond,x_)
+y_mask = np.ma.masked_where(mask_cond-0.5,y_)
+
 
 # %%
-X1, X2 = np.meshgrid(xvec,y_pad)
-a_vals_pad = a_low(X1,X2)
-f_vals_pad = f_low(X1,X2)
-grad_pad = gp.gradient_flow_term(U_pad,np.swapaxes(a_vals_pad,1,2),[xvec,y_pad],isConstant=False)
-flux_pad = np.swapaxes(f_vals_pad,1,2) - grad_pad
+fig, ax = plt.subplots()
+# plot potential and f(x)
+im = ax.imshow(U_mask.T,interpolation='nearest', origin='lower',
+           extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],
+           cmap='jet', aspect=(xvec[-1]-xvec[0])/(yvec[-1]-yvec[0]))
 
-grad_pad = grad_pad/np.sqrt(grad_pad[0]**2+grad_pad[1]**2)
+# downsampling for quiver plots
+ds_x=5
+ds_y=10
 
-#flux = flux_term.copy()
-# normalize flux
-flux_pad = flux_pad/np.sqrt(flux_pad[0]**2+flux_pad[1]**2)
+f_mask0 = np.ma.masked_where(mask_cond,f_vals_new[0].T)
+f_mask1 = np.ma.masked_where(mask_cond,f_vals_new[1].T)
+
+# normalize f 
+f_mask0_ = f_mask0/np.sqrt(f_mask0**2+f_mask1**2)
+f_mask1_ = f_mask1/np.sqrt(f_mask0**2+f_mask1**2)
+
+plt.quiver(x_mask[::ds_x,::ds_y].T,y_mask[::ds_x,::ds_y].T,f_mask0[::ds_x,::ds_y].T,f_mask1[::ds_x,::ds_y].T,edgecolor='k',facecolor='w',linewidth=0.35)
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+fig.colorbar(im,label='$-\ln P$')
+
+
 # %%
 fig, ax = plt.subplots()
 # plot potential and gradient/flux fields
-im = ax.imshow(U_pad.T,interpolation='nearest', origin='lower',
-           extent=[xvec[0], xvec[-1], y_pad[0], y_pad[-1]],
-           cmap='jet', aspect=(xvec[-1]-xvec[0])/(y_pad[-1]-y_pad[0]))
+im = ax.imshow(U_mask.T,interpolation='nearest', origin='lower',
+           extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],
+           cmap='jet', aspect=(xvec[-1]-xvec[0])/(yvec[-1]-yvec[0]))
 
-downsample=8
-plt.quiver(xvec[::downsample],y_pad[::downsample],grad_pad[0][::downsample,::downsample].T,grad_pad[1][::downsample,::downsample].T,color='w',pivot='tail')
-plt.quiver(xvec[::downsample],y_pad[::downsample],flux_pad[0][::downsample,::downsample].T,flux_pad[1][::downsample,::downsample].T,color='m',pivot='tail')
+# downsampling for quiver plots
+ds_x=5
+ds_y=10
+
+plt.quiver(x_mask[::ds_x,::ds_y].T,y_mask[::ds_x,::ds_y].T,grad_mask[0][::ds_x,::ds_y].T,grad_mask[1][::ds_x,::ds_y].T,edgecolor='k',facecolor='w',linewidth=0.25)
+plt.quiver(x_mask[::ds_x,::ds_y].T,y_mask[::ds_x,::ds_y].T,flux_mask[0][::ds_x,::ds_y].T,flux_mask[1][::ds_x,::ds_y].T,edgecolor='k',facecolor='m',linewidth=0.25)
 plt.xlabel('PC1')
 plt.ylabel('PC2')
 fig.colorbar(im,label='$-\ln P$')
 
 # %%
 # plot U as a 3D surface
-X1, X2 = np.meshgrid(xvec,y_pad,indexing='ij')
 fig = plt.figure(figsize=plt.figaspect(1/3))
 ax1 = fig.add_subplot(1,2,1, projection='3d')
-surf = ax1.plot_surface(X1,X2, U_pad, cmap='jet')
+surf = ax1.plot_surface(x_mask,y_mask, U_mask, cmap='jet')
 ax1.set_xlabel('PC1')
 ax1.set_ylabel('PC2')
 ax1.set_zlabel('$-\ln P$')
@@ -600,7 +624,7 @@ def update(i):
 
     data = Pt[i, :-1,:-1]
     im.set_array(np.ravel(data))
-    im.set_clim(vmax=0.95*np.max(data))
+    im.set_clim(vmax=0.85*np.max(data))
     ax2.set_xlim(xlim)
     ax2.set_ylim(ylim)
     

@@ -5,7 +5,7 @@ import pandas as pd
 
 from cellsmap.analyses.utils import preprocess as pp
 
-from cellsmap.analyses.analyze_feats import get_scaled_traj
+from cellsmap.analyses.workflows.analyze_feats import get_scaled_traj
 
 # %%
 path_to_bf = "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/endo_time/mae_bf/2024-08-14_10-19-11/predictions.csv"
