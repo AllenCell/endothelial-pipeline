@@ -1,6 +1,7 @@
 import yaml
 import dask
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
@@ -13,7 +14,6 @@ def load_config(config_type='data') -> dict:
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
     return config_data
-
 
 # dataset methods
 def get_available_datasets() -> list:
@@ -31,21 +31,24 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resolution:int=0, structure: str='CDH5_Tubulin') -> dask.array.Array:
-    path = get_zarr_path(dataset_name)
-    img = BioImage(path)
-    assert resolution in img.resolution_levels, f'Invalid resolution level {resolution}. Available levels are {img.resolution_levels}'
-    img.set_resolution_level(resolution)
-
-    assert structure in img.channel_names, f"Invalid structure name {structure}, availabel structures are {img.channel_names}"
-    structure_ch = img.channel_names.index(structure)
-
-    img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1), C=structure_ch)
-    return img
-
 def get_zarr_path(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['zarr_path']
+
+def get_available_channels(dataset_name:str) -> list:
+    path = get_zarr_path(dataset_name)
+    reader = BioImage(path)
+    return reader.channel_names
+
+def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=576, level:int=0) -> dask.array.Array:
+    path = get_zarr_path(dataset_name)
+    reader = BioImage(path)
+    available_channels = reader.channel_names
+    channels_index = [available_channels.index(c) for c in channels]
+    assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
+    reader.set_resolution_level(level)
+    img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
+    return img
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
@@ -73,6 +76,10 @@ def get_available_models() -> list:
     model_info = load_config('model')
     for model in model_info:
         print(model['name'])
+
+def load_precomputed_features(dataset_name:str, model_name:str) -> pd.DataFrame:
+    dataset_info = get_dataset_info(dataset_name)
+    return pd.read_csv(dataset_info["features"][model_name])
 
 def get_model_info(model_name: str) -> dict:
     config = load_config('model')
