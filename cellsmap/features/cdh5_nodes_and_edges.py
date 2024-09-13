@@ -18,16 +18,19 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
     prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
     assert prj_dir.exists()
     out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
-    images_out_dir = out_dir / 'images'
-    tables_out_dir = out_dir / 'tables'
-    plots_out_dir = out_dir / 'plots'
-    out_dir_list = [images_out_dir, tables_out_dir, plots_out_dir, out_dir]
+    images_out_dir = out_dir / dataset_name / 'images'
+    tables_out_dir = out_dir / dataset_name / 'tables'
+    # plots_out_dir = out_dir / dataset_name / 'plots'
+    out_dir_list = [images_out_dir, tables_out_dir, out_dir]
     if SAVE_OUTPUT:
         [Path.mkdir(out_subdir, exist_ok=True, parents=True) for out_subdir in out_dir_list]
 
     img = BioImage(Path(io.get_zarr_path(dataset_name)))
     px_res = img.physical_pixel_sizes
+    t_res = preproc.get_cdh5_classic_segmentation_time_resolution(dataset_name)
     img_metadata = {'physical_pixel_sizes': px_res,
+                    't_res (min)': t_res,
+                    't_res (hr)': t_res / 60
                     }
 
     return out_dir_list, img_metadata
@@ -63,22 +66,39 @@ def build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=
 
     return analysis_args_queue
 
-def save_plot_output(out_path, angles, distances):
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    ## bins are set up to be every 5 degrees
-    ax.hist(angles, bins=18, facecolor='k')
-    ax.set_xlim(0, np.pi/2)
-    ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Count', horizontalalignment='center')
-    plt.tight_layout()
-    fig.savefig(out_path.parent / (str(out_path.name) + '_angles.tif'))
+# def save_alignment_plots(out_path, filename_stem, timepoint, angles, distances):
+#     angle_hists_path = out_path / 'angle_hists'
+#     Path.mkdir(angle_hists_path, parents=True, exist_ok=True)
+#     fig, ax = plt.subplots(figsize=(5,5), subplot_kw={'projection': 'polar'})
+#     ## bins are set up to be every 5 degrees
+#     ax.hist(angles, bins=18, facecolor='k')
+#     ax.set_xlim(0, np.pi/2)
+#     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Count', horizontalalignment='center')
+#     ax.set_title(f'{timepoint:.3f} hours', loc='right')
+#     plt.tight_layout()
+#     fig.savefig(angle_hists_path / (filename_stem + '_angles.tif'))
 
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    ax.scatter(angles, distances, marker='.', c='k', alpha=0.5)
-    ax.set_xlim(0, np.pi/2)
-    ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Node-node Distance', horizontalalignment='center')
-    fig.savefig(out_path.parent / (str(out_path.name) + '_dists_vs_angles.tif'))
+#     angles_vs_dists_path = out_path / 'angles_vs_dists_polar'
+#     Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)
+#     fig, ax = plt.subplots(figsize=(5,5), subplot_kw={'projection': 'polar'})
+#     ax.scatter(angles, distances, marker='.', c='k', alpha=0.5)
+#     ax.set_xlim(0, np.pi/2)
+#     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Node-node Distance', horizontalalignment='center')
+#     ax.set_title(f'{timepoint:.3f} hours', loc='right')
+#     plt.tight_layout()
+#     fig.savefig(angles_vs_dists_path / (filename_stem + '_dists_vs_angles_polar.tif'))
 
-    plt.close('all')
+#     angles_vs_dists_path = out_path / 'angles_vs_dists'
+#     Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)
+#     fig, ax = plt.subplots(figsize=(5,5))
+#     ax.scatter(angles, distances, marker='.', c='k', alpha=0.5)
+#     ax.set_xlim(0, np.pi/2)
+#     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Node-node Distance', horizontalalignment='center')
+#     ax.set_title(f'{timepoint:.3f} hours', loc='right')
+#     plt.tight_layout()
+#     fig.savefig(angles_vs_dists_path / (filename_stem + '_dists_vs_angles.tif'))
+
+#     plt.close('all')
 
 def generate_results_multiproc_wrapper(args):
     dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
@@ -94,6 +114,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
     print(f'T={T} -- loading dataset') if VERBOSE else None
     channels = ['raw', 'segmentations_merged_borders']
     raw_arr, seg_borders = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels, crop_y, crop_x)
+    raw_arr, seg_borders = raw_arr.squeeze(), seg_borders.squeeze()
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
     print(f'T={T} -- getting nodes and edges') if VERBOSE else None
@@ -110,18 +131,13 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
         ## save table output
         print(f'T={T} -- saving output to a table') if VERBOSE else None
         table = pd.DataFrame({'filepath_raw_image':Path(io.get_zarr_path(dataset_name)),
-                              'T':T,
+                              'dataset_name': dataset_name,
+                              'T': T,
                               'origin_node': home_nodes_filtered,
                               'neighbor_node': neighbor_nodes_filtered,
                               'node_to_node_distance': dists_filtered,
                               'angle_relative_to_horizontal': angles_filtered})
         table.to_csv(tables_out_dir / f'{dataset_name}_T{T}_alignments.csv', index=False)
-
-        ## save plots of the angles and dists
-        ## (note that polar plots use radians as inputs, not degrees)
-        print(f'T={T} -- saving plots of angles and distances') if VERBOSE else None
-        out_path = plots_out_dir / f'{dataset_name}_T{T}'
-        save_plot_output(out_path, angles_filtered, dists_filtered)
 
         ## save images containing the nodes, edges, and node-node lines
         ## as different channels
@@ -134,11 +150,11 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
         out_path = images_out_dir/f'{dataset_name}_T{T}.ome.tiff'
         images_out = [raw_arr, seg_borders, nodes, edges, lines]
         images_out_metadata = {'image_name': dataset_name,
-                               'channel_names': [('raw', 'segmentation_borders', 'nodes', 'edges', 'lines')], 
+                               'channel_names': ['raw', 'segmentation_borders', 'nodes', 'edges', 'lines'],
                                'channel_colors': [(255,255,255), (0,255,0), (255,0,255), (0,255,255), (255,255,0)],
                                'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
-                               'dim_order': 'CYX'
-                                }
+                               'dim_order': 'YX'
+                               }
         preproc.save_image_output(out_path, images_out, images_out_metadata)
 
 
@@ -166,7 +182,7 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
         out_dir_list, _ = initialize_workflow(dataset_name)
         _, tables_out_dir, _, out_dir = out_dir_list
         master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir.glob('*.csv')])
-        master_table.to_csv(out_dir / f'{dataset_name}_alignments.csv', index=False)
+        master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_alignments.csv', index=False)
 
     print('\N{microscope} Done analysis.')
 

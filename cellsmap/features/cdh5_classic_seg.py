@@ -89,10 +89,10 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
         out_path = out_dir/f'{dataset_name}_T{T}.ome.tiff'
         images_out = [raw_arr, processed_img, hyst_clean, seg2_lab, seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds]
         images_out_metadata = {'image_name': dataset_name,
-                                'channel_names': [('raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders')], 
+                                'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
                                 'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
                                 'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
-                                'dim_order': 'CYX'
+                                'dim_order': 'YX'
                                 }
         preproc.save_image_output(out_path, images_out, images_out_metadata)
     else:
@@ -100,11 +100,11 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
 
 
 
-def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=True, VERBOSE=False):
+def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
     DATASET_NAME_LIST = ['20240305_T01_001']
 
-    analysis_args_queue = preproc.build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+    analysis_args_queue = build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
     if N_PROC > 1:
             if __name__ == '__main__':

@@ -6,10 +6,7 @@ import seaborn as sns
 
 """
 APPROXIMATE SCRIPT RUN-TIME:
-6min 50sec
-(most of which is spent waiting to plot all data points)
-OR
-30sec if not plotting all data points
+8min 30sec
 """
 
 SAVE_OUTPUT = True
@@ -18,15 +15,17 @@ SAVE_OUTPUT = True
 SCT_NAME = Path(__file__).stem
 prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
 assert prj_dir.exists()
-out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
-if SAVE_OUTPUT:
-    Path.mkdir(out_dir, exist_ok=True, parents=True)
 
-data_path_angles_and_dists = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_nodes_and_edges/20240305_T01_001_alignments.csv')
+data_path_angles_and_dists = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_nodes_and_edges/20240305_T01_001/20240305_T01_001_alignments.csv')
 
 # load dataset
 df_ang_dist = pd.read_csv(data_path_angles_and_dists)
 # df_ang_dist.keys()
+
+for dataset_name, grp in df_ang_dist.groupby('dataset_name'):
+    out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}' / dataset_name
+    if SAVE_OUTPUT:
+        Path.mkdir(out_dir, exist_ok=True, parents=True)
 
 # do some operations on some columns
 df_ang_dist['angle_relative_to_horizontal_in_deg'] = df_ang_dist['angle_relative_to_horizontal'].transform(lambda x: np.rad2deg(x))
@@ -80,8 +79,8 @@ sns.scatterplot(data=flow_change, x='node_to_node_distance_std', y='angle_relati
 sns.scatterplot(data=death_event, x='node_to_node_distance_std', y='angle_relative_to_horizontal_in_deg_std',
                 c='r', marker='o', zorder=2, legend=False, ax=ax)
 # ax.set_ylim(0, 90)
-ax.set_ylabel('StDev angle relative to horizontal (degrees)')
-ax.set_xlabel('StDev node-node distance (px)')
+ax.set_ylabel('StDev of angle relative to horizontal (degrees)')
+ax.set_xlabel('StDev of node-node distance (px)')
 ax.legend(title='Time (hours)', ncols=4)
 fig.savefig(out_dir / 'angles_vs_dists_std.pdf')
 plt.close('all')
@@ -95,8 +94,8 @@ ax.plot(df_ang_dist_summary['Time (hours)'], df_ang_dist_summary['node_to_node_d
 ax.axvline(24, c='k', ls='--')
 ax.axvline(107/12, c='r', ls='--')
 # ax.set_ylim(0, 90)
-ax.set_ylabel('Mean angle relative to horizontal (degrees)')
-ax.set_xlabel('Mean node-node distance (px)')
+ax.set_ylabel('Mean node-node distance (px)')
+ax.set_xlabel('Time (hours)')
 fig.savefig(out_dir / 'time_vs_dists_means.pdf')
 plt.close('all')
 
@@ -109,8 +108,8 @@ ax.plot(df_ang_dist_summary['Time (hours)'], df_ang_dist_summary['node_to_node_d
 ax.axvline(24, c='k', ls='--')
 ax.axvline(107/12, c='r', ls='--')
 ax.set_xlim(5, 10)
-ax.set_ylabel('Mean angle relative to horizontal (degrees)')
-ax.set_xlabel('Mean node-node distance (px)')
+ax.set_ylabel('Mean node-node distance (px)')
+ax.set_xlabel('Time (hours)')
 fig.savefig(out_dir / 'time_vs_dists_means_closeup.pdf')
 plt.close('all')
 
@@ -128,23 +127,16 @@ sns.scatterplot(data=df_ang_dist_summary, x='Time (hours)', y='angle_relative_to
 ax2.plot(df_ang_dist_summary['Time (hours)'], df_ang_dist_summary['angle_relative_to_horizontal_in_deg_mean'],
                 lw=1, c='lightgrey', zorder=1)
 # ax.set_ylim(0, 90)
-ax.set_ylabel('Mean angle relative to horizontal (degrees)')
-ax.set_xlabel('Mean node-node distance (px)')
+ax.set_xlabel('Time (hours)')
+ax.tick_params('x', width=2)
+ax.xaxis.minorticks_on()
+ax.set_ylabel('Mean node-node distance (px)')
+ax.tick_params('y', color='tab:blue', width=2)
+ax2.set_ylabel('Mean angle relative to horizontal (degrees)', rotation=270, verticalalignment='bottom')
+ax2.tick_params('y', color='tab:orange', width=2)
 fig.savefig(out_dir / 'time_vs_dists_means_and_angles.pdf')
 plt.close('all')
 
-
-# # this plots all data points but it takes a long time (~6 minutes)...
-# fig, ax = plt.subplots()
-# sns.scatterplot(data=df_ang_dist, x='node_to_node_distance', y='angle_relative_to_horizontal_in_deg',
-#              hue='Time (hours)', palette=plt.get_cmap('turbo'), marker='.', legend=False, zorder=10, ax=ax)
-# flow_change = df_ang_dist.query('`Time (hours)` == 24')
-# sns.scatterplot(data=flow_change, x='node_to_node_distance', y='angle_relative_to_horizontal_in_deg',
-#                 c='k', marker='o', legend=False, zorder=2, ax=ax)
-# ax.set_ylim(0, 90)
-# ax.set_ylabel('Angle relative to horizontal (degrees)')
-# ax.set_xlabel('Node-node distance (px)')
-# fig.savefig(out_dir / 'angles_vs_dists_means.pdf')
 
 ## NOTE
 # T106 ~= 8.92hrs -> normal
@@ -152,3 +144,57 @@ plt.close('all')
 # T108 ~= 9.08hrs -> some fluorescence changes still
 
 # coincides exactly with the drop in node-to-node distance!
+#   (for the alignment analysis based on threshold, no obvious change in node-to-node
+#    distance for analysis based on cdh5 segmentation edges)
+
+
+def save_alignment_plots(out_path, filename_stem, timepoint, angles, distances, dist_min, dist_max):
+
+    print(filename_stem, timepoint)
+
+    angle_hists_path = out_path / 'angle_hists'
+    Path.mkdir(angle_hists_path, parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(5,5), subplot_kw={'projection': 'polar'})
+    ## bins are set up to be every 5 degrees
+    ax.hist(angles, bins=18, facecolor='k')
+    ax.set_xlim(0, np.pi/2)
+    ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Count', horizontalalignment='center')
+    ax.set_title(f'{timepoint:.3f} hours', loc='right')
+    plt.tight_layout()
+    fig.savefig(angle_hists_path / (filename_stem + '_angles.tif'))
+
+    angles_vs_dists_path = out_path / 'angles_vs_dists_polar'
+    Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(5,5), subplot_kw={'projection': 'polar'})
+    ax.scatter(angles, distances, marker='.', c='k', alpha=0.3)
+    ax.set_xlim(0, np.pi/2)
+    ax.set_ylim(dist_min, dist_max)
+    ax.semilogy()
+    ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Node-node distance', horizontalalignment='center')
+    ax.set_title(f'{timepoint:.3f} hours', loc='right')
+    plt.tight_layout()
+    fig.savefig(angles_vs_dists_path / (filename_stem + '_dists_vs_angles_polar.tif'))
+
+    angles_vs_dists_path = out_path / 'angles_vs_dists'
+    Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(5,5))
+    ax.scatter(angles, distances, marker='.', c='k', alpha=0.3)
+    ax.set_xlim(0, np.pi/2)
+    ax.set_ylim(dist_min, dist_max)
+    ax.set_xlabel('Mean angle relative to horizontal (degrees)')
+    ax.set_ylabel('Mean node-node distance (px)')
+    ax.set_title(f'{timepoint:.3f} hours', loc='right')
+    plt.tight_layout()
+    fig.savefig(angles_vs_dists_path / (filename_stem + '_dists_vs_angles.tif'))
+
+    plt.close('all')
+
+dist_min, dist_max = df_ang_dist['node_to_node_distance'].min(), df_ang_dist['node_to_node_distance'].max()
+for (dataset_name, time_hrs, T), grp in df_ang_dist.groupby(['dataset_name', 'Time (hours)', 'T']):
+    # plots_out_dir = out_dir / dataset_name /
+    save_alignment_plots(out_dir,
+                         dataset_name + f'_{T}',
+                         time_hrs,
+                         grp['angle_relative_to_horizontal'],
+                         grp['node_to_node_distance'],
+                         dist_min, dist_max)

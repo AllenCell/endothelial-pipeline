@@ -124,10 +124,23 @@ def get_neighboring_labels(home_img: np.array, labeled_neighbors_img: np.array, 
     return tuple(neighbors)
 
 
-def expand_bbox(bbox: measure.regionprops.bbox, ndim: int) -> tuple:
+def expand_bbox(bbox: tuple, ndim: int) -> tuple:
     """
-    Take a bbox from skimages measure.regionprops.bbox and expands it by 1 pixel all around.
+    Take a bbox from skimages measure.regionprops and expands it by 1 pixel all around.
     Used to see 1 pixel away from a node or edge.
+
+    Parameters
+    ----------
+    bbox: tuple
+        This is a tuple of the form (row_start, col_start, row_end, col_end).
+
+    ndim: int
+        Number of dimensions in the image.
+
+    Returns
+    -------
+    big_bbox: tuple
+        The bbox expanded by 1 pixel. Has the same form as bbox.
     """
 
     big_bbox = (tuple((np.array(bbox[0:ndim]) - 0.5).astype(int)), tuple(np.array(bbox[ndim:2*ndim]) + 1))
@@ -140,6 +153,16 @@ def get_windows(img_lab: np.array) -> zip: #labeled_img
     Takes a labeled image in the form of a numpy array and returns a zip of
     (labels, windows), where "labels" are labels in the labeled image and
     "windows" are lists of slice objects that define a bounding box.
+
+    Parameters
+    ----------
+    img_lab: numpy array
+        The labeled image as a numpy array.
+
+    Returns
+    -------
+    lab_windows: zip
+        A zip of the labels and windows.
     """
 
     img_lab_props = measure.regionprops(img_lab)

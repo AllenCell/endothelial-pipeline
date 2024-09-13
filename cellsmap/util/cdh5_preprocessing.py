@@ -586,7 +586,7 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
 
     return seg2_lab_no_mask_merge, seg2_lab
 
-def get_cdh5_classic_segmentation_paths(dataset_name: str) -> list:
+def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> list:
     """
     Return the filepaths to the cdh5 classic segmentations (segmentations are saved
     as individual timepoints).
@@ -611,12 +611,40 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str) -> list:
     segmentation_dirs = [data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
     filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob('*.tif*'))]
 
+    if sort_paths:
+        filepaths = sorted(filepaths, key=lambda fpath: extract_T(fpath.name))
+
     return filepaths
+
+def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
+    """
+    Return the time_resolutions to the cdh5 classic segmentations.
+
+    Parameters
+    ----------
+    dataset_name: str
+        The dataset to get the time resolution from.
+
+    Returns
+    -------
+    t_res: float
+        Time resolutions for the selected dataset.
+    """
+
+    # dataset_name = '20240305_T01_001'
+
+    config_file = Path(__file__).parent / 'cdh5_seg_config.yaml'
+    assert config_file.exists()
+    with open(config_file, 'r') as file:
+        config_data = yaml.safe_load(file)
+    t_res = float(*[data['time_interval_in_minutes'] for data in config_data if data['name']==dataset_name])
+
+    return t_res
 
 def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None) -> list:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
-    list corresponds to a channel. 
+    list corresponds to a channel.
     The channel argument is either None or a list where 
 
     Parameters
@@ -661,11 +689,11 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     channels = channels or img.channel_names
     channel_crops = [slice(chan_map[chan], chan_map[chan]+1) for chan in channels]
     crop_maps = [{'T': slice(None, None),
-                 'C': C,
-                 'Z': slice(None, None),
-                 'Y': crop_y or slice(None, None),
-                 'X': crop_x or slice(None, None)}
-                for C in channel_crops]
+                  'C': C,
+                  'Z': slice(None, None),
+                  'Y': crop_y or slice(None, None),
+                  'X': crop_x or slice(None, None)}
+                 for C in channel_crops]
 
     # The reason for using the crop maps above instead of loading individual
     # crops by specifying T, C Y, and X in img.get_iamge_data is because
@@ -726,19 +754,52 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
         
     return t if int_only else f'T{t}'
 
-def save_image_output(out_path, images, images_metadata):
+def save_image_output(out_path: Path, images: list, images_metadata: dict):
+    """
+    Combines a list of images into a single image and saves it as an OME-TIFF
+    along with metadata using bioio.OmeTiffWriter.save().
+
+    Parameters
+    ----------
+    out_path: Path
+        This is a tuple of the form (row_start, col_start, row_end, col_end).
+
+    images: list
+        A list of numpy arrays
+
+    images_metadata: dict
+        The metadata to pass along to OmeTiffWrite.save().
+        Requires the following keys:
+            'image_name': string
+            'channel_colors': [(int, int, int) , (int, int, int), ... )]
+                where each tuple is a color defined in RGB and the length of channel_colors
+                is the same length as the length of images
+            'channel_names': [string, string, ...]
+                where each string is a channel name and channel_names is the same length as
+                the length of images
+            'physical_pixel_sizes': (Z, Y, X)
+                the physical pixel sizes in the order Z, Y, X.
+            'dim_order': string
+                the order of the dimensions of the arrays in images (e.g. 'CYX')
+
+    Returns
+    -------
+    Nothing (saves an image to out_path).
+    """
 
     assert all([img.max() < np.iinfo(np.uint16).max for img in images])
-
-    merged_img = np.stack(images).astype(np.uint16)
+    assert all([img.shape == images[-1].shape for img in images])
 
     image_name = images_metadata['image_name']
     ch_colors = images_metadata['channel_colors']
     ch_names = images_metadata['channel_names']
     px_res = images_metadata['physical_pixel_sizes']
-    dim_order_out = images_metadata['dim_order']
+    img_dim_order = images_metadata['dim_order']
+    dim_order_out = 'TCZYX'
+    dim_map = get_dim_map(dim_order_out)
 
-    merged_img = restore_full_dims(merged_img, dim_order_out, full_dims='TCZYX')
+    merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
+    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(np.uint16)
 
     OmeTiffWriter.save(merged_img,
                        out_path,
