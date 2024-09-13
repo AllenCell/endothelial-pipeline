@@ -1,5 +1,6 @@
 # %% 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -8,11 +9,12 @@ from cellsmap.analyses.utils import preprocess as pp
 from cellsmap.analyses.workflows.analyze_feats import get_scaled_traj
 
 # %%
-path_to_bf = "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/endo_time/mae_bf/2024-08-14_10-19-11/predictions.csv"
+path_to_bf = "//allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv"
 savedir = "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/"
 
 # Load and preprocess data
 df = pd.read_csv(path_to_bf)
+df = df.sort_values(by=['crop_index','T'])
 
 # add crop location index as metadata
 num_loc = 54
@@ -26,7 +28,7 @@ X_scaled = pp.scale_features(X_feats)
 
 # %%
 # build dataframe of scaled data, leaving out crop path metadata
-data_scaled = np.hstack((X_scaled,df['T'].values[:,None],df['crop_index'].values[:,None]))
+data_scaled = np.hstack((X_scaled,df['crop_index'].values[:,None],df['T'].values[:,None],))
 cols = df.columns
 df_scaled = pd.DataFrame(data_scaled,columns=cols)
 df_scaled['crop_index'] = df_scaled['crop_index'].astype(int)
@@ -84,53 +86,55 @@ plt.tight_layout()
 X_t_high = np.load('../data/bf_95pctVarPCs_highFlow.npy')
 X_t_low = np.load('../data/bf_95pctVarPCs_lowFlow.npy')
 
-# %%
-num_loc = X_t.shape[0]
-num_t = X_t.shape[1]
-t_change = (24*60 - 25)//5 # time point (frame number) at which to change from high to low flow occurs (25 minutes before 24 hours)
-# plot top PCA mode vs time for each location at high flow
-fig = plt.figure(figsize=(7,6))
-for i in range(num_loc):
-    plt.plot(5*np.arange(num_t)/60,X_t[i,:,0],'k-',alpha=0.25,linewidth=1)
-plt.xlim([0,(num_t)*5//60])
-#plt.vlines(5*t_change/60,-20,25,color='r',linestyles='dashed')
-#plt.vlines(530/60,-20,25,color='b',linestyles='dashed')
-plt.xlabel("time (hours)", fontsize=16)
-plt.ylabel("PC1", fontsize=16)
+
 
 # %%
-# correct for bias coming from left to right position in video - center all ICs at 0
-fig = plt.figure(figsize=(7,6))
-for i in range(num_loc):
-    plt.plot(5*np.arange(num_t)/60,X_t[i,:,0]-X_t[i,0,0],'k-',alpha=0.25,linewidth=1)
-plt.xlim([0,(num_t)*5//60])
-#plt.vlines(5*t_change/60,-20,25,color='r',linestyles='dashed')
-#plt.vlines(530/60,-20,25,color='b',linestyles='dashed')
-plt.xlabel("time (hours)", fontsize=16)
-plt.ylabel("PC1", fontsize=16)
-
-# %%
-fig = plt.figure(figsize=(7,6))
+fig, ax = plt.subplots(1, 2, figsize=(14,6))
 # plot PCA mode m vs time for each location at high flow
-m=2
+for m in range(2):
+    for i in range(num_loc):
+        ax[m].plot(5*np.arange(num_T)/60,X_t[i,:,m],'k-',alpha=0.25,linewidth=1)
+    ax[m].set_xlim([0,(num_T)*5//60])
+    ax[m].set_xlabel("time (hours)", fontsize=16)
+    ax[m].set_ylabel("PC"+str(m+1), fontsize=16)
+
+# %%
+# plot top PCA mode vs time for each location at high flow
+colors = plt.cm.viridis(np.linspace(0,1,18))
 for i in range(num_loc):
-    plt.plot(5*np.arange(num_t)/60,X_t[i,:,m-1],'k-',alpha=0.25,linewidth=1)
-plt.xlim([0,(num_t)*5//60])
+    plt.plot(5*np.arange(num_T)/60,X_t[i,:,0],color=colors[i%18],alpha=0.55,linewidth=1)
+plt.xlim([0,(num_T)*5//60])
+plt.ylim([-20,15])
 #plt.vlines(5*t_change/60,-30,20,color='r',linestyles='dashed')
 #plt.vlines(530/60,-20,25,color='b',linestyles='dashed')
 plt.xlabel("time (hours)", fontsize=16)
-plt.ylabel("PC"+str(m), fontsize=16)
-
+plt.ylabel("PC1", fontsize=16)
+ax = plt.gca()
+mynorm = mpl.colors.Normalize(vmin=1, vmax=18)
+fig.colorbar(plt.cm.ScalarMappable(norm=mynorm,cmap='viridis'),label='Patch x position',ax=ax)    
 # %%
-fig = plt.figure(figsize=(7,6))
-# correct for bias coming from left to right position in video - center all ICs at 0
+# plot top PCA mode vs time for each location at high flow
+colors = plt.cm.viridis(np.linspace(0,1,18))
 for i in range(num_loc):
-    plt.plot(5*np.arange(num_t)/60,X_t[i,:,1]-X_t[i,0,1],'k-',alpha=0.25,linewidth=1)
-plt.xlim([0,(num_t)*5//60])
-#plt.vlines(5*t_change/60,-20,25,color='r',linestyles='dashed')
+    plt.plot(5*np.arange(num_T)/60,X_t[i,:,1],color=colors[i%18],alpha=0.55,linewidth=1)
+plt.xlim([0,(num_T)*5//60])
+plt.ylim([-15,20])
+#plt.vlines(5*t_change/60,-30,20,color='r',linestyles='dashed')
 #plt.vlines(530/60,-20,25,color='b',linestyles='dashed')
 plt.xlabel("time (hours)", fontsize=16)
 plt.ylabel("PC2", fontsize=16)
+ax = plt.gca()
+mynorm = mpl.colors.Normalize(vmin=1, vmax=18)
+fig.colorbar(plt.cm.ScalarMappable(norm=mynorm,cmap='viridis'),label='Patch x position',ax=ax)    
+# %%
+fig, ax = plt.subplots(1, 2, figsize=(14,6))
+# plot PCA mode m vs time for each location at high flow, corrected for bias in x position
+for m in range(2):
+    for i in range(num_loc):
+        ax[m].plot(5*np.arange(num_T)/60,X_t[i,:,m]-X_t[i,0,m],'k-',alpha=0.25,linewidth=1)
+    ax[m].set_xlim([0,(num_T)*5//60])
+    ax[m].set_xlabel("time (hours)", fontsize=16)
+    ax[m].set_ylabel("PC"+str(m+1), fontsize=16)
 
 # %%
 # plot top 2 pcs for each location
@@ -139,6 +143,7 @@ for i in range(num_loc):
     plt.plot(X_t[i,:,0],X_t[i,:,1],'k-',alpha=0.25,linewidth=1)
 plt.xlabel("PC1", fontsize=16)
 plt.ylabel("PC2", fontsize=16)
+# %%
 # correct for bias coming from left to right position in video - center all ICs at 0
 for i in range(num_loc):
     plt.plot(X_t[i,:,0]-X_t[i,0,0],X_t[i,:,1]-X_t[i,0,1],'k-',alpha=0.25,linewidth=1)

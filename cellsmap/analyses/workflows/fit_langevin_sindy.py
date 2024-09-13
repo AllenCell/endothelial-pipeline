@@ -14,13 +14,16 @@ import os
 #from cellsmap.analyses.workflows.analyze_feats import find_git_root
 import cellsmap.analyses.workflows.model_config as mconfig
 
+# plotting utils
+from cellsmap.analyses.utils.plot_utils import save_plot, plot_langevin_outputs
+
 def get_bins(ndim, data):
     '''Generate histogram bins for the data.'''
     if ndim == 1: # if data are 1D...
-        min = min([min(traj) for traj in data])
-        max = max([max(traj) for traj in data])
-        bin_min = 0.5*(np.floor(min)+np.round(min,1))
-        bin_max = 0.5*(np.ceil(max)+np.round(max,1))
+        my_min = min([min(traj) for traj in data])
+        my_max = max([max(traj) for traj in data])
+        bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
+        bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
         bins = np.linspace(bin_min,bin_max, mconfig.N+1)
         dx = bins[1]-bins[0]
         centers = (bins[:-1]+bins[1:])/2
@@ -64,8 +67,8 @@ def get_lib(ndim,nf,ns):
     else:
         x1 = sympy.symbols('x1')
         x2 = sympy.symbols('x2')
-        f_expr = np.array([(x1**k)*(x2**(m-k)) for m in range(nf+1) for k in range(m+1)])
-        s_expr = np.array([(x1**k)*(x2**(m-k)) for m in range(ns+1) for k in range(m+1)])
+        f_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(nf+1) for k in range(m+1)]),2)  # Polynomial library for drift
+        s_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(ns+1) for k in range(m+1)]),2)  # Polynomial library for diffusion
     return f_expr, s_expr
 
 def eval_lib(ndim, centers, f_expr, s_expr):
@@ -168,84 +171,16 @@ def get_weights(ndim,f_err, a_err):
     W = W/np.nansum(W.flatten()) # Normalize weights
     return W
 
-def plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr):
-    '''Plot cost function V versus sparsity of SINDy solution along with
-      visualization of which terms are active (Xi nonzero) at these levels of sparsity.'''
-    # labels for terms in SINDy library
-    labels = [r'${0}$'.format(sympy.latex(t)) for t in np.concatenate((f_expr, s_expr))]
-    n_terms = len(labels)
-    # term is "active" if Xi is nonzero, mask for active terms
-    active = abs(Xi) > 1e-8
-
-    if ndim == 1:
-        fig, ax = plt.subplots(2,1,figsize=(12, 4))
-        ax[0].scatter(np.arange(len(V)), V, c='k')
-
-        ax[0].set_xticks(np.arange(n_terms-1))
-        ax[0].set_xticklabels(np.arange(n_terms, 1, -1))
-        ax[0].set_xlabel('Sparsity')
-        ax[0].set_ylabel('Cost')
-        ax[0].set_yscale('log')
-        ax[0].grid()
-
-        ax[1].pcolor(active, cmap='bone_r', edgecolors='gray')
-        ax[1].gca().set_yticks(0.5+np.arange(n_terms))
-        ax[1].set_yticklabels(labels)
-        ax[1].set_xticks(0.5+np.arange(n_terms-1))
-        ax[1].set_xticklabels(np.arange(n_terms, 1, -1))
-        ax[1].set_xlabel('Sparsity')
-        ax[1].set_ylabel('Active terms (f, D)')
-    else: # 2D
-        fig, ax = plt.subplots(3,1,figsize=(15, 4))
-
-        ax[0].scatter(np.arange(len(V)), V, c='k')
-
-        ax[0].set_xticks(np.arange(0,n_terms-(2*ndim-1),2))
-        ax[0].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
-        ax[0].set_xlabel('Sparsity')
-        ax[0].set_ylabel('Cost')
-        ax[0].set_yscale('log')
-        ax[0].grid()
-
-        active_1 = np.concatenate((active[:len(f_expr)//2], active[len(f_expr):len(f_expr)+len(s_expr)//2]))
-        labels_1 = np.concatenate((labels[:len(f_expr)//2], labels[len(f_expr):len(f_expr)+len(s_expr)//2]))
-        ax[1].pcolor(active_1, cmap='bone_r', edgecolors='gray')
-        ax[1].set_yticks(0.5+np.arange(active_1.shape[0]))
-        ax[1].set_yticklabels(labels_1)
-        ax[1].set_xticks(0.5+np.arange(0,n_terms-(2*ndim-1),2))
-        ax[1].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
-        ax[1].set_xlabel('Sparsity')
-        ax[1].set_ylabel('Active terms (f1, D1)')
-
-
-        active_2 = np.concatenate((active[len(f_expr)//2:len(f_expr)], active[len(f_expr)+len(s_expr)//2:]))
-        labels_2 = np.concatenate((labels[len(f_expr)//2:len(f_expr)], labels[len(f_expr)+len(s_expr)//2:]))
-        ax[2].pcolor(active_2, cmap='bone_r', edgecolors='gray')
-        ax[2].set_yticks(0.5+np.arange(active_2.shape[0]))
-        ax[2].set_yticklabels(labels_2)
-        ax[2].set_xticks(0.5+np.arange(0,n_terms-(2*ndim-1),2))
-        ax[2].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
-        ax[2].set_xlabel('Sparsity')
-        ax[2].set_ylabel('Active terms (f2, D2)')
-
-    plt.show()
-    return fig
-
-def langevin_regression(ndim,data, lag_step, dt, savedir, logfile=None):
+def langevin_regression(ndim,data,lag_step,dt,savedir):
     '''Fit Langevin SINDy model to data.'''
-    if logfile is None:
-        logfile = os.path.join(savedir,"/logs/fit_model_log.txt")
-    else:
-        logfile = os.path.join(savedir,logfile)
 
-    with open(logfile, 'w') as f:
-        print("GPU available: "+str(torch.cuda.is_available()), file=f)
-        print("    Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n", file=f)
+    print("**** GPU available: "+str(torch.cuda.is_available()))
+    print("    **** Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n")
 
     num_traj = len(data)
     num_t = data[0].shape[0]
 
-    data_stationary = [data[i][num_t//2:] for i in range(num_traj)] # "Steady state" data, for histogram
+    data_stationary = [data[i][int(num_t/2):] for i in range(num_traj)] # "Steady state" data, for histogram
 
     # Generate histogram bins
     bins, centers, dx = get_bins(ndim,data)
@@ -295,13 +230,12 @@ def langevin_regression(ndim,data, lag_step, dt, savedir, logfile=None):
     # Use anonymous function to automatically pass the cost function
     opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
     start_time = time()
-    with open(logfile, 'a') as f:
-        print("Optimizing... \n",file=f)
+    # with open(logfile, 'a') as f:
+    print("**** Optimizing... \n")
 
     Xi, V = lg.SSR_loop(opt_fun, params)
 
-    with open(logfile, 'a') as f:
-        print("Full optimization took "+str(time()-start_time)+" seconds \n",file=f)
+    print("**** Full optimization took "+str(time()-start_time)+" seconds \n",file=f)
 
     # plot cost function and active terms
     V_fig = plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr)

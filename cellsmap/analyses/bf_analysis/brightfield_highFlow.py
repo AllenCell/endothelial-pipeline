@@ -2,23 +2,13 @@
 import numpy as np
 
 import matplotlib as mpl
-from matplotlib.animation import FuncAnimation, PillowWriter
-from IPython.display import HTML
-mpl.rcParams['animation.embed_limit'] = 2**128
 
 import matplotlib.pyplot as plt
-import sys
-
-# from fplanck import fokker_planck, boundary
-
-from sklearn.neighbors import KernelDensity
-
-from scipy import constants
 
 import sympy
 
 # in utils/langevin_sindy folder, includes all the langevin-regression code implemented for 2d
-from cellsmap.analyses.workflows.fit_langevin_sindy import select_tau
+from cellsmap.analyses.workflows.select_timelag import select_lag_2D
 import cellsmap.analyses.utils.langevin_sindy.langevin_sindy as lg
 import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
@@ -91,10 +81,6 @@ ax.set_ylabel("PC2", fontsize=16)
 # %%
 # Corrected features: Langevin regression (2D)
 ### High flow trajectories
-X_t_high = np.load('../data/bf_95pctVarPCs_highFlow.npy')
-num_loc = X_t_high.shape[0]
-dt = 5
-
 # correct for bias in x position of patch, subtract off X(0)
 for i in range(num_loc):
     X_t_high[i,:,:] = X_t_high[i,:,:] - X_t_high[i,0,:]
@@ -169,7 +155,7 @@ ax.imshow(p_hist.T,interpolation='nearest', origin='lower',
 # %%
 # autocorrelation and Markov test to select time delay tau
 
-select_tau(data, dt)
+fig = select_lag_2D(data, dt)
 # %%
 
 # Load outputs from `langevin_2D_bfcorr_highFlow.py`
