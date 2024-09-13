@@ -5,8 +5,8 @@ from pathlib import Path
 from bioio import BioImage
 
 def load_config(config_type='data') -> dict:
-    if config_type not in ['data', 'model']:
-        raise ValueError('Invalid config type. Must be either "data" or "model"')
+    if config_type not in ['data', 'model','dynamics']:
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f'{config_type}_config.yaml'
     with open(config_file, 'r') as file:
@@ -73,3 +73,33 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
+
+# dynamics learning config functions
+
+def get_dynamics_inputs(config_name: str) -> tuple:
+    dynamics_config = load_config('dynamics')[config_name]
+    dt = dynamics_config['dt'] # time interval between frames in minutes
+    PCA = dynamics_config['PCA'] # if "yes", perform PCA on data before fitting dynamical model
+    ndim = dynamics_config['ndim'] # number of principal components to keep if PCA is "yes"
+    if PCA == 'yes':
+        feats_to_analyze = None
+        PCA = True
+    else: # if PCA is "no", feats_to_analyze is a list of which of the original features to analyze (max 2 features)
+        feats_to_analyze = dynamics_config['feats_to_analyze']
+        PCA = False
+    center_traj = True if dynamics_config['center_traj']=='yes' else False # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
+    split_high_low = dynamics_config['split_high_low'] # if "yes", the data is split into high and low flow regimes before fitting dynamical model
+    if split_high_low == 'yes':
+        split_high_low = True
+        split_frame = dynamics_config['split_frame']
+        split_order = dynamics_config['split_order'] # if "high_low", the high flow regime comes before the low flow regime; else, low flow is first
+    else:
+        split_high_low = False
+        split_frame = None
+        split_order = None
+    metadata_cols = dynamics_config['metadata_cols'] # list of names of metadata columns in the data (first is trajectory index, second is frame #)
+    N = dynamics_config['N_bins'] # number of grid points in each dimension (int if 1D, tuple if 2D)
+    nf = dynamics_config['poly_degree_drift'] # highest order of the polynomial terms in SINDy library for drift (int)
+    ns = dynamics_config['poly_degree_diffusion'] # highest order of the polynomial terms in SINDy library for diffusion (int)
+    savedir = dynamics_config['savedir'] # directory to save results
+    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_high_low, split_frame, split_order, N, nf, ns, savedir

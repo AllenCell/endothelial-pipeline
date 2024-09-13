@@ -11,24 +11,22 @@ import cellsmap.analyses.utils.langevin_sindy.langevin_sindy as lg
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
 import os
-#from cellsmap.analyses.workflows.analyze_feats import find_git_root
-import cellsmap.analyses.workflows.model_config as mconfig
 
 # plotting utils
-from cellsmap.analyses.utils.plot_utils import save_plot, plot_langevin_outputs
+from cellsmap.analyses.utils.plot_utils import plot_langevin_outputs
 
-def get_bins(ndim, data):
+def get_bins(ndim,data,N):
     '''Generate histogram bins for the data.'''
     if ndim == 1: # if data are 1D...
         my_min = min([min(traj) for traj in data])
         my_max = max([max(traj) for traj in data])
         bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
         bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
-        bins = np.linspace(bin_min,bin_max, mconfig.N+1)
+        bins = np.linspace(bin_min,bin_max, N+1)
         dx = bins[1]-bins[0]
         centers = (bins[:-1]+bins[1:])/2
     else: # else, data are 2D...
-        Nx = mconfig.N[0]
+        Nx = N[0]
         min0 = min([min(traj[:,0]) for traj in data])
         max0 = max([max(traj[:,0]) for traj in data])
         bin0_min = 0.5*(np.floor(min0)+np.round(min0,1))
@@ -36,7 +34,7 @@ def get_bins(ndim, data):
         bins0 = np.linspace(bin0_min, bin0_max, Nx+1)
         centers0 = 0.5*(bins0[1:]+bins0[:-1])
 
-        Ny= mconfig.N[1]
+        Ny= N[1]
         min1 = min([min(traj[:,1]) for traj in data])
         max1 = max([max(traj[:,1]) for traj in data])
         bin1_min = 0.5*(np.floor(min1)+np.round(min1,1))
@@ -51,7 +49,7 @@ def get_bins(ndim, data):
 
     return bins, centers, dx
 
-def get_hist(ndim, data, bins):
+def get_hist(ndim,data,bins):
     '''Generate histogram for the data.'''
     if ndim == 1:
         hist = np.histogram(np.concatenate(data), bins, density=True)
@@ -71,17 +69,17 @@ def get_lib(ndim,nf,ns):
         s_expr = np.tile(np.array([(x1**k)*(x2**(m-k)) for m in range(ns+1) for k in range(m+1)]),2)  # Polynomial library for diffusion
     return f_expr, s_expr
 
-def eval_lib(ndim, centers, f_expr, s_expr):
+def eval_lib(ndim,centers,N,f_expr,s_expr):
     '''Evaluate sympy function libraries for drift and diffusion on histogram grid.'''
     if ndim == 1: # 1D
         x = sympy.symbols('x')
-        lib_f = np.zeros([len(f_expr), mconfig.N])
+        lib_f = np.zeros([len(f_expr), N])
         for k in range(len(f_expr)):
             lamb_expr = sympy.lambdify(x, f_expr[k])
             lib_f[k] = lamb_expr(centers)
         lib_f = lib_f.T
 
-        lib_s = np.zeros([len(s_expr), mconfig.N])
+        lib_s = np.zeros([len(s_expr), N])
         for k in range(len(s_expr)):
             lamb_expr = sympy.lambdify(x, s_expr[k])
             lib_s[k] = lamb_expr(centers)
@@ -91,47 +89,47 @@ def eval_lib(ndim, centers, f_expr, s_expr):
         x2 = sympy.symbols('x2')
         X1,X2 = np.meshgrid(centers[0],centers[1])
         # Convert sympy expressions into library matrices
-        lib_f1 = np.zeros([len(f_expr)//2,mconfig.N[0],mconfig.N[1]])
+        lib_f1 = np.zeros([len(f_expr)//2,N[0],N[1]])
         for k in range(len(f_expr)//2):
             lamb_expr = sympy.lambdify([x1,x2], f_expr[k])
-            for i in range(mconfig.N[0]):
-                for j in range(mconfig.N[1]):
+            for i in range(N[0]):
+                for j in range(N[1]):
                     lib_f1[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-        lib_f2 = np.zeros([len(f_expr)//2,mconfig.N[0],mconfig.N[1]])
+        lib_f2 = np.zeros([len(f_expr)//2,N[0],N[1]])
         for k in range(len(f_expr)//2):
             lamb_expr = sympy.lambdify([x1,x2], f_expr[k+len(f_expr)//2])
-            for i in range(mconfig.N[0]):
-                for j in range(mconfig.N[1]):
+            for i in range(N[0]):
+                for j in range(N[1]):
                     lib_f2[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-        lib_f1 = lib_f1.T.reshape(np.prod(mconfig.N),-1)
-        lib_f2 = lib_f2.T.reshape(np.prod(mconfig.N),-1)
+        lib_f1 = lib_f1.T.reshape(np.prod(N),-1)
+        lib_f2 = lib_f2.T.reshape(np.prod(N),-1)
 
-        lib_f = np.block([[lib_f1, np.zeros((np.prod(mconfig.N),len(f_expr)//2))], [np.zeros((np.prod(mconfig.N),len(f_expr)//2)),lib_f2]])
+        lib_f = np.block([[lib_f1, np.zeros((np.prod(N),len(f_expr)//2))], [np.zeros((np.prod(N),len(f_expr)//2)),lib_f2]])
 
-        lib_s1 = np.zeros([len(s_expr)//2,mconfig.N[0],mconfig.N[1]])
+        lib_s1 = np.zeros([len(s_expr)//2,N[0],N[1]])
         for k in range(len(s_expr)//2):
             lamb_expr = sympy.lambdify([x1,x2], s_expr[k])
-            for i in range(mconfig.N[0]):
-                for j in range(mconfig.N[1]):
+            for i in range(N[0]):
+                for j in range(N[1]):
                     lib_s1[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-        lib_s2 = np.zeros([len(s_expr)//2,mconfig.N[0],mconfig.N[1]])
+        lib_s2 = np.zeros([len(s_expr)//2,N[0],N[1]])
         for k in range(len(s_expr)//2):
             lamb_expr = sympy.lambdify([x1,x2], s_expr[k+len(s_expr)//2])
-            for i in range(mconfig.N[0]):
-                for j in range(mconfig.N[1]):
+            for i in range(N[0]):
+                for j in range(N[1]):
                     lib_s2[k,i,j] = lamb_expr(X1[j,i],X2[j,i])
 
-        lib_s1 = lib_s1.T.reshape(np.prod(mconfig.N),-1)
-        lib_s2 = lib_s2.T.reshape(np.prod(mconfig.N),-1)
+        lib_s1 = lib_s1.T.reshape(np.prod(N),-1)
+        lib_s2 = lib_s2.T.reshape(np.prod(N),-1)
 
-        lib_s = np.block([[lib_s1, np.zeros((np.prod(mconfig.N),len(s_expr)//2))], [np.zeros((np.prod(mconfig.N),len(s_expr)//2)),lib_s2]])
+        lib_s = np.block([[lib_s1, np.zeros((np.prod(N),len(s_expr)//2))], [np.zeros((np.prod(N),len(s_expr)//2)),lib_s2]])
     
     return lib_f, lib_s
 
-def init_Xi(ndim,lib_f,lib_s, f_KM, a_KM):
+def init_Xi(ndim,N,lib_f,lib_s,f_KM,a_KM):
     '''Initialize coefficients Xi with least squares regression against SINDy libraries (no finite-time corrections)'''
     m=lib_f.shape[-1]+lib_s.shape[-1]
     Xi0 = np.zeros(m)
@@ -141,10 +139,10 @@ def init_Xi(ndim,lib_f,lib_s, f_KM, a_KM):
         Xi0[lib_f.shape[-1]:] = np.linalg.lstsq( lib_s[mask], np.sqrt(2*a_KM[mask]), rcond=None)[0]  # Regression against diffusion
 
     else: # 2D
-        lib_f1 = lib_f[:np.prod(mconfig.N),:lib_f.shape[-1]//2]
-        lib_f2 = lib_f[np.prod(mconfig.N):,lib_f.shape[-1]//2:]
-        lib_s1 = lib_s[:np.prod(mconfig.N),:lib_s.shape[-1]//2]
-        lib_s2 = lib_s[np.prod(mconfig.N):,lib_s.shape[-1]//2:]
+        lib_f1 = lib_f[:np.prod(N),:lib_f.shape[-1]//2]
+        lib_f2 = lib_f[np.prod(N):,lib_f.shape[-1]//2:]
+        lib_s1 = lib_s[:np.prod(N),:lib_s.shape[-1]//2]
+        lib_s2 = lib_s[np.prod(N):,lib_s.shape[-1]//2:]
         mask = (np.where(np.isfinite(f_KM[:,:,0].flatten())*np.isfinite(f_KM[:,:,1].flatten())))[0]
         n_mask = len(mask)
         A1 = np.block([[lib_f1[mask], np.zeros((n_mask,lib_f.shape[-1]//2))], [np.zeros((n_mask,lib_f.shape[-1]//2)),lib_f2[mask]]])
@@ -158,12 +156,12 @@ def init_Xi(ndim,lib_f,lib_s, f_KM, a_KM):
         Xi0[lib_f.shape[-1]:] = np.linalg.lstsq(A2,b2, rcond=None)[0]  # Regression against diffusion
     return Xi0
 
-def get_weights(ndim,f_err, a_err):
+def get_weights(ndim,N,f_err,a_err):
     '''Get weigthts for the optimization problem based on uncertainties in Kramers-Moyal coefficients.'''
     if ndim == 1: # 1D
         W = np.array((f_err.flatten(), a_err.flatten()))
     else: # 2D
-        W = np.array((f_err.reshape((np.prod(mconfig.N),2)), a_err.reshape(np.prod(mconfig.N),2)))
+        W = np.array((f_err.reshape((np.prod(N),2)), a_err.reshape(np.prod(N),2)))
 
     W[np.less(abs(W), 1e-12, where=np.isfinite(W))] = 1e6  # Set zero entries to large numbers (small weights)
     W[np.logical_not(np.isfinite(W))] = 1e6 # Set NaN entries to large numbers (small weights)
@@ -171,7 +169,7 @@ def get_weights(ndim,f_err, a_err):
     W = W/np.nansum(W.flatten()) # Normalize weights
     return W
 
-def langevin_regression(ndim,data,lag_step,dt,savedir):
+def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir):
     '''Fit Langevin SINDy model to data.'''
 
     print("**** GPU available: "+str(torch.cuda.is_available()))
@@ -183,7 +181,7 @@ def langevin_regression(ndim,data,lag_step,dt,savedir):
     data_stationary = [data[i][int(num_t/2):] for i in range(num_traj)] # "Steady state" data, for histogram
 
     # Generate histogram bins
-    bins, centers, dx = get_bins(ndim,data)
+    bins, centers, dx = get_bins(ndim,data,N)
 
     p_hist, _, _ = get_hist(ndim,data_stationary, bins)
     np.save(savedir+'/outputs/histogram_bins.npy',np.array(bins,dtype=object),allow_pickle=True)
@@ -204,25 +202,25 @@ def langevin_regression(ndim,data,lag_step,dt,savedir):
         np.save(savedir+'/outputs/KM_diff_err.npy',a_err)
 
     ### Build SINDy libraries with sympy, evaluate on histogram grid
-    f_expr, s_expr = get_lib(ndim,mconfig.nf,mconfig.ns)
-    lib_f, lib_s = eval_lib(ndim, centers, f_expr, s_expr)
+    f_expr, s_expr = get_lib(ndim,nf,ns)
+    lib_f, lib_s = eval_lib(ndim, centers,N,f_expr,s_expr)
     
     ### Initialize Xi with least squares regression (no finite-time corrections)
-    Xi0 = init_Xi(ndim,lib_f,lib_s,f_KM,a_KM)
+    Xi0 = init_Xi(ndim,N,lib_f,lib_s,f_KM,a_KM)
 
     ### Weights: uncertainties in Kramers-Moyal
-    W = get_weights(ndim,f_err, a_err)
+    W = get_weights(ndim,N,f_err,a_err)
 
     # Initialize adjoint solver
     afp = fps.AdjFP(centers,ndim=ndim)
 
     # Initialize forward steady-state solver
-    fp = fps.SteadyFP(mconfig.N, dx)
+    fp = fps.SteadyFP(N,dx)
 
     # Optimization parameters
     params = {"W": W, "f_KM": f_KM, "a_KM": a_KM, "Xi0": Xi0,
             "f_expr": f_expr, "s_expr": s_expr,
-            "lib_f": lib_f, "lib_s": lib_s, "N": mconfig.N,
+            "lib_f": lib_f, "lib_s": lib_s, "N": N,
             "kl_reg": 0,
             "fp": fp, "afp": afp, "p_hist": p_hist, "tau": lag_step*dt,
             "radial": False}
@@ -235,7 +233,7 @@ def langevin_regression(ndim,data,lag_step,dt,savedir):
 
     Xi, V = lg.SSR_loop(opt_fun, params)
 
-    print("**** Full optimization took "+str(time()-start_time)+" seconds \n",file=f)
+    print("**** Full optimization took "+str(time()-start_time)+" seconds \n")
 
     # plot cost function and active terms
     V_fig = plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr)

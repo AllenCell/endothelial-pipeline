@@ -37,7 +37,6 @@ def plot_traj_1D(x_t,t,fig=None,ax=None,color='k',alpha=1.0,linewidth=2,marker=N
         ax.legend(prop={'size': legend_fontsize})
     ax.set_xlabel(xlabel,fontsize=xylabel_fontsize)
     ax.set_ylabel(ylabel,fontsize=xylabel_fontsize)
-    plt.show()
     return fig, ax
 
 def plot_traj_2D(x_t,fig=None,ax=None,color='k',alpha=1.0,linewidth=2,marker=None,markersize=8,
@@ -61,18 +60,33 @@ label=None,legend_fontsize=12,xlabel='$X_1(t)$',ylabel='$X_2(t)$',xylabel_fontsi
         ax.legend(prop={'size': legend_fontsize})
     ax.set_xlabel(xlabel,fontsize=xylabel_fontsize)
     ax.set_ylabel(ylabel,fontsize=xylabel_fontsize)
-    plt.show()
     return fig, ax
+
+def plot_SVs(SVs,ExpVar,fig=None,ax=None,xylabel_fontsize=16):
+    if fig is None or ax is None:
+        fig, ax = init_subplots(1,2,figsize=(16,6))
+    m=len(SVs)
+    # plot singular values and explained variance
+    ax[0].bar(np.arange(m),SVs, color=(0.6,0,0.0,0.3),edgecolor=(0.6,0,0.0,1.0))
+    ax[0].set_xlabel("Component",fontsize=xylabel_fontsize)
+    ax[0].set_ylabel("Singular value",fontsize=xylabel_fontsize)
+
+    ax[1].bar(np.arange(m),np.cumsum(ExpVar),color=(0.0,0,0.6,0.3),edgecolor=(0.0,0,0.6,1.0))
+    ax[1].set_xlabel("Number of components (ordered)")
+    ax[1].set_ylabel("Cumulative explained variance percentage")
+
 
 def plot_top_PCs(X_t,t,fig=None,ax=None,colors=None,alpha=0.25,linewidth=1,xlabel='Time (hours)',ylabel='PC',xylabel_fontsize=16):
     if fig is None or ax is None:
         fig, ax = init_subplots(1,2)
     # plot PCA mode m vs time for each location at high flow, corrected for bias in x position
-    num_traj, num_T, _ = X_t.shape
+    num_traj = X_t.shape[0]
     for m in range(2):
         for i in range(num_traj):
-            plot_traj_1D(X_t[i,:,m],t,fig,ax[m],color='k',alpha=alpha,linewidth=linewidth,xlabel=xlabel,ylabel=ylabel+str(m+1))
+            _, ax[m] = plot_traj_1D(X_t[i,:,m],t,fig,ax[m],color='k',alpha=alpha,linewidth=linewidth,xlabel=xlabel,ylabel=ylabel+str(m+1))
         ax[m].set_xlim([t.min(),t.max()])
+        ax[m].set_xlabel(xlabel,fontsize=xylabel_fontsize)
+        ax[m].set_ylabel(ylabel+str(m+1),fontsize=xylabel_fontsize)
     return fig, ax
 
 def plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr):

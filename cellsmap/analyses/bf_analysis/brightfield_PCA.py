@@ -6,10 +6,10 @@ import pandas as pd
 
 from cellsmap.analyses.utils import preprocess as pp
 
-from cellsmap.analyses.workflows.analyze_feats import get_scaled_traj
+from cellsmap.analyses.utils import plot_utils
 
 # %%
-path_to_bf = "//allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv"
+path_to_bf = "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/endo_time/mae_bf/2024-08-14_10-19-11/predictions.csv"
 savedir = "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/"
 
 # Load and preprocess data
@@ -28,7 +28,7 @@ X_scaled = pp.scale_features(X_feats)
 
 # %%
 # build dataframe of scaled data, leaving out crop path metadata
-data_scaled = np.hstack((X_scaled,df['crop_index'].values[:,None],df['T'].values[:,None],))
+data_scaled = np.hstack((X_scaled,df['T'].values[:,None],df['crop_index'].values[:,None]))
 cols = df.columns
 df_scaled = pd.DataFrame(data_scaled,columns=cols)
 df_scaled['crop_index'] = df_scaled['crop_index'].astype(int)
@@ -50,56 +50,23 @@ X_t_high = X_t[:,:t_change,:] # high flow trajectories
 X_t_low = X_t[:,t_change:,:] # low flow trajectories
 
 # save trajectory data as .npy files to load for analyses
-np.save('../data/bf_95pctVarPCs_highFlow',X_t_high)
-np.save('../data/bf_95pctVarPCs_lowFlow',X_t_low)
-np.save('../data/bf_95pctVarPCs_all',X_t)
+np.save(savedir+'data/bf_95pctVarPCs_highFlow',X_t_high)
+np.save(savedir+'data/bf_95pctVarPCs_lowFlow',X_t_low)
+np.save(savedir+'data/bf_95pctVarPCs_all',X_t)
 
 # %%
-fig, ax = plt.subplots(1,2, figsize=(16,6))
-m=len(svs)
-ax[0].bar(np.arange(m),svs, color=(0.6,0,0.0,0.3),edgecolor=(0.6,0,0.0,1.0))
-ax[0].set_xlabel("Component")
-ax[0].set_ylabel("Singular value")
-
-ax[1].bar(np.arange(m),np.cumsum(exp_var),color=(0.0,0,0.6,0.3),edgecolor=(0.0,0,0.6,1.0))
-ax[1].set_xlabel("Number of components (ordered)")
-ax[1].set_ylabel("Cumulative explained variance percentage")
+plot_utils.plot_SVs(svs,exp_var)
 
 num_modes_95 = np.where(np.cumsum(exp_var) > 0.95)[0].min()
 print("Number of modes to explain 95% of variance: ", num_modes_95)
-fig, ax = plt.subplots(1,2, figsize=(16,6))
-
-ax[0].bar(np.arange(num_modes_95),svs[:num_modes_95], color=(0.6,0,0.0,0.3),edgecolor=(0.6,0,0.0,1.0))
-ax[0].set_xlabel("Component")
-ax[0].set_ylabel("Singular value")
-
-ax[1].bar(np.arange(num_modes_95),np.cumsum(exp_var)[:num_modes_95],color=(0.0,0,0.6,0.3),edgecolor=(0.0,0,0.6,1.0))
-ax[1].set_xlabel("Number of components (ordered)")
-ax[1].set_ylabel("Cumulative explained variance percentage")
-X_t = np.load('../data/bf_95pctVarPCs_all.npy') # preprocessed data: num_loc * num_timepoints * num_modes_95 array
-X_pca = X_t.reshape((-1,num_modes_95))[:,:2] # truncated to top 2 modes
-fig, ax = plt.subplots(1,1, figsize=(5.5,5))
-sc_plt = ax.scatter(X_pca[:,0], X_pca[:,1]) 
-ax.set_xlabel("PC1", fontsize=16)
-ax.set_ylabel("PC2", fontsize=16)
-plt.tight_layout()
-X_t_high = np.load('../data/bf_95pctVarPCs_highFlow.npy')
-X_t_low = np.load('../data/bf_95pctVarPCs_lowFlow.npy')
-
-
 
 # %%
-fig, ax = plt.subplots(1, 2, figsize=(14,6))
-# plot PCA mode m vs time for each location at high flow
-for m in range(2):
-    for i in range(num_loc):
-        ax[m].plot(5*np.arange(num_T)/60,X_t[i,:,m],'k-',alpha=0.25,linewidth=1)
-    ax[m].set_xlim([0,(num_T)*5//60])
-    ax[m].set_xlabel("time (hours)", fontsize=16)
-    ax[m].set_ylabel("PC"+str(m+1), fontsize=16)
+plot_utils.plot_SVs(svs[:num_modes_95],exp_var[:num_modes_95])
 
 # %%
-# plot top PCA mode vs time for each location at high flow
+plot_utils.plot_top_PCs(X_t,5*np.arange(num_T)/60)
+# %%
+# plot top PC modes vs time for each x location at high flow
 colors = plt.cm.viridis(np.linspace(0,1,18))
 for i in range(num_loc):
     plt.plot(5*np.arange(num_T)/60,X_t[i,:,0],color=colors[i%18],alpha=0.55,linewidth=1)
@@ -113,7 +80,7 @@ ax = plt.gca()
 mynorm = mpl.colors.Normalize(vmin=1, vmax=18)
 fig.colorbar(plt.cm.ScalarMappable(norm=mynorm,cmap='viridis'),label='Patch x position',ax=ax)    
 # %%
-# plot top PCA mode vs time for each location at high flow
+# plot second PCA mode vs time for each x location
 colors = plt.cm.viridis(np.linspace(0,1,18))
 for i in range(num_loc):
     plt.plot(5*np.arange(num_T)/60,X_t[i,:,1],color=colors[i%18],alpha=0.55,linewidth=1)
@@ -126,27 +93,4 @@ plt.ylabel("PC2", fontsize=16)
 ax = plt.gca()
 mynorm = mpl.colors.Normalize(vmin=1, vmax=18)
 fig.colorbar(plt.cm.ScalarMappable(norm=mynorm,cmap='viridis'),label='Patch x position',ax=ax)    
-# %%
-fig, ax = plt.subplots(1, 2, figsize=(14,6))
-# plot PCA mode m vs time for each location at high flow, corrected for bias in x position
-for m in range(2):
-    for i in range(num_loc):
-        ax[m].plot(5*np.arange(num_T)/60,X_t[i,:,m]-X_t[i,0,m],'k-',alpha=0.25,linewidth=1)
-    ax[m].set_xlim([0,(num_T)*5//60])
-    ax[m].set_xlabel("time (hours)", fontsize=16)
-    ax[m].set_ylabel("PC"+str(m+1), fontsize=16)
 
-# %%
-# plot top 2 pcs for each location
-fig = plt.figure(figsize=(7,6))
-for i in range(num_loc):
-    plt.plot(X_t[i,:,0],X_t[i,:,1],'k-',alpha=0.25,linewidth=1)
-plt.xlabel("PC1", fontsize=16)
-plt.ylabel("PC2", fontsize=16)
-# %%
-# correct for bias coming from left to right position in video - center all ICs at 0
-for i in range(num_loc):
-    plt.plot(X_t[i,:,0]-X_t[i,0,0],X_t[i,:,1]-X_t[i,0,1],'k-',alpha=0.25,linewidth=1)
-plt.xlabel("PC1", fontsize=16)
-plt.ylabel("PC2", fontsize=16)
-# %%

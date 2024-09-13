@@ -21,6 +21,64 @@ def find_git_root(test, dirs=(".git",), default=None):
         prev, test = test, os.path.abspath(os.path.join(test, os.pardir))
     return default
 
+def get_inputs(config):
+    # MOVE THIS TO A FUNCTION THAT WORKS WITH THE YAML CONFIG FILES (see cellsmap/util/io.py)
+    path_to_data = input("Enter the path to the data: ").replace('"', '')
+    metadata_index = input("Enter the name of the column containing the trajectory index: ")
+    metadata_time = input("Enter the name of the column containing the time point: ")
+    metadata = [metadata_index,metadata_time]
+    dt = float(input("Enter the time step between consecutive data points (float, value depends on desired units): "))
+    pca_temp = input("Do you want to apply PCA to the features? (y/n): ")
+    PCA = True if pca_temp == 'y' else False
+    if PCA:
+        ndim = int(input("    Enter the number of PCs on which you want to project the data (1 or 2): "))
+        if ndim > 2:
+            raise NotImplementedError("The Langevin Regression method is only implemented for up to 2D data.")
+    else:
+        print("The data will be analyzed in the original feature space. \n")
+        feat_temp = input("Do you want to fit the model on a subset of the features? (y/n): ")
+        if feat_temp == 'y':
+            ndim_temp = input("Enter which feature(s) by index (separated by commas if multiple): ")
+            ndim = tuple(map(int, ndim_temp.split(',')))
+            if len(ndim) == 1:
+                ndim = ndim[0]
+            elif len(ndim) > 2:
+                raise NotImplementedError("The Langevin Regression method is only implemented for up to 2D data.")
+        else:
+            ndim = int(input("Enter a number n to fit the model on the first n features (enter 0 to analyze all): "))
+            if ndim > 2:
+                raise NotImplementedError("The Langevin SINDy model is only implemented for up to 2D data. Please choose another model.")
+            elif ndim == 0:
+                ndim_temp = input("Is the dimensionality of the data great than 2? (y/n): ")
+                if ndim_temp == 'y':
+                    raise NotImplementedError("The Langevin Regression method is only implemented for up to 2D data.")
+                
+    save_temp = input("Do you want to save the model outputs to a subdirectory of the cellsmap/analyses directory? (y/n): ")
+    if save_temp == 'n':
+        savedir = input("    Enter the path to the directory where you want to save the data: ").replace('"', '')
+        if savedir[-1] != '/':
+            savedir += '/'
+        if savedir[0] == '/':
+            savedir = savedir[1:]
+    else:
+        savedir = input("    Enter the name of the subdirectory where you want to save the data: ").replace('"', '')
+        if savedir[-1] != '/':
+            savedir += '/'
+        if savedir[0] == '/':
+            savedir = savedir[1:]
+        gitroot = find_git_root(os.path.dirname(__file__)) # find the root of the git repository
+        savedir = os.path.join(gitroot,"cellsmap/analyses",savedir)
+
+    if not os.path.exists(savedir):
+        os.makedirs(savedir)
+        os.makedirs(savedir+'data')
+        os.makedirs(savedir+'outputs')
+        os.makedirs(savedir+'figs')
+        os.makedirs(savedir+'logs')
+    print("\n","*** Output will be saved to",savedir,"\n",sep='')
+
+    return path_to_data,metadata,PCA,ndim,dt,savedir
+
 def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1):
     print("*** Reading data from",path_to_data,"\n")
     df = pd.read_csv(path_to_data)
@@ -72,9 +130,9 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1):
     else:
         return X_scaled.reshape((num_traj,num_t,-1))[:,:,ndim]
 
-def fit_model(data,dt,ndim,N,nf,ns,savedir,flow='all'):
+def fit_model(data,dt,ndim,savedir,flow='all'):
     '''Determine appropriate lag time step from data and fit the Langevin SINDy model to the data.'''
-    select_lag(data,dt,ndim,N,savedir,flow)
+    select_lag(data,dt,ndim,savedir,flow)
     lag_step=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for high flow: "))
     # TO DO: when splitting data, pass in the correct lag_step for each flow BEFORE fitting the model (better UI)
 
@@ -83,7 +141,7 @@ def fit_model(data,dt,ndim,N,nf,ns,savedir,flow='all'):
     print("*** Fitting Langevin Regression model... \n")
     ### WRAPPER FUNCTIONS TO FIT LANGEVIN SINDY MODEL
     # fit model
-    Xi, V_fig = langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir)
+    Xi, V_fig = langevin_regression(ndim,data,lag_step,dt,savedir)
 
     # Save the results
     coeff_file = savedir+'/outputs/model_coeffs_'+flow+'.npy'
@@ -99,40 +157,39 @@ def fit_model(data,dt,ndim,N,nf,ns,savedir,flow='all'):
     print("Select the desired level of sparsity based on the cost function plot and run <filename>.py to generate the model output. \n")
 
     
-def main(config_name, path_to_data):
-    metadata,PCA,ndim,dt,feats_to_analyze,center_traj,split_high_low,split_frame,split_order,N,nf,ns,savedir = io.get_dynamics_inputs(config_name)
+def main(config):
+    path_to_data,metadata,PCA,ndim,dt,savedir = get_inputs()
     X_t = get_scaled_traj(path_to_data,metadata,savedir,PCA,ndim)
 
-    if center_traj: # center initial conditions of all trajectories at zero
+    correct = input("Center initial condition of all trajectories at zero? (y/n): ")
+    if correct == 'y':
         for i in range(X_t.shape[0]):
             X_t[i] = X_t[i] - X_t[i,0]
     ylabel = 'PC'
     if not PCA:
         ylabel = 'X'
     fig, _ = plot_top_PCs(X_t,np.arange(X_t.shape[1]),xlabel='Time (frame number)',ylabel=ylabel)
-    save_plot(fig,savedir+'figs/PCs_traj_plot')
+    save_plot(fig,savedir+'figs/traj_plot')
     plt.show()
     print("*** Saving plot of trajectories to ",savedir+"figs/traj_plot.png \n")
 
-    if split_high_low:
-        if split_order == 'high_low':
-            X_t_high = X_t[:,:split_frame,:] # high flow trajectories
-            X_t_low = X_t[:,split_frame:,:]
-        else:
-            X_t_low = X_t[:,:split_frame,:]
-            X_t_high = X_t[:,split_frame:,:]
-
+    split_flow = input("Do you want to fit the model on high and low flow separately? (y/n): ")
+    if split_flow == 'y':
+        t_change = (24*60 - 25)//5 # time point (index) at which to change from high to low flow occurs (25 minutes before 24 hours)
+        X_t_high = X_t[:,:t_change,:] # high flow trajectories
+        X_t_low = X_t[:,t_change:,:]
         data_high = [X_t_high[i] for i in range(X_t_high.shape[0])]
         data_low = [X_t_low[i] for i in range(X_t_low.shape[0])]
         
         print("*** Fitting model to high flow data... \n")
-        fit_model(data_high,dt,ndim,N,nf,ns,savedir,'high')
+        fit_model(data_high,dt,ndim,savedir,'high')
         print("*** Fitting model to low flow data... \n")
-        fit_model(data_low,dt,ndim,N,nf,ns,savedir,'low')
-    else:
+        fit_model(data_low,dt,ndim,savedir,'low')
+
+    if split_flow == 'n':
         # call time step selection function
         data = [X_t[i] for i in range(X_t.shape[0])] # pass in data as list of trajectories
-        fit_model(data,dt,ndim,N,nf,ns,savedir)
+        fit_model(data,dt,ndim,savedir)
 
 if __name__ == '__main__':
     print(r"""
@@ -148,21 +205,6 @@ if __name__ == '__main__':
     print("The data should be saved in .csv format, where columns are the features + metadata, and rows are instances of each trajectory  at each timepoint. \n")
     # TO DO: write statement about dynamics_config.yaml file
 
-    config_name = input("Enter the name of the configuration in `dynamics_config.yaml` to use: ")
+    dynamics_config = io.load_config('dynamics')
 
-    print("Available datasets: ")
-    io.get_available_datasets()
-
-    dataset_name = input("Enter the name of the dataset to analyze from the above list: ")
-
-    print("Available features (ML models): ")
-    data_config = io.get_dataset_info(dataset_name)
-    for feature in data_config['features']:
-        print(feature)
-    feature_name = input("Enter the name of the feature set to analyze from the above list: ")
-
-    path_to_data = data_config['features'][feature_name]
-
-    
-
-    main(config_name, path_to_data)
+    main(dynamics_config)

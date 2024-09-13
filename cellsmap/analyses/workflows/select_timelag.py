@@ -7,7 +7,7 @@ from cellsmap.analyses.utils.plot_utils import save_plot
 
 # DOCUMENT THESE BETTER!
 
-def select_lag_1D(data,dt):
+def select_lag_1D(data,dt,N):
     '''Generate plots of autocorrelation and Markov test to 
     aid in selecting the time delay tau for the time-lagged 1D data.'''
     # to do: generalize to single trajectory versus multiple trajectories
@@ -35,7 +35,7 @@ def select_lag_1D(data,dt):
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
     kl_div = np.zeros((num_traj,len(lag)))
     for loc_idx in range(num_traj):
-        kl_div[loc_idx,:] = np.array([tc.markov_test(data[loc_idx], delta, N=32) for delta in lag])
+        kl_div[loc_idx,:] = np.array([tc.markov_test(data[loc_idx], delta, N=N) for delta in lag])
     kl_div = np.nanmean(kl_div,axis=0)
 
     ax[1].set_ylabel('$\mathcal{D}_{KL}(\\tau)$')
@@ -46,7 +46,7 @@ def select_lag_1D(data,dt):
 
     return fig
 
-def select_lag_2D(data,dt):
+def select_lag_2D(data,dt,N):
     '''Generate plots of autocorrelation and Markov test to 
     aid in selecting the time delay tau for the time-lagged 2D data.'''
     # *** note to self: should only be plugging in stationary data here ***
@@ -79,7 +79,7 @@ def select_lag_2D(data,dt):
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
     kl_div = np.zeros((num_traj,len(lag)))
     for idx in range(num_traj):
-        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,0], delta, N=32) for delta in lag])
+        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,0], delta, N=N[0]) for delta in lag])
     kl_div = np.nanmean(kl_div,axis=0)
 
     axMid = subfigs[1].subplots(1, 1)
@@ -96,7 +96,7 @@ def select_lag_2D(data,dt):
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
     kl_div = np.zeros((num_traj,len(lag)))
     for idx in range(num_traj):
-        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,1], delta, N=32) for delta in lag])
+        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,1], delta, N=N[1]) for delta in lag])
     kl_div = np.nanmean(kl_div,axis=0)
 
     axBot = subfigs[2].subplots(1, 1)
@@ -111,16 +111,16 @@ def select_lag_2D(data,dt):
 
     return fig
 
-def select_lag(data,dt,ndim,savedir,flow='all'):
+def select_lag(data,dt,ndim,N,savedir,flow='all'):
     '''Generate plots of autocorrelation and Markov test to 
     aid in selecting the time delay tau for the time-lagged data.
     
     Wrapper function to call the appropriate 1D or 2D function based on the data shape.
     '''
     if ndim == 1:
-        fig = select_lag_1D(data,dt)
+        fig = select_lag_1D(data,dt,N)
     else:
-        fig = select_lag_2D(data,dt)
+        fig = select_lag_2D(data,dt,N)
     print("*** Saving plot to ",savedir+"figs/select_lag_"+flow+".png \n")
     save_plot(fig,savedir+'figs/select_lag_'+flow)
     plt.show()
