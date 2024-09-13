@@ -20,6 +20,7 @@ dependencies = [
     "pandas==2.2.2",
     "scikit-learn==1.5.1",
     "sympy==1.13.1",
+    "scikit-image==0.22.0",
     "scipy==1.13.1",
     "ipykernel>=6.29.5",
     "jupyter>=1.0.0",
