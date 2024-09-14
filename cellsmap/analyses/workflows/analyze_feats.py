@@ -21,7 +21,7 @@ def find_git_root(test, dirs=(".git",), default=None):
         prev, test = test, os.path.abspath(os.path.join(test, os.pardir))
     return default
 
-def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1):
+def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None):
     print("*** Reading data from",path_to_data,"\n")
     df = pd.read_csv(path_to_data)
     df = df.sort_values(by=metadata)
@@ -39,7 +39,7 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1):
     # z-score
     X_scaled = pp.scale_features(X_feats)
 
-    print("*** Saving normalized features to"+savedir+"data/normed_feats.npy \n")
+    print("*** Saving normalized features to "+savedir+"data/normed_feats.npy \n")
     np.save(savedir+'data/normed_feats',X_scaled)
 
     # build dataframe of scaled data, leaving out crop path metadata
@@ -52,8 +52,8 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1):
     if PCA:
         # full PCA: get singular values, explained variance ratio, and principal components
         svs, exp_var, pcs = pp.get_PCA(X_scaled)
-        print("*** Saving cumulative explained variance to"+savedir+"data/ExpVar.npy \n")
-        print("*** Saving principal components to"+savedir+"data/PCs.npy \n")
+        print("*** Saving cumulative explained variance to "+savedir+"data/ExpVar.npy \n")
+        print("*** Saving principal components to "+savedir+"data/PCs.npy \n")
         np.save(savedir+'data/ExpVar',exp_var)
         np.save(savedir+'data/PCs',pcs)
 
@@ -70,7 +70,9 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1):
         return pp.project_trajectories(df_scaled, pcs[:ndim], 'crop_index', metadata_col=['crop_index','T'])
     
     else:
-        return X_scaled.reshape((num_traj,num_t,-1))[:,:,ndim]
+        if feats_to_analyze is None:
+            raise ValueError("Must specify which features to analyze if PCA is not performed.")
+        return X_scaled.reshape((num_traj,num_t,-1))[:,:,feats_to_analyze]
 
 def fit_model(data,dt,ndim,N,nf,ns,savedir,flow='all'):
     '''Determine appropriate lag time step from data and fit the Langevin SINDy model to the data.'''
@@ -101,7 +103,15 @@ def fit_model(data,dt,ndim,N,nf,ns,savedir,flow='all'):
     
 def main(config_name, path_to_data):
     metadata,PCA,ndim,dt,feats_to_analyze,center_traj,split_high_low,split_frame,split_order,N,nf,ns,savedir = io.get_dynamics_inputs(config_name)
-    X_t = get_scaled_traj(path_to_data,metadata,savedir,PCA,ndim)
+    
+    if not os.path.isdir(savedir):
+        print("*** Creating directory to save results... \n")
+        os.makedirs(savedir)
+        os.makedirs(savedir+'data')
+        os.makedirs(savedir+'outputs')
+        os.makedirs(savedir+'figs')
+    
+    X_t = get_scaled_traj(path_to_data,metadata,savedir,PCA,ndim,feats_to_analyze)
 
     if center_traj: # center initial conditions of all trajectories at zero
         for i in range(X_t.shape[0]):
@@ -162,7 +172,6 @@ if __name__ == '__main__':
     feature_name = input("Enter the name of the feature set to analyze from the above list: ")
 
     path_to_data = data_config['features'][feature_name]
-
-    
+    print("Analyzing data from: ",path_to_data,"\n")
 
     main(config_name, path_to_data)

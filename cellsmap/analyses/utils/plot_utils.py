@@ -75,6 +75,7 @@ def plot_SVs(SVs,ExpVar,fig=None,ax=None,xylabel_fontsize=16):
     ax[1].set_xlabel("Number of components (ordered)")
     ax[1].set_ylabel("Cumulative explained variance percentage")
 
+    return fig, ax
 
 def plot_top_PCs(X_t,t,fig=None,ax=None,colors=None,alpha=0.25,linewidth=1,xlabel='Time (hours)',ylabel='PC',xylabel_fontsize=16):
     if fig is None or ax is None:

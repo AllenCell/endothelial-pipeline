@@ -4,7 +4,7 @@
   PCA: "yes",
   ndim: 2, # number of dimensions: if PCA is "yes", ndim is the number of PCA components to keep (1 or 2)
   feats_to_analyze: "None", # if PCA is "no", feats_to_analyze is a list of original features to analyze (max 2 features)
-  center_traj: "yes", # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
+  center_traj: "no", # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
   split_high_low: "yes", # if "yes", the data is split into high and low flow regimes before fitting dynamical model
   split_frame: 283, # frame at which to split the data into high and low flow regimes
   split_order: "high_low", # if "high_low", the high flow regime comes before the low flow regime; else, low flow is first
@@ -12,19 +12,37 @@
   N_bins: [32, 32], # number of bins for each dimension for creating mesh over state space
   poly_degree_drift: 3, # degree of polynomial for fitting drift
   poly_degree_diffusion: 1, # degree of polynomial for fitting diffusion
-  savedir: //allen/aics/assay-dev/users/Erin/cellsmap/cellsmap/analyses/cdh5_small_patch/
-}]
-
-[{
+  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/cdh5_small_patch/"
+},
+{
   name: "mae_seg_LR",
   dt: 5.0, # time interval between frames in minutes
   PCA: "yes",
   ndim: 2, # number of dimensions: if PCA is "yes", ndim is the number of PCA components to keep (1 or 2)
   feats_to_analyze: "None", # if PCA is "no", feats_to_analyze is a list of original features to analyze (max 2 features)
-  center_traj: "yes", # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
+  center_traj: "no", # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
   split_high_low: "yes", # if "yes", the data is split into high and low flow regimes before fitting dynamical model
   split_frame: 283, # frame at which to split the data into high and low flow regimes
   split_order: "high_low", # if "high_low", the high flow regime comes before the low flow regime; else, low flow is first
   metadata_cols: ["crop_index","T"], # list of names of metadata columns in the data (first is trajectory index, second is frame #)
-  savedir: //allen/aics/assay-dev/users/Erin/cellsmap/cellsmap/analyses/mae_seg/
+  N_bins: [32, 32], # number of bins for each dimension for creating mesh over state space
+  poly_degree_drift: 3, # degree of polynomial for fitting drift
+  poly_degree_diffusion: 1, # degree of polynomial for fitting diffusion
+  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/mae_seg/"
+},
+{
+  name: "test_config",
+  dt: 5.0, # time interval between frames in minutes
+  PCA: "yes",
+  ndim: 2, # number of dimensions: if PCA is "yes", ndim is the number of PCA components to keep (1 or 2)
+  feats_to_analyze: "None", # if PCA is "no", feats_to_analyze is a list of original features to analyze (max 2 features)
+  center_traj: "no", # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
+  split_high_low: "yes", # if "yes", the data is split into high and low flow regimes before fitting dynamical model
+  split_frame: 283, # frame at which to split the data into high and low flow regimes
+  split_order: "high_low", # if "high_low", the high flow regime comes before the low flow regime; else, low flow is first
+  metadata_cols: ["crop_index","T"], # list of names of metadata columns in the data (first is trajectory index, second is frame #)
+  N_bins: [32, 32], # number of bins for each dimension for creating mesh over state space
+  poly_degree_drift: 3, # degree of polynomial for fitting drift
+  poly_degree_diffusion: 1, # degree of polynomial for fitting diffusion
+  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/test_folder/"
 }]

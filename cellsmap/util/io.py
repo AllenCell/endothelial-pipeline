@@ -13,7 +13,6 @@ def load_config(config_type='data') -> dict:
         config_data = yaml.safe_load(file)
     return config_data
 
-
 # dataset methods
 def get_available_datasets() -> list:
     config = load_config()
@@ -77,7 +76,11 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
 # dynamics learning config functions
 
 def get_dynamics_inputs(config_name: str) -> tuple:
-    dynamics_config = load_config('dynamics')[config_name]
+    dynamics_config = None
+    for config in load_config('dynamics'):
+        if config['name'] == config_name:
+            dynamics_config = config
+            break
     dt = dynamics_config['dt'] # time interval between frames in minutes
     PCA = dynamics_config['PCA'] # if "yes", perform PCA on data before fitting dynamical model
     ndim = dynamics_config['ndim'] # number of principal components to keep if PCA is "yes"
