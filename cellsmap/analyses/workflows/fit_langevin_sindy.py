@@ -203,6 +203,8 @@ def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir):
 
     ### Build SINDy libraries with sympy, evaluate on histogram grid
     f_expr, s_expr = get_lib(ndim,nf,ns)
+    # save SINDy libraries for later use
+
     lib_f, lib_s = eval_lib(ndim, centers,N,f_expr,s_expr)
     
     ### Initialize Xi with least squares regression (no finite-time corrections)
@@ -228,7 +230,6 @@ def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir):
     # Use anonymous function to automatically pass the cost function
     opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
     start_time = time()
-    # with open(logfile, 'a') as f:
     print("**** Optimizing... \n")
 
     Xi, V = lg.SSR_loop(opt_fun, params)
@@ -236,7 +237,10 @@ def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir):
     print("**** Full optimization took "+str(time()-start_time)+" seconds \n")
 
     # plot cost function and active terms
-    V_fig = plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr)
+    V_fig, _ = plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr)
 
-    return Xi, V_fig
+    np.save(savedir+'/outputs/f_expr',f_expr,allow_pickle=True)
+    np.save(savedir+'/outputs/s_expr',s_expr,allow_pickle=True)
+
+    return Xi, V, V_fig
 

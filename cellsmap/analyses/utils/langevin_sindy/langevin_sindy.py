@@ -247,7 +247,7 @@ def AFP_opt(cost, params):
     else:
         return res.x, res.fun
 
-def SSR_loop(opt_fun, params, logfile=None):
+def SSR_loop(opt_fun, params):
     """
     Stepwise sparse regression: general function for a given optimization problem
        opt_fun should take the parameters and return coefficients and cost
@@ -312,34 +312,22 @@ def SSR_loop(opt_fun, params, logfile=None):
                 tmp_Xi, tmp_V = opt_fun(params)
 
                 if not np.isfinite(tmp_V):
-                    if logfile is not None:
-                        with open(logfile, 'a') as f:
-                            print('Warning: Inf or NaN cost, setting cost to 1e7', file=f)
-                    else:
-                        print('Warning: Inf or NaN cost, setting cost to 1e7')
+                    print('Warning: Inf or NaN cost, setting cost to 1e7')
                     tmp_V = 1e7
                 # Keep minimum cost
                 if tmp_V < V[k]:
                     min_idx = j
                     V[k] = tmp_V
                     min_Xi = tmp_Xi
+  
+        print("Cost: {0}".format(V[k]))
 
-        if logfile is not None:
-            with open(logfile, 'a') as f:
-                print("Cost: {0}".format(V[k]), file=f)
-        else:    
-            print("Cost: {0}".format(V[k]))
         # Delete least important term
         active = np.delete(active, min_idx)  # Remove inactive index
         Xi0[active] = min_Xi  # Re-initialize with best results from previous
         Xi[active, k] = min_Xi
-        if logfile is not None:
-            with open(logfile, 'a') as f:
-                print("Active terms: {0}".format(active), file=f)
-                print("Coefficients: {0}".format(Xi[:, k]), file=f)
-        else:
-            print("Active terms: {0}".format(active))
-            print("Coefficients: {0}".format(Xi[:, k]))
+        print("Active terms: {0}".format(active))
+        print("Coefficients: {0}".format(Xi[:, k]))
         
     return Xi, V
 

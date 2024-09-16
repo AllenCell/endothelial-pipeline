@@ -1,6 +1,6 @@
 [{
   name: "mae_cdh5_small_patch_LR",
-  dt: 5.0, # time interval between frames in minutes
+  dt: 5.0, # time interval between frames in minutes -- set up code to pull this instead from time_interval_in_minutes in data_config.yaml
   PCA: "yes",
   ndim: 2, # number of dimensions: if PCA is "yes", ndim is the number of PCA components to keep (1 or 2)
   feats_to_analyze: "None", # if PCA is "no", feats_to_analyze is a list of original features to analyze (max 2 features)

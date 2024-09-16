@@ -74,30 +74,29 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
             raise ValueError("Must specify which features to analyze if PCA is not performed.")
         return X_scaled.reshape((num_traj,num_t,-1))[:,:,feats_to_analyze]
 
-def fit_model(data,dt,ndim,N,nf,ns,savedir,flow='all'):
-    '''Determine appropriate lag time step from data and fit the Langevin SINDy model to the data.'''
-    select_lag(data,dt,ndim,N,savedir,flow)
-    lag_step=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for high flow: "))
-    # TO DO: when splitting data, pass in the correct lag_step for each flow BEFORE fitting the model (better UI)
-
+def fit_model(data,dt,lag_step,ndim,N,nf,ns,savedir,flow='all'):
+    '''Fit the Langevin SINDy model to the data.'''
 
     # run langevin sindy/stepwise sparse regression model
     print("*** Fitting Langevin Regression model... \n")
     ### WRAPPER FUNCTIONS TO FIT LANGEVIN SINDY MODEL
     # fit model
-    Xi, V_fig = langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir)
+    Xi, V, V_fig = langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir)
 
     # Save the results
+    # write io function to do this?
     coeff_file = savedir+'/outputs/model_coeffs_'+flow+'.npy'
-    cost_file = savedir+'figs/cost_function_'+flow
-    cost_file_full = savedir+'figs/cost_function_'+flow+'.png'
+    cost_file = savedir+'/outputs/cost_vals_'+flow+'.npy'
+    cost_fig_file = savedir+'figs/cost_function_plot_'+flow
     np.save(coeff_file,Xi)
-    save_plot(V_fig,cost_file)
+    np.save(cost_file,V)
+    save_plot(V_fig,cost_fig_file)
     plt.show()
-    print("*** Saving model outputs to " + cost_file_full + " and " + coeff_file,"\n")
+    print("*** Saving model outputs to "+savedir+"outputs/ \n")
     print("Model outputs include: ")
     print("1. Plot of cost function vs. sparsity of SINDy solution (remaining terms from the full function library)")
     print("2. Coefficients for SINDy model at each level of sparsity (i.e., each subset of basis functions) \n")
+    print("3. Values of the of cost function used to generate the plot \n")
     print("Select the desired level of sparsity based on the cost function plot and run <filename>.py to generate the model output. \n")
 
     
@@ -135,14 +134,24 @@ def main(config_name, path_to_data):
         data_high = [X_t_high[i] for i in range(X_t_high.shape[0])]
         data_low = [X_t_low[i] for i in range(X_t_low.shape[0])]
         
+        # call time step selection function for high and low flow data
+        select_lag(data_high,dt,ndim,N,savedir,'high')
+        lag_step_high=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for high flow: "))
+
+        select_lag(data_low,dt,ndim,N,savedir,'low')
+        lag_step_low=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for low flow: "))
+
         print("*** Fitting model to high flow data... \n")
-        fit_model(data_high,dt,ndim,N,nf,ns,savedir,'high')
+        fit_model(data_high,dt,lag_step_high,ndim,N,nf,ns,savedir,'high')
         print("*** Fitting model to low flow data... \n")
-        fit_model(data_low,dt,ndim,N,nf,ns,savedir,'low')
+        fit_model(data_low,dt,lag_step_low,ndim,N,nf,ns,savedir,'low')
     else:
         # call time step selection function
         data = [X_t[i] for i in range(X_t.shape[0])] # pass in data as list of trajectories
-        fit_model(data,dt,ndim,N,nf,ns,savedir)
+        select_lag(data,dt,ndim,N,savedir)
+        lag_step=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model: "))
+
+        fit_model(data,dt,lag_step,ndim,N,nf,ns,savedir)
 
 if __name__ == '__main__':
     print(r"""
@@ -157,7 +166,7 @@ if __name__ == '__main__':
     print("Before continuing, make sure the time series data file contains metadata for the trajectory (patch crop or single cell) index and time point. \n")
     print("The data should be saved in .csv format, where columns are the features + metadata, and rows are instances of each trajectory  at each timepoint. \n")
     # TO DO: write statement about dynamics_config.yaml file
-
+    # print available configurations?
     config_name = input("Enter the name of the configuration in `dynamics_config.yaml` to use: ")
 
     print("Available datasets: ")
