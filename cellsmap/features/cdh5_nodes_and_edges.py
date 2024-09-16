@@ -1,12 +1,11 @@
 import numpy as np
-from matplotlib import pyplot as plt
 import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 from multiprocessing import Pool
 from tqdm import tqdm
 import fire
-from cellsmap.util import io, cdh5_preprocessing as preproc, shape_features as feat
+from cellsmap.util import cdh5_preprocessing as preproc, io, shape_features as feat
 
 
 
@@ -14,13 +13,12 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
     # NOTE: this function is slightly different than the
     # one found in 'cdh5_classic_seg.py'
     SCT_NAME = Path(__file__).stem
-
-    prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
-    assert prj_dir.exists()
-    out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
-    images_out_dir = out_dir / dataset_name / 'images'
+    PRJ_DIR = Path('../').resolve()
+    assert PRJ_DIR.exists()
+    val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
+    out_dir = PRJ_DIR / 'results/cdh5_nodes_and_edges_analysis'
+    images_out_dir = val_dir / dataset_name
     tables_out_dir = out_dir / dataset_name / 'tables'
-    # plots_out_dir = out_dir / dataset_name / 'plots'
     out_dir_list = [images_out_dir, tables_out_dir, out_dir]
     if SAVE_OUTPUT:
         [Path.mkdir(out_subdir, exist_ok=True, parents=True) for out_subdir in out_dir_list]
@@ -66,40 +64,6 @@ def build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=
 
     return analysis_args_queue
 
-# def save_alignment_plots(out_path, filename_stem, timepoint, angles, distances):
-#     angle_hists_path = out_path / 'angle_hists'
-#     Path.mkdir(angle_hists_path, parents=True, exist_ok=True)
-#     fig, ax = plt.subplots(figsize=(5,5), subplot_kw={'projection': 'polar'})
-#     ## bins are set up to be every 5 degrees
-#     ax.hist(angles, bins=18, facecolor='k')
-#     ax.set_xlim(0, np.pi/2)
-#     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Count', horizontalalignment='center')
-#     ax.set_title(f'{timepoint:.3f} hours', loc='right')
-#     plt.tight_layout()
-#     fig.savefig(angle_hists_path / (filename_stem + '_angles.tif'))
-
-#     angles_vs_dists_path = out_path / 'angles_vs_dists_polar'
-#     Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)
-#     fig, ax = plt.subplots(figsize=(5,5), subplot_kw={'projection': 'polar'})
-#     ax.scatter(angles, distances, marker='.', c='k', alpha=0.5)
-#     ax.set_xlim(0, np.pi/2)
-#     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Node-node Distance', horizontalalignment='center')
-#     ax.set_title(f'{timepoint:.3f} hours', loc='right')
-#     plt.tight_layout()
-#     fig.savefig(angles_vs_dists_path / (filename_stem + '_dists_vs_angles_polar.tif'))
-
-#     angles_vs_dists_path = out_path / 'angles_vs_dists'
-#     Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)
-#     fig, ax = plt.subplots(figsize=(5,5))
-#     ax.scatter(angles, distances, marker='.', c='k', alpha=0.5)
-#     ax.set_xlim(0, np.pi/2)
-#     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s='Node-node Distance', horizontalalignment='center')
-#     ax.set_title(f'{timepoint:.3f} hours', loc='right')
-#     plt.tight_layout()
-#     fig.savefig(angles_vs_dists_path / (filename_stem + '_dists_vs_angles.tif'))
-
-#     plt.close('all')
-
 def generate_results_multiproc_wrapper(args):
     dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
     generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
@@ -109,7 +73,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
     out_dir_list, img_metadata = initialize_workflow(dataset_name)
-    images_out_dir, tables_out_dir, plots_out_dir, out_dir = out_dir_list
+    images_out_dir, tables_out_dir, out_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
     channels = ['raw', 'segmentations_merged_borders']
@@ -124,7 +88,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
     ## and a horizontal line
     ## NOTE there should also be a way to get the error in the measurement of the angles too...
     print(f'T={T} -- calculating distances and angles between neighboring nodes') if VERBOSE else None
-    home_nodes_filtered, neighbor_nodes_filtered, dists_filtered, angles_filtered, node_label_pairs, node_coord_pairs = feat.calculate_node_to_node_distances_and_angles(seg_borders, VERBOSE=VERBOSE)
+    measurements = feat.calculate_neighbor_node_metrics(seg_borders, raw_arr, VERBOSE=VERBOSE)
 
     ## save a table of the results
     if SAVE_OUTPUT:
@@ -133,10 +97,21 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
         table = pd.DataFrame({'filepath_raw_image':Path(io.get_zarr_path(dataset_name)),
                               'dataset_name': dataset_name,
                               'T': T,
-                              'origin_node': home_nodes_filtered,
-                              'neighbor_node': neighbor_nodes_filtered,
-                              'node_to_node_distance': dists_filtered,
-                              'angle_relative_to_horizontal': angles_filtered})
+                              'node_pair_labels': measurements['node_pair_labels'],
+                              'node_pair_centroids': measurements['node_pair_centroids'],
+                              'node_to_node_distance': measurements['distances'],
+                              'angle_relative_to_horizontal': measurements['angles'],
+                              'connecting_edges': measurements['edge_labels'],
+                              'edge_num_pixels': measurements['edge_num_pixels'],
+                              'edge_length (px)': measurements['length (px)'],
+                              'edge_fluorescence_mean (a.u.)': measurements['fluor_mean (au)'],
+                              'edge_fluorescence_std (a.u.)': measurements['fluor_std (au)'],
+                              'edge_fluorescence_median (a.u.)': measurements['fluor_median (au)'],
+                              'edge_fluoresnce_min (a.u.)': measurements['fluor_min (au)'],
+                              'edge_fluorescence_pct25 (a.u.)': measurements['fluor_pct25 (au)'],
+                              'edge_fluorescence_pct75 (a.u.)': measurements['fluor_pct75 (au)'],
+                              'edge_fluorescence_max (a.u.)': measurements['fluor_max (au)'],
+                              })
         table.to_csv(tables_out_dir / f'{dataset_name}_T{T}_alignments.csv', index=False)
 
         ## save images containing the nodes, edges, and node-node lines
@@ -144,6 +119,8 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
         print(f'T={T} -- saving multichannel images of results for validation') if VERBOSE else None
         ## create a rasterized image of the lines
         lines = np.zeros(nodes.shape, dtype=np.uint16)
+        ## need to flatten the node_coord_pairs first before passing to rasterize_edge_between_nodes
+        node_coord_pairs = [node_coords for edge in measurements['node_pair_centroids'] for node_coords in edge]
         lines, line_labels_dict = feat.rasterize_edges_between_nodes(node_coord_pairs, lines, label_lines=True)
 
         ## organize the image data and save it
@@ -180,7 +157,7 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
     ## lastly, concatenate the tables from each timepoint
     for dataset_name in DATASET_NAME_LIST:
         out_dir_list, _ = initialize_workflow(dataset_name)
-        _, tables_out_dir, _, out_dir = out_dir_list
+        images_out_dir, tables_out_dir, out_dir = out_dir_list
         master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir.glob('*.csv')])
         master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_alignments.csv', index=False)
 

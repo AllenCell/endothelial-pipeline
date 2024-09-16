@@ -1,11 +1,10 @@
-import numpy as np
 from skimage.segmentation import find_boundaries
 from pathlib import Path
 from bioio import BioImage
 from multiprocessing import Pool
 from tqdm import tqdm
 import fire
-from cellsmap.util import io, cdh5_preprocessing as preproc
+from cellsmap.util import cdh5_preprocessing as preproc, io
 
 
 
@@ -13,19 +12,20 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
     # NOTE: this function is slightly different than the
     # one found in 'cdh5_nodes_and_edges.py'
     SCT_NAME = Path(__file__).stem
-
-    prj_dir = Path('//allen/aics/assay-dev/users/Serge/')
-    assert prj_dir.exists()
-    out_dir = prj_dir / f'cellsmap_out/{SCT_NAME}'
+    PRJ_DIR = Path('../').resolve()
+    assert PRJ_DIR.exists()
+    val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
+    out_dir = PRJ_DIR / 'results/cdh5_classic_seg'
+    out_dir_list = [out_dir, val_dir]
     if SAVE_OUTPUT:
-        Path.mkdir(out_dir, exist_ok=True, parents=True)
+        [Path.mkdir(out, exist_ok=True, parents=True) for out in out_dir_list]
 
     img = BioImage(Path(io.get_zarr_path(dataset_name)))
     px_res = img.physical_pixel_sizes
     img_metadata = {'physical_pixel_sizes': px_res,
                     }
 
-    return out_dir, img_metadata
+    return out_dir_list, img_metadata
 
 def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True) -> list:
     """
@@ -40,12 +40,9 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
         raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
 
         if IS_TEST:
-            # T_list = range(0,1)
-            # crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
-            # crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
+            crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
+            crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
             T_list = range(0, raw.shape[DIM_MAP["T"]], 12)
-            crop_y = slice(None, None)
-            crop_x = slice(None, None)
             for T in T_list:
                 analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
         else:
@@ -67,7 +64,8 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
-    out_dir, img_metadata = initialize_workflow(dataset_name)
+    out_dir_list, img_metadata = initialize_workflow(dataset_name)
+    out_dir, val_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
     raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
@@ -85,15 +83,29 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
     seg2_lab_no_mask_merge_bounds = find_boundaries(seg2_lab_no_mask_merge)
 
     if SAVE_OUTPUT:
+        # save images for validation
         print(f'T={T} -- saving image input and output overlays') if VERBOSE else None
-        out_path = out_dir/f'{dataset_name}_T{T}.ome.tiff'
+        val_path = val_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
+        Path.mkdir(val_dir / dataset_name, exist_ok=True, parents=True)
         images_out = [raw_arr, processed_img, hyst_clean, seg2_lab, seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds]
         images_out_metadata = {'image_name': dataset_name,
-                                'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
-                                'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
-                                'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
-                                'dim_order': 'YX'
-                                }
+                               'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
+                               'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
+                               'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
+                               'dim_order': 'YX'
+                               }
+        preproc.save_image_output(val_path, images_out, images_out_metadata)
+
+        # save just the cdh5 segmentations
+        out_path = out_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
+        Path.mkdir(out_dir / dataset_name, exist_ok=True, parents=True)
+        images_out = [seg2_lab_no_mask_merge,]
+        images_out_metadata = {'image_name': dataset_name,
+                               'channel_names': ['segmentations_merged'], 
+                               'channel_colors': [(255,255,255),],
+                               'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
+                               'dim_order': 'YX'
+                               }
         preproc.save_image_output(out_path, images_out, images_out_metadata)
     else:
         pass

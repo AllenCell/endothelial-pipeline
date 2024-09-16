@@ -221,8 +221,8 @@ def get_neighbor_nodes_and_edges(nodes_lab: np.array, edges_lab: np.array, bad_n
 
     edge_neighbors_nodelabs: list or dict
         Edge labels coupled to their neighboring node labels in the form
-            [(edge_label_1, (node_label_1.1, node_label_1.2, ...),
-              edge_label_2, (node_label_2.1, node_label_2.2, ...),
+            [(edge_label_1, (node_label_1.1, node_label_1.2),
+              edge_label_2, (node_label_2.1, node_label_2.2),
               ...)]
 
     node_neighbors_nodelabs: list or dict
@@ -420,33 +420,59 @@ def build_vector(stop_position, start_position):
     vec = stop_position - start_position
     return vec
 
-def calculate_node_to_node_distances_and_angles(binary_image: np.array, VERBOSE=True):
+def calculate_neighbor_node_metrics(binary_image: np.array, intensity_image: np.array=None, VERBOSE=True) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and creates a node
     and edge representation of the binary image to calculate angles between
     lines connecting neighboring nodes and a horizontal line as well as the
-    lengths of those lines. Note that the edge lengths and local curvatures
-    are not being used, and the edges are instead being approximated as
-    straight lines.
+    lengths of those lines. Also calculates the edge lengths and intensities
+    at the edges of an intensity_image is provided.
+    Note that the edge lengths and local curvatures are not being used to
+    calculate angles, only node-to-neighboring-node lines.
+
+    Parameters
+    ----------
+    binary_image: np.array
+        A binary array.
     
-    Input: a binary array
-    Outputs: 6 lists in the following order:
-    home_nodes_filtered (the labels of the nodes of origin used to build a line),
-    neighbor_nodes_filtered (the labels of the end node used to build a line)
-    dists_filtered (the linear distance between home_nodes_filtered[index] and
-                    neighbor_nodes_filtered[index])
-    angles_filtered (the angle between the line formed by home_nodes_filtered[index]
-                     to neighbor_nodes_filtered[index] and a horizontal line)
-    node_label_pairs (a list of node labels with home_nodes and neighbor_nodes paired together;
-                      note that if there a node has multiple neighbors it will show up multiple 
-                      times e.g. if n1 is connected to n2 and n3 then [(n1, n2), (n1, n3), ...])
-    node_coord_pairs (a list of the node centroids for the nodes in node_label_pairs in the same order)
+    intensity_image: np.array (optional)
+        If provided, this image will be passed to to 'skimage.measure'.
+        Default is None.
+
+    Returns
+    -------
+    home_nodes_filtered: list
+        The labels of the nodes of origin used to build a line.
+
+    neighbor_nodes_filtered: list
+        The labels of the end node used to build a line.
+
+    dists_filtered: list
+        The linear distance between home_nodes_filtered[index] and 
+        neighbor_nodes_filtered[index].
+
+    angles_filtered: list
+        The angle between the line formed by home_nodes_filtered[index]
+        to neighbor_nodes_filtered[index] and a horizontal line)
+
+    node_label_pairs: list
+        A list of node labels with home_nodes and neighbor_nodes paired together;
+        note that if there a node has multiple neighbors it will show up multiple 
+        times e.g. if n1 is connected to n2 and n3 then [(n1, n2), (n1, n3), ...].
+
+    node_coord_pairs: list
+        A list of the node centroids for the nodes in node_label_pairs in the same order.
+    
+    edge_metrics: list of dicts
 
     NOTE: home_nodes_filtered, neighbor_nodes_filtered, dists_filtered, and angles_filtered have the
     same indexing order (i.e. you can build a table directly from these lists), and node_label_pairs
     indices directly match those of node_coord_pairs, but the indices of home_nodes, neighbor_nodes,
     dists and angles do not match node_label_pairs or node_coord_pairs.
+
+    TODO: this function should be split up into 2 functions: 1 for getting angles and
+    distances, and another for getting edge lengths, fluorescences, etc...
     """
     ## convert cleaned up threshold of cadherin signal to nodes and edges
     nodes, edges, skel, conn = arr2graph(binary_image)
@@ -484,7 +510,7 @@ def calculate_node_to_node_distances_and_angles(binary_image: np.array, VERBOSE=
     print(f'    -- getting node neighbors') if VERBOSE else None
     ## get the node neighbors
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges)
-    del node_neighbors_edgelabs, edge_neighbors_nodelabs # remove unused images to save on memory
+    del node_neighbors_edgelabs # remove unused images to save on memory
 
     ## create a connectivity matrix mask
     print(f'    -- creating node connectivity mask') if VERBOSE else None
@@ -505,9 +531,292 @@ def calculate_node_to_node_distances_and_angles(binary_image: np.array, VERBOSE=
     dists_filtered = dists[neighbors_mask_oneway]
     angles_filtered = angles[neighbors_mask_oneway]
 
-    ## lastly, list the paired node labels and node coordinates for later use
+    ## list the paired node labels and node coordinates for later use
     node_label_pairs = [(node, neigh) for node, neighbors in node_neighbors_nodelabs for neigh in neighbors]
     node_lab_coord_dict = dict(zip(node_labels, node_centroids))
     node_coord_pairs = [(node_lab_coord_dict[node], node_lab_coord_dict[neigh]) for node, neigh in node_label_pairs]
 
-    return home_nodes_filtered, neighbor_nodes_filtered, dists_filtered, angles_filtered, node_label_pairs, node_coord_pairs
+    ## calculate edge metrics
+    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
+    extra_region_props = (get_length, intensity_std, intensity_median, intensity_pct25, intensity_pct75)
+    edge_props = measure.regionprops(edges, intensity_image, extra_properties=extra_region_props)
+    for prop in edge_props:
+        try:
+            prop.node_pair = edge_neighbors_nodelabs[prop.label]
+        except IndexError:
+            print(prop.label)
+
+    node_pairs_filtered = list(zip(home_nodes_filtered, neighbor_nodes_filtered))
+    edge_props_filtered = [[prop for prop in edge_props if set(prop.node_pair) == set(pair)] for pair in node_pairs_filtered]
+
+    node_pair_labels = []
+    node_pair_coords = []
+    connecting_edge_labels = []
+    edge_num_pixels = []
+    edge_length = []
+    edge_fluorescence_mean = []
+    edge_fluorescence_std = []
+    edge_fluorescence_median = []
+    edge_fluorescence_min = []
+    edge_fluorescence_pct25 = []
+    edge_fluorescence_pct75 = []
+    edge_fluorescence_max = []
+    for edge_props in edge_props_filtered:
+        node_pair_labels.append([prop.node_pair for prop in edge_props])
+        node_pair_coords.append([tuple([node_lab_coord_dict[node] for node in prop.node_pair]) for prop in edge_props])
+        connecting_edge_labels.append([prop.label for prop in edge_props])
+        edge_num_pixels.append([prop.num_pixels for prop in edge_props])
+        edge_length.append([prop.get_length for prop in edge_props])
+        edge_fluorescence_mean.append([prop.intensity_mean for prop in edge_props])
+        edge_fluorescence_std.append([prop.intensity_std for prop in edge_props])
+        edge_fluorescence_median.append([prop.intensity_median for prop in edge_props])
+        edge_fluorescence_min.append([prop.intensity_min for prop in edge_props])
+        edge_fluorescence_pct25.append([prop.intensity_pct25 for prop in edge_props])
+        edge_fluorescence_pct75.append([prop.intensity_pct75 for prop in edge_props])
+        edge_fluorescence_max.append([prop.intensity_max for prop in edge_props])
+
+    metrics = {'node_pair_labels': node_pair_labels,
+               'node_pair_centroids': node_pair_coords,
+               'distances': dists_filtered,
+               'angles': angles_filtered,
+               'edge_labels': connecting_edge_labels,
+               'edge_num_pixels': edge_num_pixels,
+               'length (px)': edge_length,
+               'fluor_mean (au)': edge_fluorescence_mean,
+               'fluor_std (au)': edge_fluorescence_std,
+               'fluor_median (au)': edge_fluorescence_median,
+               'fluor_min (au)': edge_fluorescence_min,
+               'fluor_max (au)': edge_fluorescence_max,
+               'fluor_pct25 (au)': edge_fluorescence_pct25,
+               'fluor_pct75 (au)': edge_fluorescence_pct75,
+               }
+
+    return metrics
+
+def intensity_std(region_mask: np.array, intensity_image: np.array) -> float:
+    """This function is designed to be passed to the extra_properties argument
+    of skimage.measure.regionprops.
+    It will return the standard deviation of the intensity of the image within
+    the label of the region."""
+    region_intensity_std = np.std(intensity_image[region_mask])
+    return region_intensity_std
+
+def intensity_median(region_mask: np.array, intensity_image: np.array) -> float:
+    """This function is designed to be passed to the extra_properties argument
+    of skimage.measure.regionprops.
+    It will return the median of the intensity of the image within the label
+    of the region."""
+    region_intensity_median = np.median(intensity_image[region_mask])
+    return region_intensity_median
+
+def intensity_pct25(region_mask: np.array, intensity_image: np.array) -> float:
+    """This function is designed to be passed to the extra_properties argument
+    of skimage.measure.regionprops.
+    It will return the 25th percentile of the intensity of the image within the
+    label of the region."""
+    region_intensity_pct25 = np.percentile(intensity_image[region_mask], q=25)
+    return region_intensity_pct25
+
+def intensity_pct75(region_mask: np.array, intensity_image: np.array) -> float:
+    """This function is designed to be passed to the extra_properties argument
+    of skimage.measure.regionprops.
+    It will return the 75th percentile of the intensity of the image within the
+    label of the region."""
+    region_intensity_pct75 = np.percentile(intensity_image[region_mask], q=75)
+    return region_intensity_pct75
+
+def walk_the_line(skel: np.array, max_num_pixels: int=None, bidirectional=True) -> tuple:
+    """
+    Takes a thinned or skeletonized binary line with 2 ends and no branches
+    and returns the coordinates of the line ordered from endpoint to endpoint
+    with the corresponding distance between the coordinates.
+    Skeletonizations can be made with e.g. skimage.morphology.skeletonize and
+    a node and edge finding algorithm (such as the function arr2graph here)
+    can be used to split up the skeletonization into edge pieces with only
+    two ends and no branches which are all connected together by nodes.
+    Originally designed to work with the edges output from the 'arr2graph'.
+
+    NOTE: This function has only been tested for 2D and 3D images, and likely
+    will not work on arrays of higher dimensions.
+    NOTE: Beware that an argument for checking if max_num_pixels exceeds the
+    length of skel has not been implemented, and the current behavior is to
+    count until the end of the line if it is shorter than max_num_pixels, not
+    raise an error.
+
+    Parameters
+    ----------
+    skel: np.array
+        A thinned or skeletonized binary line with 2 ends and no branches.
+    
+    max_num_pixels: int
+        How many pixels to move from a start point if specified. Useful for
+        walking a defined number of pixels away from the ends of the lines
+        (e.g. find the n-th pixel away from the endpoint), which can then be
+        used to construct a vector from the endpoint to the n-th pixel away
+        from the end point (this vector could approximate the curvature in
+        part of the line).
+        Default is to walk the whole line.
+
+    bidirectional: bool
+        If True, will return the ordered line coordinates starting from both
+        ends of the line (i.e. the 'forward' and 'reverse' ordered coordinates),
+        otherwise will return the ordered coordinates using only one endpoint as
+        a starting point. Calculating the order of the coordinates using both
+        endpoints as starting points takes twice as long as calculating only one.
+        Default is True.
+        
+    Returns
+    -------
+    (line1, line2) or (line1,): tuple
+        The ordered coordinates of the line from endpoint to endpoints structured
+        as a dictionary as follows
+            {line_first_coordinate: {next_closest_connected_coordinate: distance_to_closest_coordinate},
+             ...,
+             second_last_line_coordinate: {last_line_coordinate: distance_from_second_last_to_last_coordinate},
+             last_line_coordinate: {}}
+        Length of line1 and line2 should each be equal to the number of True pixels in skel.
+        Returns (line1, line2) if bidirectional=True, else returns (line1,).
+    """
+
+    img_dim = skel.ndim
+    max_num_pixels = max_num_pixels or np.count_nonzero(skel)
+
+    coords = list(zip(*np.where(skel)))
+
+    if len(coords) < 2:
+        line1 = {(coords)[-1]: {}}
+        if bidirectional:
+            line2 = {(coords)[-1]: {}}
+        else:
+            pass
+        pass
+
+    else:
+        coords1, coords2 = numpy_mesh_coords(coords, coords, indexing='xy')
+        dists = np.linalg.norm(coords2 - coords1, axis=2)
+
+        # conn1 = dists == 1
+        # conn2 = dists == np.sqrt(2)
+        # # conn3 = dists == np.sqrt(3)
+        # conn_all = conn1 + conn2
+        conns = [dists == np.sqrt(dim) for dim in range(1, img_dim+1)]
+        conn_all = sum(conns).astype(bool)
+
+        ## now mask the array
+        dists = np.ma.masked_array(data=dists, mask=dists==0)
+
+        edges_from_dist = [np.all(dists[(conn_all[i,:] * (conn_all[i,:] + conn_all)) * (conn_all[i,:] * (conn_all[i,:] + conn_all)).T] > np.sqrt(img_dim)) for i in range(len(conn_all))]
+
+        edges_from_dist = np.array([x if x else False for x in edges_from_dist])
+
+
+        edge_conn = np.array([np.count_nonzero(conn_arr, axis=1) == 2 for conn_arr in conns])
+        edge_anticonn = np.array([np.count_nonzero(conn_arr, axis=1) == 0 for conn_arr in conns])
+
+        edges_from_conn = sum([edge_conn[i,:] * ~(sum([~edge_anticonn[j] for j in range(len(edge_anticonn)) if j != i]).astype(bool)) for i in range(len(conns))]).astype(bool)
+        edges_from_conn = edges_from_conn + (np.count_nonzero(conn_all, axis=1) > img_dim)
+
+        ## this line of code will check the connectivity of the pixels
+        ## connected to those found in maybe_nodes and if any of these
+        ## connected pixels have both of THEIR neighbors in conn1, then
+        ## we can safely say that the original pixel in maybe_nodes in
+        ## question is in fact a node. This is because an edge pixel
+        ## can't be only connected to 2 other pixels without one of 
+        ## those connected neighbors being an edge pixel connected to
+        ## two other pixels in the shape of an "L"
+
+        edges = edges_from_dist + edges_from_conn
+        nodes = ~edges
+
+        assert(np.count_nonzero(nodes) == 2)
+
+        ## now that we know which coordinates are nodes or edges,
+        ## we can spatially order them (i.e. walk from one node
+        ## along the edge of the line to the other node)
+
+        ## starting from one node, move to the closest neighbour
+        ## create a dictionary of which coordinates are next to which
+
+        conns = {tuple(coords2[i,0].tolist()):
+                    dict(zip([tuple(x) for x in coords1[i, conn_all[i]].tolist()], dists[i, conn_all[i]].tolist()))
+                    for i in range(len(conn_all))}
+        node_coords = [tuple(c) for c in np.asarray(coords)[nodes,:]]
+
+        ## pick a starting position from one of the 2 endpoints of the coordinates
+        ## (the choice is arbitrary)
+        curr_node = node_coords[-1]
+        visited_coords = [curr_node]
+        line1 = {}
+
+        for count in range(max_num_pixels):
+            line1[curr_node] = {n: conns[curr_node][n] for n in conns[curr_node]
+                                if conns[curr_node][n] == min([conns[curr_node][k] for k in conns[curr_node].keys() if k not in visited_coords], default=[])
+                                and n not in visited_coords}
+            if line1[curr_node]:
+                curr_node = tuple(line1[curr_node].keys())[-1]
+                visited_coords.append(curr_node)
+            else:
+                break
+
+        if bidirectional:
+            curr_node = node_coords[-2]
+            visited_coords = [curr_node]
+            line2 = {}
+
+            for count in range(max_num_pixels):
+                line2[curr_node] = {n: conns[curr_node][n] for n in conns[curr_node]
+                                if conns[curr_node][n] == min([conns[curr_node][k] for k in conns[curr_node].keys() if k not in visited_coords], default=[])
+                                and n not in visited_coords}
+                if line2[curr_node]:
+                    curr_node = tuple(line2[curr_node].keys())[-1]
+                    visited_coords.append(curr_node)
+                else:
+                    break
+        else:
+            pass
+
+    return (line1, line2) if bidirectional else (line1,)
+
+
+def get_length(skel: np.array, max_num_pixels: int=None) -> float:
+    """
+    Returns the length of a rasterized binary line.
+    The rasterized binary line must 2 ends and no branches.
+    Originally designed to work with the edges output from
+    arr2graph (see walk_the_line for more details).
+
+    NOTE: This function has only been tested for 2D and 3D images, and likely
+    will not work on arrays of higher dimensions.
+    NOTE: Beware that an argument for checking if max_num_pixels exceeds the
+    length of skel has not been implemented, and the current behavior is to
+    count until the end of the line if it is shorter than max_num_pixels, not
+    raise an error.
+
+    Parameters
+    ----------
+    skel: np.array
+        A thinned or skeletonized binary line with 2 ends and no branches.
+    
+    max_num_pixels: int
+        How many pixels to move from a start point if specified. Useful for
+        walking a defined number of pixels away from the ends of the lines
+        (e.g. find the n-th pixel away from the endpoint), which can then be
+        used to construct a vector from the endpoint to the n-th pixel away
+        from the end point (this vector could approximate the curvature in
+        part of the line).
+        Default is to walk the whole line.
+
+    Returns
+    -------
+    length: float
+        The length of the line.
+    """
+    # get the coordinates of the line ordered from end to end and the
+    # distances from one coordinate to the next
+    line, = walk_the_line(skel, max_num_pixels, bidirectional=False)
+    # get a list of the distances from one coordinate to the next
+    dists = [line[startpoints][endpoints] for startpoints in line for endpoints in line[startpoints]]
+    # return the total of the distances as the length
+    length = sum(dists)
+
+    return length
