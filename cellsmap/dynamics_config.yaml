@@ -12,7 +12,8 @@
   N_bins: [32, 32], # number of bins for each dimension for creating mesh over state space
   poly_degree_drift: 3, # degree of polynomial for fitting drift
   poly_degree_diffusion: 1, # degree of polynomial for fitting diffusion
-  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/cdh5_small_patch/"
+  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/cdh5_small_patch/",
+  logging: "yes" # if "yes", log file is created
 },
 {
   name: "mae_seg_LR",
@@ -28,7 +29,8 @@
   N_bins: [32, 32], # number of bins for each dimension for creating mesh over state space
   poly_degree_drift: 3, # degree of polynomial for fitting drift
   poly_degree_diffusion: 1, # degree of polynomial for fitting diffusion
-  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/mae_seg/"
+  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/mae_seg/",
+  logging: "yes" # if "yes", log file is created
 },
 {
   name: "test_config",
@@ -44,5 +46,6 @@
   N_bins: [32, 32], # number of bins for each dimension for creating mesh over state space
   poly_degree_drift: 3, # degree of polynomial for fitting drift
   poly_degree_diffusion: 1, # degree of polynomial for fitting diffusion
-  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/test_folder/"
+  savedir: "//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/test_folder/",
+  logging: "yes" # if "yes", log file is created
 }]

@@ -75,6 +75,11 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
 
 # dynamics learning config functions
 
+def get_available_dynamics_configs() -> list:
+    config = load_config('dynamics')
+    for inputs in config:
+        print(inputs['name'])
+
 def get_dynamics_inputs(config_name: str) -> tuple:
     dynamics_config = None
     for config in load_config('dynamics'):
@@ -105,4 +110,9 @@ def get_dynamics_inputs(config_name: str) -> tuple:
     nf = dynamics_config['poly_degree_drift'] # highest order of the polynomial terms in SINDy library for drift (int)
     ns = dynamics_config['poly_degree_diffusion'] # highest order of the polynomial terms in SINDy library for diffusion (int)
     savedir = dynamics_config['savedir'] # directory to save results
-    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_high_low, split_frame, split_order, N, nf, ns, savedir
+    logging = dynamics_config['logging'] # if "yes", log results to a file
+    if logging == 'yes':
+        log_file = savedir+'logs/langevin_regression_log.txt'
+    else:
+        log_file = None
+    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_high_low, split_frame, split_order, N, nf, ns, savedir, log_file

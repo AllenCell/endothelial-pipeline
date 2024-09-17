@@ -1,12 +1,9 @@
 import numpy as np
 from scipy.optimize import minimize
-from time import time
+import os
 from cellsmap.analyses.utils.langevin_sindy.timecorr import kl_divergence
 
 # adapted from https://github.com/dynamicslab/langevin-regression
-# AFP solver object
-
-
 ##### functions for building approximations to drift and diffusion #####
 
 # Kramers-Moyal averages of drift and diffusion for 1D and 2D
@@ -140,11 +137,6 @@ def KM_avg_2D(X, bins, stride, dt, multi_traj=False):
             
     return f_KM, a_KM, f_err, a_err
 
-# SINDy model as sympy object obtained from optimal coefficients Xi
-def sindy_model(Xi, expr_list):
-    '''Builds SINDy model from coefficients Xi and sympy function expressions in expr_list'''
-    return sum([Xi[i]*expr_list[i] for i in range(len(expr_list))])
-
 ##### functions for optimization problem #####
 
 def cost(Xi, params):
@@ -154,7 +146,6 @@ def cost(Xi, params):
         W, f_KM, a_KM, x_pts, y_pts, x_msh, y_msh, f_expr, a_expr, l1_reg, l2_reg, kl_reg, p_hist, etc
     '''
 
-    #start_cost = time()
     # Unpack parameters
     W = params['W']  # Optimization weights
 
@@ -178,10 +169,7 @@ def cost(Xi, params):
         
     # Solve AFP equation to find finite-time corrected drift/diffusion
     #    corresponding to the current parameters Xi
-    #start_afp_op = time()
-    
-    #print('%%%% Computing AdjFP operator time: {0} seconds %%%%'.format(time() - start_afp_op))
-    #start_afp = time()
+
     if afp.ndim == 1:
         afp.precompute_operator(f_vals,a_vals)
         f_tau, a_tau = afp.solve(params['tau'],d=0)
@@ -190,9 +178,6 @@ def cost(Xi, params):
         f_tau, a_tau = afp.solve(params['tau'],d=[0,1])
         f_tau = f_tau.T
         a_tau = a_tau.T
-
-    #print('%%%% Solving AdjFP time: {0} seconds %%%%'.format(time() - start_afp))
-
             
     # Histogram points without data have NaN values in K-M average - ignore these in the average
     mask = np.where(np.isfinite(f_KM))[0]
@@ -201,7 +186,6 @@ def cost(Xi, params):
 
     # Include PDF constraint via Kullbeck-Leibler divergence regularization
     if params['kl_reg'] > 0:
-        #start_fp = time()
         p_hist = params['p_hist']  # Empirical PDF
         if afp.ndim == 1:
             p_est = fp.solve(f_vals,a_vals)
@@ -210,9 +194,7 @@ def cost(Xi, params):
         kl = kl_divergence(p_hist, p_est, dx=fp.dx, tol=1e-6)
         kl = max(0, kl)  # Numerical integration can occasionally produce small negative values
         V += params['kl_reg']*kl
-        #print('%%%% FP solver time: {0} seconds %%%%'.format(time() - start_fp))
     
-    #print('%%%% Total cost function time: {0} seconds %%%%'.format(time() - start_cost))
     return V
 
 def AFP_opt(cost, params):
@@ -223,7 +205,6 @@ def AFP_opt(cost, params):
 
     where my_cost is the cost function (with inputs Xi, params) to be used.
     '''
-    start_time = time()
     Xi0 = params["Xi0"] # initial guess
 
     is_complex = np.iscomplex(Xi0[0]).all()
@@ -238,7 +219,6 @@ def AFP_opt(cost, params):
 
     res = minimize(func, Xi0, method='nelder-mead',
               options={'disp': False, 'maxfev':int(1e3)})
-    print('%%%% Optimization time: {0} seconds,   Cost: {1} %%%%'.format(time() - start_time, res.fun) )
     
     # Return coefficients and cost function
     if is_complex:
@@ -247,7 +227,7 @@ def AFP_opt(cost, params):
     else:
         return res.x, res.fun
 
-def SSR_loop(opt_fun, params):
+def SSR_loop(opt_fun, params,log_file=None):
     """
     Stepwise sparse regression: general function for a given optimization problem
        opt_fun should take the parameters and return coefficients and cost
@@ -256,6 +236,12 @@ def SSR_loop(opt_fun, params):
         (although these are just passed to the opt_fun)
     """
     
+    if log_file is not None:
+        if not os.path.exists(log_file):
+                with open(log_file, 'w') as f:
+                    print("**** Langevin Regression Log **** \n",file=f)
+
+
     # Lists of candidate expressions... coefficients are optimized
     f_expr, s_expr = params['f_expr'].copy(), params['s_expr'].copy()
     lib_f, lib_s = params['lib_f'].copy(), params['lib_s'].copy()
@@ -293,10 +279,10 @@ def SSR_loop(opt_fun, params):
                 s1_active = s_active[s_active < len(s_expr)//2]
                 s2_active = s_active[s_active >= len(s_expr)//2]
 
-            print(f_active)
-            print(s_active)
+            # print(f_active)
+            # print(s_active)
         
-            print(f_expr[f_active], s_expr[s_active])
+            # print(f_expr[f_active], s_expr[s_active])
             params['f_expr'] = f_expr[f_active]
             params['s_expr'] = s_expr[s_active]
             params['lib_f'] = lib_f.T[f_active].T
@@ -319,15 +305,19 @@ def SSR_loop(opt_fun, params):
                     min_idx = j
                     V[k] = tmp_V
                     min_Xi = tmp_Xi
-  
-        print("Cost: {0}".format(V[k]))
+
+        if log_file is not None:
+            with open(log_file, 'a') as f:
+                print("Cost: {0}".format(V[k]), file=f)
 
         # Delete least important term
         active = np.delete(active, min_idx)  # Remove inactive index
         Xi0[active] = min_Xi  # Re-initialize with best results from previous
         Xi[active, k] = min_Xi
-        print("Active terms: {0}".format(active))
-        print("Coefficients: {0}".format(Xi[:, k]))
+        if log_file is not None:
+            with open(log_file, 'a') as f:
+                print("Active terms: {0}".format(active), file=f)
+                print("Coefficients: {0}".format(Xi[:, k]), file=f)
         
     return Xi, V
 

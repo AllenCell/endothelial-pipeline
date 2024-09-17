@@ -52,9 +52,9 @@ def get_bins(ndim,data,N):
 def get_hist(ndim,data,bins):
     '''Generate histogram for the data.'''
     if ndim == 1:
-        hist = np.histogram(np.concatenate(data), bins, density=True)
+        hist, _ = np.histogram(np.concatenate(data), bins, density=True)
     else:
-        hist = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
+        hist, _, _ = np.histogram2d(np.concatenate(data)[:,0],np.concatenate(data)[:,1], bins, density=True)
     return hist
 
 def get_lib(ndim,nf,ns):
@@ -169,42 +169,48 @@ def get_weights(ndim,N,f_err,a_err):
     W = W/np.nansum(W.flatten()) # Normalize weights
     return W
 
-def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir):
+def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir,log_file=None,flow='all'):
     '''Fit Langevin SINDy model to data.'''
 
-    print("**** GPU available: "+str(torch.cuda.is_available()))
-    print("    **** Device: "+str(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))+"\n")
+    if log_file is not None:
+        if not os.path.exists(log_file):
+            with open(log_file, 'w') as f:
+                print("**** Langevin Regression Log **** \n",file=f)
+        with open(log_file, 'a') as f:
+            print("**** GPU available: "+str(torch.cuda.is_available()),file=f)
+            print("    **** Device: "+str(torch.device(torch.cuda.current_device() if torch.cuda.is_available() else "cpu"))+"\n",file=f)
 
     num_traj = len(data)
-    num_t = data[0].shape[0]
+    num_t = data[0].shape[1]
 
     data_stationary = [data[i][int(num_t/2):] for i in range(num_traj)] # "Steady state" data, for histogram
 
     # Generate histogram bins
     bins, centers, dx = get_bins(ndim,data,N)
 
-    p_hist, _, _ = get_hist(ndim,data_stationary, bins)
-    np.save(savedir+'/outputs/histogram_bins.npy',np.array(bins,dtype=object),allow_pickle=True)
-    np.save(savedir+'/outputs/histogram.npy',p_hist)
+    p_hist = get_hist(ndim,data_stationary,bins)
+    np.save(savedir+'/outputs/histogram_bins_'+flow+'.npy',np.array(bins,dtype=object),allow_pickle=True)
+    np.save(savedir+'/outputs/histogram_'+flow+'.npy',p_hist)
 
     ## KM average (coarse grained subsampling)
     if ndim == 1:
         f_KM, a_KM, f_err, a_err = lg.KM_avg(data, bins, stride=lag_step, dt=dt, multi_traj=True)
-        np.save(savedir+'/outputs/KM_drift.npy',f_KM)
-        np.save(savedir+'/outputs/KM_diff.npy',a_KM)
-        np.save(savedir+'/outputs/KM_drift_err.npy',f_err)
-        np.save(savedir+'/outputs/KM_diff_err.npy',a_err)
+        np.save(savedir+'/outputs/KM_drift_'+flow+'.npy',f_KM)
+        np.save(savedir+'/outputs/KM_diff_'+flow+'.npy',a_KM)
+        np.save(savedir+'/outputs/KM_drift_err_'+flow+'.npy',f_err)
+        np.save(savedir+'/outputs/KM_diff_err_'+flow+'.npy',a_err)
     else:
         f_KM, a_KM, f_err, a_err = lg.KM_avg_2D(data, bins, stride=lag_step, dt=dt, multi_traj=True)
-        np.save(savedir+'/outputs/KM_drift.npy',f_KM)
-        np.save(savedir+'/outputs/KM_diff.npy',a_KM)
-        np.save(savedir+'/outputs/KM_drift_err.npy',f_err)
-        np.save(savedir+'/outputs/KM_diff_err.npy',a_err)
+        np.save(savedir+'/outputs/KM_drift_'+flow+'.npy',f_KM)
+        np.save(savedir+'/outputs/KM_diff_'+flow+'.npy',a_KM)
+        np.save(savedir+'/outputs/KM_drift_err_'+flow+'.npy',f_err)
+        np.save(savedir+'/outputs/KM_diff_err_'+flow+'.npy',a_err)
 
     ### Build SINDy libraries with sympy, evaluate on histogram grid
     f_expr, s_expr = get_lib(ndim,nf,ns)
     # save SINDy libraries for later use
-
+    np.save(savedir+'/outputs/f_expr',f_expr,allow_pickle=True)
+    np.save(savedir+'/outputs/s_expr',s_expr,allow_pickle=True)
     lib_f, lib_s = eval_lib(ndim, centers,N,f_expr,s_expr)
     
     ### Initialize Xi with least squares regression (no finite-time corrections)
@@ -230,17 +236,19 @@ def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir):
     # Use anonymous function to automatically pass the cost function
     opt_fun = lambda params: lg.AFP_opt(lg.cost, params)
     start_time = time()
-    print("**** Optimizing... \n")
 
-    Xi, V = lg.SSR_loop(opt_fun, params)
+    if log_file is not None:
+        with open(log_file, 'a') as f:
+            print("**** Optimizing... \n",file=f)
 
-    print("**** Full optimization took "+str(time()-start_time)+" seconds \n")
+    Xi, V = lg.SSR_loop(opt_fun, params, log_file=log_file) # run stepwise sparse regression (SSR) optimization
+
+    if log_file is not None:
+        with open(log_file, 'a') as f:
+            print("**** Full Langevin Regression optimization took "+str(time()-start_time)+" seconds \n",file=f)
 
     # plot cost function and active terms
     V_fig, _ = plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr)
-
-    np.save(savedir+'/outputs/f_expr',f_expr,allow_pickle=True)
-    np.save(savedir+'/outputs/s_expr',s_expr,allow_pickle=True)
 
     return Xi, V, V_fig
 

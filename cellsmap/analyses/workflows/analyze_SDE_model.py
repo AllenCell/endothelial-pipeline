@@ -5,7 +5,7 @@ from cellsmap.util import io
 
 def lambdify_SINDy(coeff,f_expr,vars):
     '''Lambdify a sympy function from SINDy coefficients (coeff) and function library (f) defined on given sympy variables (vars).'''
-    return sympy.lambdify(vars, coeff.dot(f_expr))
+    return sympy.lambdify(vars, coeff.dot(f_expr), ["scipy", "numpy"])
 
 def vec_field_2D(f1,f2,X1,X2):
     '''Create a 2D vector field f=(f1,f2) from component functions f1 and f2.'''
@@ -50,8 +50,8 @@ def get_model_functions(n_terms, ndim, V, Xi, f_expr, s_expr):
         sigma1 = lambdify_SINDy(Xi_s[:len(s_expr)//2], s_expr[:len(s_expr)//2], [x1,x2])
         sigma2 = lambdify_SINDy(Xi_s[len(s_expr)//2:], s_expr[len(s_expr)//2:], [x1,x2])
 
-        D1 = lambda x1,x2: 0.5*(sigma1)**2
-        D2 = lambda x1,x2: 0.5*(sigma2)**2
+        D1 = lambda x1,x2: 0.5*(sigma1(x1,x2))**2
+        D2 = lambda x1,x2: 0.5*(sigma2(x1,x2))**2
 
         # turn into vector field that can be evaluated on a grid
         f = lambda X1,X2: vec_field_2D(f1,f2,X1,X2)

@@ -100,7 +100,7 @@ def plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr):
     active = abs(Xi) > 1e-8
 
     if ndim == 1:
-        fig, ax = plt.subplots(2,1,figsize=(12, 4))
+        fig, ax = plt.subplots(1,2,figsize=(12, 4))
         ax[0].scatter(np.arange(len(V)), V, c='k')
 
         ax[0].set_xticks(np.arange(n_terms-1))
@@ -118,7 +118,7 @@ def plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr):
         ax[1].set_xlabel('Sparsity')
         ax[1].set_ylabel('Active terms (f, D)')
     else: # 2D
-        fig, ax = plt.subplots(3,1,figsize=(15, 4))
+        fig, ax = plt.subplots(1,3,figsize=(15, 4))
 
         ax[0].scatter(np.arange(len(V)), V, c='k')
 
