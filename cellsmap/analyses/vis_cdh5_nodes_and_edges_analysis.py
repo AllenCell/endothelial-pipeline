@@ -5,18 +5,6 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 
-# def plot_over_time(df: pd.DataFrame, y_column_name: str, SHOW_PLOTS, SAVE_OUTPUT):
-#     return
-
-# def compare_metrics_temporal_colorcode(df: pd.DataFrame, y_column_name: str, SHOW_PLOTS, SAVE_OUTPUT):
-#     return
-
-# def compare_metrics_over_time(df: pd.DataFrame, y_column_name: str, SHOW_PLOTS, SAVE_OUTPUT):
-#     return
-
-
-
-
 def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir: Path, SHOW_PLOTS, SAVE_OUTPUT):
     fig, ax = plt.subplots()
     sns.scatterplot(data=df_ang_dist_summary, x='node_to_node_distance_mean', y='angle_relative_to_horizontal_in_deg_mean',
@@ -38,8 +26,6 @@ def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir:
     #   no change in the mean angle...? Is this actually seen in the real data or is it an
     #   artifact of the way nodes and edges are determined?
     #       - according to Becky the cells are actually elongating
-    # TODO: consider doing a blue-red diverging colormap for the hue instead
-    #   of 'turbo' such that red = high flow, blue = low flow
 
 
     fig, ax = plt.subplots()
@@ -151,6 +137,43 @@ def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir:
     plt.close('all')
 
 
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=df_ang_dist_summary, x='node_to_node_distance_mean', y='edge_fluorescence_mean (a.u.)_mean',
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=10, ax=ax)
+    ax.plot(df_ang_dist_summary['node_to_node_distance_mean'], df_ang_dist_summary['edge_fluorescence_mean (a.u.)_mean'],
+                    lw=1, c='lightgrey', zorder=1)
+    flow_change = df_ang_dist_summary.query('`Time (hours)` == 24')
+    death_event = df_ang_dist_summary.query('`T` == 107')
+    sns.scatterplot(data=flow_change, x='node_to_node_distance_mean', y='edge_fluorescence_mean (a.u.)_mean',
+                    c='k', marker='o', zorder=2, legend=False, ax=ax)
+    sns.scatterplot(data=death_event, x='node_to_node_distance_mean', y='edge_fluorescence_mean (a.u.)_mean',
+                    c='r', marker='o', zorder=2, legend=False, ax=ax)
+    ax.set_ylabel('Mean of edge fluorescence (a.u.)')
+    ax.set_xlabel('Mean of node-node distance (px)')
+    ax.legend(title='Time (hours)', ncols=4)
+    fig.savefig(out_dir / 'dists_vs_fluors_mean.pdf')
+    plt.close('all')
+
+
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=df_ang_dist_summary, x='angle_relative_to_horizontal_in_deg_mean', y='edge_fluorescence_mean (a.u.)_mean',
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=10, ax=ax)
+    ax.plot(df_ang_dist_summary['angle_relative_to_horizontal_in_deg_mean'], df_ang_dist_summary['edge_fluorescence_mean (a.u.)_mean'],
+                    lw=1, c='lightgrey', zorder=1)
+    flow_change = df_ang_dist_summary.query('`Time (hours)` == 24')
+    death_event = df_ang_dist_summary.query('`T` == 107')
+    sns.scatterplot(data=flow_change, x='angle_relative_to_horizontal_in_deg_mean', y='edge_fluorescence_mean (a.u.)_mean',
+                    c='k', marker='o', zorder=2, legend=False, ax=ax)
+    sns.scatterplot(data=death_event, x='angle_relative_to_horizontal_in_deg_mean', y='edge_fluorescence_mean (a.u.)_mean',
+                    c='r', marker='o', zorder=2, legend=False, ax=ax)
+    ax.set_ylabel('Mean of edge fluorescence (a.u.)')
+    ax.set_xlabel('Mean angle relative to horizontal (degrees)')
+    ax.legend(title='Time (hours)', ncols=4)
+    fig.savefig(out_dir / 'angles_vs_fluors_mean.pdf')
+    plt.close('all')
+
+
+
 def generate_alignment_plots(out_path, filename_stem, timepoint, angles, distances, dist_min, dist_max, SHOW_PLOTS, SAVE_OUTPUT):
 
     print(filename_stem)
@@ -193,19 +216,41 @@ def generate_alignment_plots(out_path, filename_stem, timepoint, angles, distanc
     plt.close('all')
 
 
-def comparison_scatter_temporal_colorcode(df: pd.DataFrame, column_label_for_x_axis: str=None, column_label_for_y_axis: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SAVE_OUTPUT=False):
+def compare_metrics_temporal_colorcode(df: pd.DataFrame, x: str=None, y: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SAVE_OUTPUT=False):
     fig, ax = plt.subplots(figsize=(6,6))
-    sns.scatterplot(data=df, x=column_label_for_x_axis, y=column_label_for_y_axis,
+    sns.scatterplot(data=df, x=x, y=y,
                     marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
                     linewidth=0, size=1, legend=False, zorder=10, ax=ax)
-    ax.plot((0,1e4), (0,1e4), c='k', ls='--')
+    ax.plot((0,1e4), (0,1e4), c='lightgrey', ls='--', lw=0.5, zorder=10)
     if semilog:
         ax.semilogx()
         ax.semilogy()
-    axismin, axismax = min(df.x.min(), df.y.min()), max(df.x.max(), df.y.max())
+    axismin, axismax = min(df[x].min(), df[y].min()), max(df[x].max(), df[y].max())
     ax.set_xlim(axismin, axismax)
     ax.set_ylim(axismin, axismax)
-    # ax.set_xlabel('Node-to-node distance (px)')
-    # ax.set_ylabel('Edge length (px)')
     if SAVE_OUTPUT:
-        fig.savefig(out_path / (filename_stem + f'{column_label_for_x_axis}_vs_{column_label_for_y_axis}.tif'))
+        fig.savefig(out_path / (filename_stem + f'{x}_vs_{y}.pdf'))
+    plt.close('all')
+
+    fig, ax = plt.subplots(figsize=(6,6))
+    sns.scatterplot(data=df, x=x, y=y,
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
+                    linewidth=0, size=1, legend=False, zorder=10, ax=ax)
+    if SAVE_OUTPUT:
+        fig.savefig(out_path / (filename_stem + f'{x}_vs_{y}.pdf'))
+    plt.close('all')
+
+
+def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, x: str=None, y: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SAVE_OUTPUT=False):
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw={'projection': 'polar'})
+    sns.scatterplot(data=df, x=x, y=y,
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
+                    linewidth=0, size=1, legend=False, zorder=10, ax=ax)
+    ax.set_xlim(0, np.pi/2)
+    ax.set_ylim(0,600)
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s=ax.get_xlabel(), horizontalalignment='center')
+    if SAVE_OUTPUT:
+        fig.savefig(out_path / (filename_stem + f'{x}_vs_{y}.pdf'))
+    plt.close('all')

@@ -118,11 +118,17 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True):
     # distance in thoery, however an estimated  correction factor of + 2 is currently
     # implemented instead of getting the real node-centroid-to-closest-edge-pixel
     # distances)
-    vis.comparison_scatter_temporal_colorcode(df_ang_dist,
-                                              column_label_for_x_axis='node_to_node_distance',
-                                              column_label_for_y_axis='edge_length (px)',
-                                              semilog=True,
-                                              out_path=out_dir, filename_stem=dataset_name, SAVE_OUTPUT=True)
+    vis.compare_metrics_temporal_colorcode(df_ang_dist,
+                                           x='node_to_node_distance',
+                                           y='edge_length (px)',
+                                           semilog=False,
+                                           out_path=out_dir, filename_stem=dataset_name, SAVE_OUTPUT=True)
+
+    vis.compare_metrics_temporal_colorcode_polar(df_ang_dist,
+                                                 x='angle_relative_to_horizontal_in_deg',
+                                                 y='edge_fluorescence_mean (a.u.)',
+                                                 semilog=False,
+                                                 out_path=out_dir, filename_stem=dataset_name, SAVE_OUTPUT=False)
 
 
 if __name__ == '__main__':
