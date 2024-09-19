@@ -28,6 +28,7 @@ pdm.lock
 # Image files
 *.png
 *.tiff
+*.gif
 
 # Data files
 *.npy
