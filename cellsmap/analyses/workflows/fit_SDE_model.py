@@ -143,11 +143,12 @@ def main(config_name, path_to_data):
     if center_traj: # center initial conditions of all trajectories at zero
         for i in range(X_t.shape[0]):
             X_t[i] = X_t[i] - X_t[i,0]
+    np.save(savedir+'data/traj_array.npy',X_t)
     ylabel = 'PC'
     if not PCA:
         ylabel = 'X'
     fig, _ = plot_top_PCs(X_t,np.arange(X_t.shape[1]),xlabel='Time (frame number)',ylabel=ylabel)
-    save_plot(fig,savedir+'figs/PCs_traj_plot')
+    save_plot(fig,savedir+'figs/traj_plot')
     plt.show()
     print("*** Saving plot of trajectories to ",savedir+"figs/traj_plot.png \n")
 

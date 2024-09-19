@@ -118,7 +118,10 @@ def grad_flux_decomposition(f,D,xArrays,tol=1e-7,isConstant=False):
         flux_term           flux term (N x n1 x n2 x ... x nN array)
     '''
 
-    grid = np.meshgrid(*xArrays,indexing='ij')
+    if len(xArrays) == 1:
+        grid = xArrays[0]
+    else:
+        grid = np.meshgrid(*xArrays,indexing='ij')
     dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
     grid_len = [len(xArrays[i]) for i in range(len(xArrays))]
 
@@ -145,7 +148,6 @@ def grad_flux_decomposition(f,D,xArrays,tol=1e-7,isConstant=False):
 
     # compute flux term
     flux_term = f_vals - gradient_term
-    # flux_term = probability_flux(P,f,D,xArrays)/P
 
     return U,gradient_term,flux_term
 
