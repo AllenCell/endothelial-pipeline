@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # in utils/langevin_sindy folder, includes all the langevin-regression code implemented for 2d
 import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
-from cellsmap.analyses.utils.plot_utils import save_plot
+from cellsmap.analyses.utils.viz import save_plot
 
 # DOCUMENT THESE BETTER!
 
@@ -74,7 +74,6 @@ def select_lag_2D(data,dt,N):
         axsTop[ii].set_xlim([0.5*dt, 1e3])
         axsTop[ii].set_xscale('log')
         axsTop[ii].grid()
-        axsTop[ii].vlines(9*dt, -0.05, 1.15, colors='r', linestyles='dashed')
 
     # Markov test - dimension 1
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
@@ -92,7 +91,6 @@ def select_lag_2D(data,dt,N):
     axMid.set_xlim([dt*lag.min()-0.05, dt*lag.max()+0.05])
     axMid.set_ylim([1e-2, np.max([np.nanmax(kl_div)+0.05,1])])
     axMid.grid()
-    axMid.vlines(9*dt, 1e-2, np.max([np.nanmax(kl_div)+0.05,1]), colors='r', linestyles='dashed')
 
     # Markov test - dimension 2
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
@@ -110,7 +108,6 @@ def select_lag_2D(data,dt,N):
     axBot.set_xlim([dt*lag.min()-0.05, dt*lag.max()+0.05])
     axBot.set_ylim([1e-2, np.max([np.nanmax(kl_div)+0.05,1])])
     axBot.grid()
-    axBot.vlines(9*dt, 1e-2, np.max([np.nanmax(kl_div)+0.05,1]), colors='r', linestyles='dashed')
 
     return fig
 

@@ -7,46 +7,64 @@ import torch
 from time import time
 
 # in utils/langevin_sindy folder, includes all the langevin-regression code implemented for 2d
-import cellsmap.analyses.utils.langevin_sindy.langevin_sindy as lg
+import cellsmap.analyses.utils.langevin_sindy.langevin_sindy_core as lg
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
 import os
+import subprocess as sp
 
 # plotting utils
-from cellsmap.analyses.utils.plot_utils import plot_langevin_outputs
+from cellsmap.analyses.utils.viz import plot_langevin_outputs
 
-def get_bins(ndim,data,N):
+def get_bins(ndim,data,N,auto_bin=True,bin_limits=None):
     '''Generate histogram bins for the data.'''
-    if ndim == 1: # if data are 1D...
-        my_min = min([min(traj) for traj in data])
-        my_max = max([max(traj) for traj in data])
-        bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
-        bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
-        bins = np.linspace(bin_min,bin_max, N+1)
-        dx = bins[1]-bins[0]
-        centers = (bins[:-1]+bins[1:])/2
-    else: # else, data are 2D...
-        Nx = N[0]
-        min0 = min([min(traj[:,0]) for traj in data])
-        max0 = max([max(traj[:,0]) for traj in data])
-        bin0_min = 0.5*(np.floor(min0)+np.round(min0,1))
-        bin0_max = 0.5*(np.ceil(max0)+np.round(max0,1))
-        bins0 = np.linspace(bin0_min, bin0_max, Nx+1)
-        centers0 = 0.5*(bins0[1:]+bins0[:-1])
+    if auto_bin: # Automatically determine bins based on data
+        if ndim == 1: # if data are 1D...
+            my_min = min([min(traj) for traj in data])
+            my_max = max([max(traj) for traj in data])
+            bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
+            bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
+            bins = np.linspace(bin_min,bin_max, N+1)
+            dx = bins[1]-bins[0]
+            centers = (bins[:-1]+bins[1:])/2
+        else: # else, data are 2D...
+            Nx = N[0]
+            min0 = min([min(traj[:,0]) for traj in data])
+            max0 = max([max(traj[:,0]) for traj in data])
+            bin0_min = 0.5*(np.floor(min0)+np.round(min0,1))
+            bin0_max = 0.5*(np.ceil(max0)+np.round(max0,1))
+            bins0 = np.linspace(bin0_min, bin0_max, Nx+1)
+            centers0 = 0.5*(bins0[1:]+bins0[:-1])
 
-        Ny= N[1]
-        min1 = min([min(traj[:,1]) for traj in data])
-        max1 = max([max(traj[:,1]) for traj in data])
-        bin1_min = 0.5*(np.floor(min1)+np.round(min1,1))
-        bin1_max = 0.5*(np.ceil(max1)+np.round(max1,1))
-        bins1 = np.linspace(bin1_min, bin1_max, Ny+1)
-        centers1 = 0.5*(bins1[1:]+bins1[:-1])
+            Ny= N[1]
+            min1 = min([min(traj[:,1]) for traj in data])
+            max1 = max([max(traj[:,1]) for traj in data])
+            bin1_min = 0.5*(np.floor(min1)+np.round(min1,1))
+            bin1_max = 0.5*(np.ceil(max1)+np.round(max1,1))
+            bins1 = np.linspace(bin1_min, bin1_max, Ny+1)
+            centers1 = 0.5*(bins1[1:]+bins1[:-1])
 
-        dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
+            dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
 
-        bins = [bins0,bins1]
-        centers = [centers0,centers1]
+            bins = [bins0,bins1]
+            centers = [centers0,centers1]
+    else: # Use user-defined bins
+        if bin_limits is None:
+            raise ValueError("If auto_bin is False, bin_limits must be provided.")
+        if ndim == 1: #if 1D
+            bins = np.linspace(bin_limits[0], bin_limits[1], N+1)
+            dx = bins[1]-bins[0]
+            centers = (bins[:-1]+bins[1:])/2
+        else: # 2D
+            bins0 = np.linspace(bin_limits[0][0], bin_limits[0][1], N[0]+1)
+            centers0 = (bins0[:-1]+bins0[1:])/2
+            bins1 = np.linspace(bin_limits[1][0], bin_limits[1][1], N[1]+1)
+            centers1 = (bins1[:-1]+bins1[1:])/2
 
+            dx = [bins0[1]-bins0[0],bins1[1]-bins1[0]]
+
+            bins = [bins0,bins1]
+            centers = [centers0,centers1]
     return bins, centers, dx
 
 def get_hist(ndim,data,bins):
@@ -169,16 +187,40 @@ def get_weights(ndim,N,f_err,a_err):
     W = W/np.nansum(W.flatten()) # Normalize weights
     return W
 
-def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir,log_file=None,flow='all'):
+def langevin_regression(ndim,data,lag_step,dt,N,auto_bin,bin_limits,nf,ns,savedir,log_file=None,flow='all'):
     '''Fit Langevin SINDy model to data.'''
 
     if log_file is not None:
         if not os.path.exists(log_file):
             with open(log_file, 'w') as f:
                 print("**** Langevin Regression Log **** \n",file=f)
+
+    # check if CUDA_VISIBLE_DEVICES is set
+    if torch.cuda.is_available() and 'CUDA_VISIBLE_DEVICES' not in os.environ:
+        # if not, set CUDA_VISIBLE_DEVICES to the GPU with lowest utilization
+        # solution via: https://stackoverflow.com/questions/39649102/how-do-i-select-which-gpu-to-run-a-job-on
+        get_best_gpu = "nvidia-smi --query-gpu=memory.free,index --format=csv,nounits,noheader | sort -nr | head -1 | awk '{ print $NF }'"
+        best_gpu = sp.check_output(['bash','-c',get_best_gpu]).decode('utf-8').strip()
+        os.environ['CUDA_VISIBLE_DEVICES'] = best_gpu
+        if log_file is not None:
+            with open(log_file, 'a') as f:
+                print("**** Setting CUDA_VISIBLE_DEVICES to "+best_gpu+" \n",file=f)
+
+    if log_file is not None:
         with open(log_file, 'a') as f:
             print("**** GPU available: "+str(torch.cuda.is_available()),file=f)
-            print("    **** Device: "+str(torch.device(torch.cuda.current_device() if torch.cuda.is_available() else "cpu"))+"\n",file=f)
+            print("    **** Device: "+str(torch.device(torch.cuda.current_device()) if torch.cuda.is_available() else "cpu")+"\n",file=f)
+
+    # check if CUDA_VISIBLE_DEVICES is set
+    if torch.cuda.is_available() and 'CUDA_VISIBLE_DEVICES' not in os.environ:
+        # if not, set CUDA_VISIBLE_DEVICES to the GPU with lowest utilization
+        # solution via: https://stackoverflow.com/questions/39649102/how-do-i-select-which-gpu-to-run-a-job-on
+        get_best_gpu = "nvidia-smi --query-gpu=memory.free,index --format=csv,nounits,noheader | sort -nr | head -1 | awk '{ print $NF }'"
+        best_gpu = sp.check_output(['bash','-c',get_best_gpu]).decode('utf-8').strip()
+        os.environ['CUDA_VISIBLE_DEVICES'] = best_gpu
+        if log_file is not None:
+            with open(log_file, 'a') as f:
+                print("**** Setting CUDA_VISIBLE_DEVICES to "+best_gpu+" \n",file=f)
 
     num_traj = len(data)
     num_t = data[0].shape[1]
@@ -186,7 +228,7 @@ def langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir,log_file=None,flow
     data_stationary = [data[i][int(num_t/2):] for i in range(num_traj)] # "Steady state" data, for histogram
 
     # Generate histogram bins
-    bins, centers, dx = get_bins(ndim,data,N)
+    bins, centers, dx = get_bins(ndim,data,N,auto_bin=auto_bin,bin_limits=bin_limits)
 
     p_hist = get_hist(ndim,data_stationary,bins)
     np.save(savedir+'/outputs/histogram_bins_'+flow+'.npy',np.array(bins,dtype=object),allow_pickle=True)

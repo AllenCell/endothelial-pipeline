@@ -92,7 +92,7 @@ def KM_avg_2D(X, bins, stride, dt, multi_traj=False):
             id2 = np.digitize(Y[:-1,1],bins[1]) # which dimension 2 bin
             uids = list(set(zip(id1,id2))) # unique bin ids
             if len(bins[0]) in id1 or len(bins[1]) in id2:
-                raise ValueError('Data point outside of histogram bins')
+                raise ValueError('Data point outside of histogram bins. Please update bounds.')
 
             for uid in uids:
                 mask = np.where((id1==uid[0])*(id2==uid[1]))[0]
@@ -279,10 +279,6 @@ def SSR_loop(opt_fun, params,log_file=None):
                 s1_active = s_active[s_active < len(s_expr)//2]
                 s2_active = s_active[s_active >= len(s_expr)//2]
 
-            # print(f_active)
-            # print(s_active)
-        
-            # print(f_expr[f_active], s_expr[s_active])
             params['f_expr'] = f_expr[f_active]
             params['s_expr'] = s_expr[s_active]
             params['lib_f'] = lib_f.T[f_active].T
@@ -320,8 +316,6 @@ def SSR_loop(opt_fun, params,log_file=None):
                 print("Coefficients: {0}".format(Xi[:, k]), file=f)
         
     return Xi, V
-
-# ACF
 
 
 

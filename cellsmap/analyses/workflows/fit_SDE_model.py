@@ -8,7 +8,7 @@ from cellsmap.util import io
 from cellsmap.analyses.utils import preprocess as pp
 from cellsmap.analyses.utils.langevin_sindy.select_timelag import select_lag
 from cellsmap.analyses.utils.langevin_sindy.fit_langevin_sindy import langevin_regression
-from cellsmap.analyses.utils.plot_utils import save_plot, plot_top_PCs, plot_SVs 
+from cellsmap.analyses.utils.viz import save_plot, plot_top_PCs, plot_SVs 
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # suppress RuntimeWarnings (come up in KM_avg, mean of empty slice)
@@ -88,7 +88,7 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
             raise ValueError("Must specify which features to analyze if PCA is not performed.")
         return X_scaled.reshape((num_traj,num_t,-1))[:,:,feats_to_analyze]
 
-def fit_model(data,dt,lag_step,ndim,N,nf,ns,savedir,log_file=None,flow='all'):
+def fit_model(data,dt,lag_step,ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file=None,flow='all'):
     '''Fit the Langevin SINDy model to the data.'''
 
     # run langevin sindy/stepwise sparse regression model
@@ -100,7 +100,7 @@ def fit_model(data,dt,lag_step,ndim,N,nf,ns,savedir,log_file=None,flow='all'):
             print("*** Fitting Langevin Regression model... \n", file=f)
 
     # fit model
-    Xi, V, V_fig = langevin_regression(ndim,data,lag_step,dt,N,nf,ns,savedir,log_file=log_file,flow=flow)
+    Xi, V, V_fig = langevin_regression(ndim,data,lag_step,dt,N,auto_bin,bin_limits,nf,ns,savedir,log_file=log_file,flow=flow)
 
     # Save the results
     # write io function to do this?
@@ -122,7 +122,7 @@ def fit_model(data,dt,lag_step,ndim,N,nf,ns,savedir,log_file=None,flow='all'):
 
     
 def main(config_name, path_to_data):
-    metadata,PCA,ndim,dt,feats_to_analyze,center_traj,split_high_low,split_frame,split_order,N,nf,ns,savedir,log_file = io.get_dynamics_inputs(config_name)
+    metadata, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file = io.get_dynamics_inputs(config_name)
     
     if not os.path.isdir(savedir):
         print("*** Creating directory to save results... \n")
@@ -152,46 +152,37 @@ def main(config_name, path_to_data):
     plt.show()
     print("*** Saving plot of trajectories to ",savedir+"figs/traj_plot.png \n")
 
-    if split_high_low:
-        if split_order == 'high_low':
-            X_t_high = X_t[:,:split_frame,:] # high flow trajectories
-            X_t_low = X_t[:,split_frame:,:]
-        else:
-            X_t_low = X_t[:,:split_frame,:]
-            X_t_high = X_t[:,split_frame:,:]
-
-        data_high = [X_t_high[i] for i in range(X_t_high.shape[0])]
-        data_low = [X_t_low[i] for i in range(X_t_low.shape[0])]
+    if split_flow:
+        lag_steps = []
+        data_flows = []
+        for (i,flow) in enumerate(split_order):
+            split_frames = split_frame[i]
+            X_t_flow = X_t[:,split_frames[0]:split_frames[1],:]
+            data_flow = [X_t_flow[i] for i in range(X_t_flow.shape[0])]
+            data_flows.append(data_flow)
+            select_lag(data_flow,dt,ndim,N,savedir,flow)
+            lag_step_flow = int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for "+flow+" flow: "))
+            lag_steps.append(lag_step_flow)
         
-        # call time step selection function for high and low flow data
-        # make print statement here
-        select_lag(data_high,dt,ndim,N,savedir,'high')
-        lag_step_high=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for high flow: "))
-
-        select_lag(data_low,dt,ndim,N,savedir,'low')
-        lag_step_low=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model for low flow: "))
-        # TO DO: write these into a yaml file, along with other relevant information (e.g., which config file was used, where the data were loaded from)
+        np.save(savedir+'data/lag_steps.npy',np.array(lag_steps))
 
         print("\n","*** Starting Langevin Regression model fitting...",sep="")
-        if log_file is not None:
-            print("     > See log file for more details on the fitting process. \n")
-            with open(log_file, 'a') as f:
-                print("*** Fitting model to high flow data... \n",file=f)
-        fit_model(data_high,dt,lag_step_high,ndim,N,nf,ns,savedir,log_file=log_file,flow='high')
-        if log_file is not None:
-            with open(log_file, 'a') as f:
-                print("*** Fitting model to low flow data... \n",file=f)
-        fit_model(data_low,dt,lag_step_low,ndim,N,nf,ns,savedir,log_file=log_file,flow='low')
+        for i,flow in enumerate(split_order):
+            if log_file is not None:
+                with open(log_file, 'a') as f:
+                    print("*** Fitting model to "+flow+" flow data... \n",file=f)
+            fit_model(data_flows[i],dt,lag_steps[i],ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file=log_file,flow=flow)
     else:
         # call time step selection function
         data = [X_t[i] for i in range(X_t.shape[0])] # pass in data as list of trajectories
         select_lag(data,dt,ndim,N,savedir)
         lag_step=int(input("Input sub-sampling lag (number of time-steps) to pass into Langevin Regression model: "))
+        np.save(savedir+'data/lag_step.npy',np.array([lag_step]))
 
         if log_file is not None:
             with open(log_file, 'a') as f:
                 print("*** Fitting model to data... \n",file=f)
-        fit_model(data,dt,lag_step,ndim,N,nf,ns,savedir,log_file=log_file)
+        fit_model(data,dt,lag_step,ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file=log_file)
     return
 
 if __name__ == '__main__':

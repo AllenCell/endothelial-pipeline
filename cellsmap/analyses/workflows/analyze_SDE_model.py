@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from cellsmap.util import io
 import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
-import cellsmap.analyses.utils.plot_utils as viz
+import cellsmap.analyses.utils.viz as viz
 import cellsmap.analyses.utils.pplane as pplane
 import cellsmap.analyses.utils.gen_potential as gp
 
@@ -160,10 +160,12 @@ def main(n_terms, ndim, savedir, flow='all'):
         f_vals = np.swapaxes(f(X1,X2),1,2)
         D_vals = np.swapaxes(D(X1,X2),1,2)
     # Compare PDFs: empirical vs Fokker-Planck solution with model
+    print('**** Comparing empirical PDF to stationary Fokker-Planck solution with Langevin Regression model ****')
     kl_div = compare_hist_to_FP(ndim, p_hist, bins, f_vals, D_vals,savedir,flow)
     print('KL divergence between histogram of "stationary" data and stationary pdf of Langevin Regression model: {0:0.5f}'.format(kl_div)) # compare empirical and model PDFs
 
     # plot phase portrait of vector field f OR phase line plot of drift function f
+    print("\n","**** Plotting phase portrait of drift function f **** \n",sep="")
     plot_phase(ndim,f,centers,savedir,flow)
 
     N_fine = 125
@@ -179,6 +181,7 @@ def main(n_terms, ndim, savedir, flow='all'):
         X1,X2 = np.meshgrid(x_fine,y_fine)
         f_vals_new = np.swapaxes(f(X1,X2),1,2)
         D_vals_new = np.swapaxes(D(X1,X2),1,2)
+    print('**** Plotting generalized potential energy landscape **** \n')
     U, grad_term, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_new)
     fig, ax = plot_gen_potential(ndim,U,centers_new,savedir,surf=True,flow=flow)
     # same but with vector field decomposition
