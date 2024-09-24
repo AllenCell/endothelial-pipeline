@@ -22,8 +22,8 @@ dependencies = [
     "sympy==1.13.1",
     "scipy==1.13.1",
     "ipykernel>=6.29.5",
-    "fplanck",
     "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
+    "monai"
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"

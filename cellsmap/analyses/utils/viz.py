@@ -80,7 +80,7 @@ def plot_SVs(SVs,ExpVar,fig=None,ax=None,xylabel_fontsize=16):
 def plot_top_PCs(X_t,t,fig=None,ax=None,colors=None,alpha=0.25,linewidth=1,xlabel='Time (hours)',ylabel='PC',xylabel_fontsize=16):
     if fig is None or ax is None:
         fig, ax = init_subplots(1,2)
-    # plot PCA mode m vs time for each location at high flow, corrected for bias in x position
+    # plot PCA mode m vs time for each trajectory
     num_traj = X_t.shape[0]
     for m in range(2):
         for i in range(num_traj):
