@@ -1,19 +1,19 @@
 import yaml
 import dask
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
 
 def load_config(config_type='data') -> dict:
-    if config_type not in ['data', 'model']:
-        raise ValueError('Invalid config type. Must be either "data" or "model"')
+    if config_type not in ['data', 'model','dynamics']:
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f'{config_type}_config.yaml'
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
     return config_data
-
 
 # dataset methods
 def get_available_datasets() -> list:
@@ -31,21 +31,24 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def load_dataset(dataset_name: str, time_start:int = 0, time_end: int=576, resolution:int=0, structure: str='CDH5_Tubulin') -> dask.array.Array:
-    path = get_zarr_path(dataset_name)
-    img = BioImage(path)
-    assert resolution in img.resolution_levels, f'Invalid resolution level {resolution}. Available levels are {img.resolution_levels}'
-    img.set_resolution_level(resolution)
-
-    assert structure in img.channel_names, f"Invalid structure name {structure}, availabel structures are {img.channel_names}"
-    structure_ch = img.channel_names.index(structure)
-
-    img = img.get_image_dask_data("TYX",T=range(time_start, time_end+1), C=structure_ch)
-    return img
-
 def get_zarr_path(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['zarr_path']
+
+def get_available_channels(dataset_name:str) -> list:
+    path = get_zarr_path(dataset_name)
+    reader = BioImage(path)
+    return reader.channel_names
+
+def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=576, level:int=0) -> dask.array.Array:
+    path = get_zarr_path(dataset_name)
+    reader = BioImage(path)
+    available_channels = reader.channel_names
+    channels_index = [available_channels.index(c) for c in channels]
+    assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
+    reader.set_resolution_level(level)
+    img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
+    return img
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
@@ -74,6 +77,10 @@ def get_available_models() -> list:
     for model in model_info:
         print(model['name'])
 
+def load_precomputed_features(dataset_name:str, model_name:str) -> pd.DataFrame:
+    dataset_info = get_dataset_info(dataset_name)
+    return pd.read_csv(dataset_info["features"][model_name])
+
 def get_model_info(model_name: str) -> dict:
     config = load_config('model')
     for model in config:
@@ -85,3 +92,63 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
+
+# dynamics learning config functions
+
+def get_available_dynamics_configs() -> list:
+    config = load_config('dynamics')
+    for inputs in config:
+        print(inputs['name'])
+
+def get_dynamics_inputs(config_name: str) -> tuple:
+    '''Unpack the dynamics config file to get the necessary inputs for the dynamics learning pipeline (analyses/workflows/fit_SDE_model.py).'''
+    dynamics_config = None
+
+    # load the specific dict for the config_name
+    for config in load_config('dynamics'):
+        if config['name'] == config_name:
+            dynamics_config = config
+            break
+    dt = dynamics_config['dt'] # time interval between frames (units depend on the data & the selected value)
+
+    PCA = dynamics_config['PCA'] # if "yes", perform PCA on data before fitting dynamical model
+    ndim = dynamics_config['ndim'] # number of principal components to keep if PCA is "yes"
+    if PCA == 'yes':
+        feats_to_analyze = None
+        PCA = True
+    else: # if PCA is "no", feats_to_analyze is a list of which of the original features to analyze (max 2 features)
+        feats_to_analyze = dynamics_config['feats_to_analyze']
+        PCA = False
+
+    center_traj = True if dynamics_config['center_traj']=='yes' else False # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
+    
+    split_flow = dynamics_config['split_flow'] # if "yes", the data is split into high and low flow regimes before fitting dynamical model
+    if split_flow == 'yes':
+        split_flow = True
+        split_frame = dynamics_config['split_frame'] # frame(s) # at which to split the data into the flow regimes listed below in split_order
+        split_order = dynamics_config['split_order'] # temporal order of the flow regimes (list of strings)
+    else:
+        split_flow = False
+        split_frame = None
+        split_order = None
+
+    metadata_cols = dynamics_config['metadata_cols'] # list of names of metadata columns in the data (first is trajectory index, second is frame #)
+
+    N = dynamics_config['N_bins'] # number of grid points in each dimension (int if 1D, tuple if 2D)
+    auto_bin = dynamics_config['auto_bin'] # if "yes", automatically determine the number of bins for each dimension
+    auto_bin = True if auto_bin == 'yes' else False
+    bin_limits = dynamics_config['bin_limits'] # limits of the grid in each dimension (None if auto_bin True, else list of tuples)
+
+    nf = dynamics_config['poly_degree_drift'] # highest order of the polynomial terms in SINDy library for drift (int)
+    ns = dynamics_config['poly_degree_diffusion'] # highest order of the polynomial terms in SINDy library for diffusion (int)
+
+    savedir = dynamics_config['savedir'] # directory where model outputs will be saved
+
+    logging = dynamics_config['logging'] # if "yes", log results to a file
+    if logging == 'yes':
+        log_file = savedir+'logs/langevin_regression_log.txt'
+    else:
+        log_file = None
+
+    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file
+

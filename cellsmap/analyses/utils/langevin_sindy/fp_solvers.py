@@ -132,7 +132,52 @@ class AdjFP:
         
         return f_tau.cpu().numpy(), a_tau.cpu().numpy()
 
-# Steady-state Fokker-Planck solver
+# # Steady-state Fokker-Planck solver
+
+# class SteadyFP:
+#     """
+#     Solver object for steady-state Fokker-Planck equation
+
+#     Initializing this independently avoids having to re-initialize all of the indexing arrays
+#       for repeated loops with different drift and diffusion
+
+#     Jared Callaham (2020)
+#     """
+
+#     def __init__(self, x, ndim=1):
+#         """
+#         ndim - number of dimensions
+#         N - array of ndim ints: grid resolution N[0] x N[1] x ... x N[ndim-1]
+#         dx - grid spacing (array of floats)
+#         """
+#         self.ndim = ndim
+
+#         if self.ndim == 1:
+#             self.N = [len(x)]
+#             self.dx = [x[1]-x[0]]
+#             self.Dx, self.Dxx = AdjFP.derivs1d(x)
+#             self.precompute_operator = self.operator1d
+#         else:
+#             self.x = x
+#             self.N = [len(x[i]) for i in range(len(x))]
+#             self.dx = [x[i][1]-x[i][0] for i in range(len(x))]
+#             self.Dx, self.Dy, self.Dxx, self.Dyy = AdjFP.derivs2d(*x)
+#             self.precompute_operator = self.operator2d
+
+#     def operator1d(self, f, a):
+#         self.L = (sparse.diags(f) @ self.Dx + sparse.diags(a) @ self.Dxx).T
+
+
+#     def operator2d(self, f, a):
+#         self.L = (sparse.diags(f[0]) @ self.Dx  + sparse.diags(f[1]) @ self.Dy + \
+#                  sparse.diags(a[0]) @ self.Dxx + sparse.diags(a[1]) @ self.Dyy).T
+    
+#     def solve(self, f, a, tol=1e-6):
+#         self.precompute_operator(f, a)
+#         p = tla.svd(torch.from_numpy(self.L.todense()).to(device))[2][-1,:].cpu().numpy().reshape(self.N)
+#         p[p<tol] = tol
+#         return p/(np.prod(self.dx)*np.sum(p))
+
 
 class SteadyFP:
     """
