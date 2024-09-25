@@ -168,7 +168,7 @@ def plot_colorline(ax,x,y,c):
 fig, ax = plt.subplots(1,2,figsize=(15,5),width_ratios=[1,2])
 subfigs = fig.subfigures(2, 1, wspace=0.07)
 
-ii = 0
+ii = 3
 idx = idxs[ii]
 prop = top_pct[ii,:]
 sct,ax[1] = plot_colorline(ax[1],[0,1],X_t[idx,:2,PC],prop)
