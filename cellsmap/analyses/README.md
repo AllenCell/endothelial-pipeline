@@ -1,8 +1,18 @@
 # Workflows for fitting stochastic dynamical model to time series data of endothelial cells
 
+## Data formatting for analysis
+
 To start, ensure that your time series data are saved in the following format: `.csv` file where the columns represent the extracted features (i.e., observed variables), the rows represent inividual data points, and there are two additional metadata columns to denote 1. the trajectory index and 2. time point corresponding to that row.
 
-For example, suppose we have data that are 256 features for each crop of the image at each frame in the image series. In the `.csv` file that we pass into `fit_SDE_model.py`, the rows are each instance of the data (i.e., one single image crop at a given frame), the first 256 columns represent each of the extracted features, and there are two additional metadata columns that denote  ["crop_index","T"], # list of names of metadata columns in the data (first is trajectory index, second is frame #)
+For example, suppose we have data that are 256 features for each crop of the image at each frame in the image series. In the `.csv` file that we pass into `fit_SDE_model.py`, the rows are each instance of the data (i.e., one single image crop at a given frame), the first 256 columns represent each of the extracted features, and there are two additional metadata columns that denote  ["crop_index","T"], # list of names of metadata columns in the data (first is trajectory index, second is frame #).
+
+## Environment variables and management
+
+If you are running this workflow on a server with GPUs, an optional step is to select the GPU device to use via running `export CUDA_VISIBLE_DEVICES=[device ID]` in the command line, where `[device ID]` is the approprate ID for the desired GPU device (see device usage via running `nvidia-smi`, and get UIDs via `nvidia-smi -L`). If the device is not specified, a device is selected automatically in `fit_SDE_model.py` based on usage.
+
+Install `pdm` and configure project at the root of the `cellsmap` repository.
+
+## Model inputs via `dynamics_config.yaml`
 
 In the main folder of the `cellsmap` repo, enter configuration parameters for the Langevin Regression method for learning stochastic dynamics ([Callaham <i> et al.</i> 2021](https://royalsocietypublishing.org/doi/10.1098/rspa.2021.0092)) into the file `dynamics_config.yaml`. The input variables are as follows:
   - `name`: Name of configuration, tells `fit_SDE_model.py` which set of configuration variables to use.
@@ -23,9 +33,7 @@ In the main folder of the `cellsmap` repo, enter configuration parameters for th
   - `savedir`: Path to directory where you want model outputs to be saved.
   - `logging`: If `"yes"`, a `.txt` file is created in the specified save directory for logging print statements. If `"no"`, print statements will appear in-line.
 
-If you are running this workflow on a server with GPUs, an optional step is to select the GPU device to use via running `export CUDA_VISIBLE_DEVICES=[device ID]` in the command line, where `[device ID]` is the approprate ID for the desired GPU device (see device usage via running `nvidia-smi`, and get UIDs via `nvidia-smi -L`). If the device is not specified, a device is selected automatically in `fit_SDE_model.py` based on usage.
-
-Install `pdm`, and configure project at the root of the `cellsmap` repository.
+## Running Langevin Regression model fitting script
 
 From any directory in the `cellsmap` git repo, run `pdm run path/to/fit_SDE_model.py`, where `path/to/fit_SDE_model.py` depends on the current working directory. If working from the root of the repository, the path is `cellsmap/analyses/workflows/fit_SDE_model.py`. This script loads the feature data from the appropriate `.csv`, performs any transformations (e.g., PCA) specified in `dynamics_config.yaml`, and runs the Langevin Regression algorithm on the resulting trajectories. Upon running the script, the user will be prompted to enter the following:
 1. The name of the set of configurations from `dynamics_config.yaml` to use (the `name` variable in the desired dictionary). For example, if you have a set of configurations with `name == "mae_cdh5"`, you would enter `mae_cdh5` when prompted.
@@ -35,8 +43,12 @@ From any directory in the `cellsmap` git repo, run `pdm run path/to/fit_SDE_mode
 Once these inputs have been specified, the code will run until prompting the user again, this time to specify the time lag to use for the Langevin Regression algorithm.
     - use the plots in `[savedir]/figs/select_lag_[flow]` -- where `[savedir]` is the save directory pulled from `dynamics_config.yaml` and `[flow]` is the flow condition (relevant if fitting flow conditions separately, else defaults to `[flow] == "all"`) -- to select the appropriate time step lag to feed into the Langevin Regression algorithm (done for each flow condition if fitting separately)
 
+### Acessing and interpreting outputs
+
 Code then runs uninterrupted until terminating. Saves coefficients for SINDy expressions for drift and diffusion at varying levels of sparsity, also saves plot showing cost function and "active" "function library terms at each of these levels of sparsity.
 - look at cost function plot to determine optimal sparsity level (`[savedir]/figs/cost_function_plot_[flow]`)
+
+## Selecting stochastic model and running model analysis script
 
 - once `fit_SDE_model.py` has finished running, in the `cellsmap` git repo run `pdm run cellsmap/analyses/workflows/analyze_SDE_model.py`
     - user inputs via command line: name of config used to fit model (used to determine where to pull saved model outputs from), number of terms to retain in the SINDy regression expressions for the drift and diffusion (see above step)
