@@ -5,14 +5,17 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import fire
 from cellsmap.util import cdh5_preprocessing as preproc, io
+try:
+    from IPython import get_ipython
+except ModuleNotFoundError:
+    pass
 
 
-
-def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
+def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
     # NOTE: this function is slightly different than the
     # one found in 'cdh5_nodes_and_edges.py'
     SCT_NAME = Path(__file__).stem
-    PRJ_DIR = Path('../').resolve()
+    PRJ_DIR = Path('../').resolve() if not IS_TEST else Path('../../tests').resolve()
     assert PRJ_DIR.exists()
     val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
     out_dir = PRJ_DIR / 'results/cdh5_classic_seg'
@@ -40,9 +43,9 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
         raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
 
         if IS_TEST:
-            crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
-            crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
-            T_list = range(0, raw.shape[DIM_MAP["T"]], 12)
+            T_list = range(0, 1)
+            crop_y = slice(None, None)
+            crop_x = slice(None, None)
             for T in T_list:
                 analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
         else:
@@ -64,7 +67,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
-    out_dir_list, img_metadata = initialize_workflow(dataset_name)
+    out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
     out_dir, val_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
@@ -133,4 +136,18 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
     print('\N{microscope} Done analysis.')
 
 if __name__ == '__main__':
-    fire.Fire(main)
+    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # some non-interactive shell like bash
+    try:
+        # the following line will return a string if an interactive shell is in use,
+        # otherwise raises NameError if get_ipython is not imported from IPython
+        # or returns None if get_ipython is present but script is being executed
+        # from a non-interactive shell
+        if get_ipython().__class__.__name__ != 'NoneType':
+            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+            main()
+        else: raise NameError
+    except NameError:
+        print('Using non-interactive shell.')
+        fire.Fire(main)

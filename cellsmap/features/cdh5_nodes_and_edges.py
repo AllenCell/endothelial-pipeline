@@ -6,20 +6,24 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import fire
 from cellsmap.util import cdh5_preprocessing as preproc, io, shape_features as feat
+try:
+    from IPython import get_ipython
+except ModuleNotFoundError:
+    pass
 
 
-
-def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
+def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
     # NOTE: this function is slightly different than the
     # one found in 'cdh5_classic_seg.py'
     SCT_NAME = Path(__file__).stem
-    PRJ_DIR = Path('../').resolve()
+    PRJ_DIR = Path('../').resolve() if not IS_TEST else Path('../../tests').resolve()
     assert PRJ_DIR.exists()
     val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
     out_dir = PRJ_DIR / 'results/cdh5_nodes_and_edges_analysis'
     images_out_dir = val_dir / dataset_name
-    tables_out_dir = out_dir / dataset_name / 'tables'
-    out_dir_list = [images_out_dir, tables_out_dir, out_dir]
+    tables_out_dir_alignments = out_dir / dataset_name / 'tables' / 'alignments'
+    tables_out_dir_segprops = out_dir / dataset_name / 'tables' / 'segmentation_properties'
+    out_dir_list = [images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir]
     if SAVE_OUTPUT:
         [Path.mkdir(out_subdir, exist_ok=True, parents=True) for out_subdir in out_dir_list]
 
@@ -49,8 +53,8 @@ def build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=
 
         if IS_TEST:
             T_list = range(0,1)
-            crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
-            crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
+            crop_y = slice(0, None)
+            crop_x = slice(0, None)
             for T in T_list:
                 analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
         else:
@@ -72,47 +76,50 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
-    out_dir_list, img_metadata = initialize_workflow(dataset_name)
-    images_out_dir, tables_out_dir, out_dir = out_dir_list
+    out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
+    images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
-    channels = ['raw', 'segmentations_merged_borders']
-    raw_arr, seg_borders = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels, crop_y, crop_x)
-    raw_arr, seg_borders = raw_arr.squeeze(), seg_borders.squeeze()
+    # channels = ['raw', 'segmentations_merged_borders']
+    # raw_arr, seg_borders = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels, crop_y, crop_x)
+    # raw_arr, seg_borders = raw_arr.squeeze(), seg_borders.squeeze()
+    channels = ['raw', 'segmentations_merged', 'segmentations_merged_borders']
+    raw_arr, seg, seg_borders = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels, crop_y, crop_x)
+    raw_arr, seg, seg_borders = raw_arr.squeeze(), seg.squeeze(), seg_borders.squeeze()
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
     print(f'T={T} -- getting nodes and edges') if VERBOSE else None
-    nodes, edges, skel, conn = feat.arr2graph(seg_borders)
+    nodes, edges, skel, conn = feat.arr2graph(seg_borders, closing_step=False)
 
     ## get the node-to-node distances and the angle between a line connecting two nodes
     ## and a horizontal line
     ## NOTE there should also be a way to get the error in the measurement of the angles too...
     print(f'T={T} -- calculating distances and angles between neighboring nodes') if VERBOSE else None
-    measurements = feat.calculate_neighbor_node_metrics(seg_borders, raw_arr, VERBOSE=VERBOSE)
+    neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(seg_borders.astype(bool), raw_arr, seg, VERBOSE=VERBOSE)
 
     ## save a table of the results
     if SAVE_OUTPUT:
-        ## save table output
-        print(f'T={T} -- saving output to a table') if VERBOSE else None
+        ## save table output of edge alignments
+        print(f'T={T} -- saving table of edge angles and distances') if VERBOSE else None
         table = pd.DataFrame({'filepath_raw_image':Path(io.get_zarr_path(dataset_name)),
                               'dataset_name': dataset_name,
                               'T': T,
-                              'node_pair_labels': measurements['node_pair_labels'],
-                              'node_pair_centroids': measurements['node_pair_centroids'],
-                              'node_to_node_distance': measurements['distances'],
-                              'angle_relative_to_horizontal': measurements['angles'],
-                              'connecting_edges': measurements['edge_labels'],
-                              'edge_num_pixels': measurements['edge_num_pixels'],
-                              'edge_length (px)': measurements['length (px)'],
-                              'edge_fluorescence_mean (a.u.)': measurements['fluor_mean (au)'],
-                              'edge_fluorescence_std (a.u.)': measurements['fluor_std (au)'],
-                              'edge_fluorescence_median (a.u.)': measurements['fluor_median (au)'],
-                              'edge_fluoresnce_min (a.u.)': measurements['fluor_min (au)'],
-                              'edge_fluorescence_pct25 (a.u.)': measurements['fluor_pct25 (au)'],
-                              'edge_fluorescence_pct75 (a.u.)': measurements['fluor_pct75 (au)'],
-                              'edge_fluorescence_max (a.u.)': measurements['fluor_max (au)'],
+                              'node_pair_labels': neighbor_node_metrics['node_pair_labels'],
+                              'node_pair_centroids': neighbor_node_metrics['node_pair_centroids'],
+                              'node_to_node_distance': neighbor_node_metrics['distances'],
+                              'angle_relative_to_horizontal': neighbor_node_metrics['angles'],
+                              'connecting_edges': neighbor_node_metrics['edge_labels'],
+                              'edge_num_pixels': neighbor_node_metrics['edge_num_pixels'],
+                              'edge_length (px)': neighbor_node_metrics['length (px)'],
+                              'edge_fluorescence_mean (a.u.)': neighbor_node_metrics['fluor_mean (au)'],
+                              'edge_fluorescence_std (a.u.)': neighbor_node_metrics['fluor_std (au)'],
+                              'edge_fluorescence_median (a.u.)': neighbor_node_metrics['fluor_median (au)'],
+                              'edge_fluoresnce_min (a.u.)': neighbor_node_metrics['fluor_min (au)'],
+                              'edge_fluorescence_pct25 (a.u.)': neighbor_node_metrics['fluor_pct25 (au)'],
+                              'edge_fluorescence_pct75 (a.u.)': neighbor_node_metrics['fluor_pct75 (au)'],
+                              'edge_fluorescence_max (a.u.)': neighbor_node_metrics['fluor_max (au)'],
                               })
-        table.to_csv(tables_out_dir / f'{dataset_name}_T{T}_alignments.csv', index=False)
+        table.to_csv(tables_out_dir_alignments /f'{dataset_name}_T{T}_alignments.csv', index=False)
 
         ## save images containing the nodes, edges, and node-node lines
         ## as different channels
@@ -120,7 +127,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
         ## create a rasterized image of the lines
         lines = np.zeros(nodes.shape, dtype=np.uint16)
         ## need to flatten the node_coord_pairs first before passing to rasterize_edge_between_nodes
-        node_coord_pairs = [node_coords for edge in measurements['node_pair_centroids'] for node_coords in edge]
+        node_coord_pairs = [node_coords for edge in neighbor_node_metrics['node_pair_centroids'] for node_coords in edge]
         lines, line_labels_dict = feat.rasterize_edges_between_nodes(node_coord_pairs, lines, label_lines=True)
 
         ## organize the image data and save it
@@ -134,6 +141,31 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
                                }
         preproc.save_image_output(out_path, images_out, images_out_metadata)
 
+        ## save table output of cell properties (e.g. areas, etc.)
+        if labeled_region_metrics:
+            print(f'T={T} -- saving table of cell properties') if VERBOSE else None
+            table = pd.DataFrame({'filepath_raw_image':Path(io.get_zarr_path(dataset_name)),
+                                  'dataset_name': dataset_name,
+                                  'T': T,
+                                  'cell_label': labeled_region_metrics['cell_label'],
+                                  'cell_centroid': labeled_region_metrics['cell_centroid'],
+                                  'cell_area (px**2)': labeled_region_metrics['cell_area (px**2)'],
+                                  'cell_perimeter (px)': labeled_region_metrics['cell_perimeter (px)'],
+                                  'cell_solidity': labeled_region_metrics['cell_solidity'],
+                                  'cell_eccentricity': labeled_region_metrics['cell_eccentricity'],
+                                  'cell_orientation': labeled_region_metrics['cell_orientation'],
+                                  'cell_fluorescence_mean (a.u.)': labeled_region_metrics['cell_fluorescence_mean (au)'],
+                                  'cell_fluorescence_std (a.u.)': labeled_region_metrics['cell_fluorescence_std (au)'],
+                                  'cell_fluorescence_median (a.u.)': labeled_region_metrics['cell_fluorescence_median (au)'],
+                                  'cell_fluoresnce_min (a.u.)': labeled_region_metrics['cell_fluorescence_min (au)'],
+                                  'cell_fluorescence_pct25 (a.u.)': labeled_region_metrics['cell_fluorescence_pct25 (au)'],
+                                  'cell_fluorescence_pct75 (a.u.)': labeled_region_metrics['cell_fluorescence_pct75 (au)'],
+                                  'cell_fluorescence_max (a.u.)': labeled_region_metrics['cell_fluorescence_max (au)'],
+                                  'edge_labels': labeled_region_metrics['edge_labels'],
+                                  'node_labels': labeled_region_metrics['node_labels'],
+                                  'node_pair_labels': labeled_region_metrics['node_pair_labels'],
+                                  })
+            table.to_csv(tables_out_dir_segprops / f'{dataset_name}_T{T}_segprops.csv', index=False)
 
 
 def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
@@ -154,14 +186,34 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
         for dataset_name_and_args in analysis_args_queue:
             generate_results_multiproc_wrapper(dataset_name_and_args)
 
-    ## lastly, concatenate the tables from each timepoint
-    for dataset_name in DATASET_NAME_LIST:
-        out_dir_list, _ = initialize_workflow(dataset_name)
-        images_out_dir, tables_out_dir, out_dir = out_dir_list
-        master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir.glob('*.csv')])
-        master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_alignments.csv', index=False)
+    ## lastly, concatenate the tables from each timepoint into a single output table
+    if SAVE_OUTPUT:
+        for dataset_name in DATASET_NAME_LIST:
+            print('Concatenating individual timepoint tables together and saving...')
+            out_dir_list, _ = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
+            images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir = out_dir_list
+
+            master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir_alignments.glob('*.csv')])
+            master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_alignments.csv', index=False)
+
+            master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir_segprops.glob('*.csv')])
+            master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_segprops.csv', index=False)
 
     print('\N{microscope} Done analysis.')
 
 if __name__ == '__main__':
-    fire.Fire(main)
+    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # some non-interactive shell like bash
+    try:
+        # the following line will return a string if an interactive shell is in use,
+        # otherwise raises NameError since get_ipython is not imported from IPython
+        # or returns None if get_ipython is present but script is being executed
+        # from a non-interactive shell
+        if get_ipython().__class__.__name__ != 'NoneType':
+            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+            main()
+        else: raise NameError
+    except NameError:
+        print('Using non-interactive shell.')
+        fire.Fire(main)
