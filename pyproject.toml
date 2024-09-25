@@ -24,7 +24,7 @@ dependencies = [
     "scipy==1.13.1",
     "ipykernel>=6.29.5",
     "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
-    "monai"
+    "monai",
     "jupyter>=1.0.0",
     "cyto-dl>=0.4.0",
     "fire>=0.6.0",
