@@ -65,40 +65,126 @@ def get_fps(myFlow,ICs):
             fpts.append(r)
     return list(set(map(tuple,np.round(fpts,4)))) # round to 4 decimal places, get unique elements of list
 
-def find_stability(J):
-    """ Determines stability of a fixed point given its associated 2x2 Jacobian matrix. 
+def find_stability(J,ndim=2):
+    """ Determines stability of a fixed point of dx/dt = f(x). 
     Args:
-        J (np.array 2x2): the Jacobian matrix at the fixed point.
+        J (float or np.array 2x2): the derivative (1d) or the Jacobian matrix of the function f(x) at the fixed point.
     Return:
         (string) classification of equilibrium point 
     """
-    detJ = np.linalg.det(J)
-    trJ = np.trace(J)
-    if np.isclose(trJ,0) and detJ>0:
-        nature = "Indeterminate stability"
-    elif detJ < 0:
-        nature = "Saddle point"
+    if ndim == 2:
+        detJ = np.linalg.det(J)
+        trJ = np.trace(J)
+        if np.isclose(trJ,0) and detJ>0:
+            nature = "Indeterminate stability"
+        elif detJ < 0:
+            nature = "Saddle point"
+        else:
+            nature = "Stable" if trJ < 0 else "Unstable" 
+            nature += " spiral" if (trJ**2 < 4*detJ) else " node"
     else:
-        nature = "Stable" if trJ < 0 else "Unstable" 
-        nature += " spiral" if (trJ**2 < 4*detJ) else " node"
+        if J < 0:
+            nature = "Stable"
+        elif J > 0:
+            nature = "Unstable"
+        else:
+            nature = "Semi-stable"
     return nature
-        
-def plot_null(f1,f2,x1,x2,params = None):
+
+def classify_fps(myFlow,fpts,x,ndim=2,ax=None):
+    # separate classification and plotting of fixed points?
+    fpt_types = []
+    if ndim == 1: # 1D system
+        print('Fixed points:')
+        flowDerivative = nd.Derivative(myFlow)
+        for fpt in fpts:
+            # if far out of bounds of the plot window, don't report it
+            if fpt[0]<x[0]-0.5*abs(x[0]) or fpt[0]>x[-1]+0.5*abs(x[-1]):
+                continue
+            fptStability = find_stability(flowDerivative(fpt))
+            print('  • '+fptStability+" at x = %5.3f" % fpt)
+            # if out of bounds of the plot window, don't plot it
+            if fpt[0]<x[0] or fpt[0]>x[-1]:
+                continue
+            if 'Stable' in fptStability:
+                if ax is not None:
+                    ax.plot(fpt,0,'g.',markersize=15)
+                if 'stable' not in fpt_types:
+                    fpt_types.append('stable')
+            elif 'Unstable' in fptStability: # unstable
+                if ax is not None:
+                    ax.plot(fpt,0,'rs',markersize=8)
+                if 'unstable' not in fpt_types:
+                    fpt_types.append('unstable')
+            else: # indeterminate
+                if ax is not None:
+                    ax.plot(fpt,0,'P',color='tab:purple',markersize=8)
+                if 'semi-stable' not in fpt_types:
+                    fpt_types.append('semi-stable')
+
+    else: # 2D system
+        x1,x2 = x
+        # define Jacobian as a function of x - for getting stability:
+        flowJacobian = nd.Jacobian(myFlow)
+        print('Fixed points:')
+        for fpt in fpts:
+            # if far out of bounds of the plot window, don't report it
+            if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]) or fpt[1]<x2[0]-0.5*abs(x2[0]) or fpt[1]>x2[-1]+0.5*abs(x2[-1]):
+                continue
+            fptStability = find_stability(flowJacobian(fpt))
+            print('  • '+fptStability+" at x = (%5.3f,%5.3f)" % (fpt[0],fpt[1]))
+            # if out of bounds of the plot window, don't plot it
+            if fpt[0]<x1[0] or fpt[0]>x1[-1] or fpt[1]<x2[0] or fpt[1]>x2[-1]:
+                continue
+            if 'Stable' in fptStability:
+                if ax is not None:
+                    ax.plot(fpt[0],fpt[1],'g.',markersize=15)
+                if 'stable' not in fpt_types:
+                    fpt_types.append('stable')
+            elif 'Saddle' in fptStability:
+                if ax is not None:
+                    ax.plot(fpt[0],fpt[1],'P',color='tab:purple',markersize=8)
+                if 'saddle' not in fpt_types:
+                    fpt_types.append('saddle')
+            elif 'Unstable' in fptStability: # unstable
+                if ax is not None:
+                    ax.plot(fpt[0],fpt[1],'rs',markersize=8)
+                if 'unstable' not in fpt_types:
+                    fpt_types.append('unstable')
+            else: # indeterminate
+                if ax is not None:
+                    ax.plot(fpt[0],fpt[1],'p',color='darkgoldenrod',markersize=8)
+                if 'indeterminate' not in fpt_types:
+                    fpt_types.append('indeterminate')
+    return fpt_types, ax        
+
+def plot_null(ax,f1,f2,x1,x2,params = None):
     X1,X2 = np.meshgrid(x1,x2)
     if params is None:
-        plt.contour(X1,X2,f1(X1,X2),[0],colors='black', linestyles='dashed',linewidths=1.75)
-        plt.contour(X1,X2,f2(X1,X2),[0],colors='black', linestyles='dashed',linewidths=1.5)
+        ax.contour(X1,X2,f1(X1,X2),[0],colors='black', linestyles='dashed',linewidths=1.75)
+        ax.contour(X1,X2,f2(X1,X2),[0],colors='black', linestyles='dashed',linewidths=1.5)
     else:
-        plt.contour(X1,X2,f1(X1,X2,**params),[0],colors='black', linestyles='dashed',linewidths=1.75)
-        plt.contour(X1,X2,f2(X1,X2,**params),[0],colors='black', linestyles='dashed',linewidths=1.75)
+        ax.contour(X1,X2,f1(X1,X2,**params),[0],colors='black', linestyles='dashed',linewidths=1.75)
+        ax.contour(X1,X2,f2(X1,X2,**params),[0],colors='black', linestyles='dashed',linewidths=1.75)
+    return ax
 
-def plot_flow(myFlow,x1,x2,numGrid = 15):
-    X1,X2 = np.meshgrid(np.linspace(x1.min(),x1.max(),numGrid),np.linspace(x2.min(),x2.max(),numGrid))
-    f = myFlow([X1,X2])
-    f = f/np.sqrt(f[0]**2 + f[1]**2) # normalize vectors
-    plt.quiver(X1,X2,f[0],f[1],width=0.003,alpha=0.5)
+def plot_flow(ax,myFlow,x,numGrid = 15,ndim=2):
+    if ndim == 1: # 1D system
+        f = myFlow(x)
+        ax.plot(x,f,'k-',linewidth=2,alpha=0.75)
+        f_sgn = np.sign(f) # get sign of f, used for drawing arrows
+        x_coarse = np.linspace(x[0],x[-1],numGrid)
+        for i in range(len(x_coarse)):
+            ax.add_patch(FancyArrow(x_coarse[i],0,0.1*f_sgn[i],0,width=0.1,head_width=0.3,head_length=0.1,color='black'))
+    else:
+        x1, x2 = x
+        X1,X2 = np.meshgrid(np.linspace(x1.min(),x1.max(),numGrid),np.linspace(x2.min(),x2.max(),numGrid))
+        f = myFlow([X1,X2])
+        f = f/np.sqrt(f[0]**2 + f[1]**2) # normalize vectors
+        ax.quiver(X1,X2,f[0],f[1],width=0.003,alpha=0.5)
+    return ax
 
-def plot_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,params=None,nullclines=True):
+def phase_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,params=None,nullclines=True):
     # define function x' = [f1(x),f2(x)] for rest of code (does not need t as variable)
     def myFlow(x):
         if params is None:
@@ -106,13 +192,13 @@ def plot_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,par
         else:
             return np.array([f1(x[0],x[1],**params),f2(x[0],x[1],**params)])
 
-    fig = plt.figure(figsize=(6.5,6))
+    fig,ax = plt.subplots(figsize=(6.5,6))
     
     if nullclines: # plot nullclines
-        plot_null(f1,f2,x1,x2,params)
+        ax = plot_null(ax,f1,f2,x1,x2,params)
 
     # plot direction field given by myFlow
-    plot_flow(myFlow,x1,x2)
+    ax = plot_flow(ax,myFlow,[x1,x2])
     
     if ICs is not None:
         # define function x' = [f1(x),f2(x)] for ODE solver: needs to have t as variable
@@ -131,41 +217,16 @@ def plot_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,par
     init_coarse = [(x1_coarse[i],x2_coarse[j]) for i in range(N1_coarse) for j in range(N2_coarse)]
     fpts = get_fps(myFlow,init_coarse) # get fixed points
 
-    fpt_types = []
-    if len(fpts) > 0: # check if there are fixed points
-        # define Jacobian as a function of x - for getting stability:
-        flowJacobian = nd.Jacobian(myFlow)
-        print('Fixed points:')
-        for fpt in fpts:
-            # if far out of bounds of the plot window, don't report it
-            if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]) or fpt[1]<x2[0]-0.5*abs(x2[0]) or fpt[1]>x2[-1]+0.5*abs(x2[-1]):
-                continue
-            fptStability = find_stability(flowJacobian(fpt))
-            print('  • '+fptStability+" at x = (%5.3f,%5.3f)" % (fpt[0],fpt[1]))
-            # if out of bounds of the plot window, don't plot it
-            if fpt[0]<x1[0] or fpt[0]>x1[-1] or fpt[1]<x2[0] or fpt[1]>x2[-1]:
-                continue
-            if 'Stable' in fptStability:
-                plt.plot(fpt[0],fpt[1],'g.',markersize=15)
-                if 'stable' not in fpt_types:
-                    fpt_types.append('stable')
-            elif 'Saddle' in fptStability:
-                plt.plot(fpt[0],fpt[1],'P',color='tab:purple',markersize=8)
-                if 'saddle' not in fpt_types:
-                    fpt_types.append('saddle')
-            elif 'Unstable' in fptStability: # unstable
-                plt.plot(fpt[0],fpt[1],'rs',markersize=8)
-                if 'unstable' not in fpt_types:
-                    fpt_types.append('unstable')
-            else: # indeterminate
-                plt.plot(fpt[0],fpt[1],'p',color='darkgoldenrod',markersize=8)
-                if 'indeterminate' not in fpt_types:
-                    fpt_types.append('indeterminate')
+    if len(fpts) > 0:
+        fpt_types, ax = classify_fps(myFlow,fpts,[x1,x2],ax=ax)
+    else:
+        print('No fixed points found.')
+        fpt_types = []
 
-    plt.xlabel("$x_1$",fontsize=14)
-    plt.ylabel("$x_2$",fontsize=14)
-    plt.xlim([x1.min(),x1.max()])
-    plt.ylim([x2.min(),x2.max()])
+    ax.set_xlabel("$x_1$",fontsize=14)
+    ax.set_ylabel("$x_2$",fontsize=14)
+    ax.set_xlim([x1.min(),x1.max()])
+    ax.set_ylim([x2.min(),x2.max()])
 
     my_handles = []
     if 'stable' in fpt_types:
@@ -184,6 +245,44 @@ def plot_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,par
         my_handles.append(Line2D([], [], label='trajectories', color='blue', linestyle='-'))
 
     if len(my_handles)>0:
-        plt.legend(handles=my_handles,bbox_to_anchor=(1.02, 1.01), loc="upper left")
+        ax.legend(handles=my_handles,bbox_to_anchor=(1.02, 1.01), loc="upper left")
 
-    return fig
+    return fig,ax
+
+def phase_line(f,x,params=None):
+    '''Plot phase line diagram of 1D vector field f(x)'''
+
+    def myFlow(x):
+        if params is None:
+            return f(x)
+        else:
+            return f(x,**params)
+        
+    fig, ax = plt.subplots(figsize=(6,3))
+    ax = plot_flow(ax,myFlow,x,ndim=1)
+
+    init_coarse = np.linspace(x[0],x[-1],10)
+    fpts = get_fps(myFlow,init_coarse) # get fixed points
+    if len(fpts) > 0:
+        fpt_types, ax = classify_fps(myFlow,fpts,x,ndim=1,ax=ax)
+    else:
+        print('No fixed points found.')
+        fpt_types = []
+
+    ax.set_xlabel("$x$",fontsize=14)
+    ax.set_ylabel("$f(x)$",fontsize=14)
+    ax.set_xlim([x.min(),x.max()])
+    ax.set_ylim([myFlow(x).min(),myFlow(x).max()])
+
+    my_handles = []
+    if 'stable' in fpt_types:
+        my_handles.append(Line2D([], [], label='stable', marker='o',markerfacecolor='g',markeredgecolor='g',linestyle=''))
+    if 'unstable' in fpt_types:
+        my_handles.append(Line2D([], [], label='unstable', marker='s',markerfacecolor='r',markeredgecolor='r',linestyle=''))
+    if 'semi-stable' in fpt_types:
+        my_handles.append(Line2D([], [], label='semi-stable', marker='P',markerfacecolor='tab:purple',markeredgecolor='tab:purple',linestyle=''))
+
+    if len(my_handles)>0:
+        ax.legend(handles=my_handles,bbox_to_anchor=(1.02, 1.01), loc="upper left")
+
+    return fig,ax
