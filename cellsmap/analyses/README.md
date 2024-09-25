@@ -28,9 +28,9 @@ If you are running this workflow on a server with GPUs, an optional step is to s
 Install `pdm`, and configure project at the root of the `cellsmap` repository.
 
 From any directory in the `cellsmap` git repo, run `pdm run path/to/fit_SDE_model.py`, where `path/to/fit_SDE_model.py` depends on the current working directory. If working from the root of the repository, the path is `cellsmap/analyses/workflows/fit_SDE_model.py`. This script loads the feature data from the appropriate `.csv`, performs any transformations (e.g., PCA) specified in `dynamics_config.yaml`, and runs the Langevin Regression algorithm on the resulting trajectories. Upon running the script, the user will be prompted to enter the following:
-    1. The name of the set of configurations from `dynamics_config.yaml` to use (the `name` variable in the desired dictionary). For example, if you have a set of configurations with `name == "mae_cdh5"`, you would enter `mae_cdh5` when prompted.
-    2. The name of the dataset you want to analyze (available datasets from `data_config.yaml` are printed in-line to aid this selection).
-    3. The name of the set of features extracted from this dataset that you want to analyze (available features from `data_config.yaml` dictionary corresponding to the selected dataset are printed in-line as well).
+1. The name of the set of configurations from `dynamics_config.yaml` to use (the `name` variable in the desired dictionary). For example, if you have a set of configurations with `name == "mae_cdh5"`, you would enter `mae_cdh5` when prompted.
+2. The name of the dataset you want to analyze (available datasets from `data_config.yaml` are printed in-line to aid this selection).
+3. The name of the set of features extracted from this dataset that you want to analyze (available features from `data_config.yaml` dictionary corresponding to the selected dataset are printed in-line as well).
 
 Once these inputs have been specified, the code will run until prompting the user again, this time to specify the time lag to use for the Langevin Regression algorithm.
     - use the plots in `[savedir]/figs/select_lag_[flow]` -- where `[savedir]` is the save directory pulled from `dynamics_config.yaml` and `[flow]` is the flow condition (relevant if fitting flow conditions separately, else defaults to `[flow] == "all"`) -- to select the appropriate time step lag to feed into the Langevin Regression algorithm (done for each flow condition if fitting separately)
