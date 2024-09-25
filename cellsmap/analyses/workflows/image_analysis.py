@@ -62,6 +62,7 @@ for (i,idx) in enumerate(idxs):
 # define function to generate side by side crop analysis with trejctories along specified PC axis
 def analyze_crops_on_PC(PC,idxs,time_pts,X_t,img_dir,crop_grid,plot_imgs=True):
     num_high = np.zeros((len(idxs),len(time_pts))) # count of high intensity pixels in each crop
+    top_pct = np.zeros((len(idxs),len(time_pts))) # 95% percentile of intensity in each crop
     fig,ax=viz.init_plot(figsize=(10,5))
     my_colors = ['k','b']
     for (i,idx) in enumerate(idxs):
@@ -88,31 +89,37 @@ def analyze_crops_on_PC(PC,idxs,time_pts,X_t,img_dir,crop_grid,plot_imgs=True):
                 ax[i].imshow(img_crop,cmap='gray')
                 ax[i].set_title('Crop '+str(idx)+' time point '+str(time_pt))
             num_high[i,j] = len(np.where(img_crop > 0.9)[0])
+            top_pct[i,j] = np.percentile(img_crop,95)
 
         if plot_imgs:
             plt.show()
-    return num_high
+    return num_high, top_pct
 
 # %%
 # select time points (frame numbers) to analyze images at
 path_to_imgs = '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/tiff_temp_folder'
 tf = GridSplit(grid=(3, 19), size=(480,480))
 if analyze_PC1:
-    num_high = analyze_crops_on_PC(PC,idxs,time_pts,X_t,path_to_imgs,tf)
+    num_high, top_pct = analyze_crops_on_PC(PC,idxs,time_pts,X_t,path_to_imgs,tf)
 else:
-    num_high = analyze_crops_on_PC(PC,idxs[:2],time_pts,X_t,path_to_imgs,tf)
-    num_high = analyze_crops_on_PC(PC,idxs[2:],time_pts,X_t,path_to_imgs,tf)
+    num_high, top_pct1 = analyze_crops_on_PC(PC,idxs[:2],time_pts,X_t,path_to_imgs,tf)
+    num_high, top_pct2 = analyze_crops_on_PC(PC,idxs[2:],time_pts,X_t,path_to_imgs,tf)
 # %%
 if analyze_PC1:
     fig,ax = viz.init_subplots(1,2,figsize=(15,5))
     ax[0].scatter(X_t[idxs[0],time_pts,0],num_high[0,:])
     ax[1].scatter(X_t[idxs[1],time_pts,0],num_high[1,:])
+else:
+    fig,ax = viz.init_plot()
+    ax.scatter(X_t[idxs[0],time_pts,1],top_pct1[0,:])
+    ax.scatter(X_t[idxs[1],time_pts,1],top_pct1[1,:])
+    ax.scatter(X_t[idxs[2],time_pts,1],top_pct2[0,:])
+    ax.scatter(X_t[idxs[3],time_pts,1],top_pct2[1,:])
 # %%
 # run again for both crops at all time points, don't plot images
 if analyze_PC1:
     time_pts = np.arange(X_t.shape[1])
-    num_high = analyze_crops_on_PC(idxs,time_pts,X_t,path_to_imgs,tf,plot_imgs=False)
-
+    num_high, top_pct = analyze_crops_on_PC(PC,idxs,time_pts,X_t,path_to_imgs,tf,plot_imgs=False)
 
     # plot fraction of high intensity pixels against PC1 for each crop at each time point, color by time
     fig,ax = viz.init_plot()
@@ -123,22 +130,57 @@ if analyze_PC1:
     ax.set_xlabel('PC1')
     ax.set_ylabel('fraction of high intensity pixels in crop (> 0.9)')
 
+    fig,ax = viz.init_plot()
+    sct = ax.scatter(X_t[idxs[0],time_pts,0],top_pct[0,:],label='crop '+str(hightraj_idx),c=np.arange(len(time_pts)))
+    sct = ax.scatter(X_t[idxs[1],time_pts,0],top_pct[1,:],label='crop '+str(lowtraj_idx),c=np.arange(len(time_pts)))
+    fig.colorbar(sct, ax=ax, label='time point')
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('95th percentile of intensity in crop')
+else:
+    time_pts = np.arange(X_t.shape[1])
+    num_high, top_pct1 = analyze_crops_on_PC(PC,idxs[:2],time_pts,X_t,path_to_imgs,tf,plot_imgs=False)
+    num_high, top_pct2 = analyze_crops_on_PC(PC,idxs[2:],time_pts,X_t,path_to_imgs,tf,plot_imgs=False)
+    top_pct = np.concatenate((top_pct1,top_pct2),axis=0)
+    fig,ax = viz.init_plot()
+    sct = ax.scatter(X_t[idxs[0],time_pts,1],top_pct[0,:],label='crop '+str(idxs[0]),c=np.arange(len(time_pts)))
+    sct = ax.scatter(X_t[idxs[1],time_pts,1],top_pct[1,:],label='crop '+str(idxs[1]),c=np.arange(len(time_pts)))
+    sct = ax.scatter(X_t[idxs[2],time_pts,1],top_pct[2,:],label='crop '+str(idxs[2]),c=np.arange(len(time_pts)))
+    sct = ax.scatter(X_t[idxs[3],time_pts,1],top_pct[3,:],label='crop '+str(idxs[3]),c=np.arange(len(time_pts)))
+    fig.colorbar(sct, ax=ax, label='time point')
+    ax.set_xlabel('PC2')
+    ax.set_ylabel('95th percentile of intensity in crop')
 
+# %%
+def plot_colorline(ax,x,y,c):
+    col = mpl.cm.viridis((c-np.min(c))/(np.max(c)-np.min(c)))
+    if len(c) != len(x):
+        clr = c[:len(x)]
+    else:
+        clr = c.copy()
+    if len(x) != len(clr):
+        raise ValueError('data and color object must be same length')
+    for i in np.arange(len(x)-1):
+        ax.plot([x[i],x[i+1]], [y[i],y[i+1]], c=col[i])
+    sct = ax.scatter(x, y, c=clr, s=0, cmap=mpl.cm.viridis)
+    return sct, ax    
 # %%
 # animate specified PC axis trajectory for one crop along with images at each time point
 fig, ax = plt.subplots(1,2,figsize=(15,5),width_ratios=[1,2])
 subfigs = fig.subfigures(2, 1, wspace=0.07)
 
-idx = idxs[1]
-lines, = ax[1].plot(0, X_t[idx,0,PC], color='k', label='crop '+str(idx))
+ii = 0
+idx = idxs[ii]
+prop = top_pct[ii,:]
+sct,ax[1] = plot_colorline(ax[1],[0,1],X_t[idx,:2,PC],prop)
 ax[1].set_xlim([0,X_t.shape[1]])
+fig.colorbar(sct,ax=ax[1])
+sct.set_clim([np.min(prop),np.max(prop)])
 if analyze_PC1:
     ax[1].set_ylim([-20,15])
 else:
     ax[1].set_ylim([-20,40])
 ax[1].set_xlabel('frame number',fontsize=14)
 ax[1].set_ylabel('PC'+str(PC+1),fontsize=14)
-ax[1].legend()
 
 ome_tif = BioImage(path_to_imgs+'/20240305_T01_001_TP'+str(0).zfill(5)+'.ome.tif',reader=bioio_ome_tiff.Reader)
 im = ome_tif.get_image_dask_data('CYX', T=0, C=0).compute()
@@ -152,7 +194,7 @@ ax[0].set_title('Crop '+str(idx),fontsize=16)
 
 def update(frame):
     ax[1].clear()
-    lines, = ax[1].plot(np.arange(frame), X_t[idx,:frame,PC],color='k', label='crop '+str(idx))
+    sct,ax[1] = plot_colorline(ax[1],np.arange(frame),X_t[idx,:frame,PC],prop)
     ax[1].set_xlim([0,X_t.shape[1]])
     if analyze_PC1:
         ax[1].set_ylim([-20,15])
@@ -160,7 +202,6 @@ def update(frame):
         ax[1].set_ylim([-20,40])
     ax[1].set_xlabel('frame number',fontsize=14)
     ax[1].set_ylabel('PC'+str(PC+1),fontsize=14)
-    ax[1].legend()
 
     ome_tif = BioImage(path_to_imgs+'/20240305_T01_001_TP'+str(frame).zfill(5)+'.ome.tif',reader=bioio_ome_tiff.Reader)
     im = ome_tif.get_image_dask_data('CYX', T=0, C=0).compute()
@@ -173,7 +214,7 @@ def update(frame):
     implot = ax[0].imshow(img_crop,cmap='gray')
     ax[0].set_title('Crop '+str(idx), fontsize=16)
     
-    return lines,implot
+    return sct,implot
 
 
 # %%
