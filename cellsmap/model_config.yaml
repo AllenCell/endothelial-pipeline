@@ -1,21 +1,26 @@
 [{
-  "name": "mae",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae/train_config.yaml",
+  "name": "mae_cdh5",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/train_config.yaml",
 },
 {
-  "name": "vicreg",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg/train_config.yaml",
+  "name": "vicreg_cdh5",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_cdh5/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_cdh5/train_config.yaml",
 },
 {
-  "name": "vicreg_no_rot",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot/train_config.yaml",
+  "name": "vicreg_no_rot_cdh5",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/train_config.yaml",
 },
 {
-  "name": "jepa",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/jepa/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/jepa/train_config.yaml",
+  "name": "jepa_cdh5",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/jepa_cdh5/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/jepa_cdh5/train_config.yaml",
+},
+{
+  "name": "mae_std_bf",
+  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/eval_config.yaml",
+  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/train_config.yaml",
 },
 ]

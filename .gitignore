@@ -10,12 +10,14 @@ __pycache__/
 
 # PDM lock file
 pdm.lock
+.pdm-python
 
 # PDM virtual environment directory
 .pdm-python
 
 # Environment variables
-.env
+venv/
+.venv
 
 # IDE files
 .vscode/
@@ -35,3 +37,11 @@ pdm.lock
 
 # ignore locally generated results
 results/
+
+# ignore files that might not be included
+cdh5_classic_seg_old.py
+sldy_load_test.py
+concatenate_timepoints.py
+lib_tracking.py
+cdh5_classic_seg_tracking.py
+ROUGH_vis_cdh5_nodes_and_edges_analysis.py

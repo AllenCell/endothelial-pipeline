@@ -1,87 +1,75 @@
 experiment_name: endo_time
-run_name: vicreg
+run_name: mae
 task_name: train
 tags:
 - dev
 train: true
 test: false
-ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/logs/train/runs/endo_time/vicreg/2024-07-03_15-49-15/checkpoints/epoch_929.ckpt"
+checkpoint:
+  ckpt_path: "//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/endo_time/jepa/2024-07-29_11-25-34/checkpoints/epoch_319.ckpt"
 seed: 12345
 data:
   _target_: cyto_dl.datamodules.multidim_image.make_multidim_image_dataloader
   batch_size: 1
   pin_memory: true
-  num_workers: 1
+  num_workers: 8
   spatial_dims: 2
+  shuffle: False
   dict_meta:
     path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/cdh5.ome.zarr
     channel: 0
   out_key: raw
   transforms: 
     - _target_: monai.transforms.NormalizeIntensity
+      subtrahend: 116
+      divisor: 9.5
     - _target_: monai.transforms.ToTensor
       dtype: float16
     - _target_: monai.transforms.GridSplit
       grid: [3, 18]
       size: [512, 512]
-    - _target_: cellsmap.model_features.utils.save.Save
-      save_dir: ${paths.output_dir}
-
 model:
-  _target_: cyto_dl.models.contrastive.contrastive.Contrastive
+  _target_: cyto_dl.models.jepa.ijepa.IJEPA
+  x_key: raw
+  max_epochs: ${trainer.max_epochs}
   save_dir: ${paths.output_dir}
-  anchor_key: raw
-  positive_key: raw_aug
-  backbone:
-    _target_: monai.networks.nets.Regressor
-    in_shape:
-    - 1
-    - 512
-    - 512
-    out_shape: 256
-    channels:
-    - 32
-    - 64
-    - 96
-    - 128
-    - 160
-    - 192
-    strides:
-    - 2
-    - 2
-    - 2
-    - 2
-    - 2
-    - 2
-    kernel_size: 3
-  task_head:
-    _target_: cyto_dl.nn.head.vic_reg.VICRegHead
-    loss:
-      _target_: cyto_dl.nn.losses.vic_reg.VICRegLoss
-      num_features: 256
-    dims:
-    - 256
-    - 1024
-    hidden_layers:
-    - 1024
-    - 1024
-    - 1024
-    - 1024
+  encoder:
+    _target_: cyto_dl.nn.vits.jepa.JEPAEncoder
+    num_patches: ${model._aux.num_patches}
+    patch_size:
+    - 16
+    - 16
+    emb_dim: 256
+    num_head: 8
+    num_layer: 4
+    spatial_dims: 2
+  predictor:
+    _target_: cyto_dl.nn.vits.jepa.JEPAPredictor
+    num_patches: ${model._aux.num_patches}
+    input_dim: ${model.encoder.emb_dim}
+    emb_dim: 128
+    num_layer: 8
+    num_head: 4
   optimizer:
     _partial_: true
     _target_: torch.optim.AdamW
-    weight_decay: 0.01
+    weight_decay: 0.05
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.0001
+    max_lr: 0.003
     epochs: ${trainer.max_epochs}
     steps_per_epoch: 1
-    pct_start: 0.02
+    pct_start: 0.1
+  _aux:
+    num_patches:
+    - 32
+    - 32
 callbacks:
   csv_saver:
-    _target_: cellsmap.model_features.utils.csv_saver.CSVSaver
+    _target_: cellsmap.model_features.utils.csv_saver.JEPASaver
     save_dir: ${paths.output_dir}
+    meta_keys: ['T']
 logger:
 trainer:
   _target_: lightning.Trainer

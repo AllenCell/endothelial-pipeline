@@ -3,12 +3,12 @@ import fire
 from typing import Dict
 from cellsmap.util import io
 from cyto_dl.api import CytoDLModel
-from cellsmap.util import get_model_config_path
+from cellsmap.util import get_model_config_path, load_config
 import json
 from pathlib import Path
 
 
-def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict={}):
+def apply_model(model_name:str, dataset_name, save_dir='results', channel:str='CDH5_Tubulin', overrides:Dict={}):
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):
@@ -30,5 +30,12 @@ def apply_model(model_name:str, dataset_name, save_dir='results', overrides:Dict
     model.predict()
 
 
+def apply_all(dataset_name):
+    config = load_config('model')
+    for model_config in config:
+        name = model_config['name']
+        apply_model(name, dataset_name, save_dir=f'results/{name}')
+
+
 if __name__ == '__main__':
-    fire.Fire(apply_model)
+    fire.Fire()
