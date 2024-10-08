@@ -1,6 +1,8 @@
 [{
   name: 20240305_T01_001,
-  segmentation_dir: "//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240305_T01_001",
+  # segmentation_dir: "//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240305_T01_001",
+  # segmentation_dir: "//allen/aics/assay-dev/users/Serge/cellsmap/cellsmap/results/cdh5_classic_seg/20240305_T01_001",
+  segmentation_dir: "results/cdh5_classic_seg/20240305_T01_001",
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
