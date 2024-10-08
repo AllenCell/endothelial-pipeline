@@ -65,6 +65,14 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True):
     df_ang_dist['Time (hours)'] = df_ang_dist['T'].transform(lambda x: x * t_res_hrs)
     df_segprops['Time (hours)'] = df_segprops['T'].transform(lambda x: x * t_res_hrs)
 
+    # the orientation is initially relative to the vertical and ranges from -np.pi/2
+    # to np.pi/2 so we need to restrict it to 0 to np.pi/2 with abs() and then shift
+    # it it 90 degrees to make it relative to the horizontal (and then take the absolute
+    # so that the angle becomes positive again)
+    df_segprops['cell_orientation_relative_to_horizontal'] = df_segprops['cell_orientation'].transform(lambda x: abs(np.pi/2 - abs(x)))
+    df_segprops['cell_orientation_relative_to_horizontal_in_deg'] = df_segprops['cell_orientation_relative_to_horizontal'].transform(lambda x: np.rad2deg(x))
+
+
     # convert the lists of number from strings back to lists of numbers
     cols_to_fix = ['edge_length (px)', 'edge_fluorescence_mean (a.u.)',
                    'edge_fluorescence_std (a.u.)', 'edge_fluorescence_median (a.u.)',
@@ -97,7 +105,9 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True):
                                                                       'cell_perimeter (px)',
                                                                       'cell_fluorescence_mean (a.u.)',
                                                                       'cell_eccentricity',
-                                                                      'cell_orientation']].describe()
+                                                                      'cell_orientation_relative_to_horizontal',
+                                                                      'cell_orientation_relative_to_horizontal_in_deg',
+                                                                      ]].describe()
     flat_col_names = pd.Index(['_'.join(multilevel_col) for multilevel_col in df_segprops_summary.columns])
     df_segprops_summary.columns = flat_col_names
     df_segprops_summary.reset_index(inplace=True)
@@ -134,25 +144,16 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True):
                     pool.join()
                 print('Done multiprocessing.')
     else:
-        # for (dataset_name, time_hrs, T), grp in df_ang_dist.groupby(['dataset_name', 'Time (hours)', 'T']):
         for args in args_list:
-            # out_path = 
             vis.generate_alignment_plots(*args)
-            # vis.generate_alignment_plots(out_dir_plots,
-            #                              dataset_name + f'_T{T}',
-            #                              time_hrs,
-            #                              grp['angle_relative_to_horizontal'],
-            #                              grp['node_to_node_distance'],
-            #                              dist_min, dist_max,
-            #                              SHOW_PLOTS,
-            #                              SAVE_OUTPUT)
 
     # create a movie from the individual alignment plots
     plot_paths = sorted([filepath for filepath in Path.glob(out_dir_plots / 'angles_vs_dists_polar', '*.tif')], key=lambda fp: preproc.extract_T(fp.stem, use_last_match=True))
     images = np.concatenate([BioImage(fp).get_image_data('TYXS') for fp in plot_paths], axis=0)
     filename = dataset_name + 'dists_vs_angles_movie'
-    TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.mp4'), dim_order='TYXS', fps=60)
-    TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.gif'), dim_order='TYXS', fps=60)
+    if SAVE_OUTPUT:
+        TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.mp4'), dim_order='TYXS', fps=60)
+        TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.gif'), dim_order='TYXS', fps=60)
 
     # compare the node-node distances to their paired edge lengths for every datapoint
     # for validation purposes (all edge lengths should be longer than the node-node

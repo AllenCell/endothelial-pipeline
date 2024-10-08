@@ -32,6 +32,7 @@ dependencies = [
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
     "wasmtime<23.0",
     "seaborn>=0.13.2",
+    "bioio-sldy>=1.0.2",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
@@ -44,3 +45,5 @@ build-backend = "pdm.pep517.api"
 [tool.pytest.ini_options]
 testpaths = "tests/"
 
+
+[tool.pdm]
