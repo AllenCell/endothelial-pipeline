@@ -9,16 +9,16 @@ def test_get_available_datasets(capsys):
     # check if the available datasets are printed correctly
     io.get_available_datasets()
     captured = capsys.readouterr()
-    assert captured.out == '20240305_T01_001\n'
+    assert captured.out == '20240305_T01_001\n20240917_20X_48hr\n'
 
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
     dataset_info = io.get_dataset_info('20240305_T01_001')
-    assert dataset_info['zarr_path'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
+    assert dataset_info['zarr_path'] == '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
 
 def test_get_zarr_path():
     path = io.get_zarr_path('20240305_T01_001')
-    assert path == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
+    assert path == '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
 
 def test_load_dataset():
     # check end point specification
