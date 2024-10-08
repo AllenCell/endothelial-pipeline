@@ -170,7 +170,7 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
                                   'edge_labels': labeled_region_metrics['edge_labels'],
                                   'node_labels': labeled_region_metrics['node_labels'],
                                   'node_pair_labels': labeled_region_metrics['node_pair_labels'],
-                                #   'touches_image_border': labeled_region_metrics['touches_image_border'],
+                                  'touches_image_border': labeled_region_metrics['touches_image_border'],
                                   })
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_T{T}_segprops.csv', index=False)
 
