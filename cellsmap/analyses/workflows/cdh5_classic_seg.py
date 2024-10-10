@@ -12,10 +12,9 @@ except ModuleNotFoundError:
 
 
 def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
-    # NOTE: this function is slightly different than the
-    # one found in 'cdh5_nodes_and_edges.py'
+    # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
-    PRJ_DIR = Path('../').resolve() if not IS_TEST else Path('../../tests').resolve()
+    PRJ_DIR = Path('../../').resolve() if not IS_TEST else Path('../../../tests').resolve()
     assert PRJ_DIR.exists()
     val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
     out_dir = PRJ_DIR / 'results/cdh5_classic_seg'
@@ -38,32 +37,40 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
     analysis_args_queue = []
     for dataset_name in DATASET_NAME_LIST:
 
-        img_bin = 0
-        DIM_MAP = io.get_dim_map('TYX')
-        raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
+        img_bin_level = 0
+        DIM_MAP = io.get_dim_map('TCYX')
+        raw = io.load_dataset(dataset_name, channels=['CDH5_Tubulin',], time_start=0, level=img_bin_level)
 
         if IS_TEST:
             T_list = range(0, 1)
+            crop_c = slice(None, None)
+            crop_z = slice(None, None)
             crop_y = slice(None, None)
             crop_x = slice(None, None)
             for T in T_list:
-                analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
+                crop = {'T': T, 'C': crop_c,'Z': crop_z, 'Y': crop_y, 'X': crop_x}
+                analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
         else:
             # in the line below: replace 'raw.shape[DIM_MAP["T"]]' with an integer
             # to analyze a subset of timepoints in the timelapse
             T_list = range(0, raw.shape[DIM_MAP["T"]])
+            crop_c = slice(None, None)
+            crop_z = slice(None, None)
             crop_y = slice(None, None)
             crop_x = slice(None, None)
             for T in T_list:
-                analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
+                crop = {'T': T, 'C': crop_c,'Z': crop_z, 'Y': crop_y, 'X': crop_x}
+                analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
 
     return analysis_args_queue
 
 def generate_results_multiproc_wrapper(args):
-    dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
-    generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+    dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE = args
+    generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
-def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+    
+    T = crop["T"]
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
@@ -71,9 +78,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
     out_dir, val_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
-    raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
-    img_crop = (slice(T, T+1), crop_y, crop_x)
-    raw_arr = raw[img_crop].compute().squeeze()
+    raw_arr = io.load_dataset(dataset_name, channels=['CDH5_Tubulin',], time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
     print(f'T={T} -- preprocessing image') if VERBOSE else None
     processed_img = preproc.preprocess(raw_arr)
