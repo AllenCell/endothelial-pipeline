@@ -662,7 +662,7 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
     filepaths = {fpath: extract_T(fpath) for fpath in filepaths}
     fpath = [fpath for fpath in filepaths if filepaths[fpath]==T]
-    assert len(fpath) == 1
+    assert len(fpath) == 1, f'Multiple files found for timepoint T. Files found: \n{fpath}'
 
     dim_map = get_dim_map('TCZYX')
     dim_order = sorted(dim_map, key=lambda d: dim_map[d])

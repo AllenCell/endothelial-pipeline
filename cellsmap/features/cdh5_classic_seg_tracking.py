@@ -1,10 +1,17 @@
 from pathlib import Path
 from bioio import BioImage
+import numpy as np
+from skimage.measure import regionprops, label
+from skimage.segmentation import join_segmentations
+from matplotlib import pyplot as plt
+from skimage.segmentation import find_boundaries
 from multiprocessing import Pool
 from tqdm import tqdm
 import fire
 from cellsmap.util import cdh5_preprocessing as preproc, io
 from cellsmap.util import shape_features as feat
+from cellsmap.features.lib_tracking import axial_min
+
 try:
     from IPython import get_ipython
 except ModuleNotFoundError:
@@ -94,59 +101,9 @@ def generate_results(dataset_name, crop, img_bin, SAVE_OUTPUT=True, IS_TEST=Fals
 
 
 
-
-
-SAVE_OUTPUT = True
-IS_TEST = True
-VERBOSE = True
-DATASET_NAME_LIST = ['20240305_T01_001']
-analysis_args_queue = build_tracking_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
-
-
-dataset_name, args = DATASET_NAME_LIST[0], analysis_args_queue[0]
-from matplotlib import pyplot as plt
-from skimage.segmentation import find_boundaries
-from skimage import measure
-import numpy as np
-
-# for image_at_t in timelapse:
-
-    # initialize track ids
-
-    # match centroids
-
-    # update track ids
-
-
-
-dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
-
-# T = crop["T"]
-# print(f'T={T} -- loading dataset') if VERBOSE else None
-# channels = ['segmentations_merged',]
-# seg, = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels)
-# seg = seg.squeeze()
-
-# props = measure.regionprops(seg)
-# [prop for prop in props[0]]
-# list(zip(props[0]))
-# props[0].centroid
-
-channels = ['segmentations_merged',]
-# for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue:
-#     print(dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE)
-labeled_images = [seg.squeeze() for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue for chans in preproc.get_cdh5_classic_segmentation(dataset_name, crop["T"], channels) for seg in chans]
-
-def pixel_count(region_mask: np.array, intensity_image: np.array=None) -> float:
-    return np.count_nonzero(region_mask)
-
-metrics = ['centroid']#, pixel_count]
-# metrics = ['centroid', 'area']
-
-
 def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False) -> list:
     """
-    Match labels between frames based on a set of metrics.
+    Match labels between frames based on a list of metrics.
 
     Parameters
     ----------
@@ -201,24 +158,43 @@ def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], r
 
     Returns
     -------
-    list of tuples where each tuple has the same length as the number of images in labeled_images
-    and
+    matched_labels_dict: dict
+        A dictionary of dictionaries where the keys of the outer dictionary are the labels of list_of_labeled_metric_vals at 
+        reference_index and the inner dictionary has keys for the query labels and values the optimized metric values found
+        in the other indices of list_of_labeled_metric_vals. Both the values for matched_query_labels and optimized_metric_values
+        are lists of the same length as list_of_labeled_metric_vals. If no match is found for a label at a specific index in
+        list_of_labeled_metric_vals then a masked value will be returned at that index for both matched_query_labels and
+        optimized_metric_values.
+        Example:
+            matched_labels_dict = {reference_label1: {'matched_query_label': [query_label1, query_label2, ...],
+                                                      'optimized_metric_value': [optimized_metric_value1, optimized_metric_value2, ...]},
+                                   reference_label2: {'matched_query_label': [query_label1, query_label2, ...],
+                                                      'optimized_metric_value': [optimized_metric_value1, optimized_metric_value2, ...]},
+                                   ...}
     """
 
     # run some checks on the inputs first
     assert reference_index < len(labeled_images), 'reference_index must be less than the number of images in labeled_images'
     assert all([img.ndim in [2, 3] for img in labeled_images]), 'all images in labeled_images must be 2D or 3D arrays'
-    acceptable_metrics = ['centroid', 'area', 'convex_area', 'eccentricity', 'equivalent_diameter', 'euler_number', 'extent', 'filled_area', 'major_axis_length', 'minor_axis_length', 'orientation', 'perimeter', 'perimeter_crofton', 'solidity', 'intensity_mean', 'intensity_max', 'intensity_min', 'intensity_std']
-    assert all([metric in acceptable_metrics or hasattr(pixel_count, '__call__') for metric in metrics]), 'all metrics must be in skimage.measure.regionprops or a function'
+    acceptable_metrics = ['centroid', 'area', 'convex_area', 'eccentricity', 'equivalent_diameter', 'euler_number', 'extent', 'filled_area', 'major_axis_length', 'minor_axis_length', 'orientation', 'perimeter', 'perimeter_crofton', 'solidity', 'intensity_mean', 'intensity_max', 'intensity_min', 'intensity_std', 'region_overlap']
+    for metric in metrics:
+        if metric not in acceptable_metrics and not hasattr(metric, '__call__'):
+            raise AssertionError(f'"{metric}" is neither a property in skimage.measure.regionprops nor a function; all metrics must be in skimage.measure.regionprops or a function')
+    # the assertion statement below more concise but is disliked by pylint
+    # assert all([metric in acceptable_metrics or hasattr(metric, '__call__') for metric in metrics]), f'all metrics must be in skimage.measure.regionprops or a function; {metric} was provided'
     assert len(metrics) == len(metrics_thresholds) if metrics_thresholds else True, 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
+    assert len(metrics) == 1 if ('centroid' in metrics or 'region_overlap' in metrics) else True, 'if centroid or region_overlap is used then they can be the only metric'
 
     # create a list of metrics that are functions to pass to regionprops
+    # (hasattr(metric, '__call__') returns True if metric is a function)
     extra_props = [metric for metric in metrics if hasattr(metric, '__call__')]
 
     # generate the regionprops for each image, including extra properties
-    all_img_props = [measure.regionprops(img, extra_properties=extra_props) for img in labeled_images]
+    # all_img_props = [regionprops(img, intensity_image=None, extra_properties=extra_props) for img in labeled_images]
+    all_img_props = [regionprops(img, intensity_image=labeled_images[reference_index], extra_properties=extra_props) for img in labeled_images]
     # replace functions with their names in metrics
-    metrics = [pixel_count.__name__ if hasattr(metric, '__call__') else metric for metric in metrics]
+    metrics = [metric.__name__ if hasattr(metric, '__call__') else metric for metric in metrics]
+
     # used a for-loop instead of a nested list comprehension for readability
     list_of_labeled_metric_vals = []
     for img_props in all_img_props:
@@ -226,32 +202,14 @@ def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], r
         labeled_metric_vals = {prop.label: tuple([prop[metric] for metric in metrics]) for prop in img_props}
         list_of_labeled_metric_vals.append(labeled_metric_vals)
 
-    match_labels_from_metrics(labeled_metric_vals, reference_index, metrics_thresholds, matching_method, exclude_if_any_thresholded)
+    if 'region_overlap' in metrics:
+        # if metrics = 'region_overlap' then a different matching function is needed
+        matched_labels_dict = match_labels_from_overlaps(list_of_labeled_metric_vals, reference_index, matching_method)
+    else:
+        # both metrics = 'centroids' and metrics = a list of metrics are handled the same way
+        matched_labels_dict = match_labels_from_metrics(list_of_labeled_metric_vals, reference_index, metrics_thresholds, matching_method, exclude_if_any_thresholded)
 
-    # if 'centroid' in metrics:
-    #     cntr_idx = metrics.index('centroid')
-    #     metrics_thresholds[cntr_idx] # keep?
-    #     # labels_arr = [np.meshgrid(labels[reference_index], labs, indexing='ij') for labs in labels]
-    #     # distances_arr = [feat.numpy_mesh_coords(metrics_vals[reference_index], mvals, indexing='ij') for mvals in metrics_vals]
-    #     # distances
-    #     labels = [list(labeled_metric_vals.keys()) for labeled_metric_vals in list_of_labeled_metric_vals]
-    #     metrics_vals = [tuple(zip(*labeled_metric_vals.values())) for labeled_metric_vals in list_of_labeled_metric_vals]
-    #     # labels_arr = [np.meshgrid(list(all_labeled_metric_vals[reference_index].keys()), list(labs.keys()), indexing='ij') for labs in all_labeled_metric_vals]
-    #     # distances_arr = [feat.numpy_mesh_coords(all_labeled_metric_vals[reference_index].values(), mvals, indexing='ij') for mvals in metrics_vals]
-    #     all_labels_arrs = [np.meshgrid(labels[reference_index], labs, indexing='ij') for labs in labels]
-    #     all_centroids_arrs = [feat.numpy_mesh_coords(metrics_vals[reference_index][cntr_idx], mvals[cntr_idx], indexing='ij') for mvals in metrics_vals]
-    #     all_distances_arrs = [np.linalg.norm(cntr_arr1 - cntr_arr2, axis=cntr_arr1.shape[-1]) for cntr_arr1, cntr_arr2 in all_centroids_arrs]
-    # 'centroid_distance'
-
-    # if 'region_overlap' in metrics:
-    #     overlap_idx = metrics.index('region_overlap')
-    #     metrics_thresholds[overlap_idx] # keep?
-    #     labels = [list(labeled_metric_vals.keys()) for labeled_metric_vals in list_of_labeled_metric_vals]
-    #     metrics_vals = [tuple(zip(*labeled_metric_vals.values())) for labeled_metric_vals in list_of_labeled_metric_vals]
-
-
-
-    # return whatever match_labels_from_metrics returns
+    return matched_labels_dict
 
 
 
@@ -323,18 +281,19 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
                                    reference_label2: {'matched_query_label': [query_label1, query_label2, ...],
                                                       'optimized_metric_value': [optimized_metric_value1, optimized_metric_value2, ...]},
                                    ...}
-
     """
 
     # run some checks on the inputs first
-    assert reference_index < len(labeled_images), 'reference_index must be less than the number of images in labeled_images'
-    assert len(metrics) == len(metrics_thresholds) if metrics_thresholds else True, 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
+    assert reference_index < len(list_of_labeled_metric_vals), 'reference_index must be less than the number of images in labeled_images'
+    assert all([all(map(lambda met_val: len(met_val) == len(metrics_thresholds), labeled_metrics.values())) for labeled_metrics in list_of_labeled_metric_vals]) if metrics_thresholds else True, 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
     assert matching_method in ['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'], 'matching_method must be one of "forward", "reverse", "to_reference", or "from_reference"'
 
     mesh_indexing = 'ij'
 
     if not metrics_thresholds:
-        metrics_thresholds = [np.inf, ] * len(metrics)
+        # get length of metrics and make metrics_thresholds that length
+        metrics_length = int(*set([len(met_val) for met in list_of_labeled_metric_vals for met_val in met.values()]))
+        metrics_thresholds = [np.inf, ] * metrics_length
 
     labels = [list(labeled_metric_vals.keys()) for labeled_metric_vals in list_of_labeled_metric_vals]
     # all_metrics_vals = [tuple(zip(*labeled_metric_vals.values())) for labeled_metric_vals in list_of_labeled_metric_vals]
@@ -406,9 +365,108 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
                 matched_labels = (ref_labs_from_refs, query_labs_from_refs)
                 matched_metrics = (ref_labs_from_refs, metrics_vals_from_refs)
             case 'reciprocal_matches_only':
-                invalid_query_matches = np.logical_or(*[arr.mask for arr in indices_reciprocal_matches_list[i]])
-                ref_labs_reciprocal, query_labs_reciprocal = reference_label_arrs[indices_reciprocal_matches_list[i]], np.ma.masked_array(data=query_label_arrs[indices_reciprocal_matches_list[i]], mask=invalid_query_matches)
+                # invalid_query_matches = np.logical_or(*[arr.mask for arr in indices_reciprocal_matches_list[i]])
+                # ref_labs_reciprocal, query_labs_reciprocal = reference_label_arrs[indices_reciprocal_matches_list[i]], np.ma.masked_array(data=query_label_arrs[indices_reciprocal_matches_list[i]], mask=invalid_query_matches)
+                ref_labs_reciprocal, query_labs_reciprocal = reference_label_arrs[indices_reciprocal_matches_list[i]], query_label_arrs[indices_reciprocal_matches_list[i]]
                 metrics_vals_reciprocal = metrics_diffs_mean_list[i][indices_reciprocal_matches_list[i]]
+                matched_labels = (ref_labs_reciprocal, query_labs_reciprocal)
+                matched_metrics = (ref_labs_reciprocal, metrics_vals_reciprocal)
+            case _:
+                raise ValueError('matching_method must be one of "forward", "reverse", "to_reference", "from_reference", or "reciprocal_matches_only"')
+        matched_labels_list.append(dict(zip(*matched_labels)))
+        matched_metrics_list.append(dict(zip(*matched_metrics)))
+
+    # convert the matched_labels_list to a dict of dicts with the reference labels as the outer dict
+    # keys and the inner dict having key:value pairs for query labels and optimized metric values
+    matched_labels_dict = {}
+    for label in matched_labels_list[reference_index]:
+        matched_labels_dict[label] = {'matched_query_label': [matched_labels_list[i][label] for i in range(len(matched_labels_list))],
+                                      'optimized_metric_value': [matched_metrics_list[i][label] for i in range(len(matched_metrics_list))]}
+
+    return matched_labels_dict
+
+def match_labels_from_overlaps(labeled_images: list, reference_index: int=0,matching_method='forward') -> list:
+    """
+    
+    
+    NOTE NEED TO CHECK THIS DOCSTRING!!!
+
+
+    Match labels between frames based on the fraction of overlap between regions.
+    
+    Parameters
+    ----------
+    labeled_images : list of ndarrays
+        List of labeled images. Each image must be a 2D or 3D array where each label
+        has a unique integer value.
+    reference_index : int
+        Index of the image in labeled_images to use as the reference for matching labels.
+        Must be an integer between 0 and len(labeled_images) - 1.
+    matching_method: str
+        Determines how the matching is done. Options are 'forward', 'reverse', 'to_reference', 'from_reference'.
+        'from_reference': Finds the closest match for each label in the reference_index dict from the other dicts.
+            All labels in reference dict will be present in the output, but not necessarily all labels from the other dicts.
+        'to_reference': Finds the closest match for each label in the other dicts from the reference_index dict.
+            All labels in the other dicts will be present in the output, but not necessarily all labels from the reference dict.
+        'forward': Finds the closest match for each label in the reference_index dict from the other dicts if the other dicts index
+            is greater than or equal to the reference_index. Otherwise finds the closest match for each label in the other dicts from
+            the reference_index dict.
+            Equivalent to matching 'forwards' in time if list_of_labeled_metric_vals are labeled metric vals for sequential timepoints.
+        'reverse': Finds the closest match for each label in the reference_index dict from the other dicts if the other dicts index
+            is less than or equal to the reference_index. Otherwise finds the closest match for each label in the other dicts from
+            the reference_index dict.
+            Equivalent to matching 'backwards' in time if list_of_labeled_metric_vals are labeled metric vals for sequential timepoints.
+        Default is 'forward'.
+    
+    Returns
+    -------
+    matched_labels_dict: dict
+        A dictionary of dictionaries where the keys of the outer dictionary are the labels of list_of_labeled_metric_vals at 
+        reference_index and the inner dictionary has keys for the query labels and values the optimized metric values found
+        in the other indices of list_of_labeled_metric_vals. Both the values for matched_query_labels and optimized_metric_values
+        are lists of the same length as list_of_labeled_metric_vals. If no match is found for
+    """
+
+
+    # get the labels that correspond to the least different metrics
+    matched_labels_list = []
+    matched_metrics_list = []
+    for i in range(len(labeled_images)):
+        props_ref_from_refs = regionprops(labeled_images[reference_index], labeled_images[i], extra_properties=[get_label_with_most_overlap,])
+        props_ref_to_refs = regionprops(labeled_images[i], labeled_images[reference_index], extra_properties=[get_label_with_most_overlap,])
+        # props_query = regionprops(img)
+
+        ref_labs_from_refs, query_labs_from_refs, metrics_vals_from_refs = zip(*[(prop.label, *prop['get_label_with_most_overlap'].keys(), *prop['get_label_with_most_overlap'].values()) for prop in props_ref_from_refs])
+        query_labs_to_refs, ref_labs_to_refs, metrics_vals_to_refs = zip(*[(prop.label, *prop['get_label_with_most_overlap'].keys(), *prop['get_label_with_most_overlap'].values()) for prop in props_ref_to_refs])
+
+        match matching_method:
+            case 'forward':
+                matched_labels = (ref_labs_to_refs, query_labs_to_refs) if i < reference_index else (ref_labs_from_refs, query_labs_from_refs)
+                matched_metrics = (ref_labs_to_refs, metrics_vals_to_refs) if i < reference_index else (ref_labs_from_refs, metrics_vals_from_refs)
+            case 'reverse':
+                matched_labels = (ref_labs_from_refs, query_labs_from_refs) if i < reference_index else (ref_labs_to_refs, query_labs_to_refs)
+                matched_metrics = (ref_labs_from_refs, metrics_vals_from_refs) if i < reference_index else (ref_labs_to_refs, metrics_vals_to_refs)
+            case 'to_reference':
+                matched_labels = (ref_labs_to_refs, query_labs_to_refs)
+                matched_metrics = (ref_labs_to_refs, metrics_vals_to_refs)
+            case 'from_reference':
+                matched_labels = (ref_labs_from_refs, query_labs_from_refs)
+                matched_metrics = (ref_labs_from_refs, metrics_vals_from_refs)
+            case 'reciprocal_matches_only':
+                matches_from_refs = dict(zip(ref_labs_from_refs, query_labs_from_refs))
+                matches_to_refs = dict(zip(ref_labs_to_refs, query_labs_to_refs))
+                matches_from_refs_vals = dict(zip(ref_labs_from_refs, metrics_vals_from_refs))
+
+                ref_labs_reciprocal = []
+                query_labs_reciprocal = []
+                metrics_vals_reciprocal = []
+                for lab in matches_from_refs:
+                    if lab in matches_to_refs and (matches_from_refs[lab] == matches_to_refs[lab]):
+                        # print(lab, matches_from_refs[lab], matches_to_refs[lab])
+                        ref_labs_reciprocal.append(lab)
+                        query_labs_reciprocal.append(matches_from_refs[lab])
+                        metrics_vals_reciprocal.append(matches_from_refs_vals[lab])
+                
                 matched_labels = (ref_labs_reciprocal, query_labs_reciprocal)
                 matched_metrics = (ref_labs_reciprocal, metrics_vals_reciprocal)
             case _:
@@ -428,87 +486,80 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
 
 
 
-
-
-
-
-def optimize_metric(metric: np.ndarray, reference_index: int=0) -> np.ndarray:
+def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarray, masked_labels=[0,]) -> dict:
     """
+    Calculate the fraction of region_mask that does not overlap with labeled_image.
     """
+    region_mask_size = np.count_nonzero(region_mask)
+    labels_overlapping, sizes_overlapping = np.unique(labeled_image[region_mask], return_counts=True, equal_nan=False)
+    fractions_outside_labeled_region = (region_mask_size - sizes_overlapping) / region_mask_size
+    label_with_most_overlap = labels_overlapping[np.argmin(fractions_outside_labeled_region)]
+    fraction_overlap = 1 - np.min(fractions_outside_labeled_region)
 
-    np.linalg.norm(metric[reference_index] - metric)
+    return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
 
-    pass
+
+
+
+
+
+SAVE_OUTPUT = True
+IS_TEST = True
+VERBOSE = True
+DATASET_NAME_LIST = ['20240305_T01_001']
+analysis_args_queue = build_tracking_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+
+
+dataset_name, args = DATASET_NAME_LIST[0], analysis_args_queue[0]
+
+# for image_at_t in timelapse:
+
+    # initialize track ids
+
+    # match centroids
+
+    # update track ids
+
+
+
+dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
+
+# T = crop["T"]
+# print(f'T={T} -- loading dataset') if VERBOSE else None
+# channels = ['segmentations_merged',]
+# seg, = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels)
+# seg = seg.squeeze()
+
+# props = measure.regionprops(seg)
+# [prop for prop in props[0]]
+# list(zip(props[0]))
+# props[0].centroid
+
+channels = ['segmentations_merged',]
+# for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue:
+#     print(dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE)
+labeled_images = [seg.squeeze() for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue for chans in preproc.get_cdh5_classic_segmentation(dataset_name, crop["T"], channels) for seg in chans]
+
+for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue:
+    print(0)
+    for chans in preproc.get_cdh5_classic_segmentation(dataset_name, crop["T"], channels):
+        print(1)
+        for seg in chans:
+            print(2)
+            seg.squeeze()
+
+# TODO
+# 1. CLEAN UP THIS SCRIPT BY SENDING SOME FUNCTIONS TO lib_tracking.py
+# 2. TEST THE FUNCTIONS match_labels_from_overlaps AND match_labels_from_metrics
+# 3. PUT matched_labels_dict INTO A PANDAS DATAFRAME
+#       a. initialize_tracks_ids
+#       b. update_track_ids
+# 4. BUILD TABLES OF LABELED TRACKS AND SAVE THEM
+
+metrics = ['region_overlap',]
+test = match_labels_from_image(labeled_images, reference_index=0, metrics=metrics)
 
 
 # save images of each timepoint with 2 channels per timepoint:
 #   1. segmentations labeled with their track number as their integer label
 #   2. tracks (using region centroids) labeled with their track number as their integer label
-
-def axial_min(arr: np.ndarray, mask: np.ndarray=None, mask_values_below: float=None, mask_values_above: float=None) -> tuple:
-    """
-    Finds and returns the indices of the lowest values along the column and row axes of a 2D numpy array, 
-    ignoring masked values. If all values at an index along an axis are masked then a masked value will be
-    returned.
-    Since the (row,col) index of the minimum value found along the column axis is not necessarily the same
-    as the one found along the row axis. three sets of indices are returned: one for where the minimum is
-    found along column axis, one where the minimum is found across the row axis, and one where the minimum
-    for the row axis and column axis has the same indices.
-    If "mask" is provided then "mask_values_below" and "mask_values_above" will be ignored.
-    "mask" must be a boolean array with the same shape as "arr".
-
-    Parameters
-    ----------
-    arr : 2D np.ndarray
-        A 2D array to find the minimum value indices along the column and row axes.
-    mask : 2D np.ndarray
-        A boolean array with the same shape as "arr" where True values indicate values that should be ignored.
-    mask_values_below : float
-        The value below which values in "arr" should be ignored.
-    mask_values_above : float
-        The value above which values in "arr" should be ignored.
-
-    Returns
-    -------
-    ij_argmins : tuple of np.ma.masked_arrays
-        The indices of the minimum values found along the column axis.
-    ji_argmins : tuple of np.ma.masked_arrays
-        The indices of the minimum values found along the row axis.
-    reciprocal_argmin : tuple of np.ma.masked_arrays
-        The indices of the minimum values where those found along the column and row axes are the same.
-    """
-
-    assert arr.ndim == 2, 'arr must be a 2D numpy array'
-    assert mask is None or mask.ndim == 2, 'mask must be a 2D numpy array if provided'
-    assert mask.dtype == np.dtype(bool), 'mask must be a boolean array'
-
-    # if mask is not provided then create one based on the mask_values_below and mask_values_above
-    if not isinstance(mask, np.ndarray):
-        mask = np.zeros(arr.shape)
-        if mask_values_below:
-            mask[arr < mask_values_below] = True
-        if mask_values_above:
-            mask[arr > mask_values_above] = True
-    else:
-        pass
-
-    # generate an array with any invalid values masked
-    arr = np.ma.masked_array(data=arr, mask=mask)
-
-    # get the minimum values along the column and row axes; these will be used
-    # to find any indices that should be masked from the argmin function
-    for_i_in_arr_min = np.ma.min(arr, axis=1, keepdims=True)
-    for_j_in_arr_min = np.ma.min(arr, axis=0, keepdims=True)
-    # the argmin function will return "0" if all values are masked, hence the need
-    # to make a masked array using for_i_in_arr_min.mask and for_j_in_arr_min.mask
-    for_i_in_arr_argmin = np.ma.argmin(arr, axis=1, keepdims=True)
-    for_j_in_arr_argmin = np.ma.argmin(arr, axis=0, keepdims=True)
-    for_i_in_arr_argmin = np.ma.masked_array(data=for_i_in_arr_argmin, mask=for_i_in_arr_min.mask)
-    for_j_in_arr_argmin = np.ma.masked_array(data=for_j_in_arr_argmin, mask=for_j_in_arr_min.mask)
-
-    ij_argmins = (np.ma.masked_array(data=np.arange(for_i_in_arr_argmin.shape[0]), mask=for_i_in_arr_min.mask), for_i_in_arr_argmin.squeeze(axis=1))
-    ji_argmins = (for_j_in_arr_argmin.squeeze(axis=0), np.ma.masked_array(data=np.arange(for_j_in_arr_argmin.shape[1]), mask=for_j_in_arr_min.mask))
-
-    reciprocal_argmin = np.ma.where((arr == for_j_in_arr_min) + (arr == for_i_in_arr_min))
-
-    return ij_argmins, ji_argmins, reciprocal_argmin
