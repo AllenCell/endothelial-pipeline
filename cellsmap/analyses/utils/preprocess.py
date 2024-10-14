@@ -45,12 +45,13 @@ def project_trajectories(df:pd.DataFrame, components:np.ndarray, traj_id:str, me
     X_t = []
     for idx in df[traj_id].unique():
         traj_df = df[df[traj_id]==idx] # just get the dataframe for the current trajectory
+        traj_df.head()
         if metadata_col is not None:
             traj = traj_df[traj_df.columns[~traj_df.columns.isin(metadata_col)]].values
         else:
             traj = traj_df.values
         X_t.append(traj@components.T) # project trajectory onto specified principal components, append to list
-    
+        
     return np.array(X_t)
 
     

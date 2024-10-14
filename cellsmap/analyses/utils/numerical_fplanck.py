@@ -4,7 +4,25 @@ from scipy import sparse
 from scipy.sparse.linalg import expm, eigs, expm_multiply
 import enum
 from collections.abc import Iterable
-from fplanck.utility import value_to_vector, slice_idx 
+
+def value_to_vector(value, ndim, dtype=float):
+    """convert a value to a vector in ndim"""
+    value = np.asarray(value, dtype=dtype)
+    if value.ndim == 0:
+        vec = np.asarray(np.repeat(value, ndim), dtype=dtype)
+    else:
+        vec = np.asarray(value)
+        if vec.size != ndim:
+            raise ValueError(f'input vector ({value}) does not have the correct dimensions (ndim = {ndim})')
+
+    return vec
+
+def slice_idx(i, ndim, s0):
+    """return a boolean array for a ndim-1 slice along the i'th axis at value s0"""
+    idx = [slice(None)]*ndim
+    idx[i] = s0
+
+    return tuple(idx)
 
 class boundary_cls(enum.Enum):
     """enum for the types ofboundary conditions"""
@@ -13,7 +31,7 @@ class boundary_cls(enum.Enum):
     absorbing  = enum.auto()
 
 class fokker_planck:
-    def __init__(self, *, force, diffusion, extent, Ngrid, boundary=boundary_cls.absorbing):
+    def __init__(self, *, force, diffusion, extent, Ngrid, boundary=boundary_cls.reflecting):
         """
         Solve the Fokker-Planck equation
 
@@ -63,9 +81,22 @@ class fokker_planck:
                 # dU must include the diffusion term for space depended diffusion?
                 dU = -(np.roll(F[i]/D[i], -1, axis=i) + F[i]/D[i])/2*self.resolution[i]
                 self.Rt[i] += D[i]/self.resolution[i]**2*np.exp(-dU/2)
+                if np.any(np.isinf(self.Rt[i])) or np.any(np.isnan(self.Rt[i])):
+                    print('Rt has inf or nan')
+                    print(np.min(dU))
+                    print(np.argmin(dU))
+                    print(np.exp(-np.min(dU/2)))
 
-                dU = (np.roll(F[i]/F[i], 1, axis=i) + F[i]/D[i])/2*self.resolution[i]
+
+                dU = (np.roll(F[i]/D[i], 1, axis=i) + F[i]/D[i])/2*self.resolution[i]
                 self.Lt[i] += D[i]/self.resolution[i]**2*np.exp(-dU/2)
+
+                if np.any(np.isinf(self.Lt[i])) or np.any(np.isnan(self.Lt[i])):
+                    print('Lt has inf or nan')
+                    print(np.min(dU))
+                    print(np.argmin(dU))
+                    print(np.exp(-np.min(dU/2)))
+
         else:
             for i in range(self.ndim):
                 self.Rt[i] = self.diffusion_values[i]/self.resolution[i]**2

@@ -1,9 +1,6 @@
 import numpy as np
 import sympy
 
-from matplotlib import cm, colors
-import matplotlib.pyplot as plt
-
 from cellsmap.util import io
 import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
@@ -129,19 +126,19 @@ def plot_phase(ndim,f,centers,savedir,flow='all'):
     return
 
 # define function to plot generalized potential energy landscape
-def plot_gen_potential(ndim,U,centers,savedir,surf=False,flow='all'):
+def plot_gen_potential(ndim,U,centers,savedir,surf=False,flow='all',cmap='jet'):
     if ndim==1:
         fig,ax = viz.plot_gen_potential_1D(U,centers)
         viz.save_plot(fig,savedir+'figs/gen_potential_'+flow)
     else: # 2D
-        fig,ax = viz.plot_gen_potential_2D(U,centers[0],centers[1],cmap='jet',surf=surf)
+        fig,ax = viz.plot_gen_potential_2D(U,centers[0],centers[1],cmap=cmap,surf=surf)
         if surf:
             viz.save_plot(fig,savedir+'figs/gen_potential_surf_'+flow)
         else:
             viz.save_plot(fig,savedir+'figs/gen_potential_'+flow)
     return fig,ax
 
-def main(n_terms, ndim, savedir, flow='all'):
+def main(n_terms, ndim, savedir, flow='all', centers=None):
     '''Main function to load and analyze SINDy model outputs.'''
     # load SINDy model outputs
     V, Xi, f_expr, s_expr = load_model_outputs(savedir,flow)
@@ -149,7 +146,12 @@ def main(n_terms, ndim, savedir, flow='all'):
     f, D, sigma = get_model_functions(n_terms, ndim, V, Xi, f_expr, s_expr)
 
     # load histogram data to compare to stationary Fokker Planck solution
-    p_hist, bins, centers = get_histogram_data(ndim,savedir,flow)
+    if centers is None:
+        p_hist, bins, centers = get_histogram_data(ndim,savedir,flow)
+        centers_new = centers.copy()
+    else:
+        centers_new = centers.copy()
+        p_hist, bins, centers = get_histogram_data(ndim,savedir,flow)
 
     # following needs to be generalized to 1D
     if ndim == 1:
@@ -166,29 +168,31 @@ def main(n_terms, ndim, savedir, flow='all'):
 
     # plot phase portrait of vector field f OR phase line plot of drift function f
     print("\n","**** Plotting phase portrait of drift function f **** \n",sep="")
-    plot_phase(ndim,f,centers,savedir,flow)
+    plot_phase(ndim,f,centers_new,savedir,flow)
 
     N_fine = 125
     if ndim == 1:
-        x_fine = np.linspace(centers[0],centers[-1],N_fine)
+        x_fine = np.linspace(centers_new[0],centers_new[-1],N_fine)
         centers_new = [x_fine]
         f_vals_new = f(x_fine)
         D_vals_new = D(x_fine)
     else: # 2D
-        x_fine = np.linspace(centers[0][0],centers[0][-1],N_fine)
-        y_fine = np.linspace(centers[1][0],centers[1][-1],N_fine)
-        centers_new = [x_fine,y_fine]
+        x_fine = np.linspace(centers_new[0][0],centers_new[0][-1],N_fine)
+        y_fine = np.linspace(centers_new[1][0],centers_new[1][-1],N_fine)
+        centers_fine = [x_fine,y_fine]
         X1,X2 = np.meshgrid(x_fine,y_fine)
         f_vals_new = np.swapaxes(f(X1,X2),1,2)
         D_vals_new = np.swapaxes(D(X1,X2),1,2)
     print('**** Plotting generalized potential energy landscape **** \n')
-    U, grad_term, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_new)
-    fig, ax = plot_gen_potential(ndim,U,centers_new,savedir,surf=True,flow=flow)
+    U, grad_term, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_fine)
+    grad_norm = grad_term/(np.sqrt(grad_term[0]**2+grad_term[1]**2))
+    flux_norm = flux_term/(np.sqrt(flux_term[0]**2+flux_term[1]**2))
+    fig, ax = plot_gen_potential(ndim,U,centers_fine,savedir,surf=True,flow=flow)
     # same but with vector field decomposition
-    fig, ax = plot_gen_potential(ndim,U,centers_new,savedir,flow=flow)
+    fig, ax = plot_gen_potential(ndim,U,centers_fine,savedir,flow=flow)
     downsample=8
-    ax.quiver(x_fine[::downsample],y_fine[::downsample],grad_term[0][::downsample,::downsample].T,grad_term[1][::downsample,::downsample].T,scale=2,color='w',pivot='tail')
-    ax.quiver(x_fine[::downsample],y_fine[::downsample],flux_term[0][::downsample,::downsample].T,flux_term[1][::downsample,::downsample].T,scale=20,color='m',pivot='tail')
+    ax.quiver(x_fine[::downsample],y_fine[::downsample],grad_norm[0][::downsample,::downsample].T,grad_norm[1][::downsample,::downsample].T,color='w',pivot='tail')
+    ax.quiver(x_fine[::downsample],y_fine[::downsample],flux_norm[0][::downsample,::downsample].T,flux_norm[1][::downsample,::downsample].T,color='r',pivot='tail')
     ax.set_xlabel('PC1')
     ax.set_ylabel('PC2')
     viz.save_plot(fig,savedir+'figs/gen_potential_decomp_'+flow+'.png')

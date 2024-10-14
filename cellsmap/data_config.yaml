@@ -11,7 +11,21 @@
     jepa_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/jepa/predictions.csv,
     vicreg_no_rot_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg_no_rot/predictions.csv,
     mae_cdh5_small_patch: //allen/aics/assay-dev/users/Benji/cellsmap/results/mase_cdh5_small_patch_norm/predictions.csv,
-    mae_seg: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_seg/predictions.csv
-    mae_std_bf: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv
+    mae_seg: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_seg/predictions.csv,
+    mae_std_bf: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv,
+    seg_graph: //allen/aics/assay-dev/users/Erin/endo_features/20240305_T01_001/mean_alignments_and_edges.csv,
+    latent_ae: //allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/endo_time/latent_autoencoder_from_scratch_finetune_clip/2024-09-26_10-38-13/predictions.csv,
   }
-}]
+},
+{
+  name: '20240917',
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20240917/092324",
+  zarr_path: "",
+  pixel_size_xy_in_um: None,
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {
+    mae_cdh5_large_patch: '//allen/aics/assay-dev/users/Erin/endo_features/20240917/mae_cdh5_large_patch.csv',
+  }
+}
+]

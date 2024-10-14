@@ -209,18 +209,7 @@ def langevin_regression(ndim,data,lag_step,dt,N,auto_bin,bin_limits,nf,ns,savedi
     if log_file is not None:
         with open(log_file, 'a') as f:
             print("**** GPU available: "+str(torch.cuda.is_available()),file=f)
-            print("    **** Device: "+str(torch.device(torch.cuda.current_device()) if torch.cuda.is_available() else "cpu")+"\n",file=f)
-
-    # check if CUDA_VISIBLE_DEVICES is set
-    if torch.cuda.is_available() and 'CUDA_VISIBLE_DEVICES' not in os.environ:
-        # if not, set CUDA_VISIBLE_DEVICES to the GPU with lowest utilization
-        # solution via: https://stackoverflow.com/questions/39649102/how-do-i-select-which-gpu-to-run-a-job-on
-        get_best_gpu = "nvidia-smi --query-gpu=memory.free,index --format=csv,nounits,noheader | sort -nr | head -1 | awk '{ print $NF }'"
-        best_gpu = sp.check_output(['bash','-c',get_best_gpu]).decode('utf-8').strip()
-        os.environ['CUDA_VISIBLE_DEVICES'] = best_gpu
-        if log_file is not None:
-            with open(log_file, 'a') as f:
-                print("**** Setting CUDA_VISIBLE_DEVICES to "+best_gpu+" \n",file=f)
+            print("    **** Device: "+(torch.cuda.get_device_name() if torch.cuda.is_available() else "cpu")+"\n",file=f)
 
     num_traj = len(data)
     num_t = data[0].shape[1]
@@ -247,7 +236,6 @@ def langevin_regression(ndim,data,lag_step,dt,N,auto_bin,bin_limits,nf,ns,savedi
         np.save(savedir+'/outputs/KM_diff_'+flow+'.npy',a_KM)
         np.save(savedir+'/outputs/KM_drift_err_'+flow+'.npy',f_err)
         np.save(savedir+'/outputs/KM_diff_err_'+flow+'.npy',a_err)
-
     ### Build SINDy libraries with sympy, evaluate on histogram grid
     f_expr, s_expr = get_lib(ndim,nf,ns)
     # save SINDy libraries for later use

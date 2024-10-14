@@ -41,8 +41,12 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
     num_feats = X_feats.shape[1]
     if np.any(np.array(ndim)>num_feats):
         raise ValueError("Number of features to fit the model on exceeds the total number of features in the data.")
-    # z-score
-    X_scaled = pp.scale_features(X_feats)
+    # z-score if performing PCA
+    # X_scaled = pp.scale_features(X_feats)
+    if PCA:
+        X_scaled = pp.scale_features(X_feats)
+    else:
+        X_scaled = X_feats
 
     if log_file is not None:
         with open(log_file, 'a') as f:
@@ -52,13 +56,6 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
             print("*** Saving normalized features to "+savedir+"data/normed_feats.npy \n",file=f)
 
     np.save(savedir+'data/normed_feats',X_scaled)
-
-    # build dataframe of scaled data, leaving out crop path metadata
-    data_scaled = np.hstack((X_scaled,df[metadata[0]].values[:,None],df[metadata[1]].values[:,None]))
-    cols = df.columns
-    df_scaled = pd.DataFrame(data_scaled,columns=cols)
-    df_scaled[metadata[0]] = df_scaled[metadata[0]].astype(int) # trajectory index
-    df_scaled[metadata[1]] = df_scaled[metadata[1]].astype(int) # time point
 
     if PCA:
         # full PCA: get singular values, explained variance ratio, and principal components
@@ -80,9 +77,16 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
         fig, ax = plot_SVs(svs,exp_var) # plot singular values and cumulative explained variance
         save_plot(fig,savedir+'figs/PCA_SVs_ExpVar')
 
+        # build dataframe of scaled data with metadata
+        data_scaled = np.hstack((X_scaled,df[metadata[0]].values[:,None],df[metadata[1]].values[:,None]))
+        cols = df.columns
+        df_scaled = pd.DataFrame(data_scaled,columns=cols)
+        df_scaled[metadata[0]] = df_scaled[metadata[0]].astype(int) # trajectory index
+        df_scaled[metadata[1]] = df_scaled[metadata[1]].astype(int) # time point
         # get array of (scaled) single crop trajectories projected onto these top PC modes
-        return pp.project_trajectories(df_scaled, pcs[:ndim], 'crop_index', metadata_col=['crop_index','T'])
-    
+        # X_proj = X_scaled.reshape((num_traj,num_t,-1))
+        # X_proj = X_proj@pcs[:ndim].T
+        return pp.project_trajectories(df_scaled,pcs[:ndim],metadata[0],metadata_col=metadata)
     else:
         if feats_to_analyze is None:
             raise ValueError("Must specify which features to analyze if PCA is not performed.")
@@ -139,7 +143,6 @@ def main(config_name, path_to_data):
 
     print("\n","*** Getting trajectories from data... \n",sep="")
     X_t = get_scaled_traj(path_to_data,metadata,savedir,PCA,ndim,feats_to_analyze,log_file=log_file)
-
     if center_traj: # center initial conditions of all trajectories at zero
         for i in range(X_t.shape[0]):
             X_t[i] = X_t[i] - X_t[i,0]

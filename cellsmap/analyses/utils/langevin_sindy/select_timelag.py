@@ -78,8 +78,9 @@ def select_lag_2D(data,dt,N):
     # Markov test - dimension 1
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
     kl_div = np.zeros((num_traj,len(lag)))
+    L = max([max(np.abs(data[idx][:,0].max()),np.abs(data[idx][:,0].min())) for idx in range(num_traj)])
     for idx in range(num_traj):
-        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,0], delta, N=N[0]) for delta in lag])
+        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,0], delta, N=N[0],L=L) for delta in lag])
     kl_div = np.nanmean(kl_div,axis=0)
 
     axMid = subfigs[1].subplots(1, 1)
@@ -89,14 +90,15 @@ def select_lag_2D(data,dt,N):
     axMid.set_ylabel('$\mathcal{D}_{KL}(\\tau)$')
     axMid.set_xlabel('Sampling time lag $\\tau$')
     axMid.set_xlim([dt*lag.min()-0.05, dt*lag.max()+0.05])
-    axMid.set_ylim([1e-2, np.max([np.nanmax(kl_div)+0.05,1])])
+    axMid.set_ylim([1e-2, np.nanmax([np.nanmax(kl_div)+0.05,1])])
     axMid.grid()
 
     # Markov test - dimension 2
     lag = np.round( np.logspace(0.1, 2, 100) ).astype(int)
     kl_div = np.zeros((num_traj,len(lag)))
+    L = max([max(np.abs(data[idx][:,1].max()),np.abs(data[idx][:,1].min())) for idx in range(num_traj)])
     for idx in range(num_traj):
-        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,1], delta, N=N[1]) for delta in lag])
+        kl_div[idx,:] = np.array([tc.markov_test(data[idx][:,1], delta, N=N[1],L=L) for delta in lag])
     kl_div = np.nanmean(kl_div,axis=0)
 
     axBot = subfigs[2].subplots(1, 1)
@@ -106,7 +108,7 @@ def select_lag_2D(data,dt,N):
     axBot.set_ylabel('$\mathcal{D}_{KL}(\\tau)$')
     axBot.set_xlabel('Sampling time lag $\\tau$')
     axBot.set_xlim([dt*lag.min()-0.05, dt*lag.max()+0.05])
-    axBot.set_ylim([1e-2, np.max([np.nanmax(kl_div)+0.05,1])])
+    axBot.set_ylim([1e-2, np.nanmax([np.nanmax(kl_div)+0.05,1])])
     axBot.grid()
 
     return fig

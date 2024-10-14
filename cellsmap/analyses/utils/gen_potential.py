@@ -1,7 +1,7 @@
 import numpy as np
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
-def generalized_potential(P,grid=None,tol=1e-7):
+def generalized_potential(P,grid=None,tol=1e-8):
     '''
     Compute the generalized potential U = -ln(P) corresponding to 
     stationary probability density P.
@@ -96,7 +96,7 @@ def probability_flux(P,f,D,xArrays):
 
     return fP - divDP
 
-def grad_flux_decomposition(f,D,xArrays,tol=1e-7,isConstant=False):
+def grad_flux_decomposition(f,D,xArrays,tol=1e-8,isConstant=False):
     '''
     Compute the gradient/flux decomposition of the drift vector field f(x) for 
     stochastic dynamics with diagonal diffusion matrix D(x):

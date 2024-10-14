@@ -37,7 +37,7 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
 
         img_bin = 0
         DIM_MAP = io.get_dim_map('TYX')
-        raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
+        raw = io.load_dataset(dataset_name, time_start=0, level=img_bin)
 
         if IS_TEST:
             crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
