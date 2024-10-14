@@ -323,8 +323,15 @@ def initialize_rag(labeled_image: np.array, intensity_image: np.array, as_direct
     """
 
     rag = rag_boundary(labels=labeled_image, edge_map=intensity_image, connectivity=labeled_image.ndim)
-    ## remove the connection to the background label
-    rag.remove_node(0) if 0 in rag else None
+    ## remove the connection to the background label by setting the edge to the highest
+    ## possible weight. This way the 0-labeled node won't be merged with neighboring nodes.
+    # rag.remove_node(0) if 0 in rag else None
+    if 0 in rag:
+        for neighbor in rag[0]:
+            rag[0][neighbor]['weight'] = 1
+
+    for node in rag:
+        rag[node]
     if as_directed:
         rag = rag.to_directed()
 
@@ -375,62 +382,6 @@ def weight_boundary(graph, src, dst, n):
         'count': count,
         'weight': (count_src * weight_src + count_dst * weight_dst) / count,
     }
-
-def generate_segmentations_old(processed_img, hyst, hyst_clean, hyst_removed):
-    # create a version of the processed image where regions of the thresholded image
-    # that were removed are changed to be equal to the median of the non-thresholded
-    # regions
-    # NOTE: when I run this function on a single (1712, 9592) image
-    # it takes approximately 1 min 10 sec to execute.
-    bg_intensity_median = np.median(processed_img[~hyst]).astype(int)
-    sub_no_hyst_removed = processed_img.copy()
-    sub_no_hyst_removed[hyst_removed] = bg_intensity_median
-
-    # get seeds and basins for the watershed
-    seeds, basins = get_watershed_seeds_and_basins(~hyst)
-
-    # run watershed
-    seg_lab = watershed(sub_no_hyst_removed * basins, seeds, mask=~hyst_clean)
-    # bounds = segmentation.find_boundaries(seg_lab)
-
-    # re-run watershed after removing small regions that did not grow
-    seg_clean, seg_removed = clean_labeled_img(seg_lab)
-
-    seeds2, basins2 = get_watershed_seeds_and_basins(~find_boundaries(seg_clean))
-
-    seg_on_img = watershed(sub_no_hyst_removed, seeds2, mask=~hyst_clean)
-    seg_on_basins = watershed(basins, seeds2, mask=~hyst_clean)
-    seg2_lab = join_segmentations(seg_on_img, seg_on_basins)
-    seg2_lab = label(seg2_lab)
-
-    # perform hierarchical merging of a RAG
-    # (this initial merge using the processed image to get region
-    # boundary weights seems to work well but is is still imperfect)
-    seg2_lab_no_mask = watershed(processed_img, seg2_lab)
-    processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
-    rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
-
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
-                                                    rag_copy=False, in_place_merge=True,
-                                                    merge_func=dummy_func, weight_func=weight_boundary)
-
-    # lastly remove any "small" regions or seeds that didn't grow
-    # or get merged and repeat the watershed -> RAG -> merge step
-    # NOTE we assume that these "small" regions can't possibly be
-    # its own cell
-    cell_size_filter = 2000 # number of pixels of segmented area that is considered too small
-    seg2_filtered = remove_small_objects(seg2_lab_no_mask_merge, min_size=cell_size_filter)
-    seg2_lab_no_mask_merge = watershed(image=processed_img_normd, markers=seg2_filtered)
-
-    rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
-
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
-                                                    rag_copy=False, in_place_merge=True,
-                                                    merge_func=dummy_func, weight_func=weight_boundary)
-
-    return seg2_lab_no_mask_merge, seg2_lab
 
 def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: np.array, hyst_removed: np.array):
     """
@@ -492,14 +443,20 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     # perform hierarchical merging of a RAG
     # (this initial merge using the processed image to get region
     # boundary weights seems to work well but is is still imperfect)
+    # NOTE: merge_hierarchical will introduce 0 labels if they don't
+    #       exist already because it sequentially relabels the regions
+    #       after merging, so region labels need 1 added to them
     seg2_lab_no_mask = watershed(processed_img, seg2_lab)
     processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
     rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
     seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
-                                                      rag_copy=False, in_place_merge=True,
-                                                      merge_func=dummy_func, weight_func=weight_boundary)
+                                                rag_copy=False, in_place_merge=True,
+                                                merge_func=dummy_func, weight_func=weight_boundary)
+    # the += 1 is necessary because merge_hierarchical starts labels at 0,
+    # when they should start at 1 (0 labels are reserved for background).
+    seg2_lab_no_mask_merge += 1
 
     # what is going on here is that we are taking the segmentation
     # produced from merging regions using the intensities at region
@@ -543,7 +500,7 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     rag_skel = initialize_rag(seg2_lab_no_mask_skel, skel.astype(float))
 
     for lab in rag.adj:
-        # check if the label in from the previous segmentation is in
+        # check if the label from the previous segmentation is in
         # the new skeleton segmentation, and if not then remove
         # it from the previous segmentation
         if lab in rag_skel:
@@ -566,8 +523,11 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     # the same labels in roughly the same positions (with slightly
     # different borders)
     seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag_skel, thresh=merge_thresh,
-                                                      rag_copy=False, in_place_merge=True,
-                                                      merge_func=dummy_func, weight_func=weight_boundary)
+                                                rag_copy=False, in_place_merge=True,
+                                                merge_func=dummy_func, weight_func=weight_boundary)
+    # the += 1 is necessary because merge_hierarchical starts labels at 0,
+    # when they should start at 1 (0 labels are reserved for background).
+    seg2_lab_no_mask_merge += 1
 
     # lastly remove any "small" regions or seeds that didn't grow
     # or get merged and repeat the watershed -> RAG -> merge step
@@ -581,8 +541,11 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
     seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
-                                                      rag_copy=False, in_place_merge=True,
-                                                      merge_func=dummy_func, weight_func=weight_boundary)
+                                                rag_copy=False, in_place_merge=True,
+                                                merge_func=dummy_func, weight_func=weight_boundary)
+    # the += 1 is necessary because merge_hierarchical starts labels at 0,
+    # when they should start at 1 (0 labels are reserved for background).
+    seg2_lab_no_mask_merge += 1
 
     return seg2_lab_no_mask_merge, seg2_lab
 

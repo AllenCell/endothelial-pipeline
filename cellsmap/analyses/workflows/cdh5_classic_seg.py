@@ -5,14 +5,16 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import fire
 from cellsmap.util import cdh5_preprocessing as preproc, io
+try:
+    from IPython import get_ipython
+except ModuleNotFoundError:
+    pass
 
 
-
-def initialize_workflow(dataset_name, SAVE_OUTPUT=True):
-    # NOTE: this function is slightly different than the
-    # one found in 'cdh5_nodes_and_edges.py'
+def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
+    # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
-    PRJ_DIR = Path('../').resolve()
+    PRJ_DIR = Path('../../').resolve() if not IS_TEST else Path('../../../tests').resolve()
     assert PRJ_DIR.exists()
     val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
     out_dir = PRJ_DIR / 'results/cdh5_classic_seg'
@@ -35,42 +37,54 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
     analysis_args_queue = []
     for dataset_name in DATASET_NAME_LIST:
 
-        img_bin = 0
-        DIM_MAP = io.get_dim_map('TYX')
-        raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
+        img_bin_level = 0
+        DIM_MAP = io.get_dim_map('TCYX')
+        # get the name of the cadherin channel
+        chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+        # load the raw image data of from the cadherin channel
+        raw = io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
 
         if IS_TEST:
-            crop_y = slice(0, raw.shape[DIM_MAP["Y"]])
-            crop_x = slice(0, raw.shape[DIM_MAP["Y"]])
-            T_list = range(0, raw.shape[DIM_MAP["T"]], 12)
+            T_list = range(0, 1)
+            crop_c = slice(None, None)
+            crop_z = slice(None, None)
+            crop_y = slice(None, None)
+            crop_x = slice(None, None)
             for T in T_list:
-                analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
+                crop = {'T': T, 'C': crop_c,'Z': crop_z, 'Y': crop_y, 'X': crop_x}
+                analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
         else:
             # in the line below: replace 'raw.shape[DIM_MAP["T"]]' with an integer
             # to analyze a subset of timepoints in the timelapse
             T_list = range(0, raw.shape[DIM_MAP["T"]])
+            crop_c = slice(None, None)
+            crop_z = slice(None, None)
             crop_y = slice(None, None)
             crop_x = slice(None, None)
             for T in T_list:
-                analysis_args_queue.append([dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE])
+                crop = {'T': T, 'C': crop_c,'Z': crop_z, 'Y': crop_y, 'X': crop_x}
+                analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
 
     return analysis_args_queue
 
 def generate_results_multiproc_wrapper(args):
-    dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
-    generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+    dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE = args
+    generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
-def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+    
+    T = crop["T"]
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
-    out_dir_list, img_metadata = initialize_workflow(dataset_name)
+    out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
     out_dir, val_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
-    raw = io.load_dataset(dataset_name, time_start=0, resolution=img_bin)
-    img_crop = (slice(T, T+1), crop_y, crop_x)
-    raw_arr = raw[img_crop].compute().squeeze()
+    # get the name of the cadherin channel
+    chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+    # load the raw image data of from the cadherin channel
+    raw_arr = io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
     print(f'T={T} -- preprocessing image') if VERBOSE else None
     processed_img = preproc.preprocess(raw_arr)
@@ -114,7 +128,7 @@ def generate_results(dataset_name, T, crop_y, crop_x, img_bin, SAVE_OUTPUT=True,
 
 def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
-    DATASET_NAME_LIST = ['20240305_T01_001']
+    DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
 
     analysis_args_queue = build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
@@ -133,4 +147,18 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
     print('\N{microscope} Done analysis.')
 
 if __name__ == '__main__':
-    fire.Fire(main)
+    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # some non-interactive shell like bash
+    try:
+        # the following line will return a string if an interactive shell is in use,
+        # otherwise raises NameError if get_ipython is not imported from IPython
+        # or returns None if get_ipython is present but script is being executed
+        # from a non-interactive shell
+        if get_ipython().__class__.__name__ != 'NoneType':
+            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+            main()
+        else: raise NameError
+    except NameError:
+        print('Using non-interactive shell.')
+        fire.Fire(main)
