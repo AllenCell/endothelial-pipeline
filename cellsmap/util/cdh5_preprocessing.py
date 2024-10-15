@@ -541,7 +541,11 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
                                                 merge_func=dummy_func, weight_func=weight_boundary)
     # the += 1 is necessary because merge_hierarchical starts labels at 0,
     # when they should start at 1 (0 labels are reserved for background).
-    seg2_lab_no_mask_merge += 1
+    # We use good_label_mask so that the the labels that were in the
+    # previous segmentation but not the skeleton segmentation (which
+    # are now background) are not incremented (and therefore stay as
+    # background labels)
+    seg2_lab_no_mask_merge[good_label_mask] += 1
 
     # lastly remove any "small" regions or seeds that didn't grow
     # or get merged and repeat the watershed -> RAG -> merge step
