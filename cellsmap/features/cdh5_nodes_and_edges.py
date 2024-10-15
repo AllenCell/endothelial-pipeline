@@ -47,7 +47,10 @@ def build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=
 
         img_bin_level = 0
         DIM_MAP = io.get_dim_map('TCYX')
-        raw = io.load_dataset(dataset_name, channels=['CDH5_Tubulin',], time_start=0, level=img_bin_level)
+        # get the name of the cadherin channel
+        chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+        # load the raw image data of from the cadherin channel
+        raw = io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
 
         timeframe_eval_interval = 1
 
@@ -81,14 +84,17 @@ def generate_results_multiproc_wrapper(args):
 def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
 
     T = crop["T"]
-
+    
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
     out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
     images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
-    raw_arr = io.load_dataset(dataset_name, channels=['CDH5_Tubulin',], time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
+    # get the name of the cadherin channel
+    chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+    # load the raw image data of from the cadherin channel
+    raw_arr = io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
     seg, = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels=['segmentations_merged',])
     seg = seg.squeeze()
     seg_borders = find_boundaries(seg)
@@ -170,14 +176,13 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
                                   'edge_labels': labeled_region_metrics['edge_labels'],
                                   'node_labels': labeled_region_metrics['node_labels'],
                                   'node_pair_labels': labeled_region_metrics['node_pair_labels'],
-                                #   'touches_image_border': labeled_region_metrics['touches_image_border'],
                                   })
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_T{T}_segprops.csv', index=False)
 
 
 def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
-    DATASET_NAME_LIST = ['20240305_T01_001']
+    DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
 
     analysis_args_queue = build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 

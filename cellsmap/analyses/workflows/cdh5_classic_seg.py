@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
     # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
-    PRJ_DIR = Path('../').resolve() if not IS_TEST else Path('../../tests').resolve()
+    PRJ_DIR = Path('../../').resolve() if not IS_TEST else Path('../../../tests').resolve()
     assert PRJ_DIR.exists()
     val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
     out_dir = PRJ_DIR / 'results/cdh5_classic_seg'
@@ -39,7 +39,10 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
 
         img_bin_level = 0
         DIM_MAP = io.get_dim_map('TCYX')
-        raw = io.load_dataset(dataset_name, channels=['CDH5_Tubulin',], time_start=0, level=img_bin_level)
+        # get the name of the cadherin channel
+        chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+        # load the raw image data of from the cadherin channel
+        raw = io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
 
         if IS_TEST:
             T_list = range(0, 1)
@@ -69,7 +72,7 @@ def generate_results_multiproc_wrapper(args):
     generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
 def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
-
+    
     T = crop["T"]
 
     print(f'Working on {dataset_name} -- T={T}...')
@@ -78,7 +81,10 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
     out_dir, val_dir = out_dir_list
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
-    raw_arr = io.load_dataset(dataset_name, channels=['CDH5_Tubulin',], time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
+    # get the name of the cadherin channel
+    chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+    # load the raw image data of from the cadherin channel
+    raw_arr = io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
     print(f'T={T} -- preprocessing image') if VERBOSE else None
     processed_img = preproc.preprocess(raw_arr)
@@ -122,7 +128,7 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
 
 def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
-    DATASET_NAME_LIST = ['20240305_T01_001']
+    DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
 
     analysis_args_queue = build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
