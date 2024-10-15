@@ -5,6 +5,7 @@ from skimage.measure import regionprops, label
 from skimage.segmentation import join_segmentations
 from matplotlib import pyplot as plt
 from skimage.segmentation import find_boundaries
+import pandas as pd
 from multiprocessing import Pool
 from tqdm import tqdm
 import fire
@@ -59,7 +60,7 @@ def build_tracking_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=F
         timeframe_eval_interval = 1
 
         if IS_TEST:
-            T_list = range(0,3)
+            T_list = range(0,5)
             crop_c = slice(None, None)
             crop_z = slice(None, None)
             crop_y = slice(None, None)
@@ -80,25 +81,6 @@ def build_tracking_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=F
                 analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
 
     return analysis_args_queue
-
-def generate_results_multiproc_wrapper(args):
-    dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
-    generate_results(dataset_name, crop, img_bin, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
-
-def generate_results(dataset_name, crop, img_bin, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
-
-    T = crop["T"]
-
-    print(f'Working on {dataset_name} -- T={T}...')
-    print(f'T={T} -- initializing workflow') if VERBOSE else None
-    out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
-    images_out_dir, tables_out_dir_tracks, out_dir = out_dir_list
-
-    print(f'T={T} -- loading dataset') if VERBOSE else None
-    channels = ['segmentations_merged',]
-    seg, = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels)
-    seg = seg.squeeze()
-
 
 
 def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False) -> list:
@@ -195,19 +177,31 @@ def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], r
     # replace functions with their names in metrics
     metrics = [metric.__name__ if hasattr(metric, '__call__') else metric for metric in metrics]
 
-    # used a for-loop instead of a nested list comprehension for readability
-    list_of_labeled_metric_vals = []
-    for img_props in all_img_props:
-        # associate each label with its metrics
-        labeled_metric_vals = {prop.label: tuple([prop[metric] for metric in metrics]) for prop in img_props}
-        list_of_labeled_metric_vals.append(labeled_metric_vals)
 
+    # call the matching functions based on which metrics are used
     if 'region_overlap' in metrics:
         # if metrics = 'region_overlap' then a different matching function is needed
-        matched_labels_dict = match_labels_from_overlaps(list_of_labeled_metric_vals, reference_index, matching_method)
+        matched_labels_dict = match_labels_from_overlaps(labeled_images, reference_index, matching_method)
     else:
+        # used a for-loop instead of a nested list comprehension for readability
+        list_of_labeled_metric_vals = []
+        for img_props in all_img_props:
+            # associate each label with its metrics
+            labeled_metric_vals = {prop.label: tuple([prop[metric] for metric in metrics]) for prop in img_props}
+            list_of_labeled_metric_vals.append(labeled_metric_vals)
         # both metrics = 'centroids' and metrics = a list of metrics are handled the same way
         matched_labels_dict = match_labels_from_metrics(list_of_labeled_metric_vals, reference_index, metrics_thresholds, matching_method, exclude_if_any_thresholded)
+
+    # add the skimage regionprops to the matched_labels_dict with the
+    # matched_query_label and optimized_metric_value added as a property
+    # to the regionprops object
+    ref_props = {prop.label: prop for prop in all_img_props[reference_index]}
+    for label in matched_labels_dict:
+        matched_labels_dict[label]['regionprops'] = ref_props[label]
+        matched_labels_dict[label]['regionprops'].matched_query_label = matched_labels_dict[label]['matched_query_label']
+        matched_labels_dict[label]['regionprops'].optimized_metric_value = matched_labels_dict[label]['optimized_metric_value']
+        matched_labels_dict[label]['regionprops'].reference_index = reference_index
+        matched_labels_dict[label]['regionprops'].matching_method = matching_method
 
     return matched_labels_dict
 
@@ -380,12 +374,14 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
     # keys and the inner dict having key:value pairs for query labels and optimized metric values
     matched_labels_dict = {}
     for label in matched_labels_list[reference_index]:
-        matched_labels_dict[label] = {'matched_query_label': [matched_labels_list[i][label] for i in range(len(matched_labels_list))],
-                                      'optimized_metric_value': [matched_metrics_list[i][label] for i in range(len(matched_metrics_list))]}
+        # matched_labels_dict[label] = {'matched_query_label': [matched_labels_list[i][label] for i in range(len(matched_labels_list))],
+        #                               'optimized_metric_value': [matched_metrics_list[i][label] for i in range(len(matched_metrics_list))]}
+        matched_labels_dict[label] = {'matched_query_label': [matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked for i in range(len(matched_labels_list))],
+                                      'optimized_metric_value': [matched_metrics_list[i][label] if label in matched_metrics_list[i] else np.ma.masked for i in range(len(matched_metrics_list))]}
 
     return matched_labels_dict
 
-def match_labels_from_overlaps(labeled_images: list, reference_index: int=0,matching_method='forward') -> list:
+def match_labels_from_overlaps(labeled_images: list, reference_index: int=0, matching_method='forward', overlap_minimum=None) -> list:
     """
     
     
@@ -417,7 +413,11 @@ def match_labels_from_overlaps(labeled_images: list, reference_index: int=0,matc
             the reference_index dict.
             Equivalent to matching 'backwards' in time if list_of_labeled_metric_vals are labeled metric vals for sequential timepoints.
         Default is 'forward'.
-    
+    overlap_minimum: float
+        The minimum fraction of overlap required for a match to be considered. If None then a label with any amount of overlap is considered.
+        Default is None.
+        NOTE NOT YET IMPLEMENTED.
+
     Returns
     -------
     matched_labels_dict: dict
@@ -478,12 +478,10 @@ def match_labels_from_overlaps(labeled_images: list, reference_index: int=0,matc
     # keys and the inner dict having key:value pairs for query labels and optimized metric values
     matched_labels_dict = {}
     for label in matched_labels_list[reference_index]:
-        matched_labels_dict[label] = {'matched_query_label': [matched_labels_list[i][label] for i in range(len(matched_labels_list))],
-                                      'optimized_metric_value': [matched_metrics_list[i][label] for i in range(len(matched_metrics_list))]}
+        matched_labels_dict[label] = {'matched_query_label': [matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked for i in range(len(matched_labels_list))],
+                                      'optimized_metric_value': [matched_metrics_list[i][label] if label in matched_metrics_list[i] else np.ma.masked for i in range(len(matched_metrics_list))]}
 
     return matched_labels_dict
-
-
 
 
 def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarray, masked_labels=[0,]) -> dict:
@@ -499,8 +497,106 @@ def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarr
     return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
 
 
+def initialize_track_ids(list_of_region_props: list, T_initial: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.DataFrame:
+    """list_of_region_props_list = list(list(measure.regionprops))
+    list_of_region_props_list at index_to_initialize_on will be used to start a dataframe.
+    Each label in the region_props_list will get a row in the dataframe with its own track_id
+    as well as the associated centroid."""
+    region_props_list = list_of_region_props
+
+    tracking_data = list(zip(*[(T_initial, id + 1 + track_id_offset, *(region_props_list[id][prop] for prop in props_to_include)) for id in range(len(region_props_list))]))
+    column_names = [column_name for column_name in ('T', 'track_id', *props_to_include)]
+    track_ids = dict(zip(column_names, tracking_data))
+
+    track_ids = pd.DataFrame(track_ids)
+
+    return track_ids
 
 
+def reassign_track_ids_from_matches(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataFrame, track_id_offset: int=0, reference_index: int=0) -> pd.DataFrame:
+
+    current_T = new_track_ids['T'].max()
+    recent_track_ids['T_relative'] = recent_track_ids['T'] - current_T
+    recent_track_ids['match_at_current_T'] = recent_track_ids.apply(lambda row: row['matched_query_label'][reference_index - row['T_relative']], axis=1)
+    
+    # possible complications:
+    # 1. multiple matched labels from recent_track_ids at the same T point to the same label in new_track_ids (track merging event)
+    # 2. a single matched label from recent_track_ids points to multiple labels in new_track_ids (track splitting event)
+    # 3. no match in recent_track_ids was found (i.e. new track was born)
+    # in all 3 scenarios we should start new track_ids for affected labels
+    filtered_recent_track_ids = recent_track_ids[recent_track_ids['match_at_current_T'].transform(lambda x: not np.ma.is_masked(x))].reset_index(drop=False)
+    merged_tracks = filtered_recent_track_ids.groupby(['index', 'T', 'label']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
+    split_tracks = filtered_recent_track_ids.groupby(['index', 'T', 'match_at_current_T']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
+    new_tracks = new_track_ids[~new_track_ids['label'].isin(filtered_recent_track_ids['match_at_current_T'])]['label']
+
+    # reassign track_ids for existing tracks and give new track_ids to new tracks
+    existing_tracks_to_reassign = filtered_recent_track_ids.query('match_at_current_T not in @tracks_needing_new_ids', inplace=False)
+    tracks_needing_new_ids = new_tracks.to_list() + filtered_recent_track_ids[merged_tracks]['match_at_current_T'].to_list() + filtered_recent_track_ids[split_tracks]['match_at_current_T'].to_list()
+
+    existing_track_reassignments = dict(zip(existing_tracks_to_reassign['match_at_current_T'], existing_tracks_to_reassign['track_id']))
+    new_tracks_reassignments = dict(zip(sorted(set(tracks_needing_new_ids)), range(track_id_offset, track_id_offset + len(set(new_tracks)) + 1)))
+
+    # check that we are not overwriting any existing track ids
+    assert all([lab not in existing_track_reassignments for lab in new_tracks_reassignments]), 'new track ids are overwriting existing track ids'
+    track_id_reassignments = {**existing_track_reassignments, **new_tracks_reassignments}
+
+    # complete the track_id reassignments
+    new_track_ids['track_id'] = new_track_ids['label'].transform(lambda x: track_id_reassignments[x] if x in track_id_reassignments else x)
+
+    return new_track_ids
+
+
+def update_new_track_ids(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataFrame, reference_index: int=0) -> pd.DataFrame:
+
+    newest_track_id = recent_track_ids['track_id'].max()
+
+    new_track_ids = reassign_track_ids_from_matches(recent_track_ids=recent_track_ids, new_track_ids=new_track_ids, track_id_offset=newest_track_id, reference_index=reference_index)
+
+    return new_track_ids
+
+
+def generate_tracks(dataset_name, crop, img_bin, track_T_tolerance, relabel_images, SAVE_IMAGES, IS_TEST, VERBOSE):
+    for i, (dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE) in enumerate(analysis_args_queue):
+        print(f'T={crop["T"]} -- loading local timepoints') if VERBOSE else None
+        channels = ['segmentations_merged',]
+        labeled_images = [seg.squeeze() for timeframe in (crop["T"], crop["T"] + track_T_tolerance + 1) for chans in preproc.get_cdh5_classic_segmentation(dataset_name, timeframe, channels) for seg in chans]
+
+        # match labeled regions
+        matched_labels = match_labels_from_image(labeled_images, reference_index=reference_index, metrics=metrics, matching_method='reciprocal_matches_only')
+
+        matched_labels_props_list = [matched_labels[lab]['regionprops'] for lab in matched_labels]
+        props_to_include = ['label', 'reference_index', 'matched_query_label', 'optimized_metric_value', 'centroid', 'area', 'perimeter', 'orientation', 'eccentricity', 'matching_method']
+
+        # initialize track ids
+        newest_track_id = existing_track_ids['track_id'].max() if isinstance(existing_track_ids, pd.DataFrame) else 0
+        new_track_ids = initialize_track_ids(matched_labels_props_list, T_initial=crop["T"], track_id_offset=newest_track_id, props_to_include=props_to_include)
+
+        if isinstance(existing_track_ids, pd.DataFrame):
+            recent_T_range = range(max(0, crop["T"] - len(labeled_images)), crop["T"])
+            recent_track_ids = existing_track_ids.query('T in @recent_T_range')
+
+            # if i == 1:
+            #     break
+
+            # update track ids
+            new_track_ids = update_new_track_ids(recent_track_ids, new_track_ids, reference_index=reference_index)
+        else:
+            pass
+        # concatenate reassigned track ids to existing track ids
+        existing_track_ids = pd.concat([existing_track_ids, new_track_ids]) if isinstance(existing_track_ids, pd.DataFrame) else new_track_ids
+
+        # if i == 1:
+        #     break
+        if relabel_images:
+            # relabel images
+            vfunc = np.vectorize(lambda lab: dict(zip(new_track_ids['label'], new_track_ids['track_id'])).get)
+            relabeled_image = vfunc(labeled_images[reference_index])
+            labeled_images = [np.ma.masked_array(data=seg, mask=~np.isin(seg, new_track_ids['label'])) for seg in labeled_images]
+        if SAVE_IMAGES:
+            pass
+            # OmeTiffWriter.save_image(labeled_images[reference_index], out_dir / dataset_name / f'{dataset_name}_T{crop["T"]}_labeled.tif', verbose=VERBOSE)
+
+    return existing_track_ids
 
 
 SAVE_OUTPUT = True
@@ -509,44 +605,6 @@ VERBOSE = True
 DATASET_NAME_LIST = ['20240305_T01_001']
 analysis_args_queue = build_tracking_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
-
-dataset_name, args = DATASET_NAME_LIST[0], analysis_args_queue[0]
-
-# for image_at_t in timelapse:
-
-    # initialize track ids
-
-    # match centroids
-
-    # update track ids
-
-
-
-dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE = args
-
-# T = crop["T"]
-# print(f'T={T} -- loading dataset') if VERBOSE else None
-# channels = ['segmentations_merged',]
-# seg, = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels)
-# seg = seg.squeeze()
-
-# props = measure.regionprops(seg)
-# [prop for prop in props[0]]
-# list(zip(props[0]))
-# props[0].centroid
-
-channels = ['segmentations_merged',]
-# for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue:
-#     print(dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE)
-labeled_images = [seg.squeeze() for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue for chans in preproc.get_cdh5_classic_segmentation(dataset_name, crop["T"], channels) for seg in chans]
-
-for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue:
-    print(0)
-    for chans in preproc.get_cdh5_classic_segmentation(dataset_name, crop["T"], channels):
-        print(1)
-        for seg in chans:
-            print(2)
-            seg.squeeze()
 
 # TODO
 # 1. CLEAN UP THIS SCRIPT BY SENDING SOME FUNCTIONS TO lib_tracking.py
@@ -557,9 +615,54 @@ for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_
 # 4. BUILD TABLES OF LABELED TRACKS AND SAVE THEM
 
 metrics = ['region_overlap',]
-test = match_labels_from_image(labeled_images, reference_index=0, metrics=metrics)
+reference_index = 0
+existing_track_ids = None
+dataset_name, crop, img_bin, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True = analysis_args_queue[0]
+
+def generate_results(dataset_name, crop, img_bin, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+
+    T = crop["T"]
+
+    print(f'Working on {dataset_name} -- T={T}...')
+    print(f'T={T} -- initializing workflow') if VERBOSE else None
+    # get input and output filepaths and image metadata
+    out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
+    images_out_dir, tables_out_dir_tracks, out_dir = out_dir_list
+
+    print(f'T={T} -- starting track creation') if VERBOSE else None
+    # the number of timepoints that a track can not have a match before it is considered lost
+    track_T_tolerance = 0
+    existing_track_ids = generate_tracks(dataset_name, crop, img_bin, track_T_tolerance, relabel_images=True, SAVE_IMAGES=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+
+    if SAVE_OUTPUT:
+        existing_track_ids.to_csv(out_dir / dataset_name / f'{dataset_name}_cdh5_classic_seg_tracking.csv', index=False, sep='\t')
 
 
-# save images of each timepoint with 2 channels per timepoint:
-#   1. segmentations labeled with their track number as their integer label
-#   2. tracks (using region centroids) labeled with their track number as their integer label
+def main(SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
+
+    DATASET_NAME_LIST = ['20240305_T01_001']
+
+    analysis_args_queue = build_tracking_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+
+    for dataset_name_and_args in analysis_args_queue:
+        generate_results(dataset_name_and_args)
+
+    print('\N{microscope} Done analysis.')
+
+
+if __name__ == '__main__':
+    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # some non-interactive shell like bash
+    try:
+        # the following line will return a string if an interactive shell is in use,
+        # otherwise raises NameError since get_ipython is not imported from IPython
+        # or returns None if get_ipython is present but script is being executed
+        # from a non-interactive shell
+        if get_ipython().__class__.__name__ != 'NoneType':
+            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+            main()
+        else: raise NameError
+    except NameError:
+        print('Using non-interactive shell.')
+        fire.Fire(main)
