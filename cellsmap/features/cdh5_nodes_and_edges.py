@@ -55,7 +55,7 @@ def build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=
         timeframe_eval_interval = 1
 
         if IS_TEST:
-            T_list = range(0,1)
+            T_list = range(0,5)
             crop_c = slice(None, None)
             crop_z = slice(None, None)
             crop_y = slice(None, None)
