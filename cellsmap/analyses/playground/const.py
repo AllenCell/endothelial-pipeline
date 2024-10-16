@@ -1,0 +1,10 @@
+M = 64  # Crop dimensions (MxM)
+N = 256  # Latent space dimensions
+BATCH_SIZE = 64
+NUM_EPOCHS = 512
+LEARNING_RATE = 5e-4
+TEST_SIZE = 0.2  # 20% of the data for testing
+VMIN = 115 # 5th percentile of CDH5+Tubulin images
+VMAX = 120 # 95th percentile of CDH5+Tubulin images
+BETA = 0.5 # beta VAE
+MODEL_ID_KEY = "CELLSMAP_MODELID"
