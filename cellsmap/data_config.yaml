@@ -4,6 +4,7 @@
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
+  cdh5_channel_name: CDH5_Tubulin,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {
     vicreg_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
@@ -13,5 +14,22 @@
     mae_cdh5_small_patch: //allen/aics/assay-dev/users/Benji/cellsmap/results/mase_cdh5_small_patch_norm/predictions.csv,
     mae_seg: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_seg/predictions.csv,
     mae_std_bf: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv
+  }
+},{
+  name: 20240917_20X_48hr,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20240917/092324/20240917_20x_48hr_timelapse-Pos1-3D montage complete.dir/20240917_20X_48hr_timelapse - Position 1 [6] 3DMontage Complete-1727807255-166.imgdir",
+  zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240917_20X_48hr.ome.zarr,
+  pixel_size_xy_in_um: 0.382,
+  time_interval_in_minutes: 5.0,
+  cdh5_channel_name: CDH5,
+  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {
+    vicreg_cdh5: None,
+    mae_cdh5: None,
+    jepa_cdh5: None,
+    vicreg_no_rot_cdh5: None,
+    mae_cdh5_small_patch: None,
+    mae_seg: None,
+    mae_std_bf: None
   }
 }]

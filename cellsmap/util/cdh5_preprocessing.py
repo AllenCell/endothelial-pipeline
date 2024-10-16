@@ -583,14 +583,12 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
         A list of Path objects pointing to each image file (one image per timepoint).
     """
 
-    # dataset_name = '20240305_T01_001'
-
     prj_dir = Path('../').resolve()
     config_file = prj_dir / 'cdh5_seg_config.yaml'
     assert config_file.exists()
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
-    segmentation_dirs = [prj_dir / data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
+    segmentation_dirs = [data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
     filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob('*.tif*'))]
 
     if sort_paths:
@@ -662,7 +660,7 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
     filepaths = {fpath: extract_T(fpath) for fpath in filepaths}
     fpath = [fpath for fpath in filepaths if filepaths[fpath]==T]
-    assert len(fpath) == 1, f'Multiple files found for timepoint T. Files found: \n{fpath}'
+    assert len(fpath) == 1, f"Multiple files found for timepoint {T}." if len(fpath) > 1 else f"No files found for timepoint {T}."
 
     dim_map = get_dim_map('TCZYX')
     dim_order = sorted(dim_map, key=lambda d: dim_map[d])
