@@ -45,7 +45,7 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
         raw = io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
 
         if IS_TEST:
-            T_list = range(0, 1)
+            T_list = range(0, 5)
             crop_c = slice(None, None)
             crop_z = slice(None, None)
             crop_y = slice(None, None)

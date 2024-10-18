@@ -499,6 +499,7 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
     rag_skel = initialize_rag(seg2_lab_no_mask_skel, skel.astype(float))
 
+    # NOTE: there might be a faster way to do this (there probably is)
     for lab in rag.adj:
         # check if the label from the previous segmentation is in
         # the new skeleton segmentation, and if not then remove
@@ -514,8 +515,21 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
                 # merge those regions
                 if neighbor not in set(rag[lab]):
                     rag_skel[lab][neighbor]['weight'] = 1
+            
+            for neighbor in rag[lab]:
+                # check if there are any neighbors in the previous
+                # segmentation that were not a neighbor for that same
+                # label in the new skeleton segmentation, and if so
+                # then add that neighbor from the previous
+                # segmentation to the new skeleton segmentation and
+                # give it an edge weight of 1 so that it will not
+                # be merged with the home label
+                if neighbor not in set(rag_skel[lab]) and neighbor in rag_skel:
+                    rag_skel.add_edge(lab, neighbor, weight=1, count=1)
         else:
             seg2_lab_no_mask_merge[seg2_lab_no_mask_merge == lab] = 0
+
+    good_label_mask = seg2_lab_no_mask_merge != 0
 
     merge_thresh = (1/2)/2
 
@@ -527,7 +541,11 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
                                                 merge_func=dummy_func, weight_func=weight_boundary)
     # the += 1 is necessary because merge_hierarchical starts labels at 0,
     # when they should start at 1 (0 labels are reserved for background).
-    seg2_lab_no_mask_merge += 1
+    # We use good_label_mask so that the the labels that were in the
+    # previous segmentation but not the skeleton segmentation (which
+    # are now background) are not incremented (and therefore stay as
+    # background labels)
+    seg2_lab_no_mask_merge[good_label_mask] += 1
 
     # lastly remove any "small" regions or seeds that didn't grow
     # or get merged and repeat the watershed -> RAG -> merge step
@@ -565,9 +583,8 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
         A list of Path objects pointing to each image file (one image per timepoint).
     """
 
-    # dataset_name = '20240305_T01_001'
-
-    config_file = Path('../').resolve() / 'cdh5_seg_config.yaml'
+    prj_dir = Path('../').resolve()
+    config_file = prj_dir / 'cdh5_seg_config.yaml'
     assert config_file.exists()
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
@@ -643,7 +660,7 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
     filepaths = {fpath: extract_T(fpath) for fpath in filepaths}
     fpath = [fpath for fpath in filepaths if filepaths[fpath]==T]
-    assert len(fpath) == 1
+    assert len(fpath) == 1, f"Multiple files found for timepoint {T}." if len(fpath) > 1 else f"No files found for timepoint {T}."
 
     dim_map = get_dim_map('TCZYX')
     dim_order = sorted(dim_map, key=lambda d: dim_map[d])
