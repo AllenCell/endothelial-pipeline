@@ -56,7 +56,7 @@ def build_tracking_analysis_queue(dataset_name, SAVE_OUTPUT=True, IS_TEST=False,
     timeframe_eval_interval = 1
 
     if IS_TEST:
-        T_list = range(0,5)
+        T_list = range(0,10)
         crop_c = slice(None, None)
         crop_z = slice(None, None)
         crop_y = slice(None, None)
@@ -572,14 +572,14 @@ def update_new_track_ids(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataF
 
 def update_track_table(dataset_name, crop, existing_track_ids, tracking_metrics=['centroid'], VERBOSE=False):
 
-    track_T_tolerance = 0
+    track_T_tolerance = 1
     reference_index = 0
     # existing_track_ids = [] # <- NOTE BUG?: SHOULD THIS BE OUTSIDE OF THIS FUNCTION?
 
     # for dataset_name, crop, img_bin, SAVE_OUTPUT, IS_TEST, VERBOSE in analysis_args_queue:
     print(f'T={crop["T"]} -- loading local timepoints') if VERBOSE else None
     channels = ['segmentations_merged',]
-    labeled_images = [seg_chan.squeeze() for timeframe in (crop["T"], crop["T"] + track_T_tolerance + 1) for chans in preproc.get_cdh5_classic_segmentation(dataset_name, timeframe, channels) for seg_chan in chans]
+    labeled_images = [seg_chan.squeeze() for timeframe in range(crop["T"], crop["T"] + track_T_tolerance + 2) for chans in preproc.get_cdh5_classic_segmentation(dataset_name, timeframe, channels) for seg_chan in chans]
 
     print(f'T={crop["T"]} -- updating tracks') if VERBOSE else None
     # existing_track_ids, new_track_ids = update_track_table(labeled_images, existing_track_ids=existing_track_ids, reference_index=0, metrics=metrics, current_T=crop["T"])
@@ -639,14 +639,14 @@ VERBOSE = True
 
 def main(SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
-    # DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
+    DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
     # DATASET_NAME_LIST = ['20240305_T01_001',]
-    DATASET_NAME_LIST = ['20240917_20X_48hr',]
+    # DATASET_NAME_LIST = ['20240917_20X_48hr',]
 
     # create output directories if they don't exist and get image metadata from the input image
     for dataset_name in DATASET_NAME_LIST:
 
-        dataset_name = DATASET_NAME_LIST[0]
+        # dataset_name = DATASET_NAME_LIST[0]
 
         track_table = generate_results(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
 

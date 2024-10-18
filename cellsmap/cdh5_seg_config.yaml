@@ -6,6 +6,7 @@
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow_in_frames: [[0, 287, 20], [288, 576, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
 },{
   name: 20240917_20X_48hr,
   segmentation_dir: "//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240917_20X_48hr",
@@ -14,5 +15,6 @@
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow_in_frames: [[0, 270, 25], [271, 576, 7.5]], #format: [[start_time_in_timeframes, end_time_in_timeframes, flow in dyn/cm2], ...]
 },
 ]
