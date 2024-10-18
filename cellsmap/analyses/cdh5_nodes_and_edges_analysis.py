@@ -34,7 +34,7 @@ def stringified_floatlist_to_floatlist(ls, to_tuple=False):
     return tuple(float_list) if to_tuple else float_list
 
 
-def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=True):
+def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
 
     DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
 
