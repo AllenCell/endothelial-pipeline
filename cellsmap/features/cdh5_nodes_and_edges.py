@@ -173,6 +173,7 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
                                   'cell_fluorescence_pct25 (a.u.)': labeled_region_metrics['cell_fluorescence_pct25 (au)'],
                                   'cell_fluorescence_pct75 (a.u.)': labeled_region_metrics['cell_fluorescence_pct75 (au)'],
                                   'cell_fluorescence_max (a.u.)': labeled_region_metrics['cell_fluorescence_max (au)'],
+                                  'neighboring_cell_labels': labeled_region_metrics['neighboring_cell_labels'],
                                   'edge_labels': labeled_region_metrics['edge_labels'],
                                   'node_labels': labeled_region_metrics['node_labels'],
                                   'node_pair_labels': labeled_region_metrics['node_pair_labels'],
