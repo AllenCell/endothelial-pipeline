@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
@@ -39,8 +38,7 @@ def ipython_cli_flexecute(function: callable, *args, **kwargs):
 
 
 
-
-def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False) -> list:
+def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False) -> list:
     """
     Match labels between frames based on a list of metrics.
 
@@ -93,7 +91,14 @@ def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], r
             is less than or equal to the reference_index. Otherwise finds the closest match for each label in the other dicts from
             the reference_index dict.
             Equivalent to matching 'backwards' in time if list_of_labeled_metric_vals are labeled metric vals for sequential timepoints.
+        'reciprocal_matches_only': Only return matches that are found in both from_reference and to_reference. As a result only one-to-one
+            matches will be returned (i.e. there will be no splitting or merging of tracks that result from matching this way).
         Default is 'forward'.
+    exclude_if_any_thresholded: bool
+        If True then if any of the metrics matched to a label exceed the threshold then that label will not be included in the output.
+        Otherwise a label will only be excluded if all metrics exceed the threshold. This can be useful for if any metric exceeding a
+        threshold is unacceptable (e.g. if a more conservative matching strategy is desired).
+        Default is False.
 
     Returns
     -------
@@ -113,6 +118,7 @@ def match_labels_from_image(labeled_images: list, metrics: list=['centroid',], r
     """
 
     # run some checks on the inputs first
+    assert matching_method in ['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'], 'matching_method must be one of "forward", "reverse", "to_reference", or "from_reference"'
     assert reference_index < len(labeled_images), 'reference_index must be less than the number of images in labeled_images'
     assert all([img.ndim in [2, 3] for img in labeled_images]), 'all images in labeled_images must be 2D or 3D arrays'
     acceptable_metrics = ['centroid', 'area', 'convex_area', 'eccentricity', 'equivalent_diameter', 'euler_number', 'extent', 'filled_area', 'major_axis_length', 'minor_axis_length', 'orientation', 'perimeter', 'perimeter_crofton', 'solidity', 'intensity_mean', 'intensity_max', 'intensity_min', 'intensity_std', 'region_overlap']
@@ -171,66 +177,30 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
     
     Parameters
     ----------
+    See `lib_tracking.match_labels_from_images` for details.
     list_of_labeled_metric_vals: list of dicts
         Each dict in the list consists of labels (keys) and their associated metrics (values).
         All labels in all dicts must have the same number of metrics.
         The dict at the reference_index will be compared to each of the other dicts in the list and the labels that
         are most similar will be returned.
-        Example:
-            labeled_metrics = [{label1: (metrics_1.1, metrics_1.2, ..., metrics_1.n),
-                                label2: (metrics_2.1, metrics_2.2, ..., metrics_2.n),
-                                ...
-                                labelm: (metrics_m.1, metrics_m.2, ..., metrics_m.n)},
-                               ...]
-    reference_index: int
-        The index of the list_of_labeled_metric_vals that will be used as the reference for matching metrics.
-        Must be an integer between 0 and len(list_of_labeled_metric_vals) - 1.
+    reference_index : int
+        Index of the image in labeled_images to use as the reference for matching labels.
+        Must be an integer between 0 and len(labeled_images) - 1.
     metrics_thresholds: list of floats
         The maximum difference allowed between the reference metric and the other metrics for a match to be considered.
         Must have the same length as the number of metrics provided.
-        If a metric difference exceeds the threshold then it will be masked and not included when calculating the mean
-        metric difference if multiple metrics are provided.
-        If all metrics exceed a threshold and are therefore masked then that label will not have a match for that dict.
-        If no threshold for anything then None can be used.
-        If no threshold is desired for some metrics but not others then np.inf can be used at the index that corresponds
-        to the metrics for which no threshold is desired.
     matching_method: str
-        Determines how the matching is done. Options are 'forward', 'reverse', 'to_reference', 'from_reference'.
-        'from_reference': Finds the closest match for each label in the reference_index dict from the other dicts.
-            All labels in reference dict will be present in the output, but not necessarily all labels from the other dicts.
-        'to_reference': Finds the closest match for each label in the other dicts from the reference_index dict.
-            All labels in the other dicts will be present in the output, but not necessarily all labels from the reference dict.
-        'forward': Finds the closest match for each label in the reference_index dict from the other dicts if the other dicts index
-            is greater than or equal to the reference_index. Otherwise finds the closest match for each label in the other dicts from
-            the reference_index dict.
-            Equivalent to matching 'forwards' in time if list_of_labeled_metric_vals are labeled metric vals for sequential timepoints.
-        'reverse': Finds the closest match for each label in the reference_index dict from the other dicts if the other dicts index
-            is less than or equal to the reference_index. Otherwise finds the closest match for each label in the other dicts from
-            the reference_index dict.
-            Equivalent to matching 'backwards' in time if list_of_labeled_metric_vals are labeled metric vals for sequential timepoints.
-        'reciprocal_matches_only': Only return matches that are found in both from_reference and to_reference. As a result only one-to-one
-            matches will be returned (i.e. there will be no splitting or merging of tracks that result from matching this way).
-        Default is 'forward'.
-    exclude_if_any_thresholds: bool
+        Determines how the matching is done. Options are 'forward', 'reverse', 'to_reference', 'from_reference', and 'reciprocal_matches_only'.
+    exclude_if_any_thresholded: bool
         If True then if any of the metrics matched to a label exceed the threshold then that label will not be included in the output.
-        Otherwise a label will only be excluded if all metrics exceed the threshold. This can be useful for if any metric exceeding a
-        threshold is unacceptable (e.g. if a more conservative matching strategy is desired).
-        Default is False.
+
     Returns
     -------
+    See `lib_tracking.match_labels_from_images` for more details.
     matched_labels_dict: dict
         A dictionary of dictionaries where the keys of the outer dictionary are the labels of list_of_labeled_metric_vals at 
         reference_index and the inner dictionary has keys for the query labels and values the optimized metric values found
-        in the other indices of list_of_labeled_metric_vals. Both the values for matched_query_labels and optimized_metric_values
-        are lists of the same length as list_of_labeled_metric_vals. If no match is found for a label at a specific index in
-        list_of_labeled_metric_vals then a masked value will be returned at that index for both matched_query_labels and
-        optimized_metric_values.
-        Example:
-            matched_labels_dict = {reference_label1: {'matched_query_label': [query_label1, query_label2, ...],
-                                                      'optimized_metric_value': [optimized_metric_value1, optimized_metric_value2, ...]},
-                                   reference_label2: {'matched_query_label': [query_label1, query_label2, ...],
-                                                      'optimized_metric_value': [optimized_metric_value1, optimized_metric_value2, ...]},
-                                   ...}
+        in the other indices of list_of_labeled_metric_vals.
     """
 
     # run some checks on the inputs first
@@ -347,15 +317,15 @@ def match_labels_from_overlaps(labeled_images: list, reference_index: int=0, mat
     matching_method: str
         Determines how the matching is done. Options are 'forward', 'reverse', 'to_reference', 'from_reference' and 'reciprocal_matches_only'.
         Default is 'forward'.
-    overlap_minimum: float
+    overlap_minimum: float (NOTE NOT YET IMPLEMENTED)
         The minimum fraction of overlap required for a match to be considered. If None then a label with any amount of overlap is considered.
         Default is None.
-        NOTE NOT YET IMPLEMENTED.
+        NOTE THIS PARAMETER IS NOT YET IMPLEMENTED.
 
     Returns
     -------
+    See `lib_tracking.match_labels_from_images` for more details.
     matched_labels_dict: dict
-        See `lib_tracking.match_labels_from_images` for more details.
         A dictionary of dictionaries where the keys of the outer dictionary are the labels of list_of_labeled_metric_vals at 
         reference_index and the inner dictionary has keys for the query labels and values the optimized metric values found
         in the other indices of list_of_labeled_metric_vals.
@@ -496,7 +466,7 @@ def update_track_table(dataset_name, crop, existing_track_ids, tracking_metrics=
     labeled_images = [seg_chan.squeeze() for timeframe in range(crop["T"], crop["T"] + track_T_tolerance + 2) for chans in get_cdh5_classic_segmentation(dataset_name, timeframe, channels) for seg_chan in chans]
 
     print(f'T={crop["T"]} -- updating tracks') if VERBOSE else None
-    matched_labels = match_labels_from_image(labeled_images, reference_index=reference_index, metrics=tracking_metrics, matching_method='reciprocal_matches_only')
+    matched_labels = match_labels_from_images(labeled_images, reference_index=reference_index, metrics=tracking_metrics, matching_method='reciprocal_matches_only')
 
     matched_labels_props_list = [matched_labels[lab]['regionprops'] for lab in matched_labels]
     props_to_include = ['label', 'reference_index', 'matched_query_label', 'optimized_metric_value', 'centroid', 'area', 'perimeter', 'orientation', 'eccentricity', 'matching_method']
