@@ -588,7 +588,7 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
     assert config_file.exists()
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
-    segmentation_dirs = [data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
+    segmentation_dirs = [prj_dir / data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
     filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob('*.tif*'))]
 
     if sort_paths:

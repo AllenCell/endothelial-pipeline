@@ -72,7 +72,7 @@ def generate_results_multiproc_wrapper(args):
     generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
 def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
-    
+
     T = crop["T"]
 
     print(f'Working on {dataset_name} -- T={T}...')

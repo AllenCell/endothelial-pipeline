@@ -68,11 +68,19 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
         df_ang_dist['Time (hours)'] = df_ang_dist['T'].transform(lambda x: x * t_res_hrs)
         df_segprops['Time (hours)'] = df_segprops['T'].transform(lambda x: x * t_res_hrs)
 
+        # the orientation is initially relative to the vertical and ranges from -np.pi/2
+        # to np.pi/2 so we need to restrict it to 0 to np.pi/2 with abs() and then shift
+        # it it 90 degrees to make it relative to the horizontal (and then take the absolute
+        # so that the angle becomes positive again)
+        df_segprops['cell_orientation_relative_to_horizontal'] = df_segprops['cell_orientation'].transform(lambda x: abs(np.pi/2 - abs(x)))
+        df_segprops['cell_orientation_relative_to_horizontal_in_deg'] = df_segprops['cell_orientation_relative_to_horizontal'].transform(lambda x: np.rad2deg(x))
+
+
         # convert the lists of number from strings back to lists of numbers
         cols_to_fix = ['edge_length (px)', 'edge_fluorescence_mean (a.u.)',
-                    'edge_fluorescence_std (a.u.)', 'edge_fluorescence_median (a.u.)',
-                    'edge_fluoresnce_min (a.u.)', 'edge_fluorescence_pct25 (a.u.)',
-                    'edge_fluorescence_pct75 (a.u.)', 'edge_fluorescence_max (a.u.)']
+                       'edge_fluorescence_std (a.u.)', 'edge_fluorescence_median (a.u.)',
+                       'edge_fluoresnce_min (a.u.)', 'edge_fluorescence_pct25 (a.u.)',
+                       'edge_fluorescence_pct75 (a.u.)', 'edge_fluorescence_max (a.u.)']
         for col_name in cols_to_fix:
             df_ang_dist[col_name] = df_ang_dist[col_name].transform(lambda x: stringified_floatlist_to_floatlist(x, to_tuple=False))
             df_ang_dist[col_name+'_count'] = df_ang_dist[col_name].transform(lambda x: len(x))
@@ -86,10 +94,11 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
 
         # create a summary dataframe
         df_ang_dist_summary = df_ang_dist.groupby(['Time (hours)', 'T'])[['angle_relative_to_horizontal_in_deg',
-                                                                        'node_to_node_distance',
-                                                                        'edge_fluorescence_mean (a.u.)',
-                                                                        'edge_length (px)',
-                                                                        'normalized_node-node_distance']].describe()
+                                                                          'node_to_node_distance',
+                                                                          'edge_fluorescence_mean (a.u.)',
+                                                                          'edge_length (px)',
+                                                                          'normalized_node-node_distance',
+                                                                          ]].describe()
         flat_col_names = pd.Index(['_'.join(multilevel_col) for multilevel_col in df_ang_dist_summary.columns])
         df_ang_dist_summary.columns = flat_col_names
         df_ang_dist_summary.reset_index(inplace=True)
@@ -97,10 +106,12 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
             df_ang_dist_summary.to_csv(out_dir / f'{dataset_name}_alignments_summary.csv')
 
         df_segprops_summary = df_segprops.groupby(['Time (hours)', 'T'])[['cell_area (px**2)',
-                                                                        'cell_perimeter (px)',
-                                                                        'cell_fluorescence_mean (a.u.)',
-                                                                        'cell_eccentricity',
-                                                                        'cell_orientation']].describe()
+                                                                          'cell_perimeter (px)',
+                                                                          'cell_fluorescence_mean (a.u.)',
+                                                                          'cell_eccentricity',
+                                                                          'cell_orientation_relative_to_horizontal',
+                                                                          'cell_orientation_relative_to_horizontal_in_deg',
+                                                                          ]].describe()
         flat_col_names = pd.Index(['_'.join(multilevel_col) for multilevel_col in df_segprops_summary.columns])
         df_segprops_summary.columns = flat_col_names
         df_segprops_summary.reset_index(inplace=True)
@@ -119,14 +130,14 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
         ## also plot more detailed alignment measures at each timepoint
         dist_min, dist_max = df_ang_dist['node_to_node_distance'].min(), df_ang_dist['node_to_node_distance'].max()
         args_list = [(out_dir_plots,
-                    dataset_name + f'_T{T}',
-                    time_hrs,
-                    grp['angle_relative_to_horizontal'],
-                    grp['node_to_node_distance'],
-                    dist_min, dist_max,
-                    SHOW_PLOTS,
-                    SAVE_OUTPUT)
-                    for (dataset_name, time_hrs, T), grp in df_ang_dist.groupby(['dataset_name', 'Time (hours)', 'T'])]
+                      dataset_name + f'_T{T}',
+                      time_hrs,
+                      grp['angle_relative_to_horizontal'],
+                      grp['node_to_node_distance'],
+                      dist_min, dist_max,
+                      SHOW_PLOTS,
+                      SAVE_OUTPUT)
+                     for (dataset_name, time_hrs, T), grp in df_ang_dist.groupby(['dataset_name', 'Time (hours)', 'T'])]
 
         if N_PROC > 1:
             if __name__ == '__main__':
@@ -137,25 +148,16 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
                         pool.join()
                     print('Done multiprocessing.')
         else:
-            # for (dataset_name, time_hrs, T), grp in df_ang_dist.groupby(['dataset_name', 'Time (hours)', 'T']):
             for args in args_list:
-                # out_path = 
                 vis.generate_alignment_plots(*args)
-                # vis.generate_alignment_plots(out_dir_plots,
-                #                              dataset_name + f'_T{T}',
-                #                              time_hrs,
-                #                              grp['angle_relative_to_horizontal'],
-                #                              grp['node_to_node_distance'],
-                #                              dist_min, dist_max,
-                #                              SHOW_PLOTS,
-                #                              SAVE_OUTPUT)
 
         # create a movie from the individual alignment plots
-        plot_paths = sorted([filepath for filepath in Path.glob(out_dir_plots / 'angles_vs_dists_polar', '*.tif')], key=lambda fp: preproc.extract_T(fp.stem, use_last_match=True))
-        images = np.concatenate([BioImage(fp).get_image_data('TYXS') for fp in plot_paths], axis=0)
-        filename = dataset_name + 'dists_vs_angles_movie'
-        TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.mp4'), dim_order='TYXS', fps=60)
-        TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.gif'), dim_order='TYXS', fps=60)
+        if SAVE_OUTPUT:
+            plot_paths = sorted([filepath for filepath in Path.glob(out_dir_plots / 'angles_vs_dists_polar', '*.tif')], key=lambda fp: preproc.extract_T(fp.stem, use_last_match=True))
+            images = np.concatenate([BioImage(fp).get_image_data('TYXS') for fp in plot_paths], axis=0)
+            filename = dataset_name + 'dists_vs_angles_movie'
+            TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.mp4'), dim_order='TYXS', fps=60)
+            TimeseriesWriter.save(data=images, uri=out_dir / (filename + '.gif'), dim_order='TYXS', fps=60)
 
         # compare the node-node distances to their paired edge lengths for every datapoint
         # for validation purposes (all edge lengths should be longer than the node-node
@@ -168,7 +170,7 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
                                             semilog=False,
                                             out_path=out_dir_plots,
                                             filename_stem=dataset_name,
-                                            SAVE_OUTPUT=True)
+                                            SAVE_OUTPUT=SAVE_OUTPUT)
 
         vis.compare_metrics_temporal_colorcode_polar(df_ang_dist,
                                                     x='angle_relative_to_horizontal_in_deg',
