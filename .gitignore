@@ -42,5 +42,4 @@ results/
 cdh5_classic_seg_old.py
 sldy_load_test.py
 concatenate_timepoints.py
-lib_tracking.py
 ROUGH_vis_cdh5_nodes_and_edges_analysis.py
