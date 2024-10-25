@@ -84,7 +84,7 @@ def generate_results_multiproc_wrapper(args):
 def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
 
     T = crop["T"]
-    
+
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if VERBOSE else None
     out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
@@ -173,9 +173,11 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
                                   'cell_fluorescence_pct25 (a.u.)': labeled_region_metrics['cell_fluorescence_pct25 (au)'],
                                   'cell_fluorescence_pct75 (a.u.)': labeled_region_metrics['cell_fluorescence_pct75 (au)'],
                                   'cell_fluorescence_max (a.u.)': labeled_region_metrics['cell_fluorescence_max (au)'],
+                                  'neighboring_cell_labels': labeled_region_metrics['neighboring_cell_labels'],
                                   'edge_labels': labeled_region_metrics['edge_labels'],
                                   'node_labels': labeled_region_metrics['node_labels'],
                                   'node_pair_labels': labeled_region_metrics['node_pair_labels'],
+                                  'touches_image_border': labeled_region_metrics['touches_image_border'],
                                   })
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_T{T}_segprops.csv', index=False)
 

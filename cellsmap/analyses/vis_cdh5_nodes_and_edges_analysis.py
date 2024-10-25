@@ -20,15 +20,15 @@ def set_max_plots(max_plots: int=plt.rcParams['figure.max_open_warning']):
 def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir: Path, SHOW_PLOTS, SAVE_OUTPUT):
     fig, ax = plt.subplots()
     sns.scatterplot(data=df_ang_dist_summary, x='node_to_node_distance_mean', y='angle_relative_to_horizontal_in_deg_mean',
-                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=10, ax=ax)
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=9, ax=ax)
     ax.plot(df_ang_dist_summary['node_to_node_distance_mean'], df_ang_dist_summary['angle_relative_to_horizontal_in_deg_mean'],
                     lw=1, c='lightgrey', zorder=1)
     flow_change = df_ang_dist_summary.query('`Time (hours)` == 24')
     death_event = df_ang_dist_summary.query('`T` == 107')
     sns.scatterplot(data=flow_change, x='node_to_node_distance_mean', y='angle_relative_to_horizontal_in_deg_mean',
-                    c='k', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='k', marker='o', zorder=10, legend=False, ax=ax)
     sns.scatterplot(data=death_event, x='node_to_node_distance_mean', y='angle_relative_to_horizontal_in_deg_mean',
-                    c='r', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='r', marker='o', zorder=10, legend=False, ax=ax)
     ax.set_ylabel('Mean angle relative to horizontal (degrees)')
     ax.set_xlabel('Mean node-node distance (px)')
     if SAVE_OUTPUT:
@@ -43,15 +43,15 @@ def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir:
 
     fig, ax = plt.subplots()
     sns.scatterplot(data=df_ang_dist_summary, x='node_to_node_distance_std', y='angle_relative_to_horizontal_in_deg_std',
-                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=10, ax=ax)
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=9, ax=ax)
     ax.plot(df_ang_dist_summary['node_to_node_distance_std'], df_ang_dist_summary['angle_relative_to_horizontal_in_deg_std'],
                     lw=1, c='lightgrey', zorder=1)
     flow_change = df_ang_dist_summary.query('`Time (hours)` == 24')
     death_event = df_ang_dist_summary.query('`T` == 107')
     sns.scatterplot(data=flow_change, x='node_to_node_distance_std', y='angle_relative_to_horizontal_in_deg_std',
-                    c='k', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='k', marker='o', zorder=10, legend=False, ax=ax)
     sns.scatterplot(data=death_event, x='node_to_node_distance_std', y='angle_relative_to_horizontal_in_deg_std',
-                    c='r', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='r', marker='o', zorder=10, legend=False, ax=ax)
     ax.set_ylabel('StDev of angle relative to horizontal (degrees)')
     ax.set_xlabel('StDev of node-node distance (px)')
     ax.legend(title='Time (hours)', ncols=4)
@@ -158,15 +158,15 @@ def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir:
 
     fig, ax = plt.subplots()
     sns.scatterplot(data=df_ang_dist_summary, x='node_to_node_distance_mean', y='edge_fluorescence_mean (a.u.)_mean',
-                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=10, ax=ax)
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=9, ax=ax)
     ax.plot(df_ang_dist_summary['node_to_node_distance_mean'], df_ang_dist_summary['edge_fluorescence_mean (a.u.)_mean'],
                     lw=1, c='lightgrey', zorder=1)
     flow_change = df_ang_dist_summary.query('`Time (hours)` == 24')
     death_event = df_ang_dist_summary.query('`T` == 107')
     sns.scatterplot(data=flow_change, x='node_to_node_distance_mean', y='edge_fluorescence_mean (a.u.)_mean',
-                    c='k', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='k', marker='o', zorder=10, legend=False, ax=ax)
     sns.scatterplot(data=death_event, x='node_to_node_distance_mean', y='edge_fluorescence_mean (a.u.)_mean',
-                    c='r', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='r', marker='o', zorder=10, legend=False, ax=ax)
     ax.set_ylabel('Mean of edge fluorescence (a.u.)')
     ax.set_xlabel('Mean of node-node distance (px)')
     ax.legend(title='Time (hours)', ncols=4)
@@ -177,15 +177,15 @@ def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir:
 
     fig, ax = plt.subplots()
     sns.scatterplot(data=df_ang_dist_summary, x='angle_relative_to_horizontal_in_deg_mean', y='edge_fluorescence_mean (a.u.)_mean',
-                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=10, ax=ax)
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=9, ax=ax)
     ax.plot(df_ang_dist_summary['angle_relative_to_horizontal_in_deg_mean'], df_ang_dist_summary['edge_fluorescence_mean (a.u.)_mean'],
                     lw=1, c='lightgrey', zorder=1)
     flow_change = df_ang_dist_summary.query('`Time (hours)` == 24')
     death_event = df_ang_dist_summary.query('`T` == 107')
     sns.scatterplot(data=flow_change, x='angle_relative_to_horizontal_in_deg_mean', y='edge_fluorescence_mean (a.u.)_mean',
-                    c='k', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='k', marker='o', zorder=10, legend=False, ax=ax)
     sns.scatterplot(data=death_event, x='angle_relative_to_horizontal_in_deg_mean', y='edge_fluorescence_mean (a.u.)_mean',
-                    c='r', marker='o', zorder=2, legend=False, ax=ax)
+                    facecolor='none', edgecolor='r', marker='o', zorder=10, legend=False, ax=ax)
     ax.set_ylabel('Mean of edge fluorescence (a.u.)')
     ax.set_xlabel('Mean angle relative to horizontal (degrees)')
     ax.legend(title='Time (hours)', ncols=4)
@@ -281,13 +281,13 @@ def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, x: str=None, y: s
 
 def generate_segprop_summary_plots(df_segprops_summary: pd.DataFrame, out_dir: Path, SHOW_PLOTS, SAVE_OUTPUT):
     fig, ax = plt.subplots()
-    sns.scatterplot(data=df_segprops_summary, x='Time (hours)', y='cell_orientation_mean',
+    sns.scatterplot(data=df_segprops_summary, x='Time (hours)', y='cell_orientation_relative_to_horizontal_in_deg_mean',
                     marker='.', c='tab:blue', zorder=10, ax=ax)
-    ax.plot(df_segprops_summary['Time (hours)'], df_segprops_summary['cell_orientation_mean'],
+    ax.plot(df_segprops_summary['Time (hours)'], df_segprops_summary['cell_orientation_relative_to_horizontal_in_deg_mean'],
                     lw=1, c='lightgrey', zorder=1)
     ax.axvline(24, c='k', ls='--')
     ax.axvline(107/12, c='r', ls='--')
-    ax.set_ylabel('Mean cell orientation (radians)')
+    ax.set_ylabel('Mean cell orientation (degrees)')
     ax.set_xlabel('Time (hours)')
     if SAVE_OUTPUT:
         fig.savefig(out_dir / 'time_vs_cell_orientation_means.pdf')
@@ -347,3 +347,19 @@ def generate_segprop_summary_plots(df_segprops_summary: pd.DataFrame, out_dir: P
         fig.savefig(out_dir / 'time_vs_mean_cell_fluor_means.pdf')
     plt.close('all') if not SHOW_PLOTS else None
 
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=df_segprops_summary, x='cell_eccentricity_mean', y='cell_orientation_relative_to_horizontal_in_deg',
+                    marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=9, ax=ax)
+    ax.plot(df_segprops_summary['cell_eccentricity_mean'], df_segprops_summary['cell_orientation_relative_to_horizontal_in_deg'],
+                    lw=1, c='lightgrey', zorder=1)
+    flow_change = df_segprops_summary.query('`Time (hours)` == 24')
+    death_event = df_segprops_summary.query('`T` == 107')
+    sns.scatterplot(data=flow_change, x='cell_eccentricity_mean', y='cell_orientation_relative_to_horizontal_in_deg',
+                    facecolor='none', edgecolor='k', marker='o', zorder=10, legend=False, ax=ax)
+    sns.scatterplot(data=death_event, x='cell_eccentricity_mean', y='cell_orientation_relative_to_horizontal_in_deg',
+                    facecolor='none', edgecolor='r', marker='o', zorder=10, legend=False, ax=ax)
+    ax.set_ylabel('Mean angle relative to horizontal (degrees)')
+    ax.set_xlabel('Mean eccentricity')
+    if SAVE_OUTPUT:
+        fig.savefig(out_dir / 'orientations_vs_eccentricities_means.pdf')
+    plt.close('all') if not SHOW_PLOTS else None

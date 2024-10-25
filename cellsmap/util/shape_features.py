@@ -318,6 +318,11 @@ def numpy_mesh_coords(coord1_ls: list, coord2_ls: list, indexing: str='ij', retu
         List of numpy arrays representing the meshed coordinates.
     """
 
+    assert np.array(coord1_ls).ndim == np.array(coord2_ls).ndim <= 2, 'Coordinate lists must be 2D or 1D and have same dimensions.'
+
+    coord1_ls = np.array(coord1_ls) if np.array(coord1_ls).ndim == 2 else np.array(coord1_ls, ndmin=2).T
+    coord2_ls = np.array(coord2_ls) if np.array(coord2_ls).ndim == 2 else np.array(coord2_ls, ndmin=2).T
+
     coords1 = zip(*coord1_ls)
     coords2 = zip(*coord2_ls)
 
@@ -600,7 +605,7 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
 
     # run a watershed using the labeled (minus any regions that overlap with binary_image)
     # image as seeds to find which parts of labels touch which edges
-    print(f'    -- pushing labeled_image to be adjacent to edges') if VERBOSE else None
+    print(f'    -- expanding labels in labeled_image to be adjacent to edges') if VERBOSE else None
     regions = segmentation.watershed(np.logical_or(nodes, edges),
                                      markers=seeds,
                                      connectivity=1,#labeled_image.ndim,
@@ -615,10 +620,18 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
     # create a RAG from the regions and find out which edge labels and connected to which
     # region labels
     print(f'    -- finding which edge labels touch which labeled_image regions') if VERBOSE else None
-    rag = graph.RAG(regions_offset)
+    # rag = graph.RAG(regions_offset)
+    rag = graph.rag_boundary(regions_offset, np.zeros(labeled_image.shape, dtype=float), connectivity=1)
     # remove any connections to background (the background in this case would be any nodes
     # or unreachable areas)
-    rag.remove_node(0)
+    rag.remove_node(0) if 0 in rag.nodes else None
+
+    print(f'    -- finding which region labels are neighbors') if VERBOSE else None
+    rag_of_labeled_image = graph.rag_boundary(labeled_image, np.zeros(labeled_image.shape, dtype=float), connectivity=1)
+    # rag_of_labeled_image = graph.RAG(labeled_image)
+    # remove any connections to background (the background in this case would be any nodes
+    # or unreachable areas)
+    rag_of_labeled_image.remove_node(0) if 0 in rag_of_labeled_image.nodes else None
 
     # map the labels in regions_offset to their original labels
     region_map = dict(zip(regions[regions.astype(bool)], regions_offset[regions.astype(bool)]))
@@ -630,11 +643,18 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
 
     # add the neighbors of each region in regions
     print(f'    -- adding node label and edge label information to region labeled_image properties') if VERBOSE else None
+    print(f'    -- adding neighboring region information to labeled_image properties') if VERBOSE else None
     for region in region_props:
         # include the neighbor labels if the label is an edge label (but not if it happens to
         # a label originating from labeled_image)
         neighbors = tuple([neigh for neigh in rag.neighbors(region_map[region.label]) if neigh not in region_map.values()])
         region.neighbors = neighbors
+        # add the neighboring region labels of each region in the labeled_image
+        region_neighbors = tuple([neigh for neigh in rag_of_labeled_image.neighbors(region.label) if neigh != region.label])
+        region.region_neighbors = region_neighbors
+
+    # get the labels of the regions that touch the image borders
+    border_labels = np.unique(~segmentation.clear_border(labeled_image).astype(bool) * labeled_image)
 
     # create the output lists
     print(f'    -- generating dictionary of lists output') if VERBOSE else None
@@ -652,9 +672,11 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
     region_fluor_pct25 = []
     region_fluor_pct75 = []
     region_fluor_max = []
+    neighboring_regions = []
     edge_labels = []
     node_labels = []
     node_pairs = []
+    is_border_region = []
 
     for prop in region_props:
         region_label.append(prop.label)
@@ -671,9 +693,11 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
         region_fluor_pct25.append(prop.intensity_pct25)
         region_fluor_pct75.append(prop.intensity_pct75)
         region_fluor_max.append(prop.intensity_max)
+        neighboring_regions.append(prop.region_neighbors)
         edge_labels.append(prop.neighbors)
         node_labels.append(set([node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]]))
         node_pairs.append([edge_neighbors_nodelabs[edge] for edge in prop.neighbors])
+        is_border_region.append(prop.label in border_labels)
 
     # create the output dictionary of lists
     metrics = {'cell_label': region_label,
@@ -690,9 +714,11 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
                'cell_fluorescence_pct25 (au)': region_fluor_pct25,
                'cell_fluorescence_pct75 (au)': region_fluor_pct75,
                'cell_fluorescence_max (au)': region_fluor_max,
+               'neighboring_cell_labels': neighboring_regions,
                'edge_labels': edge_labels,
                'node_labels': node_labels,
                'node_pair_labels': node_pairs,
+               'touches_image_border': is_border_region,
                }
 
     return metrics

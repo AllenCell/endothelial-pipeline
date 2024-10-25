@@ -71,36 +71,46 @@ This script outputs overlays of the raw images with the nodes, edges, and (raste
 
 #### Outputs
 `cdh5_classic_seg.py`
-- `cellsmap/results/cdh5_classic_seg/` : Classic segmentations based on timelapses of Cdh5-GFP. Each folder is a dataset name containing .ome.tiff files (1 file per timepoint).
+1. `cellsmap/results/cdh5_classic_seg/` : Classic segmentations based on timelapses of Cdh5-GFP. Each folder is a dataset name containing .ome.tiff files (1 file per timepoint).
     - **TODO:** This folder currently has files that contain only the segmentations, however it might be better to include the multichannel files used for validation instead (which contain channels for the raw image, processed image, initial segmentation, final segmentation, and the segmentation borders), since some of these channels are loaded in cdh5_nodes_and_edges.py. **The only thing is that the size on disk of the segmentations-only folder is ~300MB while the size of the multichannel folder used for validation is ~20GB.**
 
 `cdh5_nodes_and_edges.py`
-- `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/alignments/` : Tables from individual timepoints saved as .csv files of features measured from node-and-edge representations of the Cdh5 segmentations.
-- `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_alignments.csv` : Table of features measured from node-and-edge representations of the Cdh5 segmentations. A concatenation of the individual timepoint tables mentioned above into a single single .csv. Each row has a unique pair of nodes that define a line. The columns are:
-    - node_pair_labels: The labels of the nodes used to build a line with the order (origin_node, neighboring_node).
-    - node_pair_centroids: The centroids of the nodes used to build a line with the order (origin_node, neighboring_node).
-    - distances: The linear distance between node_pair_centroids.
-    - angles: The angle between the line formed by node_pair_centroids and a horizontal line
-    - edge_labels: The labels of the edges in that connect the paired nodes.
-    - edge_num_pixels: The number of pixels that constitute each edge. Does not account for differences in distance based on connectivity (but 'length (px)' does).
-    - length (px): The length of each edge in pixels (N.B. this does not include the distance from the node centroid to the first edge pixel).
-    - fluor_mean (au): The mean fluorescence of the raw Cdh5-GFP channel at an edge.
-        Other measures for fluorescence include _std, _median, _min, _max, _pct25, and _pct75.
+1. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/alignments/` : Tables from individual timepoints saved as .csv files of features measured from node-and-edge representations of the Cdh5 segmentations.
 
-- `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/segmentation_properties/` : Tables from individual timepoints saved as .csv files of features measured from the Cdh5 segmentations.
-- `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_segprops.csv` : Table of features measured from the Cdh5 segmentations. A concatenation of the individual timepoint tables mentioned above into a single single .csv. Each row has a unique label of a segmented region. The columns are:
-    - cell_label: The labels of the segmented regions.
-    - cell_centroid: The centroids of the segmented regions.
-    - cell_area (px**2): The areas of the segmented regions.
-    - cell_perimeter (px): The perimeters of the segmented regions.
-    - cell_solidity: The solidities of the segmented regions.
-    - cell_eccentricity: The eccentricities of the segmented regions.
-    - cell_orientation: The orientations of the segmented regions.
-    - cell_fluorescence_mean (au): The mean fluorescence of the raw Cdh5-GFP channel for each segmented region.
-        Other fluorescence measures include _std, _median, _min, _max, _pct25, and _pct75.
-    - edge_labels: The labels of the edges that touch each segmented region.
-    - node_labels: The labels of the nodes that touch each segmented region.
-    - node_pair_labels: The labels of the node pairs that are at the end of each edge label that touches each segmented region.
+2. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_alignments.csv` : Table of features measured from node-and-edge representations of the Cdh5 segmentations. A concatenation of the individual timepoint tables from "**1.**" into a single single .csv. Each row has a unique pair of nodes that define a line. The columns are described in the table below:
+
+    | Column Name | Description | Units |
+    |-------------|-------------|-------|
+    | node_pair_labels | The labels of the nodes used to build a line with the order (origin_node, neighboring_node). | N/A |
+    | node_pair_centroids | The centroids of the nodes used to build a line with the order (origin_node, neighboring_node). | N/A |
+    | distances | The linear distance between node_pair_centroids. | N/A |
+    | angles | The angle between the line formed by node_pair_centroids and a horizontal line. | Degrees |
+    | edge_labels | The labels of the edges in that connect the paired nodes. | N/A |
+    | edge_num_pixels | The number of pixels that constitute each edge. Does not account for differences in distance based on connectivity (but 'length (px)' does). | Pixels |
+    | length (px) | The length of each edge in pixels (N.B. this does not include the distance from the node centroid to the first edge pixel). | Pixels |
+    | fluor_mean (au) | The mean fluorescence of the raw Cdh5-GFP channel at an edge. Other measures for fluorescence include _std, _median, _min, _max, _pct25, and _pct75. | Arbitrary Units |
+
+
+
+3. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/segmentation_properties/` : Tables from individual timepoints saved as .csv files of features measured from the Cdh5 segmentations.
+
+4. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_segprops.csv` : Table of features measured from the Cdh5 segmentations. A concatenation of the individual timepoint tables from "**3.**" into a single single .csv. Each row has a unique label of a segmented region. The columns are summarized below:
+    
+    | Column Name | Description | Units |
+    |-------------|-------------|-------|
+    | cell_label | The labels of the segmented regions. | N/A |
+    | cell_centroid | The centroids of the segmented regions. | N/A |
+    | cell_area (px**2) | The areas of the segmented regions. | Pixels Squared |
+    | cell_perimeter (px) | The perimeters of the segmented regions. | Pixels |
+    | cell_solidity | The solidities of the segmented regions. | N/A |
+    | cell_eccentricity | The eccentricities of the segmented regions. | N/A |
+    | cell_orientation | The orientations of the segmented regions. | Degrees |
+    | cell_fluorescence_mean (au) | The mean fluorescence of the raw Cdh5-GFP channel for each segmented region. Other fluorescence measures include _std, _median, _min, _max, _pct25, and _pct75. | Arbitrary Units |
+    | edge_labels | The labels of the edges that touch each segmented region. | N/A |
+    | node_labels | The labels of the nodes that touch each segmented region. | N/A |
+    | node_pair_labels | The labels of the node pairs that are at the end of each edge label that touches each segmented region. | N/A |
+
+
 
 - **NOTE:** The "edge_labels", "node_labels", and "node_pair_labels" found in the tables output by `cdh5_nodes_and_edges.py` should all match / be consistent with each other.
 
