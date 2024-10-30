@@ -17,9 +17,12 @@ def load_config(config_type='data') -> dict:
 
 # dataset methods
 def get_available_datasets() -> list:
+    datasets = []
     config = load_config()
     for dataset in config:
+        datasets.append(dataset['name'])
         print(dataset['name'])
+    return datasets
 
 def get_dataset_info(dataset_name: str) -> dict:
     config = load_config()
@@ -40,15 +43,21 @@ def get_available_channels(dataset_name:str) -> list:
     reader = BioImage(path)
     return reader.channel_names
 
-def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=576, level:int=0) -> dask.array.Array:
+def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
     path = get_zarr_path(dataset_name)
     reader = BioImage(path)
     available_channels = reader.channel_names
     channels_index = [available_channels.index(c) for c in channels]
     assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
     reader.set_resolution_level(level)
+    if time_end < 0:
+        time_end = get_dataset_duration_in_frames(dataset_name)-2
     img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
     return img
+
+def get_dataset_duration_in_frames(dataset_name: str) -> int:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['duration']
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
