@@ -50,6 +50,7 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
 },{
   name: 20240215_T01_001,
   original_path: "/allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240215/20240215_T01_001_3D_MTG.dir/20240215_T01_001 - Position 1 [6] 3DMontage-1708458531-194.imgdir",
@@ -58,6 +59,7 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
 },{
   name: 20240220_T01_001,
   original_path: "/allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240220/20240220_T01_001_3D_MTG_FULL.dir/20240220_T01_001 - Position 1 [6] 3DMontage Complete-1708974167-827.imgdir",
@@ -66,5 +68,15 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 7.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
+},{
+  name: 20241016_20X,
+  original_path: "/allen/aics/microscopy/Endo Timelapses/20241016/20241016_20X_timelapse_3D_MTG_FULL.dir/20241016_20X_timelapse - Position 1 [6] 3DMontage Complete-1730322941-247.imgdir",
+  zarr_path: /allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241016_20X.ome.zarr,
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 20.4, 35], [20.4, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
 }
 ]
