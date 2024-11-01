@@ -51,7 +51,7 @@ def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int
     assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
     reader.set_resolution_level(level)
     if time_end < 0:
-        time_end = get_dataset_duration_in_frames(dataset_name)-2
+        time_end = get_dataset_duration_in_frames(dataset_name)-1
     img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
     return img
 
