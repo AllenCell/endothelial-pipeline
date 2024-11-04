@@ -6,6 +6,7 @@
   time_interval_in_minutes: 5.0,
   cdh5_channel_name: CDH5_Tubulin,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow_in_frames: [[0, 288, 20], [288, 577, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {
     vicreg_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
     mae_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae/predictions.csv,
@@ -22,7 +23,9 @@
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   cdh5_channel_name: CDH5,
-  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 22.583, 25], [22.583, 48, 7.5]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow_in_frames: [[0, 271, 25], [271, 577, 7.5]], #format: [[start_time_in_timeframes, end_time_in_timeframes, flow in dyn/cm2], ...]
+  # NOTE start and end times above are half-open intervals (i.e. they work the same way as `range(start, stop)` does; e.g. start <= T < stop)
   features: {
     vicreg_cdh5: None,
     mae_cdh5: None,

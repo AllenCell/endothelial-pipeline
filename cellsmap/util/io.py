@@ -31,6 +31,23 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
+def get_flow(dataset_name: str, T: float, units: str='hours') -> list:
+    """
+    Parameters
+    ----------
+        T: the time at which to get the flow value.
+        units: the units of T (can be 'hours' or 'frames').
+    Returns
+    -------
+        flow: the flow value at time T in dyn/cm^2.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    flow_info = dataset_info['flow'] if units=='hours' else dataset_info['flow_frames']
+    flows = lambda t: [flow for t_start, t_stop, flow in flow_info if t_start <= t < t_stop]
+    flow = flows(T)
+
+    return int(*flow) if flow else np.nan
+
 def get_zarr_path(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['zarr_path']
