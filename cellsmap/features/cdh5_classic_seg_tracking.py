@@ -1,7 +1,7 @@
 from pathlib import Path
 from bioio import BioImage
 from cellsmap.util import io, cdh5_preprocessing as preproc, shape_features as feat
-from cellsmap.features.lib_tracking import ipython_cli_flexecute, update_track_table, save_track_labeled_images
+from cellsmap.features.lib_tracking import ipython_cli_flexecute, update_track_table, save_track_labeled_images, run_workflow
 
 
 
@@ -118,9 +118,9 @@ def main(SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
     for dataset_name in DATASET_NAME_LIST:
 
-        track_table = generate_results(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
-
-        # return track_table
+        # track_table = generate_results(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
+        track_table = run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
+        return track_table
 
     print('\N{microscope} Done analysis.')
 
