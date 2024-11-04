@@ -70,7 +70,7 @@ def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
 
         # the orientation is initially relative to the vertical and ranges from -np.pi/2
         # to np.pi/2 so we need to restrict it to 0 to np.pi/2 with abs() and then shift
-        # it it 90 degrees to make it relative to the horizontal (and then take the absolute
+        # it 90 degrees to make it relative to the horizontal (and then take the absolute
         # so that the angle becomes positive again)
         df_segprops['cell_orientation_relative_to_horizontal'] = df_segprops['cell_orientation'].transform(lambda x: abs(np.pi/2 - abs(x)))
         df_segprops['cell_orientation_relative_to_horizontal_in_deg'] = df_segprops['cell_orientation_relative_to_horizontal'].transform(lambda x: np.rad2deg(x))

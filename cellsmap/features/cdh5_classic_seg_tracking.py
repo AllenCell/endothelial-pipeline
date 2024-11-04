@@ -21,7 +21,7 @@ def build_tracking_analysis_queue(dataset_name, SAVE_OUTPUT=True, IS_TEST=False,
     timeframe_eval_interval = 1
 
     if IS_TEST:
-        T_list = range(0,10)
+        T_list = range(573, raw.shape[DIM_MAP["T"]])
         crop_c = slice(None, None)
         crop_z = slice(None, None)
         crop_y = slice(None, None)
@@ -100,8 +100,12 @@ def generate_tracks(analysis_args_queue, tracking_metrics=['centroid']):
         print(f'T={crop["T"]} -- saving images...') if VERBOSE and SAVE_OUTPUT else None
         out_path = images_out_dir / f'{dataset_name}_T{crop["T"]}_track_labeled.tif'
         print(f'T={crop["T"]} -- saving to {out_path}') if VERBOSE else None
-        save_track_labeled_images(out_path, track_labeled_image, current_tracks, img_metadata) if SAVE_OUTPUT else None
-    
+        chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == img_metadata['dataset_name']]
+        raw_image = io.load_dataset(img_metadata['dataset_name'], channels=chan_names, time_start=crop["T"], time_end=crop["T"]).compute().squeeze()
+        raw_channel = {'image': raw_image, 'name': 'raw_image', 'color': (255,255,255)}
+
+        save_track_labeled_images(out_path, track_labeled_image, img_metadata, extra_channel=raw_channel) if SAVE_OUTPUT else None
+
     # save the table of the track_ids for the current dataset
     out_path = tables_out_dir_tracks / f'{dataset_name}_cdh5_classic_seg_tracking.tsv'
     track_table.to_csv(out_path, index=False, sep='\t') if SAVE_OUTPUT else None

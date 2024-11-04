@@ -621,7 +621,7 @@ def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
 
     return t_res
 
-def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None) -> list:
+def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None, as_dask=False) -> list:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
@@ -651,6 +651,10 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
         A slice of the imaging data along the X-axis.
         Default is None.
 
+    as_dask: bool
+        Whether to return the image arrays as dask arrays.
+        Default is False.
+
     Returns
     -------
     img_arrays: list of numpy arrays
@@ -676,14 +680,16 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
                  for C in channel_crops]
 
     # The reason for using the crop maps above instead of loading individual
-    # crops by specifying T, C Y, and X in img.get_iamge_data is because
+    # crops by specifying T, C, Y, and X in img.get_image_data is because
     # .get_image_data does not accept slice objects and also the files are
     # split up by timepoint. Using the slice objects is favoured over tuples
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
-    img_arrays = img.get_image_data(dim_order)
-    crops = [[crop_map[d] for d in dim_order] for crop_map in crop_maps]
-    img_arrays = [img_arrays[(*crop,)] for crop in crops]
+    crops = [{d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps]
+    if not as_dask:
+        img_arrays = [img.get_image_data(dim_order, **crop) for crop in crops]
+    else:
+        img_arrays = [img.get_image_dask_data(dim_order, **crop) for crop in crops]
 
     return img_arrays
 
@@ -767,8 +773,7 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     Nothing (saves an image to out_path).
     """
 
-    assert all([img.max() < np.iinfo(np.uint16).max for img in images])
-    assert all([img.shape == images[-1].shape for img in images])
+    assert all([img.shape == images[-1].shape for img in images]), "All images must have the same shape."
 
     image_name = images_metadata['image_name']
     ch_colors = images_metadata['channel_colors']
@@ -779,7 +784,7 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(np.uint16)
+    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(int)
 
     OmeTiffWriter.save(merged_img,
                        out_path,
