@@ -94,9 +94,9 @@
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2023/20231122/20240328_T02_001.dir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T02_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
-  duration: 5, # number of frames
+  duration: 4, # number of frames
   time_interval_in_minutes: -1.0,
-  flow: [[0, 0.083, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 0.066, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {}
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
