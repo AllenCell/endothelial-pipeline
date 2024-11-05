@@ -22,7 +22,7 @@
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   cdh5_channel_name: CDH5,
-  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 22.583, 25], [22.583, 48, 7.5]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {
     vicreg_cdh5: None,
     mae_cdh5: None,
