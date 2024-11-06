@@ -5,11 +5,13 @@ def test_load_config():
     config = io.load_config()
     assert config[0]['name'] == '20240305_T01_001'
 
-def test_get_available_datasets(capsys):
-    # check if the available datasets are printed correctly
-    io.get_available_datasets()
-    captured = capsys.readouterr()
-    assert captured.out == '20240305_T01_001\n20240917_20X_48hr\n'
+def test_load_all_datasets():
+    for ds in io.get_available_datasets():
+        channels = io.get_available_channels(ds)
+        data = io.load_dataset(ds, channels)
+        assert data is not None, f"Dataset {ds} returned None"
+        assert data.shape[0] > 0, f"Dataset {ds} has an unexpected shape: {data.shape}"
+        assert all(dim > 0 for dim in data.shape), f"Dataset {ds} has invalid dimensions: {data.shape}"
 
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
