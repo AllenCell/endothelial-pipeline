@@ -120,7 +120,7 @@ def main(SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
         # track_table = generate_results(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
         track_table = run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
-        return track_table
+        # return track_table
 
     print('\N{microscope} Done analysis.')
 
