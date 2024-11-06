@@ -844,7 +844,7 @@ def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid
 
 
     # NOTE load_images_sequentially is a generator
-    paths_crops_labeled_images_all = load_images_sequentially(image_filepaths, img_crops, image_buffer_prior, image_buffer_next)
+    paths_crops_labeled_images_all = load_images_sequentially(image_filepaths, img_crops, image_buffer_prior, image_buffer_next, VERBOSE=VERBOSE)
 
     track_table = []
     # for fp, labeled_images in zip(image_filepaths, labeled_images_all):
@@ -882,7 +882,7 @@ def get_chan_map(filepath: Path) -> dict:
 ## NOTE: get_image_data will change the Image-is-in-Memory flag to True but get_image_dask_data will not...
 ## NOTE: wouldn't this be the perfect situation to use the yield statement?
 
-def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | dict=None, image_buffer_prior: int=0, image_buffer_next: int=0, axis: str=None, VERBOSE=True):
+def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | dict=None, image_buffer_prior: int=0, image_buffer_next: int=0, axis: str=None, VERBOSE=False):
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
