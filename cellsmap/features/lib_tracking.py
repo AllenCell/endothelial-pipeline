@@ -4,7 +4,7 @@ from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
-from cellsmap.util.io import load_dataset, load_config, get_dataset_info, get_zarr_path
+from cellsmap.util.io import load_dataset, load_config, get_dataset_info, get_zarr_path, get_available_channels
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation, save_image_output, get_cdh5_classic_segmentation_time_resolution
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, get_dim_map, extract_T
@@ -646,7 +646,8 @@ def run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE):
     segmentation_channel = get_chan_map(image_filepaths[0])['segmentations_merged']
 
     raw_fps = get_dataset_info(dataset_name)['zarr_path']
-    raw_channel = get_chan_map(raw_fps)[get_dataset_info(dataset_name)['cdh5_channel_name']]
+    # raw_channel = get_chan_map(raw_fps)[get_dataset_info(dataset_name)['cdh5_channel_name']]
+    raw_channel = get_chan_map(raw_fps)[str(*[chan for chan in get_available_channels(dataset_name) if chan in ('CDH5', 'CDH5_Tubulin')])]
     # raw_fps, raw_C = [raw_fps] * len(image_filepaths), [raw_C] * len(image_filepaths)
 
     run_tracking(in_dir=image_filepaths, out_dir=out_dir, tracking_metrics=['region_overlap'],
