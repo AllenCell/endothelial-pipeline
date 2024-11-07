@@ -4,8 +4,8 @@ from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
-from cellsmap.util.io import load_dataset, load_config, get_dataset_info, get_zarr_path, get_available_channels
-from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation, save_image_output, get_cdh5_classic_segmentation_time_resolution
+from cellsmap.util.io import load_dataset, load_config, get_dataset_info, get_zarr_path, get_available_channels, get_time_interval_in_minutes
+from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation, save_image_output
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, get_dim_map, extract_T
 
@@ -625,7 +625,7 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
 
     img = BioImage(Path(get_zarr_path(dataset_name)))
     px_res = img.physical_pixel_sizes
-    t_res = get_cdh5_classic_segmentation_time_resolution(dataset_name)
+    t_res = get_time_interval_in_minutes(dataset_name)
     img_metadata = {'dataset_name': dataset_name,
                     'physical_pixel_sizes': px_res,
                     't_res (min)': t_res,
