@@ -606,7 +606,8 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
     #                   images_metadata=images_out_metadata)
     save_image_output(out_path=out_path,
                       images=[track_labeled_image, find_boundaries(track_labeled_image) * track_labeled_image] + [extra_image],
-                      images_metadata=images_out_metadata)
+                      images_metadata=images_out_metadata,
+                      dtype=np.uint32)
 
 
 
@@ -819,7 +820,7 @@ def update_track_table_V2(labeled_images, existing_track_ids, tracking_metrics=[
     # # the 'or 0' is needed to handle the case where a label is 0 and interpreted as "NoneType" by the vectorized function
     # track_labeled_image = label_to_track_id_vmap(labeled_images[reference_index])
     # NOTE I adopted this optimization from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
-    label_map_arr = np.zeros(shape=new_track_ids['label'].max() + 1, dtype=np.int64)
+    label_map_arr = np.zeros(shape=new_track_ids['label'].max() + 1, dtype=np.uint32)
     label_map_arr[new_track_ids['label']] = new_track_ids['track_id']
     track_labeled_image = label_map_arr[labeled_images[reference_index]]
 

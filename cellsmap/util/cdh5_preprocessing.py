@@ -740,7 +740,7 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
         
     return t if int_only else f'T{t}'
 
-def save_image_output(out_path: Path, images: list, images_metadata: dict):
+def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype=None):
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
@@ -774,6 +774,14 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     """
 
     assert all([img.shape == images[-1].shape for img in images]), "All images must have the same shape."
+    # if a data type is not specified then use the smallest uint type that can hold the max value
+    # among all images being saved
+    if not dtype:
+        img_max = max([img.max() for img in images])
+        dtypes = {np.iinfo(dtype).max: dtype for dtype in (np.uint8, np.uint16, np.uint32, np.uint64) if img_max <= np.iinfo(dtype).max}
+        dtype = dtypes[min(dtypes)]
+    else:
+        pass
 
     image_name = images_metadata['image_name']
     ch_colors = images_metadata['channel_colors']
