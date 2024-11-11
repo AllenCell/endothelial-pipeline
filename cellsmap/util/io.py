@@ -119,8 +119,6 @@ def get_dynamics_inputs(config_name: str) -> tuple:
     else: # if PCA is "no", feats_to_analyze is a list of which of the original features to analyze (max 2 features)
         feats_to_analyze = dynamics_config['feats_to_analyze']
         PCA = False
-
-    center_traj = True if dynamics_config['center_traj']=='yes' else False # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
     
     split_flow = dynamics_config['split_flow'] # if "yes", the data is split into high and low flow regimes before fitting dynamical model
     if split_flow == 'yes':
@@ -150,5 +148,5 @@ def get_dynamics_inputs(config_name: str) -> tuple:
     else:
         log_file = None
 
-    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file
+    return metadata_cols, PCA, ndim, dt, feats_to_analyze, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file
 

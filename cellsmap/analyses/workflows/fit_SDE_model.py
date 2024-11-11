@@ -23,7 +23,7 @@ def find_git_root(test, dirs=(".git",), default=None):
         prev, test = test, os.path.abspath(os.path.join(test, os.pardir))
     return default
 
-def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None,log_file=None):
+def get_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None,log_file=None):
     if log_file is not None:
         if not os.path.exists(log_file):
             with open(log_file, 'w') as f:
@@ -32,6 +32,12 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
             print("*** Reading data from",path_to_data,"\n", file=f)
 
     df = pd.read_csv(path_to_data)
+    if df.columns[-1] != metadata[1]: # ensure that last two columns are trajectory index, time point (in that order)
+        my_cols = df.columns.to_list()
+        my_cols.remove(metadata[0])
+        my_cols.remove(metadata[1])
+        my_cols = my_cols + metadata
+        df=df.reindex(columns=my_cols)
     df = df.sort_values(by=metadata)
     num_traj = len(df[metadata[0]].unique()) # number of trajectories
     num_t = len(df[metadata[1]].unique()) # number of timepoints
@@ -41,12 +47,6 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
     num_feats = X_feats.shape[1]
     if np.any(np.array(ndim)>num_feats):
         raise ValueError("Number of features to fit the model on exceeds the total number of features in the data.")
-    # z-score if performing PCA
-    # X_scaled = pp.scale_features(X_feats)
-    if PCA:
-        X_scaled = pp.scale_features(X_feats)
-    else:
-        X_scaled = X_feats
 
     if log_file is not None:
         with open(log_file, 'a') as f:
@@ -55,11 +55,11 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
             print("Total number of features: ",num_feats,"\n",file=f)
             print("*** Saving normalized features to "+savedir+"data/normed_feats.npy \n",file=f)
 
-    np.save(savedir+'data/normed_feats',X_scaled)
+    np.save(savedir+'data/normed_feats',X_feats)
 
     if PCA:
         # full PCA: get singular values, explained variance ratio, and principal components
-        svs, exp_var, pcs = pp.get_PCA(X_scaled)
+        svs, exp_var, pcs = pp.get_PCA(X_feats)
         
         # find number of PCs to explain 95% of variance
         cumul_var = np.cumsum(exp_var)
@@ -74,23 +74,14 @@ def get_scaled_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analy
         np.save(savedir+'data/ExpVar',exp_var)
         np.save(savedir+'data/PCs',pcs)
 
-        fig, ax = plot_SVs(svs,exp_var) # plot singular values and cumulative explained variance
+        fig, _ = plot_SVs(svs,exp_var) # plot singular values and cumulative explained variance
         save_plot(fig,savedir+'figs/PCA_SVs_ExpVar')
 
-        # build dataframe of scaled data with metadata
-        data_scaled = np.hstack((X_scaled,df[metadata[0]].values[:,None],df[metadata[1]].values[:,None]))
-        cols = df.columns
-        df_scaled = pd.DataFrame(data_scaled,columns=cols)
-        df_scaled[metadata[0]] = df_scaled[metadata[0]].astype(int) # trajectory index
-        df_scaled[metadata[1]] = df_scaled[metadata[1]].astype(int) # time point
-        # get array of (scaled) single crop trajectories projected onto these top PC modes
-        # X_proj = X_scaled.reshape((num_traj,num_t,-1))
-        # X_proj = X_proj@pcs[:ndim].T
-        return pp.project_trajectories(df_scaled,pcs[:ndim],metadata[0],metadata_col=metadata)
+        return pp.project_trajectories(df,pcs[:ndim],metadata[0],metadata_col=metadata)
     else:
         if feats_to_analyze is None:
             raise ValueError("Must specify which features to analyze if PCA is not performed.")
-        return X_scaled.reshape((num_traj,num_t,-1))[:,:,feats_to_analyze]
+        return X_feats.reshape((num_traj,num_t,-1))[:,:,feats_to_analyze]
 
 def fit_model(data,dt,lag_step,ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file=None,flow='all'):
     '''Fit the Langevin SINDy model to the data.'''
@@ -126,7 +117,7 @@ def fit_model(data,dt,lag_step,ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file
 
     
 def main(config_name, path_to_data):
-    metadata, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file = io.get_dynamics_inputs(config_name)
+    metadata, PCA, ndim, dt, feats_to_analyze, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file = io.get_dynamics_inputs(config_name)
     
     if not os.path.isdir(savedir):
         print("*** Creating directory to save results... \n")
@@ -142,10 +133,7 @@ def main(config_name, path_to_data):
             print("**** Langevin Regression Log **** \n",file=f)
 
     print("\n","*** Getting trajectories from data... \n",sep="")
-    X_t = get_scaled_traj(path_to_data,metadata,savedir,PCA,ndim,feats_to_analyze,log_file=log_file)
-    if center_traj: # center initial conditions of all trajectories at zero
-        for i in range(X_t.shape[0]):
-            X_t[i] = X_t[i] - X_t[i,0]
+    X_t = get_traj(path_to_data,metadata,savedir,PCA,ndim,feats_to_analyze,log_file=log_file)
     np.save(savedir+'data/traj_array.npy',X_t)
     ylabel = 'PC'
     if not PCA:
