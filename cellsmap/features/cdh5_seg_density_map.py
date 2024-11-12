@@ -83,6 +83,8 @@ def generate_density_map(image_filepath, segmentation_channel, dtype=np.uint8):
 
     return density_map
 
+def multiproc_workflow(args):
+    run_workflow(*args)
 
 def run_workflow(image_filepath, segmentation_channel, img_metadata, out_dir, VERBOSE=False):
 
@@ -122,12 +124,10 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
         image_filepaths = image_filepaths[560:] if IS_TEST else image_filepaths
         analysis_args_queue = []
         for img_fp in image_filepaths:
-            print(f'Getting channels for filepaths in {img_fp}...')# if VERBOSE else None
-            analysis_args_queue.append((Path(img_fp).name, get_chan_map(img_fp)['segmentations_merged'], img_metadata, out_dir, VERBOSE))
+            print(f'Getting channels for {Path(img_fp).name}...')# if VERBOSE else None
+            analysis_args_queue.append((Path(img_fp), get_chan_map(img_fp)['segmentations_merged'], img_metadata, out_dir, VERBOSE))
 
-        print('Creating multiprocessing wrapper...')# if VERBOSE else None
-        multiproc_workflow = lambda args: multiproc_wrapper(run_workflow, args)
-
+        print(f'Running workflow on {dataset_name}...')# if VERBOSE else None
         if N_PROC > 1:
                 if __name__ == '__main__':
                     print('Starting multiprocessing...')
