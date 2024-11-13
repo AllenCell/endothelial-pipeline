@@ -75,6 +75,23 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
 
 
 def get_density_map_from_thresholds(dataset_name: str, T: int, density_map_sigma, VERBOSE=False) -> np.ndarray:
+    """
+    Returns a density map of the cadherin channel of a dataset at a given timepoint T.
+    This function will load an image from a timepoint in a dataset at the lowest resolution,
+    preprocess the image, get the hysteresis threshold of the image, skeletonize the
+    thresholded image, and then apply a gaussian filter to the skeletonized image to
+    get an estimate of the local density of cells in that region (i.e. the density map).
+
+    Parameters
+    ----------
+        dataset_name: the name of the dataset to get the density map from.
+        T: the timepoint at which to get the density map.
+        density_map_sigma: the sigma value to pass along to the gaussian filter.
+        VERBOSE: prints out progress statements if True (default is False).
+    Returns
+    -------
+        density_map: the density map (values are floats and should range from 0 to 1).
+    """
 
     DATASET_NAME_LIST = [config_data['name'] for config_data in load_config(config_type='data')]
     assert dataset_name in DATASET_NAME_LIST, f'dataset_name must be one of {DATASET_NAME_LIST}, not {dataset_name}'
