@@ -3,8 +3,7 @@ from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.morphology import skeletonize
 from skimage.filters import gaussian
-from skimage.exposure import rescale_intensity
-from cellsmap.util.io import load_dataset, load_config, get_dataset_info, get_zarr_path, get_time_interval_in_minutes, get_dataset_duration_in_frames
+from cellsmap.util.io import load_dataset, load_config, get_zarr_path, get_time_interval_in_minutes, get_dataset_duration_in_frames, get_available_channels
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, preprocess, get_thresholds, save_image_output, extract_T
 import matplotlib as mpl
@@ -85,7 +84,7 @@ def get_density_map_from_thresholds(dataset_name: str, T: int, density_map_sigma
     dataset_filepath = Path(get_zarr_path(dataset_name))
     img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
     # get the name of the cadherin channel
-    chan_names = [get_dataset_info(dataset_name)['cdh5_channel_name']]
+    chan_names = [name for name in get_available_channels(dataset_name) if name in ('CDH5', 'CDH5_Tubulin')]
     # load the raw image data of from the cadherin channel
     raw_arr = load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
