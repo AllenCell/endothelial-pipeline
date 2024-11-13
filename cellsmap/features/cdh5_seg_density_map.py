@@ -3,6 +3,7 @@ from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.morphology import skeletonize
 from skimage.filters import gaussian
+from skimage.transform import pyramid_reduce
 from cellsmap.util.io import load_dataset, load_config, get_zarr_path, get_time_interval_in_minutes, get_dataset_duration_in_frames, get_available_channels
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, preprocess, get_thresholds, save_image_output, extract_T
@@ -78,7 +79,6 @@ def get_density_map_from_thresholds(dataset_name: str, T: int, density_map_sigma
     DATASET_NAME_LIST = [config_data['name'] for config_data in load_config(config_type='data')]
     assert dataset_name in DATASET_NAME_LIST, f'dataset_name must be one of {DATASET_NAME_LIST}, not {dataset_name}'
 
-    # image_filepath, segmentation_channel, img_metadata, out_dir, gaussian_kernel_sigma, VERBOSE=False
     print(f'T={T} -- loading dataset') if VERBOSE else None
     # get the binning levels of the dataset so we can always use the lowest resolution
     dataset_filepath = Path(get_zarr_path(dataset_name))
@@ -104,6 +104,10 @@ def get_density_map_from_thresholds(dataset_name: str, T: int, density_map_sigma
 def get_density_map_from_segmentations(dataset_name: str, T: int, density_map_sigma: float=160, VERBOSE=False) -> np.ndarray:
     DATASET_NAME_LIST = [config_data['name'] for config_data in load_config(config_type='data')]
     assert dataset_name in DATASET_NAME_LIST, f'dataset_name must be one of {DATASET_NAME_LIST}, not {dataset_name}'
+    # get the lowest resolution binning level of the dataset so we can downsample the
+    # classic cdh5 segmentations (which are done on the native resolution)
+    dataset_filepath = Path(get_zarr_path(dataset_name))
+    img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
 
     print(f'T={T} -- loading segmentation') if VERBOSE else None
     image_filepaths = get_cdh5_classic_segmentation_paths(dataset_name, sort_paths=True)
@@ -112,7 +116,7 @@ def get_density_map_from_segmentations(dataset_name: str, T: int, density_map_si
     seg = BioImage(image_filepath).get_image_data('TCYX', C=segmentation_channel).squeeze()
 
     print(f'T={T} -- getting density map of image') if VERBOSE else None
-    seg_borders = skeletonize(find_boundaries(seg))
+    seg_borders = pyramid_reduce(skeletonize(find_boundaries(seg)), downscale=2**img_bin_level)
     density_map = gaussian(seg_borders, sigma=density_map_sigma)
 
     return density_map
@@ -148,19 +152,16 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
     DATASET_NAME_LIST = [config_data['name'] for config_data in load_config(config_type='data')]
 
     for dataset_name in DATASET_NAME_LIST:
-
-        # dataset_name = '20240305_T01_001'
-
-        print(f'Initializing workflow for {dataset_name}...')# if VERBOSE else None
+        print(f'Initializing workflow for {dataset_name}...')
         out_dir, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
 
-        print(f'Getting timepoints for {dataset_name}...')# if VERBOSE else None
+        print(f'Getting timepoints for {dataset_name}...')
         timepoints = range(get_dataset_duration_in_frames(dataset_name))
         timepoints = timepoints[560:] if IS_TEST else timepoints
         density_map_gaussian_kernel_sigma = 40
         analysis_args_queue = list(zip([dataset_name]*len(timepoints), timepoints, *zip(*[(img_metadata, out_dir, density_map_gaussian_kernel_sigma, VERBOSE)] * len(timepoints))))
 
-        print(f'Running workflow on {dataset_name}...')# if VERBOSE else None
+        print(f'Running workflow on {dataset_name}...')
         if N_PROC > 1:
                 if __name__ == '__main__':
                     print('Starting multiprocessing...')
