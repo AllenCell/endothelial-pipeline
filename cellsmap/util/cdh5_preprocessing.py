@@ -778,7 +778,14 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype
     # among all images being saved
     if not dtype:
         img_max = max([img.max() for img in images])
-        dtypes = {np.iinfo(dtype).max: dtype for dtype in (np.uint8, np.uint16, np.uint32, np.uint64) if img_max <= np.iinfo(dtype).max}
+        dtypes = {np.iinfo(dtype).max: dtype for dtype in (np.uint8, np.uint16, np.uint32) if img_max <= np.iinfo(dtype).max}
+
+        assert dtypes, \
+        '''
+        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater. 
+        Please find a way to reduce the max value in the culprit channel or save the image in a different format.
+        '''
+
         dtype = dtypes[min(dtypes)]
     else:
         pass
@@ -792,7 +799,7 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(int)
+    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
 
     OmeTiffWriter.save(merged_img,
                        out_path,
