@@ -58,4 +58,4 @@ def main(SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
 
 if __name__ == '__main__':
-    ipython_cli_flexecute(main, IS_TEST=True)
+    ipython_cli_flexecute(main)
