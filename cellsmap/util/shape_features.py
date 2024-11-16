@@ -656,9 +656,6 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
     # get the labels of the regions that touch the image borders
     border_labels = np.unique(~segmentation.clear_border(labeled_image).astype(bool) * labeled_image)
 
-    # get the labels of the regions that touch the image borders
-    border_labels = np.unique(~segmentation.clear_border(labeled_image).astype(bool) * labeled_image)
-
     # create the output lists
     print(f'    -- generating dictionary of lists output') if VERBOSE else None
     region_label = []
