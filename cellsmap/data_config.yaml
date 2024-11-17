@@ -107,5 +107,14 @@
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {}
+},{
+  name: 20241105_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241105/20241105_20X_timelapse_SLDY_3D_MTG_FULL.dir/20241105_20X_timelapse - Position 1 [6] 3DMontage Complete-1731083979-668.imgdir",
+  zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241105_20X.ome.zarr,
+  pixel_size_xy_in_um: 0.382,
+  duration: 573, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 22.75, 5.5], [22.75, 48, 28.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
 }
 ]
