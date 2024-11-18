@@ -15,6 +15,11 @@ def get_array(df:pd.DataFrame,metadata_col=None) -> np.ndarray:
         X = df.values
     return X
 
+def scale_features(X:np.ndarray) -> np.ndarray:
+    '''Scale (z score) feature array X of shape (n_samples, n_features) using StandardScaler.'''
+    scaler = StandardScaler().fit(X)
+    return (X-scaler.mean_)/scaler.scale_
+
 def get_PCA(X:np.ndarray, n_components=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     '''Get PCA of feature array (scaled or not) X.
     Default is to return all components, unless n_components

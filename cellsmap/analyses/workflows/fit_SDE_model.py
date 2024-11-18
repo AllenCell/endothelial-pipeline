@@ -47,6 +47,11 @@ def get_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None
     num_feats = X_feats.shape[1]
     if np.any(np.array(ndim)>num_feats):
         raise ValueError("Number of features to fit the model on exceeds the total number of features in the data.")
+    # center and scale if performing PCA
+    if PCA:
+        X_scaled = pp.scale_features(X_feats)
+    else:
+        X_scaled = X_feats
 
     if log_file is not None:
         with open(log_file, 'a') as f:
@@ -55,11 +60,11 @@ def get_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None
             print("Total number of features: ",num_feats,"\n",file=f)
             print("*** Saving normalized features to "+savedir+"data/normed_feats.npy \n",file=f)
 
-    np.save(savedir+'data/normed_feats',X_feats)
+    np.save(savedir+'data/normed_feats',X_scaled)
 
     if PCA:
         # full PCA: get singular values, explained variance ratio, and principal components
-        svs, exp_var, pcs = pp.get_PCA(X_feats)
+        svs, exp_var, pcs = pp.get_PCA(X_scaled)
         
         # find number of PCs to explain 95% of variance
         cumul_var = np.cumsum(exp_var)
@@ -77,7 +82,14 @@ def get_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None
         fig, _ = plot_SVs(svs,exp_var) # plot singular values and cumulative explained variance
         save_plot(fig,savedir+'figs/PCA_SVs_ExpVar')
 
-        return pp.project_trajectories(df,pcs[:ndim],metadata[0],metadata_col=metadata)
+                # build dataframe of scaled data with metadata
+        data_scaled = np.hstack((X_scaled,df[metadata[0]].values[:,None],df[metadata[1]].values[:,None]))
+        cols = df.columns
+        df_scaled = pd.DataFrame(data_scaled,columns=cols)
+        df_scaled[metadata[0]] = df_scaled[metadata[0]].astype(int) # trajectory index
+        df_scaled[metadata[1]] = df_scaled[metadata[1]].astype(int) # time point
+        # get array of (scaled) single crop trajectories projected onto these top PC modes
+        return pp.project_trajectories(df_scaled,pcs[:ndim],metadata[0],metadata_col=metadata)
     else:
         if feats_to_analyze is None:
             raise ValueError("Must specify which features to analyze if PCA is not performed.")
