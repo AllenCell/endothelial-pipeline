@@ -56,7 +56,7 @@ def restore_full_dims(image: np.array, current_dims: str, full_dims: str='TCZYX'
 
     return image
 
-def preprocess(raw_arr: np.array) -> np.array:
+def preprocess(raw_arr: np.array, sigma=3, radius=20) -> np.array:
     """
     Takes an image and returns a processed version after performing a gaussian blur,
     intensity rescaling to uint16, and then rolling-ball background subtraction.
@@ -73,9 +73,8 @@ def preprocess(raw_arr: np.array) -> np.array:
     """
 
     # smooth image and then subtract background with rolling ball method
-    gauss = gaussian(raw_arr, sigma=3)
+    gauss = gaussian(raw_arr, sigma=sigma)
     gauss = rescale_intensity(gauss, out_range=np.uint16)
-    radius = 20
     bg_img = rolling_ball(gauss, radius=radius)
     sub = gauss - bg_img
 
@@ -776,10 +775,12 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     px_res = images_metadata['physical_pixel_sizes']
     img_dim_order = images_metadata['dim_order']
     dim_order_out = 'TCZYX'
+    dtype = images_metadata['dtype'] or np.uint16
+
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(np.uint16)
+    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
 
     OmeTiffWriter.save(merged_img,
                        out_path,
