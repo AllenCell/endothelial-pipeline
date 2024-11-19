@@ -85,14 +85,18 @@ for dataset_name in dataset_name_list:
     table_paths = [fp for fp in out_dir.glob('tables/*.csv')]
     master_table = pd.concat([pd.read_csv(fp) for fp in table_paths])
 
-    fig, ax = plt.subplots(figsize=(5,5), ncols=1, nrows=1)
+    fig, ax = plt.subplots(figsize=(8,6), ncols=1, nrows=1)
     sns.lineplot(x='T', y='pearson_nuclei', data=master_table, ls='-', marker='o', ax=ax)
-    ax.twinx()
-    sns.lineplot(x='T', y='pearson_cdh5_regions', data=master_table, ls='-', marker='o', ax=ax)
+    ax2 = ax.twinx()
+    sns.lineplot(x='T', y='pearson_cdh5_regions', data=master_table, ls='-', marker='o', c='tab:orange', ax=ax2)
     ax.set_ylim(-1, 1)
+    ax2.set_ylim(-1, 1)
     ax.axhline(0, color='black', linestyle='--')
     [ax.axhline(y, color='grey', linestyle=':') for y in (-0.5, 0.5)]
+    ax.yaxis.set_tick_params(labelcolor='tab:blue')
+    ax2.yaxis.set_tick_params(labelcolor='tab:orange')
     ax.set_ylabel('Pearson correlation coefficient between threshold \n density map and number of nuclei')
-    ax.set_ylabel('Pearson correlation coefficient between threshold \n density map and number of CDH5 regions')
+    ax2.set_ylabel('Pearson correlation coefficient between threshold \n density map and number of CDH5 regions', rotation=-90, verticalalignment='bottom')
+    ax.set_adjustable('box')
     plt.tight_layout()
     fig.savefig(out_dir / 'plots/T_vs_pearson.png')
