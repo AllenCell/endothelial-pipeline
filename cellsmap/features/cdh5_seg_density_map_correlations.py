@@ -1,13 +1,14 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
-from cellsmap.util import io, cdh5_preprocessing as preproc
+from skimage.measure import label, regionprops
 import matplotlib.pyplot as plt
 import seaborn as sns
+from cellsmap.util import io, cdh5_preprocessing as preproc
 from cellsmap.features import cdh5_seg_density_map as cellsden
-from pathlib import Path
-from skimage.measure import label
-from skimage.measure import regionprops
 
+# silence the max number of plots warning
+plt.rcParams.update({'figure.max_open_warning': 0})
 
 def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, nsamples=1000):
     np.random.seed(666)
@@ -35,7 +36,8 @@ def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, 
         n = len(regionprops(label(nuc_crop.astype(bool))))
         n_cdh5_regions = len(regionprops(region_seg[crop_region]))
         dens = dmap[crop_region_small].mean()
-        df.append({"density": dens, "n_nuclei": n, "n_CDH5_regions": n_cdh5_regions})
+        dens_std = dmap[crop_region_small].std()
+        df.append({"density": dens, "density_std":dens_std, "n_nuclei": n, "n_CDH5_regions": n_cdh5_regions})
     df = pd.DataFrame(df)
 
     pearson = np.corrcoef(df.density, df.n_nuclei)[0, 1]
@@ -66,15 +68,14 @@ def save_results(out_dir, t, df, pearson, fig):
     df.to_csv(out_dir / f'tables/T{t}_results.csv')
 
 
-# dataset_name_list = ['20240305_T01_001', '20240917_20X_48hr', '20241016_20X']
 dataset_name_list = ['20240305_T01_001',]
 
 for dataset_name in dataset_name_list:
     print(dataset_name)
-    T_range = range(0, io.get_dataset_duration_in_frames(dataset_name), 72)
+    T_range = range(0, io.get_dataset_duration_in_frames(dataset_name), 6)
 
     prj_dir = Path('../').resolve()
-    out_dir = prj_dir / 'results/cdh5_seg_density_map_validation' / dataset_name
+    out_dir = prj_dir / 'results/cdh5_seg_density_map_correlations' / dataset_name
 
     for t in T_range:
         print(f'T={t}')
