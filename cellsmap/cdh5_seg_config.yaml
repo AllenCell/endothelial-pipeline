@@ -1,18 +1,80 @@
 [{
   name: 20240305_T01_001,
   segmentation_dir: "//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240305_T01_001",
-  # segmentation_dir: "results/cdh5_classic_seg/20240305_T01_001",
-  # segmentation_dir_for_tests: "tests/results/cdh5_classic_seg/20240305_T01_001",
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-},{
+  RAG_merge_threshold: 80, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+  },{
   name: 20240917_20X_48hr,
   segmentation_dir: "//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240917_20X_48hr",
-  # segmentation_dir: "results/cdh5_classic_seg/20240917_20X_48hr",
-  # segmentation_dir_for_tests: "tests/results/cdh5_classic_seg/20240917_20X_48hr",
   pixel_size_xy_in_um: 0.382,
   time_interval_in_minutes: 5.0,
-  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-},
+  flow: [[0, 22.583, 20], [22.583, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20240227_T01_001,
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240227_T01_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 24, 6], [24, 48, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20240213_T01_001,
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240213_T01_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 288, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 24, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20240215_T01_001,
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240215_T01_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 288, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20240220_T01_001,
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240220_T01_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 288, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 24, 7.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20241016_20X,
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20241016_20X,
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 20.4, 35], [20.4, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20231122_T02_001, #FIXED DATA. Each timepoint is a different position
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20231122_T02_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 5, # number of frames
+  time_interval_in_minutes: -1.0,
+  flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240328_T02_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 4, # number of frames
+  time_interval_in_minutes: -1.0,
+  flow: [[0, 0.066, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+},{
+  name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
+  segmentation_dir: //allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg/20240328_T01_001,
+  pixel_size_xy_in_um: 0.382,
+  duration: 5, # number of frames
+  time_interval_in_minutes: -1.0,
+  flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  RAG_merge_threshold: 70, #threshold for merging regions in RAG when generating segmentations with cdh5_classic_seg.py
+}
 ]

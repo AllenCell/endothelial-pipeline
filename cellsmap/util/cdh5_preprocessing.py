@@ -620,7 +620,7 @@ def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
 
     return t_res
 
-def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None) -> list:
+def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None, as_dask=False) -> list:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
@@ -650,6 +650,10 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
         A slice of the imaging data along the X-axis.
         Default is None.
 
+    as_dask: bool
+        Whether to return the image arrays as dask arrays.
+        Default is False.
+
     Returns
     -------
     img_arrays: list of numpy arrays
@@ -675,14 +679,16 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
                  for C in channel_crops]
 
     # The reason for using the crop maps above instead of loading individual
-    # crops by specifying T, C Y, and X in img.get_iamge_data is because
+    # crops by specifying T, C, Y, and X in img.get_image_data is because
     # .get_image_data does not accept slice objects and also the files are
     # split up by timepoint. Using the slice objects is favoured over tuples
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
-    img_arrays = img.get_image_data(dim_order)
-    crops = [[crop_map[d] for d in dim_order] for crop_map in crop_maps]
-    img_arrays = [img_arrays[(*crop,)] for crop in crops]
+    crops = [{d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps]
+    if not as_dask:
+        img_arrays = [img.get_image_data(dim_order, **crop) for crop in crops]
+    else:
+        img_arrays = [img.get_image_dask_data(dim_order, **crop) for crop in crops]
 
     return img_arrays
 
@@ -733,7 +739,7 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
         
     return t if int_only else f'T{t}'
 
-def save_image_output(out_path: Path, images: list, images_metadata: dict):
+def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype=None):
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
@@ -766,8 +772,22 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     Nothing (saves an image to out_path).
     """
 
-    assert all([img.max() < np.iinfo(np.uint16).max for img in images])
-    assert all([img.shape == images[-1].shape for img in images])
+    assert all([img.shape == images[-1].shape for img in images]), "All images must have the same shape."
+    # if a data type is not specified then use the smallest uint type that can hold the max value
+    # among all images being saved
+    if not dtype:
+        img_max = max([img.max() for img in images])
+        dtypes = {np.iinfo(dtype).max: dtype for dtype in (np.uint8, np.uint16, np.uint32) if img_max <= np.iinfo(dtype).max}
+
+        assert dtypes, \
+        '''
+        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater. 
+        Please find a way to reduce the max value in the culprit channel or save the image in a different format.
+        '''
+
+        dtype = dtypes[min(dtypes)]
+    else:
+        pass
 
     image_name = images_metadata['image_name']
     ch_colors = images_metadata['channel_colors']
