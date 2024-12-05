@@ -89,7 +89,7 @@
   features: {}
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2023/20231122/20240328_T02_001.dir",
+  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T02_001.dir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T02_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 4, # number of frames
@@ -98,7 +98,7 @@
   features: {}
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2023/20231122/20240328_T01_001.dir",
+  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T01_001.dir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 5, # number of frames
