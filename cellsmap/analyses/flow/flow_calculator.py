@@ -23,17 +23,39 @@ class FlowCalculator():
     """
     Class to implement functionalities related to flow field. We want
     to use the flow field as a proxy for the collective motion of
-    neighbor nuclei. Velocities in here are computed in units of
-    micron/min.
+    endothelial cells. Velocities in here are computed in units of
+    pixels/timeframe.
 
-    Example (it takes about 1 hour to finish a single colony):
+    Example using multiprocessing:
     --------
-    from nuc_morph_analysis.flow import tools as ftools
-    flowc = ftools.FlowCalculator(dataset="papa_bear")
-    flowc.initialize()
-    flowc.run_flow_field_analysis()
-    flowc.save_flow_field(path="./")
-    flowc.display_average_flow_velocities()
+    from cellsmap.analyses.flow import flow_calculator
+    import concurrent.futures
+    from pathlib import Path
+
+    # Define a location to save the output to:
+    out_dir = Path(__file__).resolve().parent / 'results'
+    # Define how many cores you want to use:
+    ncores = 20
+    # Define how many timeframes into the future you want to use to calculate a vector of the flow field:
+    delta_t = 1 # (calculate the vector for the current timeframe to the next one)
+
+    # Set up multiprocessing:
+    with concurrent.futures.ProcessPoolExecutor(ncores) as executor:
+        # The line below saves the flow field vectors as an image and also returns the path to the saved image:
+        out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t, executor, ncores)
+
+    Example using single processing:
+    --------
+    from cellsmap.analyses.flow import flow_calculator
+    from pathlib import Path
+
+    # Define a location to save the output to:
+    out_dir = Path(__file__).resolve().parent / 'results'
+    # Define how many timeframes into the future you want to use to calculate a vector of the flow field:
+    delta_t = 1 # (calculate the vector for the current timeframe to the next one)
+
+    # The line below saves the flow field vectors as an image and also returns the path to the saved image:
+    out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t)
     """
     debug = False # Run in debug mode or not
     ncores = 1 # Number of cores to be used in the calculation

@@ -40,6 +40,7 @@ import numpy as np
 from skimage.exposure import rescale_intensity
 import matplotlib.pyplot as plt
 
+# %%
 # Get the paths to the vector field images
 dataset_list = ['20241016_20X']
 
@@ -129,5 +130,54 @@ for dataset_name in dataset_list:
     plt.tight_layout()
     plt.show()
 
-# %%
+# %% Create a figure for validation
+# The figure should be of PC1 vs PC2 for different crops with select crops shown
+# and linked back to their corresponding data points in the PC1 vs PC2 plot
 
+
+# %% Pick and load the flow features of a dataset:
+# Pick a dataset
+dataset_name = '20241016_20X'
+
+# Load vector field image for a dataset
+flow_feat_img = flow_calculator.load_vector_field_img(out_dir, dataset_name)
+
+# Get the channel names and their indices from the outputted image
+# (the vector field images have metadata saved with them)
+image_paths = flow_calculator.get_vector_field_image_paths(out_dir)
+im_path = image_paths[dataset_name]
+chan_map = {flow_feat_img.channel_names: i for i, flow_feat_img.channel_names in enumerate(BioImage(im_path).channel_names)}
+print(f'The channel names and their indices are: {chan_map}')
+
+
+# %% 1. Get a bunch of crops:
+# Get some random crops of the vector fields (this is randomly sampling in time too)
+# and load the roi crops into memory
+roi_shape = (1, 4, 64, 64)
+rois = flow_calculator.get_random_roi(flow_feat_img.shape, roi_shape, num_rois=10, random_seed=42)
+crops = [flow_feat_img[r] for r in rois]
+crops_in_memory = [c.compute() for c in crops]
+
+
+# %% 2. Get flow features of the crops
+
+
+
+# %% 3. Compute PCA on the crops
+
+
+# %% 4. Plot the first two PCs of each crop
+
+
+# %% 5. Display what some of the crops look like from the PC1 vs PC2 plot
+
+# Get a couple of basic descriptive statistics of the norm and angle channels
+norm_chan_idx = chan_map['norm']
+mag_means = [c[0, norm_chan_idx, ...].mean() for c in crops_in_memory]
+mag_stds = [c[0, norm_chan_idx, ...].std() for c in crops_in_memory]
+
+angle_chan_idx = chan_map['theta']
+ang_means = [c[0, angle_chan_idx, ...].mean() for c in crops_in_memory]
+ang_stds = [c[0, angle_chan_idx, ...].std() for c in crops_in_memory]
+
+# %%
