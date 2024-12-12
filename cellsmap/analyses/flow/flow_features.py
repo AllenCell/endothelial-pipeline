@@ -130,14 +130,14 @@ for dataset_name in dataset_list:
     plt.tight_layout()
     plt.show()
 
-# %% Create a figure for validation
+# %% Create figures for validation:
 # The figure should be of PC1 vs PC2 for different crops with select crops shown
 # and linked back to their corresponding data points in the PC1 vs PC2 plot
 
 
 # %% Pick and load the flow features of a dataset:
 # Pick a dataset
-dataset_name = '20241016_20X'
+dataset_name = dataset_list[0]
 
 # Load vector field image for a dataset
 flow_feat_img = flow_calculator.load_vector_field_img(out_dir, dataset_name)
@@ -154,7 +154,7 @@ print(f'The channel names and their indices are: {chan_map}')
 from sklearn.decomposition import PCA
 import pandas as pd
 from matplotlib import gridspec as gs
-def compute_PCA_on_feature(features: list[np.ndarray], n_components: int=10, return_as_dataframe=False) -> PCA:
+def compute_PCA_on_features(features: list[np.ndarray], n_components: int=10, return_as_dataframe=False) -> PCA:
     # pca_list = []
     # feats_proj_list = []
     # for feature in features:
@@ -175,14 +175,15 @@ def compute_PCA_on_feature(features: list[np.ndarray], n_components: int=10, ret
     return pca, feats_proj
 
 # create an output directory for the plots
-out_dir_plots = out_dir / 'validation_plots'
+out_dir_plots = out_dir / f'validation_plots/{dataset_name}'
 Path.mkdir(out_dir_plots, exist_ok=True, parents=True)
 
 # %% 1. Get a bunch of crops:
 # Get some random crops of the vector fields (this is randomly sampling in time too)
 # and load the roi crops into memory
 roi_shape = (1, 4, 64, 64)
-rois = flow_calculator.get_random_roi(flow_feat_img.shape, roi_shape, num_rois=100, random_seed=42)
+num_rois = 100
+rois = flow_calculator.get_random_roi(flow_feat_img.shape, roi_shape, num_rois=num_rois, random_seed=42)
 
 
 # %% 2. Get flow features of the crops
@@ -192,11 +193,12 @@ crops_in_memory = [c.compute() for c in crops]
 
 # %% 3. Compute PCA on the crops
 # use the angle mean and std as features
-features_angles = [c[:,3,...].squeeze() for c in crops_in_memory]
+features_angles = [c[:,chan_map['theta'],...].squeeze() for c in crops_in_memory]
 features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[(feat.mean(), feat.std()) for feat in features_angles])))
 
-features = [np.array([(crop[:,i,...].mean(), crop[:,i,...].std()) for i in range(2, crop.shape[1])]).ravel() for crop in crops_in_memory]
-pca, feats_proj = compute_PCA_on_feature(features, n_components=2, return_as_dataframe=True)
+features = [np.array([(crop[:,i,...].mean(), crop[:,i,...].std()) for i in range(0, crop.shape[1])]).ravel() for crop in crops_in_memory]
+# features = [np.array([(crop[:,i,...].ravel()) for i in range(0, crop.shape[1])]).ravel() for crop in crops_in_memory]
+pca, feats_proj = compute_PCA_on_features(features, n_components=3, return_as_dataframe=True)
 
 # create a dataframe of the features and PCs
 angles_and_pcs = pd.concat([feats_proj.reset_index(inplace=False, names='crop_id'),
@@ -205,24 +207,7 @@ angles_and_pcs = pd.concat([feats_proj.reset_index(inplace=False, names='crop_id
                             ], axis='columns')
 
 
-# %% 4. Plot the first two PCs of each crop
-fig, (ax1, ax2) = plt.subplots(figsize=(10,5), ncols=2)
-ax1.scatter(angles_and_pcs[0], angles_and_pcs[1], marker='.')
-ax1.axvline(0, color='k', linestyle='--', alpha=0.5)
-ax1.axhline(0, color='k', linestyle='--', alpha=0.5)
-ax1.set_xlabel('PC1')
-ax1.set_ylabel('PC2')
-ax1.set_title('PC1 vs PC2 for crops')
-
-ax2.scatter(np.rad2deg(angles_and_pcs['angle_mean']), np.rad2deg(angles_and_pcs['angle_std']), marker='.')
-ax2.set_xlabel('Angle mean (degrees)')
-ax2.set_ylabel('Angle STD (degrees)')
-ax2.set_title('Angle mean vs Angle STD for crops')
-plt.tight_layout()
-
-
-# %% 5. Display what some of the crops look like from the PC1 vs PC2 plot
-
+# %% 4, 5. Plot the first two PCs and a selected crop with the flow field fir several crops
 # Use the loaded vector information to create the flow field
 
 # vfield = flow_calculator.load_vector_field_img(out_dir, dataset_name)
@@ -245,8 +230,8 @@ rois_as_titles = [list(zip(*[(slc.start, slc.stop) for slc in r])) for r in rois
 
 num_crops_to_plot = 20
 for i in range(num_crops_to_plot):
-    fig = plt.figure(figsize=(9, 3))
-    axs = gs.GridSpec(ncols=3, nrows=1, figure=fig)
+    fig = plt.figure(figsize=(12, 3))
+    axs = gs.GridSpec(ncols=4, nrows=1, figure=fig)
 
     ax1 = fig.add_subplot(axs[0, 0])
     ax1.scatter(angles_and_pcs[0], angles_and_pcs[1], marker='.', alpha=0.7)
@@ -260,19 +245,85 @@ for i in range(num_crops_to_plot):
     ax2 = fig.add_subplot(axs[0, 1])
     ax2.scatter(np.rad2deg(angles_and_pcs['angle_mean']), np.rad2deg(angles_and_pcs['angle_std']), marker='.', alpha=0.7)
     ax2.scatter(np.rad2deg(angles_and_pcs.query('crop_id == @i')['angle_mean']), np.rad2deg(angles_and_pcs.query('crop_id == @i')['angle_std']), marker='o', edgecolor='r', facecolor='none')
+    ax2.set_xlim(-180, 180)
     ax2.set_xlabel('Angle mean (degrees)')
     ax2.set_ylabel('Angle STD (degrees)')
     ax2.set_title('Angle mean vs STD for crops')
 
     ax3 = fig.add_subplot(axs[0, 2])
     ax3.imshow(flow_graphs[i], cmap='gray')
-    ax3.axis('off')
+    # ax3.axis('off')
     ax3.set_title(f'Flow Field (crop {i})')
     ax3.text(x=0.5, y=-0.05, ha='center', va='top', transform=ax3.transAxes,
              s=f'roi start: {rois_as_titles[i][0]}\nroi stop:{rois_as_titles[i][1]})')
+
+    ax4 = fig.add_subplot(axs[0, 3], projection='polar')
+    ax4.arrow(x=float(angles_and_pcs.query('crop_id == @i')['angle_mean'].iloc[0]), y=0, dx=0, dy=0.9, head_width=0.1, head_length=0.15, length_includes_head = True, lw=2, color='r')
+    dtheta = np.deg2rad(2 * np.pi / 36)
+    [ax4.plot((theta, theta + dtheta), (0.95, 1), c='k', lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 36)]
+    ax4.tick_params(axis='x', which='minor')
+    ax4.set_ylim(0, 1)
+    ax4.set_theta_direction(-1)
+    ax4.yaxis.set_visible(False)
+    ax4.set_title('Mean angle orientation')
+
+    # TODO: THE ARROW IS NOT POINTING TO THE RIGHT SPOT YET
+
     plt.tight_layout()
-    fig.savefig(out_dir_plots / f'crop_{i}.png')
+    break
+    fig.savefig(out_dir_plots / f'{dataset_name}_crop_{i}.tif')
     plt.close(fig)
 
+
+# %% Create some synthetic data to test the above vector field plotting:
+from skimage.draw import circle_perimeter
+from skimage.filters import gaussian
+# create empty synthetic data with shape (time, channel, y, x)
+synth_shape_y, synth_shape_x = 1024, 1024
+num_circles_per_axis = 10
+synth_img = np.zeros((5, 1, synth_shape_y, synth_shape_x), dtype=np.uint8)
+# add a dot that moves from the center to the lower left over time
+for i in range(len(synth_img)):
+    # synth_img[i, 0, 1024//2+i, 1024//2-i] = 1
+    circle_centers = np.meshgrid(range(0, synth_shape_y, synth_shape_y//num_circles_per_axis), range(0, synth_shape_x, synth_shape_x//num_circles_per_axis))
+    circle_centers = list(zip(*[c_arr.ravel().tolist() for c_arr in circle_centers]))
+    circle_indices = list(zip(*[circle_perimeter(y+i, x-i, 30) for y,x in circle_centers]))
+    circle_indices = np.asarray([np.concatenate(indices) for indices in circle_indices])
+    indices_too_low = np.any(circle_indices < np.array([[0],[0]], ndmin=2), axis=0, keepdims=True)
+    indices_too_high = np.any(circle_indices >= np.array([[synth_shape_y],[synth_shape_x]], ndmin=2), axis=0, keepdims=True)
+    circle_indices = circle_indices[:, ~np.any(indices_too_low | indices_too_high, axis=0)]
+    ts, cs = [i] * len(circle_indices[0]), [0] * len(circle_indices[0])
+    synth_img[(ts, cs, *circle_indices)] = 255
+    synth_img[i, 0, ...] = gaussian(synth_img[i, 0, ...], sigma=2, preserve_range=True)
+
+# compute flow vectors from the synthetic data
+flow_graphs = []
+for i in range(len(synth_img)-1):
+    print(f'Computing flow for frame {i} to {i+1}')
+    flow = flow_calculator.FlowCalculator.compute_flow(synth_img[i].squeeze(), synth_img[i+1].squeeze(), radius=30)
+    flow_graphs.append(flow)
+
+# %% compute angles of flow vectors
+# optical_flow_ilk(synth_img[i].squeeze(), synth_img[i+1].squeeze(), radius=30)
+# flow_calculator.get_random_roi()
+# plt.imshow(synth_img[0, 0, ...], cmap='gray')
+# plt.imshow(synth_img[-1, 0, ...], cmap='gray')
+vx, vy = flow_graphs[0]
+theta = flow_calculator.FlowCalculator.compute_angles(vx, vy)
+mag = flow_calculator.FlowCalculator.compute_magnitudes(vx, vy)
+# test = flow_calculator.FlowCalculator.make_vector_field_map(synth_img[0].squeeze(), *flow_graphs[0], resolution=100, display=True, return_map=True)
+
+# %%
+# plt.imshow(np.dstack([*flow_graphs[0], synth_img[0].squeeze()])[:200,:200], interpolation='nearest')
+
+synth_data_example = flow_calculator.FlowCalculator.make_vector_field_map(synth_img[0].squeeze(), vx, vy, resolution=30, display=True, return_map=True, hide_axes=False)
+
+
+# %%
+angles_deg = np.rad2deg(theta)
+mean_angle_deg = angles_deg[angles_deg > 0].mean()
+
+mag_mean = mag[mag > 0].mean()
+print(f'Flow angle mean: {mean_angle_deg} \nFlow magnitude mean: {mag_mean}')
 
 # %%

@@ -164,13 +164,6 @@ class FlowCalculator():
         return out_path
 
     @staticmethod
-    def compute_flow_features(vx, vy):
-        magnitudes = FlowCalculator.compute_angles(vx, vy)
-        angles = FlowCalculator.compute_angles(vy, vx)
-        features = [magnitudes, angles]
-        return features
-
-    @staticmethod
     def compute_angles(vx, vy):
         """
         Angles are in the correct quadrants (see docs for numpy.arctan2).
@@ -184,7 +177,7 @@ class FlowCalculator():
     @staticmethod
     def summarize_flow_features(vx, vy, axis=None):
         magnitudes = FlowCalculator.compute_angles(vx, vy)
-        angles = FlowCalculator.compute_angles(vy, vx)
+        angles = FlowCalculator.compute_angles(vx, vy)
         features = [magnitudes, angles]
         feature_means = [np.mean(ft, axis=axis) for ft in features]
         feature_stds = [np.std(magnitudes, axis=axis) for ft in features]
@@ -204,7 +197,7 @@ class FlowCalculator():
         return (vx, vy)
 
     @staticmethod
-    def make_vector_field_map(image, vx, vy, resolution=20, display=True, return_map=False):
+    def make_vector_field_map(image, vx, vy, resolution=20, display=True, return_map=False, hide_axes=True):
 
         norm = np.sqrt(vx ** 2 + vy ** 2)
 
@@ -219,7 +212,7 @@ class FlowCalculator():
         fig, ax = plt.subplots(1, 1, dpi=150)
         canvas = FigureCanvas(fig)
         ax.imshow(image, cmap='gray')
-        ax.set_axis_off()
+        ax.set_axis_off() if hide_axes else None
         ax.quiver(x, y, vx_, vy_, n_, units='dots', angles='xy', scale_units='xy', width=4, cmap="inferno")
         plt.tight_layout()
 
@@ -250,7 +243,7 @@ class FlowCalculator():
         theta = FlowCalculator.compute_angles(vx, vy)
         nl, nc = image.shape
         y, x = np.mgrid[:nl, :nc]
-        return [x, y, vx, vy, norm, theta] if keepdims else [np.ravel(arr) for arr in (x, y, vx, vy, norm)]
+        return [x, y, vx, vy, norm, theta] if keepdims else [np.ravel(arr) for arr in (x, y, vx, vy, norm, theta)]
 
     def save_flow_field(self, path):
         result = {
