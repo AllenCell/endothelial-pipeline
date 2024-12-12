@@ -241,12 +241,13 @@ for i in range(num_crops_to_plot):
     ax2.set_ylabel('Angle STD (degrees)')
     ax2.set_title('Angle mean vs STD for crops')
 
-    ax3 = fig.add_subplot(axs[0, 2])
-    ax3.imshow(flow_graphs[i], cmap='gray')
-    # ax3.axis('off')
-    ax3.set_title(f'Flow Field (crop {i})')
-    ax3.text(x=0.5, y=-0.14, ha='center', va='top', transform=ax3.transAxes,
-             s=f'roi start: {rois_as_titles[i][0]}\nroi stop:{rois_as_titles[i][1]})')
+    with plt.rc_context({'axes.edgecolor': 'red', 'xtick.color':'red', 'ytick.color':'red', 'xtick.labelcolor':'red', 'ytick.labelcolor':'red'}):
+        ax3 = fig.add_subplot(axs[0, 2])
+        ax3.imshow(flow_graphs[i], cmap='gray')
+        # ax3.axis('off')
+        ax3.set_title(f'Flow Field (crop {i})', color='r')
+        ax3.text(x=0.5, y=-0.14, ha='center', va='top', transform=ax3.transAxes,
+                 s=f'roi start: {rois_as_titles[i][0]}\nroi stop:{rois_as_titles[i][1]})')
 
     ax4 = fig.add_subplot(axs[0, 3], projection='polar')
     ax4.arrow(x=float(angles_and_pcs.query('crop_id == @i')['angle_mean'].iloc[0]), y=0, dx=0, dy=0.9, head_width=0.1, head_length=0.15, length_includes_head = True, lw=2, color='r')
@@ -323,7 +324,7 @@ ax1.set_title(f'''Flow Field (synthetic data)\nMean (True) angle: {mean_angle_de
               fontsize=10)
 
 ax2 = fig.add_subplot(axs[0, 1], projection='polar')
-ax2.arrow(x=np.deg2rad(mean_angle_deg), y=0, dx=0, dy=0.9, head_width=0.1, head_length=0.15, length_includes_head = True, lw=2, color='r')
+ax2.arrow(x=np.deg2rad(mean_angle_deg), y=0, dx=0, dy=0.9, head_width=0.1, head_length=0.15, length_includes_head = True, lw=2, color='r', zorder=10)
 # create minor ticks on the polar plot
 [ax2.plot((theta, theta), (0.95, 1), c='k', lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 36+1)]
 ax2.set_ylim(0, 1)
