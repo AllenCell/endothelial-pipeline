@@ -175,7 +175,7 @@ print(f'The channel names and their indices are: {chan_map}')
 # Get some random crops of the vector fields (this is randomly sampling in time too)
 # and load the roi crops into memory
 roi_shape = (1, 4, 64, 64)
-num_rois = 100
+num_rois = 200
 rois = flow_calculator.get_random_roi(flow_feat_img.shape, roi_shape, num_rois=num_rois, random_seed=42)
 
 
@@ -186,40 +186,68 @@ crops_in_memory = [c.compute() for c in crops]
 
 # %% 3. Compute PCA on the crops
 # use the angle mean and std as features
-features_angles = [c[:,chan_map['theta'],...].squeeze() for c in crops_in_memory]
-features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[(feat.mean(), feat.std()) for feat in features_angles])))
 
-features = [np.array([(crop[:,i,...].mean(), crop[:,i,...].std()) for i in range(0, crop.shape[1])]).ravel() for crop in crops_in_memory]
-pca, feats_proj = compute_PCA_on_features(features, n_components=3, return_as_dataframe=True)
+features_vx = [c[:,chan_map['vx'],...].squeeze() for c in crops_in_memory]
+features_vy = [c[:,chan_map['vy'],...].squeeze() for c in crops_in_memory]
+features_angles = [c[:,chan_map['theta'],...].squeeze() for c in crops_in_memory]
+features_mags = [c[:,chan_map['norm'],...].squeeze() for c in crops_in_memory]
+features_vx_mean = [feat.mean() for feat in features_vx]
+features_vy_mean = [feat.mean() for feat in features_vy]
+# features_vx_std = [feat.std() for feat in features_vx]
+# features_vy_std = [feat.std() for feat in features_vy]
+angles_of_vector_mean = flow_calculator.FlowCalculator.compute_angles(features_vx_mean, features_vy_mean)
+mag_of_vector_mean = flow_calculator.FlowCalculator.compute_magnitudes(features_vx_mean, features_vy_mean)
+# features_mags_mean = [feat.mean() for feat in features_mags]
+# features_mags_stdevs = [feat.std() for feat in features_mags]
+
+
+# {'angle_of_vector_mean': angles_of_vector_mean, 'magnitude_of_vector_mean': mag_of_vector_mean}
+# features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[(feat.mean(), feat.std()) for feat in features_angles])))
+# features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[get_angle_mean_and_std(angles_arr) for angles_arr in features_angles])))
+
+
+# features = [np.array([(crop[:,i,...].mean(), crop[:,i,...].std()) for i in range(0, crop.shape[1])]).ravel() for crop in crops_in_memory]
+# features = [[(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['vx', 'vy']] for crop in crops_in_memory]
+features = list(zip(*list(zip(*[(arr.mean(),
+                                 arr.std()) for arr in features_vx])),
+                    *list(zip(*[(arr.mean(),
+                                 arr.std()) for arr in features_vy])),
+                    angles_of_vector_mean.tolist(),
+                    mag_of_vector_mean.tolist()))
+features = list(zip(angles_of_vector_mean, mag_of_vector_mean))
+features = [np.array(feat) for feat in features]
+pca, feats_proj = compute_PCA_on_features(features, n_components=2, return_as_dataframe=True)
 
 # create a dataframe of the features and PCs
 angles_and_pcs = pd.concat([feats_proj.reset_index(inplace=False, names='crop_id'),
-                            pd.DataFrame(features_summary),
+                            # pd.DataFrame(features_summary),
+                            pd.DataFrame({'angle_of_vector_mean': angles_of_vector_mean}),
+                            pd.DataFrame({'magnitude_of_vector_mean': mag_of_vector_mean}),
                             pd.DataFrame([{'T':t.start, 'start_y':y.start, 'start_x':x.start} for t,c,y,x in rois])
                             ], axis='columns')
 
 
 # %% 4, 5. Plot the first two PCs and a selected crop with the flow field fir several crops
-# Use the loaded vector information to create the flow field
-vx_crops, vy_crops = zip(*[(c[0, chan_map['vx'], ...].squeeze(), c[0, chan_map['vy'], ...].squeeze()) for c in crops_in_memory])
-
+# load the cdh5 channel of the dataset in the crop region
 img = load_dataset(dataset_name, channels=['CDH5'], level=2)
 img_crops = [img[r] for r in rois]
 img_crops = [c.compute().squeeze() for c in img_crops]
 
-flow_graphs = [flow_calculator.FlowCalculator.make_vector_field_map(img, vx, vy, display=False, return_map=True) for img, vx, vy in zip(img_crops, vx_crops, vy_crops)]
+# Use the loaded vector information to create the flow field
+flow_graphs = [flow_calculator.FlowCalculator.make_vector_field_map(img, crop[:,chan_map['vx'], ...].squeeze(), crop[:,chan_map['vy'], ...].squeeze(), resolution=15, display=False, return_map=True) for img, crop in zip(img_crops, crops_in_memory)]
 # trim white-space from the flow graphs
 keep_me_indices = [np.where(~np.all(g==255, axis=-1)) for g in flow_graphs]
 keep_me_slices = [(slice(np.min(i), np.max(i)), slice(np.min(j), np.max(j)), slice(None)) for i,j in keep_me_indices]
 flow_graphs = [flow_graphs[i][arr_slice] for i,arr_slice in enumerate(keep_me_slices)]
 
-nrows, ncols, figsize = 2, 5, (15, 7)
 rois_as_titles = [list(zip(*[(slc.start, slc.stop) for slc in r])) for r in rois]
 
 num_crops_to_plot = 20
 for i in range(num_crops_to_plot):
-    fig = plt.figure(figsize=(12, 3))
-    axs = gs.GridSpec(ncols=4, nrows=1, figure=fig)
+    ang, mag = crops_in_memory[i][:,chan_map['theta'],...].squeeze(), crops_in_memory[i][:,chan_map['norm'],...].squeeze()
+
+    fig = plt.figure(figsize=(15, 3))
+    axs = gs.GridSpec(ncols=5, nrows=1, figure=fig)
 
     ax1 = fig.add_subplot(axs[0, 0])
     ax1.scatter(angles_and_pcs[0], angles_and_pcs[1], marker='.', alpha=0.7)
@@ -231,38 +259,144 @@ for i in range(num_crops_to_plot):
     ax1.set_title('PC1 vs PC2 for crops')
 
     ax2 = fig.add_subplot(axs[0, 1])
-    ax2.scatter(np.rad2deg(angles_and_pcs['angle_mean']), np.rad2deg(angles_and_pcs['angle_std']), marker='.', alpha=0.7)
-    ax2.scatter(np.rad2deg(angles_and_pcs.query('crop_id == @i')['angle_mean']), np.rad2deg(angles_and_pcs.query('crop_id == @i')['angle_std']), marker='.', color='r', zorder=10)
+    ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['magnitude_of_vector_mean'], marker='.', alpha=0.7)
+    ax2.scatter(np.rad2deg(angles_and_pcs.query('crop_id == @i')['angle_of_vector_mean']), angles_and_pcs.query('crop_id == @i')['magnitude_of_vector_mean'], marker='.', color='r', zorder=10)
     ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
     ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
     ax2.tick_params(axis='x', which='minor')
     ax2.set_xlim(-180, 180)
-    ax2.set_xlabel('Angle mean (degrees)')
-    ax2.set_ylabel('Angle STD (degrees)')
-    ax2.set_title('Angle mean vs STD for crops')
+    ax2.set_xlabel('Mean vector angle (degrees)')
+    ax2.set_ylabel('Mean vector magnitude (px)')
+    ax2.set_title('Angle vs magnitude for crops')
 
     with plt.rc_context({'axes.edgecolor': 'red', 'xtick.color':'red', 'ytick.color':'red', 'xtick.labelcolor':'red', 'ytick.labelcolor':'red'}):
         ax3 = fig.add_subplot(axs[0, 2])
         ax3.imshow(flow_graphs[i], cmap='gray')
-        # ax3.axis('off')
         ax3.set_title(f'Flow Field (crop {i})', color='r')
         ax3.text(x=0.5, y=-0.14, ha='center', va='top', transform=ax3.transAxes,
                  s=f'roi start: {rois_as_titles[i][0]}\nroi stop:{rois_as_titles[i][1]})')
 
-    ax4 = fig.add_subplot(axs[0, 3], projection='polar')
-    ax4.arrow(x=float(angles_and_pcs.query('crop_id == @i')['angle_mean'].iloc[0]), y=0, dx=0, dy=0.9, head_width=0.1, head_length=0.15, length_includes_head = True, lw=2, color='r')
-    # create minor ticks on the polar plot
-    [ax4.plot((theta, theta), (0.95, 1), c='k', lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 36+1)]
-    ax4.set_ylim(0, 1)
-    ax4.set_theta_direction(-1)
-    ax4.set_xlim(-np.pi, np.pi)
-    ax4.yaxis.set_visible(False)
-    ax4.set_title('Mean angle orientation')
+        ax4 = fig.add_subplot(axs[0, 3], projection='polar')
+        ax4.hist(ang.ravel(), bins=72, color='k')
+        y_min, y_max = ax4.get_ylim()
+        ax4.arrow(x=float(angles_and_pcs.query('crop_id == @i')['angle_of_vector_mean'].iloc[0]), y=0, dx=0, dy=0.9*y_max, head_width=0.1, head_length=0.15*y_max, length_includes_head=True, lw=2, color='red', alpha=0.5)
+        # create minor ticks on the polar plot
+        [ax4.plot((theta, theta), (0.95 * y_max, y_max), c='r', lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 24+1)]
+        ax4.set_ylim(y_min, y_max)
+        ax4.set_theta_direction(-1)
+        ax4.set_xlim(-np.pi, np.pi)
+        ax4.yaxis.set_visible(False)
+        ax4.set_title('Angle distribution', color='r')
+
+        ax5 = fig.add_subplot(axs[0, 4])
+        ax5.hist(mag.ravel(), bins=72, color='k')
+        ax5.axvline(angles_and_pcs.query('crop_id == @i')['magnitude_of_vector_mean'].iloc[0], color='r', linestyle='--', alpha=0.5)
+        ax5.set_xlabel('Magnitude (px)')
+        ax5.set_ylabel('Frequency')
+        ax5.set_title('Magnitude distribution', color='r')
 
     plt.tight_layout()
-    # break
     fig.savefig(out_dir_plots / f'{dataset_name}_crop_{i}.png')
     plt.close(fig)
+
+
+# %% 6. Get the most "average" point in each quadrant of PC-space as an example
+# get example crops from each quadrant
+def get_point_closest_to_center(points: np.ndarray, center: tuple[float, float]) -> tuple[tuple[float, float], int]:
+    distances = np.linalg.norm(points - np.array(center), axis=1)
+    return points[np.argmin(distances)], np.argmin(distances)
+
+def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) -> list[np.ndarray]:
+    origin = np.array(origin)
+
+    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
+    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
+    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
+    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
+
+    quadrant_means = [quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
+
+    return quadrant_means
+
+quadrant_means = get_quadrant_means(angles_and_pcs[[0, 1]].to_numpy())
+quadrant_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple']
+example_points = {}
+for i, quad_mean in enumerate(quadrant_means):
+    example_pt = get_point_closest_to_center(angles_and_pcs[[0, 1]].to_numpy(), quad_mean)
+    example_crop = angles_and_pcs.iloc[example_pt[1]]
+    # ensure that the example crop is using the correct points from example_pt
+    assert all(example_crop[[0, 1]].to_numpy() == example_pt[0])
+
+    example_points[i] = {'color':quadrant_colors[i], 'record': example_crop}
+
+    # points = np.ma.masked_array(data=angles_and_pcs[[0, 1]], mask=np.all(np.sign(angles_and_pcs[[0, 1]]) == np.sign(quad_mean), axis=1))
+    # example_pt = get_point_closest_to_center(points.to_numpy(), quad_mean)
+    # example_crop = angles_and_pcs.iloc[example_pt[1]]
+    # # ensure that the example crop is using the correct points from example_pt
+    # assert all(example_crop[[0, 1]].to_numpy() == example_pt[0])
+
+    # example_points[i] = {'color':quadrant_colors[i], 'record': example_crop}
+
+
+# %% 7. Plot two PCs and the example crops from each of the 4 quadrants
+
+fig = plt.figure(figsize=(15, 9))
+axs = gs.GridSpec(ncols=5, nrows=3, figure=fig)
+ax1 = fig.add_subplot(axs[0, 0])
+ax1.scatter(angles_and_pcs[0], angles_and_pcs[1], marker='.', c='grey', alpha=0.7)
+ax1.axvline(0, color='k', linestyle='--', alpha=0.5)
+ax1.axhline(0, color='k', linestyle='--', alpha=0.5)
+ax1.set_xlabel('PC1')
+ax1.set_ylabel('PC2')
+ax1.set_title('PC1 vs PC2 for crops')
+
+ax2 = fig.add_subplot(axs[1, 0])
+ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['magnitude_of_vector_mean'], marker='.', c='grey', alpha=0.7)
+ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
+ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
+ax2.tick_params(axis='x', which='minor')
+ax2.set_xlim(-180, 180)
+ax2.set_xlabel('Mean vector angle (degrees)')
+ax2.set_ylabel('Mean vector magnitude (px)')
+ax2.set_title('Angle vs magnitude for crops')
+
+for i, example_pt in example_points.items():
+    quad_color, quad_record, crop_id = example_pt['color'], example_pt['record'], example_pt['record']['crop_id'].astype(int)
+    ang, mag = crops_in_memory[crop_id][:,chan_map['theta'],...].squeeze(), crops_in_memory[crop_id][:,chan_map['norm'],...].squeeze()
+
+    ax1.scatter(quad_record[0], quad_record[1], marker='.', color=quad_color, zorder=10)
+
+    ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['magnitude_of_vector_mean'], marker='.', color=quad_color, zorder=10)
+
+    with plt.rc_context({key: quad_color for key in ['axes.edgecolor', 'xtick.color', 'ytick.color', 'xtick.labelcolor', 'ytick.labelcolor']}):
+        ax3 = fig.add_subplot(axs[0, i+1])
+        ax3.imshow(flow_graphs[crop_id], cmap='gray')
+        ax3.set_title(f'Flow Field (crop {crop_id})', color=quad_color)
+        ax3.text(x=0.5, y=-0.14, ha='center', va='top', transform=ax3.transAxes,
+                 s=f'roi start: {rois_as_titles[crop_id][0]}\nroi stop:{rois_as_titles[crop_id][1]})')
+
+        ax4 = fig.add_subplot(axs[1, i+1], projection='polar')
+        ax4.hist(ang.ravel(), bins=72, color=quad_color, alpha=1)
+        y_min, y_max = ax4.get_ylim()
+        ax4.arrow(x=float(quad_record['angle_of_vector_mean']), y=0, dx=0, dy=0.9*y_max, head_width=0.1, head_length=0.15*y_max, length_includes_head=True, lw=1, ls='-', facecolor=quad_color, edgecolor='k', alpha=0.5)
+        # create minor ticks on the polar plot
+        [ax4.plot((theta, theta), (0.95 * y_max, y_max), c=quad_color, lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 24+1)]
+        ax4.set_ylim(y_min, y_max)
+        ax4.set_theta_direction(-1)
+        ax4.set_xlim(-np.pi, np.pi)
+        ax4.yaxis.set_visible(False)
+        ax4.set_title('Angle distribution', color=quad_color)
+
+        ax5 = fig.add_subplot(axs[2, i+1])
+        ax5.hist(mag.ravel(), bins=72, color=quad_color, alpha=1)
+        ax5.axvline(quad_record['magnitude_of_vector_mean'], color='k', linestyle='--', alpha=0.5)
+        ax5.set_xlabel('Magnitude (px)')
+        ax5.set_ylabel('Frequency')
+        ax5.set_title('Magnitude distribution', color=quad_color)
+
+plt.tight_layout()
+fig.savefig(out_dir_val / f'{dataset_name}_multicrop.png')
+plt.close(fig)
 
 
 # %% Create some synthetic data to test the above vector field plotting:
@@ -301,11 +435,13 @@ theta = flow_calculator.FlowCalculator.compute_angles(vx, vy)
 mag = flow_calculator.FlowCalculator.compute_magnitudes(vx, vy)
 
 angles_deg = np.rad2deg(theta)
-mean_angle_deg = angles_deg[angles_deg > 0].mean()
+# mean_angle_deg = angles_deg[angles_deg > 0].mean()
+mean_angle_deg = np.rad2deg(flow_calculator.FlowCalculator.compute_angles(vx.mean(), vy.mean()))
+mean_mag = flow_calculator.FlowCalculator.compute_magnitudes(vx.mean(), vy.mean())
 
-mag_mean = mag[mag > 0].mean()
-print(f'Flow angle mean: {mean_angle_deg} \nFlow magnitude mean: {mag_mean}')
-# %% Plot the synthetic data and the flow field
+# mag_mean = mag[mag > 0].mean()
+print(f'Flow angle mean: {mean_angle_deg} \nFlow magnitude mean: {mean_mag}')
+# %% Generate flow fields for synthetic data
 synth_data_example = flow_calculator.FlowCalculator.make_vector_field_map(synth_img[0].squeeze(), vx, vy, resolution=10, display=True, return_map=True)
 keep_me_indices = np.where(~np.all(synth_data_example==255, axis=-1))
 i, j = keep_me_indices
@@ -313,14 +449,13 @@ keep_me_slices = (slice(np.min(i), np.max(i)), slice(np.min(j), np.max(j)), slic
 flow_graphs = synth_data_example[keep_me_slices]
 
 
-# %% 
+# %% Plot the synthetic data and the flow field
 fig = plt.figure(figsize=(6, 3))
 axs = gs.GridSpec(ncols=2, nrows=1, figure=fig)
 
 ax1 = fig.add_subplot(axs[0, 0])
 ax1.imshow(flow_graphs, cmap='gray')
-# ax1.axis('off')
-ax1.set_title(f'''Flow Field (synthetic data)\nMean (True) angle: {mean_angle_deg:.2f} deg (135 deg)\nMean (True) mag: {mag_mean:.2f} px (sqrt(2) px)''',
+ax1.set_title(f'''Flow Field (synthetic data)\nMean (True) angle: {mean_angle_deg:.2f} deg (135 deg)\nMean (True) mag: {mean_mag:.2f} px (sqrt(2) px)''',
               fontsize=10)
 
 ax2 = fig.add_subplot(axs[0, 1], projection='polar')
