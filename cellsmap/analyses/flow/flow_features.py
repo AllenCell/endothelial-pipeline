@@ -238,12 +238,17 @@ def solenoidal_vector_field_example(show_vector_field=False):
         plt.show()
     return vfield
 
-def get_divergence_curl_example():
+def get_divergence_curl_example(vfield: str='solenoidal', show_vector_field=False) -> tuple[tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray]:
     '''Returns an example vector field, its divergence, and its curl'''
-    example_vfield = solenoidal_vector_field_example()
-    divergence = discrete_divergence_like(*example_vfield)
-    curl = discrete_curl_like(*example_vfield)
-    return example_vfield, divergence, curl
+    example_vfields = {'source': source_vector_field_example,
+                       'sink': sink_vector_field_example,
+                       'saddle': saddle_vector_field_example,
+                       'ridge': ridge_vector_field_example,
+                       'valley': valley_vector_field_example,
+                       'solenoidal': solenoidal_vector_field_example}
+    divergence = discrete_divergence_like(*example_vfields[vfield]())
+    curl = discrete_curl_like(*example_vfields[vfield]())
+    return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
 
 test = get_divergence_curl_example()
 
@@ -263,20 +268,6 @@ def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) ->
     quadrant_means = [quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
 
     return quadrant_means
-
-def get_quadrant_extremas(points: np.ndarray, origin: tuple[float, float]=(0,0), extrema='max') -> list[np.ndarray]:
-    origin = np.array(origin)
-
-    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
-    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
-    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
-    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
-
-    quadrant_distances = [np.linalg.norm(quad_points - origin, axis=1) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
-    quadrant_extremas = [quad_dists.argmax(axis=0) for quad_dists in quadrant_distances]
-    quadrant_extremas = [quad_points[extrema_index] for extrema_index, quad_points in enumerate([top_right, top_left, bottom_left, bottom_right])]
-
-    return quadrant_extremas
 
 # create an output directory for the plots
 out_dir_val = out_dir / 'validation_plots'
@@ -316,7 +307,10 @@ crops_in_memory = [c.compute() for c in crops]
 features_vx = [c[:,chan_map['vx'],...].squeeze() for c in crops_in_memory]
 features_vy = [c[:,chan_map['vy'],...].squeeze() for c in crops_in_memory]
 features_angles = [c[:,chan_map['theta'],...].squeeze() for c in crops_in_memory]
+features_angles_std = [np.abs(feat_ang).std() for feat_ang in features_angles]
 features_mags = [c[:,chan_map['norm'],...].squeeze() for c in crops_in_memory]
+# features_mags = [minmax_scale(feat_mag, feature_range=(0, 1)) for feat_mag in features_mags]
+features_mags_std = [feat_mag.std() for feat_mag in features_mags]
 features_vx_mean = [feat.mean() for feat in features_vx]
 features_vy_mean = [feat.mean() for feat in features_vy]
 features_vx_std = [feat.std() for feat in features_vx]
@@ -362,6 +356,15 @@ features = list(zip(
                     np.linalg.norm([features_vx_mean, features_vy_mean], axis=0),
                     np.linalg.norm([features_vx_std, features_vy_std], axis=0)
                     ))
+features = list(zip(
+                    # *list(zip(*[feat for feat in features])),
+                    # angles_of_vector_mean.tolist(),
+                    # mag_of_vector_mean.tolist(),
+                    # features_angles_std,
+                    features_mags_std,
+                    list(zip(*[feat for feat in features_diverg]))[1],
+                    # *list(zip(*[feat for feat in features_curl]))
+                    ))
 # features = list(zip(*list(zip(*[(arr.mean(),
 #                                  arr.std()) for arr in features_vx])),
 #                     *list(zip(*[(arr.mean(),
@@ -380,7 +383,9 @@ feats_proj[1] = minmax_scale(feats_proj[1], feature_range=(-1, 1))
 angles_and_pcs = pd.concat([feats_proj.reset_index(inplace=False, names='crop_id'),
                             # pd.DataFrame(features_summary),
                             pd.DataFrame({'angle_of_vector_mean': angles_of_vector_mean}),
+                            pd.DataFrame({'features_angles_std': features_angles_std}),
                             pd.DataFrame({'magnitude_of_vector_mean': mag_of_vector_mean}),
+                            pd.DataFrame({'features_mags_std': features_mags_std}),
                             pd.DataFrame({'divergence_mean': [d[0] for d in features_diverg]}),
                             pd.DataFrame({'divergence_std': [d[1] for d in features_diverg]}),
                             pd.DataFrame({'curl_mean': [c[0] for c in features_curl]}),
@@ -395,7 +400,10 @@ img_crops = [img[r] for r in rois]
 img_crops = [c.compute().squeeze() for c in img_crops]
 
 # Use the loaded vector information to create the flow field
-flow_graphs = [flow_calculator.FlowCalculator.make_vector_field_map(img, crop[:,chan_map['vx'], ...].squeeze(), crop[:,chan_map['vy'], ...].squeeze(), resolution=15, display=False, return_map=True) for img, crop in zip(img_crops, crops_in_memory)]
+# cmap_norm = np.asarray([(crop[:,chan_map['norm'],...].min(), crop[:,chan_map['norm'],...].max()) for crop in crops_in_memory])
+cmap_norm = None#cmap_norm.min(), cmap_norm.max()
+cmap = 'summer'
+flow_graphs = [flow_calculator.FlowCalculator.make_vector_field_map(img, crop[:,chan_map['vx'], ...].squeeze(), crop[:,chan_map['vy'], ...].squeeze(), resolution=15, cmap_norm=cmap_norm, cmap=cmap, display=False, return_map=True) for img, crop in zip(img_crops, crops_in_memory)]
 # trim white-space from the flow graphs
 keep_me_indices = [np.where(~np.all(g==255, axis=-1)) for g in flow_graphs]
 keep_me_slices = [(slice(np.min(i), np.max(i)), slice(np.min(j), np.max(j)), slice(None)) for i,j in keep_me_indices]
@@ -468,10 +476,9 @@ for i in range(num_crops_to_plot):
 pc_points = angles_and_pcs[[0, 1]].to_numpy()
 quadrants_origin = np.mean(pc_points, axis=0)
 quadrant_means = get_quadrant_means(pc_points, origin=quadrants_origin)
-quadrant_max = get_quadrant_extremas(pc_points, origin=quadrants_origin, extrema='max')
 quadrant_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple']
 example_points = {}
-for i, quad_mean in enumerate(quadrant_max):
+for i, quad_mean in enumerate(quadrant_means):
     example_point, example_index = get_point_closest_to_reference_point(pc_points, reference_point=quad_mean)
     example_crop = angles_and_pcs.iloc[example_index]
     # ensure that the example crop is using the correct points from example_pt
@@ -487,17 +494,27 @@ for i, quad_mean in enumerate(quadrant_max):
 
     # example_points[i] = {'color':quadrant_colors[i], 'record': example_crop}
 
+# generate a flow fields with the colormap normalized to the vector magnitudes of the
+# crops being used as examples
+cmap_norm = np.asarray([(crops_in_memory[example_points[i]['record']['crop_id'].astype(int)][:,chan_map['norm'],...].min(), crops_in_memory[example_points[i]['record']['crop_id'].astype(int)][:,chan_map['norm'],...].max()) for i in example_points])
+cmap_norm = cmap_norm.min(), cmap_norm.max()
+flow_graphs = [flow_calculator.FlowCalculator.make_vector_field_map(img, crop[:,chan_map['vx'], ...].squeeze(), crop[:,chan_map['vy'], ...].squeeze(), resolution=15, cmap_norm=cmap_norm, cmap=cmap, display=False, return_map=True) for img, crop in zip(img_crops, crops_in_memory)]
+# trim white-space from the flow graphs
+keep_me_indices = [np.where(~np.all(g==255, axis=-1)) for g in flow_graphs]
+keep_me_slices = [(slice(np.min(i), np.max(i)), slice(np.min(j), np.max(j)), slice(None)) for i,j in keep_me_indices]
+flow_graphs = [flow_graphs[i][arr_slice] for i,arr_slice in enumerate(keep_me_slices)]
+
 
 # %% 7. Plot two PCs and the example crops from each of the 4 quadrants
 
-fig = plt.figure(figsize=(15, 9))
-axs = gs.GridSpec(ncols=5, nrows=3, figure=fig)
+fig = plt.figure(figsize=(15, 6))
+axs = gs.GridSpec(ncols=5, nrows=2, figure=fig)
 ax1 = fig.add_subplot(axs[0, 0])
 ax1.scatter(angles_and_pcs[0], angles_and_pcs[1], marker='.', c='grey', alpha=0.7)
 ax1.axvline(quadrants_origin[0], color='k', linestyle='--', alpha=0.5)
 ax1.axhline(quadrants_origin[1], color='k', linestyle='--', alpha=0.5)
-ax1.set_xlabel('PC1 (min-max normalized)')
-ax1.set_ylabel('PC2 (min-max normalized)')
+ax1.set_xlabel('PC1 (normalized)')
+ax1.set_ylabel('PC2 (normalized)')
 ax1.set_title('PC1 vs PC2 for crops')
 
 # ax2 = fig.add_subplot(axs[1, 0])
@@ -520,15 +537,35 @@ ax1.set_title('PC1 vs PC2 for crops')
 # ax2.set_ylabel('Mean divergence')
 # ax2.set_title('Angle vs divergence for crops')
 
+# ax2 = fig.add_subplot(axs[1, 0])
+# ax2.scatter(angles_and_pcs['divergence_std'], angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
+# # ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
+# # ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
+# # ax2.tick_params(axis='x', which='minor')
+# # ax2.set_xlim(-180, 180)
+# ax2.set_xlabel('Divergence standard deviation')
+# ax2.set_ylabel('Divergence mean')
+# ax2.set_title('Diverge mean vs\nstandard deviation for crops')
+
+# ax2 = fig.add_subplot(axs[1, 0])
+# ax2.scatter(np.rad2deg(angles_and_pcs['features_angles_std']), angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
+# # ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
+# # ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
+# # ax2.tick_params(axis='x', which='minor')
+# # ax2.set_xlim(-180, 180)
+# ax2.set_xlabel('Angles St. Dev.')
+# ax2.set_ylabel('Divergence mean')
+# ax2.set_title('Diverge mean vs\nstandard deviation for crops')
+
 ax2 = fig.add_subplot(axs[1, 0])
-ax2.scatter(angles_and_pcs['divergence_std'], angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
+ax2.scatter(np.rad2deg(angles_and_pcs['features_mags_std']), angles_and_pcs['divergence_std'], marker='.', c='grey', alpha=0.7)
 # ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
 # ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
 # ax2.tick_params(axis='x', which='minor')
 # ax2.set_xlim(-180, 180)
-ax2.set_xlabel('Divergence standard deviation')
-ax2.set_ylabel('Divergence mean')
-ax2.set_title('Diverge mean vs\nstandard deviation for crops')
+ax2.set_xlabel('Magnitude St. Dev.')
+ax2.set_ylabel('Divergence St. Dev.')
+ax2.set_title('Divergence std vs.\n Magnitude std for crops')
 
 for i, example_pt in example_points.items():
     quad_color, quad_record, crop_id = example_pt['color'], example_pt['record'], example_pt['record']['crop_id'].astype(int)
@@ -537,15 +574,18 @@ for i, example_pt in example_points.items():
 
     ax1.scatter(quad_record[0], quad_record[1], marker='.', color=quad_color, zorder=10)
     # ax1.scatter(*quadrant_means[i], marker='x', color=quad_color, alpha=0.5)
-    ax1.scatter(*quadrant_max[i], marker='x', color=quad_color, alpha=0.5)
+    ax1.scatter(*quadrant_means[i], marker='x', color=quad_color, alpha=0.5)
 
     # ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['magnitude_of_vector_mean'], marker='.', color=quad_color, zorder=10)
     # ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
-    ax2.scatter(quad_record['divergence_std'], quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
+    # ax2.scatter(quad_record['divergence_std'], quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
+    # ax2.scatter(np.rad2deg(quad_record['features_angles_std']), quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
+    ax2.scatter(np.rad2deg(quad_record['features_mags_std']), quad_record['divergence_std'], marker='.', color=quad_color, zorder=10)
 
     with plt.rc_context({key: quad_color for key in ['axes.edgecolor', 'xtick.color', 'ytick.color', 'xtick.labelcolor', 'ytick.labelcolor']}):
         ax3 = fig.add_subplot(axs[0, i+1])
         ax3.imshow(flow_graphs[crop_id], cmap='gray')
+        ax3.axis('off')
         ax3.set_title(f'Flow Field (crop {crop_id})', color=quad_color)
         ax3.text(x=0.5, y=-0.14, ha='center', va='top', transform=ax3.transAxes,
                  s=f'roi start: {rois_as_titles[crop_id][0]}\nroi stop:{rois_as_titles[crop_id][1]})')
@@ -569,12 +609,12 @@ for i, example_pt in example_points.items():
         # ax5.set_ylabel('Frequency')
         # ax5.set_title('Magnitude distribution', color=quad_color)
 
-        ax5 = fig.add_subplot(axs[2, i+1])
-        ax5.hist(divergence_at_crop.ravel(), bins=72, color=quad_color, alpha=1)
-        ax5.axvline(quad_record['divergence_mean'], color='k', linestyle='--', alpha=0.5)
-        ax5.set_xlabel('Divergence')
-        ax5.set_ylabel('Frequency')
-        ax5.set_title('Divergence distribution', color=quad_color)
+        # ax5 = fig.add_subplot(axs[2, i+1])
+        # ax5.hist(divergence_at_crop.ravel(), bins=72, color=quad_color, alpha=1)
+        # ax5.axvline(quad_record['divergence_mean'], color='k', linestyle='--', alpha=0.5)
+        # ax5.set_xlabel('Divergence')
+        # ax5.set_ylabel('Frequency')
+        # ax5.set_title('Divergence distribution', color=quad_color)
 
 plt.tight_layout()
 fig.savefig(out_dir_val / f'{dataset_name}_multicrop.png')

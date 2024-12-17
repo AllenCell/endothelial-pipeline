@@ -197,7 +197,7 @@ class FlowCalculator():
         return (vx, vy)
 
     @staticmethod
-    def make_vector_field_map(image, vx, vy, resolution=20, display=True, return_map=False, hide_axes=True):
+    def make_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[float, float]=None, cmap: str="inferno", display=True, return_map=False, hide_axes=True):
 
         norm = np.sqrt(vx ** 2 + vy ** 2)
 
@@ -213,7 +213,7 @@ class FlowCalculator():
         canvas = FigureCanvas(fig)
         ax.imshow(image, cmap='gray')
         ax.set_axis_off() if hide_axes else None
-        ax.quiver(x, y, vx_, vy_, n_, units='dots', angles='xy', scale_units='xy', width=4, cmap="inferno")
+        ax.quiver(x, y, vx_, vy_, n_, units='dots', angles='xy', scale_units='xy', width=4, cmap=cmap, norm=plt.Normalize(*cmap_norm if cmap_norm else (n_.min(), n_.max())))
         plt.tight_layout()
 
         canvas.draw()
