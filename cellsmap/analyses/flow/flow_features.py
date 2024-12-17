@@ -138,12 +138,16 @@ for dataset_name in dataset_list:
 # and linked back to their corresponding data points in the PC1 vs PC2 plot
 
 # %% 0. imports, function definitions, and dataset loading
+from skimage import filters
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import minmax_scale
 import pandas as pd
 from matplotlib import gridspec as gs
+
 def compute_PCA_on_features(features: list[np.ndarray], n_components: int=10, return_as_dataframe=False) -> PCA:
     feat_arr = np.asarray([feature.ravel() for feature in features])
     pca = PCA(n_components=n_components)
+    # normalize features
     pca.fit((feat_arr - feat_arr.mean()) / feat_arr.std())
     feats_proj = pca.transform(feat_arr).reshape(len(features),-1)
     if return_as_dataframe:
@@ -151,6 +155,128 @@ def compute_PCA_on_features(features: list[np.ndarray], n_components: int=10, re
     else:
         pass
     return pca, feats_proj
+
+def discrete_divergence_like(vx, vy):
+    vx_dx = np.gradient(vx, axis=1)
+    vy_dy = np.gradient(vy, axis=0)
+    return vx_dx + vy_dy
+
+def discrete_curl_like(vx, vy):
+    vy_dx = np.gradient(vy, axis=1)
+    vx_dy = np.gradient(vx, axis=0)
+    return vy_dx - vx_dy
+
+def source_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = xx
+    vy = yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
+
+def sink_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = -1 * xx
+    vy = -1 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
+
+def saddle_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = xx
+    vy = -1 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
+
+def ridge_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = xx
+    vy = 0 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
+
+def valley_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = -1 * xx
+    vy = 0 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
+
+def solenoidal_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = -1 * yy
+    vy = xx
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
+
+def get_divergence_curl_example():
+    '''Returns an example vector field, its divergence, and its curl'''
+    example_vfield = solenoidal_vector_field_example()
+    divergence = discrete_divergence_like(*example_vfield)
+    curl = discrete_curl_like(*example_vfield)
+    return example_vfield, divergence, curl
+
+test = get_divergence_curl_example()
+
+def get_point_closest_to_reference_point(points: np.ndarray, reference_point: tuple[float, float]) -> tuple[tuple[float, float], int]:
+    distances = np.linalg.norm(points - np.array(reference_point), axis=1)
+    assert len(distances) == len(points)
+    return points[np.argmin(distances)], np.argmin(distances)
+
+def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) -> list[np.ndarray]:
+    origin = np.array(origin)
+
+    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
+    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
+    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
+    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
+
+    quadrant_means = [quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
+
+    return quadrant_means
+
+def get_quadrant_extremas(points: np.ndarray, origin: tuple[float, float]=(0,0), extrema='max') -> list[np.ndarray]:
+    origin = np.array(origin)
+
+    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
+    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
+    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
+    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
+
+    quadrant_distances = [np.linalg.norm(quad_points - origin, axis=1) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
+    quadrant_extremas = [quad_dists.argmax(axis=0) for quad_dists in quadrant_distances]
+    quadrant_extremas = [quad_points[extrema_index] for extrema_index, quad_points in enumerate([top_right, top_left, bottom_left, bottom_right])]
+
+    return quadrant_extremas
 
 # create an output directory for the plots
 out_dir_val = out_dir / 'validation_plots'
@@ -193,8 +319,8 @@ features_angles = [c[:,chan_map['theta'],...].squeeze() for c in crops_in_memory
 features_mags = [c[:,chan_map['norm'],...].squeeze() for c in crops_in_memory]
 features_vx_mean = [feat.mean() for feat in features_vx]
 features_vy_mean = [feat.mean() for feat in features_vy]
-# features_vx_std = [feat.std() for feat in features_vx]
-# features_vy_std = [feat.std() for feat in features_vy]
+features_vx_std = [feat.std() for feat in features_vx]
+features_vy_std = [feat.std() for feat in features_vy]
 angles_of_vector_mean = flow_calculator.FlowCalculator.compute_angles(features_vx_mean, features_vy_mean)
 mag_of_vector_mean = flow_calculator.FlowCalculator.compute_magnitudes(features_vx_mean, features_vy_mean)
 # features_mags_mean = [feat.mean() for feat in features_mags]
@@ -205,29 +331,64 @@ mag_of_vector_mean = flow_calculator.FlowCalculator.compute_magnitudes(features_
 # features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[(feat.mean(), feat.std()) for feat in features_angles])))
 # features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[get_angle_mean_and_std(angles_arr) for angles_arr in features_angles])))
 
-
+divergence = [discrete_divergence_like(crop[:,chan_map['vx'],...].squeeze(), crop[:,chan_map['vy'],...].squeeze()) for crop in crops_in_memory]
+curl = [discrete_divergence_like(crop[:,chan_map['vx'],...].squeeze(), crop[:,chan_map['vy'],...].squeeze()) for crop in crops_in_memory]
+features_diverg = [(d.mean(), d.std()) for d in divergence]
+features_curl = [(c.mean(), c.std()) for c in curl]
 # features = [np.array([(crop[:,i,...].mean(), crop[:,i,...].std()) for i in range(0, crop.shape[1])]).ravel() for crop in crops_in_memory]
-# features = [[(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['vx', 'vy']] for crop in crops_in_memory]
-features = list(zip(*list(zip(*[(arr.mean(),
-                                 arr.std()) for arr in features_vx])),
-                    *list(zip(*[(arr.mean(),
-                                 arr.std()) for arr in features_vy])),
-                    angles_of_vector_mean.tolist(),
-                    mag_of_vector_mean.tolist()))
-features = list(zip(angles_of_vector_mean, mag_of_vector_mean))
+features = [np.array([(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['vx', 'vy', 'theta', 'norm']]).ravel() for crop in crops_in_memory]
+# features = [np.array([(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['vx', 'vy']]).ravel() for crop in crops_in_memory]
+# features = [np.array([(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['theta']]).ravel() for crop in crops_in_memory]
+# features = list(zip(
+#                     *list(zip(*[feat for feat in features])),
+#                     angles_of_vector_mean.tolist(),
+#                     mag_of_vector_mean.tolist(),
+#                     *list(zip(*[feat for feat in features_diverg])),
+#                     *list(zip(*[feat for feat in features_curl]))
+#                     ))
+features = list(zip(
+                    # *list(zip(*[feat for feat in features])),
+                    # angles_of_vector_mean.tolist(),
+                    # mag_of_vector_mean.tolist(),
+                    *list(zip(*[feat for feat in features_diverg])),
+                    # *list(zip(*[feat for feat in features_curl]))
+                    ))
+features = list(zip(
+                    # *list(zip(*[feat for feat in features])),
+                    # angles_of_vector_mean.tolist(),
+                    # mag_of_vector_mean.tolist(),
+                    # *list(zip(*[feat for feat in features_diverg])),
+                    # *list(zip(*[feat for feat in features_curl]))
+                    np.linalg.norm([features_vx_mean, features_vy_mean], axis=0),
+                    np.linalg.norm([features_vx_std, features_vy_std], axis=0)
+                    ))
+# features = list(zip(*list(zip(*[(arr.mean(),
+#                                  arr.std()) for arr in features_vx])),
+#                     *list(zip(*[(arr.mean(),
+#                                  arr.std()) for arr in features_vy])),
+#                     angles_of_vector_mean.tolist(),
+#                     mag_of_vector_mean.tolist()))
+# features = list(zip(angles_of_vector_mean, mag_of_vector_mean))
 features = [np.array(feat) for feat in features]
 pca, feats_proj = compute_PCA_on_features(features, n_components=2, return_as_dataframe=True)
+
+# rescale the pca features to be between -1 and 1
+feats_proj[0] = minmax_scale(feats_proj[0], feature_range=(-1, 1))
+feats_proj[1] = minmax_scale(feats_proj[1], feature_range=(-1, 1))
 
 # create a dataframe of the features and PCs
 angles_and_pcs = pd.concat([feats_proj.reset_index(inplace=False, names='crop_id'),
                             # pd.DataFrame(features_summary),
                             pd.DataFrame({'angle_of_vector_mean': angles_of_vector_mean}),
                             pd.DataFrame({'magnitude_of_vector_mean': mag_of_vector_mean}),
+                            pd.DataFrame({'divergence_mean': [d[0] for d in features_diverg]}),
+                            pd.DataFrame({'divergence_std': [d[1] for d in features_diverg]}),
+                            pd.DataFrame({'curl_mean': [c[0] for c in features_curl]}),
                             pd.DataFrame([{'T':t.start, 'start_y':y.start, 'start_x':x.start} for t,c,y,x in rois])
                             ], axis='columns')
 
 
-# %% 4, 5. Plot the first two PCs and a selected crop with the flow field fir several crops
+# %% 4, 5. Plot the first two PCs and a selected crop with the flow field for several crops
 # load the cdh5 channel of the dataset in the crop region
 img = load_dataset(dataset_name, channels=['CDH5'], level=2)
 img_crops = [img[r] for r in rois]
@@ -244,6 +405,7 @@ rois_as_titles = [list(zip(*[(slc.start, slc.stop) for slc in r])) for r in rois
 
 num_crops_to_plot = 20
 for i in range(num_crops_to_plot):
+    print(f'Plotting crop {i+1} / {num_crops_to_plot}')
     ang, mag = crops_in_memory[i][:,chan_map['theta'],...].squeeze(), crops_in_memory[i][:,chan_map['norm'],...].squeeze()
 
     fig = plt.figure(figsize=(15, 3))
@@ -302,30 +464,18 @@ for i in range(num_crops_to_plot):
 
 # %% 6. Get the most "average" point in each quadrant of PC-space as an example
 # get example crops from each quadrant
-def get_point_closest_to_center(points: np.ndarray, center: tuple[float, float]) -> tuple[tuple[float, float], int]:
-    distances = np.linalg.norm(points - np.array(center), axis=1)
-    return points[np.argmin(distances)], np.argmin(distances)
 
-def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) -> list[np.ndarray]:
-    origin = np.array(origin)
-
-    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
-    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
-    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
-    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
-
-    quadrant_means = [quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
-
-    return quadrant_means
-
-quadrant_means = get_quadrant_means(angles_and_pcs[[0, 1]].to_numpy())
+pc_points = angles_and_pcs[[0, 1]].to_numpy()
+quadrants_origin = np.mean(pc_points, axis=0)
+quadrant_means = get_quadrant_means(pc_points, origin=quadrants_origin)
+quadrant_max = get_quadrant_extremas(pc_points, origin=quadrants_origin, extrema='max')
 quadrant_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple']
 example_points = {}
-for i, quad_mean in enumerate(quadrant_means):
-    example_pt = get_point_closest_to_center(angles_and_pcs[[0, 1]].to_numpy(), quad_mean)
-    example_crop = angles_and_pcs.iloc[example_pt[1]]
+for i, quad_mean in enumerate(quadrant_max):
+    example_point, example_index = get_point_closest_to_reference_point(pc_points, reference_point=quad_mean)
+    example_crop = angles_and_pcs.iloc[example_index]
     # ensure that the example crop is using the correct points from example_pt
-    assert all(example_crop[[0, 1]].to_numpy() == example_pt[0])
+    assert all(example_crop[[0, 1]].to_numpy() == example_point)
 
     example_points[i] = {'color':quadrant_colors[i], 'record': example_crop}
 
@@ -344,29 +494,54 @@ fig = plt.figure(figsize=(15, 9))
 axs = gs.GridSpec(ncols=5, nrows=3, figure=fig)
 ax1 = fig.add_subplot(axs[0, 0])
 ax1.scatter(angles_and_pcs[0], angles_and_pcs[1], marker='.', c='grey', alpha=0.7)
-ax1.axvline(0, color='k', linestyle='--', alpha=0.5)
-ax1.axhline(0, color='k', linestyle='--', alpha=0.5)
-ax1.set_xlabel('PC1')
-ax1.set_ylabel('PC2')
+ax1.axvline(quadrants_origin[0], color='k', linestyle='--', alpha=0.5)
+ax1.axhline(quadrants_origin[1], color='k', linestyle='--', alpha=0.5)
+ax1.set_xlabel('PC1 (min-max normalized)')
+ax1.set_ylabel('PC2 (min-max normalized)')
 ax1.set_title('PC1 vs PC2 for crops')
 
+# ax2 = fig.add_subplot(axs[1, 0])
+# ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['magnitude_of_vector_mean'], marker='.', c='grey', alpha=0.7)
+# ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
+# ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
+# ax2.tick_params(axis='x', which='minor')
+# ax2.set_xlim(-180, 180)
+# ax2.set_xlabel('Mean vector angle (degrees)')
+# ax2.set_ylabel('Mean vector magnitude (px)')
+# ax2.set_title('Angle vs magnitude for crops')
+
+# ax2 = fig.add_subplot(axs[1, 0])
+# ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
+# ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
+# ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
+# ax2.tick_params(axis='x', which='minor')
+# ax2.set_xlim(-180, 180)
+# ax2.set_xlabel('Mean vector angle (degrees)')
+# ax2.set_ylabel('Mean divergence')
+# ax2.set_title('Angle vs divergence for crops')
+
 ax2 = fig.add_subplot(axs[1, 0])
-ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['magnitude_of_vector_mean'], marker='.', c='grey', alpha=0.7)
-ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
-ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
-ax2.tick_params(axis='x', which='minor')
-ax2.set_xlim(-180, 180)
-ax2.set_xlabel('Mean vector angle (degrees)')
-ax2.set_ylabel('Mean vector magnitude (px)')
-ax2.set_title('Angle vs magnitude for crops')
+ax2.scatter(angles_and_pcs['divergence_std'], angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
+# ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
+# ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
+# ax2.tick_params(axis='x', which='minor')
+# ax2.set_xlim(-180, 180)
+ax2.set_xlabel('Divergence standard deviation')
+ax2.set_ylabel('Divergence mean')
+ax2.set_title('Diverge mean vs\nstandard deviation for crops')
 
 for i, example_pt in example_points.items():
     quad_color, quad_record, crop_id = example_pt['color'], example_pt['record'], example_pt['record']['crop_id'].astype(int)
     ang, mag = crops_in_memory[crop_id][:,chan_map['theta'],...].squeeze(), crops_in_memory[crop_id][:,chan_map['norm'],...].squeeze()
+    divergence_at_crop, curl_at_crop = divergence[crop_id], curl[crop_id]
 
     ax1.scatter(quad_record[0], quad_record[1], marker='.', color=quad_color, zorder=10)
+    # ax1.scatter(*quadrant_means[i], marker='x', color=quad_color, alpha=0.5)
+    ax1.scatter(*quadrant_max[i], marker='x', color=quad_color, alpha=0.5)
 
-    ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['magnitude_of_vector_mean'], marker='.', color=quad_color, zorder=10)
+    # ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['magnitude_of_vector_mean'], marker='.', color=quad_color, zorder=10)
+    # ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
+    ax2.scatter(quad_record['divergence_std'], quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
 
     with plt.rc_context({key: quad_color for key in ['axes.edgecolor', 'xtick.color', 'ytick.color', 'xtick.labelcolor', 'ytick.labelcolor']}):
         ax3 = fig.add_subplot(axs[0, i+1])
@@ -387,12 +562,19 @@ for i, example_pt in example_points.items():
         ax4.yaxis.set_visible(False)
         ax4.set_title('Angle distribution', color=quad_color)
 
+        # ax5 = fig.add_subplot(axs[2, i+1])
+        # ax5.hist(mag.ravel(), bins=72, color=quad_color, alpha=1)
+        # ax5.axvline(quad_record['magnitude_of_vector_mean'], color='k', linestyle='--', alpha=0.5)
+        # ax5.set_xlabel('Magnitude (px)')
+        # ax5.set_ylabel('Frequency')
+        # ax5.set_title('Magnitude distribution', color=quad_color)
+
         ax5 = fig.add_subplot(axs[2, i+1])
-        ax5.hist(mag.ravel(), bins=72, color=quad_color, alpha=1)
-        ax5.axvline(quad_record['magnitude_of_vector_mean'], color='k', linestyle='--', alpha=0.5)
-        ax5.set_xlabel('Magnitude (px)')
+        ax5.hist(divergence_at_crop.ravel(), bins=72, color=quad_color, alpha=1)
+        ax5.axvline(quad_record['divergence_mean'], color='k', linestyle='--', alpha=0.5)
+        ax5.set_xlabel('Divergence')
         ax5.set_ylabel('Frequency')
-        ax5.set_title('Magnitude distribution', color=quad_color)
+        ax5.set_title('Divergence distribution', color=quad_color)
 
 plt.tight_layout()
 fig.savefig(out_dir_val / f'{dataset_name}_multicrop.png')
