@@ -6,6 +6,9 @@ from tqdm import tqdm
 import statsmodels.api as statm
 import matplotlib.pyplot as plt
 from skimage import registration as skreg
+from skimage.draw import circle_perimeter
+from skimage.filters import gaussian
+from sklearn.decomposition import PCA
 from matplotlib.backends.backend_agg import FigureCanvas
 from pathlib import Path
 from bioio import BioImage
@@ -337,6 +340,187 @@ def get_random_roi(image_shape: np.ndarray.shape, roi_shape: tuple[int, ...], nu
     rand_coord = np.asarray([np.array(rand_gen.integers(0, random_space_limit + 1, size=num_rois), ndmin=1) for random_space_limit in image_shape - roi_shape])
     roi = [tuple([slice(start, stop) for start, stop in zip(*coord_pair)]) for coord_pair in zip(rand_coord.T, rand_coord.T + np.array(roi_shape, ndmin=rand_coord.ndim))]
     return roi
+
+
+
+def compute_PCA_on_features(features: list[np.ndarray], n_components: int=10, return_as_dataframe=False) -> PCA:
+    feat_arr = np.asarray([feature.ravel() for feature in features])
+    pca = PCA(n_components=n_components)
+    # normalize features
+    pca.fit((feat_arr - feat_arr.mean()) / feat_arr.std())
+    feats_proj = pca.transform(feat_arr).reshape(len(features),-1)
+    if return_as_dataframe:
+        feats_proj = pd.DataFrame(data=feats_proj)
+    else:
+        pass
+    return pca, feats_proj
+
+def get_point_closest_to_reference_point(points: np.ndarray, reference_point: tuple[float, float]) -> tuple[tuple[float, float], int]:
+    distances = np.linalg.norm(points - np.array(reference_point), axis=1)
+    assert len(distances) == len(points)
+    return points[np.argmin(distances)], np.argmin(distances)
+
+def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) -> list[np.ndarray]:
+    origin = np.array(origin)
+
+    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
+    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
+    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
+    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
+
+    quadrant_means = [quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
+
+    return quadrant_means
+
+
+
+def generate_synthetic_data():
+    # create empty synthetic data with shape (time, channel, y, x)
+    synth_shape_y, synth_shape_x = 512, 512
+    num_circles_per_axis = 10
+    circle_radii = 20
+    synth_img = np.zeros((5, 1, synth_shape_y, synth_shape_x), dtype=np.uint8)
+    # add a bunch of circles throughout the image that move down 1 pixel and to the left 1 pixel
+    # after each timepoint (total travel distance is sqrt(2) pixels per timepoint)
+    for i in range(len(synth_img)):
+        circle_centers = np.meshgrid(range(0, synth_shape_y, synth_shape_y//num_circles_per_axis), range(0, synth_shape_x, synth_shape_x//num_circles_per_axis))
+        circle_centers = list(zip(*[c_arr.ravel().tolist() for c_arr in circle_centers]))
+        circle_indices = list(zip(*[circle_perimeter(y+i, x-i, circle_radii) for y,x in circle_centers]))
+        circle_indices = np.asarray([np.concatenate(indices) for indices in circle_indices])
+        indices_too_low = np.any(circle_indices < np.array([[0],[0]], ndmin=2), axis=0, keepdims=True)
+        indices_too_high = np.any(circle_indices >= np.array([[synth_shape_y],[synth_shape_x]], ndmin=2), axis=0, keepdims=True)
+        circle_indices = circle_indices[:, ~np.any(indices_too_low | indices_too_high, axis=0)]
+        ts, cs = [i] * len(circle_indices[0]), [0] * len(circle_indices[0])
+        synth_img[(ts, cs, *circle_indices)] = 255
+        synth_img[i, 0, ...] = gaussian(synth_img[i, 0, ...], sigma=2, preserve_range=True)
+
+    return synth_img
+
+def compute_synthetic_image_flow_vectors_and_summarize(synth_img: np.ndarray, delta_t: int=1, radius: int=30):
+    flow_graphs = []
+    for i in range(0, len(synth_img)-1, delta_t):
+        print(f'Computing flow for frame {i} to {i+delta_t}...')
+        flow = FlowCalculator.compute_flow(synth_img[i].squeeze(), synth_img[i+delta_t].squeeze(), radius=radius)
+        flow_graphs.append(flow)
+
+
+    # compute angles and magnitudes of flow vectors on synthetic data
+    vx, vy = flow_graphs[0]
+    mean_angle_deg = np.rad2deg(FlowCalculator.compute_angles(vx.mean(), vy.mean()))
+    mean_mag = FlowCalculator.compute_magnitudes(vx.mean(), vy.mean())
+
+    print(f'Flow angle mean: {mean_angle_deg} \nFlow magnitude mean: {mean_mag}')
+
+    return flow_graphs, vx, vy, mean_angle_deg, mean_mag
+
+def get_trimmed_vector_field_map(image, vx, vy):
+    # get the vector field map:
+    vecfield_map = FlowCalculator.make_vector_field_map(image.squeeze(), vx, vy, resolution=10, display=True, return_map=True)
+    # keep anything that isn't white-space:
+    keep_me_indices = np.where(~np.all(vecfield_map==255, axis=-1))
+    i, j = keep_me_indices
+    keep_me_slices = (slice(np.min(i), np.max(i)), slice(np.min(j), np.max(j)), slice(None))
+    vecfield_map_trimmed = vecfield_map[keep_me_slices]
+
+    return vecfield_map_trimmed
+
+
+
+def discrete_divergence_like(vx, vy):
+    vx_dx = np.gradient(vx, axis=1)
+    vy_dy = np.gradient(vy, axis=0)
+    return vx_dx + vy_dy
+
+def discrete_curl_like(vx, vy):
+    vy_dx = np.gradient(vy, axis=1)
+    vx_dy = np.gradient(vx, axis=0)
+    return vy_dx - vx_dy
+
+class vector_field_examples():
+    def source_vector_field_example(show_vector_field=False):
+        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+        vx = xx
+        vy = yy
+        vfield = (vx, vy)
+        if show_vector_field:
+            fig, ax = plt.subplots()
+            ax.quiver(xx, yy, *vfield)
+            ax.set_aspect('equal')
+            plt.show()
+        return vfield
+
+    def sink_vector_field_example(show_vector_field=False):
+        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+        vx = -1 * xx
+        vy = -1 * yy
+        vfield = (vx, vy)
+        if show_vector_field:
+            fig, ax = plt.subplots()
+            ax.quiver(xx, yy, *vfield)
+            ax.set_aspect('equal')
+            plt.show()
+        return vfield
+
+    def saddle_vector_field_example(show_vector_field=False):
+        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+        vx = xx
+        vy = -1 * yy
+        vfield = (vx, vy)
+        if show_vector_field:
+            fig, ax = plt.subplots()
+            ax.quiver(xx, yy, *vfield)
+            ax.set_aspect('equal')
+            plt.show()
+        return vfield
+
+    def ridge_vector_field_example(show_vector_field=False):
+        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+        vx = xx
+        vy = 0 * yy
+        vfield = (vx, vy)
+        if show_vector_field:
+            fig, ax = plt.subplots()
+            ax.quiver(xx, yy, *vfield)
+            ax.set_aspect('equal')
+            plt.show()
+        return vfield
+
+    def valley_vector_field_example(show_vector_field=False):
+        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+        vx = -1 * xx
+        vy = 0 * yy
+        vfield = (vx, vy)
+        if show_vector_field:
+            fig, ax = plt.subplots()
+            ax.quiver(xx, yy, *vfield)
+            ax.set_aspect('equal')
+            plt.show()
+        return vfield
+
+    def solenoidal_vector_field_example(show_vector_field=False):
+        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+        vx = -1 * yy
+        vy = xx
+        vfield = (vx, vy)
+        if show_vector_field:
+            fig, ax = plt.subplots()
+            ax.quiver(xx, yy, *vfield)
+            ax.set_aspect('equal')
+            plt.show()
+        return vfield
+
+    def get_divergence_curl_example(self, vfield: str='solenoidal', show_vector_field=False) -> tuple[tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray]:
+        '''Returns an example vector field, its divergence, and its curl'''
+        example_vfields = {'source': self.source_vector_field_example,
+                        'sink': self.sink_vector_field_example,
+                        'saddle': self.saddle_vector_field_example,
+                        'ridge': self.ridge_vector_field_example,
+                        'valley': self.valley_vector_field_example,
+                        'solenoidal': self.solenoidal_vector_field_example}
+        divergence = discrete_divergence_like(*example_vfields[vfield]())
+        curl = discrete_curl_like(*example_vfields[vfield]())
+        return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
+
 
 # Check that the last image is the same when loaded as it was when being saved:
 # import numpy as np

@@ -137,137 +137,12 @@ for dataset_name in dataset_list:
 # The figure should be of PC1 vs PC2 for different crops with select crops shown
 # and linked back to their corresponding data points in the PC1 vs PC2 plot
 
-# %% 0. imports, function definitions, and dataset loading
-from skimage import filters
-from sklearn.decomposition import PCA
+# %% 0. imports and dataset loading
 from sklearn.preprocessing import minmax_scale
 import pandas as pd
 from matplotlib import gridspec as gs
 
-def compute_PCA_on_features(features: list[np.ndarray], n_components: int=10, return_as_dataframe=False) -> PCA:
-    feat_arr = np.asarray([feature.ravel() for feature in features])
-    pca = PCA(n_components=n_components)
-    # normalize features
-    pca.fit((feat_arr - feat_arr.mean()) / feat_arr.std())
-    feats_proj = pca.transform(feat_arr).reshape(len(features),-1)
-    if return_as_dataframe:
-        feats_proj = pd.DataFrame(data=feats_proj)
-    else:
-        pass
-    return pca, feats_proj
-
-def discrete_divergence_like(vx, vy):
-    vx_dx = np.gradient(vx, axis=1)
-    vy_dy = np.gradient(vy, axis=0)
-    return vx_dx + vy_dy
-
-def discrete_curl_like(vx, vy):
-    vy_dx = np.gradient(vy, axis=1)
-    vx_dy = np.gradient(vx, axis=0)
-    return vy_dx - vx_dy
-
-def source_vector_field_example(show_vector_field=False):
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = xx
-    vy = yy
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect('equal')
-        plt.show()
-    return vfield
-
-def sink_vector_field_example(show_vector_field=False):
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = -1 * xx
-    vy = -1 * yy
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect('equal')
-        plt.show()
-    return vfield
-
-def saddle_vector_field_example(show_vector_field=False):
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = xx
-    vy = -1 * yy
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect('equal')
-        plt.show()
-    return vfield
-
-def ridge_vector_field_example(show_vector_field=False):
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = xx
-    vy = 0 * yy
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect('equal')
-        plt.show()
-    return vfield
-
-def valley_vector_field_example(show_vector_field=False):
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = -1 * xx
-    vy = 0 * yy
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect('equal')
-        plt.show()
-    return vfield
-
-def solenoidal_vector_field_example(show_vector_field=False):
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = -1 * yy
-    vy = xx
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect('equal')
-        plt.show()
-    return vfield
-
-def get_divergence_curl_example(vfield: str='solenoidal', show_vector_field=False) -> tuple[tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray]:
-    '''Returns an example vector field, its divergence, and its curl'''
-    example_vfields = {'source': source_vector_field_example,
-                       'sink': sink_vector_field_example,
-                       'saddle': saddle_vector_field_example,
-                       'ridge': ridge_vector_field_example,
-                       'valley': valley_vector_field_example,
-                       'solenoidal': solenoidal_vector_field_example}
-    divergence = discrete_divergence_like(*example_vfields[vfield]())
-    curl = discrete_curl_like(*example_vfields[vfield]())
-    return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
-
-test = get_divergence_curl_example()
-
-def get_point_closest_to_reference_point(points: np.ndarray, reference_point: tuple[float, float]) -> tuple[tuple[float, float], int]:
-    distances = np.linalg.norm(points - np.array(reference_point), axis=1)
-    assert len(distances) == len(points)
-    return points[np.argmin(distances)], np.argmin(distances)
-
-def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) -> list[np.ndarray]:
-    origin = np.array(origin)
-
-    top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
-    top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
-    bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
-    bottom_right = points[(points[:,0] > origin[0]) & (points[:,1] < origin[1])]
-
-    quadrant_means = [quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]]
-
-    return quadrant_means
+test = flow_calculator.vector_field_examples.get_divergence_curl_example()
 
 # create an output directory for the plots
 out_dir_val = out_dir / 'validation_plots'
@@ -309,7 +184,6 @@ features_vy = [c[:,chan_map['vy'],...].squeeze() for c in crops_in_memory]
 features_angles = [c[:,chan_map['theta'],...].squeeze() for c in crops_in_memory]
 features_angles_std = [np.abs(feat_ang).std() for feat_ang in features_angles]
 features_mags = [c[:,chan_map['norm'],...].squeeze() for c in crops_in_memory]
-# features_mags = [minmax_scale(feat_mag, feature_range=(0, 1)) for feat_mag in features_mags]
 features_mags_std = [feat_mag.std() for feat_mag in features_mags]
 features_vx_mean = [feat.mean() for feat in features_vx]
 features_vy_mean = [feat.mean() for feat in features_vy]
@@ -317,53 +191,16 @@ features_vx_std = [feat.std() for feat in features_vx]
 features_vy_std = [feat.std() for feat in features_vy]
 angles_of_vector_mean = flow_calculator.FlowCalculator.compute_angles(features_vx_mean, features_vy_mean)
 mag_of_vector_mean = flow_calculator.FlowCalculator.compute_magnitudes(features_vx_mean, features_vy_mean)
-# features_mags_mean = [feat.mean() for feat in features_mags]
-# features_mags_stdevs = [feat.std() for feat in features_mags]
 
-
-# {'angle_of_vector_mean': angles_of_vector_mean, 'magnitude_of_vector_mean': mag_of_vector_mean}
-# features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[(feat.mean(), feat.std()) for feat in features_angles])))
-# features_summary = dict(zip(['angle_mean', 'angle_std'], zip(*[get_angle_mean_and_std(angles_arr) for angles_arr in features_angles])))
-
-divergence = [discrete_divergence_like(crop[:,chan_map['vx'],...].squeeze(), crop[:,chan_map['vy'],...].squeeze()) for crop in crops_in_memory]
-curl = [discrete_divergence_like(crop[:,chan_map['vx'],...].squeeze(), crop[:,chan_map['vy'],...].squeeze()) for crop in crops_in_memory]
+divergence = [flow_calculator.discrete_divergence_like(crop[:,chan_map['vx'],...].squeeze(), crop[:,chan_map['vy'],...].squeeze()) for crop in crops_in_memory]
+curl = [flow_calculator.discrete_divergence_like(crop[:,chan_map['vx'],...].squeeze(), crop[:,chan_map['vy'],...].squeeze()) for crop in crops_in_memory]
 features_diverg = [(d.mean(), d.std()) for d in divergence]
 features_curl = [(c.mean(), c.std()) for c in curl]
 # features = [np.array([(crop[:,i,...].mean(), crop[:,i,...].std()) for i in range(0, crop.shape[1])]).ravel() for crop in crops_in_memory]
 features = [np.array([(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['vx', 'vy', 'theta', 'norm']]).ravel() for crop in crops_in_memory]
-# features = [np.array([(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['vx', 'vy']]).ravel() for crop in crops_in_memory]
-# features = [np.array([(crop[:,chan_map[chan],...].mean(), crop[:,chan_map[chan],...].std()) for chan in ['theta']]).ravel() for crop in crops_in_memory]
-# features = list(zip(
-#                     *list(zip(*[feat for feat in features])),
-#                     angles_of_vector_mean.tolist(),
-#                     mag_of_vector_mean.tolist(),
-#                     *list(zip(*[feat for feat in features_diverg])),
-#                     *list(zip(*[feat for feat in features_curl]))
-#                     ))
-features = list(zip(
-                    # *list(zip(*[feat for feat in features])),
-                    # angles_of_vector_mean.tolist(),
-                    # mag_of_vector_mean.tolist(),
-                    *list(zip(*[feat for feat in features_diverg])),
-                    # *list(zip(*[feat for feat in features_curl]))
-                    ))
-features = list(zip(
-                    # *list(zip(*[feat for feat in features])),
-                    # angles_of_vector_mean.tolist(),
-                    # mag_of_vector_mean.tolist(),
-                    # *list(zip(*[feat for feat in features_diverg])),
-                    # *list(zip(*[feat for feat in features_curl]))
-                    np.linalg.norm([features_vx_mean, features_vy_mean], axis=0),
-                    np.linalg.norm([features_vx_std, features_vy_std], axis=0)
-                    ))
-features = list(zip(
-                    # *list(zip(*[feat for feat in features])),
-                    # angles_of_vector_mean.tolist(),
-                    # mag_of_vector_mean.tolist(),
-                    # features_angles_std,
-                    features_mags_std,
+
+features = list(zip(features_mags_std,
                     list(zip(*[feat for feat in features_diverg]))[1],
-                    # *list(zip(*[feat for feat in features_curl]))
                     ))
 # features = list(zip(*list(zip(*[(arr.mean(),
 #                                  arr.std()) for arr in features_vx])),
@@ -371,9 +208,8 @@ features = list(zip(
 #                                  arr.std()) for arr in features_vy])),
 #                     angles_of_vector_mean.tolist(),
 #                     mag_of_vector_mean.tolist()))
-# features = list(zip(angles_of_vector_mean, mag_of_vector_mean))
 features = [np.array(feat) for feat in features]
-pca, feats_proj = compute_PCA_on_features(features, n_components=2, return_as_dataframe=True)
+pca, feats_proj = flow_calculator.compute_PCA_on_features(features, n_components=2, return_as_dataframe=True)
 
 # rescale the pca features to be between -1 and 1
 feats_proj[0] = minmax_scale(feats_proj[0], feature_range=(-1, 1))
@@ -381,14 +217,13 @@ feats_proj[1] = minmax_scale(feats_proj[1], feature_range=(-1, 1))
 
 # create a dataframe of the features and PCs
 angles_and_pcs = pd.concat([feats_proj.reset_index(inplace=False, names='crop_id'),
-                            # pd.DataFrame(features_summary),
-                            pd.DataFrame({'angle_of_vector_mean': angles_of_vector_mean}),
-                            pd.DataFrame({'features_angles_std': features_angles_std}),
-                            pd.DataFrame({'magnitude_of_vector_mean': mag_of_vector_mean}),
-                            pd.DataFrame({'features_mags_std': features_mags_std}),
-                            pd.DataFrame({'divergence_mean': [d[0] for d in features_diverg]}),
-                            pd.DataFrame({'divergence_std': [d[1] for d in features_diverg]}),
-                            pd.DataFrame({'curl_mean': [c[0] for c in features_curl]}),
+                            pd.DataFrame({'angle_of_vector_mean': angles_of_vector_mean,
+                                          'features_angles_std': features_angles_std,
+                                          'magnitude_of_vector_mean': mag_of_vector_mean,
+                                          'features_mags_std': features_mags_std,
+                                          'divergence_mean': [d[0] for d in features_diverg],
+                                          'divergence_std': [d[1] for d in features_diverg],
+                                          'curl_mean': [c[0] for c in features_curl]}),
                             pd.DataFrame([{'T':t.start, 'start_y':y.start, 'start_x':x.start} for t,c,y,x in rois])
                             ], axis='columns')
 
@@ -400,8 +235,7 @@ img_crops = [img[r] for r in rois]
 img_crops = [c.compute().squeeze() for c in img_crops]
 
 # Use the loaded vector information to create the flow field
-# cmap_norm = np.asarray([(crop[:,chan_map['norm'],...].min(), crop[:,chan_map['norm'],...].max()) for crop in crops_in_memory])
-cmap_norm = None#cmap_norm.min(), cmap_norm.max()
+cmap_norm = None
 cmap = 'summer'
 flow_graphs = [flow_calculator.FlowCalculator.make_vector_field_map(img, crop[:,chan_map['vx'], ...].squeeze(), crop[:,chan_map['vy'], ...].squeeze(), resolution=15, cmap_norm=cmap_norm, cmap=cmap, display=False, return_map=True) for img, crop in zip(img_crops, crops_in_memory)]
 # trim white-space from the flow graphs
@@ -475,24 +309,16 @@ for i in range(num_crops_to_plot):
 
 pc_points = angles_and_pcs[[0, 1]].to_numpy()
 quadrants_origin = np.mean(pc_points, axis=0)
-quadrant_means = get_quadrant_means(pc_points, origin=quadrants_origin)
+quadrant_means = flow_calculator.get_quadrant_means(pc_points, origin=quadrants_origin)
 quadrant_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple']
 example_points = {}
 for i, quad_mean in enumerate(quadrant_means):
-    example_point, example_index = get_point_closest_to_reference_point(pc_points, reference_point=quad_mean)
+    example_point, example_index = flow_calculator.get_point_closest_to_reference_point(pc_points, reference_point=quad_mean)
     example_crop = angles_and_pcs.iloc[example_index]
     # ensure that the example crop is using the correct points from example_pt
     assert all(example_crop[[0, 1]].to_numpy() == example_point)
 
     example_points[i] = {'color':quadrant_colors[i], 'record': example_crop}
-
-    # points = np.ma.masked_array(data=angles_and_pcs[[0, 1]], mask=np.all(np.sign(angles_and_pcs[[0, 1]]) == np.sign(quad_mean), axis=1))
-    # example_pt = get_point_closest_to_center(points.to_numpy(), quad_mean)
-    # example_crop = angles_and_pcs.iloc[example_pt[1]]
-    # # ensure that the example crop is using the correct points from example_pt
-    # assert all(example_crop[[0, 1]].to_numpy() == example_pt[0])
-
-    # example_points[i] = {'color':quadrant_colors[i], 'record': example_crop}
 
 # generate a flow fields with the colormap normalized to the vector magnitudes of the
 # crops being used as examples
@@ -506,7 +332,6 @@ flow_graphs = [flow_graphs[i][arr_slice] for i,arr_slice in enumerate(keep_me_sl
 
 
 # %% 7. Plot two PCs and the example crops from each of the 4 quadrants
-
 fig = plt.figure(figsize=(15, 6))
 axs = gs.GridSpec(ncols=5, nrows=2, figure=fig)
 ax1 = fig.add_subplot(axs[0, 0])
@@ -517,52 +342,8 @@ ax1.set_xlabel('PC1 (normalized)')
 ax1.set_ylabel('PC2 (normalized)')
 ax1.set_title('PC1 vs PC2 for crops')
 
-# ax2 = fig.add_subplot(axs[1, 0])
-# ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['magnitude_of_vector_mean'], marker='.', c='grey', alpha=0.7)
-# ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
-# ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
-# ax2.tick_params(axis='x', which='minor')
-# ax2.set_xlim(-180, 180)
-# ax2.set_xlabel('Mean vector angle (degrees)')
-# ax2.set_ylabel('Mean vector magnitude (px)')
-# ax2.set_title('Angle vs magnitude for crops')
-
-# ax2 = fig.add_subplot(axs[1, 0])
-# ax2.scatter(np.rad2deg(angles_and_pcs['angle_of_vector_mean']), angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
-# ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
-# ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
-# ax2.tick_params(axis='x', which='minor')
-# ax2.set_xlim(-180, 180)
-# ax2.set_xlabel('Mean vector angle (degrees)')
-# ax2.set_ylabel('Mean divergence')
-# ax2.set_title('Angle vs divergence for crops')
-
-# ax2 = fig.add_subplot(axs[1, 0])
-# ax2.scatter(angles_and_pcs['divergence_std'], angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
-# # ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
-# # ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
-# # ax2.tick_params(axis='x', which='minor')
-# # ax2.set_xlim(-180, 180)
-# ax2.set_xlabel('Divergence standard deviation')
-# ax2.set_ylabel('Divergence mean')
-# ax2.set_title('Diverge mean vs\nstandard deviation for crops')
-
-# ax2 = fig.add_subplot(axs[1, 0])
-# ax2.scatter(np.rad2deg(angles_and_pcs['features_angles_std']), angles_and_pcs['divergence_mean'], marker='.', c='grey', alpha=0.7)
-# # ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
-# # ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
-# # ax2.tick_params(axis='x', which='minor')
-# # ax2.set_xlim(-180, 180)
-# ax2.set_xlabel('Angles St. Dev.')
-# ax2.set_ylabel('Divergence mean')
-# ax2.set_title('Diverge mean vs\nstandard deviation for crops')
-
 ax2 = fig.add_subplot(axs[1, 0])
 ax2.scatter(np.rad2deg(angles_and_pcs['features_mags_std']), angles_and_pcs['divergence_std'], marker='.', c='grey', alpha=0.7)
-# ax2.xaxis.set_minor_locator(plt.MultipleLocator(30))
-# ax2.xaxis.set_major_locator(plt.MultipleLocator(90))
-# ax2.tick_params(axis='x', which='minor')
-# ax2.set_xlim(-180, 180)
 ax2.set_xlabel('Magnitude St. Dev.')
 ax2.set_ylabel('Divergence St. Dev.')
 ax2.set_title('Divergence std vs.\n Magnitude std for crops')
@@ -573,13 +354,9 @@ for i, example_pt in example_points.items():
     divergence_at_crop, curl_at_crop = divergence[crop_id], curl[crop_id]
 
     ax1.scatter(quad_record[0], quad_record[1], marker='.', color=quad_color, zorder=10)
-    # ax1.scatter(*quadrant_means[i], marker='x', color=quad_color, alpha=0.5)
+
     ax1.scatter(*quadrant_means[i], marker='x', color=quad_color, alpha=0.5)
 
-    # ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['magnitude_of_vector_mean'], marker='.', color=quad_color, zorder=10)
-    # ax2.scatter(np.rad2deg(quad_record['angle_of_vector_mean']), quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
-    # ax2.scatter(quad_record['divergence_std'], quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
-    # ax2.scatter(np.rad2deg(quad_record['features_angles_std']), quad_record['divergence_mean'], marker='.', color=quad_color, zorder=10)
     ax2.scatter(np.rad2deg(quad_record['features_mags_std']), quad_record['divergence_std'], marker='.', color=quad_color, zorder=10)
 
     with plt.rc_context({key: quad_color for key in ['axes.edgecolor', 'xtick.color', 'ytick.color', 'xtick.labelcolor', 'ytick.labelcolor']}):
@@ -602,73 +379,19 @@ for i, example_pt in example_points.items():
         ax4.yaxis.set_visible(False)
         ax4.set_title('Angle distribution', color=quad_color)
 
-        # ax5 = fig.add_subplot(axs[2, i+1])
-        # ax5.hist(mag.ravel(), bins=72, color=quad_color, alpha=1)
-        # ax5.axvline(quad_record['magnitude_of_vector_mean'], color='k', linestyle='--', alpha=0.5)
-        # ax5.set_xlabel('Magnitude (px)')
-        # ax5.set_ylabel('Frequency')
-        # ax5.set_title('Magnitude distribution', color=quad_color)
-
-        # ax5 = fig.add_subplot(axs[2, i+1])
-        # ax5.hist(divergence_at_crop.ravel(), bins=72, color=quad_color, alpha=1)
-        # ax5.axvline(quad_record['divergence_mean'], color='k', linestyle='--', alpha=0.5)
-        # ax5.set_xlabel('Divergence')
-        # ax5.set_ylabel('Frequency')
-        # ax5.set_title('Divergence distribution', color=quad_color)
-
 plt.tight_layout()
 fig.savefig(out_dir_val / f'{dataset_name}_multicrop.png')
 plt.close(fig)
 
 
 # %% Create some synthetic data to test the above vector field plotting:
-from skimage.draw import circle_perimeter
-from skimage.filters import gaussian
-# create empty synthetic data with shape (time, channel, y, x)
-synth_shape_y, synth_shape_x = 512, 512
-num_circles_per_axis = 10
-circle_radii = 20
-synth_img = np.zeros((5, 1, synth_shape_y, synth_shape_x), dtype=np.uint8)
-# add a bunch of circles throughout the image that move down 1 pixel and to the left 1 pixel
-# after each timepoint (total travel distance is sqrt(2) pixels per timepoint)
-for i in range(len(synth_img)):
-    circle_centers = np.meshgrid(range(0, synth_shape_y, synth_shape_y//num_circles_per_axis), range(0, synth_shape_x, synth_shape_x//num_circles_per_axis))
-    circle_centers = list(zip(*[c_arr.ravel().tolist() for c_arr in circle_centers]))
-    circle_indices = list(zip(*[circle_perimeter(y+i, x-i, circle_radii) for y,x in circle_centers]))
-    circle_indices = np.asarray([np.concatenate(indices) for indices in circle_indices])
-    indices_too_low = np.any(circle_indices < np.array([[0],[0]], ndmin=2), axis=0, keepdims=True)
-    indices_too_high = np.any(circle_indices >= np.array([[synth_shape_y],[synth_shape_x]], ndmin=2), axis=0, keepdims=True)
-    circle_indices = circle_indices[:, ~np.any(indices_too_low | indices_too_high, axis=0)]
-    ts, cs = [i] * len(circle_indices[0]), [0] * len(circle_indices[0])
-    synth_img[(ts, cs, *circle_indices)] = 255
-    synth_img[i, 0, ...] = gaussian(synth_img[i, 0, ...], sigma=2, preserve_range=True)
+synth_img = flow_calculator.generate_synthetic_data()
 
-# compute flow vectors from the synthetic data
-flow_graphs = []
-for i in range(len(synth_img)-1):
-    print(f'Computing flow for frame {i} to {i+1}')
-    flow = flow_calculator.FlowCalculator.compute_flow(synth_img[i].squeeze(), synth_img[i+1].squeeze(), radius=30)
-    flow_graphs.append(flow)
+# %% compute flow vectors from the synthetic data
+flow_graphs, vx, vy, mean_angle_deg, mean_mag = flow_calculator.compute_synthetic_image_flow_vectors_and_summarize(synth_img, delta_t=1)
 
-
-# %% compute angles and magnitudes of flow vectors on synthetic data
-vx, vy = flow_graphs[0]
-theta = flow_calculator.FlowCalculator.compute_angles(vx, vy)
-mag = flow_calculator.FlowCalculator.compute_magnitudes(vx, vy)
-
-angles_deg = np.rad2deg(theta)
-# mean_angle_deg = angles_deg[angles_deg > 0].mean()
-mean_angle_deg = np.rad2deg(flow_calculator.FlowCalculator.compute_angles(vx.mean(), vy.mean()))
-mean_mag = flow_calculator.FlowCalculator.compute_magnitudes(vx.mean(), vy.mean())
-
-# mag_mean = mag[mag > 0].mean()
-print(f'Flow angle mean: {mean_angle_deg} \nFlow magnitude mean: {mean_mag}')
-# %% Generate flow fields for synthetic data
-synth_data_example = flow_calculator.FlowCalculator.make_vector_field_map(synth_img[0].squeeze(), vx, vy, resolution=10, display=True, return_map=True)
-keep_me_indices = np.where(~np.all(synth_data_example==255, axis=-1))
-i, j = keep_me_indices
-keep_me_slices = (slice(np.min(i), np.max(i)), slice(np.min(j), np.max(j)), slice(None))
-flow_graphs = synth_data_example[keep_me_slices]
+# %% Get flow fields from first timepoint of synthetic data
+flow_graphs = flow_calculator.get_trimmed_vector_field_map(synth_img[0], vx, vy)
 
 
 # %% Plot the synthetic data and the flow field
