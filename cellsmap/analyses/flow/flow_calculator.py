@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 import statsmodels.api as statm
 import matplotlib.pyplot as plt
+from matplotlib import gridspec as gs
 from skimage import registration as skreg
 from skimage.draw import circle_perimeter
 from skimage.filters import gaussian
@@ -178,13 +179,31 @@ class FlowCalculator():
         return np.linalg.norm([vx, vy], axis=0)
 
     @staticmethod
-    def summarize_flow_features(vx, vy, axis=None):
-        magnitudes = FlowCalculator.compute_angles(vx, vy)
-        angles = FlowCalculator.compute_angles(vx, vy)
-        features = [magnitudes, angles]
-        feature_means = [np.mean(ft, axis=axis) for ft in features]
-        feature_stds = [np.std(magnitudes, axis=axis) for ft in features]
-        return feature_means, feature_stds
+    def get_features_from_vector_field_image(vector_field_image: np.ndarray, chan_map: dict={'vx':0, 'vy':1, 'norm':2, 'theta':3}):
+
+        features_vx = vector_field_image[:,chan_map['vx'],...].squeeze()
+        features_vy = vector_field_image[:,chan_map['vy'],...].squeeze()
+        features_mags = vector_field_image[:,chan_map['norm'],...].squeeze()
+        features_vx_mean, features_vx_std = features_vx.mean(), features_vx.std()
+        features_vy_mean, features_vy_std = features_vy.mean(), features_vy.std()
+        features_mags_mean, features_mags_std = features_mags.mean(), features_mags.std()
+
+        angle_of_mean_vector = FlowCalculator.compute_angles(features_vx_mean, features_vy_mean)
+        mag_of_mean_vector = FlowCalculator.compute_magnitudes(features_vx_mean, features_vy_mean)
+
+        divergence = discrete_divergence_like(vector_field_image[:,chan_map['vx'],...].squeeze(), vector_field_image[:,chan_map['vy'],...].squeeze())
+        curl = discrete_divergence_like(vector_field_image[:,chan_map['vx'],...].squeeze(), vector_field_image[:,chan_map['vy'],...].squeeze())
+        features_diverg_mean, feature_diverg_std = divergence.mean(), divergence.std()
+        features_curl_mean, features_curl_std = curl.mean(), curl.std()
+
+        features = {'angle_of_mean_vector': angle_of_mean_vector, 'magnitude_of_mean_vector': mag_of_mean_vector,
+                    'divergence_mean': features_diverg_mean, 'divergence_std': feature_diverg_std,
+                    'curl_mean': features_curl_mean, 'curl_std': features_curl_std,
+                    'vector_magnitudes_mean': features_mags_mean, 'vector_magnitudes_std': features_mags_std,
+                    'vector_x_mean': features_vx_mean, 'vector_x_std': features_vx_std,
+                    'vector_y_mean': features_vy_mean, 'vector_y_std': features_vy_std,
+                    }
+        return features
 
     @staticmethod
     def compute_flow(image0, image1, radius=radius, display=False, return_map=False):
@@ -413,9 +432,82 @@ def compute_synthetic_image_flow_vectors_and_summarize(synth_img: np.ndarray, de
 
     return flow_graphs, vx, vy, mean_angle_deg, mean_mag
 
-def get_trimmed_vector_field_map(image, vx, vy):
+def generate_validation_plot(out_dir: Path, raw_image, vector_image, features_and_pcs: pd.DataFrame, quadrants_origin, example_points: dict, vector_field_channel_map: dict={'vx':0, 'vy':1, 'norm':2, 'theta':3}):
+    rois = []
+    for i, example_pt in example_points.items():
+        roi = [slice(start, stop) for start, stop in zip(example_pt['record'][['T', 'start_c', 'start_y', 'start_x']].values.ravel(),
+                                                         (example_pt['record'][['T', 'start_c', 'start_y', 'start_x']].values + example_pt['record'][['delta_t', 'size_c', 'size_y', 'size_x']].values).ravel())]
+        rois.append(tuple(roi))
+
+    # generate a flow fields with the colormap normalized to the vector magnitudes of the
+    # crops being used as examples
+    # find the extreme values of the example crops to use as the colormap normalization:
+    cmap = 'summer'
+    cmap_norm = np.asarray([(vector_image[roi][:,vector_field_channel_map['norm'],...].min(), vector_image[roi][:,vector_field_channel_map['norm'],...].max()) for roi in rois])
+    cmap_norm = cmap_norm.min(), cmap_norm.max()
+    num_examples = len(example_points)
+
+    fig = plt.figure(figsize=((1+num_examples) * 3, 6))
+    axs = gs.GridSpec(ncols=(1+num_examples), nrows=2, figure=fig, hspace=0.6)
+    ax1 = fig.add_subplot(axs[0, 0])
+    ax1.scatter(features_and_pcs[0], features_and_pcs[1], marker='.', c='grey', alpha=0.7)
+    ax1.axvline(quadrants_origin[0], color='k', linestyle='--', alpha=0.5)
+    ax1.axhline(quadrants_origin[1], color='k', linestyle='--', alpha=0.5)
+    ax1.set_xlabel('PC1 (normalized)')
+    ax1.set_ylabel('PC2 (normalized)')
+    ax1.set_title('PC1 vs PC2 for crops')
+
+    ax2 = fig.add_subplot(axs[1, 0])
+    ax2.scatter(features_and_pcs['vector_magnitudes_std'], features_and_pcs['divergence_std'], marker='.', c='grey', alpha=0.7)
+    ax2.set_xlabel('Magnitude St. Dev.')
+    ax2.set_ylabel('Divergence St. Dev.')
+    ax2.set_title('Divergence std vs.\n Magnitude std for crops')
+
+    for i, example_pt in example_points.items():
+        roi = rois[i]
+        quad_color, quad_record, crop_id = example_pt['color'], example_pt['record'], example_pt['record']['crop_id'].astype(int)
+        feats_and_pcs_at_roi = features_and_pcs.query('crop_id == @crop_id')
+        dataset_name = feats_and_pcs_at_roi['dataset_name'].iloc[0]
+        cropped_raw_img, cropped_vector_img = raw_image[roi].compute(), vector_image[roi].compute()
+        flow_graph_at_roi = get_trimmed_vector_field_map(cropped_raw_img.squeeze(), cropped_vector_img[:,feats_and_pcs_at_roi['vx_chan_index'], ...].squeeze(), cropped_vector_img[:,feats_and_pcs_at_roi['vy_chan_index'], ...].squeeze(), resolution=15, cmap_norm=cmap_norm, cmap=cmap, display=False, return_map=True)
+        ang = cropped_vector_img[:,feats_and_pcs_at_roi['theta_chan_index'],...].squeeze()
+        roi_as_title = list(zip(*[(slc.start, slc.stop) for slc in roi]))
+
+        ax1.scatter(quad_record[0], quad_record[1], marker='.', color=quad_color, zorder=10)
+
+        if example_pt['quadrant_mean'] is not None:
+            ax1.scatter(*example_pt['quadrant_mean'], marker='x', color=quad_color, alpha=0.5)
+
+        ax2.scatter(quad_record['vector_magnitudes_std'], quad_record['divergence_std'], marker='.', color=quad_color, zorder=10)
+
+        with plt.rc_context({key: quad_color for key in ['axes.edgecolor', 'xtick.color', 'ytick.color', 'xtick.labelcolor', 'ytick.labelcolor']}):
+            ax3 = fig.add_subplot(axs[0, i+1])
+            ax3.imshow(flow_graph_at_roi, cmap='gray')
+            ax3.axis('off')
+            ax3.set_title(f'Flow Field (crop {crop_id})', color=quad_color)
+            ax3.text(x=0.5, y=-0.05, ha='center', va='top', transform=ax3.transAxes,
+                    s=f'roi start: {roi_as_title[0]}\nroi stop:{roi_as_title[1]})')
+
+            ax4 = fig.add_subplot(axs[1, i+1], projection='polar')
+            ax4.hist(ang.ravel(), bins=72, color=quad_color, alpha=1)
+            y_min, y_max = ax4.get_ylim()
+            ax4.arrow(x=float(quad_record['angle_of_mean_vector']), y=0, dx=0, dy=0.9*y_max, head_width=0.1, head_length=0.15*y_max, length_includes_head=True, lw=1, ls='-', facecolor=quad_color, edgecolor='k', alpha=0.5)
+            # create minor ticks on the polar plot
+            [ax4.plot((theta, theta), (0.95 * y_max, y_max), c=quad_color, lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 24+1)]
+            ax4.set_ylim(y_min, y_max)
+            ax4.set_theta_direction(-1)
+            ax4.set_xlim(-np.pi, np.pi)
+            ax4.yaxis.set_visible(False)
+            ax4.set_title('Angle distribution', color=quad_color)
+
+    plt.tight_layout()
+    crop_ids_for_filename = '-'.join([str(example_pt['record']['crop_id']) for example_pt in example_points.values()])
+    fig.savefig(out_dir / f'{dataset_name}_crop_{crop_ids_for_filename}.png')
+    plt.close(fig)
+
+def get_trimmed_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[float, float]=None, cmap: str="inferno", display=True, return_map=False, hide_axes=True):
     # get the vector field map:
-    vecfield_map = FlowCalculator.make_vector_field_map(image.squeeze(), vx, vy, resolution=10, display=True, return_map=True)
+    vecfield_map = FlowCalculator.make_vector_field_map(image.squeeze(), vx, vy, resolution=resolution, cmap_norm=cmap_norm, cmap=cmap, display=display, return_map=return_map, hide_axes=hide_axes)
     # keep anything that isn't white-space:
     keep_me_indices = np.where(~np.all(vecfield_map==255, axis=-1))
     i, j = keep_me_indices
@@ -436,7 +528,7 @@ def discrete_curl_like(vx, vy):
     vx_dy = np.gradient(vx, axis=0)
     return vy_dx - vx_dy
 
-class vector_field_examples():
+class vector_field_examples:
     def source_vector_field_example(show_vector_field=False):
         xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
         vx = xx
@@ -509,14 +601,14 @@ class vector_field_examples():
             plt.show()
         return vfield
 
-    def get_divergence_curl_example(self, vfield: str='solenoidal', show_vector_field=False) -> tuple[tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray]:
+    def get_divergence_curl_example(vfield: str='solenoidal', show_vector_field=False) -> tuple[tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray]:
         '''Returns an example vector field, its divergence, and its curl'''
-        example_vfields = {'source': self.source_vector_field_example,
-                        'sink': self.sink_vector_field_example,
-                        'saddle': self.saddle_vector_field_example,
-                        'ridge': self.ridge_vector_field_example,
-                        'valley': self.valley_vector_field_example,
-                        'solenoidal': self.solenoidal_vector_field_example}
+        example_vfields = {'source': vector_field_examples.source_vector_field_example,
+                           'sink': vector_field_examples.sink_vector_field_example,
+                           'saddle': vector_field_examples.saddle_vector_field_example,
+                           'ridge': vector_field_examples.ridge_vector_field_example,
+                           'valley': vector_field_examples.valley_vector_field_example,
+                           'solenoidal': vector_field_examples.solenoidal_vector_field_example}
         divergence = discrete_divergence_like(*example_vfields[vfield]())
         curl = discrete_curl_like(*example_vfields[vfield]())
         return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
