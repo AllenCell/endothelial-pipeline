@@ -18,8 +18,11 @@ def load_config(config_type='data') -> dict:
 # dataset methods
 def get_available_datasets() -> list:
     config = load_config()
+    dataset_list = []
     for dataset in config:
         print(dataset['name'])
+        dataset_list.append(dataset['name'])
+    return dataset_list
 
 def get_dataset_info(dataset_name: str) -> dict:
     config = load_config()

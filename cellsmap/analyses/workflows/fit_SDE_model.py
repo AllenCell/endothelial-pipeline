@@ -13,16 +13,6 @@ from cellsmap.analyses.utils.viz import save_plot, plot_top_PCs, plot_SVs
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) # suppress RuntimeWarnings (come up in KM_avg, mean of empty slice)
 
-
-def find_git_root(test, dirs=(".git",), default=None):
-    '''Find the root of a git repository given a path to a file or directory within the repository.'''
-    prev, test = None, os.path.abspath(test)
-    while prev != test:
-        if any(os.path.isdir(os.path.join(test, d)) for d in dirs):
-            return test
-        prev, test = test, os.path.abspath(os.path.join(test, os.pardir))
-    return default
-
 def get_traj(path_to_data,metadata,savedir,PCA=True,ndim=1,feats_to_analyze=None,log_file=None):
     if log_file is not None:
         if not os.path.exists(log_file):
@@ -127,7 +117,7 @@ def fit_model(data,dt,lag_step,ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file
             print("3. Values of the of cost function used to generate the plot \n",file=f)
             print("Select the desired level of sparsity based on the cost function plot and run analyze_model.py to generate the model output. \n",file=f)
 
-    
+
 def main(config_name, path_to_data):
     metadata, PCA, ndim, dt, feats_to_analyze, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file = io.get_dynamics_inputs(config_name)
     
