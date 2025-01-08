@@ -1,170 +1,128 @@
 # %%
 import numpy as np
-import pandas as pd
-import os
-from cellsmap.analyses.utils.kernel_regression import kernel_regression as kreg
-import cellsmap.util.io as io
-from cellsmap.analyses.workflows.fit_SDE_model import get_traj
-import cellsmap.analyses.utils.pplane as pplane
+
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes, mark_inset
 from sklearn.model_selection import train_test_split
-from mpl_toolkits.mplot3d import axes3d
-import numdifftools as nd
+import pysindy as ps
 
+from cellsmap.analyses.workflows.fit_SDE_model import get_traj
+import cellsmap.analyses.utils.gen_potential as gp
+from cellsmap.analyses.workflows.analyze_SDE_model import plot_gen_potential
+import cellsmap.analyses.utils.pplane as pplane
+from cellsmap.analyses.utils import viz
+import cellsmap.analyses.utils.kernel_regression.kernel_regression as kreg
+import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
-# %%
-# dataset_name = '20240305_T01_001'
-# feature_name = 'mae_cdh5_small_patch'
-
-# data_config = io.get_dataset_info(dataset_name)
-# path_to_data = data_config['features'][feature_name]
-
-#savedir = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/ea/kernel_reg_MAE_test/'
-#split_frame = 283
-
-# path_to_data = '//allen/aics/assay-dev/users/Erin/endo_features/20240917/diffae.csv'
-
-# savedir = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/ea/kernel_reg_diffAE_test/'
-# split_frame = 268
-
-
-path_to_data = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/notebooks/'
-savedir = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/ea/kernel_reg_infAE_test/'
-
-if not os.path.isdir(savedir):
-    print("*** Creating directory to save results... \n")
-    os.makedirs(savedir)
-    os.makedirs(savedir+'data')
-    os.makedirs(savedir+'outputs')
-    os.makedirs(savedir+'figs')
-    os.makedirs(savedir+'logs')
-# %%
-# metadata = ['crop_index','T']
-# ndim = 4
-# X_t = get_scaled_traj(path_to_data,metadata,savedir,True,ndim,None,log_file=None)
-# X_t_high = X_t[:,:split_frame,:]
-# X_t_low = X_t[:,split_frame:,:]
-    
-X_t_high = np.load(path_to_data+'traj_highFlow.npy',allow_pickle=True).astype(float)
-X_t_low = np.load(path_to_data+'traj_lowFlow.npy',allow_pickle=True).astype(float)
+import cellsmap.analyses.playground.ea.utils.io as eaio
+import cellsmap.analyses.playground.ea.utils.viz as eaviz
+import cellsmap.analyses.playground.ea.utils.regression as eareg
 
 # %%
-data_high = []
-data_low = []
 
+path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs2/eval/runs/diffae/large_latent_large_encoder/2024-11-25_09-43-32/patched.parquet'
+savedir = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/ea/kernel_reg_diffAE_test/'
 
-ndim = X_t_high.shape[-1]
-ntraj = X_t_high.shape[0]
-
-data_high = []
-data_low = []
-data_high = [X_t_high[i] for i in range(ntraj)]
-data_low = [X_t_low[i] for i in range(ntraj)]
-
+eaio.make_savedir(savedir,subfolders=False)
 
 # %%
-Nbins = [32 for i in range(ndim)]
-bins_high = []
-centers_high = []
-bins_low = []
-centers_low = []
+df = eaio.load_array(path_to_data)
+df.head()
+# %%
+metadata_col = ['filename_or_obj','T','start_x','start_y']
+df_ = eaio.rm_metadata(df,metadata_col) # remove metadata columns
 
-for i in range(ndim):
-    my_min = min([min(traj[:,i]) for traj in data_high])
-    my_max = max([max(traj[:,i]) for traj in data_high])
-    bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
-    bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
-    my_bins = np.linspace(bin_min, bin_max, Nbins[i]+1)
-    bins_high.append(my_bins)
-    centers_high.append(0.5*(my_bins[1:]+my_bins[:-1]))
+pca = eaio.get_PCA(df_)
 
-    my_min = min([min(traj[:,i]) for traj in data_low])
-    my_max = max([max(traj[:,i]) for traj in data_low])
-    bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
-    bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
-    my_bins = np.linspace(bin_min, bin_max, Nbins[i]+1)
-    bins_low.append(my_bins)
-    centers_low.append(0.5*(my_bins[1:]+my_bins[:-1]))
+del df_ # free up memory
+
+fig, ax = eaviz.plot_explained_variance(pca.explained_variance_ratio_)
+# %%
+list_of_datasets = eaio.get_list_of_datasets(df,'filename_or_obj',verbose=True)
+# %%
+fixed_data_idx = [0, 6, 7] # in list of datasets, these are indexes of the fixed data
+list_of_live = [my_path for i, my_path in enumerate(list_of_datasets) if i not in fixed_data_idx]
 
 # %%
-def KM_avg_ND(X,bins,dt):
-    ndim = len(bins)
-    n = len(X) # number of trajectories
-    my_list = [len(bins[i])-1 for i in range(ndim)]
-    my_list = my_list + [ndim,n]
-    f_KM = np.nan*np.ones(my_list)
-    a_KM = np.nan*np.ones(f_KM.shape)
-    f_err = np.nan*np.ones(f_KM.shape)
-    a_err = np.nan*np.ones(f_KM.shape)
-    for (j,traj) in enumerate(X):
-        dX = (traj[1:] - traj[:-1])/dt # Step (like a finite-difference derivative estimate)
-        dX2 = (traj[1:] - traj[:-1])**2/dt
+my_mv = list_of_live[6]
+mv_name = eaio.get_dataset_name(my_mv)
+feats_proj = eaio.project_PCA_one_dataset(df,pca, 'filename_or_obj', my_mv)
 
-        id_list = [np.digitize(traj[:-1,i],bins[i]) for i in range(ndim)]
-        uids = list(set(zip(*id_list))) # unique bin ids
-        if any([len(bins[i]) in id_list[i] for i in range(ndim)]):
-            raise ValueError('Data point outside of histogram bins. Please update bounds.')
 
-        for uid in uids:
-            my_cond = 1
-            for i in range(ndim):
-                my_cond = my_cond*(id_list[i]==uid[i])
-            mask = np.where(my_cond)[0]
-            # At each histogram bin, find time series points where the state falls into this bin
-            slices = [uid[i]-1 for i in range(ndim)]
-            slices = [uid[i]-1 for i in range(ndim)]
-            f_KM[tuple(slices)][:,j] = np.mean(dX[mask],axis=0) # Conditional average  ~ drift
-            a_KM[tuple(slices)][:,j] = 0.5*np.mean(dX2[mask],axis=0) # Conditional variance  ~ diffusion
+fig1,ax1 = eaviz.plot_top_3_PCs(feats_proj)
+ax1[0].set_ylim([-8,11])
+ax1[1].set_ylim([-11,5])
+ax1[2].set_ylim([-4.5,4.5])
 
-            # Estimate error by variance of samples in the bin
-            f_err[tuple(slices)][:,j] = np.std(dX[mask],axis=0)/np.sqrt(len(mask))
-            a_err[tuple(slices)][:,j] = np.std(dX2[mask],axis=0)/np.sqrt(len(mask))
-
-    f_KM = np.nanmean(f_KM,axis=-1)
-    a_KM = np.nanmean(a_KM,axis=-1)
-    f_err = np.nanmean(f_err,axis=-1)
-    a_err = np.nanmean(a_err,axis=-1)
-    # need to generalize swap axes for ndim > 2
-    return np.swapaxes(f_KM,0,1), np.swapaxes(a_KM,0,1), np.swapaxes(f_err,0,1), np.swapaxes(a_err,0,1)
+fig2,ax2 = eaviz.plot_PCA_projection(feats_proj,mv_name)
+ax2.set_xlim([-4,8])
+ax2.set_ylim([-2,4])
 
 # %%
-f_KM_high, a_KM_high, f_err_high, a_err_high = KM_avg_ND(data_high, bins_high, dt=5)
+PCs = [0,2]
+ndim = len(PCs)
+data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
+num_flow = len(u_list)
+# %%
+Nbins = [40 for i in range(ndim)]
+bins = []
+centers = []
 
-f_KM_low, a_KM_low, f_err_low, a_err_low = KM_avg_ND(data_low, bins_low, dt=5)
+f_KM = []
+D_KM = []
+f_err = []
+D_err = []
+
+for j in range(num_flow): # get bins and centers for data at high and low flow
+    bins_temp, centers_temp = eareg.get_bins(data_all[j],Nbins)
+    bins.append(bins_temp)
+    centers.append(centers_temp)
+
+    f_KM_temp, D_KM_temp, f_err_temp, D_err_temp = eareg.KM_avg_ND(data_all[j], bins[j], dt=5)
+    f_KM.append(f_KM_temp)
+    D_KM.append(D_KM_temp)
+    f_err.append(f_err_temp)
+    D_err.append(D_err_temp)
 
 # %%
-mask_high = np.where(np.isfinite(f_KM_high))
-X_mesh_high = np.array(np.meshgrid(*centers_high)).T
-X_pts_high = X_mesh_high[mask_high].reshape((-1,ndim))
-f_KM_high_noNAN = f_KM_high[mask_high].reshape((-1,ndim))
+for j in range(num_flow):
+    fig,ax = plt.subplots()
+    err_mag = np.sqrt(np.sum(f_err[j]**2,axis=-1))
+    im = ax.pcolormesh(*np.meshgrid(*bins[j]),err_mag.T)
+    ax.quiver(*np.meshgrid(*centers[j]),f_KM[j][:,:,0].T,f_KM[j][:,:,1].T,color='w')
+    fig.colorbar(im, ax=ax, label = 'Standard deviation')
+    ax.set_xlabel('PC1')
+    ax.set_ylabel('PC3')
+    ax.set_title('Shear stress: '+str(u_list[j])+ ' dyn/cm^2')
 
-mask_low = np.where(np.isfinite(f_KM_low))
-X_mesh_low = np.array(np.meshgrid(*centers_low)).T
-X_pts_low = X_mesh_low[mask_low].reshape((-1,ndim))
-f_KM_low_noNAN = f_KM_low[mask_low].reshape((-1,ndim))
 # %%
-N_tot_high = X_pts_high.shape[0]
-N_train_high=int(0.8*N_tot_high) # 80% of data for training
-N_test_high = N_tot_high-N_train_high
-X_train_high, X_test_high, Y_train_high, Y_test_high = train_test_split(X_pts_high, f_KM_high_noNAN, test_size=N_test_high, random_state=342)
-_, _, V_train_high, V_test_high = train_test_split(X_pts_high, a_KM_high[mask_high].reshape((-1,ndim)), test_size=N_test_high, random_state=342) # same random seed to get same x points for train and test
+f_KM_noNAN = []
+D_KM_noNAN = []
+X_pts_noNAN = []
 
-N_tot_low = X_pts_low.shape[0]
-N_train_low=int(0.8*N_tot_low) # 80% of data for training
-N_test_low = N_tot_low-N_train_low
-X_train_low, X_test_low, Y_train_low, Y_test_low = train_test_split(X_pts_low, f_KM_low_noNAN, test_size=N_test_low, random_state=344)
-_, _, V_train_low, V_test_low = train_test_split(X_pts_low, a_KM_low[mask_low].reshape((-1,ndim)), test_size=N_test_low, random_state=344) # same random seed to get same x points for train and test
+for j in range(num_flow):
+    f_KM_noNAN_temp, X_pts_temp = eareg.masked_vector_field(f_KM[j], np.array(np.meshgrid(*centers[j])).T)
+    D_KM_noNAN_temp, _ = eareg.masked_vector_field(D_KM[j], np.array(np.meshgrid(*centers[j])).T)
+    f_KM_noNAN.append(f_KM_noNAN_temp)
+    D_KM_noNAN.append(D_KM_noNAN_temp)
+    X_pts_noNAN.append(X_pts_temp)
+
+train_frac = 0.8
+seed = 47
+
+X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,D_KM_noNAN,num_flow,train_frac,seed)
+
 # %%
-drift_high = kreg.KernelRegression(beta=0.01).fit(X_train_high,Y_train_high)
+drift_high = kreg.KernelRegression(beta=0.01).fit(X_train[0],Y_train[0])
 
-drift_R2 = drift_high.score(X_test_high,Y_test_high)
+drift_R2 = drift_high.score(X_test[0],Y_test[0])
 
 print('Coefficient of determination (R^2) of drift (RBF kernel) model on test set: %f' %drift_R2)
 
 # %%
-diff_high = kreg.KernelRegression(beta=0.01).fit(X_train_high,V_train_high)
+diff_high = kreg.KernelRegression(beta=0.01).fit(X_train[0],V_train[0])
 
-diff_R2 = diff_high.score(X_test_high,V_test_high)
+diff_R2 = diff_high.score(X_test[0],V_test[0])
 
 print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on test set: %f' %diff_R2)
 
@@ -182,57 +140,87 @@ def f_high(x):
         if not hasattr(drift_high,'proj_'):
             drift_high.project2D(np.eye(ndim,2))
         return drift_high.predict_2D_mesh(x)
+    
+def f1_high(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            f_out = f_high([x1,x2]).T
+        else:
+            f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
+    else:
+        f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
+    return f_out[0].T
 
-f_predict_high = f_high(np.meshgrid(*centers_high))
-# %%
-fig, ax = plt.subplots()
-ax.streamplot(centers_high[0],centers_high[1],f_predict_high[:,:,0],f_predict_high[:,:,1])
-ax.set_xlabel('x1')
-ax.set_ylabel('x2')
+def f2_high(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            f_out = f_high([x1,x2]).T
+        else:
+            f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
+    else:
+        f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
+    return f_out[1].T
+
+def D_high(x):
+    if isinstance(x,np.ndarray):
+        if len(x.shape) == 1:
+            D_out = diff_high.predict(x[None,:])
+        else:
+            D_out = diff_high.predict(x)
+        if D_out.shape[0] == 1:
+            D_out = D_out[0]
+        return D_out
+    elif isinstance(x,list):
+        if not hasattr(diff_high,'proj_'):
+            diff_high.project2D(np.eye(ndim,2))
+        return diff_high.predict_2D_mesh(x)
+
+def D1_high(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            D_out = D_high([x1,x2]).T
+        else:
+            D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
+    else:
+        D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
+    return D_out[0].T
+
+def D2_high(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            D_out = D_high([x1,x2]).T
+        else:
+            D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
+    else:
+        D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
+    return D_out[1].T
 
 # %%
-tol=1e-1
-mycond = (np.abs(f_predict_high[:,:,0])<tol)*(np.abs(f_predict_high[:,:,1])<tol)
-idx = np.where(mycond)
-inits = X_mesh_high[idx] # search for roots near where f ~= 0
-print(len(inits))
-# %%
-fpts = pplane.get_fps(f_high,inits) # get fixed points
-if len(fpts) == 0:
-    print('No fixed points found.')
-
-# %%
-stable_fpt_high = []
-J_func = nd.Jacobian(f_high)
-for fpt in fpts:
-    J = J_func(fpt)
-    eigvals, eigvecs = np.linalg.eig(J)
-    print(fpt)
-    print(eigvals)
-    if np.all(np.real(eigvals)<0):
-        print('Stable fixed point found.')
-        stable_fpt_high.append(fpt)
-    print('\n')
+x1 = np.linspace(-4,5,50)
+x2 = np.linspace(-2,3,50)
+fig,ax = pplane.phase_portrait(lambda x1,x2: f1_high(x1,x2),lambda x1,x2: f2_high(x1,x2),x1,x2)
+ax.set_xlabel('PC1',fontsize=28)
+ax.set_ylabel('PC3',fontsize=28)
 
 # %%
 ####################### LOW FLOW ############################
 
-drift_low = kreg.KernelRegression(beta=0.01).fit(X_train_low,Y_train_low)
+drift_low = kreg.KernelRegression(beta=0.01).fit(X_train[1],Y_train[1])
 
-drift_R2 = drift_low.score(X_test_low,Y_test_low)
+drift_R2 = drift_low.score(X_test[1],Y_test[1])
 
 print('Coefficient of determination (R^2) of drift (RBF kernel) model on test set: %f' %drift_R2)
 
 # %%
-diff_low = kreg.KernelRegression(beta=0.01).fit(X_train_low,V_train_low)
+diff_low = kreg.KernelRegression(beta=0.01).fit(X_train[1],V_train[1])
 
-diff_R2 = diff_high.score(X_test_low,V_test_low)
+diff_R2 = diff_high.score(X_test[1],V_test[1])
 
 print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on test set: %f' %diff_R2)
 # %%
 # acting odd with root finding for getting fixed points, debug how you define f_low
 def f_low(x):
-    def eval_point(x):
+    if isinstance(x,np.ndarray):
         if len(x.shape) == 1:
             f_out = drift_low.predict(x[None,:])
         else:
@@ -240,212 +228,106 @@ def f_low(x):
         if f_out.shape[0] == 1:
             f_out = f_out[0]
         return f_out
-    if isinstance(x,np.ndarray):
-        return eval_point(x)
     elif isinstance(x,list):
-        if isinstance(x[0],np.ndarray):
-            if not hasattr(drift_low,'proj_'):
-                drift_low.project2D(np.eye(ndim,2))
-            return drift_low.predict_2D_mesh(x)
+        if not hasattr(drift_low,'proj_'):
+            drift_low.project2D(np.eye(ndim,2))
+        return drift_low.predict_2D_mesh(x)
+
+def f1_low(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            f_out = f_low([x1,x2]).T
         else:
-            return eval_point(x)
-# %%
-f_predict_low = f_low(np.meshgrid(*centers_low))
-# %%
-fig, ax = plt.subplots()
-ax.streamplot(centers_low[0],centers_low[1],f_predict_low[:,:,0],f_predict_low[:,:,1])
-ax.set_xlabel('x1')
-ax.set_ylabel('x2')
-
-# %%
-tol=1e-1
-mycond = (np.abs(f_predict_low[:,:,0])<tol)*(np.abs(f_predict_low[:,:,1])<tol)
-idx = np.where(mycond)
-inits = X_mesh_low[idx] # search for roots near where f ~= 0
-print(len(inits))
-# %%
-fpts = pplane.get_fps(f_low,inits) # get fixed points
-if len(fpts) == 0:
-    print('No fixed points found.')
-# %%
-J_func = nd.Jacobian(f_low)
-
-stable_fpt_low = []
-for fpt in fpts:
-    J = J_func(fpt)
-    eigvals, eigvecs = np.linalg.eig(J)
-    print(fpt)
-    print(eigvals)
-    if np.all(np.real(eigvals)<0):
-        print('Stable fixed point found.')
-        stable_fpt_low.append(fpt)
-    print('\n')
-# %%
-print(stable_fpt_high)
-print(stable_fpt_low)
-# %%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-############################################################################
-# %%
-W = np.eye(ndim,2)
-drift_high.project2D(W) # projects coefficent vectors into 2D (each coefficient vector is a row vector)
-
-N_mesh = 40
-U1,U2 = np.meshgrid(np.linspace(centers_high[0][0],centers_high[0][-1],N_mesh),
-                    np.linspace(centers_high[1][0],centers_high[1][-1],N_mesh))
-V = drift_high.predict_2D_mesh([U1,U2])
-# %%
-fig, ax = plt.subplots()
-ax.quiver(U1,U2,V[:,:,0],V[:,:,1])
-
-fig,ax = plt.subplots()
-ax.streamplot(U1[0,:],U2[:,0],V[:,:,0],V[:,:,1])
-# %%
-def f(X1,X2,drift_2D):
-    if not hasattr(drift_2D,'proj_'): 
-        drift_2D.project2D(np.eye(4,2))
-    if X1.ndim == 2:
-        return np.swapaxes(drift_2D.predict_2D_mesh([X1,X2]),0,1).T
+            f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
     else:
-        return drift_2D.predict_2D(np.array([X1,X2]))[0]
+        f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
+    return f_out[0].T
 
-def f1(x1,x2):
-    return f(x1,x2,drift_high)[0]
-
-def f2(x1,x2):
-    return f(x1,x2,drift_high)[1]
-# %%
-x1vec = np.linspace(centers_high[0][0],centers_high[0][-1],100)
-x2vec = np.linspace(centers_high[1][0],centers_high[1][-1],100)
-fig,ax = pplane.phase_portrait(f1,f2,x1vec,x2vec)
-
-# %%
-# FIT MODEL FOR LOW FLOW
-
-# %%
-x4_idx = 10
-u = f_KM_low[:,:,:,x4_idx,0]
-u = np.nan_to_num(u)
-v = f_KM_low[:,:,:,x4_idx,1]
-v = np.nan_to_num(v)
-w = f_KM_low[:,:,:,x4_idx,2]
-w = np.nan_to_num(w)
-# color by (proportional to) magnitude 
-c = np.sqrt(np.abs(v) ** 2 + np.abs(u) ** 2 + np.abs(w) ** 2)
-c[c>3] = 2.5 # Clip to 2.5
-c = (c.ravel() - c.min()) / c.ptp()
-# Repeat for each body line and two head lines
-c = np.concatenate((c, np.repeat(c, 2)))
-# Colormap
-c = plt.cm.jet(c)
-fig = plt.figure()
-ax = fig.add_subplot(111,projection='3d')
-ax.quiver(X1[:,:,:,x4_idx],X2[:,:,:,x4_idx],X3[:,:,:,x4_idx],
-          u.T,v.T,w.T,
-          colors=c)
-ax.set_xlabel('PC1')
-ax.set_ylabel('PC2')
-ax.set_zlabel('PC3')
-
-# %%
-fig = plt.figure()
-ax = plt.axes(projection='3d')
-
-for i in range(X_t_low.shape[0]):
-    ax.plot3D(X_t_low[i,:100,0], X_t_low[i,:100,1], X_t_low[i,:100,2],'k-',alpha=0.1)
-    ax.plot3D(X_t_low[i,100:,0], X_t_low[i,100:,1], X_t_low[i,100:,2],'r-',alpha=0.1)
-
-ax.set_xlabel('PC1')
-ax.set_ylabel('PC2')
-ax.set_zlabel('PC3')
-
-plt.show()
-
-# %%
-mask_low = np.where(np.isfinite(f_KM_low))
-X_mesh_low = np.zeros(Nbins+[ndim])
-for i in range(Nbins[0]):
-    for j in range(Nbins[1]):
-        for k in range(Nbins[2]):
-            for l in range(Nbins[3]):
-                X_mesh_low[i,j,k,l] = np.array([centers_low[0][i],centers_low[1][j],centers_low[2][k],centers_low[3][l]])
-X_pts_low = X_mesh_low[mask_low].reshape((-1,ndim))
-# %%
-N_tot_low = X_pts_low.shape[0]
-N_train_low=int(0.5*N_tot_low) # 80% of data for training
-N_test_low = N_tot_low-N_train_low
-
-# train test split: drift
-X_train_low, X_test_low, Y_train_low, Y_test_low = train_test_split(X_pts_low, f_KM_low[mask_low].reshape((-1,ndim)), test_size=N_test_low, random_state=342)
-# same but for diffusion
-_, _, V_train_low, V_test_low = train_test_split(X_pts_low, a_KM_low[mask_low].reshape((-1,ndim)), test_size=N_test_low, random_state=342) # same random seed to get same x points for train and test
-# %%
-drift_low = kreg.KernelRegression(beta=0.01).fit(X_train_low,Y_train_low)
-
-drift_R2 = drift_high.score(X_test_low,Y_test_low)
-
-print('Coefficient of determination (R^2) of drift (RBF kernel) model on test set: %f' %drift_R2)
-
-# %%
-diff_low = kreg.KernelRegression(beta=0.01).fit(X_train_low,V_train_low)
-
-diff_R2 = diff_high.score(X_test_low,V_test_low)
-
-print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on test set: %f' %diff_R2)
-
-
-# %%
-# x2_idx = 15
-# x4_idx = 21
-# f_model_low = drift_low.predict(X_mesh_low[:,x2_idx,:,x4_idx].reshape((-1,ndim))).reshape(Nbins[:2]+[ndim])
-# fig, ax = plt.subplots()
-# ax.streamplot(X1[:,x2_idx,0,x4_idx],X3[0,x2_idx,:,x4_idx],f_model_low[:,:,0],f_model_low[:,:,1],color='k')
-# ax.set_xlabel('PC1')
-# ax.set_ylabel('PC3')
-# %%
-W = np.eye(ndim,2)
-drift_low.project2D(W) # projects coefficent vectors into 2D (each coefficient vector is a row vector)
-
-N_mesh = 40
-U1,U2 = np.meshgrid(np.linspace(centers_low[0][0],centers_low[0][-1],N_mesh),
-                    np.linspace(centers_low[1][0],centers_low[1][-1],N_mesh))
-V = drift_low.predict_2D_mesh([U1,U2])
-# %%
-fig, ax = plt.subplots()
-ax.quiver(U1,U2,V[:,:,0],V[:,:,1])
-
-fig,ax = plt.subplots()
-ax.streamplot(U1[0,:],U2[:,0],V[:,:,0],V[:,:,1])
-# %%
-def f(X1,X2,drift_2D):
-    if not hasattr(drift_2D,'proj_'): 
-        drift_2D.project2D(np.eye(4,2))
-    if X1.ndim == 2:
-        return np.swapaxes(drift_2D.predict_2D_mesh([X1,X2]),0,1).T
+def f2_low(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            f_out = f_low([x1,x2]).T
+        else:
+            f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
     else:
-        return drift_2D.predict_2D(np.array([X1,X2]))[0]
+        f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
+    return f_out[1].T
 
-def f1(x1,x2):
-    return f(x1,x2,drift_low)[0]
+def D_low(x):
+    if isinstance(x,np.ndarray):
+        if len(x.shape) == 1:
+            D_out = diff_low.predict(x[None,:])
+        else:
+            D_out = diff_low.predict(x)
+        if D_out.shape[0] == 1:
+            D_out = D_out[0]
+        return D_out
+    elif isinstance(x,list):
+        if not hasattr(diff_low,'proj_'):
+            diff_low.project2D(np.eye(ndim,2))
+        return diff_low.predict_2D_mesh(x)
 
-def f2(x1,x2):
-    return f(x1,x2,drift_low)[1]
+def D1_low(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            D_out = D_low([x1,x2]).T
+        else:
+            D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
+    else:
+        D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
+    return D_out[0].T
+
+def D2_low(x1,x2):
+    if isinstance(x1, np.ndarray):
+        if len(x1.shape) == 2:
+            D_out = D_low([x1,x2]).T
+        else:
+            D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
+    else:
+        D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
+    return D_out[1].T
+
 # %%
-x1vec = np.linspace(centers_low[0][0],centers_low[0][-1],100)
-x2vec = np.linspace(centers_low[1][0],centers_low[1][-1],100)
-fig,ax = pplane.phase_portrait(f1,f2,x1vec,x2vec)
+fig,ax = pplane.phase_portrait(lambda x1,x2: f1_low(x1,x2),lambda x1,x2: f2_low(x1,x2),x1,x2)
+ax.set_xlabel('PC1',fontsize=28)
+ax.set_ylabel('PC3',fontsize=28)
+
+# %%
+N = (len(bins[0][0])-1,len(bins[0][1])-1) # number of bins in each dimension
+dx = [(bins[0][0][1]-bins[0][0][0]),(bins[0][1][1]-bins[0][1][0])] # bin width in each dimension
+fp = fps.SteadyFP(N, dx) # initialize stationary Fokker-Planck solver
+# %%
+X1,X2 = np.meshgrid(centers[0][0],centers[0][1])
+f_vals = f_high([X1,X2]).T
+D_vals = D_high([X1,X2]).T
+p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
+p_fit[p_fit<1e-10] = 1e-10 # set small values to a small number to avoid numerical issues
+
+# %%
+fig,ax = viz.init_subplots(1,2,figsize=(12,4))
+p_hist, _, _ = np.histogram2d(np.concatenate([data_all[0][j][100:,0] for j in range(len(data_all[0]))]).flatten(),
+                              np.concatenate([data_all[0][j][100:,1] for j in range(len(data_all[0]))]).flatten(), 
+                              bins[0], density=True)
+ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins[0],cmap='inferno') # plot empirical PDF
+ax[1] = viz.plot_histogram_2D(ax[1],p_fit,bins[0],cmap='inferno') # plot model PDF
+
+# %%
+N = (len(bins[1][0])-1,len(bins[1][1])-1) # number of bins in each dimension
+dx = [(bins[1][0][1]-bins[1][0][0]),(bins[1][1][1]-bins[1][1][0])] # bin width in each dimension
+fp = fps.SteadyFP(N, dx) # initialize stationary Fokker-Planck solver
+
+# %%
+X1,X2 = np.meshgrid(centers[1][0],centers[1][1])
+f_vals = f_low([X1,X2]).T
+D_vals = D_low([X1,X2]).T
+p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
+p_fit[p_fit<1e-10] = 1e-10 # set small values to a small number to avoid numerical issues
+
+# %%
+fig,ax = viz.init_subplots(1,2,figsize=(12,4))
+p_hist, _, _ = np.histogram2d(np.concatenate([data_all[1][j][100:,0] for j in range(len(data_all[1]))]).flatten(),
+                                np.concatenate([data_all[1][j][100:,1] for j in range(len(data_all[1]))]).flatten(), 
+                                bins[1], density=True)
+ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins[1],cmap='inferno') # plot empirical PDF
+ax[1] = viz.plot_histogram_2D(ax[1],p_fit,bins[1],cmap='inferno') # plot model PDF
 # %%
