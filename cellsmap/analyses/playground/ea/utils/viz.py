@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from cellsmap.analyses.utils import viz
+from scipy.stats import wasserstein_distance_nd as emd
 
 def plot_explained_variance(explained_variance_ratio:np.ndarray) -> None:
     '''Plot explained variance ratio of PCA components.'''
@@ -45,4 +47,15 @@ def plot_PCA_projection(feats_proj:np.ndarray,ds_ID:str) -> None:
 
     ax.scatter(mean_feats[:,0],mean_feats[:,2],c = range(num_T),cmap='jet')
 
+    return fig, ax
+
+def compare_stationary_distributions(p_model,p_hist,bins):
+    fig,ax = viz.init_subplots(1,2,figsize=(12,4))
+    ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins,cmap='inferno') # plot empirical PDF
+    ax[0].set_title('Empirical PDF')
+    ax[1] = viz.plot_histogram_2D(ax[1],p_model,bins,cmap='inferno') # plot model PDF
+    ax[1].set_title('Model PDF')
+
+    W_1 = emd(p_hist,p_model) # Wasserstein distance
+    fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
     return fig, ax

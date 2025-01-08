@@ -136,3 +136,12 @@ def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
         V_test = np.concatenate(V_test)
     
     return X_train, X_test, Y_train, Y_test, V_train, V_test
+
+def get_stationary_hist(data, bins,frame_index=100):
+    '''Get stationary histogram of data, using values 
+    at time frame_index and on as the stationary data.'''
+
+    p_hist, _, _ = np.histogram2d(np.concatenate([data[j][frame_index:,0] for j in range(len(data))]).flatten(),
+                              np.concatenate([data[j][100:,1] for j in range(len(data))]).flatten(), 
+                              bins, density=True)
+    return p_hist

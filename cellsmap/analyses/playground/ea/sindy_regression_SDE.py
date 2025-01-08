@@ -4,12 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 import pysindy as ps
-from scipy.stats import wasserstein_distance_nd as emd
 
 import cellsmap.analyses.utils.gen_potential as gp
-import cellsmap.analyses.utils.pplane as pplane
 from cellsmap.analyses.utils import viz
-import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
 import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.viz as eaviz
@@ -137,71 +134,17 @@ print("Diffusion model R^2: ", diffModel.score(X_test,t=5,x_dot=V_test,u=u_test)
 
 # %%
 
-f = model_eval.vector_field_function(driftModel)
-f_mesh = model_eval.mesh_grid_function(f)
-f1 = model_eval.vector_field_component(f,0)
-f2 = model_eval.vector_field_component(f,1)
+myModel = [driftModel,diffModel]
 
-D = model_eval.vector_field_function(diffModel)
-D_mesh = model_eval.mesh_grid_function(D)
-D1 = model_eval.vector_field_component(D,0)
-D2 = model_eval.vector_field_component(D,1)
-# %%
-x1 = np.linspace(-4,5,50)
-x2 = np.linspace(-2,3,50)
-fig,ax = pplane.phase_portrait(lambda x1,x2: f1([x1,x2],u_traj[0][0]),lambda x1,x2: f2([x1,x2],u_traj[0][0]),x1,x2)
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
-# %%
-fig,ax = pplane.phase_portrait(lambda x1,x2: f1([x1,x2],u_traj[1][0]),lambda x1,x2: f2([x1,x2],u_traj[1][0]),x1,x2)
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
-# %%
-N = (len(bins[0][0])-1,len(bins[0][1])-1) # number of bins in each dimension
-dx = [(bins[0][0][1]-bins[0][0][0]),(bins[0][1][1]-bins[0][1][0])] # bin width in each dimension
-fp = fps.SteadyFP(N, dx) # initialize stationary Fokker-Planck solver
-# %%
-X1,X2 = np.meshgrid(centers[0][0],centers[0][1])
-f_vals = f_mesh([X1,X2],u_traj[0][0]).T
-D_vals = D_mesh([X1,X2],u_traj[0][0]).T
-p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
-p_fit[p_fit<1e-10] = 1e-10 # set small values to a small number to avoid numerical issues
+plt_args = {'pplane_xlim': [-4,5], 'pplane_ylim': [-2,3], 'pplane_N': 50,
+            'plt_xlabel': 'PC1', 'plt_ylabel': 'PC3'}
 
 # %%
-fig,ax = viz.init_subplots(1,2,figsize=(12,4))
-p_hist, _, _ = np.histogram2d(np.concatenate([data_all[0][j][100:,0] for j in range(len(data_all[0]))]).flatten(),
-                              np.concatenate([data_all[0][j][100:,1] for j in range(len(data_all[0]))]).flatten(), 
-                              bins[0], density=True)
-ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins[0],cmap='inferno') # plot empirical PDF
-ax[1] = viz.plot_histogram_2D(ax[1],p_fit,bins[0],cmap='inferno') # plot model PDF
-
-print('Wasserstein distance between empirical and model PDFs:',emd(p_hist,p_fit))
+for j in range(num_flow):
+    print('**** Running model analysis for u =',u_list[j],'dyn/cm^2 **** \n')
+    plot_tuple = model_eval.run_model_analysis(myModel,data_all[j],bins[j],centers[j],u_list[j],args=plt_args)
 
 # %%
-N = (len(bins[1][0])-1,len(bins[1][1])-1) # number of bins in each dimension
-dx = [(bins[1][0][1]-bins[1][0][0]),(bins[1][1][1]-bins[1][1][0])] # bin width in each dimension
-fp = fps.SteadyFP(N, dx) # initialize stationary Fokker-Planck solver
-
-# %%
-X1,X2 = np.meshgrid(centers[1][0],centers[1][1])
-f_vals = f_mesh([X1,X2],u_traj[1][0]).T
-D_vals = D_mesh([X1,X2],u_traj[1][0]).T
-p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
-p_fit[p_fit<1e-10] = 1e-10 # set small values to a small number to avoid numerical issues
-
-# %%
-fig,ax = viz.init_subplots(1,2,figsize=(12,4))
-p_hist, _, _ = np.histogram2d(np.concatenate([data_all[1][j][100:,0] for j in range(len(data_all[1]))]).flatten(),
-                                np.concatenate([data_all[1][j][100:,1] for j in range(len(data_all[1]))]).flatten(), 
-                                bins[1], density=True)
-ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins[1],cmap='inferno') # plot empirical PDF
-ax[1] = viz.plot_histogram_2D(ax[1],p_fit,bins[1],cmap='inferno') # plot model PDF
-
-print('Wasserstein distance between empirical and model PDFs:',emd(p_hist,p_fit))
-
-
-
-
 
 
 # %%
@@ -227,8 +170,8 @@ flux_norm = flux_term.copy()
 # grad_norm = grad_term/(np.sqrt(grad_term[0]**2+grad_term[1]**2))
 # flux_norm = flux_term/(np.sqrt(flux_term[0]**2+flux_term[1]**2))
 fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
+ax.set_xlabel('PC1')
+ax.set_ylabel('PC3')
 axins = zoomed_inset_axes(ax, 2, loc=1)
 im = axins.imshow(U.T,interpolation='nearest', origin='lower',
     extent=[x_fine[0], x_fine[-1], y_fine[0], y_fine[-1]],
@@ -266,8 +209,8 @@ flux_norm = flux_term.copy()
 # grad_norm = grad_term/(np.sqrt(grad_term[0]**2+grad_term[1]**2))
 # flux_norm = flux_term/(np.sqrt(flux_term[0]**2+flux_term[1]**2))
 fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
+ax.set_xlabel('PC1')
+ax.set_ylabel('PC3')
 
 # same but with vector field decomposition
 
@@ -276,8 +219,8 @@ fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',
 downsample=8
 ax.quiver(x_fine[::downsample],y_fine[::downsample],grad_norm[0][::downsample,::downsample].T,grad_norm[1][::downsample,::downsample].T,color='w',pivot='tail')
 ax.quiver(x_fine[::downsample],y_fine[::downsample],flux_norm[0][::downsample,::downsample].T,flux_norm[1][::downsample,::downsample].T,color='r',pivot='tail')
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
+ax.set_xlabel('PC1')
+ax.set_ylabel('PC3')
 
 
 # %%

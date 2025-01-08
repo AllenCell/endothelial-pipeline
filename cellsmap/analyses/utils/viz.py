@@ -2,6 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 
+global plt_params
+
+plt_params = {'legend.fontsize': 12,
+         'axes.labelsize': 16,
+         'axes.titlesize':18,
+         'xtick.labelsize':14,
+         'ytick.labelsize':14,
+         'figure.titlesize':20}
+plt.rcParams.update(plt_params)
+
 def init_plot(figsize=(7,6)):
     '''Initialize a plot with default settings.'''
     # TO DO, set default tick font size, etc
@@ -88,68 +98,6 @@ def plot_top_PCs(X_t,t,fig=None,ax=None,colors=None,alpha=0.25,linewidth=1,xlabe
         ax[m].set_xlim([t.min(),t.max()])
         ax[m].set_xlabel(xlabel,fontsize=xylabel_fontsize)
         ax[m].set_ylabel(ylabel+str(m+1),fontsize=xylabel_fontsize)
-    return fig, ax
-
-def plot_langevin_outputs(ndim,Xi,V,f_expr,s_expr):
-    '''Plot cost function V versus sparsity of SINDy solution along with
-      visualization of which terms are active (Xi nonzero) at these levels of sparsity.'''
-    # labels for terms in SINDy library
-    labels = [r'${0}$'.format(sympy.latex(t)) for t in np.concatenate((f_expr, s_expr))]
-    n_terms = len(labels)
-    # term is "active" if Xi is nonzero, mask for active terms
-    active = abs(Xi) > 1e-8
-
-    if ndim == 1:
-        fig, ax = plt.subplots(1,2,figsize=(12, 4))
-        ax[0].scatter(np.arange(len(V)), V, c='k')
-
-        ax[0].set_xticks(np.arange(n_terms-1))
-        ax[0].set_xticklabels(np.arange(n_terms, 1, -1))
-        ax[0].set_xlabel('Sparsity')
-        ax[0].set_ylabel('Cost')
-        ax[0].set_yscale('log')
-        ax[0].grid()
-
-        ax[1].pcolor(active, cmap='bone_r', edgecolors='gray')
-        ax[1].gca().set_yticks(0.5+np.arange(n_terms))
-        ax[1].set_yticklabels(labels)
-        ax[1].set_xticks(0.5+np.arange(n_terms-1))
-        ax[1].set_xticklabels(np.arange(n_terms, 1, -1))
-        ax[1].set_xlabel('Sparsity')
-        ax[1].set_ylabel('Active terms (f, D)')
-    else: # 2D
-        fig, ax = plt.subplots(1,3,figsize=(15, 4))
-
-        ax[0].scatter(np.arange(len(V)), V, c='k')
-
-        ax[0].set_xticks(np.arange(0,n_terms-(2*ndim-1),2))
-        ax[0].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
-        ax[0].set_xlabel('Sparsity')
-        ax[0].set_ylabel('Cost')
-        ax[0].set_yscale('log')
-        ax[0].grid()
-
-        active_1 = np.concatenate((active[:len(f_expr)//2], active[len(f_expr):len(f_expr)+len(s_expr)//2]))
-        labels_1 = np.concatenate((labels[:len(f_expr)//2], labels[len(f_expr):len(f_expr)+len(s_expr)//2]))
-        ax[1].pcolor(active_1, cmap='bone_r', edgecolors='gray')
-        ax[1].set_yticks(0.5+np.arange(active_1.shape[0]))
-        ax[1].set_yticklabels(labels_1)
-        ax[1].set_xticks(0.5+np.arange(0,n_terms-(2*ndim-1),2))
-        ax[1].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
-        ax[1].set_xlabel('Sparsity')
-        ax[1].set_ylabel('Active terms (f1, D1)')
-
-
-        active_2 = np.concatenate((active[len(f_expr)//2:len(f_expr)], active[len(f_expr)+len(s_expr)//2:]))
-        labels_2 = np.concatenate((labels[len(f_expr)//2:len(f_expr)], labels[len(f_expr)+len(s_expr)//2:]))
-        ax[2].pcolor(active_2, cmap='bone_r', edgecolors='gray')
-        ax[2].set_yticks(0.5+np.arange(active_2.shape[0]))
-        ax[2].set_yticklabels(labels_2)
-        ax[2].set_xticks(0.5+np.arange(0,n_terms-(2*ndim-1),2))
-        ax[2].set_xticklabels(np.arange(n_terms, (2*ndim-1), -2))
-        ax[2].set_xlabel('Sparsity')
-        ax[2].set_ylabel('Active terms (f2, D2)')
-
     return fig, ax
 
 def plot_histogram_1D(ax,p_hist,bins,color):
