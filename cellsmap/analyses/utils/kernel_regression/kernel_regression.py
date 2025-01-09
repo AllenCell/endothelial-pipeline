@@ -118,7 +118,7 @@ class KernelRegression:
 
         return X
     
-    def fit(self,X,Y):
+    def fit(self,X,Y,u=None):
         X,Y  = self.check_XY(X,Y) # check input data, make sure no ValueError is raised (neccessary for sklearn compatibility)
         self.X_train_ = X
         self.Y_train_ = Y
@@ -133,20 +133,55 @@ class KernelRegression:
 
         self._get_kernel_params() # set kernel parameter dictionary based on input kernel
 
-        self.C_ = kernel_reg(X,Y,self.kernel_func_,
+        if u is not None:
+            # write these checks as a function
+            if u.__class__ in [int,float,complex]:
+                if isinstance(X,np.ndarray):
+                    u = u*np.ones((X.shape[0],1))
+                else:
+                    u = np.array([u])  
+            elif u.shape[0] != X.shape[0] and u.T.shape[0] != X.shape[0]:
+                raise ValueError('Control input must have same number of data points as input data')          
+            elif len(u.shape) == 1:
+                u = u[:,None]
+            self.u_train_ = u
+            X_aug = np.hstack((X,u)) # augment input data with control input
+            self.X_train_aug_ = X_aug
+            self.C_ = kernel_reg(X_aug,Y,self.kernel_func_,
+                             self.kernel_params_,self.lam,
+                             self.weights,self.matrix_kernel,self.B) # fit kernel regression model
+        else:
+            self.C_ = kernel_reg(X,Y,self.kernel_func_,
                              self.kernel_params_,self.lam,
                              self.weights,self.matrix_kernel,self.B) # fit kernel regression model
         return self
 
-    def predict(self,X):
+    def predict(self,X,u=None):
         X = self.check_X(X) # check input data, make sure no ValueError is raised (neccessary for sklearn compatibility)
         
-        return self.kernel_func_(X,self.X_train_,**self.kernel_params_)@self.C_
+        if u is not None:
+            if not hasattr(self,'u_train_'):
+                raise ValueError('Model was not trained with control input')    
+            if u.__class__ in [int,float,complex]:
+                if isinstance(X,np.ndarray):
+                    u = u*np.ones((X.shape[0],1))
+                else:
+                    u = np.array([u])  
+            elif u.shape[0] != X.shape[0] and u.T.shape[0] != X.shape[0]:
+                raise ValueError('Control input must have same number of data points as input data')          
+            elif len(u.shape) == 1:
+                u = u[:,None]
+            X_aug = np.hstack((X,u))
+            return self.kernel_func_(X_aug,self.X_train_aug_,**self.kernel_params_)@self.C_
+        else:
+            if hasattr(self,'u_train_'):
+                raise ValueError('Model was trained with control input, predict requires control input u.')
+            return self.kernel_func_(X,self.X_train_,**self.kernel_params_)@self.C_
 
-    def score(self,X,Y):
+    def score(self,X,Y,u=None):
         X,Y = self.check_XY(X,Y) # check input data, make sure no ValueError is raised
         
-        RSS = np.sum(np.linalg.norm(Y-self.predict(X),axis=-1)**2) # residual sum of squares
+        RSS = np.sum(np.linalg.norm(Y-self.predict(X,u),axis=-1)**2) # residual sum of squares
         TSS = np.sum(np.linalg.norm(np.mean(Y,axis=0)-Y,axis=-1)**2) # total sum of squares
         return 1 - RSS/TSS # coefficient of determination R^2
     
@@ -160,27 +195,29 @@ class KernelRegression:
         if self.B is not None:
             self.B_proj_ = self.B @ W
         self.X_train_proj_ = self.X_train_ @ W # project control points to 2D
+        if hasattr(self,'u_train_'):
+            self.X_train_aug_proj_ = np.hstack((self.X_train_proj_,self.u_train_)) # augment projected control points with control input
         return self
 
-    def predict_2D(self,X_proj):
+    def predict_2D(self,X_proj,u=None):
         '''
         Returns the projected vector field at (n x 2) array X_proj (not mesh grid).
         '''
-        if self.matrix_kernel:
-            return matrix_kernel(self.kernel_func_,self.kernel_params_,2,X_proj,self.X_train_proj_,B=self.B_proj_)@self.C_proj_
+        if u is not None:
+            if not hasattr(self,'u_train_'):
+                raise ValueError('Model was not trained with control input')    
+            X_aug = np.hstack((X_proj,u))
+            if self.matrix_kernel:
+                return matrix_kernel(self.kernel_func_,self.kernel_params_,2,X_aug,self.X_train_aug_proj_,B=self.B_proj_)@self.C_proj_
+            else:
+                return self.kernel_func_(X_aug,self.X_train_aug_proj_,**self.kernel_params_)@self.C_proj_
         else:
-            return self.kernel_func_(X_proj,self.X_train_proj_,**self.kernel_params_)@self.C_proj_
-    
-    def predict_2D_mesh(self,mesh_grid):
-        '''
-        Returns the projected vector field V over 2D mesh grid mesh_grid [U1,U2].
-        '''
-        n_1 = mesh_grid[0].shape[0]
-        n_2 = mesh_grid[0].shape[1]
-        V = np.zeros((n_1,n_2,2))
-        for i in range(n_1):
-            V[i,:,:] = self.kernel_func_(np.vstack((mesh_grid[0][i,:],mesh_grid[1][i,:])).T,self.X_train_proj_,**self.kernel_params_)@self.C_proj_
-        return V
+            if hasattr(self,'u_train_'):
+                raise ValueError('Model was trained with control input, predict requires control input u.')    
+            if self.matrix_kernel:
+                return matrix_kernel(self.kernel_func_,self.kernel_params_,2,X_proj,self.X_train_proj_,B=self.B_proj_)@self.C_proj_
+            else:
+                return self.kernel_func_(X_proj,self.X_train_proj_,**self.kernel_params_)@self.C_proj_
 
     def _get_kernel_params(self):
         if self.kernel == 'rbf' or self.kernel == 'laplace':

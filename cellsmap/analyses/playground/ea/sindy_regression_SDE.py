@@ -12,6 +12,7 @@ import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.viz as eaviz
 import cellsmap.analyses.playground.ea.utils.regression as eareg
 import cellsmap.analyses.playground.ea.utils.model_eval as model_eval
+import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
 
 # %%
 
@@ -34,7 +35,7 @@ del df_ # free up memory
 fig, ax = eaviz.plot_explained_variance(pca.explained_variance_ratio_)
 # %%
 list_of_datasets = eaio.get_list_of_datasets(df,'filename_or_obj',verbose=True)
-# %%
+
 fixed_data_idx = [0, 6, 7] # in list of datasets, these are indexes of the fixed data
 list_of_live = [my_path for i, my_path in enumerate(list_of_datasets) if i not in fixed_data_idx]
 
@@ -58,7 +59,7 @@ PCs = [0,2]
 ndim = len(PCs)
 data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
 num_flow = len(u_list)
-# %%
+
 Nbins = [40 for i in range(ndim)]
 bins = []
 centers = []
@@ -105,7 +106,8 @@ for j in range(num_flow):
 train_frac = 0.8
 seed = 47
 
-X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,D_KM_noNAN,num_flow,
+X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,
+                                                                         D_KM_noNAN,num_flow,
                                                                          train_frac,seed,concat=True)
 
 # create corresponding input vector u train/test
@@ -120,7 +122,7 @@ driftModel.fit(X_train,t=5,x_dot=Y_train,u=u_train)
 
 diffModel = ps.SINDy(feature_library = ps.PolynomialLibrary(degree=3), optimizer = ps.SSR())
 diffModel.fit(X_train,t=5,x_dot=V_train,u=u_train)
-# %%
+
 driftModel.print()
 
 print("\n")
@@ -142,17 +144,32 @@ plt_args = {'pplane_xlim': [-4,5], 'pplane_ylim': [-2,3], 'pplane_N': 50,
 # %%
 for j in range(num_flow):
     print('**** Running model analysis for u =',u_list[j],'dyn/cm^2 **** \n')
-    plot_tuple = model_eval.run_model_analysis(myModel,data_all[j],bins[j],centers[j],u_list[j],args=plt_args)
+    plot_tuple = model_analysis.run_model_analysis(myModel,data_all[j],bins[j],centers[j],u_list[j],args=plt_args)
+
+
+
+
+
+
+
 
 # %%
 
 
 # %%
+
+
+
+
+
+
+
 
 
 
 ################### Generalized potential energy landscape ###################
-
+## NEED TO RE-ADAPT FOR NEW FUNCTIONALITY
+    
 N_fine = 100
 
 x_fine = np.linspace(x1[0],x1[-1],N_fine)

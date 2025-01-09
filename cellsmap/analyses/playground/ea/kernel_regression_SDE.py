@@ -2,13 +2,7 @@
 import numpy as np
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes, mark_inset
-from sklearn.model_selection import train_test_split
-import pysindy as ps
 
-from cellsmap.analyses.workflows.fit_SDE_model import get_traj
-import cellsmap.analyses.utils.gen_potential as gp
-from cellsmap.analyses.workflows.analyze_SDE_model import plot_gen_potential
 import cellsmap.analyses.utils.pplane as pplane
 from cellsmap.analyses.utils import viz
 import cellsmap.analyses.utils.kernel_regression.kernel_regression as kreg
@@ -17,6 +11,7 @@ import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.viz as eaviz
 import cellsmap.analyses.playground.ea.utils.regression as eareg
+import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
 
 # %%
 
@@ -39,7 +34,7 @@ del df_ # free up memory
 fig, ax = eaviz.plot_explained_variance(pca.explained_variance_ratio_)
 # %%
 list_of_datasets = eaio.get_list_of_datasets(df,'filename_or_obj',verbose=True)
-# %%
+
 fixed_data_idx = [0, 6, 7] # in list of datasets, these are indexes of the fixed data
 list_of_live = [my_path for i, my_path in enumerate(list_of_datasets) if i not in fixed_data_idx]
 
@@ -47,7 +42,6 @@ list_of_live = [my_path for i, my_path in enumerate(list_of_datasets) if i not i
 my_mv = list_of_live[6]
 mv_name = eaio.get_dataset_name(my_mv)
 feats_proj = eaio.project_PCA_one_dataset(df,pca, 'filename_or_obj', my_mv)
-
 
 fig1,ax1 = eaviz.plot_top_3_PCs(feats_proj)
 ax1[0].set_ylim([-8,11])
@@ -110,224 +104,36 @@ for j in range(num_flow):
 train_frac = 0.8
 seed = 47
 
-X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,D_KM_noNAN,num_flow,train_frac,seed)
+X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,
+                                                                         D_KM_noNAN,num_flow,
+                                                                         train_frac,seed,concat=True)
 
+N_tot = [X_pts_noNAN[0].shape[0],X_pts_noNAN[1].shape[0]]
+N_train = [int(train_frac*N_tot[0]),int(train_frac*N_tot[1])]
+N_test = [N_tot[0]-N_train[0],N_tot[1]-N_train[1]]
+u_train = np.concatenate((u_list[0]*np.ones((N_train[0],1)),u_list[1]*np.ones((N_train[1],1))))
+u_test = np.concatenate((u_list[0]*np.ones((N_test[0],1)),u_list[1]*np.ones((N_test[1],1))))
 # %%
-drift_high = kreg.KernelRegression(beta=0.01).fit(X_train[0],Y_train[0])
 
-drift_R2 = drift_high.score(X_test[0],Y_test[0])
+driftModel = kreg.KernelRegression(beta=0.01).fit(X_train,Y_train,u=u_train)
+
+drift_R2 = driftModel.score(X_test,Y_test,u=u_test)
 
 print('Coefficient of determination (R^2) of drift (RBF kernel) model on test set: %f' %drift_R2)
 
-# %%
-diff_high = kreg.KernelRegression(beta=0.01).fit(X_train[0],V_train[0])
 
-diff_R2 = diff_high.score(X_test[0],V_test[0])
+diffModel = kreg.KernelRegression(beta=0.01).fit(X_train,V_train,u=u_train)
 
-print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on test set: %f' %diff_R2)
-
-# %%
-def f_high(x):
-    if isinstance(x,np.ndarray):
-        if len(x.shape) == 1:
-            f_out = drift_high.predict(x[None,:])
-        else:
-            f_out = drift_high.predict(x)
-        if f_out.shape[0] == 1:
-            f_out = f_out[0]
-        return f_out
-    elif isinstance(x,list):
-        if not hasattr(drift_high,'proj_'):
-            drift_high.project2D(np.eye(ndim,2))
-        return drift_high.predict_2D_mesh(x)
-    
-def f1_high(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            f_out = f_high([x1,x2]).T
-        else:
-            f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
-    return f_out[0].T
-
-def f2_high(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            f_out = f_high([x1,x2]).T
-        else:
-            f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        f_out = f_high(np.array([x1, x2]).reshape(-1,2)).T
-    return f_out[1].T
-
-def D_high(x):
-    if isinstance(x,np.ndarray):
-        if len(x.shape) == 1:
-            D_out = diff_high.predict(x[None,:])
-        else:
-            D_out = diff_high.predict(x)
-        if D_out.shape[0] == 1:
-            D_out = D_out[0]
-        return D_out
-    elif isinstance(x,list):
-        if not hasattr(diff_high,'proj_'):
-            diff_high.project2D(np.eye(ndim,2))
-        return diff_high.predict_2D_mesh(x)
-
-def D1_high(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            D_out = D_high([x1,x2]).T
-        else:
-            D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
-    return D_out[0].T
-
-def D2_high(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            D_out = D_high([x1,x2]).T
-        else:
-            D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        D_out = D_high(np.array([x1, x2]).reshape(-1,2)).T
-    return D_out[1].T
-
-# %%
-x1 = np.linspace(-4,5,50)
-x2 = np.linspace(-2,3,50)
-fig,ax = pplane.phase_portrait(lambda x1,x2: f1_high(x1,x2),lambda x1,x2: f2_high(x1,x2),x1,x2)
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
-
-# %%
-####################### LOW FLOW ############################
-
-drift_low = kreg.KernelRegression(beta=0.01).fit(X_train[1],Y_train[1])
-
-drift_R2 = drift_low.score(X_test[1],Y_test[1])
-
-print('Coefficient of determination (R^2) of drift (RBF kernel) model on test set: %f' %drift_R2)
-
-# %%
-diff_low = kreg.KernelRegression(beta=0.01).fit(X_train[1],V_train[1])
-
-diff_R2 = diff_high.score(X_test[1],V_test[1])
+diff_R2 = diffModel.score(X_test,V_test,u=u_test)
 
 print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on test set: %f' %diff_R2)
 # %%
-# acting odd with root finding for getting fixed points, debug how you define f_low
-def f_low(x):
-    if isinstance(x,np.ndarray):
-        if len(x.shape) == 1:
-            f_out = drift_low.predict(x[None,:])
-        else:
-            f_out = drift_low.predict(x)
-        if f_out.shape[0] == 1:
-            f_out = f_out[0]
-        return f_out
-    elif isinstance(x,list):
-        if not hasattr(drift_low,'proj_'):
-            drift_low.project2D(np.eye(ndim,2))
-        return drift_low.predict_2D_mesh(x)
+myModel = [driftModel,diffModel]
 
-def f1_low(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            f_out = f_low([x1,x2]).T
-        else:
-            f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
-    return f_out[0].T
+plt_args = {'pplane_xlim': [-4,5], 'pplane_ylim': [-2,3], 'pplane_N': 50,
+            'plt_xlabel': 'PC1', 'plt_ylabel': 'PC3'}
 
-def f2_low(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            f_out = f_low([x1,x2]).T
-        else:
-            f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        f_out = f_low(np.array([x1, x2]).reshape(-1,2)).T
-    return f_out[1].T
+for j in range(num_flow):
+    print('**** Running model analysis for u =',u_list[j],'dyn/cm^2 **** \n')
+    plot_tuple = model_analysis.run_model_analysis(myModel,data_all[j],bins[j],centers[j],u_list[j],args=plt_args)
 
-def D_low(x):
-    if isinstance(x,np.ndarray):
-        if len(x.shape) == 1:
-            D_out = diff_low.predict(x[None,:])
-        else:
-            D_out = diff_low.predict(x)
-        if D_out.shape[0] == 1:
-            D_out = D_out[0]
-        return D_out
-    elif isinstance(x,list):
-        if not hasattr(diff_low,'proj_'):
-            diff_low.project2D(np.eye(ndim,2))
-        return diff_low.predict_2D_mesh(x)
-
-def D1_low(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            D_out = D_low([x1,x2]).T
-        else:
-            D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
-    return D_out[0].T
-
-def D2_low(x1,x2):
-    if isinstance(x1, np.ndarray):
-        if len(x1.shape) == 2:
-            D_out = D_low([x1,x2]).T
-        else:
-            D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
-    else:
-        D_out = D_low(np.array([x1, x2]).reshape(-1,2)).T
-    return D_out[1].T
-
-# %%
-fig,ax = pplane.phase_portrait(lambda x1,x2: f1_low(x1,x2),lambda x1,x2: f2_low(x1,x2),x1,x2)
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
-
-# %%
-N = (len(bins[0][0])-1,len(bins[0][1])-1) # number of bins in each dimension
-dx = [(bins[0][0][1]-bins[0][0][0]),(bins[0][1][1]-bins[0][1][0])] # bin width in each dimension
-fp = fps.SteadyFP(N, dx) # initialize stationary Fokker-Planck solver
-# %%
-X1,X2 = np.meshgrid(centers[0][0],centers[0][1])
-f_vals = f_high([X1,X2]).T
-D_vals = D_high([X1,X2]).T
-p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
-p_fit[p_fit<1e-10] = 1e-10 # set small values to a small number to avoid numerical issues
-
-# %%
-fig,ax = viz.init_subplots(1,2,figsize=(12,4))
-p_hist, _, _ = np.histogram2d(np.concatenate([data_all[0][j][100:,0] for j in range(len(data_all[0]))]).flatten(),
-                              np.concatenate([data_all[0][j][100:,1] for j in range(len(data_all[0]))]).flatten(), 
-                              bins[0], density=True)
-ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins[0],cmap='inferno') # plot empirical PDF
-ax[1] = viz.plot_histogram_2D(ax[1],p_fit,bins[0],cmap='inferno') # plot model PDF
-
-# %%
-N = (len(bins[1][0])-1,len(bins[1][1])-1) # number of bins in each dimension
-dx = [(bins[1][0][1]-bins[1][0][0]),(bins[1][1][1]-bins[1][1][0])] # bin width in each dimension
-fp = fps.SteadyFP(N, dx) # initialize stationary Fokker-Planck solver
-
-# %%
-X1,X2 = np.meshgrid(centers[1][0],centers[1][1])
-f_vals = f_low([X1,X2]).T
-D_vals = D_low([X1,X2]).T
-p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
-p_fit[p_fit<1e-10] = 1e-10 # set small values to a small number to avoid numerical issues
-
-# %%
-fig,ax = viz.init_subplots(1,2,figsize=(12,4))
-p_hist, _, _ = np.histogram2d(np.concatenate([data_all[1][j][100:,0] for j in range(len(data_all[1]))]).flatten(),
-                                np.concatenate([data_all[1][j][100:,1] for j in range(len(data_all[1]))]).flatten(), 
-                                bins[1], density=True)
-ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins[1],cmap='inferno') # plot empirical PDF
-ax[1] = viz.plot_histogram_2D(ax[1],p_fit,bins[1],cmap='inferno') # plot model PDF
-# %%
