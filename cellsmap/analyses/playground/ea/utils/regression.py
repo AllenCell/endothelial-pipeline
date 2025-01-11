@@ -8,6 +8,8 @@ def get_traj_and_flow(feats_proj:np.ndarray,mv_name:str,PCs:list=[0,2],verbose:b
 
     data_config = io.get_dataset_info(mv_name)
     first_flow = float(data_config['flow'][0][-1])
+
+    flow_list = [first_flow]
     if len(data_config['flow']) > 1:
         change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
         second_flow = float(data_config['flow'][1][-1])
@@ -22,17 +24,20 @@ def get_traj_and_flow(feats_proj:np.ndarray,mv_name:str,PCs:list=[0,2],verbose:b
         data_flow1 = [feats_proj[:,:change_frame,:][:,:,PCs][i] for i in range(num_crop)]
         data_flow2 = [feats_proj[:,change_frame:,:][:,:,PCs][i] for i in range(num_crop)]
         data_all = [data_flow1,data_flow2]
+        flow_list.append(second_flow)
     else:
         if verbose:
             print('Constant flow')
         u_traj = [first_flow*np.ones(num_T)]
-        data_all = [feats_proj[:,:,PCs][i] for i in range(num_crop)]
-    return data_all, u_traj, [first_flow, second_flow]
+        data_all = [[feats_proj[:,:,PCs][i] for i in range(num_crop)]]
+    return data_all, u_traj, flow_list
 
-def get_bins(data,Nbins,auto_bin=True,bin_limits=None):
+def get_bins(Nbins,data=None,bin_limits=None):
     '''Generate histogram bins for the data.'''
-    ndim = data[0].shape[1]
-    if auto_bin: # Automatically determine bins based on data
+    if bin_limits is None: # Automatically determine bins based on data
+        if data is None:
+            raise ValueError('Please provide data or or upper and lower bounds for bins.')
+        ndim = data[0].shape[1]
         bins = []
         centers = []
         for i in range(ndim):
@@ -44,8 +49,7 @@ def get_bins(data,Nbins,auto_bin=True,bin_limits=None):
             bins.append(my_bins)
             centers.append(0.5*(my_bins[1:]+my_bins[:-1]))
     else: # Use user-defined bins
-        if bin_limits is None:
-            raise ValueError("If auto_bin is False, bin_limits must be provided.")
+        ndim = len(bin_limits)
         bins = []
         centers = []
         for i in range(ndim):
@@ -145,3 +149,5 @@ def get_stationary_hist(data, bins,frame_index=100):
                               np.concatenate([data[j][100:,1] for j in range(len(data))]).flatten(), 
                               bins, density=True)
     return p_hist
+
+

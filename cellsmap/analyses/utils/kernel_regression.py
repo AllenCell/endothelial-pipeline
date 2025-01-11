@@ -118,6 +118,29 @@ class KernelRegression:
 
         return X
     
+    def check_u(self,u):
+        # check control input
+        if u.__class__ in [int,float,complex]:
+            return u
+        elif u.__class__ == list:
+            if any([x.__class__==str and x in ['nan','NaN','NAN'] for x in u]): 
+                raise ValueError('Input contains NaN')
+            if any([x.__class__==str and x in ['inf','INF','Inf'] for x in u]): 
+                raise ValueError('Input contains inf')
+            u = np.array(u)
+        if np.any(np.iscomplex(u)):
+            raise ValueError('Complex data not supported')
+        if np.any(np.isnan(u)):
+            raise ValueError('Input contains NaN')
+        if np.any(np.isinf(u)):
+            raise ValueError('Input contains inf')
+        if u.ndim == 0 or u.size == 0:
+            raise ValueError("0 feature(s) (shape=(%d, 0)) while a minimum of %d is required." % (u.shape[0],1))
+        if u.ndim == 1 and self.n_features_in_ != 1:
+            raise ValueError("Reshape your data")
+        elif u.shape[1] != self.n_features_in_:
+            raise ValueError("Reshape your data")
+    
     def fit(self,X,Y,u=None):
         X,Y  = self.check_XY(X,Y) # check input data, make sure no ValueError is raised (neccessary for sklearn compatibility)
         self.X_train_ = X
@@ -162,7 +185,7 @@ class KernelRegression:
         if u is not None:
             if not hasattr(self,'u_train_'):
                 raise ValueError('Model was not trained with control input')    
-            if u.__class__ in [int,float,complex]:
+            if u.__class__ in [int,float,np.float64,complex]:
                 if isinstance(X,np.ndarray):
                     u = u*np.ones((X.shape[0],1))
                 else:
