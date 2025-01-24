@@ -3,7 +3,7 @@ import concurrent
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-import statsmodels.api as statm
+# import statsmodels.api as statm
 import matplotlib.pyplot as plt
 from matplotlib import gridspec as gs
 from skimage import registration as skreg
@@ -90,10 +90,6 @@ class FlowCalculator():
 
     def load_dataset(self):
         self.data = io.load_dataset(self.dataset, channels=self.channel, level=2)
-        # self.df = load_data.load_dataset(self.dataset)
-        # self.reader = load_data.get_dataset_original_file_reader(self.dataset)
-        # self.reader = AICSImage("/allen/aics/microscopy/Data/RnD_Sandbox/3500006247_20240227_Deliverable_ZSD1/3500006247_20240227_20X_Timelapse-03.czi")
-        # self.reader.set_scene("P22-C7")
 
     def load_flow_from_file(self, fname):
         with open(fname, "rb") as fpk:
@@ -239,8 +235,8 @@ class FlowCalculator():
         plt.tight_layout()
 
         canvas.draw()
-        plot = np.frombuffer(canvas.tostring_rgb(), dtype="uint8")
-        plot = plot.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        plot = np.frombuffer(canvas.buffer_rgba(), dtype="uint8")
+        plot = plot.reshape(fig.canvas.get_width_height()[::-1] + (4,))
 
         if display:
             plt.show()
@@ -255,7 +251,7 @@ class FlowCalculator():
         Path.mkdir(out_dir, exist_ok=True, parents=True)
         out_path = out_dir / f"{self.dataset}_vector_field.flow"
         vector_data = dict(zip(('timeframe', 'x', 'y', 'vx', 'vy', 'norm', 'shape'), zip(*[(tp, *FlowCalculator.get_vector_field_as_img(im, vx, vy), vx.shape) for tp, im, vx, vy in zip(self.tps, self.im, self.vx, self.vy)])))
-        # pd.DataFrame(vector_data).to_csv(out_path, sep='\t')
+
         with open(f"{out_path}", "wb") as fpk:
             pickle.dump(vector_data, fpk)
 
@@ -498,7 +494,7 @@ def generate_validation_plot(out_dir: Path, raw_image, vector_image, features_an
             ax4.set_theta_direction(-1)
             ax4.set_xlim(-np.pi, np.pi)
             ax4.yaxis.set_visible(False)
-            ax4.set_title('Angle distribution', color=quad_color)
+            ax4.set_title('Angle distribution', color=quad_color, y=1.15)
 
     plt.tight_layout()
     crop_ids_for_filename = '-'.join([str(example_pt['record']['crop_id']) for example_pt in example_points.values()])
@@ -614,7 +610,7 @@ class vector_field_examples:
         return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
 
 
-# Check that the last image is the same when loaded as it was when being saved:
+# The following checks that the last image is the same when loaded as it was when being saved:
 # import numpy as np
 # test_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic_state\cellsmap\cellsmap\results\flow_calculator\20241016_20X_vector_field.ome.tiff')
 # test_img = BioImage(test_path)
