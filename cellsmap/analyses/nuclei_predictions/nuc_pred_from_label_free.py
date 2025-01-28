@@ -43,8 +43,10 @@ for dataset_name in dataset_names_list:
         # bfield_std = io.load_dataset(dataset_name, time_start=0, time_end=0, level=0, channels=['BF_STD']).compute().squeeze()
 
         masks_bf_std = model_bf_stdproject.eval(img_at_T[bfstd_chan].squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0)
+        overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red'])
+        plt.imshow(overlay_nuc)
 
-        # plt.imshow(masks_bf_std[0])
+        # break
 
         overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0)
         overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red'])
