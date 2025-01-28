@@ -33,6 +33,7 @@ dependencies = [
     "wasmtime<22.0",
     "seaborn>=0.13.2",
     "bioio-sldy>=1.0.2",
+    "cellpose>=3.1.0",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
@@ -53,4 +54,3 @@ build-backend = "pdm.pep517.api"
 testpaths = "tests/"
 
 
-[tool.pdm]
