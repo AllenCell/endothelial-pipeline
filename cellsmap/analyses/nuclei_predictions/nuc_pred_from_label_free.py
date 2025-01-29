@@ -61,4 +61,24 @@ for dataset_name in dataset_names_list:
         plt.tight_layout()
         fig.savefig(out_dir / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred.png', bbox_inches='tight', dpi=600)
 
+        # CytoDL nuclei prediction from Benji
+        cytodl_nuc_pred_dir = list(Path(out_dir / 'raw_seg').glob('*.tif*'))
+        # cytodl_nuc_pred_path = [fp for fp in cytodl_nuc_pred_dir if str(img_path.stem).split('.')[0] in str(fp.stem)]
+        cytodl_nuc_pred_path = cytodl_nuc_pred_dir[0]
+        cytodl_nuc_pred = BioImage(cytodl_nuc_pred_path).get_image_data().squeeze()
+
+        overlay_bf2 = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0, colors=['red', 'cyan', 'yellow'])
+        overlay_nuc2 = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red', 'cyan', 'yellow'])
+
+        fig, (ax1, ax2) = plt.subplots(ncols=2)
+        ax1.imshow(overlay_bf2)
+        ax2.imshow(overlay_nuc2)
+        ax1.axis('off')
+        ax2.axis('off')
+        ax1.set_title('Brightfield Std Dev Overlay')
+        ax2.set_title('DAPI Overlay')
+        plt.tight_layout()
+        fig.savefig(out_dir / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred2.png', bbox_inches='tight', dpi=600)
+
+
         break
