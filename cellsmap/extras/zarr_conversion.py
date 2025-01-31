@@ -32,8 +32,8 @@ def process_this_timepoint(tp: int, dataset: str):
     return stack
 
 def get_timepoints(pos: int, dataset: str, number_positions: int = 6):
-    # t_final = io.get_dataset_duration_in_frames(dataset)
-    t_final = 10
+    # t_final = io.get_dataset_duration_in_frames(dataset) 
+    t_final = 10 # testing with just 10 timepoints per scene for now
     timepoints = range(pos, t_final * number_positions, number_positions)
     return timepoints
 
