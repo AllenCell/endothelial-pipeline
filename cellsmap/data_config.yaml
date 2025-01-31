@@ -1,7 +1,7 @@
 [
 {
   name: 20240305_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John Paul/2024/20240305/20240305_T01_001_3D_MTG_FULL.dir/20240305_T01_001 - Position 1 [6] 3DMontage Complete-1710177899-789.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240305/20240305_T01_001.dir/20240305_T01_001-1709680442-940.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
@@ -37,7 +37,7 @@
   }
 },{
   name: 20240227_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240227/20240227_T01_001_3D_MTG_FULL.dir/20240227_T01_001 - Position 1 [6] 3DMontage Complete-1709593932-956.imgdir",
+  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240227/20240227_T01_001_3D_MTG_FULL.dir/20240227_T01_001 - Position 1 [6] 3DMontage Complete-1709593932-956.imgdir", #no longer exists
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240227_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
@@ -46,7 +46,7 @@
   features: {}
 },{
   name: 20240213_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240213/20240213_T01_001_3D_MTG_FULL.dir/20240213_T01_001 - Position 1 [6] 3DMontage Complete-1707956040-391.imgdir",
+  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240213/20240213_T01_001_3D_MTG_FULL.dir/20240213_T01_001 - Position 1 [6] 3DMontage Complete-1707956040-391.imgdir", #no longer exists
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240213_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
