@@ -104,6 +104,16 @@ def get_dim_map(dim_order: str) -> dict:
 
     return dim_map
 
+def get_original_path(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return Path(dataset_info['original_path'])
+
+def load_original_slidebook_image(dataset_name: str, channel: int, timepoint: int) -> np.array:
+    sld_path = get_original_path(dataset_name)
+    sld_path = sld_path / f"ImageData_Ch{channel}_TP{timepoint:07d}.npy"
+    img = np.load(sld_path)
+    return img
+
 # model methods
 
 def get_available_models() -> list:
