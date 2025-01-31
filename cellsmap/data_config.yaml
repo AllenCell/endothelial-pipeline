@@ -1,12 +1,15 @@
+# This file contains information about the datasets that are used in
+# downstream analyses for the holistic - endos project.
 [
 {
+  # TODO - If datasets from the Nikon start to get included then add
+    # a field to specify the microscope used (either '3i' or 'Nikon').
   name: 20240305_T01_001,
   original_path: "//allen/aics/assay-dev/MicroscopyData/John Paul/2024/20240305/20240305_T01_001_3D_MTG_FULL.dir/20240305_T01_001 - Position 1 [6] 3DMontage Complete-1710177899-789.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  cdh5_channel_name: CDH5_Tubulin,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {
     vicreg_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
@@ -16,7 +19,10 @@
     mae_cdh5_small_patch: //allen/aics/assay-dev/users/Benji/cellsmap/results/mase_cdh5_small_patch_norm/predictions.csv,
     mae_seg: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_seg/predictions.csv,
     mae_std_bf: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv
-  }
+  },
+  objective: "20X air",
+  notes: "This high-to-low flow dataset has a mix of CDH5 and tubulin cells.
+          There is a wave of cell death early on in the timelapse."
 },{
   name: 20240917_20X_48hr,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20240917/092324/20240917_20x_48hr_timelapse-Pos1-3D montage complete.dir/20240917_20X_48hr_timelapse - Position 1 [6] 3DMontage Complete-1727807255-166.imgdir",
@@ -24,7 +30,6 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  cdh5_channel_name: CDH5,
   flow: [[0, 22.583, 25], [22.583, 48, 7.5]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {
     vicreg_cdh5: None,
@@ -34,7 +39,9 @@
     mae_cdh5_small_patch: None,
     mae_seg: None,
     mae_std_bf: None
-  }
+  },
+  objective: "20X air",
+  notes: "This is the high-to-low flow dataset with 'holes'. The fibronectin substrate that cells attach to may have incompletely coated the slide."
 },{
   name: 20240227_T01_001,
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240227/20240227_T01_001_3D_MTG_FULL.dir/20240227_T01_001 - Position 1 [6] 3DMontage Complete-1709593932-956.imgdir",
@@ -43,7 +50,9 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 6], [24, 48, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This low-to-high flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240213_T01_001,
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240213/20240213_T01_001_3D_MTG_FULL.dir/20240213_T01_001 - Position 1 [6] 3DMontage Complete-1707956040-391.imgdir",
@@ -52,7 +61,9 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This 24hr high-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240215_T01_001,
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240215/20240215_T01_001_3D_MTG.dir/20240215_T01_001 - Position 1 [6] 3DMontage-1708458531-194.imgdir",
@@ -61,7 +72,8 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  notes: "This 24hr high-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240220_T01_001,
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240220/20240220_T01_001_3D_MTG_FULL.dir/20240220_T01_001 - Position 1 [6] 3DMontage Complete-1708974167-827.imgdir",
@@ -70,7 +82,9 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 7.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This 24hr low-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20241016_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241016/20241016_20X_timelapse_3D_MTG_FULL.dir/20241016_20X_timelapse - Position 1 [6] 3DMontage Complete-1730322941-247.imgdir",
@@ -79,7 +93,9 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 20.4, 35], [20.4, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This is a high-to-low flow dataset. There is some cell debris in the CDH5 channel."
 },{
   name: 20231122_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2023/20231122/20231122_T02_001.dir",
@@ -88,7 +104,10 @@
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This is a fixed dataset. Each timepoint is a different position."
+  # NB. Look for the original of this file. I can't find the original path for this dataset. It is not in \\allen\aics\assay-dev\computational\data\holistic\endos\JPBackup
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T02_001.dir",
@@ -97,7 +116,9 @@
   duration: 4, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.066, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This is a fixed dataset. Each timepoint is a different position."
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T01_001.dir",
@@ -106,7 +127,9 @@
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This is a fixed dataset. Each timepoint is a different position."
 },{
   name: 20241105_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241105/20241105_20X_timelapse_SLDY_3D_MTG_FULL.dir/20241105_20X_timelapse - Position 1 [6] 3DMontage Complete-1731083979-668.imgdir",
@@ -115,7 +138,9 @@
   duration: 573, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 22.75, 5.5], [22.75, 48, 28.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {},
+  objective: "20X air",
+  notes: "This is a nice low-to-high flow dataset."
 },
 {
   name: 20241120_20X,
@@ -125,6 +150,8 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 35]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}
+  features: {}:,
+  objective: "20X air",
+  notes: "This is a nice 48hr high flow dataset."
 }
 ]
