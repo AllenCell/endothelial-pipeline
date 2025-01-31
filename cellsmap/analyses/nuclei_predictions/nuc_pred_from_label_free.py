@@ -90,17 +90,6 @@ for dataset_name in dataset_names_list:
         overlay_nuc = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red', 'cyan', 'yellow'])
         plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix='_cellpose_vs_cytodl')
 
-        # fig, (ax1, ax2) = plt.subplots(ncols=2)
-        # ax1.imshow(overlay_bf2)
-        # ax2.imshow(overlay_nuc2)
-        # ax1.axis('off')
-        # ax2.axis('off')
-        # ax1.set_title('Brightfield Std Dev Overlay')
-        # ax2.set_title('DAPI Overlay')
-        # plt.tight_layout()
-        # fig.savefig(out_dir / dataset_name / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred_cellpose_vs_cytodl.png', bbox_inches='tight', dpi=600)
-        # plt.close(fig)
-
         # do a classic watershed segmentation on the DAPI channel for comparison:
         normd_nuc = rescale_intensity(img_at_T[nuc_chan].squeeze(), out_range=(0,1))
         thresh = apply_hysteresis_threshold(normd_nuc, np.percentile(normd_nuc, 80), np.percentile(normd_nuc, 85))
@@ -113,16 +102,6 @@ for dataset_name in dataset_names_list:
         overlay_nuc3 = label2rgb(label=ws, image=rescale_intensity(np.clip(normd_nuc, 0, 0.1)), bg_label=0)#, colors=['orange'])
         plot_and_save_overlays(overlay_bf3, overlay_nuc3, out_dir, dataset_name, timepoint, filename_suffix='_classic')
 
-        # fig, (ax1, ax2) = plt.subplots(ncols=2)
-        # ax1.imshow(overlay_bf3)
-        # ax2.imshow(overlay_nuc3)
-        # ax1.axis('off')
-        # ax2.axis('off')
-        # ax1.set_title('Brightfield Std Dev Overlay')
-        # ax2.set_title('DAPI Overlay')
-        # plt.tight_layout()
-        # fig.savefig(out_dir / dataset_name / f'{dataset_name}_T{timepoint}_classic.png', bbox_inches='tight', dpi=600)
-        # plt.close(fig)
 
         nuclei_count_data.append({
             'dataset_name': dataset_name,
