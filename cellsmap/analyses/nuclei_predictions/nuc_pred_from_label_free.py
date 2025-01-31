@@ -1,30 +1,58 @@
 from pathlib import Path
 from bioio import BioImage
-from bioio.writers import OmeTiffWriter
-from bioio_base.types import PhysicalPixelSizes
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
+from skimage.filters import apply_hysteresis_threshold
+from scipy.ndimage import distance_transform_edt
+from skimage.feature import peak_local_max
+from skimage.segmentation import watershed#, find_boundaries
+from skimage.measure import label
+from skimage.morphology import dilation, disk
 from cellsmap.util import io
 from cellpose import models
+import re
+
+def plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix=''):
+    fig, (ax1, ax2) = plt.subplots(ncols=2)
+    ax1.imshow(overlay_bf)
+    ax2.imshow(overlay_nuc)
+    ax1.axis('off')
+    ax2.axis('off')
+    ax1.set_title('Brightfield Std Dev Overlay')
+    ax2.set_title('DAPI Overlay')
+    plt.tight_layout()
+    fig.savefig(out_dir / dataset_name / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred{filename_suffix}.png', bbox_inches='tight', dpi=300)
+    plt.close(fig)
+
 
 print('All available datasets:')
 dataset_names_all = io.get_available_datasets()
 
-test_datasets = ['20231122_T02_001',]
-                #  '20240328_T02_001', '20240328_T01_001',
+test_datasets = ['20231122_T02_001', '20240328_T02_001', '20240328_T01_001',]
                 #  '20241016_20X', '20241105_20X', '20241120_20X']
 
 dataset_names_list = [name for name in dataset_names_all if name in test_datasets]
 
-# the label-free nuclear prediction model that Goutham trained:
-GN_nuc_model_path = '//allen/aics/assay-dev/computational/data/endothileal_cell_data/Timelapse_20x_dataset/montage_data_trainsets/models_weights/BF_STD_patch_model/models/bf_std_model_no_preprocess'
-
 out_dir = Path('../../').resolve() / 'results' / Path(__file__).stem
 Path.mkdir(out_dir, exist_ok=True, parents=True)
 
+# CellPose label-free nuclear prediction model that Goutham trained:
+GN_nuc_model_path = '//allen/aics/assay-dev/computational/data/endothileal_cell_data/Timelapse_20x_dataset/montage_data_trainsets/models_weights/BF_STD_patch_model/models/bf_std_model_no_preprocess'
+
+# CytoDL nuclei predictions from Benji:
+cytodl_nuc_pred_dir = list(Path(out_dir / 'raw_seg').glob('*.tif*'))
+
+# create empty list to store nuclei count data:
+nuclei_count_data = []
+
 for dataset_name in dataset_names_list:
+
+    Path.mkdir(out_dir / dataset_name, exist_ok=True, parents=True)
+
     img_path = Path(io.get_zarr_path(dataset_name))
     img = BioImage(img_path)
     dim_order = 'TCZYX'
@@ -34,51 +62,124 @@ for dataset_name in dataset_names_list:
     nuc_chan = io.get_channel_index(dataset_name, ['DAPI'])
     img_arr = img.get_image_dask_data(dim_order)
 
+    # function to extract the timepoint from the CytoDL output files:
+    get_T_from_path = lambda x: int(re.findall('T_[0-9]+', x.stem)[-1].split('T_')[-1])
+
     for timepoint in range(len(img_arr)):
-        # plt.imshow(img_at_T.squeeze())
+        print(f'Working on dataset {dataset_name}, T = {timepoint}...')
+
         img_at_T = img_arr[timepoint].compute()
 
         model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=GN_nuc_model_path)
 
-        # bfield_std = io.load_dataset(dataset_name, time_start=0, time_end=0, level=0, channels=['BF_STD']).compute().squeeze()
-
         masks_bf_std = model_bf_stdproject.eval(img_at_T[bfstd_chan].squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0)
-        overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red'])
-        plt.imshow(overlay_nuc)
-
-        # break
 
         overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0)
-        overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red'])
+        overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0)
+        plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix='_cellpose')
 
-        fig, (ax1, ax2) = plt.subplots(ncols=2)
-        ax1.imshow(overlay_bf)
-        ax2.imshow(overlay_nuc)
-        ax1.axis('off')
-        ax2.axis('off')
-        ax1.set_title('Brightfield Std Dev Overlay')
-        ax2.set_title('DAPI Overlay')
-        plt.tight_layout()
-        fig.savefig(out_dir / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred.png', bbox_inches='tight', dpi=600)
+        cytodl_nuc_pred_path = [fp for fp in cytodl_nuc_pred_dir if dataset_name in str(fp.stem) and get_T_from_path(fp) == timepoint]
+        assert len(cytodl_nuc_pred_path) == 1, f'Expected 1 file for {dataset_name} T{timepoint}, found {len(cytodl_nuc_pred_path)}'
+        cytodl_nuc_pred = BioImage(cytodl_nuc_pred_path[0]).get_image_data().squeeze()
 
-        # CytoDL nuclei prediction from Benji
-        cytodl_nuc_pred_dir = list(Path(out_dir / 'raw_seg').glob('*.tif*'))
-        # cytodl_nuc_pred_path = [fp for fp in cytodl_nuc_pred_dir if str(img_path.stem).split('.')[0] in str(fp.stem)]
-        cytodl_nuc_pred_path = cytodl_nuc_pred_dir[0]
-        cytodl_nuc_pred = BioImage(cytodl_nuc_pred_path).get_image_data().squeeze()
+        overlay_bf = label2rgb(label=cytodl_nuc_pred, image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0)
+        overlay_nuc = label2rgb(label=cytodl_nuc_pred, image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0)
+        plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix='_cytodl')
 
-        overlay_bf2 = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0, colors=['red', 'cyan', 'yellow'])
-        overlay_nuc2 = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red', 'cyan', 'yellow'])
+        overlay_bf = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0, colors=['red', 'cyan', 'yellow'])
+        overlay_nuc = label2rgb(label=masks_bf_std[0].astype(bool)*1 + cytodl_nuc_pred.astype(bool)*2, image=rescale_intensity(np.clip(img_at_T[nuc_chan].squeeze(), 0, np.percentile(img_at_T[nuc_chan].squeeze(), 98))), bg_label=0, colors=['red', 'cyan', 'yellow'])
+        plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix='_cellpose_vs_cytodl')
 
-        fig, (ax1, ax2) = plt.subplots(ncols=2)
-        ax1.imshow(overlay_bf2)
-        ax2.imshow(overlay_nuc2)
-        ax1.axis('off')
-        ax2.axis('off')
-        ax1.set_title('Brightfield Std Dev Overlay')
-        ax2.set_title('DAPI Overlay')
-        plt.tight_layout()
-        fig.savefig(out_dir / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred2.png', bbox_inches='tight', dpi=600)
+        # fig, (ax1, ax2) = plt.subplots(ncols=2)
+        # ax1.imshow(overlay_bf2)
+        # ax2.imshow(overlay_nuc2)
+        # ax1.axis('off')
+        # ax2.axis('off')
+        # ax1.set_title('Brightfield Std Dev Overlay')
+        # ax2.set_title('DAPI Overlay')
+        # plt.tight_layout()
+        # fig.savefig(out_dir / dataset_name / f'{dataset_name}_T{timepoint}_bf_std_nuc_pred_cellpose_vs_cytodl.png', bbox_inches='tight', dpi=600)
+        # plt.close(fig)
+
+        # do a classic watershed segmentation on the DAPI channel for comparison:
+        normd_nuc = rescale_intensity(img_at_T[nuc_chan].squeeze(), out_range=(0,1))
+        thresh = apply_hysteresis_threshold(normd_nuc, np.percentile(normd_nuc, 80), np.percentile(normd_nuc, 85))
+        dist = distance_transform_edt(thresh)
+        peaks_img = np.zeros(dist.shape, dtype=bool)
+        peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15)))] = True
+        peaks_img = label(dilation(peaks_img, footprint=disk(5)))
+        ws = watershed(rescale_intensity(dist, out_range=(1,0)), markers=peaks_img, mask=thresh)
+        overlay_bf3 = label2rgb(label=ws, image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0)#, colors=['orange'])
+        overlay_nuc3 = label2rgb(label=ws, image=rescale_intensity(np.clip(normd_nuc, 0, 0.1)), bg_label=0)#, colors=['orange'])
+        plot_and_save_overlays(overlay_bf3, overlay_nuc3, out_dir, dataset_name, timepoint, filename_suffix='_classic')
+
+        # fig, (ax1, ax2) = plt.subplots(ncols=2)
+        # ax1.imshow(overlay_bf3)
+        # ax2.imshow(overlay_nuc3)
+        # ax1.axis('off')
+        # ax2.axis('off')
+        # ax1.set_title('Brightfield Std Dev Overlay')
+        # ax2.set_title('DAPI Overlay')
+        # plt.tight_layout()
+        # fig.savefig(out_dir / dataset_name / f'{dataset_name}_T{timepoint}_classic.png', bbox_inches='tight', dpi=600)
+        # plt.close(fig)
+
+        nuclei_count_data.append({
+            'dataset_name': dataset_name,
+            'T': timepoint,
+            'image_id': '_'.join([dataset_name, str(timepoint)]),
+            'nuclei_count': np.count_nonzero(np.unique(cytodl_nuc_pred)),
+            'method': 'CytoDL',
+            'fraction_wrt_classic': np.count_nonzero(np.unique(cytodl_nuc_pred)) / np.count_nonzero(np.unique(ws)),
+        })
+        nuclei_count_data.append({
+            'dataset_name': dataset_name,
+            'T': timepoint,
+            'image_id': '_'.join([dataset_name, str(timepoint)]),
+            'nuclei_count': np.count_nonzero(np.unique(masks_bf_std[0])),
+            'method': 'CellPose',
+            'fraction_wrt_classic': np.count_nonzero(np.unique(masks_bf_std[0])) / np.count_nonzero(np.unique(ws)),
+        })
+        nuclei_count_data.append({
+            'dataset_name': dataset_name,
+            'T': timepoint,
+            'image_id': '_'.join([dataset_name, str(timepoint)]),
+            'nuclei_count': np.count_nonzero(np.unique(ws)),
+            'method': 'classic',
+            'fraction_wrt_classic': np.count_nonzero(np.unique(ws)) / np.count_nonzero(np.unique(ws)),
+        })
 
 
-        break
+nuclei_count_data = pd.DataFrame(nuclei_count_data)
+fig, ax = plt.subplots()
+sns.barplot(data=nuclei_count_data,
+            x='dataset_name',
+            y='nuclei_count',
+            hue='method',
+            ax=ax)
+plt.tight_layout()
+fig.savefig(out_dir / 'nuclei_counts.png', bbox_inches='tight', dpi=180)
+
+for nm, grp in nuclei_count_data.groupby('dataset_name'):
+    fig, ax = plt.subplots()
+    sns.barplot(data=grp,
+                x='image_id',
+                y='nuclei_count',
+                hue='method',
+                ax=ax)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment='right')
+    ax.set_title(nm)
+    plt.tight_layout()
+    fig.savefig(out_dir / f'{nm}_nuclei_counts.png', bbox_inches='tight', dpi=180)
+
+for nm, grp in nuclei_count_data.groupby('dataset_name'):
+    fig, ax = plt.subplots()
+    sns.barplot(data=grp,
+                x='image_id',
+                y='fraction_wrt_classic',
+                hue='method',
+                ax=ax)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment='right')
+    ax.set_title(nm)
+    plt.tight_layout()
+    fig.savefig(out_dir / f'{nm}_nuclei_counts_fractions.png', bbox_inches='tight', dpi=180)
