@@ -5,30 +5,24 @@ from cellsmap.util import io
 import numpy as np
 from multiprocessing import Pool
 from tqdm import tqdm
-from bioio.writers import OmeTiffWriter, OmeZarrWriter
+from bioio.writers import OmeTiffWriter
+from bioio.writers import OmeZarrWriter2 as OmeZarrWriter
 
 #%%
-CHANNEL_NAMES = ["gfp", "bf_mean", "bf_max", "bf_std", "bf_center"]
-#%%
-def two_D_image_processing(gfp, brf):
-    center_slice = brf.std(axis=(1,2)).argmin()
-
-    stack = np.concatenate([
-        gfp.max(axis=0, keepdims=True),# MIP of GFP channel
-        brf.mean(axis=0, keepdims=True),# Mean of BF channel
-        brf.max(axis=0, keepdims=True),# MIP of BF channel
-        brf.std(axis=0, keepdims=True),# STD of BF channel
-        brf[center_slice:center_slice+1]# Center slice of BF channel
-        ], axis=0) # T, Y, X
-    
-    return stack
+CHANNEL_NAMES = ["egfp", "bf"]
     
 def process_this_timepoint(tp: int, dataset: str):
-    gfp = io.load_original_slidebook_image(dataset, channel=0, timepoint=tp)
-    brf = io.load_original_slidebook_image(dataset, channel=1, timepoint=tp)
+    gfp_index, bf_index = io.get_channel_order(dataset)
+    gfp = io.load_original_slidebook_image(dataset, channel=gfp_index, timepoint=tp)
+    brf = io.load_original_slidebook_image(dataset, channel=bf_index, timepoint=tp)
     
-    stack = two_D_image_processing(gfp, brf)
+    # Add a new axis to represent the channel dimension
+    gfp = np.expand_dims(gfp, axis=0)  # Shape becomes (1, Z, Y, X)
+    brf = np.expand_dims(brf, axis=0)  # Shape becomes (1, Z, Y, X)
     
+    # Concatenate along the new channel axis
+    stack = np.concatenate([gfp, brf], axis=0)  # Shape becomes (2, Z, Y, X)
+    stack = np.concatenate([gfp, brf], axis=0) # C, Z, Y, X,
     return stack
 
 def get_timepoints(pos: int, dataset: str, number_positions: int = 6):
@@ -50,30 +44,26 @@ def process_this_position(pos: int, dataset: str, number_positions: int = 6):
         )
     
     scene = np.stack(results, axis=0)
-    
     return scene
+
+def process_timelapse(dataset: str, n_positions: int = 6):
+    all_scenes = [process_this_position(i, dataset, n_positions) for i in range(n_positions)]
+    return all_scenes
 
 def save_to_tiff(image_stacks: list[np.array], output_folder: Path, fname: str, channel_names: list):
     channel_names = [CHANNEL_NAMES for _ in range(len(image_stacks))]
     OmeTiffWriter.save(image_stacks, 
-                       output_folder / f"{fname}.ome.tif", 
-                       dim_order="TCYX", 
+                       output_folder, 
+                       dim_order="TCZYX", 
                        channel_names=channel_names)
 
-# Currently does not work    
-def save_to_zarr(image_stacks: list[np.array], output_folder: Path, fname: str, channel_names: list):
-    channel_names = [CHANNEL_NAMES for _ in range(len(image_stacks))]
+# def save_to_zarr(images: list[np.array], output_folder: Path, channel_names: list):    
 
-    writer = OmeZarrWriter(output_folder)
-    writer.write_image(image_data=image_stacks,
-                       image_name=f"{fname}.ome.zarr",
-                       physical_pixel_sizes=(1.0, 0.5, 0.5),
-                       channel_names=channel_names,
-                       channel_colors=None)    
-    
-def convert(dataset: str, output_folder: Path, fname: str, n_positions: int = 6, save_to_zarr: bool = False):
-    all_scenes = [process_this_position(i, dataset, n_positions) for i in range(n_positions)]
-    if save_to_zarr:
-        save_to_zarr(all_scenes, output_folder, fname, CHANNEL_NAMES)
-    else:
-        save_to_tiff(all_scenes, output_folder, fname, CHANNEL_NAMES)
+#%%
+# Example usage
+if __name__ == "__main__":
+    dataset = '20240305_T01_001'
+    images = process_timelapse(dataset)    
+    output = Path(f'/allen/aics/assay-dev/users/Chantelle/outputs/temp_tiffs/{dataset}v2.tif')
+    save_to_tiff(images, output, dataset, CHANNEL_NAMES)
+# %%

@@ -8,6 +8,8 @@
   time_interval_in_minutes: 5.0,
   cdh5_channel_name: CDH5_Tubulin,
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 1,
+  brightfield_channel_index: 0,
   features: {
     vicreg_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
     mae_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae/predictions.csv,
