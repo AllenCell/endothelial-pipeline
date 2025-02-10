@@ -2,7 +2,29 @@ import numpy as np
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
 
+def scalar_function(model):
+    '''
+    Turn fit regression model object into scalar-valued function f that 
+    can be evaluated at a point x as f(x) using the model's built-in
+    `predict' function. Allows for control parameters as an additional argument.
+    '''
+    def f(x, u=None):
+        if len(x.shape) == 1:
+            x_in = x[:,None]
+        else:
+            x_in = x.copy()
+        
+        if u is None:
+            f_out = model.predict(x_in)
+        else:
+            f_out = model.predict(x_in, u = u)
 
+        if f_out.shape[0] == 1:
+            f_out = f_out[0]
+        else:
+            f_out = f_out.T[0]
+        return np.asarray(f_out)
+    return f
 
 def vector_field_function(model):
     '''
@@ -11,10 +33,11 @@ def vector_field_function(model):
     `predict' function. Allows for control parameters as an additional argument.
     '''
     def f(x, u=None):
+        # CHANGE THIS TO MATCH TRAINING DATA DIMENSIONS OF MODEL
         if len(x.shape) == 1:
             x_in = x[None,:]
         else:
-            x_in = x
+            x_in = x.copy()
         
         if u is None:
             f_out = model.predict(x_in)
@@ -25,15 +48,20 @@ def vector_field_function(model):
         return f_out
     return f
 
-def mesh_grid_function(f):
+def mesh_grid_function(f, ndim=2):
     '''Turn vector-valued function f(x,u) into function f_mesh(x) that can be evaluated
      appropriately on a mesh grid. Allows for control parameters as an additional argument.'''
-    def f_mesh(mesh_grid,u=None):
-        n_1 = mesh_grid[0].shape[0]
-        n_2 = mesh_grid[0].shape[1]
-        V = np.zeros((n_1,n_2,2))
-        for i in range(n_1):
-            V[i,:,:] = f(np.vstack((mesh_grid[0][i,:],mesh_grid[1][i,:])).T,u)
+    def f_mesh(mesh_grid, u=None):
+        # Create a mesh grid of points
+        mesh_shape = mesh_grid[0].shape
+        grid_points = np.stack([mesh_grid[dim].flatten() for dim in range(ndim)], axis=-1)
+        
+        # Evaluate the function on all grid points
+        V_flat = np.apply_along_axis(f, 1, grid_points, u)
+        
+        # Reshape the result to match the original grid shape
+        V = V_flat.reshape(*mesh_shape, ndim)
+        
         return V
     return f_mesh
 
@@ -51,22 +79,27 @@ def vector_field_component(f,i):
         return f_out[i].T
     return f_i
 
-def get_stationary_probability(f,D,bins,centers,u,tol=1e-10):
+def get_stationary_probability(f,D,bins,centers,u,ndim=2,tol=1e-10):
     '''Get stationary probability distribution of fit SDE (Langevin) model
     with drift function f and diffusion D.'''
 
-    # get vector field function to evaluate on meshgrid
-    f_mesh = mesh_grid_function(f)
-    D_mesh = mesh_grid_function(D)
+    if ndim==1:
+        f_vals = f(centers,u)
+        D_vals = D(centers,u)
+        dx = (bins[1]-bins[0])
+        Nbins = len(bins)-1
+        fp = fps.SteadyFP(Nbins, dx)
+    else:
+        f_mesh = mesh_grid_function(f,ndim=ndim)
+        D_mesh = mesh_grid_function(D,ndim=ndim)
 
-    X1,X2 = np.meshgrid(centers[0],centers[1])
-    f_vals = f_mesh([X1,X2],u).T
-    D_vals = D_mesh([X1,X2],u).T
+        mesh_grid = np.meshgrid(*centers)
+        f_vals = f_mesh(mesh_grid,u).T
+        D_vals = D_mesh(mesh_grid,u).T
 
-    # get meshgrid
-    Nbins = (len(bins[0])-1,len(bins[1])-1) # number of bins in each dimension
-    dx = [(bins[0][1]-bins[0][0]),(bins[1][1]-bins[1][0])] # bin width in each dimension
-    fp = fps.SteadyFP(Nbins, dx) # initialize stationary Fokker-Planck solver
+        Nbins = [len(bins[i])-1 for i in range(ndim)]
+        dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
+        fp = fps.SteadyFP(Nbins, dx)
 
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues

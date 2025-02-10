@@ -4,9 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import cellsmap.analyses.utils.pplane as pplane
-from cellsmap.analyses.utils import viz
+from cellsmap.analyses.utils import gen_potential as gp
 import cellsmap.analyses.utils.kernel_regression as kreg
-import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 
 import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.viz as eaviz
@@ -303,7 +302,7 @@ for ds_ID in [0,1,2,3,4,6]:
 
 # %%
 
-u_range = np.linspace(0,50,20)
+u_range = np.linspace(5,40,20)
 
 fpt_dict = {}
 
@@ -410,4 +409,31 @@ for u in u_range:
             plt.plot(fpt[0],fpt[1],'o',color=color)
             plt.xlabel('PC'+str(PCs[0]+1))
             plt.ylabel('PC'+str(PCs[1]+1))
+# %%
+# entropy production rate as a function of u
+D = model_eval.vector_field_function(diffModel)
+epr = np.zeros(len(u_range))
+for u in u_range:   
+    P = model_eval.get_stationary_probability(f,D,bins,centers,u)
+    f_mesh = model_eval.mesh_grid_function(f)
+    D_mesh = model_eval.mesh_grid_function(D)
+
+    X1,X2 = np.meshgrid(centers[0],centers[1])
+    f_vals = f_mesh([X1,X2],u).T
+    D_vals = D_mesh([X1,X2],u).T
+
+    _, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers)
+
+    J = flux_term*P
+    # inner product of f and J at each point on the grid
+    inner_product = np.sum(f_vals*J,axis=0)
+    dx = [bins[i][1]-bins[i][0] for i in range(len(bins))]
+    # integrate over PC1, where rows of inner_product correspond to values of PC2 and columns to values of PC1
+    int_1 = np.trapz(inner_product,dx=dx[0],axis=1)
+    # integrate over PC3
+    int_2 = np.trapz(int_1,dx=dx[1])
+    epr[u_range.tolist().index(u)] = int_2  
+
+# %%
+plt.semilogy(u_range,epr)
 # %%

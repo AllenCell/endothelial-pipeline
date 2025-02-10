@@ -49,13 +49,23 @@ def plot_PCA_projection(feats_proj:np.ndarray,ds_ID:str) -> None:
 
     return fig, ax
 
-def compare_stationary_distributions(p_model,p_hist,bins):
-    fig,ax = viz.init_subplots(1,2,figsize=(12,4))
-    ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins,cmap='inferno') # plot empirical PDF
-    ax[0].set_title('Empirical PDF')
-    ax[1] = viz.plot_histogram_2D(ax[1],p_model,bins,cmap='inferno') # plot model PDF
-    ax[1].set_title('Model PDF')
+def compare_stationary_distributions(p_model,p_hist,bins,ndim=2):
+    if ndim == 2:
+        fig,ax = viz.init_subplots(1,2,figsize=(12,4))
+        ax[0] = viz.plot_histogram_2D(ax[0],p_hist,bins,cmap='inferno') # plot empirical PDF
+        ax[0].set_title('Empirical PDF')
+        ax[1] = viz.plot_histogram_2D(ax[1],p_model,bins,cmap='inferno') # plot model PDF
+        ax[1].set_title('Model PDF')
 
-    W_1 = emd(p_hist,p_model) # Wasserstein distance
-    fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
+        W_1 = emd(p_hist,p_model) # Wasserstein distance
+        fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
+    elif ndim == 1:
+        fig,ax = viz.init_subplots(1,2,figsize=(12,4))
+        ax[0].plot(bins[:-1],p_hist,'k',label='Empirical PDF')
+        ax[0].set_title('Empirical PDF')
+        ax[1].plot(bins[:-1],p_model,'k',label='Model PDF')
+        ax[1].set_title('Model PDF')
+
+        W_1 = emd(p_hist,p_model) # Wasserstein distance
+        fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
     return fig, ax

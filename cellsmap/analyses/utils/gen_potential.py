@@ -24,9 +24,9 @@ def generalized_potential(P,grid=None,tol=1e-8):
 
     return -np.log(P)
 
-def gradient_flow_term(U,D,xArrays,isConstant=False):
+def gradient_flow_term(U,D,xArrays,ndim=2,isConstant=False):
     '''
-    Compute the gradient flow term -D(x) grad(U) + div(D(x)) for a given potential U
+    Compute the gradient flow term -D(x) grad(U) for a given potential U
     and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
 
     Arguments:
@@ -36,30 +36,51 @@ def gradient_flow_term(U,D,xArrays,isConstant=False):
         isConstant      True if D is a constant matrix, False otherwise
 
     Returns:
-        -D(x) gradU + div(D(x))       gradient flow term ((N+1)D array of dimensions N x n1 x n2 x ... x nN)
+        -D(x) gradU       gradient flow term ((N+1)D array of dimensions N x n1 x n2 x ... x nN)
     '''
-
-    grid = np.meshgrid(*xArrays,indexing='ij')
-    dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
+    if ndim == 1:
+        grid = [xArrays]
+        dx = [xArrays[1] - xArrays[0]]
+    else:
+        grid = np.meshgrid(*xArrays,indexing='ij')
+        dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
 
     if callable(D):
-        D = D(*grid)
+        D_vals = D(*grid)
+    else:
+        D_vals = D.copy()
 
-    divD = np.zeros(D.shape)
-    if not isConstant: # if constant, div(D) = 0
-        for i in range(D.shape[0]):
-            divD[i] = np.gradient(D[i],dx[i],axis=i,edge_order=2)
-    divD = np.sum(divD,axis=0)
-
-    gradU = np.zeros(D.shape)
-    for i in range(D.shape[0]):
+    gradU = np.zeros(D_vals.shape)
+    for i in range(D_vals.shape[0]):
         gradU[i] = np.gradient(U,dx[i],axis=i,edge_order=2)
 
-    flow_term = np.zeros(D.shape)
-    for i in range(D.shape[0]):
-        flow_term[i] = -D[i]*gradU[i]
+    flow_term = np.zeros(D_vals.shape)
+    for i in range(D_vals.shape[0]):
+        flow_term[i] = -D_vals[i]*gradU[i]
 
-    return flow_term + divD
+    return flow_term
+
+def expand_to_matrix(D_vals):
+    """
+    Expand the vector-valued function D_vals into the matrix-valued function D_vals.
+
+    Arguments:
+        D_flat : ndarray
+            The (n, N_1, N_2, ..., N_n) array representing the diagonal terms of the diffusion matrix.
+    Returns:
+        D_vals : ndarray
+            The (n,n, N_1, N_2,...,N_n) matrix-valued function.
+    """
+    n = D_vals.shape[0]
+    N_grid = D_vals.shape[1:]
+    if N_grid.__class__ == int:
+        N_grid = (N_grid,)
+    D_mat = np.zeros((n, n) + N_grid)
+    
+    for i in range(n):
+        D_mat[i, i] = D_vals[i]
+    
+    return D_mat
 
 def probability_flux(P,f,D,xArrays):
     '''
@@ -77,32 +98,46 @@ def probability_flux(P,f,D,xArrays):
         f(x)P(x) - div(D(x) P(x))       probability flux term ((N+1)D array of dimensions N x n1 x n2 x ... x nN)
     '''
 
+    ndim = len(xArrays)
     grid = np.meshgrid(*xArrays,indexing='ij')
     dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
 
     if callable(f):
-        f = f(*grid)
+        f_vals = f(*grid)
+    else:
+        f_vals = f.copy()
 
     if callable(D):
-        D = D(*grid)
+        D_vals = D(*grid)
+    else:
+        D_vals = D.copy()
 
-    divDP = np.zeros(D.shape)
-    fP = np.zeros(D.shape)
-    for i in range(D.shape[0]):
-        divDP[i] = np.gradient(D[i]*P,dx[i],axis=i,edge_order=2)
-        fP[i] = f[i]*P
+    fP = np.zeros_like(f_vals)
+    divD = np.zeros_like(f_vals)
 
-    divDP = np.sum(divDP,axis=0)
+    for i in range(D_vals.shape[0]):
+        divD[i] = np.gradient(D_vals[i], dx[i], axis=i, edge_order=2)
+        fP[i] = f_vals[i] * P
 
-    return fP - divDP
+    grad_P = np.gradient(P, *dx, edge_order=2)
+    if ndim == 1:
+        grad_P = grad_P.reshape((-1,1))
+    D_full = expand_to_matrix(D_vals)
+    divD = np.sum(divD, axis=0)
 
-def grad_flux_decomposition(f,D,xArrays,tol=1e-8,isConstant=False):
+    # Generalized Einstein summation
+    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(ndim)]) + ',j' + ''.join([chr(107 + j) for j in range(ndim)]) + '->i' + ''.join([chr(107 + j) for j in range(ndim)])
+
+    return fP - divD * P - np.einsum(einsum_str, D_full, grad_P)
+
+def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
     '''
     Compute the gradient/flux decomposition of the drift vector field f(x) for 
     stochastic dynamics with diagonal diffusion matrix D(x):
         f(x) = [gradient flow] + [flux term]
     where
-        [gradient flow] = -D(x) grad(U) + div(D(x))
+        [gradient flow] = -D(x) grad(U) 
+        [diffusion geometry] = div(D(x))
         [flux term] = (f(x)P(x) - div(D(x) P(x)))/P(x)
     
     Arguments:
@@ -118,38 +153,93 @@ def grad_flux_decomposition(f,D,xArrays,tol=1e-8,isConstant=False):
         flux_term           flux term (N x n1 x n2 x ... x nN array)
     '''
 
-    if len(xArrays) == 1:
-        grid = xArrays[0]
+    if ndim == 1:
+        grid = [xArrays]
+        grid_len = len(xArrays)
+        dx = xArrays[1] - xArrays[0]
     else:
         grid = np.meshgrid(*xArrays,indexing='ij')
-    dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
-    grid_len = [len(xArrays[i]) for i in range(len(xArrays))]
-
+        dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
+        grid_len = [len(xArrays[i]) for i in range(len(xArrays))]
+    
     if callable(f):
         f_vals = f(*grid)
     else:
         f_vals = f.copy()
+        if ndim == 1:
+            f_vals = f_vals.reshape((1,-1))
     
     if callable(D):
         D_vals = D(*grid)
     else:
         D_vals = D.copy()
+        if ndim == 1:
+            D_vals = D_vals.reshape((1,-1))
 
     # solve stationary Fokker-Planck equation
     stationary_fp = fps.SteadyFP(grid_len, dx)
     P = stationary_fp.solve(f_vals,D_vals)
     P[P<tol] = tol
+    P = P/np.sum(P)
 
     # get generalized potential
     U = generalized_potential(P)
 
     # compute gradient flow term
-    gradient_term = gradient_flow_term(U,D_vals,xArrays,isConstant=isConstant)
+    gradient_term = gradient_flow_term(U,D_vals,xArrays,ndim=ndim,isConstant=isConstant)
+
+    # compute divergence of D(x)
+    if ndim == 1:
+        divD = np.gradient(D_vals,dx,edge_order=2)
+    else:
+        divD = np.zeros(D_vals.shape)
+        for i in range(D.shape[0]):
+            divD[i] = np.gradient(D[i],dx[i],axis=i,edge_order=2)
+        divD = np.sum(divD,axis=0)
 
     # compute flux term
-    flux_term = f_vals - gradient_term
+    flux_term = probability_flux(P,f_vals,D_vals,xArrays)/P
 
-    return U,gradient_term,flux_term
+    return U,gradient_term, divD, flux_term
+
+def invert_D(D):
+    if len(D.shape) == 2:
+        return np.linalg.inv(D)
+    else:
+        if len(D.shape) == 4:
+            ndim = D.shape[0]
+            N_grid = D.shape[2:]
+            D_ = D.reshape((ndim,ndim,-1))
+        elif len(D.shape) == 3:
+            ndim = D.shape[0]
+            N_grid = None
+            D_ = D.copy()
+        D_inv = np.zeros(D_.shape)
+        for i in range(D_.shape[-1]):
+            D_inv[:,:,i] = np.linalg.inv(D_[:,:,i])
+        if N_grid is not None:
+            return D_inv.reshape((ndim,ndim) + N_grid)
+        else:
+            return D_inv
+
+def entropy_production(J,D,P,x):
+    ndim = len(x)
+    D_inv = invert_D(D)
+
+    # Generalized Einstein summation for matrix multiplication
+    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(ndim)]) + ',j' + ''.join([chr(107 + j) for j in range(ndim)]) + '->i' + ''.join([chr(107 + j) for j in range(ndim)])
+    D_inv_J = np.einsum(einsum_str, D_inv, J)
+
+    einsum_ip = 'i' + ''.join([chr(107 + j) for j in range(ndim)]) + ',i' + ''.join([chr(107 + j) for j in range(ndim)]) + '->' + ''.join([chr(107 + j) for j in range(ndim)])
+    inner_prod = np.einsum(einsum_ip,D_inv_J,J/P)
+    weighted_entropy_prod = inner_prod * P
+    dx = np.prod([x[i][1] - x[i][0] for i in range(ndim)])
+    integral = np.sum(weighted_entropy_prod) * dx
+
+    # integral = np.copy(inner_prod).reshape([len(x[i]) for i in range(ndim)])
+    # for i in range(len(x)):
+    #     integral = np.trapz(integral,x[i],axis=0)
+    return integral
 
 
 

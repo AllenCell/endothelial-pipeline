@@ -48,10 +48,13 @@ def findroot(func, init):
     return: roots of f(x) (np.array) 
             if the numerical method converge (else, return nan)
     """
-    sol, _, convergence, _ = fsolve(func, init, full_output=1)
+    sol, _, convergence, _ = fsolve(func, init, full_output=1,xtol=1e-12)
     if convergence == 1:
         return sol
-    return np.array([np.nan]*len(init))
+    if init.__class__ == np.float64:
+        return np.array([np.nan])
+    else:
+        return np.array([np.nan]*len(init))
 
 def get_fps(myFlow,ICs):
     '''Return the list of unique fixed points of the system x' = myFlow(x) starting around ICs
@@ -101,7 +104,7 @@ def classify_fps(myFlow,fpts,x,ndim=2,ax=None):
             # if far out of bounds of the plot window, don't report it
             if fpt[0]<x[0]-0.5*abs(x[0]) or fpt[0]>x[-1]+0.5*abs(x[-1]):
                 continue
-            fptStability = find_stability(flowDerivative(fpt))
+            fptStability = find_stability(flowDerivative(fpt),ndim=1)
             print('  • '+fptStability+" at x = %5.3f" % fpt)
             # if out of bounds of the plot window, don't plot it
             if fpt[0]<x[0] or fpt[0]>x[-1]:
@@ -171,11 +174,17 @@ def plot_null(ax,f1,f2,x1,x2,params = None):
 def plot_flow(ax,myFlow,x,numGrid = 15,ndim=2):
     if ndim == 1: # 1D system
         f = myFlow(x)
-        ax.plot(x,f,'k-',linewidth=2,alpha=0.75)
+        ax.plot(x,0*x,'k--',linewidth=1.5,alpha=0.5)
+        ax.plot(x,f,'k-',linewidth=2)
         f_sgn = np.sign(f) # get sign of f, used for drawing arrows
+        if len(f_sgn.shape) > 1:
+            if f_sgn.shape[0] > 1:
+                f_sgn = f_sgn[:,0]
+            else:
+                f_sgn = f_sgn.T[:,0]
         x_coarse = np.linspace(x[0],x[-1],numGrid)
-        for i in range(len(x_coarse)):
-            ax.add_patch(FancyArrow(x_coarse[i],0,0.1*f_sgn[i],0,width=0.1,head_width=0.3,head_length=0.1,color='black'))
+        # for i in range(len(x_coarse)):
+        #     ax.add_patch(FancyArrow(x_coarse[i],0,0.1*f_sgn[i],0,width=0.01,head_width=0.03,head_length=0.5,color='red'))
     else:
         x1, x2 = x
         X1,X2 = np.meshgrid(np.linspace(x1.min(),x1.max(),numGrid),np.linspace(x2.min(),x2.max(),numGrid))
@@ -261,7 +270,7 @@ def phase_line(f,x,params=None):
     fig, ax = plt.subplots(figsize=(6,3))
     ax = plot_flow(ax,myFlow,x,ndim=1)
 
-    init_coarse = np.linspace(x[0],x[-1],10)
+    init_coarse = np.linspace(x[0],x[-1],20)
     fpts = get_fps(myFlow,init_coarse) # get fixed points
     if len(fpts) > 0:
         fpt_types, ax = classify_fps(myFlow,fpts,x,ndim=1,ax=ax)
