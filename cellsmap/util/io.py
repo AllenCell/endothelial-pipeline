@@ -119,7 +119,7 @@ def get_original_path(dataset_name: str) -> str:
 def load_original_slidebook_image(dataset_name: str, channel: int, timepoint: int) -> np.array:
     sld_path = get_original_path(dataset_name)
     sld_path = sld_path / f"ImageData_Ch{channel}_TP{timepoint:07d}.npy"
-    img = np.load(sld_path)
+    img = np.load(sld_path) # convert this to a dask delayed load
     return img
 
 # model methods

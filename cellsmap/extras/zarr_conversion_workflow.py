@@ -1,12 +1,13 @@
 
 #%%
-from cellsmap.extras.zarr_conversion import convert
+from cellsmap.extras.zarr_conversion import process_timelapse, convert
 from pathlib import Path
 
 
 if __name__ == "__main__":
-    convert(dataset='20240305_T01_001',
-            output_folder=Path('/allen/aics/assay-dev/users/Chantelle/outputs/temp_tiffs/'),
-            fname='20240305_T01_001_test',
-            save_to_zarr=False)
+    dataset = '20240305_T01_001'
+    images = process_timelapse(dataset)
+    convert(dataset, 
+            Path(f'/allen/aics/assay-dev/users/Chantelle/outputs/temp_tiffs/{dataset}.zarr'),
+            )
 #%%
