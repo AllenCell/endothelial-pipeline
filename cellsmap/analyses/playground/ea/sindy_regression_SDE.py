@@ -18,46 +18,39 @@ import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
 
 # %%
 
-path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs2/eval/runs/diffae/large_latent_large_encoder/2024-11-25_09-43-32/patched.parquet'
+path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/3d_bf/2025-02-03_11-48-38/predict.parquet'
 savedir = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/ea/sindy_reg_diffAE_test/'
 
 eaio.make_savedir(savedir,subfolders=False)
 
 # %%
-df = eaio.load_array(path_to_data)
+df = eaio.add_metadata_from_path(eaio.load_array(path_to_data))
 df.head()
+list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
 # %%
-metadata_col = ['filename_or_obj','T','start_x','start_y']
-df_ = eaio.rm_metadata(df,metadata_col) # remove metadata columns
-
-pca = eaio.get_PCA(df_)
-
-del df_ # free up memory
+df_ref = eaio.get_PCA_reference(df) # dataset for getting PCA reference
+metadata_col = ['filename_or_obj','T','start_x','start_y','group','pca_ref','FOV_ID']
+df_ref_ = eaio.rm_metadata(df_ref,metadata_col) # remove metadata columns
+pca = eaio.get_PCA(df_ref_)
+del df_ref_ # free up memory
 
 fig, ax = eaviz.plot_explained_variance(pca.explained_variance_ratio_)
 # %%
-list_of_datasets = eaio.get_list_of_datasets(df,'filename_or_obj',verbose=True)
-
-fixed_data_idx = [0, 6, 7] # in list of datasets, these are indexes of the fixed data
-list_of_live = [my_path for i, my_path in enumerate(list_of_datasets) if i not in fixed_data_idx]
-
-# %%
-my_mv = list_of_live[6]
+my_mv = list_of_datasets[0]
 mv_name = eaio.get_dataset_name(my_mv)
-feats_proj = eaio.project_PCA_one_dataset(df,pca, 'filename_or_obj', my_mv)
-
+feats_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv, metadata_cols=metadata_col)
 
 fig1,ax1 = eaviz.plot_top_3_PCs(feats_proj)
-ax1[0].set_ylim([-8,11])
-ax1[1].set_ylim([-11,5])
-ax1[2].set_ylim([-4.5,4.5])
+ax1[0].set_ylim([-1.5,4])
+ax1[1].set_ylim([-7,-2])
+ax1[2].set_ylim([0,4.5])
 
 fig2,ax2 = eaviz.plot_PCA_projection(feats_proj,mv_name)
 ax2.set_xlim([-4,8])
 ax2.set_ylim([-2,4])
 
 # %%
-PCs = [0,1,2]
+PCs = [0,2]
 ndim = len(PCs)
 data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
 num_flow = len(u_list)
@@ -91,7 +84,7 @@ for j in range(num_flow):
     fig.colorbar(im, ax=ax, label = 'Standard deviation')
     ax.set_xlabel('PC1')
     ax.set_ylabel('PC3')
-    ax.set_title('Shear stress: '+str(u_list[j])+ ' dyn/cm^2')
+    ax.set_title("Shear stress: "+str(u_list[j])+" dyn/cm^2")
 
 # %%
 f_KM_noNAN = []
@@ -119,7 +112,7 @@ N_test = [N_tot[0]-N_train[0],N_tot[1]-N_train[1]]
 u_train = np.concatenate((u_traj[0][0]*np.ones(N_train[0]),u_traj[1][0]*np.ones(N_train[1])))
 u_test = np.concatenate((u_traj[0][0]*np.ones(N_test[0]),u_traj[1][0]*np.ones(N_test[1])))
 # %%
-sigmoid_range = range(3,5)
+sigmoid_range = range(3,4)
 
 def make_sigmoid(n):
     def _(x):
@@ -149,8 +142,8 @@ driftModel = ps.SINDy(feature_library = full_lib, optimizer = ps.SSR())
 driftModel.fit(X_train,t=5,x_dot=Y_train,u=u_train)
 
 
-diff_feature_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
-diff_parameter_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
+diff_feature_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
+diff_parameter_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
 diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
     parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
 
@@ -173,8 +166,8 @@ print("Diffusion model R^2: ", diffModel.score(X_test,t=5,x_dot=V_test,u=u_test)
 
 myModel = [driftModel,diffModel]
 
-plt_args = {'pplane_xlim': [-4,5], 'pplane_ylim': [-2,3], 'pplane_N': 50,
-            'plt_xlabel': 'PC'+str(PCs[0]), 'plt_ylabel': 'PC'+str(PCs[1])}
+plt_args = {'pplane_xlim': [-1,3.5], 'pplane_ylim': [-2,4], 'pplane_N': 50,
+            'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1)}
 
 # %%
 for j in range(num_flow):
@@ -185,7 +178,7 @@ for j in range(num_flow):
 
 # %%
 # %%
-# now try to fit model to multiple datasets
+# now fit model using multiple datasets
 PCs = [0,2]
 ndim = len(PCs)
 
@@ -202,13 +195,12 @@ u_test_list = []
 
 Nbins = [40 for i in range(ndim)]
 
-# need to filter out the 'spikes' in datasets 5 and 7 (bubble)
 
-for ds_ID in [0,1,2,3,4,6]:
+for ds_ID in range(4):
     print('**** Generating train/test sets for dataset',ds_ID,'**** \n')
-    my_mv = list_of_live[ds_ID]
+    my_mv = list_of_datasets[ds_ID]
     mv_name = eaio.get_dataset_name(my_mv)
-    feats_proj = eaio.project_PCA_one_dataset(df,pca,'filename_or_obj', my_mv)
+    feats_proj = eaio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
 
     data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
     del feats_proj # free up memory
@@ -292,7 +284,7 @@ u_train = np.concatenate(u_train_list)
 u_test = np.concatenate(u_test_list)
 
 # %%
-sigmoid_range = range(6,7)
+sigmoid_range = range(3,4)
 
 def make_sigmoid(n):
     def _(x):
@@ -313,7 +305,7 @@ sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
 feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
                                 include_bias=True),
                                 sigmoid_lib])
-parameter_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
+parameter_lib=ps.PolynomialLibrary(degree=2, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
     parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
 
@@ -342,26 +334,19 @@ print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on tes
 # %%
 myModel = [driftModel,diffModel]
 
-if PCs[1] == 1:
-    ylims = [-7,0]
-    bin_ylims = [-10,1]
-elif PCs[1] == 2:
-    ylims = [-2,3]
-    bin_ylims = [-3,4]
-
-plt_args = {'pplane_xlim': [-5,5], 'pplane_ylim': ylims, 'pplane_N': 50,
+plt_args = {'pplane_xlim': [-1,3.5], 'pplane_ylim': [-2,4], 'pplane_N': 50,
             'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1)}
 
 # fix bins and centers for all datasets
 Nbins = [40 for i in range(ndim)]
-bin_limits = [[-7,7],bin_ylims]
+bin_limits = [[-5,3.5],[-1,4.5]]
 bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
 
-for ds_ID in [0,1,2,3,4,6]:
+for ds_ID in range(4):
     print('**** Running model analysis for dataset',ds_ID,'**** \n')
-    my_mv = list_of_live[ds_ID]
+    my_mv = list_of_datasets[ds_ID]
     mv_name = eaio.get_dataset_name(my_mv)
-    feats_proj = eaio.project_PCA_one_dataset(df,pca,'filename_or_obj', my_mv)
+    feats_proj = eaio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
 
     data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
     del feats_proj # free up memory
@@ -379,11 +364,8 @@ u_range = np.linspace(0,35,40)
 
 fpt_dict = {}
 
-x1_lims = [-5,5]
-if PCs[1] == 1:
-    x2_lims = [-10,0]
-elif PCs[1] == 2:
-    x2_lims = [-4,4]
+x1_lims = plt_args['pplane_xlim']
+x2_lims = plt_args['pplane_ylim']
 
 x1 = np.linspace(x1_lims[0],x1_lims[1],50)
 x2 = np.linspace(x2_lims[0],x2_lims[1],50)
@@ -448,7 +430,7 @@ for u in u_range:
             plt.plot(u,fpt[0],'o',color=color)
             plt.xlabel('Shear stress (dyn/cm^2)')
             plt.ylabel('PC'+str(PCs[0]+1))
-plt.ylim([-2,6])
+#plt.ylim([-2,6])
 # %%
 for u in u_range:
     fpts = fpt_dict[str(u)]['fixed_points']
@@ -468,7 +450,7 @@ for u in u_range:
             plt.xlabel('Shear stress (dyn/cm^2)')
             plt.ylabel('PC'+str(PCs[1]+1))
 
-plt.ylim([-1,2])
+# plt.ylim([-1,2])
 # %%
 fpt_stable = []
 u_stable = []
