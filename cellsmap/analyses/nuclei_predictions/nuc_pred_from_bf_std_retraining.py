@@ -11,6 +11,7 @@ from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
+from skimage.color import label2rgb
 # output = io.load_train_test_data(train_dir, test_dir, image_filter="_img",
 #                                 mask_filter="_masks", look_one_level_down=False)
 # images, labels, image_names, test_images, test_labels, image_names_test = output
@@ -72,9 +73,44 @@ model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
 
 
 test_dataset_name = '20241016_20X'
+# test_dataset_name = '20231122_T02_001'
 test_image = BioImage(Path(io.get_zarr_path(test_dataset_name)))
 bfstd_chan = io.get_channel_index(test_dataset_name, ['BF_STD'])
-model_bf_stdproject_new = models.CellposeModel(gpu=False, pretrained_model=model_path)
-test = test_image.get_image_data(dim_order, T=0, C=bfstd_chan)
-masks_bf_std = model_bf_stdproject.eval(test.squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0)#-3.0)
+bf_chan = io.get_channel_index(test_dataset_name, ['BF_Center'])
+model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap\cellsmap\analyses\nuclei_predictions\models\bf_std_model_no_preprocess_retrained')
+model_path.exists()
+model_bf_stdproject_new = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+test = test_image.get_image_dask_data(dim_order, T=0, C=bfstd_chan)
+test_bf = test_image.get_image_dask_data(dim_order, T=0, C=bf_chan)
+
+test_crop = (slice(0, 1000), slice(0, 1000))
+test = test.compute().squeeze()[test_crop]
+test_bf = test_bf.compute().squeeze()[test_crop]
+
+try:
+    nuc_chan = io.get_channel_index(test_dataset_name, ['DAPI'])
+    test_nuc = test_image.get_image_dask_data(dim_order, T=0, C=nuc_chan) if nuc_chan else None
+    test_nuc = test_nuc.compute().squeeze()[test_crop] if nuc_chan else None
+except ValueError:
+    print('No DAPI channel found.')
+    test_nuc = None
+
+
+masks_bf_std = model_bf_stdproject_new.eval(test, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0)#-3.0)
+
+overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(test_bf, out_range=(0,1)), bg_label=0)
+plt.imshow(overlay_bf[test_crop])
+
+overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(test, a_min=0, a_max=np.percentile(test, 95)), out_range=(0,1)), bg_label=0)
+plt.imshow(overlay_bf[test_crop])
+
+if test_nuc:
+    overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(test_nuc, a_min=0, a_max=np.percentile(test, 95)), out_range=(0,1)), bg_label=0)
+    plt.imshow(overlay_nuc[test_crop])
+
+plt.imshow(rescale_intensity(np.clip(test, a_min=0, a_max=np.percentile(test, 90)), out_range=(0,1))[test_crop])
+# plt.imshow(rescale_intensity(test, out_range=(0,1))[test_crop])
+
+# compare 10 or 20 timepoints throughout the timelapse
+# and estimate the false positive and false negative rates
 
