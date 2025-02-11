@@ -68,7 +68,7 @@ def get_channel_index(dataset_name:str, channel_names:list) -> int:
     available_channels = get_available_channels(dataset_name)
     return [available_channels.index(channel) for channel in channel_names]
 
-def get_channel_order(dataset_name:str):
+def get_specific_channel_order(dataset_name:str):
     gfp_index = get_dataset_info(dataset_name)['egfp_channel_index']
     bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
     return gfp_index, bf_index
