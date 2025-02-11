@@ -1,6 +1,7 @@
 from cellsmap.util.io import (
     get_original_path,
     get_channel_order,
+    get_dataset_duration_in_frames,
 )
 import dask.delayed
 import dask.array as da
@@ -43,8 +44,7 @@ def process_timepoint(tp: int, dataset: str, shape, dtype):
 
 
 def get_timepoints(pos: int, dataset: str, number_positions: int = 6):
-    # t_final = get_dataset_duration_in_frames(dataset) # if testing set t_final = 10
-    t_final = 10  # testing with just 10 timepoints per scene for now
+    t_final = get_dataset_duration_in_frames(dataset)  # if testing set t_final = 10
     timepoints = range(pos, t_final * number_positions, number_positions)
     return timepoints
 
