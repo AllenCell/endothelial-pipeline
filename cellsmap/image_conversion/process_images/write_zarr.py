@@ -1,4 +1,5 @@
 import numpy as np
+import dask.array as da
 from pathlib import Path
 from cellsmap.util import io
 from bioio import BioImage
@@ -88,7 +89,7 @@ def get_zarr_chunk_dims(im_shape: tuple) -> list[tuple]:
 
 
 def write_scene(
-    im: np.array,
+    im: np.ndarray | da.Array,
     channels: list[str],
     full_zarr_path: Path,
     dataset: str,
@@ -99,7 +100,7 @@ def write_scene(
     Writes a scene to a Zarr store.
 
     Parameters:
-    im (np.array): The image data array.
+    im (np.array or da.array): The image data array.
     channels (list[str]): The list of channel names.
     full_zarr_path (Path): The full path to the Zarr store.
     dataset (str): The name of the dataset.
