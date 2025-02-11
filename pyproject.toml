@@ -34,7 +34,6 @@ dependencies = [
     "itkwasm==1.0b171",
     "seaborn>=0.13.2",
     "bioio-sldy>=1.0.2",
-    { git = "https://github.com/aics-int/ome-zarr-conversion.git" },
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
