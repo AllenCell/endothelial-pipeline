@@ -1,5 +1,5 @@
 import argparse
-from cellsmap.util.io import get_number_of_positions
+from cellsmap.util.io import get_number_of_positions, get_time_interval_in_minutes
 from cellsmap.image_conversion.process_images.process_sldy import process_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
@@ -30,11 +30,12 @@ CHANNEL_NAMES = ["egfp", "bf"]
 def convert_sldy_dataset(dataset: str, output_path: str):
     n_positions = get_number_of_positions(dataset)
     physical_pixel_sizes = get_sldy_metadata(dataset)
+    interval_min = get_time_interval_in_minutes
     for position in range(n_positions):
         output = f"{output_path}/{dataset}/{dataset}_{position}.ome.zarr"
         scene = process_position(position, dataset)
         write_scene(
-            scene, CHANNEL_NAMES, output, dataset, position, physical_pixel_sizes
+            scene, CHANNEL_NAMES, output, dataset, position, physical_pixel_sizes, interval_min
         )
 
 

@@ -95,17 +95,19 @@ def write_scene(
     dataset: str,
     position: int,
     physical_pixel_sizes: PhysicalPixelSizes,
+    interval_min: int,
 ) -> None:
     """
     Writes a scene to a Zarr store.
 
     Parameters:
-    im (np.array or da.array): The image data array.
+    im (np.array or da.array): 5D image array in the order TCZYX.
     channels (list[str]): The list of channel names.
     full_zarr_path (Path): The full path to the Zarr store.
     dataset (str): The name of the dataset.
     position (int): The position index.
     physical_pixel_sizes (PhysicalPixelSizes): The physical pixel sizes for the dataset.
+    interval_min (int): The time interval in minutes.
 
     Returns:
     None
@@ -128,7 +130,7 @@ def write_scene(
 
     physical_scale = {
         "c": 1.0,  # default value for channel
-        "t": 1.0,
+        "t": interval_min,
         "z": physical_pixel_sizes.Z,
         "y": physical_pixel_sizes.Y,
         "x": physical_pixel_sizes.X,
