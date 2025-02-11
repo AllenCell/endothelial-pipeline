@@ -150,8 +150,34 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 35]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  features: {}:,
+  features: {},
   objective: "20X air",
   notes: "This is a nice 48hr high flow dataset."
-}
+},
+{
+  name: 20241203_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241203/20241203_20X_timelapse_SLDY.dir/20241203_20X_timelapse - Position 1 [6]-1-1734044402-886.imgdir",
+  zarr_path: '',
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # num,ber of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}, 
+  objective: "20X air",
+  notes: """This timelapse has not yet been converted to ZARR.
+  TODO: Also, the original_path needs to be changed - the one specified is not the montage like it is for other datasets."""
+},
+{
+  name: 20241210_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241210/20241210_20X_timelapse_SLDY.dir/20241210_20X_timelapse - Position 1 [6]-1734130855-597.imgdir",
+  zarr_path: '',
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {},
+  objective: "20X air",
+  notes: """This timelapse has not yet been converted to ZARR.
+  TODO: Also, the original_path needs to be changed - the one specified is not the montage like it is for other datasets."""
+},
 ]
