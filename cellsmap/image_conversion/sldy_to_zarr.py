@@ -1,9 +1,11 @@
-#%%
 import argparse
 from cellsmap.util.io import get_number_of_positions
 from cellsmap.image_conversion.process_images.process_sldy import process_position
-from cellsmap.image_conversion.process_images.write_zarr import write_scene, get_sldy_metadata
-#%%
+from cellsmap.image_conversion.process_images.write_zarr import (
+    write_scene,
+    get_sldy_metadata,
+)
+
 """
 This script processes images from a dataset and writes them to Zarr format.
 
