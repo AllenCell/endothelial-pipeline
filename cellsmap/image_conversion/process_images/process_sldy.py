@@ -100,6 +100,9 @@ def process_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> d
 def get_timepoints(pos: int, dataset: str, number_positions: int = 6):
     """
     Generates a list of timepoints for a given position in the dataset.
+    The montage collection of sldy files results in raw data that is organized
+    in incriments of t every time a position is acquired. To assemble the full time series by position,
+    we need to select timepoints in increments of the number of positions in the dataset.
 
     Parameters:
     pos (int): The position index.
