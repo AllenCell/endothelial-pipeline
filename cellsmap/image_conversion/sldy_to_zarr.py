@@ -19,7 +19,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python write_zarr.py 20240305_T01_001 /allen/aics/assay-dev/users/Chantelle/outputs/temp_tiffs
+    python sldy_to_zarr.py 20240305_T01_001 /allen/aics/assay-dev/users/Chantelle/outputs/temp_tiffs
 
 This will process the dataset '20240305_T01_001' and save the output to the specified directory.
 """
