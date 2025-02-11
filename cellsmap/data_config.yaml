@@ -10,6 +10,7 @@
   flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
+  n_positions: 6,
   features: {
     vicreg_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/vicreg/predictions.csv,
     mae_cdh5: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae/predictions.csv,

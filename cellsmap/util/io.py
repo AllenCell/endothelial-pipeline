@@ -73,6 +73,10 @@ def get_channel_order(dataset_name:str):
     bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
     return gfp_index, bf_index
 
+def get_number_of_positions(dataset_name:str) -> int:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['n_positions']
+
 def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
     path = get_zarr_path(dataset_name)
     reader = BioImage(path)
@@ -115,12 +119,6 @@ def get_original_path(dataset_name: str) -> str:
     """
     dataset_info = get_dataset_info(dataset_name)
     return Path(dataset_info['original_path'])
-
-def load_original_slidebook_image(dataset_name: str, channel: int, timepoint: int) -> np.array:
-    sld_path = get_original_path(dataset_name)
-    sld_path = sld_path / f"ImageData_Ch{channel}_TP{timepoint:07d}.npy"
-    img = np.load(sld_path) # convert this to a dask delayed load
-    return img
 
 # model methods
 
