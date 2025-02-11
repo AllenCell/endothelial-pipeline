@@ -1,6 +1,6 @@
 from cellsmap.util.io import (
     get_original_path,
-    get_channel_order,
+    get_specific_channel_order,
     get_dataset_duration_in_frames,
 )
 import dask.delayed
@@ -88,7 +88,7 @@ def process_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> d
     Returns:
     dask.array.Array: A Dask array containing the stacked GFP and BF images for the given timepoint.
     """
-    gfp_index, bf_index = get_channel_order(dataset)
+    gfp_index, bf_index = get_specific_channel_order(dataset)
     gfp = load_original_slidebook_image(dataset, channel=gfp_index, timepoint=tp)
     bf = load_original_slidebook_image(dataset, channel=bf_index, timepoint=tp)
     gfp_da = da.from_delayed(gfp, shape=shape, dtype=dtype)

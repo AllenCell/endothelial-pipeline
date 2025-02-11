@@ -24,18 +24,15 @@ Example:
 This will process the dataset '20240305_T01_001' and save the output to the specified directory.
 """
 
-CHANNEL_NAMES = ["egfp", "bf"]
-
-
-def convert_sldy_dataset(dataset: str, output_path: str):
+def convert_sldy_dataset(dataset: str, output_path: str, channel_names: list[str] = ["EGFP", "BF"]):
     n_positions = get_number_of_positions(dataset)
     physical_pixel_sizes = get_sldy_metadata(dataset)
-    interval_min = get_time_interval_in_minutes
+    interval_min = get_time_interval_in_minutes(dataset)
     for position in range(n_positions):
         output = f"{output_path}/{dataset}/{dataset}_{position}.ome.zarr"
         scene = process_position(position, dataset)
         write_scene(
-            scene, CHANNEL_NAMES, output, dataset, position, physical_pixel_sizes, interval_min
+            scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
         )
 
 
@@ -49,10 +46,14 @@ def main():
     parser.add_argument(
         "output_path", type=str, help="The output path for the Zarr files"
     )
+    parser.add_argument(
+        "--channel_names", type=str, default="EGFP,BF", help="Comma-separated list of channel names"
+    )
 
     args = parser.parse_args()
+    channel_names = args.channel_names.split(',')
 
-    convert_sldy_dataset(args.dataset, args.output_path)
+    convert_sldy_dataset(args.dataset, args.output_path, channel_names)
 
 
 if __name__ == "__main__":
