@@ -77,7 +77,7 @@ def load_original_slidebook_image(
 
 def process_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> da.Array:
     """
-    Processes a single timepoint for a given dataset.
+    Processes a single timepoint for a given dataset. GFP and BF channels are set to 0 and 1, respectively.
 
     Parameters:
     tp (int): The timepoint index to process.
