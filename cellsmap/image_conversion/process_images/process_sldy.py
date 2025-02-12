@@ -28,6 +28,7 @@ def get_slidebook_image_path(dataset_name: str, channel: int, timepoint: int):
 def get_image_format(dataset_name: str, channel: int, timepoint: int):
     """
     Retrieves the shape and data type of a SlideBook image.
+    Expected shape is ZYX. 
 
     Parameters:
     dataset_name (str): The name of the dataset.
@@ -91,9 +92,9 @@ def get_delayed_array_for_timepoint(tp: int, dataset: str, shape: tuple, dtype: 
     gfp_index, bf_index = get_specific_channel_order(dataset)
     gfp = load_original_slidebook_image(dataset, channel=gfp_index, timepoint=tp)
     bf = load_original_slidebook_image(dataset, channel=bf_index, timepoint=tp)
-    gfp_da = da.from_delayed(gfp, shape=shape, dtype=dtype)
-    bf_da = da.from_delayed(bf, shape=shape, dtype=dtype)
-    stack = da.stack([gfp_da, bf_da], axis=0)
+    gfp_da = da.from_delayed(gfp, shape=shape, dtype=dtype) # ZYX
+    bf_da = da.from_delayed(bf, shape=shape, dtype=dtype) #ZYX
+    stack = da.stack([gfp_da, bf_da], axis=0) #CZYX
     return stack
 
 
@@ -132,6 +133,6 @@ def get_delayed_array_for_position(pos: int, dataset: str, number_positions: int
     timepoints = get_timepoints_for_position(pos, dataset, number_positions)
     shape, dtype = get_image_format(dataset, 0, 0)
     results = [get_delayed_array_for_timepoint(tp, dataset, shape, dtype) for tp in timepoints]
-    scene = da.stack(results, axis=0)
+    scene = da.stack(results, axis=0) # TCZYX
     print(f"finished processing {len(timepoints)} timepoints")
     return scene
