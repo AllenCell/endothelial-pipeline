@@ -1,3 +1,4 @@
+# TO DO: flow should be in frames not hrs, then we can get exact flow change time and time since flow for each timepoint
 [
 {
   name: 20240305_T01_001,
@@ -7,7 +8,7 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   cdh5_channel_name: CDH5_Tubulin,
-  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...] 
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
   n_positions: 6,
@@ -21,8 +22,8 @@
     mae_std_bf: //allen/aics/assay-dev/users/Benji/cellsmap/results/mae_std_bf/predictions.csv
   }
 },{
-  name: 20240917_20X_48hr,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20240917/092324/20240917_20x_48hr_timelapse-Pos1-3D montage complete.dir/20240917_20X_48hr_timelapse - Position 1 [6] 3DMontage Complete-1727807255-166.imgdir",
+  name: 20240917_20X_48hr, 
+  original_path: None, # cannot find, must generate
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240917_20X_48hr.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
@@ -40,39 +41,51 @@
   }
 },{
   name: 20240227_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240227/20240227_T01_001_3D_MTG_FULL.dir/20240227_T01_001 - Position 1 [6] 3DMontage Complete-1709593932-956.imgdir", #no longer exists
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240227/20240227_T01_001.dir/20240227_T01_001-1709072188-677.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240227_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 6], [24, 48, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20240213_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240213/20240213_T01_001_3D_MTG_FULL.dir/20240213_T01_001 - Position 1 [6] 3DMontage Complete-1707956040-391.imgdir", #no longer exists
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240213/20240213_T01_001.dir/20240213_T01_001-1707862657-286.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240213_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20240215_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240215/20240215_T01_001_3D_MTG.dir/20240215_T01_001 - Position 1 [6] 3DMontage-1708458531-194.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240215/20240215_T01_001.dir/20240215_T01_001-1708037760-220.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240215_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20240220_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240220/20240220_T01_001_3D_MTG_FULL.dir/20240220_T01_001 - Position 1 [6] 3DMontage Complete-1708974167-827.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240220/20240220_T01_001.dir/20240220_T01_001-1708466096-288.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240220_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 7.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20241016_20X,
@@ -82,6 +95,9 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 20.4, 35], [20.4, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20231122_T02_001, #FIXED DATA. Each timepoint is a different position
@@ -91,6 +107,9 @@
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
@@ -100,6 +119,9 @@
   duration: 4, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.066, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
@@ -109,25 +131,34 @@
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, 0.083, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },{
   name: 20241105_20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241105/20241105_20X_timelapse_SLDY_3D_MTG_FULL.dir/20241105_20X_timelapse - Position 1 [6] 3DMontage Complete-1731083979-668.imgdir",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241105/20241105_20X_timelapse_SLDY.dir/20241105_20X_timelapse - Position 1 [6]-1731020960-304.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241105_20X.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 573, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 22.75, 5.5], [22.75, 48, 28.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 },
 {
   name: 20241120_20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241120/20241120_20X_timelapse_SLDY_3D_MTG_FULL.dir/20241120_20X_timelapse - Position 1 [6]-1 3DMontage Complete-1732319050-396.imgdir",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241120/20241120_20X_timelapse_SLDY.dir/20241120_20X_timelapse - Position 1 [6]-1-1732313696-158.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241120_20X.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 35]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {}
 }
 ]
