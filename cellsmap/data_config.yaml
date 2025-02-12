@@ -32,7 +32,7 @@
   flow: [[0, 22.583, 25], [22.583, 48, 7.5]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: None,
   brightfield_channel_index: None,
-  n_positions: None,
+  n_positions: 6,
   features: {
     vicreg_cdh5: None,
     mae_cdh5: None,
@@ -52,7 +52,7 @@
   flow: [[0, 24, 6], [24, 48, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 },{
   name: 20240213_T01_001,
@@ -64,7 +64,7 @@
   flow: [[0, 24, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 },{
   name: 20240215_T01_001,
@@ -76,7 +76,7 @@
   flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 },{
   name: 20240220_T01_001,
@@ -88,7 +88,7 @@
   flow: [[0, 24, 7.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 },{
   name: 20241016_20X,
@@ -100,7 +100,7 @@
   flow: [[0, 20.4, 35], [20.4, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 },{
   name: 20231122_T02_001, #FIXED DATA. Each timepoint is a different position
@@ -148,7 +148,7 @@
   flow: [[0, 22.75, 5.5], [22.75, 48, 28.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 },
 {
@@ -161,7 +161,7 @@
   flow: [[0, 48, 35]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
-  n_positions: None,
+  n_positions: 6,
   features: {}
 }
 ]
