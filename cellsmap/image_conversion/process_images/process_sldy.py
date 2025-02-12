@@ -75,7 +75,7 @@ def load_original_slidebook_image(
     return delayed_array
 
 
-def process_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> da.Array:
+def get_delayed_array_for_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> da.Array:
     """
     Processes a single timepoint for a given dataset. GFP and BF channels are set to 0 and 1, respectively.
 
@@ -97,12 +97,12 @@ def process_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> d
     return stack
 
 
-def get_timepoints(pos: int, dataset: str, number_positions: int = 6):
+def get_timepoints_for_position(pos: int, dataset: str, number_positions: int = 6) -> range:
     """
-    Generates a list of timepoints for a given position in the dataset.
+    Generates a list of timepoints for a scene (time series of the same position) in the dataset.
     The montage collection of sldy files results in raw data that is organized
-    in incriments of t every time a position is acquired. To assemble the full time series by position,
-    we need to select timepoints in increments of the number of positions in the dataset.
+    in increments of time (t) for each position acquired. To assemble the full time series for a scene,
+    we need to select timepoints in increments of the total number of positions in the dataset.
 
     Parameters:
     pos (int): The position index.
@@ -117,9 +117,9 @@ def get_timepoints(pos: int, dataset: str, number_positions: int = 6):
     return timepoints
 
 
-def process_position(pos: int, dataset: str, number_positions: int = 6) -> da.Array:
+def get_delayed_array_for_position(pos: int, dataset: str, number_positions: int = 6) -> da.Array:
     """
-    Processes all timepoints for a given position in the dataset.
+    Loads all timepoints for a given position in the datase as a Dask array.
 
     Parameters:
     pos (int): The position index to process.
@@ -129,9 +129,9 @@ def process_position(pos: int, dataset: str, number_positions: int = 6) -> da.Ar
     Returns:
     dask.array.Array: A Dask array containing the processed images for all timepoints at the given position.
     """
-    timepoints = get_timepoints(pos, dataset, number_positions)
+    timepoints = get_timepoints_for_position(pos, dataset, number_positions)
     shape, dtype = get_image_format(dataset, 0, 0)
-    results = [process_timepoint(tp, dataset, shape, dtype) for tp in timepoints]
+    results = [get_delayed_array_for_timepoint(tp, dataset, shape, dtype) for tp in timepoints]
     scene = da.stack(results, axis=0)
     print(f"finished processing {len(timepoints)} timepoints")
     return scene

@@ -1,6 +1,6 @@
 import argparse
 from cellsmap.util.io import get_number_of_positions, get_time_interval_in_minutes
-from cellsmap.image_conversion.process_images.process_sldy import process_position
+from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
     get_sldy_metadata,
@@ -30,7 +30,7 @@ def convert_sldy_dataset(dataset: str, output_path: str, channel_names: list[str
     interval_min = get_time_interval_in_minutes(dataset)
     for position in range(n_positions):
         output = f"{output_path}/{dataset}/{dataset}_{position}.ome.zarr"
-        scene = process_position(position, dataset)
+        scene = get_delayed_array_for_position(position, dataset)
         write_scene(
             scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
         )
