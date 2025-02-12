@@ -4,8 +4,9 @@
 {
   # TODO - If datasets from the Nikon start to get included then add
     # a field to specify the microscope used (either '3i' or 'Nikon').
+  # TODO - Consider adding a field to specify fixed vs. live imaging.
   name: 20240305_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John Paul/2024/20240305/20240305_T01_001_3D_MTG_FULL.dir/20240305_T01_001 - Position 1 [6] 3DMontage Complete-1710177899-789.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240305/20240305_T01_001_3D_MTG_FULL.dir/20240305_T01_001 - Position 1 [6] 3DMontage Complete-1710177899-789.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
@@ -24,6 +25,7 @@
   notes: "This high-to-low flow dataset has a mix of CDH5 and tubulin cells.
           There is a wave of cell death early on in the timelapse."
 },{
+  # This dataset does not have an original path anymore and appears to be marked for deletion.
   name: 20240917_20X_48hr,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20240917/092324/20240917_20x_48hr_timelapse-Pos1-3D montage complete.dir/20240917_20X_48hr_timelapse - Position 1 [6] 3DMontage Complete-1727807255-166.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240917_20X_48hr.ome.zarr,
@@ -44,7 +46,7 @@
   notes: "This is the high-to-low flow dataset with 'holes'. The fibronectin substrate that cells attach to may have incompletely coated the slide."
 },{
   name: 20240227_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240227/20240227_T01_001_3D_MTG_FULL.dir/20240227_T01_001 - Position 1 [6] 3DMontage Complete-1709593932-956.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240227/20240227_T01_001_3D_MTG_FULL.dir/20240227_T01_001 - Position 1 [6] 3DMontage Complete-1709593932-956.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240227_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
@@ -55,7 +57,7 @@
   notes: "This low-to-high flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240213_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240213/20240213_T01_001_3D_MTG_FULL.dir/20240213_T01_001 - Position 1 [6] 3DMontage Complete-1707956040-391.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240213/20240213_T01_001_3D_MTG_FULL.dir/20240213_T01_001 - Position 1 [6] 3DMontage Complete-1707956040-391.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240213_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
@@ -66,17 +68,18 @@
   notes: "This 24hr high-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240215_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240215/20240215_T01_001_3D_MTG.dir/20240215_T01_001 - Position 1 [6] 3DMontage-1708458531-194.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240215/20240215_T01_001_3D_MTG.dir/20240215_T01_001 - Position 1 [6] 3DMontage-1708458531-194.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240215_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {},
+  objective: "20X air",
   notes: "This 24hr high-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240220_T01_001,
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240220/20240220_T01_001_3D_MTG_FULL.dir/20240220_T01_001 - Position 1 [6] 3DMontage Complete-1708974167-827.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240220/20240220_T01_001_3D_MTG_FULL.dir/20240220_T01_001 - Position 1 [6] 3DMontage Complete-1708974167-827.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240220_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 288, # number of frames
@@ -110,7 +113,7 @@
   # NB. Look for the original of this file. I can't find the original path for this dataset. It is not in \\allen\aics\assay-dev\computational\data\holistic\endos\JPBackup
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T02_001.dir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.dir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T02_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 4, # number of frames
@@ -121,7 +124,7 @@
   notes: "This is a fixed dataset. Each timepoint is a different position."
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T01_001.dir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T01_001.dir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 5, # number of frames
@@ -153,31 +156,29 @@
   features: {},
   objective: "20X air",
   notes: "This is a nice 48hr high flow dataset."
-},
-{
+},{
   name: 20241203_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241203/20241203_20X_timelapse_SLDY.dir/20241203_20X_timelapse - Position 1 [6]-1-1734044402-886.imgdir",
-  zarr_path: '',
+  zarr_path: ,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # num,ber of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {}, 
   objective: "20X air",
-  notes: """This timelapse has not yet been converted to ZARR.
-  TODO: Also, the original_path needs to be changed - the one specified is not the montage like it is for other datasets."""
-},
-{
+  notes: "This timelapse has not yet been converted to ZARR. 
+  TODO: Also, the original_path needs to be changed - the one specified is not the montage like it is for other datasets."
+},{
   name: 20241210_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241210/20241210_20X_timelapse_SLDY.dir/20241210_20X_timelapse - Position 1 [6]-1734130855-597.imgdir",
-  zarr_path: '',
+  zarr_path: ,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {},
   objective: "20X air",
-  notes: """This timelapse has not yet been converted to ZARR.
-  TODO: Also, the original_path needs to be changed - the one specified is not the montage like it is for other datasets."""
-},
+  notes: "This timelapse has not yet been converted to ZARR. 
+  TODO: Also, the original_path needs to be changed - the one specified is not the montage like it is for other datasets."
+}
 ]
