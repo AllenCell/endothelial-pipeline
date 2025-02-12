@@ -95,11 +95,11 @@ def get_zarr_chunk_dims(im_shape: tuple) -> list[tuple]:
 def write_scene(
     im: np.ndarray | da.Array,
     channels: list[str],
-    full_zarr_path: Path,
+    full_zarr_path: str,
     dataset: str,
     position: int,
     physical_pixel_sizes: PhysicalPixelSizes,
-    interval_min: int,
+    interval_min: float,
 ) -> None:
     """
     Writes a scene to a Zarr store.
@@ -107,11 +107,11 @@ def write_scene(
     Parameters:
     im (np.array or da.array): 5D image array in the order TCZYX.
     channels (list[str]): The list of channel names.
-    full_zarr_path (Path): The full path to the Zarr store.
+    full_zarr_path (str): The full path to the Zarr store.
     dataset (str): The name of the dataset.
     position (int): The position index.
     physical_pixel_sizes (PhysicalPixelSizes): The physical pixel sizes for the dataset.
-    interval_min (int): The time interval in minutes.
+    interval_min (float): The time interval in minutes.
 
     Returns:
     None

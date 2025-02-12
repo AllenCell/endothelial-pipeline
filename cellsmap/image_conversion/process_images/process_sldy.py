@@ -1,3 +1,4 @@
+from typing import Any, Tuple
 from cellsmap.util.io import (
     get_original_path,
     get_specific_channel_order,
@@ -8,7 +9,7 @@ import dask.array as da
 import numpy as np
 
 
-def get_slidebook_image_path(dataset_name: str, channel: int, timepoint: int):
+def get_slidebook_image_path(dataset_name: str, channel: int, timepoint: int) -> str:
     """
     Constructs the file path for a SlideBook image.
 
@@ -21,14 +22,16 @@ def get_slidebook_image_path(dataset_name: str, channel: int, timepoint: int):
     pathlib.Path: The constructed file path for the SlideBook image.
     """
     sld_path = get_original_path(dataset_name)
-    sld_path = sld_path / f"ImageData_Ch{channel}_TP{timepoint:07d}.npy"
+    sld_path = f"{sld_path}/ImageData_Ch{channel}_TP{timepoint:07d}.npy"
     return sld_path
 
 
-def get_image_format(dataset_name: str, channel: int, timepoint: int):
+def get_image_format(
+    dataset_name: str, channel: int, timepoint: int
+) -> Tuple[Tuple[int, ...], np.dtype]:
     """
     Retrieves the shape and data type of a SlideBook image.
-    Expected shape is ZYX. 
+    Expected shape is ZYX.
 
     Parameters:
     dataset_name (str): The name of the dataset.
@@ -44,7 +47,7 @@ def get_image_format(dataset_name: str, channel: int, timepoint: int):
 
 
 @dask.delayed
-def delayed_np_load(filename):
+def delayed_np_load(filename: str) -> Any:
     """
     Loads a NumPy array from a file in a delayed manner using Dask.
 
@@ -76,7 +79,9 @@ def load_original_slidebook_image(
     return delayed_array
 
 
-def get_delayed_array_for_timepoint(tp: int, dataset: str, shape: tuple, dtype: np.dtype) -> da.Array:
+def get_delayed_array_for_timepoint(
+    tp: int, dataset: str, shape: tuple, dtype: np.dtype
+) -> da.Array:
     """
     Processes a single timepoint for a given dataset. GFP and BF channels are set to 0 and 1, respectively.
 
@@ -92,13 +97,15 @@ def get_delayed_array_for_timepoint(tp: int, dataset: str, shape: tuple, dtype: 
     gfp_index, bf_index = get_specific_channel_order(dataset)
     gfp = load_original_slidebook_image(dataset, channel=gfp_index, timepoint=tp)
     bf = load_original_slidebook_image(dataset, channel=bf_index, timepoint=tp)
-    gfp_da = da.from_delayed(gfp, shape=shape, dtype=dtype) # ZYX
-    bf_da = da.from_delayed(bf, shape=shape, dtype=dtype) #ZYX
-    stack = da.stack([gfp_da, bf_da], axis=0) #CZYX
+    gfp_da = da.from_delayed(gfp, shape=shape, dtype=dtype)  # ZYX
+    bf_da = da.from_delayed(bf, shape=shape, dtype=dtype)  # ZYX
+    stack = da.stack([gfp_da, bf_da], axis=0)  # CZYX
     return stack
 
 
-def get_timepoints_for_position(pos: int, dataset: str, number_positions: int = 6) -> range:
+def get_timepoints_for_position(
+    pos: int, dataset: str, number_positions: int = 6
+) -> range:
     """
     Generates a list of timepoints for a scene (time series of the same position) in the dataset.
     The montage collection of sldy files results in raw data that is organized
@@ -118,7 +125,9 @@ def get_timepoints_for_position(pos: int, dataset: str, number_positions: int = 
     return timepoints
 
 
-def get_delayed_array_for_position(pos: int, dataset: str, number_positions: int = 6) -> da.Array:
+def get_delayed_array_for_position(
+    pos: int, dataset: str, number_positions: int = 6
+) -> da.Array:
     """
     Loads all timepoints for a given position in the datase as a Dask array.
 
@@ -132,7 +141,9 @@ def get_delayed_array_for_position(pos: int, dataset: str, number_positions: int
     """
     timepoints = get_timepoints_for_position(pos, dataset, number_positions)
     shape, dtype = get_image_format(dataset, 0, 0)
-    results = [get_delayed_array_for_timepoint(tp, dataset, shape, dtype) for tp in timepoints]
-    scene = da.stack(results, axis=0) # TCZYX
+    results = [
+        get_delayed_array_for_timepoint(tp, dataset, shape, dtype) for tp in timepoints
+    ]
+    scene = da.stack(results, axis=0)  # TCZYX
     print(f"finished processing {len(timepoints)} timepoints")
     return scene
