@@ -30,6 +30,9 @@
   time_interval_in_minutes: 5.0,
   cdh5_channel_name: CDH5,
   flow: [[0, 22.583, 25], [22.583, 48, 7.5]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: None,
+  brightfield_channel_index: None,
+  n_positions: None,
   features: {
     vicreg_cdh5: None,
     mae_cdh5: None,
@@ -47,8 +50,8 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 6], [24, 48, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 1,
+  brightfield_channel_index: 0,
   n_positions: None,
   features: {}
 },{
@@ -59,8 +62,8 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 1,
+  brightfield_channel_index: 0,
   n_positions: None,
   features: {}
 },{
@@ -71,8 +74,8 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 21]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 1,
+  brightfield_channel_index: 0,
   n_positions: None,
   features: {}
 },{
@@ -83,25 +86,25 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 7.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 1,
+  brightfield_channel_index: 0,
   n_positions: None,
   features: {}
 },{
   name: 20241016_20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241016/20241016_20X_timelapse_3D_MTG_FULL.dir/20241016_20X_timelapse - Position 1 [6] 3DMontage Complete-1730322941-247.imgdir",
+  original_path: "/allen/aics/microscopy/Endo Timelapses/20241016/20241016_20X_timelapse_SLDY.dir/20241016_20X_timelapse - Position 1 [6]-1730149735-706.imgdir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241016_20X.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 20.4, 35], [20.4, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: None,
   features: {}
 },{
   name: 20231122_T02_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2023/20231122/20231122_T02_001.dir",
+  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2023/20231122/20231122_T02_001.dir", # missing
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20231122_T02_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 5, # number of frames
@@ -113,7 +116,7 @@
   features: {}
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T02_001.dir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.dir", 
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T02_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 4, # number of frames
@@ -125,7 +128,7 @@
   features: {}
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
-  original_path: "//allen/aics/assay-dev/MicroscopyData/John_Paul/2024/20240328/20240328_T01_001.dir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T01_001.dir",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 5, # number of frames
@@ -143,8 +146,8 @@
   duration: 573, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 22.75, 5.5], [22.75, 48, 28.5]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: None,
   features: {}
 },
@@ -156,8 +159,8 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 35]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: None,
   features: {}
 }
