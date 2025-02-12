@@ -32,19 +32,23 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     return physical_pixel_sizes
 
 
-def get_level_shapes(shape: tuple) -> list[tuple]:
+def get_level_shapes(
+    shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]
+) -> list[tuple]:
     """
-    Uses XY and Z scaling parameters to determine the
-    image data shape at different resolutions.
+    Determines the image data shape at different resolutions using XY and Z scaling parameters.
+    By default, it returns the full resolution and a single downsampled resolution at 50% in XY.
+    The number of levels in the final output is determined by the length of the xy_scaling and 
+    z_scaling lists plus one (original resolution and then the scaled ones).
 
     Parameters:
     shape (tuple): The shape of the original image data.
+    xy_scaling (list[float]): The scaling factors for the XY dimensions.
+    z_scaling (list[float]): The scaling factors for the Z dimension.
 
     Returns:
-    list[tuple]: A list of shapes for each resolution level.
+    list[tuple]: A list of shapes for each resolution level. 
     """
-    xy_scaling = [0.5]
-    z_scaling = [1.0]
 
     if len(xy_scaling) != len(z_scaling):
         raise ValueError(
