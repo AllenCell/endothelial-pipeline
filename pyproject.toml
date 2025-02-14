@@ -34,6 +34,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "bioio-sldy>=1.0.2",
     "cellpose>=3.1.0",
+    "mypy>=1.15.0",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
