@@ -2,7 +2,7 @@ from pathlib import Path
 from bioio import BioImage
 from cellpose import io as cellpose_io, models, train
 from cellsmap.util import io
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 import numpy as np
 from skimage.exposure import rescale_intensity
 from skimage.filters import apply_hysteresis_threshold
@@ -11,7 +11,7 @@ from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
-from skimage.color import label2rgb
+# from skimage.color import label2rgb
 # output = io.load_train_test_data(train_dir, test_dir, image_filter="_img",
 #                                 mask_filter="_masks", look_one_level_down=False)
 # images, labels, image_names, test_images, test_labels, image_names_test = output
