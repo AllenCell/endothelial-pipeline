@@ -183,7 +183,7 @@ def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
     P = P/np.sum(P)
 
     # get generalized potential
-    U = generalized_potential(P)
+    U = -np.log(P)
 
     # compute gradient flow term
     gradient_term = gradient_flow_term(U,D_vals,xArrays,ndim=ndim,isConstant=isConstant)
@@ -200,7 +200,7 @@ def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
     # compute flux term
     flux_term = probability_flux(P,f_vals,D_vals,xArrays)/P
 
-    return U,gradient_term, divD, flux_term
+    return U, gradient_term, divD, flux_term
 
 def invert_D(D):
     if len(D.shape) == 2:
@@ -236,9 +236,6 @@ def entropy_production(J,D,P,x):
     dx = np.prod([x[i][1] - x[i][0] for i in range(ndim)])
     integral = np.sum(weighted_entropy_prod) * dx
 
-    # integral = np.copy(inner_prod).reshape([len(x[i]) for i in range(ndim)])
-    # for i in range(len(x)):
-    #     integral = np.trapz(integral,x[i],axis=0)
     return integral
 
 

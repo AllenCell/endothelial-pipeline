@@ -36,147 +36,19 @@ del df_ref_ # free up memory
 
 fig, ax = eaviz.plot_explained_variance(pca.explained_variance_ratio_)
 # %%
-my_mv = list_of_datasets[0]
+my_mv = list_of_datasets[1]
 mv_name = eaio.get_dataset_name(my_mv)
 feats_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv, metadata_cols=metadata_col)
 
 fig1,ax1 = eaviz.plot_top_3_PCs(feats_proj)
 ax1[0].set_ylim([-1.5,4])
 ax1[1].set_ylim([-7,-2])
-ax1[2].set_ylim([0,4.5])
+ax1[2].set_ylim([-0.5,4.5])
 
 fig2,ax2 = eaviz.plot_PCA_projection(feats_proj,mv_name)
-ax2.set_xlim([-4,8])
-ax2.set_ylim([-2,4])
+ax2.set_xlim([-2,5])
+ax2.set_ylim([-0.5,4])
 
-# %%
-PCs = [0,2]
-ndim = len(PCs)
-data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
-num_flow = len(u_list)
-
-Nbins = [40 for i in range(ndim)]
-bins = []
-centers = []
-
-f_KM = []
-D_KM = []
-f_err = []
-D_err = []
-
-for j in range(num_flow): # get bins and centers for data at high and low flow
-    bins_temp, centers_temp = eareg.get_bins(Nbins,data=data_all[j])
-    bins.append(bins_temp)
-    centers.append(centers_temp)
-
-    f_KM_temp, D_KM_temp, f_err_temp, D_err_temp = eareg.KM_avg_ND(data_all[j], bins[j], dt=5)
-    f_KM.append(f_KM_temp)
-    D_KM.append(D_KM_temp)
-    f_err.append(f_err_temp)
-    D_err.append(D_err_temp)
-
-# %%
-for j in range(num_flow):
-    fig,ax = plt.subplots()
-    err_mag = np.sqrt(np.sum(f_err[j]**2,axis=-1))
-    im = ax.pcolormesh(*np.meshgrid(*bins[j]),err_mag.T)
-    ax.quiver(*np.meshgrid(*centers[j]),f_KM[j][:,:,0].T,f_KM[j][:,:,1].T,color='w')
-    fig.colorbar(im, ax=ax, label = 'Standard deviation')
-    ax.set_xlabel('PC1')
-    ax.set_ylabel('PC3')
-    ax.set_title("Shear stress: "+str(u_list[j])+" dyn/cm^2")
-
-# %%
-f_KM_noNAN = []
-D_KM_noNAN = []
-X_pts_noNAN = []
-
-for j in range(num_flow):
-    f_KM_noNAN_temp, X_pts_temp = eareg.masked_vector_field(f_KM[j], np.array(np.meshgrid(*centers[j])).T)
-    D_KM_noNAN_temp, _ = eareg.masked_vector_field(D_KM[j], np.array(np.meshgrid(*centers[j])).T)
-    f_KM_noNAN.append(f_KM_noNAN_temp)
-    D_KM_noNAN.append(D_KM_noNAN_temp)
-    X_pts_noNAN.append(X_pts_temp)
-
-train_frac = 0.8
-seed = 47
-
-X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,
-                                                                         D_KM_noNAN,num_flow,
-                                                                         train_frac,seed,concat=True)
-
-# create corresponding input vector u train/test
-N_tot = [X_pts_noNAN[0].shape[0],X_pts_noNAN[1].shape[0]]
-N_train = [int(train_frac*N_tot[0]),int(train_frac*N_tot[1])]
-N_test = [N_tot[0]-N_train[0],N_tot[1]-N_train[1]]
-u_train = np.concatenate((u_traj[0][0]*np.ones(N_train[0]),u_traj[1][0]*np.ones(N_train[1])))
-u_test = np.concatenate((u_traj[0][0]*np.ones(N_test[0]),u_traj[1][0]*np.ones(N_test[1])))
-# %%
-sigmoid_range = range(3,4)
-
-def make_sigmoid(n):
-    def _(x):
-        return 1/(1+np.exp(-n*x))
-    return _
-
-
-def make_sigmoid_string(n):
-    def _(x):
-        return '1/(1+exp(-'+str(n)+'*'+x+')'
-    return _
-
-sigmoid_funcs = [make_sigmoid(n) for n in sigmoid_range]
-func_names = [make_sigmoid_string(n) for n in sigmoid_range]
-
-sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
-                             function_names=func_names)
-feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
-                                include_bias=True),
-                                sigmoid_lib])
-parameter_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
-full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
-    parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
-
-
-driftModel = ps.SINDy(feature_library = full_lib, optimizer = ps.SSR())
-driftModel.fit(X_train,t=5,x_dot=Y_train,u=u_train)
-
-
-diff_feature_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
-diff_parameter_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
-diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
-    parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
-
-
-diffModel = ps.SINDy(feature_library = diff_lib, optimizer = ps.SSR())
-diffModel.fit(X_train,t=5,x_dot=V_train,u=u_train)
-
-driftModel.print()
-
-print("\n")
-print("Drift model R^2: ", driftModel.score(X_test,t=5,x_dot=Y_test,u=u_test))
-print("\n")
-
-diffModel.print()
-
-print("\n")
-print("Diffusion model R^2: ", diffModel.score(X_test,t=5,x_dot=V_test,u=u_test))
-
-# %%
-
-myModel = [driftModel,diffModel]
-
-plt_args = {'pplane_xlim': [-1,3.5], 'pplane_ylim': [-2,4], 'pplane_N': 50,
-            'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1)}
-
-# %%
-for j in range(num_flow):
-    print('**** Running model analysis for u =',u_list[j],'dyn/cm^2 **** \n')
-    plot_tuple = model_analysis.run_model_analysis_2D(myModel,data_all[j],bins[j],centers[j],u_list[j],args=plt_args)
-
-
-
-# %%
 # %%
 # now fit model using multiple datasets
 PCs = [0,2]
@@ -195,8 +67,10 @@ u_test_list = []
 
 Nbins = [40 for i in range(ndim)]
 
+thresh = 0.45 # get this based on upper quantile of vector magnitudes along given PCs low flow data
 
-for ds_ID in range(4):
+# %%
+for ds_ID in range(4): 
     print('**** Generating train/test sets for dataset',ds_ID,'**** \n')
     my_mv = list_of_datasets[ds_ID]
     mv_name = eaio.get_dataset_name(my_mv)
@@ -205,6 +79,12 @@ for ds_ID in range(4):
     data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
     del feats_proj # free up memory
     num_flow = len(u_list)
+    if 0 in u_list: # right now, only using timepoints 300:450 of no flow
+        data_all_temp = []
+        for traj in data_all[0]:
+            data_all_temp.append(traj[300:450,:])
+        data_all = [data_all_temp]
+        u_traj = [u_traj[0][300:450]]
 
     bins = []
     centers = []
@@ -219,7 +99,7 @@ for ds_ID in range(4):
         bins.append(bins_temp)
         centers.append(centers_temp)
 
-        f_KM_temp, D_KM_temp, f_err_temp, D_err_temp = eareg.KM_avg_ND(data_all[j], bins[j], dt=5)
+        f_KM_temp, D_KM_temp, f_err_temp, D_err_temp = eareg.KM_avg_ND(data_all[j], bins[j], dt=5, threshold=thresh)
         f_KM.append(f_KM_temp)
         D_KM.append(D_KM_temp)
         f_err.append(f_err_temp)
@@ -305,7 +185,7 @@ sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
 feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
                                 include_bias=True),
                                 sigmoid_lib])
-parameter_lib=ps.PolynomialLibrary(degree=2, include_bias=True)
+parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
     parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
 
@@ -334,12 +214,26 @@ print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on tes
 # %%
 myModel = [driftModel,diffModel]
 
-plt_args = {'pplane_xlim': [-1,3.5], 'pplane_ylim': [-2,4], 'pplane_N': 50,
+if PCs[0] == 0:
+    pplane_xlim = [-4,3.5]
+    bin_xlim = [-5,4]
+elif PCs[0] == 1:
+    pplane_xlim = [-7,-2]
+    bin_xlim = [-8,-2]
+
+if PCs[1] == 1:
+    pplane_ylim = [-7,-2]
+    bin_ylim = [-8,-2]
+else:
+    pplane_ylim = [-2,4]
+    bin_ylim = [-3,5]
+
+plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
             'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1)}
 
 # fix bins and centers for all datasets
 Nbins = [40 for i in range(ndim)]
-bin_limits = [[-5,3.5],[-1,4.5]]
+bin_limits = [bin_xlim,bin_ylim]
 bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
 
 for ds_ID in range(4):
@@ -351,6 +245,12 @@ for ds_ID in range(4):
     data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
     del feats_proj # free up memory
     num_flow = len(u_list)
+    if 0 in u_list: # right now, only using timepoints 300:450 of no flow
+        data_all_temp = []
+        for traj in data_all[0]:
+            data_all_temp.append(traj[300:450,:])
+        data_all = [data_all_temp]
+        u_traj = [u_traj[0][300:450]]
 
 
     for j in range(num_flow): # get bins and centers for data at high and low flow    
@@ -384,7 +284,6 @@ for u in u_range:
     fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
     fpt_types = []
     if len(fpts) > 0:
-        print('Fixed points found at shear stress u =',u,'dyn/cm^2')
         for fpt in fpts:
             fptStability = pplane.find_stability(flowJacobian(fpt))
             if 'Stable' in fptStability:
@@ -395,10 +294,7 @@ for u in u_range:
                 fpt_types.append('saddle')
             else:
                 fpt_types.append('indeterminate')
-            print('  • '+fptStability+" at x = (%5.3f,%5.3f)" % (fpt[0],fpt[1]))
-    else:
-        print('No fixed points found at shear stress u =',u,'dyn/cm^2')
-    
+
     fpts_new = []
     fpt_types_new = []
     for fpt in fpts:
@@ -493,7 +389,7 @@ plt.title('Stable fixed points by shear stress')
 
 
 # %%
-u_range = np.linspace(6,35,80)
+u_range = np.linspace(6,35,40)
 # entropy production rate as a function of u
 D = model_eval.vector_field_function(diffModel)
 epr = np.zeros(len(u_range))
@@ -513,7 +409,8 @@ for u in u_range:
 
 # %%
 plt.plot(u_range,epr,'-o',color='k')
-
+plt.xlabel('Shear stress (dyn/cm$^2$)')
+plt.ylabel('Entropy production rate')
 
 
 
@@ -597,40 +494,65 @@ print('Power law exponent: ',pwr_params[1])
 ################### Generalized potential energy landscape ###################
 ## NEED TO RE-ADAPT FOR NEW FUNCTIONALITY
     
-N_fine = 70
+N_fine = 60
 
-x_fine = np.linspace(x1_lims[0],x1_lims[1],N_fine)
-y_fine = np.linspace(x2_lims[0],x2_lims[1],N_fine)
-centers_fine = [x_fine,y_fine]
-X1,X2 = np.meshgrid(x_fine,y_fine)
+x_fine = np.linspace(-4,4.5,N_fine+1)
+y_fine = np.linspace(-3,5.5,N_fine+1)
+bins_fine = [x_fine,y_fine]
+centers_fine = [0.5*(x_fine[1:]+x_fine[:-1]),
+                0.5*(y_fine[1:]+y_fine[:-1])]
+X1,X2 = np.meshgrid(centers_fine[0],centers_fine[1])
 # %%
-f_vals_new = f_mesh([X1,X2],u_traj[0][0]).T
-D_vals_new = D_mesh([X1,X2],u_traj[0][0]).T
+u = 28
+
+tol = 1e-6
+
+f = model_eval.vector_field_function(driftModel)
+D = model_eval.vector_field_function(diffModel)
+
+f_mesh = model_eval.mesh_grid_function(f)
+D_mesh = model_eval.mesh_grid_function(D)
+
+f_vals_new = f_mesh([X1,X2],u).T
+D_vals_new = D_mesh([X1,X2],u).T
+
+p_fit = model_eval.get_stationary_probability(f,D,bins_fine,centers_fine,u,tol=tol)
+U= -np.log(p_fit)
 
 print('**** Plotting generalized potential energy landscape **** \n')
-U, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_fine,tol=1e-6)
-grad_norm =grad_term.copy()
-flux_norm = flux_term.copy()
+_, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_fine,tol=tol)
+grad_norm = grad_term.copy()
+flux_norm = np.array(flux_term)
 # grad_norm = grad_term/(np.sqrt(grad_term[0]**2+grad_term[1]**2))
 # flux_norm = flux_term/(np.sqrt(flux_term[0]**2+flux_term[1]**2))
 fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
-ax.set_xlabel('PC1')
-ax.set_ylabel('PC3')
-axins = zoomed_inset_axes(ax, 2, loc=1)
-im = axins.imshow(U.T,interpolation='nearest', origin='lower',
-    extent=[x_fine[0], x_fine[-1], y_fine[0], y_fine[-1]],
-    cmap='jet', aspect=(x_fine[-1]-x_fine[0])/(y_fine[-1]-y_fine[0]))
-axins.set_xlim(2.5, 4)
-axins.set_ylim(0, 2)
+ax.set_xlabel('PC'+str(PCs[0]+1))
+ax.set_ylabel('PC'+str(PCs[1]+1))
+ax.set_title('Shear stress: '+str(u)+' dyn/cm$^2$')
+# axins = zoomed_inset_axes(ax, 2, loc=1)
+# im = axins.imshow(U.T,interpolation='nearest', origin='lower',
+#     extent=[x_fine[0], x_fine[-1], y_fine[0], y_fine[-1]],
+#     cmap='jet', aspect=(x_fine[-1]-x_fine[0])/(y_fine[-1]-y_fine[0]))
+# axins.set_xlim(2.5, 4)
+# axins.set_ylim(0, 2)
 
 # %%
 # same but with vector field decomposition
-fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
-downsample=8
-ax.quiver(x_fine[::downsample],y_fine[::downsample],grad_norm[0][::downsample,::downsample].T,grad_norm[1][::downsample,::downsample].T,color='w',pivot='tail')
-ax.quiver(x_fine[::downsample],y_fine[::downsample],flux_norm[0][::downsample,::downsample].T,flux_norm[1][::downsample,::downsample].T,color='r',pivot='tail')
-ax.set_xlabel('PC1',fontsize=28)
-ax.set_ylabel('PC3',fontsize=28)
+fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],
+                                   cmap='jet',surf=False)
+downsample=10
+ax.quiver(centers_fine[0][::downsample],
+          centers_fine[1][::downsample],
+          grad_norm[0][::downsample,::downsample].T,
+          grad_norm[1][::downsample,::downsample].T,
+          color='w',pivot='tail')
+ax.quiver(centers_fine[0][::downsample],
+          centers_fine[1][::downsample],
+          flux_norm[0][::downsample,::downsample].T,
+          flux_norm[1][::downsample,::downsample].T,
+          color='r',pivot='tail')
+ax.set_xlabel('PC'+str(PCs[0]+1))
+ax.set_ylabel('PC'+str(PCs[1]+1))
 
 # fig,axins = plt.subplots()
 # im = axins.imshow(U.T,interpolation='nearest', origin='lower',
@@ -642,40 +564,5 @@ ax.set_ylabel('PC3',fontsize=28)
 # axins.quiver(x_fine[::downsample],y_fine[::downsample],flux_norm[0][::downsample,::downsample].T,flux_norm[1][::downsample,::downsample].T,color='r',pivot='tail',scale=0.2,width=width)
 # axins.set_xlim(2,4)
 # axins.set_ylim(1.1,2.1)
-# %%
 
-f_vals_new = f_mesh([X1,X2],u_traj[1][0]).T
-D_vals_new = D_mesh([X1,X2],u_traj[1][0]).T
-print('**** Plotting generalized potential energy landscape **** \n')
-U, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_fine,tol=1e-6)
-grad_norm = grad_term.copy()
-flux_norm = flux_term.copy()
-# grad_norm = grad_term/(np.sqrt(grad_term[0]**2+grad_term[1]**2))
-# flux_norm = flux_term/(np.sqrt(flux_term[0]**2+flux_term[1]**2))
-fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
-ax.set_xlabel('PC1')
-ax.set_ylabel('PC3')
-
-# same but with vector field decomposition
-
-# %%
-fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
-downsample=8
-ax.quiver(x_fine[::downsample],y_fine[::downsample],grad_norm[0][::downsample,::downsample].T,grad_norm[1][::downsample,::downsample].T,color='w',pivot='tail')
-ax.quiver(x_fine[::downsample],y_fine[::downsample],flux_norm[0][::downsample,::downsample].T,flux_norm[1][::downsample,::downsample].T,color='r',pivot='tail')
-ax.set_xlabel('PC1')
-ax.set_ylabel('PC3')
-
-
-# %%
-fig,axins = plt.subplots()
-im = axins.imshow(U.T,interpolation='nearest', origin='lower',
-    extent=[x_fine[0], x_fine[-1], y_fine[0], y_fine[-1]],
-    cmap='jet', aspect=(x_fine[-1]-x_fine[0])/(y_fine[-1]-y_fine[0]))
-downsample = 4
-width = 0.015*(0-(-1))/(4-2)
-axins.quiver(x_fine[::downsample],y_fine[::downsample],grad_norm[0][::downsample,::downsample].T,grad_norm[1][::downsample,::downsample].T,color='w',pivot='tail',scale=0.17,width=width,edgecolor='k',linewidths=0.5)
-axins.quiver(x_fine[::downsample],y_fine[::downsample],flux_norm[0][::downsample,::downsample].T,flux_norm[1][::downsample,::downsample].T,color='r',pivot='tail',scale=0.17,width=width)
-axins.set_xlim(-3,-1)
-axins.set_ylim(-1.1,-0.1)
 # %%

@@ -58,7 +58,7 @@ def get_bins(Nbins,data=None,bin_limits=None):
             centers.append(0.5*(my_bins[1:]+my_bins[:-1]))
     return bins, centers
 
-def KM_avg_ND(X,bins,dt):
+def KM_avg_ND(X,bins,dt,threshold=None):
     '''Kramers-Moyal average drift and diffusion estimates for N-dimensional data'''
     ndim = len(bins)
     n = len(X) # number of trajectories
@@ -72,6 +72,11 @@ def KM_avg_ND(X,bins,dt):
     for (j,traj) in enumerate(X):
         dX = (traj[1:] - traj[:-1])/dt # Step (like a finite-difference derivative estimate)
         dX2 = (traj[1:] - traj[:-1])**2/dt
+
+        if threshold is not None: # Mask out large jumps
+            mask = np.where(np.linalg.norm(dX,axis=1) > threshold)[0]
+            dX[mask] = np.nan
+            dX2[mask] = np.nan
 
         id_list = [np.digitize(traj[:-1,i],bins[i]) for i in range(ndim)]
         uids = list(set(zip(*id_list))) # unique bin ids
@@ -141,13 +146,13 @@ def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
     
     return X_train, X_test, Y_train, Y_test, V_train, V_test
 
-def get_stationary_hist(data, bins,ndim=2,frame_index=100):
+def get_stationary_hist(data, bins,ndim=2,frame_index=-100):
     '''Get stationary histogram of data, using values 
     at time frame_index and on as the stationary data.'''
 
     if ndim == 2:
         p_hist, _, _ = np.histogram2d(np.concatenate([data[j][frame_index:,0] for j in range(len(data))]).flatten(),
-                              np.concatenate([data[j][100:,1] for j in range(len(data))]).flatten(), 
+                              np.concatenate([data[j][frame_index:,1] for j in range(len(data))]).flatten(), 
                               bins, density=True)
     elif ndim == 1:
         p_hist, _ = np.histogram(np.concatenate([data[j][frame_index:] for j in range(len(data))]).flatten(), 

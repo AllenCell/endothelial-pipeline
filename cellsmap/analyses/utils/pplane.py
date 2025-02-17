@@ -182,7 +182,7 @@ def plot_flow(ax,myFlow,x,numGrid = 15,ndim=2):
                 f_sgn = f_sgn[:,0]
             else:
                 f_sgn = f_sgn.T[:,0]
-        x_coarse = np.linspace(x[0],x[-1],numGrid)
+        # x_coarse = np.linspace(x[0],x[-1],numGrid)
         # for i in range(len(x_coarse)):
         #     ax.add_patch(FancyArrow(x_coarse[i],0,0.1*f_sgn[i],0,width=0.01,head_width=0.03,head_length=0.5,color='red'))
     else:
