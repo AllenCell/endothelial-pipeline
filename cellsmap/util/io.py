@@ -66,7 +66,7 @@ def get_available_channels(dataset_name:str) -> list:
 
 def get_channel_index(dataset_name:str, channel_names:list) -> int:
     available_channels = get_available_channels(dataset_name)
-    return [available_channels.index(channel) for channel in channel_names]
+    return [available_channels.index(channel) if channel in available_channels else None for channel in channel_names]
 
 def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
     path = get_zarr_path(dataset_name)

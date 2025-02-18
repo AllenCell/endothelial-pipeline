@@ -795,8 +795,6 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype
     px_res = images_metadata['physical_pixel_sizes']
     img_dim_order = images_metadata['dim_order']
     dim_order_out = 'TCZYX'
-    dtype = images_metadata['dtype'] or np.uint16
-
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]

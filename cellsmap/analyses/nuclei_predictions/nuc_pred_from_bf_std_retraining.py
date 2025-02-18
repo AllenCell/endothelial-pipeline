@@ -71,7 +71,8 @@ model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
                             channels=[0,0], normalize=True,
                             # test_data=test_images, test_labels=test_labels,
                             weight_decay=1e-4, SGD=True, learning_rate=0.1,
-                            n_epochs=100, model_name="bf_std_model_no_preprocess_retrained")
+                            n_epochs=100,
+                            save_path=model_dir, model_name="bf_std_model_no_preprocess_retrained")
 
 
 # test_dataset_name = '20241016_20X'
