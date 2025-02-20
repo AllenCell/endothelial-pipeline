@@ -186,6 +186,7 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 6]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  n_positions: 6,
   features: {}, 
   notes: "This timelapse has not yet been converted to ZARR."
 },{
@@ -196,6 +197,7 @@
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  n_positions: 6,
   features: {},
   notes: "This timelapse has not yet been converted to ZARR."
 },{
@@ -205,7 +207,10 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: ,
+  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 6,
   notes: "This dataset seems to be missing a metadata file..."
 },{
   name: 20250110_paired20X,
@@ -214,6 +219,9 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a fixed dataset
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: 10,
   notes: None
 },{
@@ -223,6 +231,9 @@
   pixel_size_xy_in_um: 0.191,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a fixed dataset
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: 10,
   notes: None
 },{
@@ -232,6 +243,9 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: 12, # 4 timeframes (which are actually positions) x 3 scenes
   notes: "Due to complications with Z focus when trying to get a 4x3 tiled region, 3 positions each consisting of 4x1 tilings were taken instead."
 },{
@@ -241,6 +255,9 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_positions: 12, # 4 timeframes (which are actually positions) x 3 scenes
   notes: "Due to complications with Z focus when trying to get a 4x3 tiled region, 3 positions each consisting of 4x1 tilings were taken instead."
 },{
@@ -250,6 +267,11 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
+  flow: [[]],
+  dapi_channel_index: 0,
+  egfp_channel_index: 1,
+  farred_channel_index: 2,
+  brightfield_channel_index: 3,
   n_positions: 10, # positions are represented as timeframes in the dataset
 },{
   name: 20250131_pairedPreFixation,
@@ -258,16 +280,70 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as timeframes in the dataset
   notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
 },{
   name: 20250131_pairedPostFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PostFix_sldy.sldy",
+  zarr_path: None,
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as timeframes in the dataset
   notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
 },{
   name: 20250203_pairedPreFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250203/GE00006610_20250204_20X_PRE_FIX_sldy.sldy",
+  zarr_path: None,
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: 
 },{
   name: 20250203_pairedPostFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250203/GE00006610_20250204_20X_POST_FIX_sldy.sldy",
+  zarr_path: None,
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: 
+},{
+  name: 20250214_pairedPreFixation,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250214/20250214_GE0000XXXX_20X_PRE_FIX_SLDY.sldy",
+  zarr_path: None,
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: 
+},{
+  name: 20250214_pairedPostFixation,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250214/20250219_GE00006747_20X_POST_FIX_SLDY.sldy",
+  zarr_path: None,
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: "These cells were fed about 2 hours before fixation (previously the cells had not been fed prior to fixation). This sample was imaged at a later date than the pre-fix sample due to blobs / bubbles appearing in the sample after fixation which had to be washed out first."
 }
 ]
