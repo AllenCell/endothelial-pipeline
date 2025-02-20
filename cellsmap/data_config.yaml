@@ -102,7 +102,7 @@
   notes: "This 24hr low-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20241016_20X,
-  original_path: "/allen/aics/microscopy/Endo Timelapses/20241016/20241016_20X_timelapse_SLDY.dir/20241016_20X_timelapse - Position 1 [6]-1730149735-706.imgdir",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241016/20241016_20X_timelapse_SLDY.dir/20241016_20X_timelapse - Position 1 [6]-1730149735-706.imgdir",
   zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241016_20X.ome.zarr",
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
@@ -218,8 +218,8 @@
   zarr_path: None,
   pixel_size_xy_in_um: 0.382,
   duration: 1,
-  time_interval_in_minutes: -1.0, # this is a fixed dataset
-  flow: [[]],
+  time_interval_in_minutes: -1.0, # this is a LIVE dataset
+  flow: [[0, 0.016, 35.0]], # 47.76mL/min actual flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10,
@@ -230,8 +230,8 @@
   zarr_path: None,
   pixel_size_xy_in_um: 0.191,
   duration: 1,
-  time_interval_in_minutes: -1.0, # this is a fixed dataset
-  flow: [[]],
+  time_interval_in_minutes: -1.0, # this is a LIVE dataset
+  flow: [[0, 0.016, 35.0]], # 47.76mL/min actual flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10,
@@ -242,8 +242,8 @@
   zarr_path: None,
   pixel_size_xy_in_um: 0.382,
   duration: 1,
-  time_interval_in_minutes: -1.0,
-  flow: [[]],
+  time_interval_in_minutes: -1.0, # this is a LIVE dataset
+  flow: [[0, 0.016, 27.83]], # 37.97mL/min actual flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 12, # 4 timeframes (which are actually positions) x 3 scenes
@@ -254,8 +254,8 @@
   zarr_path: None,
   pixel_size_xy_in_um: 0.382,
   duration: 1,
-  time_interval_in_minutes: -1.0,
-  flow: [[]],
+  time_interval_in_minutes: -1.0, # this is a LIVE dataset
+  flow: [[0, 0.016, 29.90]], # 40.8mL/min actual flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 12, # 4 timeframes (which are actually positions) x 3 scenes
@@ -280,7 +280,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[]],
+  flow: [[0, 48, 6.23]], # 17.28mL/min actual flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as timeframes in the dataset
@@ -292,7 +292,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[]],
+  flow: [[0, 48, 6.23]], # 17.28mL/min actual flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as timeframes in the dataset
@@ -304,7 +304,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[]],
+  flow: [[0, 24, 5.71]], # actual flow rate: 15.84mL/min * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as scenes in the dataset
@@ -316,7 +316,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[]],
+  flow: [[0, 24, 5.71]], # actual flow rate: 15.84mL/min
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as scenes in the dataset
@@ -328,7 +328,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[]],
+  flow: [[0, 0.016, 0]], # no flow condition
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as scenes in the dataset
@@ -340,7 +340,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[]],
+  flow: [[0, 0.016, 0]], # no flow condition
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as scenes in the dataset
