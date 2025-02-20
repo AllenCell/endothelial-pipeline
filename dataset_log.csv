@@ -1,2 +1,2 @@
 ﻿dataset_name,purpose,regimen,live_or_fixed_sample,original_path,zarr_path,added_to_data_config,extracted_features,fitted_SDE_model,notes
-20241016_20X,,"24h High SS, 24h Low SS",live,\\allen\aics\microscopy\Endo Timelapses\20241016,,,yes,,Need to clean up extra files; BZ did not find bubbles
+20241016_20X,,"24h High SS, 24h Low SS",live,\\allen\aics\microscopy\Endo Timelapses\20241016,//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20241016_20X.ome.zarr,,yes,,Need to clean up extra files; BZ did not find bubbles
