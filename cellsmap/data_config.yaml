@@ -89,7 +89,7 @@
   duration: 288, # number of frames
   time_interval_in_minutes: 5.0,
   flow: [[0, 24, 21.63]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  # 60mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  # 21.63 dyn/cm^2 = 60mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
   n_positions: 6,
