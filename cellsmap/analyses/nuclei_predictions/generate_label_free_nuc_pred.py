@@ -65,7 +65,8 @@ for args in tqdm(analysis_queue):
     print(f'Working on dataset {args["dataset_name"]}, T = {args["T"]}...')
 
     dataset_name = args['dataset_name']
-    img_path = Path(io.get_zarr_path(dataset_name))
+    img_path = args['input_path']
+    # img_path = Path(io.get_zarr_path(dataset_name))
     out_dir = Path(args['output_dir']) / dataset_name
     Path.mkdir(out_dir, exist_ok=True, parents=True)
 
