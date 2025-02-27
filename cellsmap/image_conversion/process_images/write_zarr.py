@@ -1,6 +1,6 @@
 import numpy as np
 import dask.array as da
-from pathlib import Path
+# from pathlib import Path
 from cellsmap.util import io
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
