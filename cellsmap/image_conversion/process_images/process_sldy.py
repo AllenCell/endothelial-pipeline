@@ -5,6 +5,7 @@ from cellsmap.util.io import (
     get_original_path,
     get_specific_channel_order,
     get_dataset_duration_in_frames,
+    get_number_of_positions,
 )
 import dask.array as da
 
@@ -22,7 +23,6 @@ def get_slidebook_image_path(dataset_name: str) -> Path:
     pathlib.Path: The constructed file path for the SlideBook image.
     """
     sldy_path = get_original_path(dataset_name)
-    sldy_path = Path('//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240305/20240305_T01_001.sldy')
     return sldy_path
 
 
@@ -49,7 +49,7 @@ def get_timepoints_for_position(
 
 
 def get_delayed_array_for_position(
-    pos: int, dataset_name: str, number_positions: int = 6
+    pos: int, dataset_name: str, number_positions: int = 6, scene_index: int = 0,
 ) -> da.Array:
     """
     Loads all timepoints for a given position in the datase as a Dask array.
@@ -62,10 +62,14 @@ def get_delayed_array_for_position(
     Returns:
     dask.array.Array: A Dask array containing the processed images for all timepoints at the given position.
     """
-    # Get the timepoints for the specified position
-    timepoints = get_timepoints_for_position(pos, dataset_name, number_positions)
     # Load the dataset as a BioImage object
-    img = BioImage(get_slidebook_image_path(dataset_name))
+    img = BioImage(get_original_path(dataset_name))
+    # Set the scene of the image
+    img.set_scene(int(scene_index))
+    # Get the timepoints for the specified position
+    t_final = img.dims.T #  the total number of timepoints in "img"
+    number_positions = get_number_of_positions(dataset_name)
+    timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
     gfp_index, bf_index = get_specific_channel_order(dataset_name)
     # Get the delayed arrays for each timepoint at the specified position
