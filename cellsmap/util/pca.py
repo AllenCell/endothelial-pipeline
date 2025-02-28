@@ -92,7 +92,7 @@ def get_pca(data: pd.DataFrame, num_pcs: int) -> Pipeline:
 
     pipe = Pipeline([
         ('scaler', StandardScaler()),
-        ('pca', PCA(n_components=num_pcs))
+        ('pca', PCA(n_components=num_pcs, svd_solver='full'))
     ])
     pipe.fit(data[feature_cols].values)
 
