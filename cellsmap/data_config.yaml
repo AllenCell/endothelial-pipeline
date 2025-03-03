@@ -2,7 +2,7 @@
 [
 {
   name: 20240305_T01_001,
-  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240305/20240305_T01_001.dir/20240305_T01_001-1709680442-940.imgdir",
+  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240305/20240305_T01_001.sldy",
   zarr_path: //allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr,
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames

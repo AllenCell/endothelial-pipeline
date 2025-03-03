@@ -7,6 +7,7 @@ from cellsmap.image_conversion.process_images.write_zarr import (
 )
 from cellsmap.util.io import get_original_path
 from bioio import BioImage
+from pathlib import Path
 
 """
 This script processes images from a dataset and writes them to Zarr format.
@@ -24,23 +25,27 @@ Example:
     python cellsmap/image_conversion/sldy_to_zarr.py 20240305_T01_001 /allen/aics/assay-dev/users/Chantelle/outputs/temp
 
 This will process the dataset '20240305_T01_001' and save the output to the specified directory.
+The resulting zarr contains images from one scene.
 """
 
 def convert_sldy_dataset(dataset: str, output_path: str, channel_names: list[str] = ["EGFP", "BF"]):
     # NOTE there is an implicit assumption here that all scenes in a dataset
     #       have the same number of positions, which may not always be true.
-    # TODO handle the case where the number of positions varies between scenes
     n_positions = get_number_of_positions(dataset)
     physical_pixel_sizes = get_sldy_metadata(dataset)
     interval_min = get_time_interval_in_minutes(dataset)
     img = BioImage(get_original_path(dataset))
-    for scene_index in range(len(img.scenes)):
-        for position in range(n_positions):
-            output = f"{output_path}/{dataset}/S{scene_index}/{dataset}_S{scene_index}_P{position}.ome.zarr"
-            scene = get_delayed_array_for_position(position, dataset, n_positions, scene_index)
-            write_scene(
-                scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
-            )
+    assert not (n_positions > 1 and len(img.scenes) > 1), "One of number of positions or number of scenes must be one."
+    # for scene_index in range(len(img.scenes)):
+    for position in range(n_positions):
+        # output = f"{output_path}/{dataset}/{dataset}_S{scene_index}_P{position}.ome.zarr"
+        output = f"{output_path}/{dataset}_P{position}.ome.zarr"
+        output = str(Path(output))
+        print(f"Writing to {output}")
+        scene = get_delayed_array_for_position(position, dataset, n_positions, 0)
+        write_scene(
+            scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
+        )
 
 
 def main():
@@ -64,4 +69,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(dataset='20240305_T01_001', output_path=Path("/allen/aics/assay-dev/users/Serge/test_images"))

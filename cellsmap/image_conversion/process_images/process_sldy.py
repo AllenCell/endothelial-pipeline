@@ -10,42 +10,42 @@ from cellsmap.util.io import (
 import dask.array as da
 
 
-def get_slidebook_image_path(dataset_name: str) -> Path:
-    """
-    Constructs the file path for a SlideBook image.
+# def get_slidebook_image_path(dataset_name: str) -> Path:
+#     """
+#     Constructs the file path for a SlideBook image.
 
-    Parameters:
-    dataset_name (str): The name of the dataset.
-    channel (int): The channel index.
-    timepoint (int): The timepoint index.
+#     Parameters:
+#     dataset_name (str): The name of the dataset.
+#     channel (int): The channel index.
+#     timepoint (int): The timepoint index.
 
-    Returns:
-    pathlib.Path: The constructed file path for the SlideBook image.
-    """
-    sldy_path = get_original_path(dataset_name)
-    return sldy_path
+#     Returns:
+#     pathlib.Path: The constructed file path for the SlideBook image.
+#     """
+#     sldy_path = get_original_path(dataset_name)
+#     return sldy_path
 
 
-def get_timepoints_for_position(
-    pos: int, dataset_name: str, number_positions: int = 6
-) -> range:
-    """
-    Generates a list of timepoints for a scene (time series of the same position) in the dataset.
-    The montage collection of sldy files results in raw data that is organized
-    in increments of time (t) for each position acquired. To assemble the full time series for a scene,
-    we need to select timepoints in increments of the total number of positions in the dataset.
+# def get_timepoints_for_position(
+#     pos: int, dataset_name: str, number_positions: int = 6
+# ) -> range:
+#     """
+#     Generates a list of timepoints for a scene (time series of the same position) in the dataset.
+#     The montage collection of sldy files results in raw data that is organized
+#     in increments of time (t) for each position acquired. To assemble the full time series for a scene,
+#     we need to select timepoints in increments of the total number of positions in the dataset.
 
-    Parameters:
-    pos (int): The position index.
-    dataset_name (str): The name of the dataset.
-    number_positions (int): The total number of positions in the dataset. Default is 6.
+#     Parameters:
+#     pos (int): The position index.
+#     dataset_name (str): The name of the dataset.
+#     number_positions (int): The total number of positions in the dataset. Default is 6.
 
-    Returns:
-    range: A range object containing the timepoints for the given position.
-    """
-    t_final = get_dataset_duration_in_frames(dataset_name)  # if testing set t_final = 10
-    timepoints = range(pos, t_final * number_positions, number_positions)
-    return timepoints
+#     Returns:
+#     range: A range object containing the timepoints for the given position.
+#     """
+#     t_final = get_dataset_duration_in_frames(dataset_name)  # if testing set t_final = 10
+#     timepoints = range(pos, t_final * number_positions, number_positions)
+#     return timepoints
 
 
 def get_delayed_array_for_position(
@@ -58,6 +58,7 @@ def get_delayed_array_for_position(
     pos (int): The position index to process.
     dataset_name (str): The name of the dataset.
     number_positions (int): The total number of positions in the dataset. Default is 6.
+    scene_index (int): The scene index. You can find the scene names (in their indexed order) using `BioImage(get_original_path(dataset_name)).scenes` Default is 0.
 
     Returns:
     dask.array.Array: A Dask array containing the processed images for all timepoints at the given position.
@@ -67,7 +68,8 @@ def get_delayed_array_for_position(
     # Set the scene of the image
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position
-    t_final = img.dims.T #  the total number of timepoints in "img"
+    # t_final = img.dims.T #  the total number of timepoints in "img"
+    t_final = 12
     number_positions = get_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
