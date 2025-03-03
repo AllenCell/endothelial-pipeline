@@ -46,7 +46,7 @@ def predict_nuclei_from_brightfield(image: np.ndarray, CellPose_model_path: str)
 
 # Build a list of datasets to analyze
 print('All available datasets:')
-dataset_names_all = io.get_available_datasets()
+dataset_name_list = io.get_available_datasets()
 
 test_datasets = [
     '20240328_T02_001', '20240328_T01_001',
@@ -54,10 +54,12 @@ test_datasets = [
     # '20241016_20X', '20241120_20X', '20241203',
     # '20241210', '20241217',
     # ]
-dataset_name_list = [name for name in dataset_names_all if name in test_datasets]
+dataset_name_list = [name for name in dataset_name_list if name in test_datasets]
 
 # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
 analysis_queue = build_analysis_queue(dataset_name_list, t_to_eval=None)
+# NOTE the line below was only for prototyping and can be
+# removed when ready to analyze all datasets
 analysis_queue += build_analysis_queue(['20241120_20X'], t_to_eval=slice(None, None, 25))
 
 # Predict nuclei from brightfield images using the retrained CellPose model
@@ -88,7 +90,7 @@ for args in tqdm(analysis_queue):
     masks_bf_std = model_bf_stdproject.eval(img_arr[args['T'], bfstd_chan, ...].squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0.0)
 
     # Save the predictions with the brightfield and brightfield standard deviation
-    # NOTE: overlay_bf was here for convience during development
+    # NOTE: can remove overlay_bf; was here for convience during development
     # overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(img_arr[args['T'], bf_chan, ...].squeeze()), bg_label=0)
     if any(nuc_chan):
         print(' - saving overlay of prediction and training image...')
