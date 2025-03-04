@@ -24,6 +24,10 @@ Arguments:
 Example:
     python cellsmap/image_conversion/sldy_to_zarr.py 20240305_T01_001 /allen/aics/assay-dev/users/Chantelle/outputs/temp
 
+Example (using API):
+    output_path = Path('/allen/aics/assay-dev/users/Serge/test_images')
+    convert_sldy_dataset(dataset=20240305_T01_001, output_path=str(output_path))
+
 This will process the dataset '20240305_T01_001' and save the output to the specified directory.
 The resulting zarr contains images from one scene.
 """
@@ -36,16 +40,17 @@ def convert_sldy_dataset(dataset: str, output_path: str, channel_names: list[str
     interval_min = get_time_interval_in_minutes(dataset)
     img = BioImage(get_original_path(dataset))
     assert not (n_positions > 1 and len(img.scenes) > 1), "One of number of positions or number of scenes must be one."
-    # for scene_index in range(len(img.scenes)):
-    for position in range(n_positions):
-        # output = f"{output_path}/{dataset}/{dataset}_S{scene_index}_P{position}.ome.zarr"
-        output = f"{output_path}/{dataset}_P{position}.ome.zarr"
-        output = str(Path(output))
-        print(f"Writing to {output}")
-        scene = get_delayed_array_for_position(position, dataset, n_positions, 0)
-        write_scene(
-            scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
-        )
+    for scene_index in range(len(img.scenes)):
+        for position in range(n_positions):
+            if n_positions > 1:
+                output = f"{output_path}/{dataset}/{dataset}_P{position}.ome.zarr"
+            else:
+                output = f"{output_path}/{dataset}/{dataset}_P{scene_index}.ome.zarr"
+            print(f"Writing to {output}")
+            scene = get_delayed_array_for_position(position, dataset, n_positions, scene_index)
+            write_scene(
+                scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
+            )
 
 
 def main():

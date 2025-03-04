@@ -69,7 +69,7 @@ def get_delayed_array_for_position(
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position
     # t_final = img.dims.T #  the total number of timepoints in "img"
-    t_final = 12
+    t_final = 18
     number_positions = get_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels

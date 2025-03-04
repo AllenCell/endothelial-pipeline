@@ -17,8 +17,9 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     Returns:
     PhysicalPixelSizes: The physical pixel sizes for the dataset.
     """
-    original_path = str(io.get_original_path(dataset))
-    dataset_path = original_path.rsplit("/", 1)[0]
+    # original_path = str(io.get_original_path(dataset))
+    # dataset_path = original_path.rsplit("/", 1)[0]
+    dataset_path = io.get_original_path(dataset)
     im = BioImage(dataset_path)
     xy_pixel_size_in_um = im.physical_pixel_sizes
     metadata = im.metadata
