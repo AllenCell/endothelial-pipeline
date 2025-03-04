@@ -21,14 +21,21 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     # dataset_path = original_path.rsplit("/", 1)[0]
     dataset_path = io.get_original_path(dataset)
     im = BioImage(dataset_path)
-    xy_pixel_size_in_um = im.physical_pixel_sizes
     metadata = im.metadata
+    return metadata
+
+def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
+    # xy_pixel_size_in_um = im.physical_pixel_sizes
+    xy_pixel_size_in_um = metadata['image_record']['CLensDef70']['mMicronPerPixel']
+    optovar_mag = metadata['image_record']['COptovarDef70']['mMagnification']
     z_step_um = metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
 
     physical_pixel_sizes = PhysicalPixelSizes(
         Z=z_step_um,
-        Y=xy_pixel_size_in_um.Y,
-        X=xy_pixel_size_in_um.X,
+        # Y=xy_pixel_size_in_um.Y,
+        # X=xy_pixel_size_in_um.X,
+        Y=xy_pixel_size_in_um / optovar_mag,
+        X=xy_pixel_size_in_um / optovar_mag,
     )
     return physical_pixel_sizes
 

@@ -49,7 +49,7 @@ import dask.array as da
 
 
 def get_delayed_array_for_position(
-    pos: int, dataset_name: str, number_positions: int = 6, scene_index: int = 0,
+    pos: int, dataset_name: str, number_positions: int = 6, scene_index: int = 0, img = None,
 ) -> da.Array:
     """
     Loads all timepoints for a given position in the datase as a Dask array.
@@ -64,12 +64,12 @@ def get_delayed_array_for_position(
     dask.array.Array: A Dask array containing the processed images for all timepoints at the given position.
     """
     # Load the dataset as a BioImage object
-    img = BioImage(get_original_path(dataset_name))
+    img = img if img else BioImage(get_original_path(dataset_name))
     # Set the scene of the image
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position
-    # t_final = img.dims.T #  the total number of timepoints in "img"
-    t_final = 18
+    t_final = img.dims.T #  the total number of timepoints in "img"
+    # t_final = 6
     number_positions = get_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
@@ -80,5 +80,5 @@ def get_delayed_array_for_position(
     # Concatenate the delayed arrays into a single large delayed array
     # along the time axis
     scene = da.stack(results, axis=0)  # TCZYX
-    print(f"finished processing {len(timepoints)} timepoints")
+    print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
