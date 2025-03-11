@@ -1,64 +1,6 @@
 # This file contains information about the datasets that are used in
 # downstream analyses for the holistic - endos project.
-[
-{
-  name: 20240305_T01_001,
-  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240305/20240305_T01_001.sldy",
-  zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr",
-  barcode: none,
-  live_or_fixed_sample: live,
-  microscope: 3i,
-  shear_stress_regime: 24hr_high-to-24hr_low,
-  use_cases: [deprecated],
-  pixel_size_xy_in_um: 0.382,
-  duration: 577, # number of frames
-  time_interval_in_minutes: 5.0,
-  cdh5_channel_name: CDH5_Tubulin,
-  flow: [[0, 24, 20], [24, 48, 6]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...] 
-  egfp_channel_index: 1,
-  brightfield_channel_index: 0,
-  n_positions: 6,
-  notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
-          This high-to-low flow dataset has a mix of CDH5 and tubulin cells.
-          There is a wave of cell death early on in the timelapse."
-},{
-  name: 20240917_20X_48hr, 
-  original_path: None, # cannot find, must generate
-  zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240917_20X_48hr.ome.zarr",
-  barcode: none,
-  live_or_fixed_sample: live,
-  microscope: 3i,
-  shear_stress_regime: 24hr_high-to-24hr_low,
-  use_cases: [deprecated],
-  pixel_size_xy_in_um: 0.382,
-  duration: 577, # number of frames
-  time_interval_in_minutes: 5.0,
-  flow: [[0, 22.583, 25], [22.583, 48, 7.5]], #format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
-  n_positions: 6,
-  notes: "Since the original data can't be found right now, the egfp_channel_index and brightfield_channel_index are unknown.
-          It is unclear from the lab notes if the shear stress here is the set or measured one.
-          This is the high-to-low flow dataset with 'holes'. The fibronectin substrate that cells attach to may have incompletely coated the slide."
-},{
-  name: 20240227_T01_001,
-  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240227/20240227_T01_001.sldy",
-  zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240227_T01_001.ome.zarr",
-  barcode: none,
-  live_or_fixed_sample: live,
-  microscope: 3i,
-  shear_stress_regime: 24hr_low-to-24hr_high,
-  use_cases: [deprecated],
-  pixel_size_xy_in_um: 0.382,
-  duration: 577, # number of frames
-  time_interval_in_minutes: 5.0,
-  flow: [[0, 24, 6], [24, 48, 28]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: 1,
-  brightfield_channel_index: 0,
-  n_positions: 6,
-  notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
-          This low-to-high flow dataset has a mix of CDH5 and tubulin cells."
-},{
+[{
   name: 20240213_T01_001,
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240213/20240213_T01_001.sldy",
   zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240213_T01_001.ome.zarr",
@@ -76,24 +18,6 @@
   n_positions: 6,
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           This 24hr high-flow dataset has a mix of CDH5 and tubulin cells."
-},{
-  name: 20240215_T01_001,
-  original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240215/20240215_T01_001.sldy",
-  zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240215_T01_001.ome.zarr",
-  barcode: none,
-  live_or_fixed_sample: live,
-  microscope: 3i,
-  shear_stress_regime: 24hr_high,
-  use_cases: [deprecated],
-  pixel_size_xy_in_um: 0.382,
-  duration: 288, # number of frames
-  time_interval_in_minutes: 5.0,
-  flow: [[0, 24, 21.63]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  # 21.63 dyn/cm^2 = 60mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
-  egfp_channel_index: 1,
-  brightfield_channel_index: 0,
-  n_positions: 6,
-  notes: "This 24hr high-flow dataset has a mix of CDH5 and tubulin cells."
 },{
   name: 20240220_T01_001,
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240220/20240220_T01_001.sldy",
@@ -133,23 +57,6 @@
   n_positions: 6,
   notes: "This is a high-to-low flow dataset. 
           There is some cell debris in the CDH5 channel."
-},{
-  name: 20231122_T02_001, #FIXED DATA. Each timepoint is a different position
-  original_path: none, # missing
-  zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20231122_T02_001.ome.zarr",
-  barcode: none,
-  live_or_fixed_sample: fixed,
-  microscope: 3i,
-  shear_stress_regime: no_flow,
-  use_cases: [deprecated],
-  pixel_size_xy_in_um: 0.382,
-  duration: 5, # number of frames
-  time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: None,
-  brightfield_channel_index: None,
-  n_positions: None,
-  notes: "This is a fixed dataset. Each timepoint is a different position."
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.sldy", 
@@ -260,57 +167,6 @@
   brightfield_channel_index: 1,
   n_positions: 6,
   notes: "This timelapse has not yet been converted to ZARR. No flow with 1 feed only."
-},{
-  name: 20241210_20X_pairedPreFix,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241210/20241212/Pre Fix/20241212_20X_PRE_FIX_SLDY.sldy",
-  zarr_path: None,
-  barcode: none,
-  live_or_fixed_sample: live,
-  microscope: 3i,
-  shear_stress_regime: no_flow,
-  use_cases: [],
-  pixel_size_xy_in_um: 0.382,
-  duration: 1, # number of frames
-  time_interval_in_minutes: -1.0,
-  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  n_positions: 6, # these are scenes in the dataset
-  egfp_channel_index: 0,
-  brightfield_channel_index: 1,
-  notes: ''
-},{
-  name: 20241210_20X_pairedDuringFix,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241210/20241212/During Fix/20241212_20X_DURING_FIX_SLDY.sldy",
-  zarr_path: None,
-  barcode: none,
-  live_or_fixed_sample: fixed,
-  microscope: 3i,
-  shear_stress_regime: no_flow,
-  use_cases: [],
-  pixel_size_xy_in_um: 0.382,
-  duration: 1, # number of frames
-  time_interval_in_minutes: -1.0,
-  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  n_positions: 6, # these are scenes in the dataset
-  egfp_channel_index: 0,
-  brightfield_channel_index: 1,
-  notes: ''
-},{
-  name: 20241210_20X_pairedPostFix,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241210/20241212/Post Fix/20241212_20X_POST_FIX_SLDY.sldy",
-  zarr_path: None,
-  barcode: none,
-  live_or_fixed_sample: fixed,
-  microscope: 3i,
-  shear_stress_regime: no_flow,
-  use_cases: [],
-  pixel_size_xy_in_um: 0.382,
-  duration: 1, # number of frames
-  time_interval_in_minutes: -1.0,
-  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  n_positions: 6, # these are scenes in the dataset
-  egfp_channel_index: 0,
-  brightfield_channel_index: 1,
-  notes: ''
 },{
   name: 20241217_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241217/20241217_20X_timelapse_SLDY.sldy",
