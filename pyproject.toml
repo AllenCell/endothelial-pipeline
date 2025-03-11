@@ -41,6 +41,9 @@ readme = "README.md"
 license = {text = "AISL"}
 
 [project.optional-dependencies]
+internal = [
+    "aicsfiles>=7.10.0",
+]
 pytorch = [
     # moving pytorch to an optional dependency because it does not
     # install on non-linux machines
