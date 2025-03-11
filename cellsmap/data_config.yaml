@@ -58,6 +58,26 @@
   notes: "This is a high-to-low flow dataset. 
           There is some cell debris in the CDH5 channel."
 },{
+  name: 20241022_20X_mito,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241022/20241022_20X_timelapse_SLDY.sldy",
+  zarr_path: None,
+  barcode: none,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 24hr_high-to-24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 24, 25.13], [24, 48, 6.24]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  # flow switched between timeframes 263-264
+  # 25.13 = 34.29 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
+  # 6.24 = 8.51 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
+  egfp_channel_index: 1,
+  brightfield_channel_index: 0,
+  n_positions: 6,
+  notes: ""
+},{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.sldy", 
   zarr_path: "//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240328_T02_001.ome.zarr",
@@ -269,7 +289,7 @@
   microscope: Nikon,
   shear_stress_regime: 24hr_low-to-24hr_high,
   use_cases: [feasibility],
-  pixel_size_xy_in_um: 0.325,
+  pixel_size_xy_in_um: 0.325, # note that the magnification changer was not used here, thus the pixel size is 0.325 instead of 0.392
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
   flow: [[0, 24, 6.51], [24, 48, 29.90], [48, 48.25, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
@@ -288,7 +308,7 @@
   microscope: Nikon,
   shear_stress_regime: 24hr_low-to-24hr_high,
   use_cases: [feasibility],
-  pixel_size_xy_in_um: 0.325,
+  pixel_size_xy_in_um: 0.325, # note that the magnification changer was not used here, thus the pixel size is 0.325 instead of 0.392
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
   flow: [[0, 24, 6.37], [24, 48, 27.83], [48, 48.25, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
@@ -428,5 +448,184 @@
   brightfield_channel_index: 1,
   n_positions: 10, # positions are represented as scenes in the dataset
   notes: "These cells were fed about 2 hours before fixation (previously the cells had not been fed prior to fixation). This sample was imaged at a later date than the pre-fix sample due to blobs / bubbles appearing in the sample after fixation which had to be washed out first."
+},{
+  name: 20250219_40X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250219/20250219_GE00006885_40X_sldy.sldy",
+  zarr_path: None,
+  barcode: GE00006885,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 48hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.191,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 32, # positions are represented as scenes in the dataset
+  notes: ""
+},{
+  name: 20250224_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250224/20250224_GE00006991_20X_timelapse_SLDY.sldy",
+  zarr_path: None,
+  barcode: GE00006991,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low-to-24hr_high,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 21.92, 5.83], [21.92, 48, 22.00]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  # flow change occurred at 12PM between timeframes 262-263
+  # 5.83 dyn/cm^2 = 16.16 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  # 22.00 dyn/cm^2 = 61.02 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 6, # positions are represented as timeframes in the dataset
+  notes: ""
+},{
+  name: 20250224_20X_Nikon,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250224/20250224_GE00006992_endo_low_to_high.nd2",
+  zarr_path: None,
+  barcode: GE00006992,
+  live_or_fixed_sample: live,
+  microscope: Nikon,
+  shear_stress_regime: 24hr_low-to-24hr_high,
+  use_cases: [feasibility],
+  pixel_size_xy_in_um: 0.392,
+  duration: 577, # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 23.08, 5.62], [23.08, 48, 25.91]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  # flow change occurred at 2:58PM between timeframes 277-278
+  # 5.62 dyn/cm^2 = 15.6mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  # 25.91 dyn/cm^2 = 71.86mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 6, # positions are represented as scenes in the dataset
+  notes: ""
+},{
+  name: 20250227_paired20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250227 20x 40x paired/20250227_GE00007101_20X_zstacks_SLDY.sldy",
+  zarr_path: None,
+  barcode: GE00007101,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: ""
+},{
+  name: 20250227_paired40X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250227 20x 40x paired/20250227_GE00007101_40X_zstacks_SLDY.sldy",
+  zarr_path: None,
+  barcode: GE00007101,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.191,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: ""
+},{
+  name: 20250227_40X,
+  original: "//allen/aics/microscopy/Endo Timelapses/20250227 timelapse/20250227_GE00007101_40X_timelapse_SLDY.sldy",
+  zarr_path: None,
+  barcode: GE00007101,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low,
+  use_cases: [feasibility],
+  pixel_size_xy_in_um: 0.191,
+  duration: 481, # number of frames
+  time_interval_in_minutes: 1.0,
+  flow: [[0, 0.52, 6.16], [0.52, 8, 21.7]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  # flow changed between timeframes 30-31
+  # 6.16 dyn/cm^2 = 17.1mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  # 21.63 dyn/cm^2 = 60.0mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 1,
+  notes: ""
+},{
+  name: 20250228_paired20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250228 20x 40x/20250228_GE00006610_20x_zstacks_sldy.sldy",
+  zarr_path: None,
+  barcode: GE00006610,
+  live_or_fixed_sample: fixed,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: ""
+},{
+  name: 20250228_paired40X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250228 20x 40x/20250228_GE00006610_40x_zstacks_sldy.sldy",
+  zarr_path: None,
+  barcode: GE00006610,
+  live_or_fixed_sample: fixed,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.191,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 10, # positions are represented as scenes in the dataset
+  notes: ""
+},{
+  name: 20250304_paired3iNikon_3i1st,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250304/20250304_GE00006610_20X_pairedNikon.sldy",
+  zarr_path: None,
+  barcode: GE00006610,
+  live_or_fixed_sample: fixed,
+  microscope: 3i,
+  shear_stress_regime: 24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 50, # positions are represented as timeframes in the dataset
+  notes: ""
+},{
+  name: 20250304_paired3iNikon_Nikon2nd,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250304/20250304_20X_paired3iNikon_GE00006610.nd2",
+  zarr_path: None,
+  barcode: GE00006610,
+  live_or_fixed_sample: fixed,
+  microscope: Nikon,
+  shear_stress_regime: 24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.392,
+  duration: 1,
+  time_interval_in_minutes: -1.0,
+  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_positions: 50, # positions are represented as scenes in the dataset
+  notes: ""
 }
 ]

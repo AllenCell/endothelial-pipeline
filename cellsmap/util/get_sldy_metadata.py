@@ -106,8 +106,8 @@ def get_num_unique_imaging_positions(sldy_metadata: dict) -> int:
     stage_position_dim_order = {dim: i for i, dim in enumerate(sldy_metadata['stage_position_data']['StructDefMemberName'])}
     stage_position_data = sldy_metadata['stage_position_data']['StructArrayValues']
     stage_position_data = np.reshape(stage_position_data, (-1, len(stage_position_dim_order)))
-    num_horizontal_tiles = np.unique(stage_position_data[:,'mX']).shape
-    num_vertical_tiles = np.unique(stage_position_data[:,'mY']).shape
+    num_horizontal_tiles = len(np.unique(stage_position_data[:, stage_position_dim_order['mX']]))
+    num_vertical_tiles = len(np.unique(stage_position_data[:, stage_position_dim_order['mY']]))
     num_planes = sldy_metadata['image_record']['CImageRecord70']['mNumPlanes']
     return num_horizontal_tiles * num_vertical_tiles * num_planes
 
@@ -169,8 +169,8 @@ def get_tiling_arrangement(sldy_metadata: dict) -> dict:
     stage_position_dim_order = {dim: i for i, dim in enumerate(sldy_metadata['stage_position_data']['StructDefMemberName'])}
     stage_position_data = sldy_metadata['stage_position_data']['StructArrayValues']
     stage_position_data = np.reshape(stage_position_data, (-1, len(stage_position_dim_order)))
-    num_horizontal_tiles = np.unique(stage_position_data[:,stage_position_dim_order['mX']]).shape
-    num_vertical_tiles = np.unique(stage_position_data[:,stage_position_dim_order['mY']]).shape
+    num_horizontal_tiles = len(np.unique(stage_position_data[:,stage_position_dim_order['mX']]))
+    num_vertical_tiles = len(np.unique(stage_position_data[:,stage_position_dim_order['mY']]))
     # num_planes = sldy_metadata['image_record']['CImageRecord70']['mNumPlanes']
     return {'number_of_tiles_in_X': num_horizontal_tiles, 'number_of_tiles_in_Y': num_vertical_tiles}
 
