@@ -8,7 +8,7 @@ def save_file_to_fms(file_path, dataset, model_version, commit_hash, misc_notes,
 
     Parameters:
     file_path (str): The path to the file to be uploaded.
-    dataset (str): The name of the dataset.
+    dataset (str): The name of the dataset matching the dataconfig.yaml file.
     model_version (str): The version of the model used to generate the file. If using the date use the format YYYYMMDD.
     commit_hash (str): The commit hash of the code used to generate the file. 
     misc_notes (str): Additional relavent notes.
