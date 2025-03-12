@@ -1,7 +1,7 @@
 from aicsfiles import FileManagementSystem
-fms = FileManagementSystem.from_env(env="prod") # change to "stg" for testing
 
-def save_file_to_fms(file_path, dataset, model_version, commit_hash, misc_notes, file_type):
+
+def save_file_to_fms(file_path, dataset, model_version, commit_hash, misc_notes, file_type, env="prod"):
     """
     Save a file to FMS with Endo project specific metadata annotations. 
     Manifests should represent one dataset. 
@@ -13,18 +13,22 @@ def save_file_to_fms(file_path, dataset, model_version, commit_hash, misc_notes,
     commit_hash (str): The commit hash of the code used to generate the file. 
     misc_notes (str): Additional relavent notes.
     file_type (str): The type of the file. (e.g., "parquet", "csv", etc.)
+    env (str): The environment to upload the file to. Default is "prod", use "stg" for staging.
 
     Returns:
     None
     """
+    fms = FileManagementSystem.from_env(env) 
+    
     notes = f"Dataset: {dataset}\nModel Version: {model_version}\nCommit Hash: {commit_hash}\n"
     notes += "This manifest was produced by the cellsmap repository.\n"
     notes += f"Notes: {misc_notes}\n"
 
     metadata_builder = fms.create_file_metadata_builder()
     metadata_builder.add_annotation("Notes", notes)
-    metadata_builder.add_annotation("Program", "Endothelial")  # comment out if using staging
     metadata_builder.add_annotation("Produced By", "python code")
+    if env == "prod":
+        metadata_builder.add_annotation("Program", "Endothelial")
     annotations = metadata_builder.build()
 
     fms_file = fms.upload_file(file_path, file_type, annotations)
