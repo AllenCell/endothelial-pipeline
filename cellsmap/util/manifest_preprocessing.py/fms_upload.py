@@ -1,7 +1,7 @@
 from aicsfiles import FileManagementSystem
 
 
-def save_file_to_fms(file_path, dataset, commit_hash, misc_notes, file_type, model_version="", mlflow_run_id=None, env="prod"):
+def save_file_to_fms(file_path, dataset, commit_hash, misc_notes, file_type, model_version="", mlflow_run_id=None, effort="Core" env="prod"):
     """
     Save a file to FMS with Endo project specific metadata annotations. 
     Manifests should represent one dataset. 
@@ -16,6 +16,7 @@ def save_file_to_fms(file_path, dataset, commit_hash, misc_notes, file_type, mod
     file_type (str): The type of the file. (e.g., "parquet", "csv", etc.)
     model_version (str): The version of the model used to generate the file. If using the date use the format YYYYMMDD. Optional.
     mlflow_run_id (str): The mlflow run id of the model run that generated the file. Optional.
+    effort (str): The effortof the file. Default is "Core". Other option is "Parallel". 
     env (str): The environment to upload the file to. Default is "prod", use "stg" for staging.
 
     Returns:
@@ -25,7 +26,7 @@ def save_file_to_fms(file_path, dataset, commit_hash, misc_notes, file_type, mod
     
     notes = f"Dataset: {dataset}\nModel Version: {model_version}\nCommit Hash: {commit_hash}\n"
     notes += "This manifest was produced by the cellsmap repository.\n"
-    notes += f"Notes: {misc_notes}\n"
+    notes += f"Notes: Effort {effort}\n{misc_notes}\n"
 
     metadata_builder = fms.create_file_metadata_builder()
     metadata_builder.add_annotation("Notes", notes)
