@@ -11,12 +11,12 @@ from cellsmap.util.cdh5_preprocessing import save_image_output
 from cellpose import models
 from tqdm import tqdm
 
-def build_analysis_queue(dataset_name_list: list, t_to_eval: slice|range|list=None, save_output=False, is_test=False) -> list:
+def build_analysis_queue(dataset_name_list: list, t_to_eval: slice|range|list=None, save_output=False, is_test=False, use_original_data=False) -> list:
     analysis_queue: list = []
     prj_dir = Path(__file__).parents[2] if not is_test else Path(__file__).parents[3]
     out_dir = prj_dir / 'results' / Path(__file__).stem
     for dataset_name in dataset_name_list:
-        img_path = Path(io.get_zarr_path(dataset_name))
+        img_path = Path(io.get_zarr_path(dataset_name)) if not use_original_data else Path(io.get_original_path(dataset_name))
         img = BioImage(img_path)
 
         t_range = t_to_eval or range(img.dims.T)
@@ -48,19 +48,20 @@ def predict_nuclei_from_brightfield(image: np.ndarray, CellPose_model_path: str)
 print('All available datasets:')
 dataset_name_list = io.get_available_datasets()
 
-test_datasets = [
-    '20240328_T02_001', '20240328_T01_001',
-    '20250122'] # up to here are fixed datasets
-    # '20241016_20X', '20241120_20X', '20241203',
-    # '20241210', '20241217',
-    # ]
-dataset_name_list = [name for name in dataset_name_list if name in test_datasets]
+# test_datasets = [
+#     '20240328_T02_001', '20240328_T01_001',
+#     '20250122'] # up to here are fixed datasets
+#     # '20241016_20X', '20241120_20X', '20241203',
+#     # '20241210', '20241217',
+#     # ]
+# dataset_name_list = [name for name in dataset_name_list if name in test_datasets]
 
 # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
-analysis_queue = build_analysis_queue(dataset_name_list, t_to_eval=None)
+analysis_queue = build_analysis_queue(dataset_name_list, t_to_eval=None, use_original_data=True)
 # NOTE the line below was only for prototyping and can be
 # removed when ready to analyze all datasets
-analysis_queue += build_analysis_queue(['20241120_20X'], t_to_eval=slice(None, None, 25))
+# analysis_queue += build_analysis_queue(['20241120_20X'], t_to_eval=slice(None, None, 25))
+analysis_queue = build_analysis_queue(dataset_name_list, t_to_eval=None, use_original_data=True)
 
 # Predict nuclei from brightfield images using the retrained CellPose model
 for args in tqdm(analysis_queue):
