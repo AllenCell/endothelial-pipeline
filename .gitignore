@@ -7,6 +7,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.pyc.so
+*.mypy_cache/
 
 # PDM lock file
 pdm.lock

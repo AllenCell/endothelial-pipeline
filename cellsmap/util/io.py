@@ -68,6 +68,15 @@ def get_channel_index(dataset_name:str, channel_names:list) -> int:
     available_channels = get_available_channels(dataset_name)
     return [available_channels.index(channel) if channel in available_channels else None for channel in channel_names]
 
+def get_specific_channel_order(dataset_name:str):
+    gfp_index = get_dataset_info(dataset_name)['egfp_channel_index']
+    bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
+    return gfp_index, bf_index
+
+def get_number_of_positions(dataset_name:str) -> int:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['n_positions']
+
 def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
     path = get_zarr_path(dataset_name)
     reader = BioImage(path)
@@ -103,6 +112,13 @@ def get_dim_map(dim_order: str) -> dict:
     dim_map = dict(zip(dims, dim_nums))
 
     return dim_map
+
+def get_original_path(dataset_name: str) -> str:
+    """
+    Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    return Path(dataset_info['original_path'])
 
 # model methods
 

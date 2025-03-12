@@ -10,11 +10,11 @@ dependencies = [
     "pytest>=8.2.2",
     "pathlib>=1.0.1",
     "numpy>=1.2.3",
-    "bioio==1.0.1",
-    "bioio-ome-tiff>=1.0.0",
+    "bioio==1.2.0",
+    "bioio-ome-tiff>=1.0.1",
     "bioio-base>=1.0.1",
-    "bioio-ome-zarr==1.0.1",
-    "ngff-zarr==0.10.2",
+    "bioio-ome-zarr>=1.1.0",
+    "ngff-zarr==0.8.2",
     "matplotlib>=3.10",
     "notebook==7.2.1",
     "numdifftools==0.9.41",
@@ -31,10 +31,15 @@ dependencies = [
     "tqdm>=4.66.5",
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
     "wasmtime<22.0",
+    "itkwasm==1.0b171",
     "seaborn>=0.13.2",
     "bioio-sldy>=1.0.2",
+<<<<<<< HEAD
     "cellpose>=3.1.0",
     "mypy>=1.15.0",
+=======
+    "bioio-nd2>=1.0.0",
+>>>>>>> main
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
