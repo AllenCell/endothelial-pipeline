@@ -97,7 +97,7 @@ def arr2graph(arr: np.ndarray, closing_step=True) -> np.ndarray:
     return nodes_lab, edges_lab, skels_lab, conn
 
 
-def get_neighboring_labels(home_img: np.array, labeled_neighbors_img: np.array, bad_neighbors: list=None) -> tuple:
+def get_neighboring_labels(home_img: np.ndarray, labeled_neighbors_img: np.ndarray, bad_neighbors: list=None) -> tuple:
     """
     home_img will be made binary (can be an image where only a particular label was
     chosen by home_img == lab)
@@ -106,10 +106,10 @@ def get_neighboring_labels(home_img: np.array, labeled_neighbors_img: np.array, 
     
     Parameters
     ----------
-    home_img: np.array
+    home_img: np.ndarray
         A binary array of the region you want to get the neighboring regions of.
 
-    labeled_neighbors_img: np.array
+    labeled_neighbors_img: np.ndarray
         A labeled image of the same shape as home_img. Any labeled regions that are
         next to those found in home_img (as defined by a 3x3 square or 3x3x3 cube
         neighborhood for 2D or 3D, respectively) are considered a neighboring labels.
