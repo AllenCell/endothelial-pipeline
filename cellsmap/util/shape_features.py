@@ -8,7 +8,7 @@ from skimage import graph
 from skimage.exposure import rescale_intensity
 
 
-def arr2graph(arr: np.array, closing_step=True) -> np.array:
+def arr2graph(arr: np.ndarray, closing_step=True) -> np.ndarray:
     """Will take a binary image array showing a network-like structure
     and return the labeled versions of the nodes, edges, skeletons and
     pixel connectivity in that order. The connectivity equal to the
@@ -17,7 +17,7 @@ def arr2graph(arr: np.array, closing_step=True) -> np.array:
     
     Parameters
     ----------
-    arr: np.array
+    arr: np.ndarray
         A binary 2D or 3D numpy array representing an image with dendritic, branching,
         tree-like, or network-like structures.
 
@@ -33,19 +33,19 @@ def arr2graph(arr: np.array, closing_step=True) -> np.array:
 
     Returns
     -------
-    nodes_lab: np.array
+    nodes_lab: np.ndarray
         The nodes in arr where each node has a unique label as an array of the same
         shape as arr.
 
-    edges_lab: np.array
+    edges_lab: np.ndarray
         The edges in arr where each edge has a unique label as an array of the same
         shape as arr.
 
-    skels_lab: np.array
+    skels_lab: np.ndarray
         The skeletonization of arr where unconnected skeletons have unique labels as
         an array of the same shape as arr.
 
-    conn: np.array
+    conn: np.ndarray
         The connectivity of each pixel in arr as an array of the same shape as arr.
     """
 
@@ -160,7 +160,7 @@ def expand_bbox(bbox: tuple, ndim: int) -> tuple:
     return big_bbox
 
 
-def get_windows(img_lab: np.array) -> zip: #labeled_img
+def get_windows(img_lab: np.ndarray) -> zip: #labeled_img
     """
     Takes a labeled image in the form of a numpy array and returns a zip of
     (labels, windows), where "labels" are labels in the labeled image and
@@ -197,7 +197,7 @@ def get_windows(img_lab: np.array) -> zip: #labeled_img
     return lab_windows
 
 
-def get_neighbor_nodes_and_edges(nodes_lab: np.array, edges_lab: np.array, bad_neighbors: list=[0], as_dict: bool=False):
+def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, bad_neighbors: list=[0], as_dict: bool=False):
     """
     Takes a labeled array of nodes and a labeled array of edges and returns
     a list or dict of which nodes neighbor each node, which edges neighbor each node,
@@ -208,10 +208,10 @@ def get_neighbor_nodes_and_edges(nodes_lab: np.array, edges_lab: np.array, bad_n
 
     Parameters
     ----------
-    nodes_lab: np.array
+    nodes_lab: np.ndarray
         The labeled nodes.
 
-    edges_lab: np.array
+    edges_lab: np.ndarray
         The labeled edges. Shape must be the same as nodes_lab.
 
     bad_neighbors: list
@@ -334,7 +334,7 @@ def numpy_mesh_coords(coord1_ls: list, coord2_ls: list, indexing: str='ij', retu
 
     return coord_meshes
 
-def get_angle(vec1: np.array, vec2: np.array, in_deg: bool=False, axis: int=None) -> np.array:
+def get_angle(vec1: np.ndarray, vec2: np.ndarray, in_deg: bool=False, axis: int=None) -> np.ndarray:
     """ Get the angle between two vectors vec1 and vec2.
     Both vec1 and vec2 must start at the origin (0,0).
 
@@ -386,7 +386,7 @@ def get_angle(vec1: np.array, vec2: np.array, in_deg: bool=False, axis: int=None
     return np.rad2deg(rad) if in_deg else rad
 
 
-def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.array, label_lines: bool=False) -> np.array:
+def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False) -> np.ndarray:
     """
     Takes a list of paired coordinates and an array and draws rasterized versions of
     the lines between the paired coordinates.
@@ -402,7 +402,7 @@ def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.arr
          ...
          ]
 
-    arr_to_draw_on: np.array
+    arr_to_draw_on: np.ndarray
         The array where edges between node_coord_pairs are to be drawn;
         array shape must be consistent with the node coordinate pairs
         e.g. if coordinates are in (z, y, x) then the array should be
@@ -437,7 +437,7 @@ def build_vector(stop_position, start_position):
     vec = stop_position - start_position
     return vec
 
-def calculate_region_border_metrics(binary_image: np.array, intensity_image: np.array=None, labeled_image: np.array=None, VERBOSE=True) -> dict:
+def calculate_region_border_metrics(binary_image: np.ndarray, intensity_image: np.ndarray=None, labeled_image: np.ndarray=None, VERBOSE=True) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and creates a node
@@ -453,16 +453,16 @@ def calculate_region_border_metrics(binary_image: np.array, intensity_image: np.
     
     Parameters
     ----------
-    binary_image: np.array
+    binary_image: np.ndarray
         The binary array to be converted into an array of labeled nodes and labeled edges.
     
-    intensity_image: np.array (optional)
+    intensity_image: np.ndarray (optional)
         If provided, this image will be passed to 'skimage.measure.regionprops' and used when
         measuring fluorescence intensities. If None, returned fluorescence lists will contain
         np.nans.
         Default is None.
 
-    labeled_image: np.array (optional)
+    labeled_image: np.ndarray (optional)
         If provided, measurements using 'skimage.measure' of labeled_image will be made and
         associated with the node labels and edge labels that result from creating a node and
         edge representation of binary_image. If None then no measurements will be made and
@@ -520,7 +520,7 @@ def calculate_region_border_metrics(binary_image: np.array, intensity_image: np.
 
     return [neighbor_node_metrics, labeled_image_metrics]
 
-def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.array, nodes: np.array=None, edges: np.array=None, intensity_image: np.array=None, VERBOSE=True) -> dict:
+def calculate_labeled_image_metrics(binary_image: np.ndarray, labeled_image: np.ndarray, nodes: np.ndarray=None, edges: np.ndarray=None, intensity_image: np.ndarray=None, VERBOSE=True) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and its node and
@@ -537,26 +537,26 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
 
     Parameters
     ----------
-    binary_image: np.array
+    binary_image: np.ndarray
         The binary array to be converted into an array of labeled nodes and labeled edges.
     
-    labeled_image: np.array
+    labeled_image: np.ndarray
         If provided, measurements using 'skimage.measure' of labeled_image will be made and
         associated with the node labels and edge labels arguments. If no node labels and edge
         labels arguments are provided a node and edge representation of binary_image will be
         created.
     
-    nodes: np.array (optional)
+    nodes: np.ndarray (optional)
         An array of labeled nodes produced from binary_image using arr2graph.
         Will be generated from binary_image if not provided.
         Default is None.
 
-    edges: np.array (optional)
+    edges: np.ndarray (optional)
         An array of labeled edges produced from binary_image using arr2graph.
         Will be generated from binary_image if not provided.
         Default is None.
 
-    intensity_image: np.array (optional)
+    intensity_image: np.ndarray (optional)
         If provided, this image will be passed to to 'skimage.measure.regionprops'.
         Default is None.
 
@@ -723,8 +723,8 @@ def calculate_labeled_image_metrics(binary_image: np.array, labeled_image: np.ar
 
     return metrics
 
-# def calculate_neighbor_node_metrics(binary_image: np.array, intensity_image: np.array=None, VERBOSE=True) -> dict:
-def calculate_neighbor_node_metrics(binary_image: np.array, nodes: np.array=None, edges: np.array=None, intensity_image: np.array=None, VERBOSE=True) -> dict:
+
+def calculate_neighbor_node_metrics(binary_image: np.ndarray, nodes: np.ndarray=None, edges: np.ndarray=None, intensity_image: np.ndarray=None, VERBOSE=True) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and creates a node
@@ -737,19 +737,19 @@ def calculate_neighbor_node_metrics(binary_image: np.array, nodes: np.array=None
 
     Parameters
     ----------
-    binary_image: np.array
+    binary_image: np.ndarray
         The binary array to be converted into an array of labeled nodes and labeled edges
         if 'nodes' argument and 'edges' argument are not provided.
     
-    nodes: np.array (optional)
+    nodes: np.ndarray (optional)
         An array of labeled nodes produced from binary_image using arr2graph.
         Default is None.
 
-    edges: np.array (optional)
+    edges: np.ndarray (optional)
         An array of labeled edges produced from binary_image using arr2graph.
         Default is None.
 
-    intensity_image: np.array (optional)
+    intensity_image: np.ndarray (optional)
         If provided, this image will be passed to to 'skimage.measure.regionprops'.
         Default is None.
 
@@ -893,7 +893,7 @@ def calculate_neighbor_node_metrics(binary_image: np.array, nodes: np.array=None
 
     return metrics
 
-def intensity_std(region_mask: np.array, intensity_image: np.array) -> float:
+def intensity_std(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
     of skimage.measure.regionprops.
     It will return the standard deviation of the intensity of the image within
@@ -901,7 +901,7 @@ def intensity_std(region_mask: np.array, intensity_image: np.array) -> float:
     region_intensity_std = np.std(intensity_image[region_mask])
     return region_intensity_std
 
-def intensity_median(region_mask: np.array, intensity_image: np.array) -> float:
+def intensity_median(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
     of skimage.measure.regionprops.
     It will return the median of the intensity of the image within the label
@@ -909,7 +909,7 @@ def intensity_median(region_mask: np.array, intensity_image: np.array) -> float:
     region_intensity_median = np.median(intensity_image[region_mask])
     return region_intensity_median
 
-def intensity_pct25(region_mask: np.array, intensity_image: np.array) -> float:
+def intensity_pct25(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
     of skimage.measure.regionprops.
     It will return the 25th percentile of the intensity of the image within the
@@ -917,7 +917,7 @@ def intensity_pct25(region_mask: np.array, intensity_image: np.array) -> float:
     region_intensity_pct25 = np.percentile(intensity_image[region_mask], q=25)
     return region_intensity_pct25
 
-def intensity_pct75(region_mask: np.array, intensity_image: np.array) -> float:
+def intensity_pct75(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
     of skimage.measure.regionprops.
     It will return the 75th percentile of the intensity of the image within the
@@ -925,7 +925,7 @@ def intensity_pct75(region_mask: np.array, intensity_image: np.array) -> float:
     region_intensity_pct75 = np.percentile(intensity_image[region_mask], q=75)
     return region_intensity_pct75
 
-def walk_the_line(skel: np.array, max_num_pixels: int=None, bidirectional=True) -> tuple:
+def walk_the_line(skel: np.ndarray, max_num_pixels: int=None, bidirectional=True) -> tuple:
     """
     Takes a thinned or skeletonized binary line with 2 ends and no branches
     and returns the coordinates of the line ordered from endpoint to endpoint
@@ -945,7 +945,7 @@ def walk_the_line(skel: np.array, max_num_pixels: int=None, bidirectional=True) 
 
     Parameters
     ----------
-    skel: np.array
+    skel: np.ndarray
         A thinned or skeletonized binary line with 2 ends and no branches.
     
     max_num_pixels: int
@@ -1078,7 +1078,7 @@ def walk_the_line(skel: np.array, max_num_pixels: int=None, bidirectional=True) 
     return (line1, line2) if bidirectional else (line1,)
 
 
-def get_length(skel: np.array, max_num_pixels: int=None) -> float:
+def get_length(skel: np.ndarray, max_num_pixels: int=None) -> float:
     """
     Returns the length of a rasterized binary line.
     The rasterized binary line must 2 ends and no branches.
@@ -1094,7 +1094,7 @@ def get_length(skel: np.array, max_num_pixels: int=None) -> float:
 
     Parameters
     ----------
-    skel: np.array
+    skel: np.ndarray
         A thinned or skeletonized binary line with 2 ends and no branches.
     
     max_num_pixels: int
