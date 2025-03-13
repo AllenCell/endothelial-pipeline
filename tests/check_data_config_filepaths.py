@@ -14,3 +14,4 @@ for dataset_name in dataset_name_list:
 print('\n')
 [print(f'{dataset_name} has one or more invalid paths...') for dataset_name in dataset_name_list if not all(filepaths_found[dataset_name].values())]
 assert all([all(fp_exists.values()) for dataset_name, fp_exists in filepaths_found.items()]), "Invalid filepaths found."
+print(f'\N{party popper} All filepaths are valid.')
