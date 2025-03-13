@@ -1,5 +1,6 @@
 # %%
 import numpy as np
+import pandas as pd
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
@@ -9,6 +10,7 @@ import numdifftools as nd
 import cellsmap.analyses.utils.gen_potential as gp
 from cellsmap.analyses.utils import viz
 from cellsmap.analyses.utils import pplane
+import cellsmap.util.pca as cmpca
 
 import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.viz as eaviz
@@ -18,40 +20,42 @@ import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
 
 # %%
 
-path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/3d_bf/2025-02-03_11-48-38/predict.parquet'
-savedir = '//allen/aics/assay-dev/users/Erin/git-repos/cellsmap/cellsmap/analyses/playground/ea/sindy_reg_diffAE_test/'
+path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
+path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
+path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
 
-eaio.make_savedir(savedir,subfolders=False)
-
-# %%
-df = eaio.add_metadata_from_path(eaio.load_array(path_to_data))
-df.head()
+df = eaio.load_array(path_to_data)
+df_1217 = eaio.load_array(path_to_20241217)
+df_0224 = eaio.load_array(path_to_20250224)
+df = pd.concat([df,df_1217,df_0224],ignore_index=True)
+df, pca = cmpca.get_pca(df, num_pcs=8)
+df, bad_files = cmpca._get_outliers(df)
 list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
 # %%
-df_ref = eaio.get_PCA_reference(df) # dataset for getting PCA reference
-metadata_col = ['filename_or_obj','T','start_x','start_y','group','pca_ref','FOV_ID']
-df_ref_ = eaio.rm_metadata(df_ref,metadata_col) # remove metadata columns
-pca = eaio.get_PCA(df_ref_)
-del df_ref_ # free up memory
 
-fig, ax = eaviz.plot_explained_variance(pca.explained_variance_ratio_)
+fig, ax = eaviz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
+
 # %%
-my_mv = list_of_datasets[1]
+# write io function that builds this from data config
+title_dict = {'20241016_20X':'24H High, 24H Low',
+              '20241105_20X':'24H Low, 24H High (11/5/24)',
+              '20241120_20X':'48H High',
+              '20241203_20X':'48H Low',
+              '20241210_20X':'48H No Flow 1',
+              '20241217_20X':'48H No Flow 2',
+              '20250224_GE00006991_20X':'24H Low, 24H High (2/24/25)',}
+
+ds_ID = 3
+my_mv = list_of_datasets[ds_ID]
 mv_name = eaio.get_dataset_name(my_mv)
-feats_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv, metadata_cols=metadata_col)
+df_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv)
+feats_proj = eaio.df_to_array(df_proj,[str(i) for i in range(8)])
 
-fig1,ax1 = eaviz.plot_top_3_PCs(feats_proj)
-ax1[0].set_ylim([-1.5,4])
-ax1[1].set_ylim([-7,-2])
-ax1[2].set_ylim([-0.5,4.5])
-
-fig2,ax2 = eaviz.plot_PCA_projection(feats_proj,mv_name)
-ax2.set_xlim([-2,5])
-ax2.set_ylim([-0.5,4])
+fig2,ax2 = eaviz.plot_PCA_projection(feats_proj, title_dict[mv_name])
 
 # %%
 # now fit model using multiple datasets
-PCs = [0,2]
+PCs = [0,1]
 ndim = len(PCs)
 
 # list of training/test sets for each dataset
@@ -65,26 +69,24 @@ V_test_list = []
 u_train_list = []
 u_test_list = []
 
-Nbins = [40 for i in range(ndim)]
+Nbins = 25*np.ones(ndim,dtype=int)
 
-thresh = 0.45 # get this based on upper quantile of vector magnitudes along given PCs low flow data
+thresh = None # get this based on upper quantile of vector magnitudes along given PCs low flow data
 
 # %%
-for ds_ID in range(4): 
+# save out traj_list and flow_list for each dataset so you don't have to re-generate for model analysis?
+for ds_ID in [0,1,2,3,6]: 
     print('**** Generating train/test sets for dataset',ds_ID,'**** \n')
     my_mv = list_of_datasets[ds_ID]
     mv_name = eaio.get_dataset_name(my_mv)
-    feats_proj = eaio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
 
-    data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
-    del feats_proj # free up memory
-    num_flow = len(u_list)
-    if 0 in u_list: # right now, only using timepoints 300:450 of no flow
-        data_all_temp = []
-        for traj in data_all[0]:
-            data_all_temp.append(traj[300:450,:])
-        data_all = [data_all_temp]
-        u_traj = [u_traj[0][300:450]]
+    df_proj = eaio.project_PCA_one_dataset(df,pca,'group',my_mv)
+
+    feat_cols = [str(i) for i in PCs]
+
+    traj_list, flow_list = eareg.get_2pt_traj_and_flow(df_proj,mv_name,feat_cols=feat_cols,verbose=True)
+    del df_proj # free up memory
+    num_flow = len(flow_list)
 
     bins = []
     centers = []
@@ -95,11 +97,11 @@ for ds_ID in range(4):
     D_err = []
 
     for j in range(num_flow): # get bins and centers for data at high and low flow
-        bins_temp, centers_temp = eareg.get_bins(Nbins,data=data_all[j])
+        bins_temp, centers_temp = eareg.get_bins(Nbins,data=traj_list[j])
         bins.append(bins_temp)
         centers.append(centers_temp)
 
-        f_KM_temp, D_KM_temp, f_err_temp, D_err_temp = eareg.KM_avg_ND(data_all[j], bins[j], dt=5, threshold=thresh)
+        f_KM_temp, D_KM_temp, f_err_temp, D_err_temp = eareg.KM_avg_ND(traj_list[j], bins[j], dt=5, threshold=thresh)
         f_KM.append(f_KM_temp)
         D_KM.append(D_KM_temp)
         f_err.append(f_err_temp)
@@ -121,23 +123,22 @@ for ds_ID in range(4):
     train_frac = 0.8
     seed = 47
 
-    # should write in generating u_train and u_test
     X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,
                                                                             D_KM_noNAN,num_flow,
-                                                                            train_frac,seed,concat=True)
+                                                                 train_frac,seed,concat=True)
 
     if num_flow == 1:
         N_tot = X_pts_noNAN[0].shape[0]
         N_train = int(train_frac*N_tot)
         N_test = N_tot-N_train
-        u_train = u_list[0]*np.ones((N_train,1))
-        u_test = u_list[0]*np.ones((N_test,1))
+        u_train = flow_list[0]*np.ones((N_train,1))
+        u_test = flow_list[0]*np.ones((N_test,1))
     else:
         N_tot = [X_pts_noNAN[0].shape[0],X_pts_noNAN[1].shape[0]]
         N_train = [int(train_frac*N_tot[0]),int(train_frac*N_tot[1])]
         N_test = [N_tot[0]-N_train[0],N_tot[1]-N_train[1]]
-        u_train = np.concatenate((u_list[0]*np.ones((N_train[0],1)),u_list[1]*np.ones((N_train[1],1))))
-        u_test = np.concatenate((u_list[0]*np.ones((N_test[0],1)),u_list[1]*np.ones((N_test[1],1))))
+        u_train = np.concatenate((flow_list[0]*np.ones((N_train[0],1)),flow_list[1]*np.ones((N_train[1],1))))
+        u_test = np.concatenate((flow_list[0]*np.ones((N_test[0],1)),flow_list[1]*np.ones((N_test[1],1))))
     
     del X_pts_noNAN, f_KM_noNAN, D_KM_noNAN # free up memory
 
@@ -180,11 +181,12 @@ def make_sigmoid_string(n):
 sigmoid_funcs = [make_sigmoid(n) for n in sigmoid_range]
 func_names = [make_sigmoid_string(n) for n in sigmoid_range]
 
-sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
-                             function_names=func_names)
-feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
-                                include_bias=True),
-                                sigmoid_lib])
+# sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
+#                              function_names=func_names)
+# feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
+#                                 include_bias=True),
+#                                 sigmoid_lib])
+feature_lib = ps.PolynomialLibrary(degree=3, include_bias=True)
 parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
     parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
@@ -194,7 +196,7 @@ driftModel.fit(X_train,t=5,x_dot=Y_train,u=u_train)
 
 
 diff_feature_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
-diff_parameter_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
+diff_parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=False)
 diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
     parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
 
@@ -214,53 +216,51 @@ print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on tes
 # %%
 myModel = [driftModel,diffModel]
 
-if PCs[0] == 0:
-    pplane_xlim = [-4,3.5]
-    bin_xlim = [-5,4]
-elif PCs[0] == 1:
-    pplane_xlim = [-7,-2]
-    bin_xlim = [-8,-2]
+pplane_xlim = [-3,4]
+bin_xlim = [-4,5]
 
 if PCs[1] == 1:
-    pplane_ylim = [-7,-2]
-    bin_ylim = [-8,-2]
+    pplane_ylim = [-3.5,1.5]
+    bin_ylim = [-4,2.5]
 else:
-    pplane_ylim = [-2,4]
-    bin_ylim = [-3,5]
+    pplane_ylim = [-1,6]
+    bin_ylim = [-2.5,8]
 
-plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
-            'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1)}
 
 # fix bins and centers for all datasets
-Nbins = [40 for i in range(ndim)]
+Nbins = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
 bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
 
-for ds_ID in range(4):
+plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
+            'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1),
+            'truncate_p':[True,[0,Nbins[0]-0],[0,Nbins[1]-0]]}
+
+# %%
+# fix bins and centers for all datasets
+
+for ds_ID in [0,1,2,3,6]:
     print('**** Running model analysis for dataset',ds_ID,'**** \n')
     my_mv = list_of_datasets[ds_ID]
     mv_name = eaio.get_dataset_name(my_mv)
-    feats_proj = eaio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
 
-    data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
-    del feats_proj # free up memory
-    num_flow = len(u_list)
-    if 0 in u_list: # right now, only using timepoints 300:450 of no flow
-        data_all_temp = []
-        for traj in data_all[0]:
-            data_all_temp.append(traj[300:450,:])
-        data_all = [data_all_temp]
-        u_traj = [u_traj[0][300:450]]
+    df_proj = eaio.project_PCA_one_dataset(df,pca,'group',my_mv)
 
+    feat_cols = [str(i) for i in PCs]
 
+    traj_list, flow_list = eareg.get_2pt_traj_and_flow(df_proj,mv_name,feat_cols=feat_cols,verbose=True)
+    del df_proj # free up memory
+    num_flow = len(flow_list)
+
+    # NEED TO CHANGE HOW YOU SPECIFY STATIONARY POINTS NOW
     for j in range(num_flow): # get bins and centers for data at high and low flow    
-        print('**** Shear stress u =',u_list[j],'dyn/cm^2 **** \n')
-        plot_tuple = model_analysis.run_model_analysis_2D(myModel,data_all[j],bins,centers,u_list[j],args=plt_args)
+        print('**** Shear stress u =',flow_list[j],'dyn/cm^2 **** \n')
+        plot_tuple = model_analysis.run_model_analysis_2D(myModel,traj_list[j],bins,centers,flow_list[j],args=plt_args)
 
 
 # %%
 
-u_range = np.linspace(0,35,40)
+u_range = np.linspace(0,35,20)
 
 fpt_dict = {}
 
@@ -269,8 +269,8 @@ x2_lims = plt_args['pplane_ylim']
 
 x1 = np.linspace(x1_lims[0],x1_lims[1],50)
 x2 = np.linspace(x2_lims[0],x2_lims[1],50)
-x1_coarse = np.linspace(x1_lims[0],x1_lims[1],10)
-x2_coarse = np.linspace(x2_lims[0],x2_lims[1],10)
+x1_coarse = np.linspace(x1_lims[0],x1_lims[1],7)
+x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
 
 f = model_eval.vector_field_function(driftModel)
 # %%
@@ -280,7 +280,10 @@ for u in u_range:
         return f(x,u=u)
     flowJacobian = nd.Jacobian(myFlow)
 
-    init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) for i in range(len(x1_coarse)) for j in range(len(x2_coarse))]
+    init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
+                   for i in range(len(x1_coarse)) 
+                   for j in range(len(x2_coarse))
+                   ]
     fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
     fpt_types = []
     if len(fpts) > 0:
@@ -309,66 +312,49 @@ for u in u_range:
     fpt_dict[str(u)]['fixed_points'] = fpts_new
     fpt_dict[str(u)]['fixed_point_types'] = fpt_types_new
 # %%
-for u in u_range:
-    fpts = fpt_dict[str(u)]['fixed_points']
-    fpt_types = fpt_dict[str(u)]['fixed_point_types']
-    if len(fpts) > 0:
-        for i,fpt in enumerate(fpts):
-            if fpt_types[i] == 'stable':
-                color = 'b'
-            elif fpt_types[i] == 'unstable':
-                color = 'r'
-            elif fpt_types[i] == 'saddle':
-                color = 'tab:purple'
-            else:
-                color = 'darkgoldenrod'
+for j in range(ndim):
+    fig, ax = plt.subplots()
+    for u in u_range:
+        if str(u) in fpt_dict.keys():
+            fpts = fpt_dict[str(u)]['fixed_points']
+            fpt_types = fpt_dict[str(u)]['fixed_point_types']
+            if len(fpts) > 0:
+                for i,fpt in enumerate(fpts):
+                    if fpt_types[i] == 'stable':
+                        color = 'b'
+                    elif fpt_types[i] == 'unstable':
+                        color = 'r'
+                    elif fpt_types[i] == 'saddle':
+                        color = 'tab:purple'
+                    else:
+                        color = 'darkgoldenrod'
 
-            plt.plot(u,fpt[0],'o',color=color)
-            plt.xlabel('Shear stress (dyn/cm^2)')
-            plt.ylabel('PC'+str(PCs[0]+1))
-#plt.ylim([-2,6])
-# %%
-for u in u_range:
-    fpts = fpt_dict[str(u)]['fixed_points']
-    fpt_types = fpt_dict[str(u)]['fixed_point_types']
-    if len(fpts) > 0:
-        for i,fpt in enumerate(fpts):
-            if fpt_types[i] == 'stable':
-                color = 'b'
-            elif fpt_types[i] == 'unstable':
-                color = 'r'
-            elif fpt_types[i] == 'saddle':
-                color = 'tab:purple'
-            else:
-                color = 'darkgoldenrod'
-
-            plt.plot(u,fpt[1],'o',color=color)
-            plt.xlabel('Shear stress (dyn/cm^2)')
-            plt.ylabel('PC'+str(PCs[1]+1))
-
-# plt.ylim([-1,2])
+                    ax.plot(u,fpt[j],'o',color=color)
+                    ax.set_xlabel('Shear stress (dyn/cm^2)')
+                    ax.set_ylabel('PC'+str(PCs[j]+1))
 # %%
 fpt_stable = []
 u_stable = []
 for u in u_range:
-    fpts = fpt_dict[str(u)]['fixed_points']
-    fpt_types = fpt_dict[str(u)]['fixed_point_types']
-    if len(fpts) > 0:
-        for i,fpt in enumerate(fpts):
-            if fpt_types[i] == 'stable':
-                color = 'b'
-                fpt_stable.append(fpt)
-                u_stable.append(u)
-            elif fpt_types[i] == 'unstable':
-                color = 'r'
-            elif fpt_types[i] == 'saddle':
-                color = 'tab:purple'
-            else:
-                color = 'darkgoldenrod'
+    if str(u) in fpt_dict.keys():
+        fpts = fpt_dict[str(u)]['fixed_points']
+        fpt_types = fpt_dict[str(u)]['fixed_point_types']
+        if len(fpts) > 0:
+            for i,fpt in enumerate(fpts):
+                if fpt_types[i] == 'stable':
+                    color = 'b'
+                    fpt_stable.append(fpt)
+                    u_stable.append(u)
+                elif fpt_types[i] == 'unstable':
+                    color = 'r'
+                elif fpt_types[i] == 'saddle':
+                    color = 'tab:purple'
+                else:
+                    color = 'darkgoldenrod'
 
-            plt.plot(fpt[0],fpt[1],'o',color=color)
-            plt.xlabel('PC'+str(PCs[0]+1))
-            plt.ylabel('PC'+str(PCs[1]+1))
+                plt.plot(fpt[0],fpt[1],'o',color=color)
+                plt.xlabel('PC'+str(PCs[0]+1))
+                plt.ylabel('PC'+str(PCs[1]+1))
 
 # %%
 # plot stable fixed points as a colored by shear stress value
@@ -497,13 +483,13 @@ print('Power law exponent: ',pwr_params[1])
 N_fine = 60
 
 x_fine = np.linspace(-4,4.5,N_fine+1)
-y_fine = np.linspace(-3,5.5,N_fine+1)
+y_fine = np.linspace(-3,3.5,N_fine+1)
 bins_fine = [x_fine,y_fine]
 centers_fine = [0.5*(x_fine[1:]+x_fine[:-1]),
                 0.5*(y_fine[1:]+y_fine[:-1])]
 X1,X2 = np.meshgrid(centers_fine[0],centers_fine[1])
 # %%
-u = 28
+u = 25
 
 tol = 1e-6
 

@@ -36,6 +36,9 @@ dependencies = [
     "ruptures>=1.1.9",
     "pysindy>=1.7.5",
     "pyarrow>=18.0.0",
+    "numba",
+    "fipy",
+    "pyvista"
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"

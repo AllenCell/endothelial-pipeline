@@ -78,12 +78,24 @@ def run_model_analysis_2D(model, data, bins, centers, u, args={}):
         ax1.set_ylabel(args['plt_ylabel'])
     plt.show()
 
-    p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u)
+    p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
 
     # get "stationary" distribution from data
     p_hist = eareg.get_stationary_hist(data,bins)
 
-    fig2,ax2 = eaviz.compare_stationary_distributions(p_fit,p_hist,bins)
+    if 'truncate_p' in args:
+        truncate_p = args['truncate_p'][0]
+        x1_trunc = args['truncate_p'][1]
+        x2_trunc = args['truncate_p'][2]
+    else:
+        truncate_p = False
+    if truncate_p:
+        p_fit_ = p_fit[x1_trunc[0]:x1_trunc[1],x2_trunc[0]:x2_trunc[1]]
+        p_hist_ = p_hist[x1_trunc[0]:x1_trunc[1],x2_trunc[0]:x2_trunc[1]]
+        bins_ = [bins[0][x1_trunc[0]:x1_trunc[1]],bins[1][x2_trunc[0]:x2_trunc[1]]]
+        fig2,ax2 = eaviz.compare_stationary_distributions(p_fit_,p_hist_,bins_)
+    else:
+        fig2,ax2 = eaviz.compare_stationary_distributions(p_fit,p_hist,bins)
     if 'plt_xlabel' in args:
         for j in range(2):
             ax2[j].set_xlabel(args['plt_xlabel'])

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from cellsmap.analyses.utils import viz
 from scipy.stats import wasserstein_distance_nd as emd
 
@@ -9,7 +10,6 @@ def plot_explained_variance(explained_variance_ratio:np.ndarray) -> None:
     n_components = len(explained_variance_ratio)
     ax.plot(np.arange(1,n_components+1),np.cumsum(explained_variance_ratio),'k-o')
     ax.plot(np.arange(1,n_components+1),0.95*np.ones(n_components),'r--', alpha=0.8)
-    #ax.annotate('95%', xy=(0.75*n_components,0.955), xycoords='data')
     ax.set_xlabel('Number of components')
     ax.set_ylabel('Cumulative explained variance')
     ax.set_title('Explained variance ratio of PCA components')
@@ -35,18 +35,96 @@ def plot_top_3_PCs(feats_proj:np.ndarray) -> None:
     
     return fig, ax
 
-def plot_PCA_projection(feats_proj:np.ndarray,ds_ID:str) -> None:
+def plot_PCA_projection(feats_proj:np.ndarray,fig_title:str=None,fig_ax:tuple=None) -> None:
     '''Plot mean values of PCA projection of feature data of one dataset.'''
-    fig, ax = plt.subplots()
+    if fig_ax is not None:
+        fig, ax = fig_ax
+    else:
+        fig, ax = plt.subplots()
     ax.set_xlabel('PC1')
-    ax.set_ylabel('PC3')
-    ax.set_title(f'PCA projection of {ds_ID}')
+    ax.set_ylabel('PC2')
+    if fig_title is not None:
+        ax.set_title(fig_title)
 
     num_T = feats_proj.shape[1]
     mean_feats = np.mean(feats_proj,axis=0)
 
-    ax.scatter(mean_feats[:,0],mean_feats[:,2],c = range(num_T),cmap='jet')
+    ax.scatter(mean_feats[:,0],mean_feats[:,1],c = range(num_T),cmap='jet')
 
+    return fig, ax
+
+def plot_PCA_projection_by_flow(feats_proj:np.ndarray,
+                                PCs:list,
+                                change_frame:int,
+                                flow_list_qual:list,
+                                marker_symbols:dict=None,
+                                fig_title:str=None,
+                                fig_ax:tuple=None) -> None:
+    # add feature to pass in marker symbols
+    '''Plot mean values of PCA projection of feature data of one dataset.'''
+    if fig_ax is not None:
+        fig, ax = fig_ax
+    else:
+        fig, ax = plt.subplots()
+    ax.set_xlabel('PC'+str(PCs[0]+1))
+    ax.set_ylabel('PC'+str(PCs[1]+1))
+    if fig_title is not None:
+        ax.set_title(fig_title)
+
+    num_T = feats_proj.shape[1]
+    mean_feats = np.mean(feats_proj,axis=0)
+    if fig_ax is None:
+        handle_list = []
+        label_list = []
+    else:
+        handle_list, label_list = fig_ax[1].get_legend_handles_labels()
+    
+    if len(handle_list) == 0:
+        add_flow_legend = True
+
+    for i,flow in enumerate(flow_list_qual):
+        if flow == 'low':
+            cmap = 'Blues'
+            if add_flow_legend:
+                point = Line2D([0], [0], label='manual point', marker='o', markersize=8, 
+                            markeredgecolor='k', markerfacecolor=plt.cm.Blues(0.8), 
+                            markeredgewidth=0.5, linestyle='')
+                handle_list.append(point)
+        else:
+            cmap = 'Reds'
+            if add_flow_legend:
+                point = Line2D([0], [0], label='manual point', marker='o', markersize=8,
+                                markeredgecolor='k', markerfacecolor=plt.cm.Reds(0.8), 
+                                markeredgewidth=0.5, linestyle='')
+                handle_list.append(point)
+        if i == 0:
+            if marker_symbols is not None:
+                ax.scatter(mean_feats[:change_frame,PCs[0]],mean_feats[:change_frame,PCs[1]],
+                           c=range(change_frame),cmap=cmap,edgecolors='k',
+                           linewidths=0.5,marker=marker_symbols['style'])
+            else:
+                ax.scatter(mean_feats[:change_frame,PCs[0]],mean_feats[:change_frame,PCs[1]],
+                       c = range(change_frame),cmap=cmap,edgecolors='k',
+                       linewidths=0.5)
+        else:
+            if marker_symbols is not None:
+                ax.scatter(mean_feats[change_frame:,PCs[0]],mean_feats[change_frame:,PCs[1]],
+                           c=range(num_T-change_frame),cmap=cmap,edgecolors='k',
+                           linewidths=0.5,marker=marker_symbols['style'])
+            else:
+                ax.scatter(mean_feats[change_frame:,PCs[0]],mean_feats[change_frame:,PCs[1]],
+                       c = range(num_T-change_frame),cmap=cmap,edgecolors='k',
+                       linewidths=0.5)
+        if add_flow_legend:
+            label_list.append(flow)
+    if marker_symbols is not None:
+        point = Line2D([0], [0], label='manual point', marker=marker_symbols['style'], markersize=8, 
+                        markeredgecolor='k', markerfacecolor='w', linestyle='',markeredgewidth=0.5)
+        print('hi')
+        handle_list.append(point)
+        label_list.append(marker_symbols['label'])
+
+    ax.legend(handles=handle_list,labels=label_list,loc='best')
     return fig, ax
 
 def compare_stationary_distributions(p_model,p_hist,bins,ndim=2):

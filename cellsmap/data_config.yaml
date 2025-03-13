@@ -143,5 +143,24 @@
   time_interval_in_minutes: 5.0,
   flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   features: {}
+},{
+  name: 20241217_20X,
+  original_path: "",
+  zarr_path: "",
+  pixel_size_xy_in_um: '',
+  duration: '', # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
+},
+{
+  name: 20250224_GE00006991_20X,
+  original_path: "",
+  zarr_path: "",
+  pixel_size_xy_in_um: '',
+  duration: '', # number of frames
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 21.92, 5.82], [21.92, 48, 20.0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  features: {}
 }
 ]

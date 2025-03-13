@@ -34,44 +34,57 @@ delta = 0.4
 def hillFunc(x,K,n):
     return x**n/(K**n + x**n)
 
+# define shifted potential function
+def phi(xVec,alph,beta,K,n,delta):
+    myVec = np.zeros(len(xVec))
+    for i,x in enumerate(xVec):
+        myVec[i] = K*alph + (delta/2)*x**2 - alph*x - beta*scint.quad(hillFunc, 0, x,args=(K,n))[0]
+    return myVec
 
+# numerically evaluate and plot from 0 to 12
+xVec = np.linspace(0,12,250)
+
+plt.plot(xVec, phi(xVec,alph,beta,K,n,delta),'k-')
+plt.axvline(x = 0,color='k', linestyle='--',linewidth = 1.,alpha = 0.75)
+plt.axhline(y = 0,color='k', linestyle='--',linewidth = 1.,alpha=0.75)
+plt.xlabel(r'$x$')
+plt.ylabel(r'$\phi(x)$')
+
+# %%
 def alphaFunc(tVec):
     return 1*(tVec >= 20)
 
-
-def ODEFlow(t,x,beta,K,n,delta):
-    '''Function that returns dx/dt at time t and current position x(t)'''
-    x1 = x[0]
-    x2 = x[1]
-    dx1 = alphaFunc(t) - delta*x1 + beta*(hillFunc(x1,K,n) + x2)
-    dx2 = -delta*x2
-    return np.array([dx1,dx2])
-
-def sdeEM(tVec,x0,h,eps,beta,K,n,delta,ODE_func=ODEFlow):
-    X_t = np.zeros((len(tVec),x0.shape[0]))
-    for i,t in enumerate(tVec): # Euler-Maruyma simulation
-        if i == 0:
-            X_t[i] = x0 # initialize path
-        else:
-            xi = rng.normal(0,1) # standard normal random variable
-            f_x = ODE_func(t,X_t[i-1],beta,K,n,delta)
-            X_t[i] = X_t[i-1] + h*f_x + np.sqrt(h)*eps*xi # Euler-Murayama
-    
-    return X_t # trajectory
+tVec = np.linspace(0,40,100)
+plt.plot(tVec, alphaFunc(tVec),'k-')
+plt.xlabel(r'time $t$')
+plt.ylabel(r'parameter $\alpha$')
 
 # %%
+def ODEFlow(t,x,beta,K,n,delta):
+    '''Function that returns dx/dt at time t and current position x(t)'''
+    return alphaFunc(t) - delta*x + beta*hillFunc(x,K,n)
+
 # integrate ODE
-tVec = np.linspace(0,40,100)
-x0 = np.array([4,1]) # initial condition
+x0 = [4] # initial condition
 xSol = scint.solve_ivp(ODEFlow,[0,40],x0,t_eval=tVec,args=(beta,K,n,delta))
 
 # plot solution along with alpha(t)
 plt.plot(tVec,alphaFunc(tVec),'b-',alpha=0.35,label=r'$\alpha(t)$')
 plt.plot(tVec,xSol.y[0],'k-')
-plt.plot(tVec,xSol.y[1],'r-')
 plt.xlabel(r'time $t$')
 plt.ylabel(r'$x(t)$')
 plt.legend()
+# %%
+def sdeEM(tVec,x0,h,eps,beta,K,n,delta,ODE_func=ODEFlow):
+    X_t = np.zeros(len(tVec))
+    for i,t in enumerate(tVec): # Euler-Maruyma simulation
+        if i == 0:
+            X_t[i] = x0 # initialize path
+        else:
+            xi = rng.normal(0,1) # standard normal random variable
+            X_t[i] = X_t[i-1] + h*ODE_func(t,X_t[i-1],beta,K,n,delta) + np.sqrt(h)*eps*xi # Euler-Murayama
+    
+    return X_t # trajectory
 
 # %%
 # integrate SDE
@@ -82,73 +95,51 @@ tVec = np.linspace(0,tf,int((tf+1)/h))
 eps = 0.7 # noise magnitude
 
 numICs = 10
-x10 = 4-2*rng.random(numICs) # initial conditions
-x20 = rng.random(numICs) # initial conditions
-x0Vec = np.vstack((x10,x20)).T
-xSolMatSDE = np.zeros((numICs,len(tVec),2))
+x0Vec = 4-2*rng.random(numICs) # initial conditions: numICs "cells" randomly distributed in the interval [2,4)
+xSolMatSDE = np.zeros((len(x0Vec),len(tVec)))
 cm = plt.get_cmap('autumn') # color by initial condition
 T=np.linspace(0,0.8,numICs)**2 # for indexing colormap
 
-fig, ax = plt.subplots(2,1,figsize=(8,8))
+plt.plot(tVec,alphaFunc(tVec),'k-',alpha=0.35,label=r'$\alpha(t)$')
+
 for i,x0 in enumerate(x0Vec):
     xSolMatSDE[i,:] = sdeEM(tVec,x0,h,eps,beta,K,n,delta)
 
     # plot solution along with alpha(t)
-    ax[0].plot(tVec,xSolMatSDE[i,:,0],'-',color=cm(T[i]))
-    ax[1].plot(tVec,xSolMatSDE[i,:,1],'-',color=cm(T[i]))
+    plt.plot(tVec,xSolMatSDE[i,:],'-',color=cm(T[i]))
 
-for i in range(2):
-    ax[i].plot(tVec,alphaFunc(tVec),'b-',alpha=0.35,label=r'$\alpha(t)$')
-    ax[i].set_xlabel("time $t$")
-    ax[i].set_ylabel("$x_{:d}(t)$".format(i+1))
-    ax[i].legend()
-
+plt.xlabel(r'time $t$')
+plt.ylabel(r'$x(t)$')
+plt.legend()
 # %%
 def myFunc(x,alpha):
-    x1 = x[0]
-    x2 = x[1]
-    dx1 = alpha - delta*x1 + beta*(hillFunc(x1,K,n) + x2)
-    dx2 = -delta*x2
-    return np.array([dx1,dx2])
-
-def f1(x1,x2,alpha):
-    x = np.array([x1,x2])
-    return myFunc(x,alpha)[0]
-
-def f2(x1,x2,alpha):
-    x = np.array([x1,x2])
-    return myFunc(x,alpha)[1]
+    return alpha - delta*x + beta*hillFunc(x,K,n)
 # %%
-x1vec = np.linspace(-2,10,50)
-x2vec = np.linspace(-2,2,50)
 for alpha in np.linspace(0,1.5,5):
-    fig, ax = pplane.phase_portrait(f1,f2,x1vec,x2vec,params={'alpha':alpha})
+    fig, ax = pplane.phase_line(myFunc,np.linspace(-2,10,100),params={'alpha':alpha})
 # %%
 alpha_range = np.linspace(0,1.5,100)
 
 fpt_dict = {}
 
 x1_lims = [-2,10]
-x2_lims = [-2,2]
 
 x1 = np.linspace(x1_lims[0],x1_lims[1],50)
 x1_coarse = np.linspace(x1_lims[0],x1_lims[1],10)
 
-x2 = np.linspace(x2_lims[0],x2_lims[1],50)
-x2_coarse = np.linspace(x2_lims[0],x2_lims[1],10)
 
 for alpha in alpha_range:
 
     def myFlow(x):
         return myFunc(x,alpha)
-    flowJacobian = nd.Jacobian(myFlow)
+    flowJacobian = nd.Derivative(myFlow)
 
-    init_coarse = [(x1_coarse[i],x2_coarse[i]) for i in range(len(x1_coarse))]
+    init_coarse = [x1_coarse[i] for i in range(len(x1_coarse))]
     fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
     fpt_types = []
     if len(fpts) > 0:
         for fpt in fpts:
-            fptStability = pplane.find_stability(flowJacobian(fpt))
+            fptStability = pplane.find_stability(flowJacobian(fpt),ndim=1)
             if 'Stable' in fptStability:
                 fpt_types.append('stable')
             elif 'Unstable' in fptStability:
@@ -173,7 +164,6 @@ for alpha in alpha_range:
     fpt_dict[str(alpha)]['fixed_points'] = fpts_new
     fpt_dict[str(alpha)]['fixed_point_types'] = fpt_types_new
 
-# %%
 for alpha in alpha_range:
     fpts = fpt_dict[str(alpha)]['fixed_points']
     fpt_types = fpt_dict[str(alpha)]['fixed_point_types']
@@ -188,9 +178,9 @@ for alpha in alpha_range:
             else:
                 color = 'darkgoldenrod'
 
-            plt.plot(alpha,fpt[0],'o',color=color)
+            plt.plot(alpha,fpt,'o',color=color)
             plt.xlabel('$\\alpha$')
-            plt.ylabel('$x_1^*$')
+            plt.ylabel('$x^*$')
 # %%
 # synthetic data generation: experimental "conditions"
 experiments = {'01':{'alpha':[0.1,1.5],'times':[[0,20],[20,50]]},
@@ -199,13 +189,14 @@ experiments = {'01':{'alpha':[0.1,1.5],'times':[[0,20],[20,50]]},
                '04':{'alpha':[1.3],'times':[[0,50]]},
                '05':{'alpha':[0.05,1.2],'times':[[0,25],[25,50]]},
                '06':{'alpha':[1.05,0.1],'times':[[0,20],[20,40]]},
-               '07':{'alpha':[0.34],'times':[[0,50]]},
-               '08':{'alpha':[0.45],'times':[[0,50]]}}
+}
+            #    '07':{'alpha':[0.34],'times':[[0,50]]},
+            #    '08':{'alpha':[0.45],'times':[[0,50]]}}
 
 #%%
 # integrate SDE
 h = 0.1 # step size for Euler-Maruyama method
-eps = 0.5 # noise magnitude
+eps = 0.7 # noise magnitude
 
 numICs = 100 # number of unique trajectories to simulate
 
@@ -215,10 +206,10 @@ for i, key in enumerate(experiments.keys()):
     t_change = time_intervals[0][1]
 
     if len(alpha_vals) == 1:
-        alphaFunc_temp = lambda t: alpha_vals[0]
+        alphaFunc = lambda t: alpha_vals[0]
         tf = time_intervals[0][1]
     else:
-        def alphaFunc_temp(t):
+        def alphaFunc(t):
             if t < time_intervals[0][1]:
                 return alpha_vals[0]
             else:
@@ -226,23 +217,14 @@ for i, key in enumerate(experiments.keys()):
         tf = time_intervals[1][1]
 
     tVec = np.linspace(0,tf,int((tf+1)/h))
-    x10 = 4-2*rng.random(numICs) # initial conditions
-    x20 = rng.random(numICs) # initial conditions
-    x0Vec = np.vstack((x10,x20)).T
-    xSolMatSDE = np.zeros((len(x0Vec),len(tVec),2))
-
-    def temp_ODE(t,x,beta,K,n,delta):
-        '''Function that returns dx/dt at time t and current position x(t)'''
-        x1 = x[0]
-        x2 = x[1]
-        dx1 = alphaFunc_temp(t) - delta*x1 + beta*(hillFunc(x1,K,n) + x2)
-        dx2 = -delta*x2
-        return np.array([dx1,dx2])
+    x0Vec = 4-2*rng.random(numICs) # initial conditions: numICs "cells" randomly distributed in the interval [2,4)
+    xSolMatSDE = np.zeros((len(x0Vec),len(tVec)))
 
     for i,x0 in enumerate(x0Vec):
         xSolMatSDE[i,:] = sdeEM(tVec,x0,h,eps,
                                 beta,K,n,delta,
-                                ODE_func=temp_ODE)
+                                ODE_func=lambda t,x,beta,K,n,delta: alphaFunc(t) - delta*x + beta*hillFunc(x,K,n))
+
     if len(alpha_vals) == 1:
         experiments[key]['trajectories'] = [xSolMatSDE]
     else:
@@ -250,19 +232,16 @@ for i, key in enumerate(experiments.keys()):
         experiments[key]['trajectories'] = [xSolMatSDE[:,:idx0],xSolMatSDE[:,idx0:]]
     experiments[key]['sample_times'] = tVec
 # %%
-my_key = '01'
+my_key = '03'
 
 for i in range(numICs):
     # plot solution along with alpha(t)
     plt.plot(experiments[my_key]['sample_times'],
-             np.concatenate(experiments[my_key]['trajectories'],axis=1)[i,:,0],
+             np.concatenate(experiments[my_key]['trajectories'],axis=1)[i,:],
              'k-',alpha=0.25,linewidth=1.0)
-    plt.plot(experiments[my_key]['sample_times'],
-                np.concatenate(experiments[my_key]['trajectories'],axis=1)[i,:,1],
-                'r-',alpha=0.25,linewidth=1.0)
 
 # %%
-Nbins = [40,40]
+Nbins = [40]
 X_train_list = []
 X_test_list = []
 Y_train_list = []
@@ -285,7 +264,7 @@ for exp_ID in experiments.keys():
     num_alpha = len(alpha_list)
 
     for j in range(num_alpha): # get bins and centers for data at high and low flow
-        my_data = [traj for traj in experiments[exp_ID]['trajectories'][j]]
+        my_data = [traj[:,None] for traj in experiments[exp_ID]['trajectories'][j]]
         bins_temp, centers_temp = eareg.get_bins(Nbins,data=my_data)
         bins.append(bins_temp)
         centers.append(centers_temp)
@@ -355,7 +334,7 @@ u_train = np.concatenate(u_train_list)
 u_test = np.concatenate(u_test_list)
 
 # %%
-sigmoid_range = range(1,4)
+num_sigmoid = 6
 
 def make_sigmoid(n):
     def _(x):
@@ -368,8 +347,8 @@ def make_sigmoid_string(n):
         return '1/(1+exp(-'+str(n)+'*'+x+')'
     return _
 
-sigmoid_funcs = [make_sigmoid(n) for n in sigmoid_range]
-func_names = [make_sigmoid_string(n) for n in sigmoid_range]
+sigmoid_funcs = [make_sigmoid(n) for n in range(1,num_sigmoid+1)]
+func_names = [make_sigmoid_string(n) for n in range(1,num_sigmoid+1)]
 
 sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
                              function_names=func_names)
@@ -379,7 +358,7 @@ feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=1,
 #feature_lib=ps.PolynomialLibrary(degree=7, include_bias=True)
 parameter_lib=ps.PolynomialLibrary(degree=1, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
-    parameter_library=parameter_lib,num_features=2,num_parameters=1)
+    parameter_library=parameter_lib,num_features=1,num_parameters=1)
 
 driftModel = ps.SINDy(feature_library = full_lib, optimizer = ps.SSR())
 driftModel.fit(X_train,t=h,x_dot=Y_train,u=u_train)
@@ -392,7 +371,7 @@ print('Coefficient of determination (R^2) of drift (RBF kernel) model on test se
 diff_feature_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
 diff_parameter_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
 diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
-    parameter_library=diff_parameter_lib,num_features=2,num_parameters=1)
+    parameter_library=diff_parameter_lib,num_features=1,num_parameters=1)
 
 
 diffModel = ps.SINDy(feature_library = diff_lib, optimizer = ps.SSR())
@@ -406,15 +385,12 @@ print('Coefficient of determination (R^2) of diffusion (RBF kernel) model on tes
 myModel = [driftModel,diffModel]
 
 plt_args = {'frame_index':50,
-            'pplane_xlim': [-2,10], 
-            'pplane_ylim': [-2,2],
-            'pplane_N': 50,
-            'plt_xlabel': '$x_1$',
-            'plt_ylabel': '$x_2$'}
+            'pplane_xlim': [-2,10], 'pplane_N': 50,
+            'plt_xlabel': '$x$'}
 
 # fix bins and centers for all datasets
-Nbins = [40,40]
-bin_limits = [[-6,12],[-2,2]]
+Nbins = [40]
+bin_limits = [[-2,10]]
 bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
 
 # %%
@@ -424,39 +400,36 @@ for exp_ID in experiments.keys():
     alpha_list = experiments[exp_ID]['alpha']
     num_alpha = len(alpha_list)
 
+
     for j in range(num_alpha): # get bins and centers for data at high and low flow    
-        my_data = [traj for traj in experiments[exp_ID]['trajectories'][j]]
+        my_data = [traj[:,None] for traj in experiments[exp_ID]['trajectories'][j]]
         print('**** Parameter alpha =',alpha_list[j],'**** \n')
-        plot_tuple = model_analysis.run_model_analysis_2D(myModel,my_data,bins,centers,alpha_list[j],args=plt_args)
+        plot_tuple = model_analysis.run_model_analysis_1D(myModel,my_data,bins[0],centers[0],alpha_list[j],args=plt_args)
 
 # %%
-alpha_range = np.linspace(0,1.5,40)
+alpha_range = np.linspace(0,1.5,80)
 
 fpt_dict = {}
 
-x1_lims = plt_args['pplane_xlim']
-x2_lims = plt_args['pplane_ylim']
+x1_lims = [-2,10]
 
 x1 = np.linspace(x1_lims[0],x1_lims[1],50)
 x1_coarse = np.linspace(x1_lims[0],x1_lims[1],10)
 
-x2 = np.linspace(x2_lims[0],x2_lims[1],50)
-x2_coarse = np.linspace(x2_lims[0],x2_lims[1],10)
-
-f = model_eval.vector_field_function(driftModel)
+f = model_eval.scalar_function(driftModel)
 
 for u in alpha_range:
 
     def myFlow(x):
         return f(x,u)
-    flowJacobian = nd.Jacobian(myFlow)
+    flowJacobian = nd.Derivative(myFlow)
 
-    init_coarse = [(x1_coarse[i], x2_coarse[j]) for i in range(len(x1_coarse)) for j in range(len(x2_coarse))]
+    init_coarse = [x1_coarse[i] for i in range(len(x1_coarse))]
     fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
     fpt_types = []
     if len(fpts) > 0:
         for fpt in fpts:
-            fptStability = pplane.find_stability(flowJacobian(fpt))
+            fptStability = pplane.find_stability(flowJacobian(fpt),ndim=1)
             if 'Stable' in fptStability:
                 fpt_types.append('stable')
             elif 'Unstable' in fptStability:
@@ -495,29 +468,244 @@ for u in alpha_range:
             else:
                 color = 'darkgoldenrod'
 
-            plt.plot(u,fpt[0],'o',color=color)
+            plt.plot(u,fpt,'o',color=color)
             plt.xlabel('$\\alpha$')
-            plt.ylabel('$x_1^*$')
+            plt.ylabel('$x^*$')
+plt.ylim([0,9])
 # %%
-# entropy production rate as a function of u
-D = model_eval.vector_field_function(diffModel)
-epr = np.zeros(len(alpha_range))
-for u in alpha_range:   
-    P = model_eval.get_stationary_probability(f,D,bins,centers,u)
-    f_mesh = model_eval.mesh_grid_function(f)
-    D_mesh = model_eval.mesh_grid_function(D)
-
-    X1,X2 = np.meshgrid(centers[0],centers[1])
-    f_vals = f_mesh([X1,X2],u).T
-    D_vals = D_mesh([X1,X2],u).T
-
-    J = gp.probability_flux(P,f_vals,D_vals,centers)
-    D_mat = gp.expand_to_matrix(D_vals)
-
-    epr[alpha_range.tolist().index(u)] = gp.entropy_production(J,D_mat,P,centers)
 
 # %%
-plt.plot(alpha_range,epr,'-o',color='k')
-plt.xlabel("$\\alpha$")
-plt.ylabel('Entropy production rate')
 # %%
+# %%
+# %%
+import sys
+sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/hints')
+import hints
+# %%
+ts_list = []
+for exp_ID in experiments.keys():
+    # add alpha as an additional variable to the trajectory
+    trajs = experiments[exp_ID]['trajectories']
+    alpha_list = experiments[exp_ID]['alpha']
+    if len(alpha_list) == 1:
+        alpha_trajs = [alpha_list[0]*np.ones(trajs[0].shape[-1])]
+    else:
+        alpha_trajs = [alpha_list[i]*np.ones(trajs[i].shape[-1]) for i in range(len(alpha_list))]
+    
+    trajs_concat = []
+    for j in range(trajs[0].shape[0]):
+        trajs_aug = []
+        for (i,traj) in enumerate(trajs):
+            traj_aug = np.zeros((2,traj.shape[1]))            
+            traj_aug[0,:] = traj[j]
+            traj_aug[1,:] = alpha_trajs[i]
+            trajs_aug.append(traj_aug)
+        trajs_concat.append(np.concatenate(trajs_aug,axis=1).T)
+    
+    ts_list.extend(trajs_concat)
+
+# %%
+calculator = hints.kmcc(ts_array=ts_list, dt=h, interaction_order=[1],
+                       estimation_mode='drift', multi_traj=True, window_exp_order=1)
+# %%
+coeffs = calculator.get_coefficients()
+coeffs
+
+# %%
+delta_estimate = -coeffs.loc['x1'][0]
+A_12 = coeffs.loc['x2'][0]
+
+# %%
+from itertools import combinations_with_replacement
+
+
+#%%
+order_5 = hints.kmcc(ts_array=ts_list, dt=h, interaction_order=[i for i in range(6)],
+                       estimation_mode='drift', multi_traj=True, window_exp_order=1)
+
+M_matrix = np.zeros((order_5.n_samples,len(order_5.index_combinations), len(order_5.index_combinations)))
+Y_matrix_dim = len(list(combinations_with_replacement(range(order_5.dimensions), 2))
+                    ) if order_5.mode == 'diffusion' else order_5.dimensions
+Y_matrix = np.zeros((order_5.n_samples,len(order_5.index_combinations), Y_matrix_dim))
+
+segmented_values, values_remainder, segmented_diffs, diffs_remainder = order_5._segment_data()
+
+for i in range(len(segmented_values)):
+    for values, diffs in zip(segmented_values[i], segmented_diffs[i]):
+        ts_matrix = order_5._compute_ts_matrix(values)
+        M_matrix[i] = M_matrix[i] + order_5._compute_M_matrix(ts_matrix)
+        Y_matrix[i] = Y_matrix[i] + order_5._compute_Y_matrix(ts_matrix, diffs)
+
+    if len(values_remainder[i]) > 0:
+        ts_matrix = order_5._compute_ts_matrix(values_remainder[i])
+        M_matrix[i] = M_matrix[i] + order_5._compute_M_matrix(ts_matrix)
+        Y_matrix[i] = Y_matrix[i] + order_5._compute_Y_matrix(ts_matrix, diffs_remainder[i])
+    
+    M_matrix[i] /= order_5.n_timepoints[i]
+    Y_matrix[i] /= order_5.n_timepoints[i]
+
+
+
+# %%
+ndim=2
+x_1 = M_matrix[:,0,1] # <x(t)>
+x_4 = M_matrix[:,0,3*ndim+1] # <x(t)^4>
+x_5 = M_matrix[:,1,4*ndim+1] # <x(t)^5>
+alpha_1 = M_matrix[:,0,2] # <alpha(t)>
+alpha_x_4 = M_matrix[:,0,4*ndim+2] # <alpha(t)x(t)^4>
+y_1 = Y_matrix[:,0,0] # <x(t+dt)-x(t)>
+y_x_4 = Y_matrix[:,0,3*ndim+1] # <[x(t+dt)-x(t)]x(t)^4>
+
+my_num = h*(x_4-delta_estimate*x_5 + alpha_x_4) - y_x_4
+my_denom = h*(delta_estimate*x_1 - alpha_1) + y_1
+K_tilde = my_num/my_denom
+
+
+
+# %%
+coeffs = calculator.get_coefficients()
+coeff_arr = coeffs.values
+interaction_idxs = calculator._generate_index_combinations() 
+# %%
+plt.figure()
+plt.imshow(coeffs.values, cmap='coolwarm')
+# %%
+def f(x,alpha):
+    f_vec = np.zeros(len(x))
+    x_aug = np.zeros((2,len(x)))
+    x_aug[0,:] = x
+    x_aug[1,:] = alpha*np.ones(len(x))
+    counter = 0
+    for ord in calculator.order:
+        if ord == 0:
+            f_vec += coeff_arr[0,0]
+        else:
+            counter += ord
+            coeffs_ord = coeff_arr[counter:(counter+ord+1),0]
+            interaction_idxs_ord = interaction_idxs[counter:(counter+ord+1)]
+
+            for interactions in interaction_idxs_ord:
+                f_vec += coeffs_ord[interaction_idxs_ord.index(interactions)]*np.prod(x_aug[interactions,:],axis=0)
+    return f_vec
+# %%
+alpha_range = np.linspace(0,1.5,80)
+
+fpt_dict = {}
+
+x1_lims = [-2,10]
+
+x1 = np.linspace(x1_lims[0],x1_lims[1],50)
+x1_coarse = np.linspace(x1_lims[0],x1_lims[1],10)
+
+for u in alpha_range:
+
+    def myFlow(x):
+        return f(x,u)
+    flowJacobian = nd.Derivative(myFlow)
+
+    init_coarse = [x1_coarse[i] for i in range(len(x1_coarse))]
+    fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
+    fpt_types = []
+    if len(fpts) > 0:
+        for fpt in fpts:
+            fptStability = pplane.find_stability(flowJacobian(fpt),ndim=1)
+            if 'Stable' in fptStability:
+                fpt_types.append('stable')
+            elif 'Unstable' in fptStability:
+                fpt_types.append('unstable')
+            elif 'Saddle' in fptStability:
+                fpt_types.append('saddle')
+            else:
+                fpt_types.append('indeterminate')
+
+    fpts_new = []
+    fpt_types_new = []
+    for fpt in fpts:
+        # if far out of bounds of the plot window, don't report it
+        if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]):
+            continue
+        else:
+            fpts_new.append(fpt)
+            fpt_types_new.append(fpt_types[fpts.index(fpt)])
+
+    fpt_dict[str(u)] = {}
+    fpt_dict[str(u)]['fixed_points'] = fpts_new
+    fpt_dict[str(u)]['fixed_point_types'] = fpt_types_new
+
+# %%
+for u in alpha_range:
+    fpts = fpt_dict[str(u)]['fixed_points']
+    fpt_types = fpt_dict[str(u)]['fixed_point_types']
+    if len(fpts) > 0:
+        for i,fpt in enumerate(fpts):
+            if fpt_types[i] == 'stable':
+                color = 'b'
+            elif fpt_types[i] == 'unstable':
+                color = 'r'
+            elif fpt_types[i] == 'saddle':
+                color = 'tab:purple'
+            else:
+                color = 'darkgoldenrod'
+
+            plt.plot(u,fpt,'o',color=color)
+            plt.xlabel('$\\alpha$')
+            plt.ylabel('$x^*$')
+
+# %%
+x_vec = np.linspace(-2,10,100)
+alpha = 0.3
+
+f_vec = f(x_vec,alpha) 
+
+f_true = alpha - delta*x_vec + beta*hillFunc(x_vec,K,n)
+plt.plot(x_vec,0*x_vec,'k-.',alpha=0.75)
+plt.plot(x_vec,f_vec,'b--')
+plt.plot(x_vec,f_true,'k-')
+# %%
+# %%
+# %%
+# NOW: compute separately for different alpha, then do linear regression on coefficients
+
+coeff_dict = {}
+for exp_ID in experiments.keys():
+    coeff_dict[exp_ID] = {'alpha':experiments[exp_ID]['alpha'],
+                          'drift_coeffs':[],
+                          'diffusion_coeffs':[]}
+    # add alpha as an additional variable to the trajectory    
+    for j,alpha in enumerate(experiments[exp_ID]['alpha']):
+        trajs = experiments[exp_ID]['trajectories'][j]
+        traj_list = [traj[:,None] for traj in trajs] # turn array of n_traj trajectories into list of n_traj (1,n_times) arrays
+        drift_calculator = hints.kmcc(ts_array=traj_list, dt=h, interaction_order=[0,1,2,3],
+                                      estimation_mode='drift', multi_traj=True, window_exp_order=2)
+        coeff_dict[exp_ID]['drift_coeffs'].append(drift_calculator.get_coefficients())
+
+        diff_calculator = hints.kmcc(ts_array=traj_list, dt=h, interaction_order=[0,1],
+                                     estimation_mode='diffusion', multi_traj=True, window_exp_order=1)
+        coeff_dict[exp_ID]['diffusion_coeffs'].append(diff_calculator.get_coefficients())
+
+# %%
+coeff_idx = 3
+coeff_vals = []
+alpha_vals = []
+for exp_ID in experiments.keys():
+    for j,alpha in enumerate(experiments[exp_ID]['alpha']):
+        coeff_vals.append(coeff_dict[exp_ID]['drift_coeffs'][j].values[coeff_idx,0])
+        alpha_vals.append(alpha)
+
+A = np.vstack([alpha_vals, np.ones(len(alpha_vals))]).T
+(m, c), res = np.linalg.lstsq(A, coeff_vals, rcond=-1)[0:2]
+sum_squares = np.sum((coeff_vals - np.mean(coeff_vals))**2)
+R2 = 1 - res/sum_squares
+print('R^2 value for order',coeff_idx,'drift coefficient',coeff_idx,':',R2)
+
+fig, ax = plt.subplots()
+ax.plot(alpha_vals,coeff_vals,'o')
+ax.plot(alpha_vals, m*np.array(alpha_vals) + c, 'r')
+
+# %%
+coeffs = calculator.get_coefficients()
+coeff_arr = coeffs.values
+interaction_idxs = calculator._generate_index_combinations() 
+# %%
+plt.figure()
+plt.imshow(coeffs.values, cmap='coolwarm')

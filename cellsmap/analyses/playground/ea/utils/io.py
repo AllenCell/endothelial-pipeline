@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 import os
 from pathlib import Path
+import cellsmap.util.io as io
 
 def make_savedir(savedir:str,subfolders:bool=True) -> None:
     '''Create directory savedir if it does not exist and/or subfolders
@@ -33,6 +34,8 @@ def get_PCA_reference(df:pd.DataFrame) -> pd.DataFrame:
     df['pca_ref'] = df.group.str.contains('20241120') | df.group.str.contains('20241203')
     # select no flow timepoints right after feeding
     df.loc[df.group.str.contains('20241210') & (df['T'] > 300) & (df['T'] < 450), 'pca_ref'] = True
+    df.loc[df.group.str.contains('20241217') & (df['T'] < 100), 'pca_ref'] = True
+    df.loc[df.group.str.contains('20241217') & (df['T'] >300) & (df['T'] < 420), 'pca_ref'] = True
     return df[df.pca_ref]
 
 def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
@@ -40,6 +43,13 @@ def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
     df['group'] = df.filename_or_obj.apply(lambda s: Path(s).parent.parent.stem)
     df['T'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])//6)
     df['FOV_ID'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])%6)
+    return df
+
+def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict) -> pd.DataFrame:
+    '''Add metadata columns to DataFrame df.'''
+    # if key in description_dic is in group column, add description to description column
+    for key in description_dic.keys():
+        df.loc[df['group'].str.contains(key),'description'] = description_dic[key]
     return df
 
 def rm_metadata(df:pd.DataFrame,metadata_col:list) -> pd.DataFrame:
@@ -75,14 +85,19 @@ def get_one_dataset(df:pd.DataFrame,ds_metadata:str,ds_ID:str) -> pd.DataFrame:
       metadata column ds_metadata in DataFrame df.'''
     return df[df[ds_metadata] == ds_ID].copy()
 
+def get_flow_change_frame(ds_name:str) -> int:
+    '''Get frame number at which flow changes in dataset ds_name.'''
+    if 'SLDY' or 'timelapse' in ds_name: # passed in last part of file path, i.e., 'group' column
+        ds_name = get_dataset_name(ds_name)
+    data_config = io.get_dataset_info(ds_name)
+    change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
+    return change_frame
+
 def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
-    '''Add crop index column to DataFrame df. (Crops are currently identified by their starting position in x and y.)'''
-    # df['crop_index'] = np.tile(np.arange(216), df.shape[0]//216) # placeholder for now
-    # return df
-    
-    start_x = df[df['T']==0]['start_x'].values.tolist()
-    start_y = df[df['T']==0]['start_y'].values.tolist()
-    FOV_ID = df[df['T']==0]['FOV_ID'].values.tolist()
+    '''Add crop index column to DataFrame df. (Crops are currently identified by their starting position in x and y.)'''    
+    start_x = df[df['T']==df['T'].min()]['start_x'].values.tolist()
+    start_y = df[df['T']==df['T'].min()]['start_y'].values.tolist()
+    FOV_ID = df[df['T']==df['T'].min()]['FOV_ID'].values.tolist()
     tup_list = list(zip(start_x,start_y,FOV_ID))
 
     def pos_to_index(x,y,FOV):
@@ -99,23 +114,29 @@ def get_PCA(df:pd.DataFrame,n_components:int=None) -> PCA:
     ratio, and principal components.
     '''
     if n_components is not None:
-        pca = PCA(n_components=n_components)
+        pca = PCA(n_components=n_components,svd_solver='full')
     else:
-        pca = PCA(n_components=df.shape[1])
-    pca.fit((df - df.mean()) / df.std())
+        pca = PCA(n_components=df.shape[1],svd_solver='full')
+    pca.fit(df)
 
     return pca
 
-def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,metadata_cols:list = ['start_x','start_y','T','crop_index']) -> np.ndarray:
+def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,feat_cols:list=[str(i) for i in range(8)]) -> np.ndarray:
     '''Project feature data of one dataset onto PCA components.'''
     df_ = add_crop_index(get_one_dataset(df,ds_metadata,ds_ID))
-    metadata_cols_ = metadata_cols + ['crop_index']
+    df_.loc[:,feat_cols] = pca.transform(df_[feat_cols].values)
+
+    return df_
+
+def df_to_array(df_:pd.DataFrame,feat_cols:list=[str(i) for i in range(8)]) -> np.ndarray:
+    '''Convert DataFrame of features corresponding to one movie to array
+    of shape num_crops x num_timepoints x num_features.'''
 
     num_T = df_['T'].nunique() # number of timepoints in the movie
     num_crop = df_['crop_index'].nunique() # number of crops made at each timepoint
 
-    feats_proj = df_.drop(columns = metadata_cols_).astype(float) # get feature data (no metadata)
-    feats_proj = pca.transform(feats_proj).reshape(num_T,num_crop,-1) # reshape to (num_T, num_crop, num_components)
-    feats_proj = np.swapaxes(feats_proj,0,1) # swap T and crop_index axes (num_crop, num_T, num_components)
+    # get array of num crops x num timepoints x num PCs
+    feats = np.array([df_[df_['crop_index']==ii].sort_values(by='T')[feat_cols].values for ii in range(num_crop)])
 
-    return feats_proj
+    assert feats.shape == (num_crop,num_T,len(feat_cols))
+    return feats

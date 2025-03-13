@@ -1,17 +1,22 @@
 import numpy as np
 import cellsmap.util.io as io
+import cellsmap.analyses.playground.ea.utils.io as eaio
 from sklearn.model_selection import train_test_split
+import pandas as pd
 
-def get_traj_and_flow(feats_proj:np.ndarray,mv_name:str,PCs:list=[0,2],verbose:bool=True) -> None:
-    num_T = feats_proj.shape[1]
-    num_crop = feats_proj.shape[0]
+def get_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,PCs:list=[0,1],verbose:bool=True) -> None:
+    num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
 
     data_config = io.get_dataset_info(mv_name)
     first_flow = float(data_config['flow'][0][-1])
 
+    PC_cols = [str(i) for i in PCs]
+    # get array of num crops x num timepoints x num PCs
+    feats_proj = eaio.df_to_array(df_proj,PC_cols)
+
     flow_list = [first_flow]
     if len(data_config['flow']) > 1:
-        change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
+        change_frame = eaio.get_flow_change_frame(mv_name) # change from time in hours to frame number
         second_flow = float(data_config['flow'][1][-1])
         if verbose:
             if first_flow > second_flow:
@@ -20,7 +25,6 @@ def get_traj_and_flow(feats_proj:np.ndarray,mv_name:str,PCs:list=[0,2],verbose:b
             else:
                 print('Low flow until frame',change_frame)
                 print('High flow after frame',change_frame)
-        u_traj = [first_flow*np.ones(change_frame),second_flow*np.ones(num_T-change_frame)]
         data_flow1 = [feats_proj[:,:change_frame,:][:,:,PCs][i] for i in range(num_crop)]
         data_flow2 = [feats_proj[:,change_frame:,:][:,:,PCs][i] for i in range(num_crop)]
         data_all = [data_flow1,data_flow2]
@@ -28,9 +32,62 @@ def get_traj_and_flow(feats_proj:np.ndarray,mv_name:str,PCs:list=[0,2],verbose:b
     else:
         if verbose:
             print('Constant flow')
-        u_traj = [first_flow*np.ones(num_T)]
         data_all = [[feats_proj[:,:,PCs][i] for i in range(num_crop)]]
-    return data_all, u_traj, flow_list
+    return data_all, flow_list
+
+def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,feat_cols:list=[str(i) for i in range(8)],verbose:bool=True) -> None:
+    num_T = df_proj['T'].nunique() # number of timepoints in the movie
+    num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
+
+    data_config = io.get_dataset_info(mv_name)
+    first_flow = float(data_config['flow'][0][-1])
+
+    flow_list = [first_flow]
+
+    if 0 in flow_list: # select only these time points at no flow
+        T_range = [300,420]
+    else:
+        T_range = [0,num_T-1]
+
+    if len(data_config['flow']) > 1:
+        change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
+        second_flow = float(data_config['flow'][1][-1])
+
+        traj_flow1 = []
+        traj_flow2 = []
+        # This part is taking a long time to run
+        # how to speed up?
+        for ii in range(num_crop):
+            df_crop_ = df_proj[df_proj['crop_index']==ii].sort_values(by='T')
+            for jj in range(0,change_frame-1):
+                df_traj_ = df_crop_[df_crop_['T'].isin([jj,jj+1])]
+                if np.any(df_traj_['outlier']):
+                    continue
+                else:
+                    traj_flow1.append(df_traj_[feat_cols].values)
+            for jj in range(change_frame,num_T-1):
+                df_traj_ = df_crop_[df_crop_['T'].isin([jj,jj+1])]
+                if np.any(df_traj_['outlier']):
+                    continue
+                else:
+                    traj_flow2.append(df_traj_[feat_cols].values)
+
+        two_point_traj = [traj_flow1,traj_flow2]
+        flow_list.append(second_flow)
+    else:
+        if verbose:
+            print('Constant flow')
+        two_point_traj = []
+        for ii in range(num_crop):
+            df_crop_ = df_proj[df_proj['crop_index']==ii].sort_values(by='T')
+            for jj in range(T_range[0],T_range[1]):
+                df_traj_ = df_crop_[df_crop_['T'].isin([jj,jj+1])]
+                if np.any(df_traj_['outlier']):
+                    continue
+                else:
+                    two_point_traj.append(df_traj_[feat_cols].values)
+        two_point_traj = [two_point_traj]
+    return two_point_traj, flow_list
 
 def get_bins(Nbins,data=None,bin_limits=None):
     '''Generate histogram bins for the data.'''
@@ -74,7 +131,7 @@ def KM_avg_ND(X,bins,dt,threshold=None):
         dX2 = (traj[1:] - traj[:-1])**2/dt
 
         if threshold is not None: # Mask out large jumps
-            mask = np.where(np.linalg.norm(dX,axis=1) > threshold)[0]
+            mask = np.where(np.linalg.norm(dX,axis=-1) > threshold)[0]
             dX[mask] = np.nan
             dX2[mask] = np.nan
 
@@ -102,8 +159,17 @@ def KM_avg_ND(X,bins,dt,threshold=None):
     f_KM_avg = np.nanmean(f_KM,axis=-1)
     a_KM_avg = np.nanmean(a_KM,axis=-1)
     # think about how to generalize standard deviation computation to short traj vs. long traj
-    f_err = np.nanmean(f_err,axis=-1) + np.nanstd(f_KM,axis=-1)
-    a_err = np.nanmean(a_err,axis=-1) + np.nanstd(a_KM,axis=-1)
+    f_err_mean = np.nanmean(f_err,axis=-1)
+    f_err_mean = np.nan_to_num(f_err_mean,nan=1e10)
+    f_KM_std = np.nanstd(f_KM,axis=-1)
+    f_KM_std = np.nan_to_num(f_KM_std,nan=1e10)
+    f_err = f_err_mean + f_KM_std
+
+    a_err_mean = np.nanmean(a_err,axis=-1)
+    a_err_mean = np.nan_to_num(a_err_mean,nan=1e10)
+    a_KM_std = np.nanstd(a_KM,axis=-1)
+    a_KM_std = np.nan_to_num(a_KM_std,nan=1e10)
+    a_err = a_err_mean + a_KM_std
 
     return f_KM_avg, a_KM_avg, f_err, a_err
 
@@ -114,7 +180,7 @@ def masked_vector_field(F,X):
     ndim = F.shape[-1]
     X_mask = X[mask].reshape((-1,ndim))
     F_mask = F[mask].reshape((-1,ndim))
-    return F_mask, X_mask
+    return F_mask, X_mask, mask
 
 def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
     '''Split data for different flow conditions into training and testing sets (80/20 by default)'''
