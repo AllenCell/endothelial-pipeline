@@ -14,6 +14,7 @@ import yaml
 import re
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
+from typing import Any, Optional, List, Union
 
 def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str='TCZYX') -> np.ndarray:
     """
@@ -289,7 +290,7 @@ def clean_labeled_img(labeled_img: np.ndarray, eccentricity_filter: float=0.5, s
 
     return labeled_img_clean, labeled_img_removed
 
-def initialize_rag(labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool=False) -> rag_boundary:
+def initialize_rag(labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool=False):
     """
     Creates a region-adjacency graph (RAG) using a labeled image and an
     intensity image.
@@ -595,7 +596,7 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
 
     return filepaths
 
-def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
+def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> float:
     """
     Return the time_resolutions to the cdh5 classic segmentations.
 
@@ -620,7 +621,14 @@ def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
 
     return t_res
 
-def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None, as_dask=False) -> list:
+def get_cdh5_classic_segmentation(
+    dataset_name: str,
+    T: int,
+    channels: Optional[List[Any]] = None,
+    crop_y: Optional[slice] = None,
+    crop_x: Optional[slice] = None,
+    as_dask: bool = False
+    ) -> list:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
@@ -661,8 +669,8 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     """
 
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
-    filepaths = {fpath: extract_T(fpath) for fpath in filepaths}
-    fpath = [fpath for fpath in filepaths if filepaths[fpath]==T]
+    filepaths_dict = {fpath: extract_T(fpath) for fpath in filepaths}
+    fpath = [fpath for fpath in filepaths_dict if filepaths_dict[fpath] == T]
     assert len(fpath) == 1, f"Multiple files found for timepoint {T}." if len(fpath) > 1 else f"No files found for timepoint {T}."
 
     dim_map = get_dim_map('TCZYX')
@@ -739,7 +747,7 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
         
     return t if int_only else f'T{t}'
 
-def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype=None):
+def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], images_metadata: dict, dtype: Optional[np.dtype] = None) -> None:
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
@@ -747,7 +755,6 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype
     Parameters
     ----------
     out_path: Path
-        This is a tuple of the form (row_start, col_start, row_end, col_end).
 
     images: list
         A list of numpy arrays
