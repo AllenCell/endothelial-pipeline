@@ -1,17 +1,17 @@
 import numpy as np
 from cyto_dl.api import CytoDLModel
 from cyto_dl.utils import extract_array_predictions
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
-    df = io.load_precomputed_features(dataset_name="20240305_T01_001", model_name="mae_cdh5")
+    df = dataset_io.load_precomputed_features(dataset_name="20240305_T01_001", model_name="mae_cdh5")
     feature_crop_0_T_0 = df.query('crop_index == 0 and T == 0').drop(columns=["crop_index","T"]).iloc[0]
 
     model = CytoDLModel()
     model.load_config_from_file("//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/array_eval_config.yaml")
-    reader = io.load_dataset("20240305_T01_001", channels=["CDH5_Tubulin", "Nuc_Seg"], time_start=0, time_end=1)
+    reader = dataset_io.load_dataset("20240305_T01_001", channels=["CDH5_Tubulin", "Nuc_Seg"], time_start=0, time_end=1)
     img = reader.compute()
 
     data = [img[0, slice(0,1), :512, :512]]

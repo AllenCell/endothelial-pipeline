@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 
 from cellsmap.analyses.utils import preprocess as pp
 from cellsmap.analyses.utils.langevin_sindy.select_timelag import select_lag
@@ -122,7 +122,7 @@ def fit_model(data,dt,lag_step,ndim,N,auto_bin,bin_limits,nf,ns,savedir,log_file
 
     
 def main(config_name, path_to_data):
-    metadata, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file = io.get_dynamics_inputs(config_name)
+    metadata, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file = dataset_io.get_dynamics_inputs(config_name)
     
     if not os.path.isdir(savedir):
         print("*** Creating directory to save results... \n")
@@ -200,16 +200,16 @@ if __name__ == '__main__':
     print("Before running this script, make sure the data file is saved in the correct format and that Langevin Regression inputs (save directory, binning of state space, etc.) are set up in `dynamics_config.yaml`. \n")
 
     print("Available sets of Langevin Regression inputs (from `dynamics_config.yaml`): ")
-    io.get_available_dynamics_configs()
+    dataset_io.get_available_dynamics_configs()
     config_name = input("Enter the name of the configuration to use from the above list: ")
 
     print("\n","Available datasets: ",sep="")
-    io.get_available_datasets()
+    dataset_io.get_available_datasets()
 
     dataset_name = input("Enter the name of the dataset to analyze from the above list: ")
 
     print("\n","Available features (ML models trained on this dataset): ",sep="")
-    data_config = io.get_dataset_info(dataset_name)
+    data_config = dataset_io.get_dataset_info(dataset_name)
     for feature in data_config['features']:
         print(feature)
     feature_name = input("Enter the name of the feature set to analyze from the above list: ")

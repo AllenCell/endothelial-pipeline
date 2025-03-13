@@ -8,7 +8,7 @@ from skimage.feature import peak_local_max
 from skimage.morphology import binary_dilation, disk, skeletonize, remove_small_objects
 from skimage.segmentation import watershed, join_segmentations, find_boundaries
 from skimage.graph import rag_boundary, merge_hierarchical
-from cellsmap.util.io import get_dim_map
+from cellsmap.util.dataset_io import get_dim_map
 from pathlib import Path
 import yaml
 import re

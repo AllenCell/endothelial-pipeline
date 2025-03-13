@@ -1,12 +1,12 @@
 from pathlib import Path
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 
 print('Available datasets:')
-dataset_name_list = io.get_available_datasets()
+dataset_name_list = dataset_io.get_available_datasets()
 print('\n')
 filepaths_found = {}
 for dataset_name in dataset_name_list:
-    config_data = io.get_dataset_info(dataset_name)
+    config_data = dataset_io.get_dataset_info(dataset_name)
     original_path = Path(config_data['original_path'])
     zarr_path = Path(config_data['original_path'])
     print(f"{dataset_name}: original_path {original_path.exists()}, zarr_path {zarr_path.exists()}")

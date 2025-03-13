@@ -4,7 +4,7 @@ import sympy
 from matplotlib import cm, colors
 import matplotlib.pyplot as plt
 
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 import cellsmap.analyses.utils.viz as viz
@@ -207,7 +207,7 @@ if __name__ == '__main__':
           """)
     print("******* Cellsmap dynamical systems model analysis workflow ******* \n")
     config_name = input("Enter the name of the configuration in `dynamics_config.yaml` used to fit the model: ")
-    config_inputs = io.get_dynamics_inputs(config_name)
+    config_inputs = dataset_io.get_dynamics_inputs(config_name)
     savedir = config_inputs[-2]
     ndim = config_inputs[2]
     split_high_low = config_inputs[6]

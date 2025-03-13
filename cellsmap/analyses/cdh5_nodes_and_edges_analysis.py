@@ -2,7 +2,7 @@ from pathlib import Path
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
-from cellsmap.util import io, cdh5_preprocessing as preproc
+from cellsmap.util import dataset_io, cdh5_preprocessing as preproc
 from cellsmap.analyses import vis_cdh5_nodes_and_edges_analysis as vis
 import fire
 from bioio import BioImage
@@ -36,7 +36,7 @@ def stringified_floatlist_to_floatlist(ls, to_tuple=False):
 
 def main(N_PROC: int=1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
 
-    DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
+    DATASET_NAME_LIST = [config_data['name'] for config_data in dataset_io.load_config(config_type='data')]
 
     for dataset_name in DATASET_NAME_LIST:
         # create some paths of interest
