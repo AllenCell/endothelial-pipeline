@@ -6,9 +6,10 @@ from skimage import morphology
 from skimage import segmentation
 from skimage import graph
 from skimage.exposure import rescale_intensity
+from typing import Optional, Tuple, List, Any
 
 
-def arr2graph(arr: np.ndarray, closing_step=True) -> np.ndarray:
+def arr2graph(arr: np.ndarray, closing_step=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Will take a binary image array showing a network-like structure
     and return the labeled versions of the nodes, edges, skeletons and
     pixel connectivity in that order. The connectivity equal to the
@@ -97,7 +98,7 @@ def arr2graph(arr: np.ndarray, closing_step=True) -> np.ndarray:
     return nodes_lab, edges_lab, skels_lab, conn
 
 
-def get_neighboring_labels(home_img: np.ndarray, labeled_neighbors_img: np.ndarray, bad_neighbors: list=None) -> tuple:
+def get_neighboring_labels(home_img: np.ndarray, labeled_neighbors_img: np.ndarray, bad_neighbors:  Optional[List[Any]] = None) -> tuple:
     """
     home_img will be made binary (can be an image where only a particular label was
     chosen by home_img == lab)
@@ -283,7 +284,7 @@ def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, b
     return node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs
 
 
-def numpy_mesh_coords(coord1_ls: list, coord2_ls: list, indexing: str='ij', return_indiv_coord_meshes: bool=False) -> list:
+def numpy_mesh_coords(coord1_ls: List[Any], coord2_ls: List[Any], indexing: str='ij', return_indiv_coord_meshes: bool=False) -> list:
     """
     Performs a numpy meshgrid operation for coordinate points.
 
@@ -320,11 +321,11 @@ def numpy_mesh_coords(coord1_ls: list, coord2_ls: list, indexing: str='ij', retu
 
     assert np.array(coord1_ls).ndim == np.array(coord2_ls).ndim <= 2, 'Coordinate lists must be 2D or 1D and have same dimensions.'
 
-    coord1_ls = np.array(coord1_ls) if np.array(coord1_ls).ndim == 2 else np.array(coord1_ls, ndmin=2).T
-    coord2_ls = np.array(coord2_ls) if np.array(coord2_ls).ndim == 2 else np.array(coord2_ls, ndmin=2).T
+    coord1_array = np.array(coord1_ls) if np.array(coord1_ls).ndim == 2 else np.array(coord1_ls, ndmin=2).T
+    coord2_array = np.array(coord2_ls) if np.array(coord2_ls).ndim == 2 else np.array(coord2_ls, ndmin=2).T 
 
-    coords1 = zip(*coord1_ls)
-    coords2 = zip(*coord2_ls)
+    coords1 = zip(*coord1_array)
+    coords2 = zip(*coord1_array)
 
     coords = list(zip(coords1, coords2))
     coord_meshes = [np.meshgrid(*coord_ax, indexing=indexing) for coord_ax in coords]
@@ -334,7 +335,12 @@ def numpy_mesh_coords(coord1_ls: list, coord2_ls: list, indexing: str='ij', retu
 
     return coord_meshes
 
-def get_angle(vec1: np.ndarray, vec2: np.ndarray, in_deg: bool=False, axis: int=None) -> np.ndarray:
+def get_angle(
+    vec1: np.ndarray, 
+    vec2: np.ndarray, 
+    in_deg: bool = False, 
+    axis: Optional[int] = None
+) -> np.ndarray:
     """ Get the angle between two vectors vec1 and vec2.
     Both vec1 and vec2 must start at the origin (0,0).
 
@@ -386,7 +392,7 @@ def get_angle(vec1: np.ndarray, vec2: np.ndarray, in_deg: bool=False, axis: int=
     return np.rad2deg(rad) if in_deg else rad
 
 
-def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False) -> np.ndarray:
+def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False):
     """
     Takes a list of paired coordinates and an array and draws rasterized versions of
     the lines between the paired coordinates.
@@ -437,7 +443,12 @@ def build_vector(stop_position, start_position):
     vec = stop_position - start_position
     return vec
 
-def calculate_region_border_metrics(binary_image: np.ndarray, intensity_image: np.ndarray=None, labeled_image: np.ndarray=None, VERBOSE=True) -> dict:
+def calculate_region_border_metrics(
+    binary_image: np.ndarray, 
+    intensity_image: Optional[np.ndarray] = None, 
+    labeled_image: Optional[np.ndarray] = None, 
+    VERBOSE: bool = True
+) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and creates a node
@@ -520,7 +531,14 @@ def calculate_region_border_metrics(binary_image: np.ndarray, intensity_image: n
 
     return [neighbor_node_metrics, labeled_image_metrics]
 
-def calculate_labeled_image_metrics(binary_image: np.ndarray, labeled_image: np.ndarray, nodes: np.ndarray=None, edges: np.ndarray=None, intensity_image: np.ndarray=None, VERBOSE=True) -> dict:
+def calculate_labeled_image_metrics(
+    binary_image: np.ndarray,
+    labeled_image: np.ndarray,
+    nodes: Optional[np.ndarray] = None,
+    edges: Optional[np.ndarray] = None,
+    intensity_image: Optional[np.ndarray] = None,
+    VERBOSE: bool = True
+) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and its node and
@@ -724,7 +742,13 @@ def calculate_labeled_image_metrics(binary_image: np.ndarray, labeled_image: np.
     return metrics
 
 
-def calculate_neighbor_node_metrics(binary_image: np.ndarray, nodes: np.ndarray=None, edges: np.ndarray=None, intensity_image: np.ndarray=None, VERBOSE=True) -> dict:
+def calculate_neighbor_node_metrics(
+    binary_image: np.ndarray, 
+    nodes: Optional[np.ndarray] = None, 
+    edges: Optional[np.ndarray] = None, 
+    intensity_image: Optional[np.ndarray] = None, 
+    VERBOSE: bool = True
+) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and creates a node
@@ -925,7 +949,7 @@ def intensity_pct75(region_mask: np.ndarray, intensity_image: np.ndarray) -> flo
     region_intensity_pct75 = np.percentile(intensity_image[region_mask], q=75)
     return region_intensity_pct75
 
-def walk_the_line(skel: np.ndarray, max_num_pixels: int=None, bidirectional=True) -> tuple:
+def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidirectional: bool = True) -> tuple:
     """
     Takes a thinned or skeletonized binary line with 2 ends and no branches
     and returns the coordinates of the line ordered from endpoint to endpoint
@@ -1078,7 +1102,7 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: int=None, bidirectional=True
     return (line1, line2) if bidirectional else (line1,)
 
 
-def get_length(skel: np.ndarray, max_num_pixels: int=None) -> float:
+def get_length(skel: np.ndarray, max_num_pixels: Optional[int] = None) -> float:
     """
     Returns the length of a rasterized binary line.
     The rasterized binary line must 2 ends and no branches.
