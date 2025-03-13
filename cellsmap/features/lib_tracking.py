@@ -7,6 +7,7 @@ from cellsmap.util.shape_features import numpy_mesh_coords
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation, save_image_output
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, get_dim_map
+from typing import Optional, Callable, Union, List, Any, Dict, Literal
 
 
 ## NOTE THIS BLOCK SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -15,7 +16,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-def ipython_cli_flexecute(function: callable, return_results=False, *args, **kwargs):
+def ipython_cli_flexecute(function: Callable, return_results=False, *args, **kwargs):
     """
     Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
     """
@@ -41,7 +42,7 @@ def get_chan_map(filepath: Path) -> dict:
     img = BioImage(filepath)
     return {name:index for index, name in enumerate(img.channel_names)}
 
-def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sorting_function: callable=None):
+def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sorting_function: Optional[Callable] = None):
     if isinstance(filepath, (Path, str)):
         filepath = Path(filepath)
         if filepath.is_file():
@@ -59,7 +60,14 @@ def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sor
 
     return filepath
 
-def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | dict=None, image_buffer_prior: int=0, image_buffer_next: int=0, axis: str=None, VERBOSE=False):
+def load_images_sequentially(
+    filepaths: List[Path], 
+    crops: Optional[Union[List[Dict], Dict]] = None, 
+    image_buffer_prior: int = 0, 
+    image_buffer_next: int = 0, 
+    axis: Optional[str] = None, 
+    VERBOSE: bool = False
+):
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
@@ -160,7 +168,15 @@ def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | d
 
 
 
-def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False, VERBOSE=False) -> list:
+def match_labels_from_images(
+    labeled_images: List, 
+    metrics: List[str] = ['centroid'], 
+    reference_index: int = 0, 
+    metrics_thresholds: Optional[List[float]] = None, 
+    matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
+    exclude_if_any_thresholded: bool = False, 
+    VERBOSE: bool = False
+) -> Dict:
     """
     Match labels between frames based on a list of metrics.
 
@@ -293,7 +309,13 @@ def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], 
 
 
 
-def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False) -> list:
+def match_labels_from_metrics(
+    list_of_labeled_metric_vals: List, 
+    reference_index: int = 0, 
+    metrics_thresholds: Optional[List] = None, 
+    matching_method: str = 'forward', 
+    exclude_if_any_thresholded: bool = False
+):
     """
     Compares the dictionary of labeled metrics at list_of_labeled_metric_vals[reference_index] to the
     dictionary of labeled metrics from each of the other indices in list_of_labeled_metric_vals and 
@@ -425,7 +447,7 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
 
     return matched_labels_dict
 
-def match_labels_from_overlaps(labeled_images: list, reference_index: int=0, matching_method='forward', overlap_minimum=None) -> list:
+def match_labels_from_overlaps(labeled_images: list, reference_index: int=0, matching_method='forward', overlap_minimum=None) -> dict:
     """
     Match labels between frames based on the fraction of overlap between regions.
 
@@ -523,7 +545,7 @@ def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarr
     return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
 
 
-def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.DataFrame:
+def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> dict:
     """list_of_region_props_list = list(list(measure.regionprops))
     list_of_region_props_list at index_to_initialize_on will be used to start a dataframe.
     Each label in the region_props_list will get a row in the dataframe with its own track_id
@@ -579,7 +601,7 @@ def update_new_track_ids(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataF
     return new_track_ids
 
 
-def axial_min(arr: np.ndarray, mask: np.ndarray=None, mask_values_below: float=None, mask_values_above: float=None) -> tuple:
+def axial_min(arr: np.ndarray, mask: Optional[np.ndarray] = None, mask_values_below: Optional[float] = None, mask_values_above: Optional[float] = None) -> tuple:
     """
     Finds and returns the indices of the lowest values along the column and row axes of a 2D numpy array, 
     ignoring masked values. If all values at an index along an axis are masked then a masked value will be
@@ -648,7 +670,7 @@ def axial_min(arr: np.ndarray, mask: np.ndarray=None, mask_values_below: float=N
     return ij_argmins, ji_argmins, reciprocal_argmin
 
 
-def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, image_metadata: dict=None, extra_channel: dict=None):
+def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, image_metadata: Optional[dict]=None, extra_channel: Optional[dict]=None):
     """
     track_labeled_image: np.ndarray
         a 2D or 3D array where each region has an integer corresponding to the track_id
@@ -682,7 +704,18 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
                       dtype=np.uint32)
 
 
-def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['region_overlap'], sorting_key: callable=None, C=0, extra_in_dir: Path | list[Path]=None, extra_C: int=0, img_metadata=None, SAVE_OUTPUT=True, VERBOSE=False):
+def run_tracking(
+    in_dir: Union[Path, List[Path]], 
+    out_dir: Path, 
+    tracking_metrics: List[str] = ['region_overlap'], 
+    sorting_key: Optional[Callable] = None, 
+    C: int = 0, 
+    extra_in_dir: Optional[Union[Path, List[Path]]] = None, 
+    extra_C: int = 0, 
+    img_metadata: Optional[Any] = None, 
+    SAVE_OUTPUT: bool = True, 
+    VERBOSE: bool = False
+):
     """
     in_dir_extra is supposed to be a folder or list of filepaths to the raw images that can be
     added to the output track-labeled images as an extra channel.
