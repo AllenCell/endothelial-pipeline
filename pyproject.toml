@@ -15,7 +15,7 @@ dependencies = [
     "bioio-sldy>=1.0.2",
     "cyto-dl>=0.4.0",
     "fire>=0.6.0",
-    "fplank>=0.2.2",
+    "fplanck>=0.2.2",
     "ipykernel>=6.29.5",
     "itkwasm==1.0b171",
     "jupyter>=1.0.0",
@@ -67,7 +67,7 @@ disable_error_code = [
 # The following dependencies are untyped. mypy should ignore them
 module = [
     "fire",
-    "fplank.utility",
+    "fplanck.utility",
     "cyto_dl",
     "cyto_dl.api",
     "cyto_dl.utils",
