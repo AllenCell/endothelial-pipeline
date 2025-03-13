@@ -1,11 +1,11 @@
 import numpy as np
 import dask.array as da
-from pathlib import Path
+# from pathlib import Path
 from cellsmap.util import io
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
-
+from tqdm import tqdm
 
 def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     """
@@ -15,19 +15,31 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     dataset (str): The name of the dataset.
 
     Returns:
+    metadata: The the metadata for the dataset as a dictionary of dictionaries.
+    """
+    dataset_path = io.get_original_path(dataset)
+    im = BioImage(dataset_path)
+    metadata = im.metadata
+    return metadata
+
+def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
+    """
+    Retrieves the physical pixel sizes for the given sldy metadata.
+    
+    Parameters:
+    metadata (dict): The metadata as a dictionary of dictrionaries from a .sldy file opened with BioImage.
+    
+    Returns:
     PhysicalPixelSizes: The physical pixel sizes for the dataset.
     """
-    original_path = str(io.get_original_path(dataset))
-    dataset_path = original_path.rsplit("/", 1)[0]
-    im = BioImage(dataset_path)
-    xy_pixel_size_in_um = im.physical_pixel_sizes
-    metadata = im.metadata
+    xy_pixel_size_in_um = metadata['image_record']['CLensDef70']['mMicronPerPixel']
+    optovar_mag = metadata['image_record']['COptovarDef70']['mMagnification']
     z_step_um = metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
 
     physical_pixel_sizes = PhysicalPixelSizes(
         Z=z_step_um,
-        Y=xy_pixel_size_in_um.Y,
-        X=xy_pixel_size_in_um.X,
+        Y=xy_pixel_size_in_um / optovar_mag,
+        X=xy_pixel_size_in_um / optovar_mag,
     )
     return physical_pixel_sizes
 
@@ -130,6 +142,7 @@ def write_scene(
     # Use all channels, if channels are not specific by user
     channels_to_use = [c for c in range(im.shape[1])]
 
+    print(f"Writing images...")
     writer.write_t_batches_array(im, channels=channels_to_use, tbatch=4)
 
     physical_scale = {
@@ -152,5 +165,6 @@ def write_scene(
         physical_units=physical_units,
         channel_colors=[0xFFFFFF for i in range(im.shape[1])],
     )
+    print(f"Writing metadata...")
     writer.write_metadata(meta)
     return

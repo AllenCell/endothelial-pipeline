@@ -3,8 +3,11 @@ from cellsmap.util.io import get_number_of_positions, get_time_interval_in_minut
 from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
-    get_sldy_metadata,
+    get_sldy_pixel_sizes,
 )
+from cellsmap.util.io import get_original_path
+from bioio import BioImage
+from pathlib import Path
 
 """
 This script processes images from a dataset and writes them to Zarr format.
@@ -21,19 +24,31 @@ Arguments:
 Example:
     python cellsmap/image_conversion/sldy_to_zarr.py 20240305_T01_001 /allen/aics/assay-dev/users/Chantelle/outputs/temp
 
+Example (using API):
+    output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
+    convert_sldy_dataset(dataset='20240305_T01_001', output_path=output_path)
+
 This will process the dataset '20240305_T01_001' and save the output to the specified directory.
+The resulting zarr contains images from one scene.
 """
 
 def convert_sldy_dataset(dataset: str, output_path: str, channel_names: list[str] = ["EGFP", "BF"]):
     n_positions = get_number_of_positions(dataset)
-    physical_pixel_sizes = get_sldy_metadata(dataset)
+    img = BioImage(get_original_path(dataset))
     interval_min = get_time_interval_in_minutes(dataset)
-    for position in range(n_positions):
-        output = f"{output_path}/{dataset}/{dataset}_{position}.ome.zarr"
-        scene = get_delayed_array_for_position(position, dataset)
-        write_scene(
-            scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
-        )
+    physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
+    assert not (n_positions > 1 and len(img.scenes) > 1), "One of number of positions or number of scenes must be one."
+    for scene_index in range(len(img.scenes)):
+        for position in range(n_positions):
+            if n_positions > 1:
+                output = f"{output_path}/{dataset}/{dataset}_P{position}.ome.zarr"
+            else:
+                output = f"{output_path}/{dataset}/{dataset}_P{scene_index}.ome.zarr"
+            print(f"Writing to {output}")
+            scene = get_delayed_array_for_position(position, dataset, n_positions, scene_index, img)
+            write_scene(
+                scene, channel_names, output, dataset, position, physical_pixel_sizes, interval_min
+            )
 
 
 def main():

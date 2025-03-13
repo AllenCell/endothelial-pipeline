@@ -46,10 +46,10 @@ readme = "README.md"
 license = {text = "AISL"}
 
 [project.optional-dependencies]
-pytorch = [
-    # moving pytorch to an optional dependency because it does not
-    # install on non-linux machines
+optional = [
+    # pytorch is an optional dependency because it does not install on non-linux machines
     "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
+    "aicsfiles>=7.10.0", # internal package
 ]
 
 [build-system]

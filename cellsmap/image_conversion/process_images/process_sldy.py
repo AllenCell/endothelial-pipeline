@@ -1,149 +1,45 @@
 from typing import Any, Tuple
+from bioio import BioImage
 from cellsmap.util.io import (
     get_original_path,
     get_specific_channel_order,
-    get_dataset_duration_in_frames,
+    get_number_of_positions,
 )
-import dask.delayed
 import dask.array as da
-import numpy as np
 
-
-def get_slidebook_image_path(dataset_name: str, channel: int, timepoint: int) -> str:
-    """
-    Constructs the file path for a SlideBook image.
-
-    Parameters:
-    dataset_name (str): The name of the dataset.
-    channel (int): The channel index.
-    timepoint (int): The timepoint index.
-
-    Returns:
-    pathlib.Path: The constructed file path for the SlideBook image.
-    """
-    sld_path = get_original_path(dataset_name)
-    sld_path = f"{sld_path}/ImageData_Ch{channel}_TP{timepoint:07d}.npy"
-    return sld_path
-
-
-def get_image_format(
-    dataset_name: str, channel: int, timepoint: int
-) -> Tuple[Tuple[int, ...], np.dtype]:
-    """
-    Retrieves the shape and data type of a SlideBook image.
-    Expected shape is ZYX.
-
-    Parameters:
-    dataset_name (str): The name of the dataset.
-    channel (int): The channel index.
-    timepoint (int): The timepoint index.
-
-    Returns:
-    tuple: A tuple containing the shape and data type of the image.
-    """
-    sld_path = get_slidebook_image_path(dataset_name, channel, timepoint)
-    array = np.load(sld_path)
-    return array.shape, array.dtype
-
-
-@dask.delayed
-def delayed_np_load(filename: str) -> Any:
-    """
-    Loads a NumPy array from a file in a delayed manner using Dask.
-
-    Parameters:
-    filename (str): The file path to the NumPy array. (i.e. SlideBook image)
-
-    Returns:
-    numpy.ndarray: The loaded NumPy array.
-    """
-    return np.load(filename)
-
-
-def load_original_slidebook_image(
-    dataset_name: str, channel: int, timepoint: int
-) -> da.Array:
-    """
-    Loads a SlideBook image as a Dask array.
-
-    Parameters:
-    dataset_name (str): The name of the dataset.
-    channel (int): The channel index.
-    timepoint (int): The timepoint index.
-
-    Returns:
-    dask.array.Array: The loaded SlideBook image as a Dask array.
-    """
-    sld_path = get_slidebook_image_path(dataset_name, channel, timepoint)
-    delayed_array = delayed_np_load(sld_path)
-    return delayed_array
-
-
-def get_delayed_array_for_timepoint(
-    tp: int, dataset: str, shape: tuple, dtype: np.dtype
-) -> da.Array:
-    """
-    Processes a single timepoint for a given dataset. GFP and BF channels are set to 0 and 1, respectively.
-
-    Parameters:
-    tp (int): The timepoint index to process.
-    dataset (str): The name of the dataset.
-    shape (tuple): The shape of the images to be processed. This is required to correctly initialize the Dask arrays.
-    dtype (str): The data type of the images to be processed. This is required to correctly initialize the Dask arrays.
-
-    Returns:
-    dask.array.Array: A Dask array containing the stacked GFP and BF images for the given timepoint.
-    """
-    gfp_index, bf_index = get_specific_channel_order(dataset)
-    gfp = load_original_slidebook_image(dataset, channel=gfp_index, timepoint=tp)
-    bf = load_original_slidebook_image(dataset, channel=bf_index, timepoint=tp)
-    gfp_da = da.from_delayed(gfp, shape=shape, dtype=dtype)  # ZYX
-    bf_da = da.from_delayed(bf, shape=shape, dtype=dtype)  # ZYX
-    stack = da.stack([gfp_da, bf_da], axis=0)  # CZYX
-    return stack
-
-
-def get_timepoints_for_position(
-    pos: int, dataset: str, number_positions: int = 6
-) -> range:
-    """
-    Generates a list of timepoints for a scene (time series of the same position) in the dataset.
-    The montage collection of sldy files results in raw data that is organized
-    in increments of time (t) for each position acquired. To assemble the full time series for a scene,
-    we need to select timepoints in increments of the total number of positions in the dataset.
-
-    Parameters:
-    pos (int): The position index.
-    dataset (str): The name of the dataset.
-    number_positions (int): The total number of positions in the dataset. Default is 6.
-
-    Returns:
-    range: A range object containing the timepoints for the given position.
-    """
-    t_final = get_dataset_duration_in_frames(dataset)  # if testing set t_final = 10
-    timepoints = range(pos, t_final * number_positions, number_positions)
-    return timepoints
 
 
 def get_delayed_array_for_position(
-    pos: int, dataset: str, number_positions: int = 6
+    pos: int, dataset_name: str, number_positions: int = 6, scene_index: int = 0, img = None,
 ) -> da.Array:
     """
     Loads all timepoints for a given position in the datase as a Dask array.
 
     Parameters:
     pos (int): The position index to process.
-    dataset (str): The name of the dataset.
+    dataset_name (str): The name of the dataset.
     number_positions (int): The total number of positions in the dataset. Default is 6.
+    scene_index (int): The scene index. You can find the scene names (in their indexed order) using `BioImage(get_original_path(dataset_name)).scenes` Default is 0.
+    img (BioImage): The BioImage object for the dataset. If provided will reduce number of times the image is loaded. If None then it will be loaded for the given dataset_name. Default is None.
 
     Returns:
     dask.array.Array: A Dask array containing the processed images for all timepoints at the given position.
     """
-    timepoints = get_timepoints_for_position(pos, dataset, number_positions)
-    shape, dtype = get_image_format(dataset, 0, 0)
-    results = [
-        get_delayed_array_for_timepoint(tp, dataset, shape, dtype) for tp in timepoints
-    ]
+    # Load the dataset as a BioImage object
+    img = img if img else BioImage(get_original_path(dataset_name))
+    # Set the scene of the image
+    img.set_scene(int(scene_index))
+    # Get the timepoints for the specified position
+    t_final = img.dims.T #  the total number of timepoints in "img"; if testing set t_final to some smaller number (recommended: 18)
+    number_positions = get_number_of_positions(dataset_name)
+    timepoints = range(pos, t_final, number_positions)
+    # Get the indices of the GFP and brightfield channels
+    gfp_index, bf_index = get_specific_channel_order(dataset_name)
+    # Get the delayed arrays for each timepoint at the specified position
+    # with the channels in the following order: (GFP, brightfield)
+    results = [img.get_image_dask_data('CZYX', T=tp, C=[gfp_index, bf_index]) for tp in timepoints]
+    # Concatenate the delayed arrays into a single large delayed array
+    # along the time axis
     scene = da.stack(results, axis=0)  # TCZYX
-    print(f"finished processing {len(timepoints)} timepoints")
+    print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
