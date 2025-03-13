@@ -16,7 +16,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-def ipython_cli_flexecute(function: Callable, return_results=False, *args, **kwargs):
+def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = False, *args: Any, **kwargs: Any) -> Any:
     """
     Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
     """
@@ -555,9 +555,8 @@ def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: 
     column_names = [column_name for column_name in ('T', 'track_id', *props_to_include)]
     track_ids = dict(zip(column_names, tracking_data))
 
-    track_ids = pd.DataFrame(track_ids)
-
-    return track_ids
+    df_track_ids = pd.DataFrame(track_ids)
+    return df_track_ids
 
 
 def reassign_track_ids_from_matches(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataFrame, track_id_offset: int=0, reference_index: int=0) -> pd.DataFrame:
@@ -636,7 +635,8 @@ def axial_min(arr: np.ndarray, mask: Optional[np.ndarray] = None, mask_values_be
 
     assert arr.ndim == 2, 'arr must be a 2D numpy array'
     assert mask is None or mask.ndim == 2, 'mask must be a 2D numpy array if provided'
-    assert mask.dtype == np.dtype(bool), 'mask must be a boolean array'
+    if mask is not None:
+        assert mask.dtype == np.dtype(bool), 'mask must be a boolean array'
 
     # if mask is not provided then create one based on the mask_values_below and mask_values_above
     if not isinstance(mask, np.ndarray):
