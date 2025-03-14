@@ -732,11 +732,9 @@ def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
         the timepoint represented as a string including the T before.
     """
 
-    try:
-        if isinstance(fp_as_string, Path):
-            fp_as_string = str(fp_as_string)
-    except ImportError:
-        pass
+    if isinstance(fp_as_string, Path):
+        fp_as_string = str(fp_as_string)
+        
     index = -1 if use_last_match else 0
     t = re.findall('T[0-9]+', fp_as_string)
     if t:
