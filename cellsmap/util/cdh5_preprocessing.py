@@ -628,7 +628,7 @@ def get_cdh5_classic_segmentation(
     crop_y: Optional[slice] = None,
     crop_x: Optional[slice] = None,
     as_dask: bool = False
-    ) -> list:
+    ) -> List[Any]:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
@@ -664,7 +664,7 @@ def get_cdh5_classic_segmentation(
 
     Returns
     -------
-    img_arrays: list of numpy arrays
+    img_arrays: list of numpy arrays or dask arrays
         The selected channels of the classic segmentation output.
     """
 
@@ -693,14 +693,15 @@ def get_cdh5_classic_segmentation(
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
     crops = [{d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps]
+    dim_order_string = ''.join(dim_order)
     if not as_dask:
-        img_arrays = [img.get_image_data(dim_order, **crop) for crop in crops]
+        nd_arrays = [img.get_image_data(dim_order_string, **crop) for crop in crops]
+        return nd_arrays
     else:
-        img_arrays = [img.get_image_dask_data(dim_order, **crop) for crop in crops]
+        dask_arrays = [img.get_image_dask_data(dim_order_string, **crop) for crop in crops]
+        return dask_arrays
 
-    return img_arrays
-
-def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
+def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True):
     """
     Extract the timepoint value from a string or Path.name.
     Searches for the pattern "T[0-9]+" to find the timepoint.
@@ -739,15 +740,15 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
     index = -1 if use_last_match else 0
     t = re.findall('T[0-9]+', fp_as_string)
     if t:
-        t = int(t[index].split('T')[-1]) 
+        t_value = int(t[index].split('T')[-1])
     else:
-        t = 0 
+        t_value = 0 
         print("""No 'T[0-9]+' found in filename. Assuming only 
               1 timepoint and assuming T = 0.""")
         
-    return t if int_only else f'T{t}'
+    return t_value if int_only else f'T{t_value}'
 
-def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], images_metadata: dict, dtype: Optional[np.dtype] = None) -> None:
+def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], images_metadata: dict, dtype: Optional[Any] = None) -> None:
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
