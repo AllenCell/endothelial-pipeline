@@ -42,7 +42,7 @@ def get_chan_map(filepath: Path) -> dict:
     img = BioImage(filepath)
     return {name:index for index, name in enumerate(img.channel_names)}
 
-def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sorting_function: Optional[Callable] = None):
+def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension='*', sorting_function: Optional[Callable] = None):
     if isinstance(filepath, (Path, str)):
         filepath = Path(filepath)
         if filepath.is_file():
@@ -59,7 +59,7 @@ def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sor
         filepath = [Path(fp) for fp in filepath]
 
     return filepath
-
+#%%
 def load_images_sequentially(
     filepaths: List[Path], 
     crops: Optional[Union[List[Dict], Dict]] = None, 
@@ -126,7 +126,8 @@ def load_images_sequentially(
             crops = [crops] * len(filepaths)
         else:
             new_crops = []
-            for i in range(BioImage(filepaths).dims[axis]): # ask for help
+            filepath_array = np.array(filepaths)
+            for i in range(BioImage(filepath_array).dims[axis]): 
                 new_crop = crops.copy()
                 new_crop[axis] = i
                 new_crops.append(new_crop)
@@ -164,7 +165,7 @@ def load_images_sequentially(
 
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
         dim_order_string = ''.join(dim_order)
-        loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order_string, **crop_list[j]) for j in new_image_relative_indices] # talk with kevin
+        loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order_string, **crop_list[j]) for j in new_image_relative_indices] 
 
         print(f'[new images being loaded: {tuple([fp.name for fp in new_image_list])}]') if VERBOSE else None
 
@@ -172,7 +173,7 @@ def load_images_sequentially(
 
 ## NOTE END OF CODE BLOCK THAT SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 
-
+#%%
 
 def match_labels_from_images(
     labeled_images: List, 
@@ -551,7 +552,7 @@ def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarr
     return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
 
 
-def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.Dataframe:
+def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.DataFrame:
     """list_of_region_props_list = list(list(measure.regionprops))
     list_of_region_props_list at index_to_initialize_on will be used to start a dataframe.
     Each label in the region_props_list will get a row in the dataframe with its own track_id
@@ -710,6 +711,19 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
                       dtype=np.uint32)
 
 
+def load_raw_image(overlay_path: str, overlay_crop: dict, track_labeled_image: np.ndarray) -> Union[BioImage, np.ndarray]:
+    if overlay_path:
+        raw_image = BioImage(overlay_path)
+        raw_image_dask = raw_image.get_image_dask_data(
+            'TCZYX',
+            T=range(raw_image.dims.T)[overlay_crop['T']],
+            C=range(raw_image.dims.C)[overlay_crop['C']]
+        ).compute().squeeze()
+        return raw_image_dask
+    else:
+        raw_image_np = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
+        return raw_image_np
+
 def run_tracking(
     in_dir: Union[Path, List[Path]], 
     out_dir: Path, 
@@ -767,7 +781,7 @@ def run_tracking(
                                         'X': slice(None)}}
                               for timeframe in T_range}
         else:
-            T_range = {sorting_function(fp): fp for fp in filepath} if sorting_key else {i: fp for i, fp in enumerate(filepath)}
+            T_range_dict = {sorting_function(fp): fp for fp in filepath} if sorting_key else {i: fp for i, fp in enumerate(filepath)}
             img_queue[key] = {timeframe:
                               {'path': fp,
                                'crop': {'T': slice(None),
@@ -775,17 +789,17 @@ def run_tracking(
                                         'Z': slice(None),
                                         'Y': slice(None),
                                         'X': slice(None)}}
-                              for timeframe, fp in T_range.items()}
+                              for timeframe, fp in T_range_dict.items()}
 
     # couple the image_filepaths_to_track with the extra_image_filepaths_to_overlay
     # if extra_image_filepaths_to_overlay was provided
-    img_queue = [(t,
-                  img_queue['images_to_track'][t]['path'],
-                  img_queue['images_to_track'][t]['crop'],
-                  img_queue['images_for_overlay'][t]['path'] if t in img_queue['images_for_overlay'] else None,
-                  img_queue['images_for_overlay'][t]['crop'] if t in img_queue['images_for_overlay'] else None)
-                 for t in sorted(img_queue['images_to_track'])]
-    timeframes, img_fps_for_tracking, crops_for_tracking, img_fps_for_overlay, crops_for_overlay = zip(*img_queue)
+    img_queue_list = [(t,
+                       img_queue['images_to_track'][t]['path'],
+                       img_queue['images_to_track'][t]['crop'],
+                       img_queue['images_for_overlay'][t]['path'] if t in img_queue['images_for_overlay'] else None,
+                       img_queue['images_for_overlay'][t]['crop'] if t in img_queue['images_for_overlay'] else None)
+                       for t in sorted(img_queue['images_to_track'])]
+    timeframes, img_fps_for_tracking, crops_for_tracking, img_fps_for_overlay, crops_for_overlay = zip(*img_queue_list)
 
     print(f'Generating tracks...') if VERBOSE else None
     results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, initial_T_offset=timeframes[0], image_buffer_prior=0, image_buffer_next=2, VERBOSE=VERBOSE)
@@ -795,8 +809,8 @@ def run_tracking(
         for idx, input_image_filepath, track_labeled_image, track_table in results:
             images_out_dir = out_dir / 'tracked_images'
             tables_out_dir = out_dir / 'tracked_tables'
-            [out.mkdir(parents=True, exist_ok=True) for out in (images_out_dir, tables_out_dir)]
-
+            for out in (images_out_dir, tables_out_dir):
+                out.mkdir(parents=True, exist_ok=True)
             # the line below uses the T position from the crop if it exists (i.e. if a
             # timelapse was provided), otherwise it uses the name of the input file, which
             # is restricted above to be a single file from a folder of images.
@@ -811,11 +825,7 @@ def run_tracking(
             overlay_path = img_fps_for_overlay[idx]
             overlay_crop = crops_for_overlay[idx]
             if extra_in_dir:
-                if overlay_path and overlay_crop:
-                    raw_image = BioImage(overlay_path)
-                    raw_image = raw_image.get_image_dask_data('TCZYX', T=range(raw_image.dims.T)[overlay_crop['T']], C=range(raw_image.dims.C)[overlay_crop['C']]).compute().squeeze()
-                else:
-                    raw_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
+                raw_image = load_raw_image(overlay_path, overlay_crop, track_labeled_image)
                 raw_channel = {'image': raw_image, 'name': 'raw_image', 'color': (255,255,255)}
             else:
                 raw_channel = None
