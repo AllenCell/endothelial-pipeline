@@ -118,14 +118,19 @@ def load_images_sequentially(
                       'Z': slice(None),
                       'Y': slice(None),
                       'X': slice(None)}
-    # if a single crop dictionary is provided then turn it in to a list of the same length that
+    # if a single crop dictionary is provided then turn it into a list of the same length that
     # specified by 'axis'
     if isinstance(crops, dict):
         # This is where case 3 in the crop dictionary is handled:
         if axis == 'filepaths':
             crops = [crops] * len(filepaths)
         else:
-            crops = [crops.update({axis: i}) for i in range(BioImage(filepaths).dims[axis])[crops[axis]]]
+            new_crops = []
+            for i in range(BioImage(filepaths).dims[axis]): # ask for help
+                new_crop = crops.copy()
+                new_crop[axis] = i
+                new_crops.append(new_crop)
+            crops = new_crops
     else:
         pass
 
@@ -158,7 +163,8 @@ def load_images_sequentially(
         old_image_list = image_list.copy()
 
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
-        loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order, **crop_list[j]) for j in new_image_relative_indices]
+        dim_order_string = ''.join(dim_order)
+        loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order_string, **crop_list[j]) for j in new_image_relative_indices] # talk with kevin
 
         print(f'[new images being loaded: {tuple([fp.name for fp in new_image_list])}]') if VERBOSE else None
 
@@ -545,7 +551,7 @@ def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarr
     return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
 
 
-def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> dict:
+def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.Dataframe:
     """list_of_region_props_list = list(list(measure.regionprops))
     list_of_region_props_list at index_to_initialize_on will be used to start a dataframe.
     Each label in the region_props_list will get a row in the dataframe with its own track_id
