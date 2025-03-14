@@ -1029,9 +1029,9 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
         ## now mask the array
         dists = np.ma.masked_array(data=dists, mask=dists==0)
 
-        edges_from_dist = [np.all(dists[(conn_all[i,:] * (conn_all[i,:] + conn_all)) * (conn_all[i,:] * (conn_all[i,:] + conn_all)).T] > np.sqrt(img_dim)) for i in range(len(conn_all))]
+        edges_from_dist_ls = [np.all(dists[(conn_all[i,:] * (conn_all[i,:] + conn_all)) * (conn_all[i,:] * (conn_all[i,:] + conn_all)).T] > np.sqrt(img_dim)) for i in range(len(conn_all))]
 
-        edges_from_dist = np.array([x if x else False for x in edges_from_dist])
+        edges_from_dist = np.array([x if x else False for x in edges_from_dist_ls])
 
 
         edge_conn = np.array([np.count_nonzero(conn_arr, axis=1) == 2 for conn_arr in conns])
@@ -1061,7 +1061,7 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
         ## starting from one node, move to the closest neighbour
         ## create a dictionary of which coordinates are next to which
 
-        conns = {tuple(coords2[i,0].tolist()):
+        conns_dict = {tuple(coords2[i,0].tolist()):
                     dict(zip([tuple(x) for x in coords1[i, conn_all[i]].tolist()], dists[i, conn_all[i]].tolist()))
                     for i in range(len(conn_all))}
         node_coords = [tuple(c) for c in np.asarray(coords)[nodes,:]]
@@ -1073,8 +1073,8 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
         line1 = {}
 
         for count in range(max_num_pixels):
-            line1[curr_node] = {n: conns[curr_node][n] for n in conns[curr_node]
-                                if conns[curr_node][n] == min([conns[curr_node][k] for k in conns[curr_node].keys() if k not in visited_coords], default=[])
+            line1[curr_node] = {n: conns_dict[curr_node][n] for n in conns_dict[curr_node]
+                                if conns_dict[curr_node][n] == min([conns_dict[curr_node][k] for k in conns_dict[curr_node].keys() if k not in visited_coords], default=[])
                                 and n not in visited_coords}
             if line1[curr_node]:
                 curr_node = tuple(line1[curr_node].keys())[-1]
@@ -1088,8 +1088,8 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
             line2 = {}
 
             for count in range(max_num_pixels):
-                line2[curr_node] = {n: conns[curr_node][n] for n in conns[curr_node]
-                                if conns[curr_node][n] == min([conns[curr_node][k] for k in conns[curr_node].keys() if k not in visited_coords], default=[])
+                line2[curr_node] = {n: conns_dict[curr_node][n] for n in conns_dict[curr_node]
+                                if conns_dict[curr_node][n] == min([conns_dict[curr_node][k] for k in conns_dict[curr_node].keys() if k not in visited_coords], default=[])
                                 and n not in visited_coords}
                 if line2[curr_node]:
                     curr_node = tuple(line2[curr_node].keys())[-1]

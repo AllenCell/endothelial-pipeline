@@ -56,11 +56,11 @@ build-backend = "pdm.pep517.api"
 testpaths = "tests/"
 
 [tool.mypy]
-# Make mypy less strict: ignore these classes of errors
+# Relax the checks by ignoring specific error codes
 disable_error_code = [
     "call-overload", 
     "var-annotated", 
-    "import-untyped", # we think this could be internal code modules that have no types
+    "import-untyped",
 ]
 
 [[tool.mypy.overrides]]
