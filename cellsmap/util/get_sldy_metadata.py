@@ -128,7 +128,7 @@ def get_num_timepoints(sldy_metadata: dict) -> int:
     num_vertical_tiles = np.unique(stage_position_data[:,stage_position_dim_order['mY']]).size
     num_positions_acquired = sldy_metadata['image_record']['CImageRecord70']['mNumTimepoints']
     num_timepoints = num_positions_acquired / (num_horizontal_tiles * num_vertical_tiles)
-    return round(num_timepoints, ndigits=0)
+    return round(num_timepoints)
 
 def get_tiling_percentage_overlap(sldy_metadata: dict) -> dict:
     """Returns the percentage overlap in X and Y for the tiling from the output of the get_sldy_metadata function."""

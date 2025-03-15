@@ -34,12 +34,9 @@ dependencies = [
     "itkwasm==1.0b171",
     "seaborn>=0.13.2",
     "bioio-sldy>=1.0.2",
-<<<<<<< HEAD
     "cellpose>=3.1.0",
     "mypy>=1.15.0",
-=======
     "bioio-nd2>=1.0.0",
->>>>>>> main
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
