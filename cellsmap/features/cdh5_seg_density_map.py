@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-
+from typing import Callable
 
 
 def get_chan_map(filepath: Path) -> dict:
@@ -29,7 +29,7 @@ def multiproc_wrapper(function, args):
     function(*args)
 
 
-def ipython_cli_flexecute(function: callable, return_results=False, *args, **kwargs):
+def ipython_cli_flexecute(function: Callable, return_results=False, *args, **kwargs):
     """
     Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
     """

@@ -806,9 +806,9 @@ def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], imag
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
+    merged_img1 = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
 
-    OmeTiffWriter.save(merged_img, # type: ignore CL 20250314 works 
+    OmeTiffWriter.save(merged_img1, 
                        out_path,
                        physical_pixel_sizes=px_res,
                        dim_order=dim_order_out,

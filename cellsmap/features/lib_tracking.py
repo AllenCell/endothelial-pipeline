@@ -698,11 +698,15 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
     extra_image, extra_name, extra_color = [extra_channel[prop] if prop in extra_image_props else [] for prop in extra_image_props] if extra_channel else [[], [], []]
     extra_color = [extra_color] or [(255,255,255)] if isinstance(extra_image, np.ndarray) else []
     extra_name = [extra_name] or ['extra_channel'] if isinstance(extra_image, np.ndarray) else []
+    
+    physical_pixel_sizes = (1, 1, 1)
+    if image_metadata is not None and 'physical_pixel_sizes' in image_metadata:
+        physical_pixel_sizes = image_metadata['physical_pixel_sizes']
 
     images_out_metadata = {'image_name': out_path.stem if 'image_name' not in image_metadata else image_metadata['image_name'],
                            'channel_names': ['segmentation_track_labeled', 'borders_track_labeled'] + extra_name,
                            'channel_colors': [(255,0,255), (0,255,255)] + extra_color,
-                           'physical_pixel_sizes': (1,1,1) if 'physical_pixel_sizes' not in image_metadata else image_metadata['physical_pixel_sizes'],
+                           'physical_pixel_sizes': physical_pixel_sizes,
                            'dim_order': current_dim_of_track_labeled_image,
                            }
     save_image_output(out_path=out_path,
