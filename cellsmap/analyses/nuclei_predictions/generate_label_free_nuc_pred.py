@@ -297,3 +297,6 @@ def main(n_proc=1, save_output=True, is_test=False):
         print('Done single-core processing.')
 
     print('\N{microscope} Done analysis.')
+
+if __name__ == '__main__':
+    ipython_cli_flexecute(main)
