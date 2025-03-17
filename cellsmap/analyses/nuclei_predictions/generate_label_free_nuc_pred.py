@@ -23,7 +23,7 @@ def get_reader(filename_or_filepath: Path|str):
     return reader
 
 # def build_analysis_queue(dataset_name_list: list, t_to_eval: slice|range|list=slice(None), save_output=False, is_test=False, use_original_data=False) -> list:
-def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int=None, t_step: int=1, save_output=True, out_dir: str=None, is_test=False, use_original_data=False) -> list:
+def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int=None, t_step: int=1, save_output=True, overwrite=False, out_dir: str=None, is_test=False, use_original_data=False) -> list:
     analysis_queue: list = []
     prj_dir = Path(__file__).parents[2] if not is_test else Path(__file__).parents[3]
     out_dir = out_dir or prj_dir / 'results' / Path(__file__).stem
@@ -80,6 +80,7 @@ def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int=N
                                             'input_path': img_path,
                                             'output_dir': out_dir,
                                             'save_output': save_output,
+                                            'overwrite': overwrite,
                                             'use_original_data': use_original_data,
                                             'is_test': is_test})
 
@@ -161,82 +162,100 @@ def generate_results(args: dict):
     out_dir = Path(args['output_dir']) / dataset_name / f'P{args["position"]}'
     Path.mkdir(out_dir, exist_ok=True, parents=True)
 
-    dim_order = 'TCZYX'
-    dim_map = io.get_dim_map(dim_order)
-
-    img = BioImage(img_path)
-    img.set_scene(args['scene_index'])
-    img_arr = img.get_image_dask_data(dim_order)
-
-    # Load the retrained CellPose label-free nuclear prediction model
-    # model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
-    model_path = Path('//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess_retrained')
-    model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
-
-    # The following is used for when a zarr is available with the BF_center, std, etc. channels available
-    if not args['use_original_data']:
-        bf_chan = io.get_channel_index(dataset_name, ['BF_Center'])
-        bfstd_chan = io.get_channel_index(dataset_name, ['BF_STD'])
-        nuc_chan = io.get_channel_index(dataset_name, ['DAPI'])
-
-        # Predict nuclei from brightfield images
-        print(' - predicting nuclei from brightfield standard deviation projections...')
-        masks_bf_std = model_bf_stdproject.eval(bf_std_dask_arr[args['T'], ...].squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0.0)
-
-        # Save the predictions with the brightfield and brightfield standard deviation
-        # NOTE: can remove overlay_bf; was here for convience during development
-        # overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(img_arr[args['T'], bf_chan, ...].squeeze()), bg_label=0)
-        if any(nuc_chan):
-            print(' - saving overlay of prediction and training image...')
-            # val_dir = Path(args['output_dir']) / f'{dataset_name}_cellpose_pred_on_training/P{{args["pos"]}}'
-            val_dir = Path(args['output_dir']) / f'validation/{dataset_name}/P{args["position"]}'
-            Path.mkdir(val_dir, exist_ok=True, parents=True)
-
-            img_nuc = img_arr[args['T'], nuc_chan, ...].squeeze().compute()
-            overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_nuc, 0, np.percentile(img_nuc, 98))), bg_label=0)
-
-            fig, ax = plt.subplots()
-            ax.imshow(overlay_nuc)
-            ax.axis('off')
-            plt.savefig(val_dir / f'{dataset_name}_T{args["T"]}.png', bbox_inches='tight', pad_inches=0, dpi=300)
-            plt.close(fig)
-
-        print(' - saving image...')
-        out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
-        images_out = [img_arr[args['T'], bf_chan, ...].squeeze(), img_arr[args['T'], bfstd_chan, ...].squeeze(), masks_bf_std[0].squeeze()]
-        images_out_metadata = {
-            'image_name': dataset_name,
-            'channel_names': ['BF_Center', 'BF_STD', 'CellPose_prediction'],
-            'channel_colors': [(255,255,255), (255,255,255), (0,255,255)],
-            'physical_pixel_sizes': img.physical_pixel_sizes,
-            'dim_order': 'YX',
-            }
-        save_image_output(out_path, images_out, images_out_metadata)
-
-    # The following is used for when there is no zarr with those channels available
+    out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
+    if (args['overwrite'] == False) and out_path.exists():
+        print(' - output already exists, skipping...')
+        return
     else:
-        brightfield_index = io.get_dataset_info(dataset_name)['brightfield_channel_index']
-        bf_std_dask_arr = img_arr[:,brightfield_index:brightfield_index+1,...].std(axis=dim_map['Z'], keepdims=True)
-        bf_std_arr = bf_std_dask_arr[args['T'], ...].squeeze().compute()
-        # bf_center_dask_arr = img_arr[:,brightfield_index:brightfield_index+1,...].mean(axis=dim_map['Z'], keepdims=True)
-        bf_dask_arr = img_arr[args['T'],brightfield_index:brightfield_index+1,...]
-        greatest_std_indices, _ = find_peaks([arr.std().compute() for arr in bf_dask_arr.squeeze()])
-        possible_good_contrast_brightfield_plane = np.argmax([bf_dask_arr.squeeze()[i].mean().compute() for i in greatest_std_indices])
-        bf_good_contrast_arr = bf_dask_arr.squeeze()[[possible_good_contrast_brightfield_plane]].squeeze().compute()
 
-        # # Load the retrained CellPose label-free nuclear prediction model
+        dim_order = 'TCZYX'
+        dim_map = io.get_dim_map(dim_order)
+
+        img = BioImage(img_path)
+        img.set_scene(args['scene_index'])
+        img_arr = img.get_image_dask_data(dim_order)
+
+        # Load the retrained CellPose label-free nuclear prediction model
         # model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
-        # model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+        model_path = Path('//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess_retrained')
+        model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
-        # Predict nuclei from brightfield images
-        print(' - predicting nuclei from brightfield standard deviation projections...')
-        masks_bf_std = model_bf_stdproject.eval(bf_std_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0.0)
+        # The following is used for when a zarr is available with the BF_center, std, etc. channels available
+        if not args['use_original_data']:
+            bf_chan = io.get_channel_index(dataset_name, ['BF_Center'])
+            bfstd_chan = io.get_channel_index(dataset_name, ['BF_STD'])
+            nuc_chan = io.get_channel_index(dataset_name, ['DAPI'])
+
+            # Predict nuclei from brightfield images
+            print(' - predicting nuclei from brightfield standard deviation projections...')
+            masks_bf_std = model_bf_stdproject.eval(bf_std_dask_arr[args['T'], ...].squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0.0)
+
+            # Save the predictions with the brightfield and brightfield standard deviation
+            # NOTE: can remove overlay_bf; was here for convience during development
+            # overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(img_arr[args['T'], bf_chan, ...].squeeze()), bg_label=0)
+            if any(nuc_chan):
+                print(' - saving overlay of prediction and training image...')
+                # val_dir = Path(args['output_dir']) / f'{dataset_name}_cellpose_pred_on_training/P{{args["pos"]}}'
+                val_dir = Path(args['output_dir']) / f'validation/{dataset_name}/P{args["position"]}'
+                Path.mkdir(val_dir, exist_ok=True, parents=True)
+
+                img_nuc = img_arr[args['T'], nuc_chan, ...].squeeze().compute()
+                overlay_nuc = label2rgb(label=masks_bf_std[0], image=rescale_intensity(np.clip(img_nuc, 0, np.percentile(img_nuc, 98))), bg_label=0)
+
+                fig, ax = plt.subplots()
+                ax.imshow(overlay_nuc)
+                ax.axis('off')
+                plt.savefig(val_dir / f'{dataset_name}_T{args["T"]}.png', bbox_inches='tight', pad_inches=0, dpi=300)
+                plt.close(fig)
+
+            # print(' - saving image...')
+            # out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
+            images_out = [img_arr[args['T'], bf_chan, ...].squeeze(), img_arr[args['T'], bfstd_chan, ...].squeeze(), masks_bf_std[0].squeeze()]
+            # images_out_metadata = {
+            #     'image_name': dataset_name,
+            #     'channel_names': ['BF_Center', 'BF_STD', 'CellPose_prediction'],
+            #     'channel_colors': [(255,255,255), (255,255,255), (0,255,255)],
+            #     'physical_pixel_sizes': img.physical_pixel_sizes,
+            #     'dim_order': 'YX',
+            #     }
+            # save_image_output(out_path, images_out, images_out_metadata)
+
+        # The following is used for when there is no zarr with those channels available
+        else:
+            brightfield_index = io.get_dataset_info(dataset_name)['brightfield_channel_index']
+            bf_std_dask_arr = img_arr[:,brightfield_index:brightfield_index+1,...].std(axis=dim_map['Z'], keepdims=True)
+            bf_std_arr = bf_std_dask_arr[args['T'], ...].squeeze().compute()
+            # bf_center_dask_arr = img_arr[:,brightfield_index:brightfield_index+1,...].mean(axis=dim_map['Z'], keepdims=True)
+            bf_dask_arr = img_arr[args['T'],brightfield_index:brightfield_index+1,...]
+            plane_stdevs = [arr.std().compute() for arr in bf_dask_arr.squeeze()]
+            # greatest_std_indices, _ = find_peaks(plane_stdevs)
+            # possible_good_contrast_brightfield_plane = np.argmax([bf_dask_arr.squeeze()[i].mean().compute() for i in greatest_std_indices])
+            # don't allow the possible good contrast plane to be less than 0 (i.e. the bottom of the Z-stack)
+            possible_good_contrast_brightfield_plane = max(0, np.argmin([plane for plane in plane_stdevs]) - 6)
+            bf_good_contrast_arr = bf_dask_arr.squeeze()[[possible_good_contrast_brightfield_plane]].squeeze().compute()
+
+            # # Load the retrained CellPose label-free nuclear prediction model
+            # model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
+            # model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+
+            # Predict nuclei from brightfield images
+            print(' - predicting nuclei from brightfield standard deviation projections...')
+            masks_bf_std = model_bf_stdproject.eval(bf_std_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0.0)
 
 
 
+            # print(' - saving image...')
+            # out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
+            images_out = [bf_good_contrast_arr, bf_std_arr, masks_bf_std[0].squeeze()]
+            # images_out_metadata = {
+            #     'image_name': dataset_name,
+            #     'channel_names': ['BF_Center', 'BF_STD', 'CellPose_prediction'],
+            #     'channel_colors': [(255,255,255), (255,255,255), (0,255,255)],
+            #     'physical_pixel_sizes': img.physical_pixel_sizes,
+            #     'dim_order': 'YX',
+            #     }
+            # save_image_output(out_path, images_out, images_out_metadata)
         print(' - saving image...')
-        out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
-        images_out = [bf_good_contrast_arr, bf_std_arr, masks_bf_std[0].squeeze()]
         images_out_metadata = {
             'image_name': dataset_name,
             'channel_names': ['BF_Center', 'BF_STD', 'CellPose_prediction'],
@@ -246,7 +265,8 @@ def generate_results(args: dict):
             }
         save_image_output(out_path, images_out, images_out_metadata)
 
-def main(n_proc=1, save_output=True, is_test=False):
+
+def main(n_proc=1, save_output=True, overwrite=False, is_test=False):
     # is_test = True
     out_dir = Path('//allen/aics/users/serge.parent/cellsmap_sandbox') / Path(__file__).stem
 
@@ -279,8 +299,8 @@ def main(n_proc=1, save_output=True, is_test=False):
     # analysis_queue += build_analysis_queue(['20241120_20X'], t_to_eval=slice(None, None, 25))
     # evaluate every 48 timepoints (ie. 4hrs)
     print('\nBuilding analysis queue...')
-    analysis_queue_live = build_analysis_queue(live_datasets, t_step=48, use_original_data=True, out_dir=out_dir, save_output=save_output, is_test=is_test)
-    analysis_queue_fixed = build_analysis_queue(fixed_datasets, use_original_data=True, out_dir=out_dir, save_output=save_output, is_test=is_test)
+    analysis_queue_live = build_analysis_queue(live_datasets, t_step=48, use_original_data=True, out_dir=out_dir, save_output=save_output, overwrite=overwrite, is_test=is_test)
+    analysis_queue_fixed = build_analysis_queue(fixed_datasets, use_original_data=True, out_dir=out_dir, save_output=save_output, overwrite=overwrite, is_test=is_test)
     analysis_queue = analysis_queue_live + analysis_queue_fixed
 
     if n_proc > 1:
