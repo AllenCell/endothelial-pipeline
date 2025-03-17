@@ -44,7 +44,7 @@ def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int=N
             positions_in_T += list(range(num_pos_in_T))
             positions_in_S += [scene_index] * num_pos_in_T
 
-        t_start, t_step, t_final = 0, 1, None
+        # t_start, t_step, t_final = 0, 1, None
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
             img.set_scene(pos_in_S)
             # print(pos, pos_in_T, pos_in_S)
@@ -64,7 +64,7 @@ def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int=N
                 t_final_adjusted = pos_in_T + duration_in_frames * num_pos_in_T
                 t_range = range(t_start_adjusted, t_final_adjusted, t_step_adjusted)
 
-                # print(list(t_range))
+                # print(len(t_range), list(t_range))
 
                 for i,t in enumerate(t_range):
                     if is_test and i >= 10:
