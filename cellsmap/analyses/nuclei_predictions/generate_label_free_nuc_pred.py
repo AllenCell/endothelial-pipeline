@@ -168,15 +168,16 @@ def generate_results(args: dict):
     img.set_scene(args['scene_index'])
     img_arr = img.get_image_dask_data(dim_order)
 
+    # Load the retrained CellPose label-free nuclear prediction model
+    # model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
+    model_path = Path('//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess_retrained')
+    model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+
     # The following is used for when a zarr is available with the BF_center, std, etc. channels available
     if not args['use_original_data']:
         bf_chan = io.get_channel_index(dataset_name, ['BF_Center'])
         bfstd_chan = io.get_channel_index(dataset_name, ['BF_STD'])
         nuc_chan = io.get_channel_index(dataset_name, ['DAPI'])
-
-        # Load the retrained CellPose label-free nuclear prediction model
-        model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
-        model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
         # Predict nuclei from brightfield images
         print(' - predicting nuclei from brightfield standard deviation projections...')
@@ -223,9 +224,9 @@ def generate_results(args: dict):
         possible_good_contrast_brightfield_plane = np.argmax([bf_dask_arr.squeeze()[i].mean().compute() for i in greatest_std_indices])
         bf_good_contrast_arr = bf_dask_arr.squeeze()[[possible_good_contrast_brightfield_plane]].squeeze().compute()
 
-        # Load the retrained CellPose label-free nuclear prediction model
-        model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
-        model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+        # # Load the retrained CellPose label-free nuclear prediction model
+        # model_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap_labelfree_nuclei_model\bf_std_model_no_preprocess_retrained')
+        # model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
         # Predict nuclei from brightfield images
         print(' - predicting nuclei from brightfield standard deviation projections...')
