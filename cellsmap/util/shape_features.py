@@ -325,7 +325,7 @@ def numpy_mesh_coords(coord1_ls: Union[List[Any], Tuple[Any]], coord2_ls: Union[
     coord2_array = np.array(coord2_ls) if np.array(coord2_ls).ndim == 2 else np.array(coord2_ls, ndmin=2).T 
 
     coords1 = zip(*coord1_array)
-    coords2 = zip(*coord1_array)
+    coords2 = zip(*coord2_array)
 
     coords = list(zip(coords1, coords2))
     coord_meshes = [np.meshgrid(*coord_ax, indexing=indexing) for coord_ax in coords]
