@@ -56,7 +56,7 @@ def restore_full_dims(image: np.array, current_dims: str, full_dims: str='TCZYX'
 
     return image
 
-def preprocess(raw_arr: np.array) -> np.array:
+def preprocess(raw_arr: np.array, sigma=3, radius=20) -> np.array:
     """
     Takes an image and returns a processed version after performing a gaussian blur,
     intensity rescaling to uint16, and then rolling-ball background subtraction.
@@ -73,9 +73,8 @@ def preprocess(raw_arr: np.array) -> np.array:
     """
 
     # smooth image and then subtract background with rolling ball method
-    gauss = gaussian(raw_arr, sigma=3)
+    gauss = gaussian(raw_arr, sigma=sigma)
     gauss = rescale_intensity(gauss, out_range=np.uint16)
-    radius = 20
     bg_img = rolling_ball(gauss, radius=radius)
     sub = gauss - bg_img
 
@@ -323,8 +322,15 @@ def initialize_rag(labeled_image: np.array, intensity_image: np.array, as_direct
     """
 
     rag = rag_boundary(labels=labeled_image, edge_map=intensity_image, connectivity=labeled_image.ndim)
-    ## remove the connection to the background label
-    rag.remove_node(0) if 0 in rag else None
+    ## remove the connection to the background label by setting the edge to the highest
+    ## possible weight. This way the 0-labeled node won't be merged with neighboring nodes.
+    # rag.remove_node(0) if 0 in rag else None
+    if 0 in rag:
+        for neighbor in rag[0]:
+            rag[0][neighbor]['weight'] = 1
+
+    for node in rag:
+        rag[node]
     if as_directed:
         rag = rag.to_directed()
 
@@ -375,62 +381,6 @@ def weight_boundary(graph, src, dst, n):
         'count': count,
         'weight': (count_src * weight_src + count_dst * weight_dst) / count,
     }
-
-def generate_segmentations_old(processed_img, hyst, hyst_clean, hyst_removed):
-    # create a version of the processed image where regions of the thresholded image
-    # that were removed are changed to be equal to the median of the non-thresholded
-    # regions
-    # NOTE: when I run this function on a single (1712, 9592) image
-    # it takes approximately 1 min 10 sec to execute.
-    bg_intensity_median = np.median(processed_img[~hyst]).astype(int)
-    sub_no_hyst_removed = processed_img.copy()
-    sub_no_hyst_removed[hyst_removed] = bg_intensity_median
-
-    # get seeds and basins for the watershed
-    seeds, basins = get_watershed_seeds_and_basins(~hyst)
-
-    # run watershed
-    seg_lab = watershed(sub_no_hyst_removed * basins, seeds, mask=~hyst_clean)
-    # bounds = segmentation.find_boundaries(seg_lab)
-
-    # re-run watershed after removing small regions that did not grow
-    seg_clean, seg_removed = clean_labeled_img(seg_lab)
-
-    seeds2, basins2 = get_watershed_seeds_and_basins(~find_boundaries(seg_clean))
-
-    seg_on_img = watershed(sub_no_hyst_removed, seeds2, mask=~hyst_clean)
-    seg_on_basins = watershed(basins, seeds2, mask=~hyst_clean)
-    seg2_lab = join_segmentations(seg_on_img, seg_on_basins)
-    seg2_lab = label(seg2_lab)
-
-    # perform hierarchical merging of a RAG
-    # (this initial merge using the processed image to get region
-    # boundary weights seems to work well but is is still imperfect)
-    seg2_lab_no_mask = watershed(processed_img, seg2_lab)
-    processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
-    rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
-
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
-                                                    rag_copy=False, in_place_merge=True,
-                                                    merge_func=dummy_func, weight_func=weight_boundary)
-
-    # lastly remove any "small" regions or seeds that didn't grow
-    # or get merged and repeat the watershed -> RAG -> merge step
-    # NOTE we assume that these "small" regions can't possibly be
-    # its own cell
-    cell_size_filter = 2000 # number of pixels of segmented area that is considered too small
-    seg2_filtered = remove_small_objects(seg2_lab_no_mask_merge, min_size=cell_size_filter)
-    seg2_lab_no_mask_merge = watershed(image=processed_img_normd, markers=seg2_filtered)
-
-    rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
-
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
-                                                    rag_copy=False, in_place_merge=True,
-                                                    merge_func=dummy_func, weight_func=weight_boundary)
-
-    return seg2_lab_no_mask_merge, seg2_lab
 
 def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: np.array, hyst_removed: np.array):
     """
@@ -492,14 +442,20 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     # perform hierarchical merging of a RAG
     # (this initial merge using the processed image to get region
     # boundary weights seems to work well but is is still imperfect)
+    # NOTE: merge_hierarchical will introduce 0 labels if they don't
+    #       exist already because it sequentially relabels the regions
+    #       after merging, so region labels need 1 added to them
     seg2_lab_no_mask = watershed(processed_img, seg2_lab)
     processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
     rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
     seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
-                                                      rag_copy=False, in_place_merge=True,
-                                                      merge_func=dummy_func, weight_func=weight_boundary)
+                                                rag_copy=False, in_place_merge=True,
+                                                merge_func=dummy_func, weight_func=weight_boundary)
+    # the += 1 is necessary because merge_hierarchical starts labels at 0,
+    # when they should start at 1 (0 labels are reserved for background).
+    seg2_lab_no_mask_merge += 1
 
     # what is going on here is that we are taking the segmentation
     # produced from merging regions using the intensities at region
@@ -542,8 +498,9 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
     rag_skel = initialize_rag(seg2_lab_no_mask_skel, skel.astype(float))
 
+    # NOTE: there might be a faster way to do this (there probably is)
     for lab in rag.adj:
-        # check if the label in from the previous segmentation is in
+        # check if the label from the previous segmentation is in
         # the new skeleton segmentation, and if not then remove
         # it from the previous segmentation
         if lab in rag_skel:
@@ -557,8 +514,21 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
                 # merge those regions
                 if neighbor not in set(rag[lab]):
                     rag_skel[lab][neighbor]['weight'] = 1
+            
+            for neighbor in rag[lab]:
+                # check if there are any neighbors in the previous
+                # segmentation that were not a neighbor for that same
+                # label in the new skeleton segmentation, and if so
+                # then add that neighbor from the previous
+                # segmentation to the new skeleton segmentation and
+                # give it an edge weight of 1 so that it will not
+                # be merged with the home label
+                if neighbor not in set(rag_skel[lab]) and neighbor in rag_skel:
+                    rag_skel.add_edge(lab, neighbor, weight=1, count=1)
         else:
             seg2_lab_no_mask_merge[seg2_lab_no_mask_merge == lab] = 0
+
+    good_label_mask = seg2_lab_no_mask_merge != 0
 
     merge_thresh = (1/2)/2
 
@@ -566,8 +536,15 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     # the same labels in roughly the same positions (with slightly
     # different borders)
     seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag_skel, thresh=merge_thresh,
-                                                      rag_copy=False, in_place_merge=True,
-                                                      merge_func=dummy_func, weight_func=weight_boundary)
+                                                rag_copy=False, in_place_merge=True,
+                                                merge_func=dummy_func, weight_func=weight_boundary)
+    # the += 1 is necessary because merge_hierarchical starts labels at 0,
+    # when they should start at 1 (0 labels are reserved for background).
+    # We use good_label_mask so that the the labels that were in the
+    # previous segmentation but not the skeleton segmentation (which
+    # are now background) are not incremented (and therefore stay as
+    # background labels)
+    seg2_lab_no_mask_merge[good_label_mask] += 1
 
     # lastly remove any "small" regions or seeds that didn't grow
     # or get merged and repeat the watershed -> RAG -> merge step
@@ -581,8 +558,11 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
     seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
-                                                      rag_copy=False, in_place_merge=True,
-                                                      merge_func=dummy_func, weight_func=weight_boundary)
+                                                rag_copy=False, in_place_merge=True,
+                                                merge_func=dummy_func, weight_func=weight_boundary)
+    # the += 1 is necessary because merge_hierarchical starts labels at 0,
+    # when they should start at 1 (0 labels are reserved for background).
+    seg2_lab_no_mask_merge += 1
 
     return seg2_lab_no_mask_merge, seg2_lab
 
@@ -602,13 +582,12 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
         A list of Path objects pointing to each image file (one image per timepoint).
     """
 
-    # dataset_name = '20240305_T01_001'
-
-    config_file = Path('../').resolve() / 'cdh5_seg_config.yaml'
+    prj_dir = Path('../').resolve()
+    config_file = prj_dir / 'cdh5_seg_config.yaml'
     assert config_file.exists()
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
-    segmentation_dirs = [data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
+    segmentation_dirs = [prj_dir / data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
     filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob('*.tif*'))]
 
     if sort_paths:
@@ -641,7 +620,7 @@ def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
 
     return t_res
 
-def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None) -> list:
+def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None, as_dask=False) -> list:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
@@ -671,6 +650,10 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
         A slice of the imaging data along the X-axis.
         Default is None.
 
+    as_dask: bool
+        Whether to return the image arrays as dask arrays.
+        Default is False.
+
     Returns
     -------
     img_arrays: list of numpy arrays
@@ -680,7 +663,7 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
     filepaths = {fpath: extract_T(fpath) for fpath in filepaths}
     fpath = [fpath for fpath in filepaths if filepaths[fpath]==T]
-    assert len(fpath) == 1
+    assert len(fpath) == 1, f"Multiple files found for timepoint {T}." if len(fpath) > 1 else f"No files found for timepoint {T}."
 
     dim_map = get_dim_map('TCZYX')
     dim_order = sorted(dim_map, key=lambda d: dim_map[d])
@@ -696,14 +679,16 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
                  for C in channel_crops]
 
     # The reason for using the crop maps above instead of loading individual
-    # crops by specifying T, C Y, and X in img.get_iamge_data is because
+    # crops by specifying T, C, Y, and X in img.get_image_data is because
     # .get_image_data does not accept slice objects and also the files are
     # split up by timepoint. Using the slice objects is favoured over tuples
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
-    img_arrays = img.get_image_data(dim_order)
-    crops = [[crop_map[d] for d in dim_order] for crop_map in crop_maps]
-    img_arrays = [img_arrays[(*crop,)] for crop in crops]
+    crops = [{d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps]
+    if not as_dask:
+        img_arrays = [img.get_image_data(dim_order, **crop) for crop in crops]
+    else:
+        img_arrays = [img.get_image_dask_data(dim_order, **crop) for crop in crops]
 
     return img_arrays
 
@@ -754,7 +739,7 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
         
     return t if int_only else f'T{t}'
 
-def save_image_output(out_path: Path, images: list, images_metadata: dict):
+def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype=None):
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
@@ -787,8 +772,22 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     Nothing (saves an image to out_path).
     """
 
-    assert all([img.max() < np.iinfo(np.uint16).max for img in images])
-    assert all([img.shape == images[-1].shape for img in images])
+    assert all([img.shape == images[-1].shape for img in images]), "All images must have the same shape."
+    # if a data type is not specified then use the smallest uint type that can hold the max value
+    # among all images being saved
+    if not dtype:
+        img_max = max([img.max() for img in images])
+        dtypes = {np.iinfo(dtype).max: dtype for dtype in (np.uint8, np.uint16, np.uint32) if img_max <= np.iinfo(dtype).max}
+
+        assert dtypes, \
+        '''
+        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater. 
+        Please find a way to reduce the max value in the culprit channel or save the image in a different format.
+        '''
+
+        dtype = dtypes[min(dtypes)]
+    else:
+        pass
 
     image_name = images_metadata['image_name']
     ch_colors = images_metadata['channel_colors']
@@ -796,10 +795,12 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict):
     px_res = images_metadata['physical_pixel_sizes']
     img_dim_order = images_metadata['dim_order']
     dim_order_out = 'TCZYX'
+    dtype = images_metadata['dtype'] or np.uint16
+
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(np.uint16)
+    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
 
     OmeTiffWriter.save(merged_img,
                        out_path,

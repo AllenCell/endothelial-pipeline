@@ -5,20 +5,22 @@ def test_load_config():
     config = io.load_config()
     assert config[0]['name'] == '20240305_T01_001'
 
-def test_get_available_datasets(capsys):
-    # check if the available datasets are printed correctly
-    io.get_available_datasets()
-    captured = capsys.readouterr()
-    assert captured.out == '20240305_T01_001\n'
+def test_load_all_datasets():
+    for ds in io.get_available_datasets():
+        channels = io.get_available_channels(ds)
+        data = io.load_dataset(ds, channels)
+        assert data is not None, f"Dataset {ds} returned None"
+        assert data.shape[0] > 0, f"Dataset {ds} has an unexpected shape: {data.shape}"
+        assert all(dim > 0 for dim in data.shape), f"Dataset {ds} has invalid dimensions: {data.shape}"
 
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
     dataset_info = io.get_dataset_info('20240305_T01_001')
-    assert dataset_info['zarr_path'] == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
+    assert dataset_info['zarr_path'] == '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
 
 def test_get_zarr_path():
     path = io.get_zarr_path('20240305_T01_001')
-    assert path == '/allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
+    assert path == '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
 
 def test_load_dataset():
     # check end point specification

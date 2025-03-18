@@ -17,12 +17,12 @@ def load_config(config_type='data') -> dict:
 
 # dataset methods
 def get_available_datasets() -> list:
+    datasets = []
     config = load_config()
-    dataset_list = []
     for dataset in config:
+        datasets.append(dataset['name'])
         print(dataset['name'])
-        dataset_list.append(dataset['name'])
-    return dataset_list
+    return datasets
 
 def get_dataset_info(dataset_name: str) -> dict:
     config = load_config()
@@ -34,6 +34,27 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
+def get_flow(dataset_name: str, T: float) -> list:
+    """
+    Parameters
+    ----------
+        T: the time at which to get the flow value.
+    Returns
+    -------
+        flow: the flow value at time T in dyn/cm^2.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    flow_info = dataset_info['flow']
+    flows = lambda t: [flow for t_start, t_stop, flow in flow_info if t_start <= t < t_stop]
+    flow = flows(T)
+    return int(*flow) if flow else np.nan
+
+def get_flow_in_frames(dataset_name: str) -> int:
+    dataset_info = get_dataset_info(dataset_name)
+    flow_info = dataset_info['flow']
+    flow_in_frames = [(round(t_start * 60 / dataset_info['time_interval_in_minutes']), round(t_stop * 60 / dataset_info['time_interval_in_minutes']), flow) for t_start, t_stop, flow in flow_info]
+    return flow_in_frames
+
 def get_zarr_path(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['zarr_path']
@@ -43,15 +64,34 @@ def get_available_channels(dataset_name:str) -> list:
     reader = BioImage(path)
     return reader.channel_names
 
-def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=576, level:int=0) -> dask.array.Array:
+def get_channel_index(dataset_name:str, channel_names:list) -> int:
+    available_channels = get_available_channels(dataset_name)
+    return [available_channels.index(channel) for channel in channel_names]
+
+def get_specific_channel_order(dataset_name:str):
+    gfp_index = get_dataset_info(dataset_name)['egfp_channel_index']
+    bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
+    return gfp_index, bf_index
+
+def get_number_of_positions(dataset_name:str) -> int:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['n_positions']
+
+def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
     path = get_zarr_path(dataset_name)
     reader = BioImage(path)
     available_channels = reader.channel_names
     channels_index = [available_channels.index(c) for c in channels]
     assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
     reader.set_resolution_level(level)
+    if time_end < 0:
+        time_end = get_dataset_duration_in_frames(dataset_name)-1
     img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
     return img
+
+def get_dataset_duration_in_frames(dataset_name: str) -> int:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['duration']
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
@@ -72,6 +112,13 @@ def get_dim_map(dim_order: str) -> dict:
     dim_map = dict(zip(dims, dim_nums))
 
     return dim_map
+
+def get_original_path(dataset_name: str) -> str:
+    """
+    Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    return Path(dataset_info['original_path'])
 
 # model methods
 
