@@ -15,7 +15,6 @@ plt.rcParams.update(plt_params)
 
 def init_plot(figsize=(7,6)):
     '''Initialize a plot with default settings.'''
-    # TO DO, set default tick font size, etc
     fig, ax = plt.subplots(figsize=figsize)
     return fig, ax
 
