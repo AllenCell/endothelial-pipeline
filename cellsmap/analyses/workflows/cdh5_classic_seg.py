@@ -40,12 +40,12 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
         img_bin_level = 0
         DIM_MAP = io.get_dim_map('TCYX')
         # get the name of the cadherin channel
-        chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+        chan_names = [chan_name for chan_name in io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
         # load the raw image data of from the cadherin channel
         raw = io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
 
         if IS_TEST:
-            T_list = range(0, 1)
+            T_list = range(0, 5)
             crop_c = slice(None, None)
             crop_z = slice(None, None)
             crop_y = slice(None, None)
@@ -72,7 +72,7 @@ def generate_results_multiproc_wrapper(args):
     generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 
 def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
-    
+
     T = crop["T"]
 
     print(f'Working on {dataset_name} -- T={T}...')
@@ -82,7 +82,7 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
     # get the name of the cadherin channel
-    chan_names = [config_data['cdh5_channel_name'] for config_data in io.load_config(config_type='data') if config_data['name'] == dataset_name]
+    chan_names = [chan_name for chan_name in io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
     # load the raw image data of from the cadherin channel
     raw_arr = io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
