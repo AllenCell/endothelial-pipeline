@@ -324,15 +324,14 @@ def match_labels_from_metrics(
     list_of_labeled_metric_vals: List, 
     reference_index: int = 0, 
     metrics_thresholds: Optional[List] = None, 
-    matching_method: str = 'forward', 
+    matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
     exclude_if_any_thresholded: bool = False,
-    mesh_indexing: Literal['xy', 'ij'] = 'ij',
 ):
     """
     Compares the dictionary of labeled metrics at list_of_labeled_metric_vals[reference_index] to the
     dictionary of labeled metrics from each of the other indices in list_of_labeled_metric_vals and 
     matches the labels according to matching_method.
-    
+
     Parameters
     ----------
     See `lib_tracking.match_labels_from_images` for details.
@@ -363,6 +362,11 @@ def match_labels_from_metrics(
 
     # run some checks on the inputs first
     assert reference_index < len(list_of_labeled_metric_vals), 'reference_index must be less than the number of images in labeled_images'
+    mesh_indexing: Literal['ij'] = 'ij' # mesh_indexing must be 'ij' for the indexing to work correctly
+    if metrics_thresholds is not None:
+        num_metric_thresholds = len(metrics_thresholds)
+        assert all([all(map(lambda met_val: len(met_val) == num_metric_thresholds, labeled_metrics.values())) for labeled_metrics in list_of_labeled_metric_vals]), 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
+    assert matching_method in ['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'], 'matching_method must be one of "forward", "reverse", "to_reference", or "from_reference"'
 
     if metrics_thresholds:
         for labeled_metrics in list_of_labeled_metric_vals:
@@ -733,19 +737,6 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
                       dtype=np.uint32)
 
 
-def load_raw_image(overlay_path: str, overlay_crop: dict, track_labeled_image: np.ndarray) -> Union[BioImage, np.ndarray]:
-    if overlay_path:
-        raw_image = BioImage(overlay_path)
-        raw_image_dask = raw_image.get_image_dask_data(
-            'TCZYX',
-            T=range(raw_image.dims.T)[overlay_crop['T']],
-            C=range(raw_image.dims.C)[overlay_crop['C']]
-        ).compute().squeeze()
-        return raw_image_dask
-    else:
-        raw_image_np = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
-        return raw_image_np
-
 def run_tracking(
     in_dir: Union[str, Path, List[Path], List[str]], 
     out_dir: Path, 
@@ -850,8 +841,13 @@ def run_tracking(
             overlay_path = img_fps_for_overlay[idx]
             overlay_crop = crops_for_overlay[idx]
             if extra_in_dir:
-                raw_image = load_raw_image(overlay_path, overlay_crop, track_labeled_image)
-                raw_channel = {'image': raw_image, 'name': 'raw_image', 'color': (255,255,255)}
+                if overlay_path and overlay_crop:
+                    raw_image = BioImage(overlay_path)
+                    raw_image_daskarr = raw_image.get_image_dask_data('TCZYX', T=range(raw_image.dims.T)[overlay_crop['T']], C=range(raw_image.dims.C)[overlay_crop['C']]).compute().squeeze()
+                    raw_channel = {'image': raw_image_daskarr, 'name': 'raw_image', 'color': (255,255,255)}
+                else:
+                    blank_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
+                    raw_channel = {'image': blank_image, 'name': 'raw_image', 'color': (255,255,255)}
             else:
                 raw_channel = None
 
