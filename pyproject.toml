@@ -10,11 +10,12 @@ dependencies = [
     "pytest>=8.2.2",
     "pathlib>=1.0.1",
     "numpy>=1.2.3",
-    "bioio>=1.0.1",
-    "bioio-ome-tiff>=1.0.0",
+    "bioio==1.2.0",
+    "bioio-ome-tiff>=1.0.1",
     "bioio-base>=1.0.1",
-    "bioio-ome-zarr>=1.0.1",
-    "matplotlib>=3.9.2",
+    "bioio-ome-zarr>=1.1.0",
+    "ngff-zarr==0.8.2",
+    "matplotlib>=3.10",
     "notebook==7.2.1",
     "numdifftools==0.9.41",
     "pandas==2.2.2",
@@ -23,25 +24,30 @@ dependencies = [
     "scikit-image==0.22.0",
     "scipy==1.13.1",
     "ipykernel>=6.29.5",
-    "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
-    "torchvision @ https://download.pytorch.org/whl/cu116/torchvision-0.14.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
     "monai",
     "jupyter>=1.0.0",
     #"cyto-dl>=0.4.0",
     "fire>=0.6.0",
     "tqdm>=4.66.5",
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
-    "wasmtime<23.0",
+    "wasmtime<22.0",
+    "itkwasm==1.0b171",
     "seaborn>=0.13.2",
-    "ruptures>=1.1.9",
     "pysindy>=1.7.5",
-    "pyarrow>=18.0.0",
-    "numba",
     "fipy",
+    "bioio-sldy>=1.0.2",
+    "bioio-nd2>=1.0.0",
 ]
 requires-python = "<3.11,>=3.10"
 readme = "README.md"
 license = {text = "AISL"}
+
+[project.optional-dependencies]
+optional = [
+    # pytorch is an optional dependency because it does not install on non-linux machines
+    "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
+    "aicsfiles>=7.10.0", # internal package
+]
 
 [build-system]
 requires = ["pdm-pep517>=1.0"]

@@ -7,6 +7,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.pyc.so
+*.mypy_cache/
 
 # PDM lock file
 pdm.lock
@@ -42,6 +43,4 @@ results/
 cdh5_classic_seg_old.py
 sldy_load_test.py
 concatenate_timepoints.py
-lib_tracking.py
-cdh5_classic_seg_tracking.py
 ROUGH_vis_cdh5_nodes_and_edges_analysis.py
