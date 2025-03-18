@@ -9,10 +9,48 @@ pdm sync
 ```
 
 ## Datasets
-A catalog of the current datasets we have is [here](https://alleninstitute-my.sharepoint.com/:x:/g/personal/chantelle_leveille_alleninstitute_org/Ea2enebMkAROgiQIGnNC5ggBqMt19hA2esbT0_TzZvUz7A?e=wlty6T)
+A catalog of the current datasets we have is [here](https://github.com/orgs/aics-int/projects/40)
+
 
 
 ## Workflows
+
+```mermaid
+flowchart TB;
+
+wf1[VE-Cadherin imaging] --> wf1a[cell segmentations] --> wf1b[tracking cells] --> wf1c[measurements] --> newlines[
+    velocities of centroid
+    cell elongation
+
+]
+wf3[VE-Cadherin imaging] --> wf3a[optical flow calculations] --> wf3b[random crop]
+
+bf[brightfield st. dev. projections] --> wf2a[label-free nuclei predictions] --> wf2b[tracking nuclei]
+
+
+```
+
+<details>
+<summary>Measured features</summary>
+filepath: somewhere
+use case: publication (/ development)
+
+description: blah blah
+
+- cell segmentation
+- cell tracking
+
+- nuclei prediction
+- nuclei tracking
+
+- optical flow
+
+</details>
+
+
+
+
+
 ### cellsmap/features/
 The purpose of the `features` branch of `cellsmap` is to measure biologically-relevant features from timelapses of endothelial cells subjected to different fluid shear stresses (FSS) (colloquially called flow rates). High flow rates cause endothelial cells to align perpendicular to the FSS and low flow rates cause them to align parallel to the FSS, representing two visually conspicuous cell states (see https://doi.org/10.1002/cm.21652 for a review on the biology of flow sensing in endothelial cells).
 
