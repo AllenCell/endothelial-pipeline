@@ -120,6 +120,10 @@ def get_original_path(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return Path(dataset_info['original_path'])
 
+def get_barcode(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['barcode']
+
 # model methods
 
 def get_available_models() -> list:
