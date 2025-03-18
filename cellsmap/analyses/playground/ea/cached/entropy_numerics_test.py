@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numdifftools as nd
 
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 import cellsmap.analyses.utils.viz as viz
 

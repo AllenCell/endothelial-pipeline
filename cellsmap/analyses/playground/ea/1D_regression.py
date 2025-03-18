@@ -8,7 +8,7 @@ import numdifftools as nd
 import cellsmap.util.io as io
 import cellsmap.util.pca as cmpca
 import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.regression as eareg
 import cellsmap.analyses.playground.ea.utils.viz as eaviz

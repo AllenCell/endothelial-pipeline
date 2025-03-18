@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import cellsmap.analyses.utils.pplane as pplane
-from cellsmap.analyses.utils import gen_potential as gp
-import cellsmap.analyses.utils.kernel_regression as kreg
+from cellsmap.analyses.utils.cached import gen_potential as gp
+import cellsmap.analyses.utils.cached.kernel_regression as kreg
 
 import cellsmap.analyses.playground.ea.utils.io as eaio
 import cellsmap.analyses.playground.ea.utils.viz as eaviz

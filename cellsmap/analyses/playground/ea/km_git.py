@@ -11,7 +11,7 @@ import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
 import cellsmap.analyses.playground.ea.utils.model_eval as model_eval
 
 import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 
 import sys
 sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/KramersMoyal')

@@ -8,7 +8,7 @@ import pysindy as ps
 import numdifftools as nd
 from sklearn.model_selection import train_test_split
 
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 from cellsmap.analyses.utils import viz
 from cellsmap.analyses.utils import pplane
 import cellsmap.util.pca as cmpca

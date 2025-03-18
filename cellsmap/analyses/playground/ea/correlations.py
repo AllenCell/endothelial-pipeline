@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import cellsmap.util.io as io
 import cellsmap.util.pca as cmpca
 import cellsmap.analyses.playground.ea.utils.io as eaio
-import cellsmap.analyses.playground.ea.utils.regression as eareg
+import cellsmap.analyses.playground.ea.utils.regression as earegpdm 
 import cellsmap.analyses.playground.ea.utils.viz as eaviz
 
 from scipy.signal import correlate, correlation_lags

@@ -6,7 +6,7 @@ import cellsmap.analyses.utils.langevin_sindy.timecorr as tc
 import cellsmap.analyses.utils.langevin_sindy.fp_solvers as fps
 import cellsmap.analyses.utils.viz as viz
 import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 
 def lambdify_SINDy(coeff,f_expr,vars):
     '''Lambdify a sympy function from SINDy coefficients (coeff) and function library (f) defined on given sympy variables (vars).'''

@@ -10,7 +10,7 @@ rng = rnd.default_rng(seed=1) # set random seed for reproducibility
 
 import scipy.integrate as scint
 
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 from cellsmap.analyses.utils import viz
 from cellsmap.analyses.utils import pplane
 

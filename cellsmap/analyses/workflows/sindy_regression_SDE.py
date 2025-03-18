@@ -7,7 +7,7 @@ from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 import pysindy as ps
 import numdifftools as nd
 
-import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.cached.gen_potential as gp
 from cellsmap.analyses.utils import viz
 from cellsmap.analyses.utils import pplane
 import cellsmap.util.pca as cmpca

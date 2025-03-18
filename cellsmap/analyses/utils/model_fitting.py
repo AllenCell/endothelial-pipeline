@@ -1,6 +1,6 @@
 import numpy as np
 
-import cellsmap.analyses.utils.kernel_regression as kr
+import cellsmap.analyses.utils.cached.kernel_regression as kr
 import pysindy as ps
 
 # initialize with what datasets to train on?

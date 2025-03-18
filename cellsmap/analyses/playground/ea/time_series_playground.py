@@ -30,7 +30,7 @@ title_dict = {'20241016_20X':'24hr High, 24hr Low',
               '20241217_20X':'48hr No Flow (12/17/24)',
               '20250224_GE00006991_20X':'24hr Low, 24hr High (2/24/25)',}
 
-df, bad_files = cmpca._get_outliers(df)
+df, _ = cmpca._get_outliers(df)
 list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
 
 
