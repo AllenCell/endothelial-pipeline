@@ -25,12 +25,12 @@ def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str='TCZY
 
     NOTE: the letters in current_dims and full_dims are case sensitive and their
     order matters.
-    
+
     Parameters
     ----------
     image: np.array
         The image to restore the dimensions of.
-    
+
     current_dims: str
         The dimensions of 'image' as a string. Possible dimensions are:
             S: scene / position
@@ -624,7 +624,7 @@ def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> float:
 def get_cdh5_classic_segmentation(
     dataset_name: str,
     T: int,
-    channels: Optional[List[Any]] = None,
+    channels: Optional[List[str]] = None,
     crop_y: Optional[slice] = None,
     crop_x: Optional[slice] = None,
     as_dask: bool = False
@@ -632,7 +632,8 @@ def get_cdh5_classic_segmentation(
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
-    The channel argument is either None or a list where 
+    The channel argument is either None or a list where each entry is the channel name (a string).
+        If None will use all channels in the image. Default is None.
 
     Parameters
     ----------
@@ -734,7 +735,7 @@ def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
 
     if isinstance(fp_as_string, Path):
         fp_as_string = str(fp_as_string)
-        
+
     index = -1 if use_last_match else 0
     t = re.findall('T[0-9]+', fp_as_string)
     if t:
@@ -743,7 +744,7 @@ def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
         t_value = 0 
         print("""No 'T[0-9]+' found in filename. Assuming only 
               1 timepoint and assuming T = 0.""")
-        
+
     return t_value if int_only else f'T{t_value}'
 
 def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], images_metadata: dict, dtype: Optional[Any] = None) -> None:
@@ -805,10 +806,12 @@ def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], imag
 
     dim_map = get_dim_map(dim_order_out)
 
-    merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img1 = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
+    merged_img = np.concatenate([
+        restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images], 
+        axis=dim_map['C']).astype(dtype)
+    # merged_img1 = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
 
-    OmeTiffWriter.save(merged_img1, 
+    OmeTiffWriter.save(merged_img, 
                        out_path,
                        physical_pixel_sizes=px_res,
                        dim_order=dim_order_out,

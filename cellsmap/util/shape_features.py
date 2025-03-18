@@ -272,16 +272,16 @@ def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, b
         # in the edge_neighbors_nodelabs list:
         node_neighbors_nodelabs.append((node, [n for e,n in edge_neighbors_nodelabs if e in edges]))
     # Clean up the node list with node neighbors so that  there are no repeating node labels
-    node_neighbors_nodelabs_2 = [(node, tuple(np.unique([n for ns in n_neighbors for n in ns]))) for node, n_neighbors in node_neighbors_nodelabs]
+    node_neighbors_nodelabs_unique = [(node, tuple(np.unique([n for ns in n_neighbors for n in ns]))) for node, n_neighbors in node_neighbors_nodelabs]
     # and also remove the "home node" from the node neighbors list to get the final cleaned up list:
-    node_neighbors_nodelabs_3 = [(node, tuple([n for n in n_neighbors if n != node])) for node, n_neighbors in node_neighbors_nodelabs_2]
-    
+    node_neighbors_nodelabs_clean = [(node, tuple([n for n in n_neighbors if n != node])) for node, n_neighbors in node_neighbors_nodelabs_unique]
+
     if not as_dict:
-        return node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs_3
+        return node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs_clean
     else:
         node_neighbors_edgelabs_dict = dict(node_neighbors_edgelabs) 
         edge_neighbors_nodelabs_dict = dict(edge_neighbors_nodelabs)
-        node_neighbors_nodelabs_dict = dict(node_neighbors_nodelabs_3)
+        node_neighbors_nodelabs_dict = dict(node_neighbors_nodelabs_clean)
         return node_neighbors_edgelabs_dict, edge_neighbors_nodelabs_dict, node_neighbors_nodelabs_dict
 
 def numpy_mesh_coords(coord1_ls: Union[List[Any], Tuple[Any]], coord2_ls: Union[List[Any], Tuple[Any]], indexing: Literal['xy', 'ij']='ij', return_indiv_coord_meshes: bool=False) -> list:
