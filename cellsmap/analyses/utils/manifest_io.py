@@ -76,10 +76,10 @@ def get_list_of_datasets(df:pd.DataFrame,ds_metadata:str,verbose:bool=False,prin
                 print(get_dataset_name(ds))
     return np.unique(df[ds_metadata].values).tolist()
 
-def get_one_dataset(df:pd.DataFrame,ds_metadata:str,ds_ID:str) -> pd.DataFrame:
-    '''Get DataFrame corresponding to one dataset, identified by value ds_ID in the
-      metadata column ds_metadata in DataFrame df.'''
-    return df[df[ds_metadata] == ds_ID].copy()
+def get_one_dataset(df:pd.DataFrame,ds_metadata:str,ds_identifier:str) -> pd.DataFrame:
+    '''Get DataFrame corresponding to one dataset, identified by 
+    df[ds_metadata] == ds_identifier in DataFrame df.'''
+    return df[df[ds_metadata] == ds_identifier].copy()
 
 def get_flow_change_frame(ds_name:str) -> int:
     '''Get frame number at which flow changes in dataset ds_name.'''
