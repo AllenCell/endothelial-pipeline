@@ -4,6 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import pandas as pd
+from typing import Tuple
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def simple_linear_classifier(X, Y):
@@ -19,7 +20,7 @@ def _get_tp(s,n_fovs = 6):
 def _get_fov(s,n_fovs = 6):
     return int(s.split('/')[-1].split('_')[-1][2:-4])%n_fovs
 
-def _get_outliers(data: pd.DataFrame) -> np.ndarray:
+def _get_outliers(data: pd.DataFrame):
     # find outlier crops
     data['outlier'] = simple_linear_classifier(data['1'], data['4'])
     return data

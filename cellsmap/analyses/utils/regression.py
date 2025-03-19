@@ -1,6 +1,6 @@
 import numpy as np
 import cellsmap.util.dataset_io as io
-import cellsmap.analyses.utils.io as eaio
+import cellsmap.analyses.utils.manifest_io as eaio
 from sklearn.model_selection import train_test_split
 import pandas as pd
 

@@ -6,9 +6,8 @@ import numdifftools as nd
 
 import cellsmap.util.pca as cmpca
 import cellsmap.analyses.utils.gen_potential as gp
-from cellsmap.analyses.utils import viz
-from cellsmap.analyses.utils import pplane
-import cellsmap.analyses.utils.io as eaio
+from cellsmap.analyses.utils import viz, pplane
+import cellsmap.analyses.utils.manifest_io as eaio
 import cellsmap.analyses.utils.viz as eaviz
 import cellsmap.analyses.utils.regression as eareg
 import cellsmap.analyses.utils.model_eval as model_eval
