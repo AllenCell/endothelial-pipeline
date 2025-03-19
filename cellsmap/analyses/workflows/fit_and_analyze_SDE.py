@@ -1,16 +1,13 @@
 # %%
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import pysindy as ps
 import numdifftools as nd
 
 import cellsmap.util.pca as cmpca
-
 import cellsmap.analyses.utils.gen_potential as gp
 from cellsmap.analyses.utils import viz
 from cellsmap.analyses.utils import pplane
-
 import cellsmap.analyses.utils.io as eaio
 import cellsmap.analyses.utils.viz as eaviz
 import cellsmap.analyses.utils.regression as eareg

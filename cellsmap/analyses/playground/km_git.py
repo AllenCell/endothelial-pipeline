@@ -4,20 +4,18 @@ import matplotlib.pyplot as plt
 import pysindy as ps
 import numdifftools as nd
 
-import cellsmap.analyses.playground.ea.utils.io as eaio
-import cellsmap.analyses.playground.ea.utils.regression as eareg
-import cellsmap.analyses.playground.ea.utils.viz as eaviz
-import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
-import cellsmap.analyses.playground.ea.utils.model_eval as model_eval
+import cellsmap.analyses.utils.io as eaio
+import cellsmap.analyses.utils.regression as eareg
+import cellsmap.analyses.utils.viz as eaviz
+import cellsmap.analyses.utils.model_analysis as model_analysis
+import cellsmap.analyses.utils.model_eval as model_eval
 
 import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.utils.cached.gen_potential as gp
+import cellsmap.analyses.utils.gen_potential as gp
 
 import sys
-sys.path.append('//allen/aics/assay-dev/users/Erin/git-repos/KramersMoyal')
+sys.path.append('//allen/aics/users/erin.angelini/git-repos/KramersMoyal')
 import kramersmoyal as km
-
-import scipy.optimize as opt
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline

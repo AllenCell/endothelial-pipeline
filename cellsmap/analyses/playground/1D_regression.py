@@ -5,15 +5,14 @@ import matplotlib.pyplot as plt
 import pysindy as ps
 import numdifftools as nd
 
-import cellsmap.util.io as io
 import cellsmap.util.pca as cmpca
 import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.utils.cached.gen_potential as gp
-import cellsmap.analyses.playground.ea.utils.io as eaio
-import cellsmap.analyses.playground.ea.utils.regression as eareg
-import cellsmap.analyses.playground.ea.utils.viz as eaviz
-import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
-import cellsmap.analyses.playground.ea.utils.model_eval as model_eval
+import cellsmap.analyses.utils.gen_potential as gp
+import cellsmap.analyses.utils.io as eaio
+import cellsmap.analyses.utils.regression as eareg
+import cellsmap.analyses.utils.viz as eaviz
+import cellsmap.analyses.utils.model_analysis as model_analysis
+import cellsmap.analyses.utils.model_eval as model_eval
 
 # %%
 path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'

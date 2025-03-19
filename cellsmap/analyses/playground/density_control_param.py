@@ -1,24 +1,14 @@
 # %%
 import numpy as np
 import pandas as pd
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 import pysindy as ps
-import numdifftools as nd
 from sklearn.model_selection import train_test_split
 
-import cellsmap.analyses.utils.cached.gen_potential as gp
-from cellsmap.analyses.utils import viz
-from cellsmap.analyses.utils import pplane
 import cellsmap.util.pca as cmpca
-import cellsmap.util.io as io
-
-import cellsmap.analyses.playground.ea.utils.io as eaio
-import cellsmap.analyses.playground.ea.utils.viz as eaviz
-import cellsmap.analyses.playground.ea.utils.regression as eareg
-import cellsmap.analyses.playground.ea.utils.model_eval as model_eval
-import cellsmap.analyses.playground.ea.utils.model_analysis as model_analysis
+import cellsmap.analyses.utils.io as eaio
+import cellsmap.analyses.utils.viz as eaviz
+import cellsmap.analyses.utils.regression as eareg
+import cellsmap.analyses.utils.model_analysis as model_analysis
 
 # %%
 

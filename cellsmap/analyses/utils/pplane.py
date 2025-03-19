@@ -3,7 +3,6 @@ from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.patches import FancyArrow
 import numdifftools as nd
 
 # code for phase plane analysis of 2D systems of ODEs

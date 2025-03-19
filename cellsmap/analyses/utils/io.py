@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 import os
 from pathlib import Path
-import cellsmap.util.io as io
+import cellsmap.util.dataset_io as io
 
 def make_savedir(savedir:str,subfolders:bool=True) -> None:
     '''Create directory savedir if it does not exist and/or subfolders

@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.playground.ea.utils.model_eval as model_eval
-import cellsmap.analyses.playground.ea.utils.regression as eareg
-import cellsmap.analyses.playground.ea.utils.viz as eaviz
+import cellsmap.analyses.utils.model_eval as model_eval
+import cellsmap.analyses.utils.regression as eareg
+import cellsmap.analyses.utils.viz as eaviz
 
 def run_model_analysis_1D(model, data, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 

@@ -2,13 +2,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 
-import cellsmap.util.io as io
+import cellsmap.util.dataset_io as io
 import cellsmap.util.pca as cmpca
-import cellsmap.analyses.playground.ea.utils.io as eaio
-import cellsmap.analyses.playground.ea.utils.regression as eareg
-import cellsmap.analyses.playground.ea.utils.viz as eaviz
+import cellsmap.analyses.utils.io as eaio
+import cellsmap.analyses.utils.regression as eareg
+import cellsmap.analyses.utils.viz as eaviz
 
 # %%
 path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
@@ -238,48 +237,7 @@ for i, t in enumerate(time_pts):
     ax.set_ylabel('PC2')
     ax.set_zlabel('PC3')
 
-# %%
-x_, y_, z_ = np.meshgrid(*centers)
-x_ = x_.flatten()
-y_ = y_.flatten()
-z_ = z_.flatten()
 
-# set points where f_KM is nan to 0
-f_KM[np.isnan(f_KM)] = 0
-
-fig = go.Figure(data=go.Streamtube(
-    x = x_,
-    y = y_,
-    z = z_,
-    u = f_KM[:,:,:,0].T.flatten(),
-    v = f_KM[:,:,:,1].T.flatten(),
-    w = f_KM[:,:,:,2].T.flatten(),
-    starts = dict(
-        x = x_[::2],
-        y = y_[::2],
-        z = z_[::2]
-    ),
-    sizeref = 0.4,
-    colorscale = 'Portland',
-))
-
-fig.update_layout(
-    scene = dict(
-        aspectratio = dict(
-            x = 1,
-            y = 1,
-            z = 1
-        )
-    ),
-    margin = dict(
-        t = 20,
-        b = 20,
-        l = 20,
-        r = 20
-    )
-)
-
-fig.show()
 # %%
 def low_pass_filter(data, band_limit, sampling_rate):
      cutoff_index = int(band_limit * data.size / sampling_rate)

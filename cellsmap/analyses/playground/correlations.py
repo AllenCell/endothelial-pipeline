@@ -3,11 +3,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import cellsmap.util.io as io
+import cellsmap.util.dataset_io as io
 import cellsmap.util.pca as cmpca
-import cellsmap.analyses.playground.ea.utils.io as eaio
-import cellsmap.analyses.playground.ea.utils.regression as earegpdm 
-import cellsmap.analyses.playground.ea.utils.viz as eaviz
+import cellsmap.analyses.utils.io as eaio
 
 from scipy.signal import correlate, correlation_lags
 from scipy.stats import pearsonr
