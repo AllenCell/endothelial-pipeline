@@ -121,7 +121,7 @@ def get_PCA(df:pd.DataFrame,n_components:int=None) -> PCA:
 
     return pca
 
-def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,feat_cols:list=[str(i) for i in range(8)]) -> np.ndarray:
+def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,feat_cols:list=[str(i) for i in range(8)]) -> pd.DataFrame:
     '''Project feature data of one dataset onto PCA components.'''
     df_ = add_crop_index(get_one_dataset(df,ds_metadata,ds_ID))
     df_.loc[:,feat_cols] = pca.transform(df_[feat_cols].values)
