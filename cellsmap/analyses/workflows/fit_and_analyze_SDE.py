@@ -22,9 +22,12 @@ path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev
 df = eaio.load_array(path_to_data)
 df_1217 = eaio.load_array(path_to_20241217)
 df_0224 = eaio.load_array(path_to_20250224)
+# THIS IS A HACK TO GET THE GROUPS TO MATCH THE DATA CONFIG
+# WILL NOT BE AN ISSUE WHEN WE CHANGE HOW WE PROCESS DATA
 df = pd.concat([df,df_1217,df_0224],ignore_index=True)
 df, pca = cmpca.get_pca(df, num_pcs=8)
 df = cmpca._get_outliers(df)
+df.loc[df.group.str.contains('20250224'),'group'] = '20250224_20X'
 list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
 # %%
 # plot explained variance
@@ -240,6 +243,7 @@ print('Coefficient of determination (R^2) for model of diffusion term: %f' %drif
 # evaluate model: pplane (stability analysis) and compare stationary probability distributions (data v model prediction) across datasets
 myModel = [driftModel,diffModel]
 
+# specification of plot limits for phase plane plots and bins for histogram plots
 pplane_xlim = [-3,4]
 bin_xlim = [-4,5]
 
@@ -251,7 +255,7 @@ else:
     bin_ylim = [-2.5,8]
 
 
-# fix bins and centers for all datasets
+# fix bins and centers for all datasets using bin limits defined above
 Nbins = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
 bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
@@ -291,6 +295,7 @@ for my_mv in list_of_datasets:
 
 
 # %%
+# fixed point analysis: plot coordinates of fixed points as a function of shear stress
 u_range = np.linspace(0,35,20)
 
 fpt_dict = {}
@@ -381,8 +386,9 @@ ax.title('Stable fixed points by shear stress')
 
 
 # %%
-u_range = np.linspace(6,35,40)
-# entropy production rate as a function of u
+# entropy production rate as a function of shear stress
+u_range = np.linspace(6,35,40) 
+
 D = model_eval.vector_field_function(diffModel)
 epr = np.zeros(len(u_range))
 for u in u_range:   
