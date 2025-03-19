@@ -22,12 +22,7 @@ def _get_fov(s,n_fovs = 6):
 def _get_outliers(data: pd.DataFrame) -> np.ndarray:
     # find outlier crops
     data['outlier'] = simple_linear_classifier(data['1'], data['4'])
-    # remove all fovs that contain an outlier, since bubble presence messes with normalization statistics
-    bad_files = None
-    if 'filename_or_obj' in data.columns:
-        bad_files = data[data.outlier].filename_or_obj.unique()
-        print('PERCENTAGE OUTLIERS BY FOV:', len(bad_files)/data.filename_or_obj.nunique())
-    return data, bad_files
+    return data
 
 def remove_outliers(data:pd.DataFrame) -> pd.DataFrame:
     # we know the low flow dataset has lots of bubbles, fit a bubble prediction model here and apply on other movies
