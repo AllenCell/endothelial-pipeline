@@ -4,6 +4,7 @@ from cellsmap.util.io import (
     get_number_of_positions,
     get_time_interval_in_minutes,
     get_barcode,
+    get_microscope,
 )
 from cellsmap.image_conversion.process_images.process_sldy import (
     get_delayed_array_for_position,
@@ -14,7 +15,7 @@ from cellsmap.image_conversion.process_images.write_zarr import (
 )
 from cellsmap.util.io import get_original_path
 from bioio import BioImage
-import bioio_sldy
+import bioio_sldy, bioio_nd2
 from pathlib import Path
 
 # %%
@@ -48,20 +49,23 @@ def convert_sldy_dataset(
     output_dataset_name: str,  # barcode_date
     channel_names: list[str] = ["EGFP", "BF"],
 ):
-    n_positions = get_number_of_positions(dataset)
-    img = BioImage(get_original_path(dataset), reader=bioio_sldy.Reader)
+    img = BioImage(get_original_path(dataset))
+    if get_microscope(dataset) == "3i":
+        physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
+    if get_microscope(dataset) == "Nikon":
+        physical_pixel_sizes = img.physical_pixel_sizes
     interval_min = get_time_interval_in_minutes(dataset)
-    physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
     barcode = get_barcode(dataset)
+    n_positions = get_number_of_positions(dataset)
     assert not (
         n_positions > 1 and len(img.scenes) > 1
-    ), "One of number of positions or number of scenes must be one."
+    ), "One of number of positions or number of scenes must be greater than one."
     for scene_index in range(len(img.scenes)):
         for position in range(n_positions):
             if n_positions > 1:
                 output = f"{output_path}/{output_dataset_name}_{barcode}/{output_dataset_name}_{barcode}_P{position}.ome.zarr"
             else:
-                output = f"{output_path}/{output_dataset_name}/{output_dataset_name}_P{scene_index}.ome.zarr"
+                output = f"{output_path}/{output_dataset_name}_{barcode}/{output_dataset_name}_{barcode}_P{scene_index}.ome.zarr"
             print(f"Writing to {output}")
             scene = get_delayed_array_for_position(
                 position, dataset, n_positions, scene_index, img
@@ -111,10 +115,8 @@ def parse_arguments():
 # %%
 if __name__ == "__main__":
     # dataset, output_path, output_dataset_name, channel_names = parse_arguments()
-    # dataset = "20241016_20X"
-    # output_dataset_name = "20241016"
-    dataset = "20241120_20X"
-    output_dataset_name = "20241016"
+    dataset = "20241120_20X" 
+    output_dataset_name = "20241120" 
     output_path = (
         "/allen/aics/endothelial/morphological_features/image_data/converted_zarrs/"
     )

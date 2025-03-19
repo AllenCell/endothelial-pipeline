@@ -124,6 +124,10 @@ def get_barcode(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['barcode']
 
+def get_microscope(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['microscope']
+
 # model methods
 
 def get_available_models() -> list:

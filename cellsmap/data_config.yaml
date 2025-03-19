@@ -506,7 +506,7 @@
   n_positions: 6, # positions are represented as scenes in the dataset
   notes: ""
 },{
-  name: 20250227_paired20X,
+  name: 20250227_paired20X, 
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250227 20x 40x paired/20250227_GE00007101_20X_zstacks_SLDY.sldy",
   zarr_path: None,
   barcode: GE00007101,
@@ -520,7 +520,7 @@
   flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
-  n_positions: 10, # positions are represented as scenes in the dataset
+  n_positions: 1, # each scene (10) has 1 position in it
   notes: ""
 },{
   name: 20250227_paired40X,
