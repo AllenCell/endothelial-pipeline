@@ -4,7 +4,7 @@ from skimage.segmentation import find_boundaries
 from skimage.morphology import skeletonize
 from skimage.filters import gaussian
 from skimage.transform import pyramid_reduce
-from cellsmap.util.io import load_dataset, load_config, get_zarr_path, get_time_interval_in_minutes, get_dataset_duration_in_frames, get_available_channels
+from cellsmap.util.dataset_io import load_dataset, load_config, get_zarr_path, get_time_interval_in_minutes, get_dataset_duration_in_frames, get_available_channels
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, preprocess, get_thresholds, save_image_output, extract_T
 import matplotlib as mpl
@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-
+from typing import Callable
 
 
 def get_chan_map(filepath: Path) -> dict:
@@ -29,7 +29,7 @@ def multiproc_wrapper(function, args):
     function(*args)
 
 
-def ipython_cli_flexecute(function: callable, return_results=False, *args, **kwargs):
+def ipython_cli_flexecute(function: Callable, return_results=False, *args, **kwargs):
     """
     Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
     """

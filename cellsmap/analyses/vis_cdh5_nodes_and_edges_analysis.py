@@ -17,7 +17,7 @@ def set_max_plots(max_plots: int=plt.rcParams['figure.max_open_warning']):
     """
     plt.rcParams.update({'figure.max_open_warning': max_plots})
 
-def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir: Path, SHOW_PLOTS, SAVE_OUTPUT):
+def generate_alignment_summary_plots(df_ang_dist_summary: pd.DataFrame, out_dir: Path, SHOW_PLOTS: bool, SAVE_OUTPUT: bool):
     fig, ax = plt.subplots()
     sns.scatterplot(data=df_ang_dist_summary, x='node_to_node_distance_mean', y='angle_relative_to_horizontal_in_deg_mean',
                     marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), legend=True, zorder=9, ax=ax)

@@ -16,7 +16,7 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from bioio_base.types import PhysicalPixelSizes
 
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 
 def expand_crop_region(crop_region, padding):
     crop_region = tuple(crop if isinstance(crop, slice) else slice(*crop) for crop in crop_region)
@@ -78,7 +78,7 @@ class FlowCalculator():
             The difference between the start and end timeframes when calculating the flow field vectors.
         """
         self.channel = channel
-        self.channel_index = io.get_channel_index(self.dataset, channel)
+        self.channel_index = dataset_io.get_channel_index(self.dataset, channel)
         assert len(self.channel) == 1 and len(self.channel) == 1, f"Only one channel is implemented for flow calculation. Channels provided were {self.channel} corresponding to channel indices {self.channel_index}."
         self.delta_t = delta_t
         self.load_dataset()
@@ -89,7 +89,7 @@ class FlowCalculator():
         self.set_number_of_cores(ncores)
 
     def load_dataset(self):
-        self.data = io.load_dataset(self.dataset, channels=self.channel, level=2)
+        self.data = dataset_io.load_dataset(self.dataset, channels=self.channel, level=2)
 
     def load_flow_from_file(self, fname):
         with open(fname, "rb") as fpk:
@@ -109,7 +109,7 @@ class FlowCalculator():
 
     def compute_flow_field(self, executor=None, save=None):
         step = 1
-        duration = io.get_dataset_duration_in_frames(self.dataset)
+        duration = dataset_io.get_dataset_duration_in_frames(self.dataset)
         if self.debug:
             step = int(duration/10)
             print(f"Running debug mode. Using step of {step} frames.")
@@ -151,7 +151,7 @@ class FlowCalculator():
         ch_colors = [(0,255,255), (255,0,255), (255,255,0), (255,255,255)]
         ch_names = ['vx', 'vy', 'norm', 'theta']
         img_dim_order = 'YX'
-        px_res = PhysicalPixelSizes(*[1, *[io.get_xy_pixel_size_in_um(self.dataset)] * len(img_dim_order)])
+        px_res = PhysicalPixelSizes(*[1, *[dataset_io.get_xy_pixel_size_in_um(self.dataset)] * len(img_dim_order)])
         dim_order_out = 'TCYX'
 
         OmeTiffWriter.save(vector_data,
@@ -283,7 +283,7 @@ def compute_and_save_flow_field(out_dir, dataset_name, delta_t=1, executor=None,
 
     # Initialize the flow field calculator
     flowc = FlowCalculator(dataset=dataset_name, debug=debug)
-    channel_name = [chan for chan in io.get_available_channels(dataset_name) if chan in ('CDH5_Tubulin', 'CDH5')]
+    channel_name = [chan for chan in dataset_io.get_available_channels(dataset_name) if chan in ('CDH5_Tubulin', 'CDH5')]
     print('initializing...')
     flowc.initialize(channel=channel_name, delta_t=delta_t, ncores=ncores)
 

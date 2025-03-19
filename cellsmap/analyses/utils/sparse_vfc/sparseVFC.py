@@ -2,7 +2,7 @@ import numpy as np
 import numpy.random as rnd
 import scipy as sc
 
-from kernels import *
+from cellsmap.analyses.utils.sparse_vfc.kernels import rbf_kernel, laplace_kernel, linear_kernel, polynomial_kernel
 
 global kernel_func_dict
 kernel_func_dict = {'rbf':rbf_kernel,'laplace':laplace_kernel,'linear':linear_kernel,'polynomial':polynomial_kernel}
