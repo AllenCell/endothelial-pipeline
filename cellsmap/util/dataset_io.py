@@ -5,8 +5,9 @@ import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
+from typing import List, Dict, Any, Union, Tuple
 
-def load_config(config_type='data') -> dict:
+def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
@@ -16,7 +17,7 @@ def load_config(config_type='data') -> dict:
     return config_data
 
 # dataset methods
-def get_available_datasets() -> list:
+def get_available_datasets() -> List[str]:
     datasets = []
     config = load_config()
     for dataset in config:
@@ -24,7 +25,7 @@ def get_available_datasets() -> list:
         print(dataset['name'])
     return datasets
 
-def get_dataset_info(dataset_name: str) -> dict:
+def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     config = load_config()
     for dataset in config:
         if dataset['name'] == dataset_name:
@@ -34,7 +35,7 @@ def get_dataset_info(dataset_name: str) -> dict:
 def get_frame(filename):
     return int(str(filename).split('.')[0][-4:])
 
-def get_flow(dataset_name: str, T: float) -> list:
+def get_flow(dataset_name: str, T: float) -> Union[int, float]:
     """
     Parameters
     ----------
@@ -45,11 +46,10 @@ def get_flow(dataset_name: str, T: float) -> list:
     """
     dataset_info = get_dataset_info(dataset_name)
     flow_info = dataset_info['flow']
-    flows = lambda t: [flow for t_start, t_stop, flow in flow_info if t_start <= t < t_stop]
-    flow = flows(T)
-    return int(*flow) if flow else np.nan
+    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= T < t_stop]
+    return int(flows[0]) if flows else np.nan
 
-def get_flow_in_frames(dataset_name: str) -> int:
+def get_flow_in_frames(dataset_name: str) -> List[Tuple[Any, Any, Any]]:
     dataset_info = get_dataset_info(dataset_name)
     flow_info = dataset_info['flow']
     flow_in_frames = [(round(t_start * 60 / dataset_info['time_interval_in_minutes']), round(t_stop * 60 / dataset_info['time_interval_in_minutes']), flow) for t_start, t_stop, flow in flow_info]
@@ -64,7 +64,7 @@ def get_available_channels(dataset_name:str) -> list:
     reader = BioImage(path)
     return reader.channel_names
 
-def get_channel_index(dataset_name:str, channel_names:list) -> int:
+def get_channel_index(dataset_name: str, channel_names: List[str]) -> List[int]:
     available_channels = get_available_channels(dataset_name)
     return [available_channels.index(channel) for channel in channel_names]
 
@@ -113,7 +113,7 @@ def get_dim_map(dim_order: str) -> dict:
 
     return dim_map
 
-def get_original_path(dataset_name: str) -> str:
+def get_original_path(dataset_name: str) -> Path:
     """
     Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
     """
@@ -122,10 +122,11 @@ def get_original_path(dataset_name: str) -> str:
 
 # model methods
 
-def get_available_models() -> list:
+def get_available_models():
     model_info = load_config('model')
-    for model in model_info:
-        print(model['name'])
+    model_names = [model['name'] for model in model_info]
+    for name in model_names:
+        print(name)
 
 def load_precomputed_features(dataset_name:str, model_name:str) -> pd.DataFrame:
     dataset_info = get_dataset_info(dataset_name)

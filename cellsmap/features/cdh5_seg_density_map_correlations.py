@@ -4,7 +4,7 @@ import pandas as pd
 from skimage.measure import label, regionprops
 import matplotlib.pyplot as plt
 import seaborn as sns
-from cellsmap.util import io, cdh5_preprocessing as preproc
+from cellsmap.util import dataset_io, cdh5_preprocessing as preproc
 from cellsmap.features import cdh5_seg_density_map as cellsden
 
 # silence the max number of plots warning
@@ -15,7 +15,7 @@ def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, 
     # The density maps from thresholds and segmentations are comparable form my test on dataset 20240305_T01_001
     # dmap = cellsden.get_density_map_from_segmentations(dataset_name, T, density_map_sigma=10)
     dmap = cellsden.get_density_map_from_thresholds(dataset_name, T, density_map_sigma=40)
-    nuc_seg = io.load_dataset(dataset_name, channels=["Nuc_Seg"], time_start=T, time_end=T, level=0).squeeze()
+    nuc_seg = dataset_io.load_dataset(dataset_name, channels=["Nuc_Seg"], time_start=T, time_end=T, level=0).squeeze()
     region_seg = np.array(*preproc.get_cdh5_classic_segmentation(dataset_name, T, channels=['segmentations_merged'])).squeeze()
     nuc_seg = nuc_seg.compute().astype(int)
     df = []
@@ -72,7 +72,7 @@ dataset_name_list = ['20240305_T01_001',]
 
 for dataset_name in dataset_name_list:
     print(dataset_name)
-    T_range = range(0, io.get_dataset_duration_in_frames(dataset_name), 6)
+    T_range = range(0, dataset_io.get_dataset_duration_in_frames(dataset_name), 6)
 
     prj_dir = Path('../').resolve()
     out_dir = prj_dir / 'results/cdh5_seg_density_map_correlations' / dataset_name

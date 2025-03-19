@@ -1,8 +1,8 @@
 from pathlib import Path
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 
 print('Available datasets:')
-dataset_name_list = io.get_available_datasets()
+dataset_name_list = dataset_io.get_available_datasets()
 print('\n')
 
 config_data_fields = [
@@ -27,7 +27,7 @@ config_data_fields = [
 print('\nChecking for missing fields in dataset config files...')
 missing_fields_found = False
 for dataset_name in dataset_name_list:
-    config_data = io.get_dataset_info(dataset_name)
+    config_data = dataset_io.get_dataset_info(dataset_name)
     missing_fields = [field_name for field_name in config_data_fields if field_name not in config_data]
     missing_fields += [field_name for field_name in config_data if config_data[field_name] == None]
     if missing_fields:
