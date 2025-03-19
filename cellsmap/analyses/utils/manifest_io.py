@@ -52,10 +52,6 @@ def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict) -> pd.DataFra
         df.loc[df['group'].str.contains(key),'description'] = description_dic[key]
     return df
 
-def rm_metadata(df:pd.DataFrame,metadata_col:list) -> pd.DataFrame:
-    '''Remove metadata columns from DataFrame df.'''
-    return df.drop(columns = metadata_col,inplace=False).astype(float)
-
 def get_dataset_name(ds_path:str,path_prefix:str=None,file_ext:str='.ome.zarr') -> str:
     '''Get dataset name from dataset path.'''
     if path_prefix is None:
