@@ -263,20 +263,28 @@ plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 
 # %%
 # fix bins and centers for all datasets
 
-for ds_ID in [0,1,2,3,6]:
-    print('**** Running model analysis for dataset',ds_ID,'**** \n')
-    my_mv = list_of_datasets[ds_ID]
+for my_mv in list_of_datasets: 
     mv_name = eaio.get_dataset_name(my_mv)
 
+    # if we don't want to fit model using this dataset, skip it
+    if mv_name in ds_to_skip:
+        print('**** Skipping dataset',mv_name,'**** \n')
+        continue
+
+    print('**** Running model analysis for dataset',mv_name,'**** \n')
+
+    # project data from this one dataset onto PCs as defined by fit PCA object pca
     df_proj = eaio.project_PCA_one_dataset(df,pca,'group',my_mv)
 
+    # for extracting just the PCs we want from the dataframe
     feat_cols = [str(i) for i in PCs]
 
+    # get 2-pt trajectories and for each flow condition present in the dataset as well as the flow conditions themselves
     traj_list, flow_list = eareg.get_2pt_traj_and_flow(df_proj,mv_name,feat_cols=feat_cols,verbose=True)
     del df_proj # free up memory
     num_flow = len(flow_list)
 
-    # NEED TO CHANGE HOW YOU SPECIFY STATIONARY POINTS NOW
+    
     for j in range(num_flow): # get bins and centers for data at high and low flow    
         print('**** Shear stress u =',flow_list[j],'dyn/cm^2 **** \n')
         plot_tuple = model_analysis.run_model_analysis_2D(myModel,traj_list[j],bins,centers,flow_list[j],args=plt_args)
