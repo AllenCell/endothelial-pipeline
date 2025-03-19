@@ -24,7 +24,7 @@ df_1217 = eaio.load_array(path_to_20241217)
 df_0224 = eaio.load_array(path_to_20250224)
 df = pd.concat([df,df_1217,df_0224],ignore_index=True)
 df, pca = cmpca.get_pca(df, num_pcs=8)
-df, bad_files = cmpca._get_outliers(df)
+df = cmpca._get_outliers(df)
 list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
 # %%
 # plot explained variance
@@ -40,7 +40,7 @@ title_dict = {'20241016_20X':'24H High, 24H Low',
               '20241217_20X':'48H No Flow 2',
               '20250224_GE00006991_20X':'24H Low, 24H High (2/24/25)',}
 
-# plot PCA projection for a single dataset
+# example visualization of PCA projection for a single dataset
 ds_ID = 3 # index of dataset in list_of_datasets
 my_mv = list_of_datasets[ds_ID] # get dataset identifier
 mv_name = eaio.get_dataset_name(my_mv) # get dataset name (shortened identifier)
@@ -51,8 +51,11 @@ fig2,ax2 = eaviz.plot_PCA_projection(feats_proj, title_dict[mv_name])
 
 # %%
 # now fit model using multiple datasets
-PCs = [0,1]
-ndim = len(PCs)
+PCs = [0,1] # index of PCs to use for model fitting
+ndim = len(PCs) # get ndim from number of PCs
+
+# datasets to leave out of SDE model fitting, currently just the no flow datasets
+ds_to_skip = ['20241210_20X','20241217_20X']
 
 # list of training/test sets for each dataset
 X_train_list = []
@@ -64,18 +67,27 @@ V_test_list = []
 u_train_list = []
 u_test_list = []
 
+# number of bins for each dimension, used for binning data for model fitting
 Nbins = 25*np.ones(ndim,dtype=int)
 # %%
-# save out traj_list and flow_list for each dataset so you don't have to re-generate for model analysis?
-for ds_ID in [0,1,2,3,6]: 
-    print('**** Generating train/test sets for dataset',ds_ID,'**** \n')
-    my_mv = list_of_datasets[ds_ID]
+for my_mv in list_of_datasets: 
     mv_name = eaio.get_dataset_name(my_mv)
 
+    # don't fit model using no flow datasets
+    if mv_name in ds_to_skip:
+        print('**** Skipping dataset',mv_name,'**** \n')
+        continue
+
+    print('**** Generating train/test sets for dataset',mv_name,'**** \n')
+
+    # project data from this one dataset onto PCs as defined by fit PCA object pca
     df_proj = eaio.project_PCA_one_dataset(df,pca,'group',my_mv)
 
+    # for extracting just the PCs we want from the dataframe
     feat_cols = [str(i) for i in PCs]
 
+    # get 2-pt trajectories and for each flow condition present in the dataset as well as the flow conditions themselves
+    # filters out timepoints flagges as outliers
     traj_list, flow_list = eareg.get_2pt_traj_and_flow(df_proj,mv_name,feat_cols=feat_cols,verbose=True)
     del df_proj # free up memory
     num_flow = len(flow_list)
@@ -104,8 +116,8 @@ for ds_ID in [0,1,2,3,6]:
     X_pts_noNAN = []
 
     for j in range(num_flow):
-        f_KM_noNAN_temp, X_pts_temp = eareg.masked_vector_field(f_KM[j], np.array(np.meshgrid(*centers[j])).T)
-        D_KM_noNAN_temp, _ = eareg.masked_vector_field(D_KM[j], np.array(np.meshgrid(*centers[j])).T)
+        f_KM_noNAN_temp, X_pts_temp, _ = eareg.masked_vector_field(f_KM[j], np.array(np.meshgrid(*centers[j])).T)
+        D_KM_noNAN_temp, _, _ = eareg.masked_vector_field(D_KM[j], np.array(np.meshgrid(*centers[j])).T)
         f_KM_noNAN.append(f_KM_noNAN_temp)
         D_KM_noNAN.append(D_KM_noNAN_temp)
         X_pts_noNAN.append(X_pts_temp)
@@ -159,17 +171,20 @@ u_test = np.concatenate(u_test_list)
 
 # build set of basis functions
 
+# include sigmoid functions in basis functions
 include_sigmoid = True
 
-if include_sigmoid: # include sigmoid functions in basis functions
-    sigmoid_range = range(3,4)
+if include_sigmoid: 
+    sigmoid_range = range(3,4) # range of powers of sigmoid functions to include
 
+    # have to make custom sigmoid functions to include in SINDy library
+    # callable function
     def make_sigmoid(n):
         def _(x):
             return 1/(1+np.exp(-n*x))
         return _
 
-
+    # string representation of function
     def make_sigmoid_string(n):
         def _(x):
             return '1/(1+exp(-'+str(n)+'*'+x+')'
@@ -178,27 +193,31 @@ if include_sigmoid: # include sigmoid functions in basis functions
     sigmoid_funcs = [make_sigmoid(n) for n in sigmoid_range]
     func_names = [make_sigmoid_string(n) for n in sigmoid_range]
 
+    # pySINDy custom library
     sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
                                 function_names=func_names)
+    # full library for drift term (functions of state variables)
     drift_feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
                                     include_bias=True),
                                     sigmoid_lib])
 else: # just polynomial library for basis functions
     drift_feature_lib = ps.PolynomialLibrary(degree=3, include_bias=True)
 
+# library for model dependence on control parameters (shear stress)
 drift_parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True) # library for model dependence on control parameters (shear stress)
 
-# build full library for drift term
+# build full library for drift term: pySINDy parameterized library
 drift_lib=ps.ParameterizedLibrary(feature_library=drift_feature_lib,
     parameter_library=drift_parameter_lib,num_features=ndim,num_parameters=1) 
 
-# build library for diffusion term
+# build library for diffusion term (polynomial library only)
 diff_feature_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
 diff_parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=False)
 diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
     parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
 
-# fit model for drift term
+# %%
+# fit model for drift term - SINDy based regression
 driftModel = ps.SINDy(feature_library = drift_lib, optimizer = ps.SSR())
 driftModel.fit(X_train,t=5,x_dot=Y_train,u=u_train)
 
@@ -208,7 +227,7 @@ driftModel.print()
 
 print('Coefficient of determination (R^2) for model of drift term: %f' %drift_R2)
 
-# fit model for diffusion term
+# fit model for diffusion term - SINDy based regression
 diffModel = ps.SINDy(feature_library = diff_lib, optimizer = ps.SSR())
 diffModel.fit(X_train,t=5,x_dot=V_train,u=u_train)
 

@@ -75,8 +75,7 @@ def get_pca(data: pd.DataFrame, num_pcs: int, scale = True) -> Pipeline:
     data.loc[data.group.str.contains('20241217') & (data['T'] >300) & (data['T'] < 420), 'pca_ref'] = True
     data_ref = data[data.pca_ref]
 
-    data_ref, _ = _get_outliers(data_ref)
-    data_ref = remove_outliers(data_ref)
+    data_ref = remove_outliers(_get_outliers(data_ref))
 
     if scale:
         pipe = Pipeline([
