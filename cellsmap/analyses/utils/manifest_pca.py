@@ -4,23 +4,24 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import pandas as pd
-from typing import Tuple
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
-def simple_linear_classifier(X, Y):
+# input type should be columns of pd.DataFrame
+def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
   Z = 3/2. * X - 0.6
   return Z > Y
 
-def _get_group(s):
+def _get_group(s:str) -> str:
     return Path(s).parent.parent.stem
 
-def _get_tp(s,n_fovs = 6):
+def _get_tp(s:str,n_fovs = 6):
     return int(s.split('/')[-1].split('_')[-1][2:-4])//n_fovs
 
 def _get_fov(s,n_fovs = 6):
     return int(s.split('/')[-1].split('_')[-1][2:-4])%n_fovs
 
-def _get_outliers(data: pd.DataFrame):
+def get_outliers(data: pd.DataFrame):
     # find outlier crops
     data['outlier'] = simple_linear_classifier(data['1'], data['4'])
     return data
@@ -30,6 +31,13 @@ def remove_outliers(data:pd.DataFrame) -> pd.DataFrame:
     data = data[~data.outlier]
     return data
 
+def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
+    df['pca_ref'] = df.group.str.contains('20241120') | df.group.str.contains('20241203')
+    # select no flow timepoints right after feeding
+    df.loc[df.group.str.contains('20241210') & (df['T'] > 300) & (df['T'] < 450), 'pca_ref'] = True
+    df.loc[df.group.str.contains('20241217') & (df['T'] < 100), 'pca_ref'] = True
+    df.loc[df.group.str.contains('20241217') & (df['T'] >300) & (df['T'] < 420), 'pca_ref'] = True
+    return df[df.pca_ref]
 
 def get_pca(data: pd.DataFrame, num_pcs: int, scale = True) -> Pipeline:
     """
@@ -68,14 +76,8 @@ def get_pca(data: pd.DataFrame, num_pcs: int, scale = True) -> Pipeline:
     for group_date in ['20241120', '20241203', '20241210', '20241217']:
         assert np.any([group_date in g for g in groups_present]), f'Expected group {group_date} to be present in data. Groups present: {groups_present}'
 
-    data['pca_ref'] = data.group.str.contains('20241120') | data.group.str.contains('20241203')
-    # select no flow timepoints right after feeding
-    data.loc[data.group.str.contains('20241210') & (data['T'] > 300) & (data['T'] < 450), 'pca_ref'] = True
-    data.loc[data.group.str.contains('20241217') & (data['T'] < 100), 'pca_ref'] = True
-    data.loc[data.group.str.contains('20241217') & (data['T'] >300) & (data['T'] < 420), 'pca_ref'] = True
-    data_ref = data[data.pca_ref]
-
-    data_ref = remove_outliers(_get_outliers(data_ref))
+    data_ref = get_pca_reference(data)
+    data_ref = remove_outliers(get_outliers(data_ref))
 
     if scale:
         pipe = Pipeline([
@@ -89,4 +91,5 @@ def get_pca(data: pd.DataFrame, num_pcs: int, scale = True) -> Pipeline:
     pipe.fit(data_ref[feature_cols].values)
 
     print(f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}')
+
     return data, pipe

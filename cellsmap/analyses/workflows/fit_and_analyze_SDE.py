@@ -4,33 +4,30 @@ import pandas as pd
 import pysindy as ps
 import numdifftools as nd
 
-import cellsmap.util.pca as cmpca
 import cellsmap.analyses.utils.gen_potential as gp
 import cellsmap.analyses.utils.regression as eareg
-from cellsmap.analyses.utils import manifest_viz, manifest_io, pplane, model_eval, model_analysis
+from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca, pplane, model_eval, model_analysis
 
 
 # %%
 # load data
-path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
-path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
-path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
-
-df = manifest_io.load_array(path_to_data)
-df_1217 = manifest_io.load_array(path_to_20241217)
-df_0224 = manifest_io.load_array(path_to_20250224)
-# THIS IS A HACK TO GET THE GROUPS TO MATCH THE DATA CONFIG
-# WILL NOT BE AN ISSUE WHEN WE CHANGE HOW WE PROCESS DATA
-df = pd.concat([df,df_1217,df_0224],ignore_index=True)
-df, pca = cmpca.get_pca(df, num_pcs=8)
-df = cmpca._get_outliers(df)
+df = manifest_io.load_manifest_to_df()
+# fit PCA to data
+df, pca = manifest_pca.get_pca(df, num_pcs=8)
+# add outliers to dataframe
+df = manifest_pca.get_outliers(df)
+# filepath for this dataset in manifest includes barcode, so we need to change the group name to match data config
+# something that should be fixed in the manifest in the future
 df.loc[df.group.str.contains('20250224'),'group'] = '20250224_20X'
+# get list of datasets by 'group' identifier
 list_of_datasets = manifest_io.get_list_of_datasets(df,'group',verbose=True)
 
-# plot explained variance
+# plot explained variance ratio of PCA components
 fig, ax = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
 
 # %%
+# plot top 3 principal components of feature data vs. frame number
+# should write a function to do this for all datasets in the manifest via data_config
 title_dict = {'20241016_20X':'24H High, 24H Low',
               '20241105_20X':'24H Low, 24H High (11/5/24)',
               '20241120_20X':'48H High',
