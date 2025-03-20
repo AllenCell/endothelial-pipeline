@@ -8,14 +8,15 @@ from skimage.feature import peak_local_max
 from skimage.morphology import binary_dilation, disk, skeletonize, remove_small_objects
 from skimage.segmentation import watershed, join_segmentations, find_boundaries
 from skimage.graph import rag_boundary, merge_hierarchical
-from cellsmap.util.io import get_dim_map
+from cellsmap.util.dataset_io import get_dim_map
 from pathlib import Path
 import yaml
 import re
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
+from typing import Any, Optional, List, Union
 
-def restore_full_dims(image: np.array, current_dims: str, full_dims: str='TCZYX') -> np.array:
+def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str='TCZYX') -> np.ndarray:
     """
     Takes an array with specified image dims and restores dimensions with size 1
     that are present in full_dims.
@@ -24,12 +25,12 @@ def restore_full_dims(image: np.array, current_dims: str, full_dims: str='TCZYX'
 
     NOTE: the letters in current_dims and full_dims are case sensitive and their
     order matters.
-    
+
     Parameters
     ----------
     image: np.array
         The image to restore the dimensions of.
-    
+
     current_dims: str
         The dimensions of 'image' as a string. Possible dimensions are:
             S: scene / position
@@ -44,7 +45,7 @@ def restore_full_dims(image: np.array, current_dims: str, full_dims: str='TCZYX'
 
     Returns
     -------
-    image: np.array
+    image: np.ndarray
         The image with its dimensions expanded.
     """
 
@@ -56,7 +57,7 @@ def restore_full_dims(image: np.array, current_dims: str, full_dims: str='TCZYX'
 
     return image
 
-def preprocess(raw_arr: np.array, sigma=3, radius=20) -> np.array:
+def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
     """
     Takes an image and returns a processed version after performing a gaussian blur,
     intensity rescaling to uint16, and then rolling-ball background subtraction.
@@ -80,7 +81,7 @@ def preprocess(raw_arr: np.array, sigma=3, radius=20) -> np.array:
 
     return sub
 
-def get_noodly_regions(binary_img_arr: np.array, axis_ratio_filter=2.5, solidity_filter=0.6):
+def get_noodly_regions(binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidity_filter=0.6):
     """
     A function to divide a binary image into filamentous regions and round regions.
     The binary image is labeled first and then the labeled regions are classified as
@@ -90,7 +91,7 @@ def get_noodly_regions(binary_img_arr: np.array, axis_ratio_filter=2.5, solidity
 
     Parameters
     ----------
-    binary_img_arr: np.array
+    binary_img_arr: np.ndarray
         The binary image as a numpy array to split into elongated, "noodly" regions and
         round, solid regions.
     
@@ -107,10 +108,10 @@ def get_noodly_regions(binary_img_arr: np.array, axis_ratio_filter=2.5, solidity
 
     Returns
     -------
-    img_arr_noodly: np.array
+    img_arr_noodly: np.ndarray
         An array of the filamentous / noodly regions of the same shape as binary_img_arr.
 
-    img_arr_round: np.array
+    img_arr_round: np.ndarray
         An array of the round, solid regions of the same shape as binary_img_arr.
     """
 
@@ -142,7 +143,7 @@ def get_noodly_regions(binary_img_arr: np.array, axis_ratio_filter=2.5, solidity
 
     return img_arr_noodly, img_arr_round
 
-def get_thresholds(processed_img: np.array):
+def get_thresholds(processed_img: np.ndarray):
     """
     Performs a hysteresis threshold on processed_img and returns the threshold,
     the regions in the thresholded image that are considered noodly and the
@@ -150,19 +151,19 @@ def get_thresholds(processed_img: np.array):
 
     Parameters
     ----------
-    processed_img: np.array
+    processed_img: np.ndarray
         An image to process (initially used on the Cdh5 data in dataset_name='20240305_T01_001').
 
     Returns
     -------
-    hyst: np.array
+    hyst: np.ndarray
         The thresholded image as an array of the same shape as processed_img.
 
-    hyst_noodly: np.array
+    hyst_noodly: np.ndarray
         The filamentous / noodly regions of the thresholded image as an array
         of the same shape as processed_img.
 
-    hyst_round: np.array
+    hyst_round: np.ndarray
         The round and solid regions of the thresholded image as an array of
         the same shape as processed_img.
     """
@@ -173,7 +174,7 @@ def get_thresholds(processed_img: np.array):
 
     return hyst, hyst_noodly, hyst_round
 
-def get_classic_segmentation(image: np.array) -> np.array:
+def get_classic_segmentation(image: np.ndarray) -> np.ndarray:
     """ Takes an image with a membrane-labeled structure and returns an instance
     segmentation as an array with the same shape as 'image'.
     The methodology is:
@@ -201,7 +202,7 @@ def get_classic_segmentation(image: np.array) -> np.array:
 
     return seg_image
 
-def get_watershed_seeds_and_basins(binary_img_arr: np.array, min_dist: int=50):
+def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int=50):
     """
     Performs a distance transform on a binary image array and finds the peaks
     and inverse of the distance transform in order to get the seeds and basins
@@ -209,7 +210,7 @@ def get_watershed_seeds_and_basins(binary_img_arr: np.array, min_dist: int=50):
 
     Parameters
     ----------
-    binary_img_arr: np.array
+    binary_img_arr: np.ndarray
         A binary image to get the watershed seeds and basins for.
 
     min_dist: int
@@ -218,10 +219,10 @@ def get_watershed_seeds_and_basins(binary_img_arr: np.array, min_dist: int=50):
 
     Returns
     -------
-    seeds: np.array
+    seeds: np.ndarray
         The seeds for the watershed to use with the same shape as binary_img_arr.
 
-    basins: np.array
+    basins: np.ndarray
         The basins for the watershed to work on as an array with the same shape
         as binary_img_arr.
     """
@@ -239,13 +240,13 @@ def get_watershed_seeds_and_basins(binary_img_arr: np.array, min_dist: int=50):
 
     return seeds, basins
 
-def clean_labeled_img(labeled_img: np.array, eccentricity_filter: float=0.5, size_filter_conditional: int=2000, size_filter_strict: int=500):
+def clean_labeled_img(labeled_img: np.ndarray, eccentricity_filter: float=0.5, size_filter_conditional: int=2000, size_filter_strict: int=500):
     """
     Removes small, round objects from a labeled image.
 
     Parameters
     ----------
-    labeled_img: np.array
+    labeled_img: np.ndarray
         The labeled image to clean up of small, round objects.
 
     eccentricity_filter: float
@@ -264,10 +265,10 @@ def clean_labeled_img(labeled_img: np.array, eccentricity_filter: float=0.5, siz
     
     Returns
     -------
-    labeled_img_clean: np.array
+    labeled_img_clean: np.ndarray
         The array labeled_img after being cleaned up.
 
-    labeled_img_removed: np.array
+    labeled_img_removed: np.ndarray
         An image as an array of the regions that were removed from labeled_img.
     """
 
@@ -289,7 +290,7 @@ def clean_labeled_img(labeled_img: np.array, eccentricity_filter: float=0.5, siz
 
     return labeled_img_clean, labeled_img_removed
 
-def initialize_rag(labeled_image: np.array, intensity_image: np.array, as_directed: bool=False) -> rag_boundary:
+def initialize_rag(labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool=False):
     """
     Creates a region-adjacency graph (RAG) using a labeled image and an
     intensity image.
@@ -301,10 +302,10 @@ def initialize_rag(labeled_image: np.array, intensity_image: np.array, as_direct
 
     Parameters
     ----------
-    labeled_image: np.array
+    labeled_image: np.ndarray
         The labeled image to build the RAG from.
 
-    intensity_image: np.array
+    intensity_image: np.ndarray
         The intensity image to use to determine the weights of the edges
         connecting nodes (i.e. neighboring regions) in the RAG.
 
@@ -382,7 +383,7 @@ def weight_boundary(graph, src, dst, n):
         'weight': (count_src * weight_src + count_dst * weight_dst) / count,
     }
 
-def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: np.array, hyst_removed: np.array):
+def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_clean: np.ndarray, hyst_removed: np.ndarray):
     """
     Create segmentations from processed_img with the help of the original
     threshold "hyst", the cleaned threshold "hyst_clean", and the regions from
@@ -390,26 +391,26 @@ def generate_segmentations(processed_img: np.array, hyst: np.array, hyst_clean: 
 
     Parameters
     ----------
-    processed_img: np.array
+    processed_img: np.ndarray
         The image to create segmentations from.
 
-    hyst: np.array
+    hyst: np.ndarray
         The threshold image of processed_img to use to help generate segmentations.
 
-    hyst_clean: np.array
+    hyst_clean: np.ndarray
         The cleaned up thresholded image to use to help generate segmentations.
 
-    hyst_removed: np.array
+    hyst_removed: np.ndarray
         The regions removed from hyst to generate hyst_clean. Will be used to
         aid in segmentation generation.
     
     Returns
     -------
-    seg2_lab_no_mask_merge: np.array
+    seg2_lab_no_mask_merge: np.ndarray
         A segmentation of processed_img where neighboring regions with weak
         boundaries are merged.
 
-    seg2_lab: np.array
+    seg2_lab: np.ndarray
         A segmentation of processed_img without the neighboring region merging.
     """
 
@@ -595,7 +596,7 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
 
     return filepaths
 
-def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
+def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> float:
     """
     Return the time_resolutions to the cdh5 classic segmentations.
 
@@ -620,11 +621,19 @@ def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> list:
 
     return t_res
 
-def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None, crop_y: slice=None, crop_x: slice=None, as_dask=False) -> list:
+def get_cdh5_classic_segmentation(
+    dataset_name: str,
+    T: int,
+    channels: Optional[List[str]] = None,
+    crop_y: Optional[slice] = None,
+    crop_x: Optional[slice] = None,
+    as_dask: bool = False
+    ) -> List[Any]:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
-    The channel argument is either None or a list where 
+    The channel argument is either None or a list where each entry is the channel name (a string).
+        If None will use all channels in the image. Default is None.
 
     Parameters
     ----------
@@ -656,13 +665,13 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
 
     Returns
     -------
-    img_arrays: list of numpy arrays
+    img_arrays: list of numpy arrays or dask arrays
         The selected channels of the classic segmentation output.
     """
 
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
-    filepaths = {fpath: extract_T(fpath) for fpath in filepaths}
-    fpath = [fpath for fpath in filepaths if filepaths[fpath]==T]
+    filepaths_dict = {fpath: extract_T(fpath) for fpath in filepaths}
+    fpath = [fpath for fpath in filepaths_dict if filepaths_dict[fpath] == T]
     assert len(fpath) == 1, f"Multiple files found for timepoint {T}." if len(fpath) > 1 else f"No files found for timepoint {T}."
 
     dim_map = get_dim_map('TCZYX')
@@ -685,14 +694,15 @@ def get_cdh5_classic_segmentation(dataset_name: str, T: int, channels: list=None
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
     crops = [{d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps]
+    dim_order_string = ''.join(dim_order)
     if not as_dask:
-        img_arrays = [img.get_image_data(dim_order, **crop) for crop in crops]
+        nd_arrays = [img.get_image_data(dim_order_string, **crop) for crop in crops]
+        return nd_arrays
     else:
-        img_arrays = [img.get_image_dask_data(dim_order, **crop) for crop in crops]
+        dask_arrays = [img.get_image_dask_data(dim_order_string, **crop) for crop in crops]
+        return dask_arrays
 
-    return img_arrays
-
-def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
+def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True):
     """
     Extract the timepoint value from a string or Path.name.
     Searches for the pattern "T[0-9]+" to find the timepoint.
@@ -723,23 +733,21 @@ def extract_T(fp_as_string: str, int_only=True, use_last_match=True):
         the timepoint represented as a string including the T before.
     """
 
-    try:
-        if isinstance(fp_as_string, Path):
-            fp_as_string = str(fp_as_string)
-    except ImportError:
-        pass
+    if isinstance(fp_as_string, Path):
+        fp_as_string = str(fp_as_string)
+
     index = -1 if use_last_match else 0
     t = re.findall('T[0-9]+', fp_as_string)
     if t:
-        t = int(t[index].split('T')[-1]) 
+        t_value = int(t[index].split('T')[-1])
     else:
-        t = 0 
+        t_value = 0 
         print("""No 'T[0-9]+' found in filename. Assuming only 
               1 timepoint and assuming T = 0.""")
-        
-    return t if int_only else f'T{t}'
 
-def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype=None):
+    return t_value if int_only else f'T{t_value}'
+
+def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], images_metadata: dict, dtype: Optional[Any] = None) -> None:
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
@@ -747,7 +755,6 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype
     Parameters
     ----------
     out_path: Path
-        This is a tuple of the form (row_start, col_start, row_end, col_end).
 
     images: list
         A list of numpy arrays
@@ -799,10 +806,11 @@ def save_image_output(out_path: Path, images: list, images_metadata: dict, dtype
 
     dim_map = get_dim_map(dim_order_out)
 
-    merged_img = [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images]
-    merged_img = np.concatenate(merged_img, axis=dim_map['C']).astype(dtype)
+    merged_img = np.concatenate([
+        restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images], 
+        axis=dim_map['C']).astype(dtype)
 
-    OmeTiffWriter.save(merged_img,
+    OmeTiffWriter.save(merged_img, 
                        out_path,
                        physical_pixel_sizes=px_res,
                        dim_order=dim_order_out,

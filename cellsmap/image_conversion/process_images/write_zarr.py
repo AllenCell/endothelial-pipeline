@@ -1,7 +1,7 @@
 import numpy as np
 import dask.array as da
 # from pathlib import Path
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
@@ -17,7 +17,7 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     Returns:
     metadata: The the metadata for the dataset as a dictionary of dictionaries.
     """
-    dataset_path = io.get_original_path(dataset)
+    dataset_path = dataset_io.get_original_path(dataset)
     im = BioImage(dataset_path)
     metadata = im.metadata
     return metadata
