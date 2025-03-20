@@ -1,6 +1,6 @@
 from typing import Any, Tuple
 from bioio import BioImage
-from cellsmap.util.io import (
+from cellsmap.util.dataset_io import (
     get_original_path,
     get_specific_channel_order,
     get_number_of_positions,

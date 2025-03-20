@@ -7,6 +7,7 @@ from cellsmap.util.shape_features import numpy_mesh_coords
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation, save_image_output
 from bioio import BioImage
 from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths, get_dim_map
+from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
 
 
 ## NOTE THIS BLOCK SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
@@ -15,7 +16,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-def ipython_cli_flexecute(function: callable, return_results=False, *args, **kwargs):
+def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = False, *args: Any, **kwargs: Any) -> Any:
     """
     Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
     """
@@ -41,7 +42,7 @@ def get_chan_map(filepath: Path) -> dict:
     img = BioImage(filepath)
     return {name:index for index, name in enumerate(img.channel_names)}
 
-def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sorting_function: callable=None):
+def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension='*', sorting_function: Optional[Callable] = None):
     if isinstance(filepath, (Path, str)):
         filepath = Path(filepath)
         if filepath.is_file():
@@ -54,12 +55,19 @@ def parse_paths(filepath: str | Path | list[str | Path], file_extension='*', sor
         else:
             raise ValueError(f'UnexpectedFilePath ({filepath}) - filepath must be either a single file or folder of files.')
     if isinstance(filepath, list):
-        filepath = sorted([fp for fp in filepath], key=sorting_function)
-        filepath = [Path(fp) for fp in filepath]
+        filepath_sorted = sorted([fp for fp in filepath], key=sorting_function)
+        filepath = [Path(fp) for fp in filepath_sorted]
 
     return filepath
-
-def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | dict=None, image_buffer_prior: int=0, image_buffer_next: int=0, axis: str=None, VERBOSE=False):
+#%%
+def load_images_sequentially(
+    filepaths: Union[List[Path], Tuple[Path], Path], 
+    crops: Optional[Union[List[Dict], Dict]] = None, 
+    image_buffer_prior: int = 0, 
+    image_buffer_next: int = 0, 
+    axis: Optional[str] = None, 
+    VERBOSE: bool = False
+):
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
@@ -94,10 +102,14 @@ def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | d
     assert isinstance(crops, (list, tuple, dict)) if crops else True, 'crops must be a list of crop dictionaries or a single crop dictionary if provided'
     assert len(filepaths) == len(crops) if isinstance(filepaths, (list, tuple)) and isinstance(crops, (list, tuple)) else True, 'If lists are provided for both filepaths and crops then they must have the same length'
 
-    filepaths = list(filepaths) if isinstance(filepaths, (list, tuple)) else filepaths
+    if isinstance(filepaths, (list, tuple)):
+        filepath_list = list(filepaths)
+    if isinstance(filepaths, Path):
+        filepath = filepaths     # Chantelle got it
+    
     crops = list(crops) if isinstance(crops, (list, tuple)) else crops
 
-    axis = 'filepaths' if isinstance(filepaths, (list, tuple)) else axis or 'T'
+    axis = 'filepaths' if isinstance(filepath_list, (list, tuple)) else axis or 'T'
 
     assert axis in ['filepaths', 'T', 'C', 'Z', 'Y', 'X']
 
@@ -110,20 +122,27 @@ def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | d
                       'Z': slice(None),
                       'Y': slice(None),
                       'X': slice(None)}
-    # if a single crop dictionary is provided then turn it in to a list of the same length that
+    # if a single crop dictionary is provided then turn it into a list of the same length that
     # specified by 'axis'
     if isinstance(crops, dict):
         # This is where case 3 in the crop dictionary is handled:
         if axis == 'filepaths':
-            crops = [crops] * len(filepaths)
-        else:
-            crops = [crops.update({axis: i}) for i in range(BioImage(filepaths).dims[axis])[crops[axis]]]
+            crops = [crops] * len(filepath_list)
+        else: # axis = 'T' there is only one filepath
+            new_crops = []
+            # filepath_array = np.array(filepath)
+            for i in range(BioImage(filepath).dims[axis]): 
+                new_crop = crops.copy()
+                new_crop[axis] = i
+
+            crops = new_crops
     else:
         pass
 
     # if a list of filepaths is provided then use that, otherwise create a list of filepaths that is the same length as the number of crops
-    filepaths = filepaths if axis=='filepaths' else [filepaths] * len(crops)
-    total_image_length = len(filepaths)
+    if axis != 'filepaths': # Chantelle got lost here
+        filepath_list = [filepath] * len(crops)
+    total_image_length = len(filepath_list)
 
     ## NOTE: in the event that filepath = a single multi-T image and crops=None,
     ## the crop value at the key indicated by 'axis' will be updated later in the
@@ -131,15 +150,14 @@ def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | d
     ## The function will not load the entire image timelapse for the length of the
     ## image axis as the list of crops above implies.
 
-    assert len(filepaths) == len(crops), f'If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepaths)}, but crops has length {len(crops)}).'
+    assert len(filepath_list) == len(crops), f'If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepath_list)}, but crops has length {len(crops)}).'
 
     old_image_list = []
     loaded_images = []
     for i in range(total_image_length):
 
-        ## This should work for the case where axis == 'filepaths':
-        relative_slice = slice(max(0, i - image_buffer_prior), min(len(filepaths), i + 1 + image_buffer_next))
-        image_list = filepaths[relative_slice]
+        relative_slice = slice(max(0, i - image_buffer_prior), min(len(filepath_list), i + 1 + image_buffer_next))
+        image_list = filepath_list[relative_slice]
         # update the crop dictionary to reflect the current slice of images being loaded
         crop_list = crops[relative_slice]
         # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
@@ -150,17 +168,26 @@ def load_images_sequentially(filepaths: list[Path] | Path, crops: list[dict] | d
         old_image_list = image_list.copy()
 
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
-        loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order, **crop_list[j]) for j in new_image_relative_indices]
+        dim_order_string = ''.join(dim_order)
+        loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order_string, **crop_list[j]) for j in new_image_relative_indices] 
 
         print(f'[new images being loaded: {tuple([fp.name for fp in new_image_list])}]') if VERBOSE else None
 
-        yield filepaths[i], crops[i], loaded_images
+        yield filepath_list[i], crops[i], loaded_images
 
 ## NOTE END OF CODE BLOCK THAT SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 
+#%%
 
-
-def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False, VERBOSE=False) -> list:
+def match_labels_from_images(
+    labeled_images: List, 
+    metrics: List[Union[str, Callable]] = ['centroid'], 
+    reference_index: int = 0, 
+    metrics_thresholds: Optional[List[float]] = None, 
+    matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
+    exclude_if_any_thresholded: bool = False, 
+    VERBOSE: bool = False
+) -> Dict:
     """
     Match labels between frames based on a list of metrics.
 
@@ -259,11 +286,11 @@ def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], 
     # generate the regionprops for each image, including extra properties
     all_img_props = [regionprops(img, intensity_image=labeled_images[reference_index], extra_properties=extra_props) for img in labeled_images]
     # replace functions with their names in metrics
-    metrics = [metric.__name__ if hasattr(metric, '__call__') else metric for metric in metrics]
+    metric_names = [metric.__name__ if callable(metric) else metric for metric in metrics]
 
 
     # call the matching functions based on which metrics are used
-    if 'region_overlap' in metrics:
+    if 'region_overlap' in metric_names:
         # if metrics = 'region_overlap' then a different matching function is needed
         print('-- using region_overlap for matching labels') if VERBOSE else None
         matched_labels_dict = match_labels_from_overlaps(labeled_images, reference_index, matching_method)
@@ -272,10 +299,10 @@ def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], 
         list_of_labeled_metric_vals = []
         for img_props in all_img_props:
             # associate each label with its metrics
-            labeled_metric_vals = {prop.label: tuple([prop[metric] for metric in metrics]) for prop in img_props}
+            labeled_metric_vals = {prop.label: tuple([prop[metric] for metric in metric_names]) for prop in img_props}
             list_of_labeled_metric_vals.append(labeled_metric_vals)
         # both metrics = 'centroids' and metrics = a list of metrics are handled the same way
-        print(f'-- using {metrics} for matching labels') if VERBOSE else None
+        print(f'-- using {metric_names} for matching labels') if VERBOSE else None
         matched_labels_dict = match_labels_from_metrics(list_of_labeled_metric_vals, reference_index, metrics_thresholds, matching_method, exclude_if_any_thresholded)
 
     # add the skimage regionprops to the matched_labels_dict with the
@@ -293,12 +320,18 @@ def match_labels_from_images(labeled_images: list, metrics: list=['centroid',], 
 
 
 
-def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index: int=0, metrics_thresholds: list=None, matching_method='forward', exclude_if_any_thresholded=False) -> list:
+def match_labels_from_metrics(
+    list_of_labeled_metric_vals: List, 
+    reference_index: int = 0, 
+    metrics_thresholds: Optional[List] = None, 
+    matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
+    exclude_if_any_thresholded: bool = False,
+):
     """
     Compares the dictionary of labeled metrics at list_of_labeled_metric_vals[reference_index] to the
     dictionary of labeled metrics from each of the other indices in list_of_labeled_metric_vals and 
     matches the labels according to matching_method.
-    
+
     Parameters
     ----------
     See `lib_tracking.match_labels_from_images` for details.
@@ -329,10 +362,20 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
 
     # run some checks on the inputs first
     assert reference_index < len(list_of_labeled_metric_vals), 'reference_index must be less than the number of images in labeled_images'
-    assert all([all(map(lambda met_val: len(met_val) == len(metrics_thresholds), labeled_metrics.values())) for labeled_metrics in list_of_labeled_metric_vals]) if metrics_thresholds else True, 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
+    mesh_indexing: Literal['ij'] = 'ij' # mesh_indexing must be 'ij' for the indexing to work correctly
+    if metrics_thresholds is not None:
+        num_metric_thresholds = len(metrics_thresholds)
+        assert all([all(map(lambda met_val: len(met_val) == num_metric_thresholds, labeled_metrics.values())) for labeled_metrics in list_of_labeled_metric_vals]), 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
     assert matching_method in ['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'], 'matching_method must be one of "forward", "reverse", "to_reference", or "from_reference"'
 
-    mesh_indexing = 'ij'
+    if metrics_thresholds:
+        for labeled_metrics in list_of_labeled_metric_vals:
+            for met_val in labeled_metrics.values():
+                assert met_val is not None and len(met_val) == len(metrics_thresholds), 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
+    else:
+        assert True, 'metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired'
+
+    assert matching_method in ['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'], 'matching_method must be one of "forward", "reverse", "to_reference", or "from_reference"'
 
     if not metrics_thresholds:
         # get length of metrics and make metrics_thresholds that length
@@ -425,7 +468,7 @@ def match_labels_from_metrics(list_of_labeled_metric_vals: list, reference_index
 
     return matched_labels_dict
 
-def match_labels_from_overlaps(labeled_images: list, reference_index: int=0, matching_method='forward', overlap_minimum=None) -> list:
+def match_labels_from_overlaps(labeled_images: list[np.ndarray], reference_index: int=0, matching_method='forward', overlap_minimum=None) -> dict:
     """
     Match labels between frames based on the fraction of overlap between regions.
 
@@ -465,6 +508,9 @@ def match_labels_from_overlaps(labeled_images: list, reference_index: int=0, mat
 
         ref_labs_from_refs, query_labs_from_refs, metrics_vals_from_refs = zip(*[(prop.label, *prop['get_label_with_most_overlap'].keys(), *prop['get_label_with_most_overlap'].values()) for prop in props_ref_from_refs])
         query_labs_to_refs, ref_labs_to_refs, metrics_vals_to_refs = zip(*[(prop.label, *prop['get_label_with_most_overlap'].keys(), *prop['get_label_with_most_overlap'].values()) for prop in props_ref_to_refs])
+
+        matched_labels: Tuple[Any, Any]
+        matched_metrics: Tuple[Any, Any]
 
         match matching_method:
             case 'forward':
@@ -533,9 +579,8 @@ def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: 
     column_names = [column_name for column_name in ('T', 'track_id', *props_to_include)]
     track_ids = dict(zip(column_names, tracking_data))
 
-    track_ids = pd.DataFrame(track_ids)
-
-    return track_ids
+    df_track_ids = pd.DataFrame(track_ids)
+    return df_track_ids
 
 
 def reassign_track_ids_from_matches(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataFrame, track_id_offset: int=0, reference_index: int=0) -> pd.DataFrame:
@@ -579,7 +624,7 @@ def update_new_track_ids(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataF
     return new_track_ids
 
 
-def axial_min(arr: np.ndarray, mask: np.ndarray=None, mask_values_below: float=None, mask_values_above: float=None) -> tuple:
+def axial_min(arr: np.ndarray, mask: Optional[np.ndarray] = None, mask_values_below: Optional[float] = None, mask_values_above: Optional[float] = None) -> tuple:
     """
     Finds and returns the indices of the lowest values along the column and row axes of a 2D numpy array, 
     ignoring masked values. If all values at an index along an axis are masked then a masked value will be
@@ -614,7 +659,8 @@ def axial_min(arr: np.ndarray, mask: np.ndarray=None, mask_values_below: float=N
 
     assert arr.ndim == 2, 'arr must be a 2D numpy array'
     assert mask is None or mask.ndim == 2, 'mask must be a 2D numpy array if provided'
-    assert mask.dtype == np.dtype(bool), 'mask must be a boolean array'
+    if mask is not None:
+        assert mask.dtype == np.dtype(bool), 'mask must be a boolean array'
 
     # if mask is not provided then create one based on the mask_values_below and mask_values_above
     if not isinstance(mask, np.ndarray):
@@ -648,7 +694,7 @@ def axial_min(arr: np.ndarray, mask: np.ndarray=None, mask_values_below: float=N
     return ij_argmins, ji_argmins, reciprocal_argmin
 
 
-def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, image_metadata: dict=None, extra_channel: dict=None):
+def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, image_metadata: Optional[dict]=None, extra_channel: Optional[dict]=None):
     """
     track_labeled_image: np.ndarray
         a 2D or 3D array where each region has an integer corresponding to the track_id
@@ -669,11 +715,20 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
     extra_image, extra_name, extra_color = [extra_channel[prop] if prop in extra_image_props else [] for prop in extra_image_props] if extra_channel else [[], [], []]
     extra_color = [extra_color] or [(255,255,255)] if isinstance(extra_image, np.ndarray) else []
     extra_name = [extra_name] or ['extra_channel'] if isinstance(extra_image, np.ndarray) else []
+    
+    physical_pixel_sizes = (1, 1, 1)
+    if image_metadata is not None and 'physical_pixel_sizes' in image_metadata:
+        physical_pixel_sizes = image_metadata['physical_pixel_sizes']
+       
+    if image_metadata is None or 'image_name' not in image_metadata:
+        image_name = out_path.stem
+    else:
+        image_name = image_metadata['image_name']
 
-    images_out_metadata = {'image_name': out_path.stem if 'image_name' not in image_metadata else image_metadata['image_name'],
+    images_out_metadata = {'image_name': image_name,
                            'channel_names': ['segmentation_track_labeled', 'borders_track_labeled'] + extra_name,
                            'channel_colors': [(255,0,255), (0,255,255)] + extra_color,
-                           'physical_pixel_sizes': (1,1,1) if 'physical_pixel_sizes' not in image_metadata else image_metadata['physical_pixel_sizes'],
+                           'physical_pixel_sizes': physical_pixel_sizes,
                            'dim_order': current_dim_of_track_labeled_image,
                            }
     save_image_output(out_path=out_path,
@@ -682,7 +737,18 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
                       dtype=np.uint32)
 
 
-def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['region_overlap'], sorting_key: callable=None, C=0, extra_in_dir: Path | list[Path]=None, extra_C: int=0, img_metadata=None, SAVE_OUTPUT=True, VERBOSE=False):
+def run_tracking(
+    in_dir: Union[str, Path, List[Path], List[str]], 
+    out_dir: Path, 
+    tracking_metrics: List[str] = ['region_overlap'], 
+    sorting_key: Optional[Callable[[Any], int]] = None, 
+    C: int = 0, 
+    extra_in_dir: Optional[Union[Path, List[Path]]] = None, 
+    extra_C: int = 0, 
+    img_metadata: Optional[Any] = None, 
+    SAVE_OUTPUT: bool = True, 
+    VERBOSE: bool = False
+):
     """
     in_dir_extra is supposed to be a folder or list of filepaths to the raw images that can be
     added to the output track-labeled images as an extra channel.
@@ -706,7 +772,10 @@ def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['re
         assert isinstance(fps, (list, Path, str)) or fps==None, 'in_dir, out_dir must be Path-like or a list of Paths'
     assert isinstance(extra_in_dir, (list, Path, str)) or extra_in_dir==None, 'extra_in_dir must be Path-like or a list of Paths'
 
-    sorting_function = lambda x: sorting_key(x.name) if sorting_key else None
+    if sorting_key is None:
+        sorting_function = None
+    else: 
+        sorting_function = lambda x: sorting_key(x.name)
 
     image_filepaths_to_track = parse_paths(in_dir, file_extension='.tif?', sorting_function=sorting_function)
     extra_image_filepaths_to_overlay = parse_paths(extra_in_dir, file_extension='.tif?', sorting_function=sorting_function) if extra_in_dir else []
@@ -728,7 +797,7 @@ def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['re
                                         'X': slice(None)}}
                               for timeframe in T_range}
         else:
-            T_range = {sorting_function(fp): fp for fp in filepath} if sorting_key else {i: fp for i, fp in enumerate(filepath)}
+            T_range_dict = {sorting_function(fp): fp for fp in filepath} if sorting_function else {i: fp for i, fp in enumerate(filepath)}
             img_queue[key] = {timeframe:
                               {'path': fp,
                                'crop': {'T': slice(None),
@@ -736,17 +805,17 @@ def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['re
                                         'Z': slice(None),
                                         'Y': slice(None),
                                         'X': slice(None)}}
-                              for timeframe, fp in T_range.items()}
+                              for timeframe, fp in T_range_dict.items()}
 
     # couple the image_filepaths_to_track with the extra_image_filepaths_to_overlay
     # if extra_image_filepaths_to_overlay was provided
-    img_queue = [(t,
-                  img_queue['images_to_track'][t]['path'],
-                  img_queue['images_to_track'][t]['crop'],
-                  img_queue['images_for_overlay'][t]['path'] if t in img_queue['images_for_overlay'] else None,
-                  img_queue['images_for_overlay'][t]['crop'] if t in img_queue['images_for_overlay'] else None)
-                 for t in sorted(img_queue['images_to_track'])]
-    timeframes, img_fps_for_tracking, crops_for_tracking, img_fps_for_overlay, crops_for_overlay = zip(*img_queue)
+    img_queue_list = [(t,
+                       img_queue['images_to_track'][t]['path'],
+                       img_queue['images_to_track'][t]['crop'],
+                       img_queue['images_for_overlay'][t]['path'] if t in img_queue['images_for_overlay'] else None,
+                       img_queue['images_for_overlay'][t]['crop'] if t in img_queue['images_for_overlay'] else None)
+                       for t in sorted(img_queue['images_to_track'])]
+    timeframes, img_fps_for_tracking, crops_for_tracking, img_fps_for_overlay, crops_for_overlay = zip(*img_queue_list)
 
     print(f'Generating tracks...') if VERBOSE else None
     results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, initial_T_offset=timeframes[0], image_buffer_prior=0, image_buffer_next=2, VERBOSE=VERBOSE)
@@ -756,8 +825,8 @@ def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['re
         for idx, input_image_filepath, track_labeled_image, track_table in results:
             images_out_dir = out_dir / 'tracked_images'
             tables_out_dir = out_dir / 'tracked_tables'
-            [out.mkdir(parents=True, exist_ok=True) for out in (images_out_dir, tables_out_dir)]
-
+            for out in (images_out_dir, tables_out_dir):
+                out.mkdir(parents=True, exist_ok=True)
             # the line below uses the T position from the crop if it exists (i.e. if a
             # timelapse was provided), otherwise it uses the name of the input file, which
             # is restricted above to be a single file from a folder of images.
@@ -774,10 +843,11 @@ def run_tracking(in_dir: Path | list[Path], out_dir: Path, tracking_metrics=['re
             if extra_in_dir:
                 if overlay_path and overlay_crop:
                     raw_image = BioImage(overlay_path)
-                    raw_image = raw_image.get_image_dask_data('TCZYX', T=range(raw_image.dims.T)[overlay_crop['T']], C=range(raw_image.dims.C)[overlay_crop['C']]).compute().squeeze()
+                    raw_image_daskarr = raw_image.get_image_dask_data('TCZYX', T=range(raw_image.dims.T)[overlay_crop['T']], C=range(raw_image.dims.C)[overlay_crop['C']]).compute().squeeze()
+                    raw_channel = {'image': raw_image_daskarr, 'name': 'raw_image', 'color': (255,255,255)}
                 else:
-                    raw_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
-                raw_channel = {'image': raw_image, 'name': 'raw_image', 'color': (255,255,255)}
+                    blank_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
+                    raw_channel = {'image': blank_image, 'name': 'raw_image', 'color': (255,255,255)}
             else:
                 raw_channel = None
 

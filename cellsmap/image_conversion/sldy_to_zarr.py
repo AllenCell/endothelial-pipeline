@@ -1,19 +1,12 @@
 # %%
 import argparse
-from cellsmap.util.io import (
-    get_number_of_positions,
-    get_time_interval_in_minutes,
-    get_barcode,
-    get_microscope,
-)
-from cellsmap.image_conversion.process_images.process_sldy import (
-    get_delayed_array_for_position,
-)
+from cellsmap.util.dataset_io import get_number_of_positions, get_time_interval_in_minutes
+from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
     get_sldy_pixel_sizes,
 )
-from cellsmap.util.io import get_original_path
+from cellsmap.util.dataset_io import get_original_path
 from bioio import BioImage
 import bioio_sldy, bioio_nd2
 from pathlib import Path
