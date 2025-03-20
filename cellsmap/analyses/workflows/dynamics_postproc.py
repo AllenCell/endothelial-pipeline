@@ -5,9 +5,9 @@ import pysindy as ps
 import numdifftools as nd
 
 from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca, regression_main
-
+from cellsmap.analyses.utils import regression_helper as rh
 # import config parameters
-from cellsmap.analyses.configs.dynamics_postproc_config import savedir, PCs, ds_to_skip, ndim, Nbins
+from cellsmap.analyses.configs.dynamics_postproc_config import savedir, PCs, ds_to_skip, Nbins
 
 # %%
 # make save directory for workflow outputs
@@ -27,5 +27,8 @@ manifest_viz.save_plot(fig,filename=savedir+'figs/explained_variance_ratio',form
 # plot top 3 principal components of feature data vs. frame number
 fig, axs = manifest_viz.plot_top_3_PCs_alldata(df,pca)
 manifest_viz.save_plot(fig,filename=savedir+'figs/top_3_PCs',format='.png',dpi=500)
+
+# %%
+X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, ds_to_skip)
 
 # %%
