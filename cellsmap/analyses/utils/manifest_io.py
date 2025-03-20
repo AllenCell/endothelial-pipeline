@@ -74,7 +74,7 @@ def load_manifest_to_df() -> pd.DataFrame:
 
     return df
 
-def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
+def add_metadata_from_path(df:pd.DataFrame,verbose:bool=True) -> pd.DataFrame:
     '''Add metadata columns to DataFrame df of single-crop features:
         - name of dataset
         - FOV 
@@ -89,6 +89,12 @@ def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
     # dataset_name value in df to match the name int data_config.yaml
     # something that should be fixed in the manifest in the future
     df.loc[df.dataset_name.str.contains('20250224'),'dataset_name'] = '20250224_20X'
+
+    # drop filename_or_obj column
+    df.drop(columns=['filename_or_obj'],inplace=True)
+
+    if verbose:
+        _ = get_list_of_datasets(df,verbose=True)
 
     return df
 

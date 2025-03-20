@@ -4,9 +4,7 @@ import pandas as pd
 import pysindy as ps
 import numdifftools as nd
 
-import cellsmap.analyses.utils.gen_potential as gp
-import cellsmap.analyses.utils.regression_helper as eareg
-from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca
+from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca, regression_main
 
 # import config parameters
 from cellsmap.analyses.configs.dynamics_postproc_config import savedir, PCs, ds_to_skip, ndim, Nbins

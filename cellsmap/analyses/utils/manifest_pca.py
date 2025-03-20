@@ -37,7 +37,7 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
     df.loc[df.dataset_name.str.contains('20241217') & (df['T'] >300) & (df['T'] < 420), 'pca_ref'] = True
     return df[df.pca_ref]
 
-def fit_pca(data: pd.DataFrame, num_pcs: int, scale = True) -> Pipeline:
+def fit_pca(data: pd.DataFrame, num_pcs: int, scale:bool = True, verbose:bool=True) -> Pipeline:
     """
     Helper function for fitting PCA pipeline. NOTE that this is 
         - based off of the current format of processing the movies (i.e. based on lots of .npy arrays) and must be updated when we move to zarrs
@@ -82,6 +82,7 @@ def fit_pca(data: pd.DataFrame, num_pcs: int, scale = True) -> Pipeline:
         ])
     pipe.fit(data_ref[feature_cols].values)
 
-    print(f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}')
+    if verbose:
+        print(f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}')
 
     return data, pipe
