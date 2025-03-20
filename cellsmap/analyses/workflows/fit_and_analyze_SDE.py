@@ -238,7 +238,7 @@ diffModel.fit(X_train,t=5,x_dot=V_train,u=u_train)
 diff_R2 = diffModel.score(X_test,x_dot=V_test,u=u_test)
 diffModel.print()
 
-print('Coefficient of determination (R^2) for model of diffusion term: %f' %drift_R2)
+print('Coefficient of determination (R^2) for model of diffusion term: %f' %diff_R2)
 # %%
 # evaluate model: pplane (stability analysis) and compare stationary probability distributions (data v model prediction) across datasets
 myModel = [driftModel,diffModel]
