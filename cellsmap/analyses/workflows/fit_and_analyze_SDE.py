@@ -244,12 +244,12 @@ print('Coefficient of determination (R^2) for model of diffusion term: %f' %diff
 myModel = [driftModel,diffModel]
 
 # specification of plot limits for phase plane plots and bins for histogram plots
-pplane_xlim = [-3,4]
-bin_xlim = [-4,5]
+pplane_xlim = [-4,4]
+bin_xlim = [-5,5]
 
 if PCs[1] == 1:
-    pplane_ylim = [-3.5,1.5]
-    bin_ylim = [-4,2.5]
+    pplane_ylim = [-3.5,2.5]
+    bin_ylim = [-4,3]
 else:
     pplane_ylim = [-1,6]
     bin_ylim = [-2.5,8]
@@ -376,12 +376,12 @@ for j in range(ndim):
 fig, ax = viz.init_plot()
 u_stable = np.array(u_stable)
 fpt_stable = np.array(fpt_stable)
-cax = ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
+im = ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
             c=u_stable[1:-7],cmap='bwr',edgecolors='k')
 
 ax.set_xlabel('PC'+str(PCs[0]+1))
 ax.set_ylabel('PC'+str(PCs[1]+1))
-fig.colorbar(label='dyn/cm$^2$', ax = cax)
+fig.colorbar(im, ax= ax, label='dyn/cm$^2$')
 ax.set_title('Stable fixed points by shear stress')
 
 
