@@ -120,6 +120,14 @@ def get_original_path(dataset_name: str) -> Path:
     dataset_info = get_dataset_info(dataset_name)
     return Path(dataset_info['original_path'])
 
+def get_barcode(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['barcode']
+
+def get_microscope(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['microscope']
+
 # model methods
 
 def get_available_models():
@@ -143,67 +151,3 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
-
-# dynamics learning config functions
-
-def get_available_dynamics_configs():
-    config = load_config('dynamics')
-    for inputs in config:
-        print(inputs['name'])
-
-def get_dynamics_inputs(config_name: str) -> tuple:
-    '''Unpack the dynamics config file to get the necessary inputs for the dynamics learning pipeline (analyses/workflows/fit_SDE_model.py).'''
-    dynamics_config = None
-
-    # load the specific dict for the config_name
-    for config in load_config('dynamics'):
-        if config['name'] == config_name:
-            dynamics_config = config
-            break
-    
-    if dynamics_config is None:
-        raise ValueError(f"Configuration with name '{config_name}' not found.")
-        
-    dt = dynamics_config['dt'] # time interval between frames (units depend on the data & the selected value)
-
-    PCA = dynamics_config['PCA'] # if "yes", perform PCA on data before fitting dynamical model
-    ndim = dynamics_config['ndim'] # number of principal components to keep if PCA is "yes"
-    if PCA == 'yes':
-        feats_to_analyze = None
-        PCA = True
-    else: # if PCA is "no", feats_to_analyze is a list of which of the original features to analyze (max 2 features)
-        feats_to_analyze = dynamics_config['feats_to_analyze']
-        PCA = False
-
-    center_traj = True if dynamics_config['center_traj']=='yes' else False # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
-    
-    split_flow = dynamics_config['split_flow'] # if "yes", the data is split into high and low flow regimes before fitting dynamical model
-    if split_flow == 'yes':
-        split_flow = True
-        split_frame = dynamics_config['split_frame'] # frame(s) # at which to split the data into the flow regimes listed below in split_order
-        split_order = dynamics_config['split_order'] # temporal order of the flow regimes (list of strings)
-    else:
-        split_flow = False
-        split_frame = None
-        split_order = None
-
-    metadata_cols = dynamics_config['metadata_cols'] # list of names of metadata columns in the data (first is trajectory index, second is frame #)
-
-    N = dynamics_config['N_bins'] # number of grid points in each dimension (int if 1D, tuple if 2D)
-    auto_bin = dynamics_config['auto_bin'] # if "yes", automatically determine the number of bins for each dimension
-    auto_bin = True if auto_bin == 'yes' else False
-    bin_limits = dynamics_config['bin_limits'] # limits of the grid in each dimension (None if auto_bin True, else list of tuples)
-
-    nf = dynamics_config['poly_degree_drift'] # highest order of the polynomial terms in SINDy library for drift (int)
-    ns = dynamics_config['poly_degree_diffusion'] # highest order of the polynomial terms in SINDy library for diffusion (int)
-
-    savedir = dynamics_config['savedir'] # directory where model outputs will be saved
-
-    logging = dynamics_config['logging'] # if "yes", log results to a file
-    if logging == 'yes':
-        log_file = savedir+'logs/langevin_regression_log.txt'
-    else:
-        log_file = None
-
-    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file
-
