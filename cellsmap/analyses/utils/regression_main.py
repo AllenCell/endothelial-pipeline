@@ -56,7 +56,12 @@ def build_kramers_moyal_train_test(df:pd.DataFrame, pca:Pipeline, PCs:list, Nbin
     u_train = np.concatenate(u_train_list)
     u_test = np.concatenate(u_test_list)
 
-    return X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test
+    out_dict = {'X_train':X_train, 'X_test':X_test, 
+                'Y_train':Y_train, 'Y_test':Y_test, 
+                'V_train':V_train, 'V_test':V_test, 
+                'u_train':u_train, 'u_test':u_test}
+
+    return out_dict
 
 def kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, train_frac):
     # for extracting just the axes (specified via PCs) we want from the resulting dataframe
