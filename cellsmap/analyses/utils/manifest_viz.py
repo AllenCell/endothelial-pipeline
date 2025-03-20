@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 from scipy.stats import wasserstein_distance_nd as emd
 
-from cellsmap.analyses.utils import manifest_io
+import cellsmap.analyses.utils.manifest_io as mio
 
 global plt_params
 
@@ -118,21 +118,22 @@ def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax=None) -> None:
         ax_.set_xlabel('Frame number')
     return fig, ax
 
-def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:PCA,list_of_datasets:list,title_dict:dict) -> None:
+def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> None:
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
+    list_of_datasets = mio.get_list_of_datasets(df)
+    title_dict = mio.get_descriptive_metadata(df)
     n_ = len(list_of_datasets)
     fig = plt.figure(figsize=(15,5*n_),constrained_layout=True)
 
     subfigs = fig.subfigures(nrows=n_, ncols=1)
 
     for row, subfig in enumerate(subfigs):
-        my_mv = list_of_datasets[row] # get the dataset 'group' identifier
-        mv_name = manifest_io.get_dataset_name(my_mv) # get the dataset name (shortened from group identifier)
-        df_proj = manifest_io.project_PCA_one_dataset(df,pca,'group',my_mv) # project the dataset onto the PCA space
+        ds_name = list_of_datasets[row] # get the dataset name
+        df_proj = mio.project_PCA_one_dataset(df,pca,ds_name) # project the dataset onto the PCA space
         PCs = [str(i) for i in range(3)]
-        feats_proj = manifest_io.df_to_array(df_proj,PCs) # get the feature data projected onto the top 3 PCs
+        feats_proj = mio.df_to_array(df_proj,PCs) # get the feature data projected onto the top 3 PCs
 
-        subfig.suptitle(title_dict[mv_name],fontsize=26)
+        subfig.suptitle(title_dict[ds_name],fontsize=26) # title of subfig: description of dataset by flow conditions
 
         # create 1x3 subplots per subfig
         axs = subfig.subplots(nrows=1, ncols=3)
@@ -141,8 +142,7 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:PCA,list_of_datasets:list,title_d
     
     return fig, axs
 
-
-def plot_PCA_projection(feats_proj:np.ndarray,fig_title:str=None,fig_ax:tuple=None) -> None:
+def plot_PCA_projection_2D(feats_proj:np.ndarray,fig_title:str=None,fig_ax:tuple=None) -> None:
     '''Plot mean values of PCA projection of feature data of one dataset.'''
     if fig_ax is not None:
         fig, ax = fig_ax

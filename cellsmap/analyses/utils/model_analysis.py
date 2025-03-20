@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 import cellsmap.analyses.utils.pplane as pplane
 import cellsmap.analyses.utils.model_eval as model_eval
-import cellsmap.analyses.utils.regression as eareg
+import cellsmap.analyses.utils.regression_helper as eareg
 import cellsmap.analyses.utils.manifest_viz as eaviz
 
 def run_model_analysis_1D(model, data, bins, centers, u, args={}):

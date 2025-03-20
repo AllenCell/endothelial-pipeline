@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 import os
 from pathlib import Path
 
 from cellsmap.util import dataset_io
+from cellsmap.analyses.utils.manifest_pca import get_outliers
 
 def make_savedir(savedir:str='',subfolders:bool=True) -> None:
     '''Create directory savedir if it does not exist and/or subfolders
@@ -37,6 +39,16 @@ def load_manifest_to_df() -> pd.DataFrame:
     Right now, this is hard-coded to load the manifest files for specific
     datasets. This will be updated in the future once we standardize the
     data handoff process.
+
+    Also adds necessary metadata columns to DataFrame:
+        - dataset_name: name of dataset crop is from
+        - T: timepoint of crop
+        - FOV_ID: FOV of crop
+        - description: descriptive metadata for dataset (flow conditions)
+        - outlier: boolean indicator for outlier crops (bubble detection)
+    
+    Returns:
+        - df (pd.DataFrame): DataFrame of feature data with metadata columns
     '''
     # manifest files for most (older) datasets
     path_to_data_multi = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
@@ -49,23 +61,47 @@ def load_manifest_to_df() -> pd.DataFrame:
     df_0224 = load_df(path_to_20250224)
 
     df = pd.concat([df,df_1217,df_0224],ignore_index=True)
+
+    # add metadata columns for dataset, FOV, and timepoint
+    df = add_metadata_from_path(df)
+
+    # add descriptive metadata for each dataset (flow conditions for each dataset)
+    description_dic = get_descriptive_metadata(df)
+    df = add_descriptive_metadata(df,description_dic)
+
+    # add outlier indicator column to DataFrame
+    df = get_outliers(df)
+
     return df
 
 def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
-    '''Add metadata columns to DataFrame df.'''
-    df['group'] = df.filename_or_obj.apply(lambda s: Path(s).parent.parent.stem)
+    '''Add metadata columns to DataFrame df of single-crop features:
+        - name of dataset
+        - FOV 
+        - timepoint
+    from which the crop was taken.
+    '''
+    df['dataset_name'] = df.filename_or_obj.apply(lambda s: get_dataset_name(Path(s).parent.parent.stem))
     df['T'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])//6)
     df['FOV_ID'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])%6)
+
+    # filepath for this dataset in manifest includes barcode, so we need to change the 
+    # dataset_name value in df to match the name int data_config.yaml
+    # something that should be fixed in the manifest in the future
+    df.loc[df.dataset_name.str.contains('20250224'),'dataset_name'] = '20250224_20X'
+
     return df
 
-def get_descriptive_metadata(list_of_datasets) -> dict:
+def get_descriptive_metadata(df:pd.DataFrame) -> dict:
     '''Get descriptive metadata for each dataset in list_of_datasets.
     Describes the experimental conditions for each dataset, 
     e.g., "48H low flow (date)".'''
+    if 'dataset_name' not in df.columns:
+        raise ValueError('Data must have a column for dataset_name')
+    list_of_datasets = get_list_of_datasets(df)
     description_dic = {}
-    for mv in list_of_datasets:
-        mv_name = get_dataset_name(mv) # datasets are labeled by group in manifest, but by name (shortened from group) in data config
-        data_config = dataset_io.get_dataset_info(mv_name) # get dataset info from data_config.yaml via dataset_io
+    for mv_name in list_of_datasets:
+        data_config = dataset_io.get_dataset_info(mv_name) # get dataset info from data_config.yaml
         flow_config = data_config['flow'] # get flow conditions for dataset
         num_flows = len(flow_config) # number of flow conditions in dataset
         shear_rate = [flow_config[i][-1] for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
@@ -77,9 +113,9 @@ def get_descriptive_metadata(list_of_datasets) -> dict:
 
 def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict) -> pd.DataFrame:
     '''Add metadata columns to DataFrame df.'''
-    # if key in description_dic is in group column, add description to description column
+    # if key in description_dic is in dataset_name column, add description to description column
     for key in description_dic.keys():
-        df.loc[df['group'].str.contains(key),'description'] = description_dic[key]
+        df.loc[df['dataset_name'].str.contains(key),'description'] = description_dic[key]
     return df
 
 def get_dataset_name(ds_path:str,path_prefix:str=None,file_ext:str='.ome.zarr') -> str:
@@ -94,9 +130,11 @@ def get_dataset_name(ds_path:str,path_prefix:str=None,file_ext:str='.ome.zarr') 
         dataset_name = dataset_name.replace('_timelapse','')
     return dataset_name
 
-def get_list_of_datasets(df:pd.DataFrame,ds_metadata:str,verbose:bool=False,print_path:bool=False) -> list:
+def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=False) -> list:
     '''Get list of unique datasets from metadata column in DataFrame df.'''
-    mylist = np.unique(df[ds_metadata].values).tolist()
+    if 'dataset_name' not in df.columns:
+        raise ValueError('Data must have a column for dataset_name')
+    mylist = np.unique(df['dataset_name'].values).tolist()
     if verbose:
         print(f'List of datasets represented in feature data: ')
         for ds in mylist:
@@ -104,17 +142,17 @@ def get_list_of_datasets(df:pd.DataFrame,ds_metadata:str,verbose:bool=False,prin
                 print(ds)
             else:
                 print(get_dataset_name(ds))
-    return np.unique(df[ds_metadata].values).tolist()
+    return np.unique(df['dataset_name'].values).tolist()
 
-def get_one_dataset(df:pd.DataFrame,ds_metadata:str,ds_identifier:str) -> pd.DataFrame:
-    '''Get DataFrame corresponding to one dataset, identified by 
-    df[ds_metadata] == ds_identifier in DataFrame df.'''
-    return df[df[ds_metadata] == ds_identifier].copy()
+def get_one_dataset(df:pd.DataFrame,ds_name:str) -> pd.DataFrame:
+    '''Get DataFrame corresponding to dataset named ds_name only,
+    as identitified by the dataset_name column.'''
+    if 'dataset_name' not in df.columns:
+        raise ValueError('Data must have a column for dataset_name')
+    return df[df['dataset_name'] == ds_name].copy()
 
 def get_flow_change_frame(ds_name:str) -> int:
     '''Get frame number at which flow changes in dataset ds_name.'''
-    if 'SLDY' or 'timelapse' in ds_name: # passed in last part of file path, i.e., 'group' column
-        ds_name = get_dataset_name(ds_name)
     data_config = dataset_io.get_dataset_info(ds_name)
     change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
     return change_frame
@@ -133,23 +171,9 @@ def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
                                                        x['FOV_ID']),axis=1)
     return df
 
-def get_PCA(df:pd.DataFrame,n_components:int=None) -> PCA:
-    '''Get PCA of feature array (scaled or not) X.
-    Default is to return all components, unless n_components
-    is specified. Returns singular values, explained variance
-    ratio, and principal components.
-    '''
-    if n_components is not None:
-        pca = PCA(n_components=n_components,svd_solver='full')
-    else:
-        pca = PCA(n_components=df.shape[1],svd_solver='full')
-    pca.fit(df)
-
-    return pca
-
-def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,feat_cols:list=[str(i) for i in range(8)]) -> pd.DataFrame:
-    '''Project feature data of one dataset onto PCA components.'''
-    df_ = add_crop_index(get_one_dataset(df,ds_metadata,ds_ID))
+def project_PCA_one_dataset(df:pd.DataFrame,pca:Pipeline,ds_name:str,feat_cols:list=[str(i) for i in range(8)]) -> pd.DataFrame:
+    '''Project feature data of crops from one dataset onto principal component axes.'''
+    df_ = add_crop_index(get_one_dataset(df,ds_name))
     df_.loc[:,feat_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
