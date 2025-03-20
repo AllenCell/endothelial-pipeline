@@ -1,98 +1,10 @@
 import numpy as np
-import cellsmap.util.dataset_io as dio
-import cellsmap.analyses.utils.manifest_io as mio
 from sklearn.model_selection import train_test_split
 import pandas as pd
+from typing import Tuple
 
-def get_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,PCs:list=[0,1],verbose:bool=True) -> None:
-    if 'outlier' in df_proj.columns:
-        df_proj = df_proj[df_proj['outlier']==False] # remove outliers
-
-    num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
-
-    data_config = dio.get_dataset_info(mv_name)
-    first_flow = float(data_config['flow'][0][-1])
-
-    PC_cols = [str(i) for i in PCs]
-    # get array of num crops x num timepoints x num PCs
-    feats_proj = mio.df_to_array(df_proj,PC_cols)
-    # get array of timepoints present for each crop
-    time_points = df_proj['T'].unique()
-
-    flow_list = [first_flow]
-    if len(data_config['flow']) > 1:
-        change_frame = mio.get_flow_change_frame(mv_name) # change from time in hours to frame number
-        second_flow = float(data_config['flow'][1][-1])
-        if verbose:
-            if first_flow > second_flow:
-                print('High flow until frame',change_frame)
-                print('Low flow after frame',change_frame)
-            else:
-                print('Low flow until frame',change_frame)
-                print('High flow after frame',change_frame)
-        data_flow1 = [feats_proj[:,:change_frame,:][:,:,PCs][i] for i in range(num_crop)]
-        data_flow2 = [feats_proj[:,change_frame:,:][:,:,PCs][i] for i in range(num_crop)]
-        data_all = [data_flow1,data_flow2]
-        flow_list.append(second_flow)
-    else:
-        if verbose:
-            print('Constant flow')
-        data_all = [[feats_proj[:,:,PCs][i] for i in range(num_crop)]]
-    return data_all, flow_list
-
-def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,feat_cols:list=[str(i) for i in range(8)],verbose:bool=True) -> None:
-    num_T = df_proj['T'].nunique() # number of timepoints in the movie
-    num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
-
-    data_config = dio.get_dataset_info(mv_name)
-    first_flow = float(data_config['flow'][0][-1])
-
-    flow_list = [first_flow]
-
-    if 0 in flow_list: # select only these time points at no flow
-        T_range = [300,420]
-    else:
-        T_range = [0,num_T-1]
-
-    if len(data_config['flow']) > 1:
-        change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
-        second_flow = float(data_config['flow'][1][-1])
-
-        traj_flow1 = []
-        traj_flow2 = []
-        # This part is taking a long time to run
-        # how to speed up?
-        for ii in range(num_crop):
-            df_crop_ = df_proj[df_proj['crop_index']==ii].sort_values(by='T')
-            for jj in range(0,change_frame-1):
-                df_traj_ = df_crop_[df_crop_['T'].isin([jj,jj+1])]
-                if np.any(df_traj_['outlier']):
-                    continue
-                else:
-                    traj_flow1.append(df_traj_[feat_cols].values)
-            for jj in range(change_frame,num_T-1):
-                df_traj_ = df_crop_[df_crop_['T'].isin([jj,jj+1])]
-                if np.any(df_traj_['outlier']):
-                    continue
-                else:
-                    traj_flow2.append(df_traj_[feat_cols].values)
-
-        two_point_traj = [traj_flow1,traj_flow2]
-        flow_list.append(second_flow)
-    else:
-        if verbose:
-            print('Constant flow')
-        two_point_traj = []
-        for ii in range(num_crop):
-            df_crop_ = df_proj[df_proj['crop_index']==ii].sort_values(by='T')
-            for jj in range(T_range[0],T_range[1]):
-                df_traj_ = df_crop_[df_crop_['T'].isin([jj,jj+1])]
-                if np.any(df_traj_['outlier']):
-                    continue
-                else:
-                    two_point_traj.append(df_traj_[feat_cols].values)
-        two_point_traj = [two_point_traj]
-    return two_point_traj, flow_list
+import cellsmap.util.dataset_io as dio
+import cellsmap.analyses.utils.manifest_io as mio
 
 def get_bins(Nbins,data=None,bin_limits=None):
     '''Generate histogram bins for the data.'''
@@ -120,28 +32,81 @@ def get_bins(Nbins,data=None,bin_limits=None):
             centers.append(0.5*(my_bins[1:]+my_bins[:-1]))
     return bins, centers
 
-def KM_avg_ND(X,bins,dt,threshold=None):
+def get_X_by_flow(df_proj:pd.DataFrame,ds_name:str,verbose:bool=True) -> Tuple[list,list]:
+    '''Get feature data for different flow conditions in dataset ds_name.
+    Returns list of feature data (dataframes) and list of corresponding flow conditions.'''
+
+    if 'outlier' in df_proj.columns:
+        df_proj = df_proj[df_proj['outlier']==False] # remove outliers
+
+    data_config = dio.get_dataset_info(ds_name)
+    first_shear = float(data_config['flow'][0][-1])
+
+    shear_list = [first_shear]
+    if len(data_config['flow']) > 1:
+        change_frame = mio.get_flow_change_frame(ds_name) # change from time in hours to frame number
+        second_shear = float(data_config['flow'][1][-1])
+        if verbose:
+            print('Shear stress',first_shear,'dyn/cm^2 until frame',change_frame)
+            print('Shear stress',second_shear,'dyn/cm^2 after frame',change_frame)
+        data_flow1 = df_proj[df_proj['T']<change_frame].copy()
+        data_flow2 = df_proj[df_proj['T']>=change_frame].copy()
+        data_all = [data_flow1,data_flow2]
+        shear_list.append(second_shear)
+    else:
+        if verbose:
+            print('Constant shear stress')
+        data_all = [df_proj.copy()]
+    return data_all, shear_list
+
+def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
+    '''X is a pandas DataFrame with columns for each feature. Should have a column for time, a column
+    for the crop index, and a column indicating an outlier point. Returns tuple of lists, 
+    each a list of numpy arrays.'''
+    if 'outlier' not in X.columns:
+        raise ValueError('Data must have a column for outlier')
+    if 'T' not in X.columns:
+        raise ValueError('Data must have a column for time')
+    if 'crop_index' not in X.columns:
+        raise ValueError('Data must have a column for crop_index')
+    
+    X = X[X['outlier']==False] # remove outliers
+    crop_list = X['crop_index'].unique()
+    X_list = []
+    dX_list = []
+    dT_list = []
+    for crop in crop_list:
+        X_crop = X[X['crop_index']==crop].sort_values(by='T')
+        num_T = X_crop['T'].nunique()
+        assert X_crop[feat_cols].values.shape == (num_T,len(feat_cols))
+        dX = np.diff(X_crop[feat_cols].values,axis=1)
+        dT = np.diff(X_crop['T'].values)
+        X_list.append(X_crop[feat_cols].values)
+        dX_list.append(dX)
+        dT_list.append(dT)
+    return X_list, dX_list, dT_list
+
+
+def KM_avg_ND(X_list,dX_list,dT_list,bins,dt=5):
     '''Kramers-Moyal average drift and diffusion estimates for N-dimensional data'''
     ndim = len(bins)
-    n = len(X) # number of trajectories
+    n = len(X_list) # number of trajectories from which dX was computed
     my_list = [len(bins[i])-1 for i in range(ndim)]
     my_list = my_list + [ndim,n]
     f_KM = np.nan*np.ones(my_list)
-    a_KM = np.nan*np.ones(f_KM.shape)
+    D_KM = np.nan*np.ones(f_KM.shape)
     f_err = np.nan*np.ones(f_KM.shape)
     a_err = np.nan*np.ones(f_KM.shape)
-    #inTrajVariation = False  # for computing the standard deviation of the drift and diffusion estimates - averaging over trajectories but also when a trajectory passes through the same bin multiple times
-    for (j,traj) in enumerate(X):
-        dX = (traj[1:] - traj[:-1])/dt # Step (like a finite-difference derivative estimate)
-        dX2 = (traj[1:] - traj[:-1])**2/dt
+    for (j,X) in enumerate(X_list):
+        dX = dX_list[j]
+        dT = dT_list[j]
+        mask = np.where(dT==1)[0] # where outlier points were removed, time difference was greater than 1, mask out these points
+        X = X[mask]
+        dXdt = dX[mask]/dt # displacement divided by time step to get velocity (for fitting drift)
+        dX2dt = dX**2/dt # squared displacement divided by time step (for fitting diffusion)
 
-        if threshold is not None: # Mask out large jumps
-            mask = np.where(np.linalg.norm(dX,axis=-1) > threshold)[0]
-            dX[mask] = np.nan
-            dX2[mask] = np.nan
-
-        id_list = [np.digitize(traj[:-1,i],bins[i]) for i in range(ndim)]
-        uids = list(set(zip(*id_list))) # unique bin ids
+        id_list = [np.digitize(X[:-1,i],bins[i]) for i in range(ndim)] # which bin each data point falls into (by each dimension)
+        uids = list(set(zip(*id_list))) # unique bin ids (zipped tuple of bin ids by dimension)
         if any([len(bins[i]) in id_list[i] for i in range(ndim)]):
             raise ValueError('Data point outside of histogram bins. Please update bounds.')
 
@@ -149,20 +114,20 @@ def KM_avg_ND(X,bins,dt,threshold=None):
             my_cond = 1
             for i in range(ndim):
                 my_cond = my_cond*(id_list[i]==uid[i])
-            mask = np.where(my_cond)[0]
+            bin_mask = np.where(my_cond)[0]
             # At each histogram bin, find time series points where the state falls into this bin
             slices = [uid[i]-1 for i in range(ndim)]
-            f_KM[tuple(slices)][:,j] = np.mean(dX[mask],axis=0) # Conditional average  ~ drift
-            a_KM[tuple(slices)][:,j] = 0.5*np.mean(dX2[mask],axis=0) # Conditional variance  ~ diffusion
+            f_KM[tuple(slices)][:,j] = np.mean(dXdt[bin_mask],axis=0) # Conditional average  ~ drift
+            D_KM[tuple(slices)][:,j] = 0.5*np.mean(dX2dt[bin_mask],axis=0) # Conditional variance  ~ diffusion
 
             # Estimate error by variance of samples in the bin
-            if len(mask) > 1:
-                #inTrajVariation = True
-                f_err[tuple(slices)][:,j] = np.nanstd(dX[mask],axis=0)/np.sqrt(len(mask))
-                a_err[tuple(slices)][:,j] = np.nanstd(dX2[mask],axis=0)/np.sqrt(len(mask))
+            if len(bin_mask) > 1: # if trajectory passes through bin more than once
+                f_err[tuple(slices)][:,j] = np.nanstd(dXdt[bin_mask],axis=0)/np.sqrt(len(mask))
+                a_err[tuple(slices)][:,j] = np.nanstd(dX2dt[bin_mask],axis=0)/np.sqrt(len(mask))
 
+    # take average over all trajectories to get Kramers-Moyal drift and diffusion estimates
     f_KM_avg = np.nanmean(f_KM,axis=-1)
-    a_KM_avg = np.nanmean(a_KM,axis=-1)
+    D_KM_avg = np.nanmean(D_KM,axis=-1)
     # think about how to generalize standard deviation computation to short traj vs. long traj
     f_err_mean = np.nanmean(f_err,axis=-1)
     f_err_mean = np.nan_to_num(f_err_mean,nan=1e10)
@@ -170,13 +135,13 @@ def KM_avg_ND(X,bins,dt,threshold=None):
     f_KM_std = np.nan_to_num(f_KM_std,nan=1e10)
     f_err = f_err_mean + f_KM_std
 
-    a_err_mean = np.nanmean(a_err,axis=-1)
-    a_err_mean = np.nan_to_num(a_err_mean,nan=1e10)
-    a_KM_std = np.nanstd(a_KM,axis=-1)
-    a_KM_std = np.nan_to_num(a_KM_std,nan=1e10)
-    a_err = a_err_mean + a_KM_std
+    D_err_mean = np.nanmean(a_err,axis=-1)
+    D_err_mean = np.nan_to_num(D_err_mean,nan=1e10)
+    D_KM_std = np.nanstd(D_KM,axis=-1)
+    D_KM_std = np.nan_to_num(D_KM_std,nan=1e10)
+    D_err = D_err_mean + D_KM_std
 
-    return f_KM_avg, a_KM_avg, f_err, a_err
+    return f_KM_avg, D_KM_avg, f_err, D_err
 
 def masked_vector_field(F,X):
     '''Mask out the vector field F defined over points X 
@@ -185,7 +150,7 @@ def masked_vector_field(F,X):
     ndim = F.shape[-1]
     X_mask = X[mask].reshape((-1,ndim))
     F_mask = F[mask].reshape((-1,ndim))
-    return F_mask, X_mask, mask
+    return F_mask, X_mask
 
 def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
     '''Split data for different flow conditions into training and testing sets (80/20 by default)'''

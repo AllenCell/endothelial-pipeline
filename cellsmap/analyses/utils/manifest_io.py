@@ -193,6 +193,5 @@ def df_to_array(df_:pd.DataFrame,feat_cols:list=[str(i) for i in range(8)]) -> n
 
     # get array of num crops x num timepoints x num PCs
     feats = np.array([df_[df_['crop_index']==ii].sort_values(by='T')[feat_cols].values for ii in range(num_crop)])
-
     assert feats.shape == (num_crop,num_T,len(feat_cols))
     return feats
