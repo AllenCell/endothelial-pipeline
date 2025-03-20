@@ -17,7 +17,6 @@ def make_savedir(savedir:str,subfolders:bool=True) -> None:
         os.makedirs(savedir+'data')
         os.makedirs(savedir+'outputs')
         os.makedirs(savedir+'figs')
-        os.makedirs(savedir+'logs')
 
 def load_array(file_path:str) -> pd.DataFrame:
     '''Load Pandas DataFrame from file_path.'''
@@ -29,14 +28,25 @@ def load_array(file_path:str) -> pd.DataFrame:
         return pd.read_parquet(file_path)
     else:
         raise ValueError(f'File extension not supported: {file_path}')
+    
+def load_manifest_to_df() -> pd.DataFrame:
+    '''Load manifest files of DiffAE model predictions to DataFrame.
+    Right now, this is hard-coded to load the manifest files for specific
+    datasets. This will be updated in the future once we standardize the
+    data handoff process.
+    '''
+    # manifest files for most (older) datasets
+    path_to_data_multi = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
+    # manifest files for newer datasets
+    path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
+    path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
 
-def get_PCA_reference(df:pd.DataFrame) -> pd.DataFrame:
-    df['pca_ref'] = df.group.str.contains('20241120') | df.group.str.contains('20241203')
-    # select no flow timepoints right after feeding
-    df.loc[df.group.str.contains('20241210') & (df['T'] > 300) & (df['T'] < 450), 'pca_ref'] = True
-    df.loc[df.group.str.contains('20241217') & (df['T'] < 100), 'pca_ref'] = True
-    df.loc[df.group.str.contains('20241217') & (df['T'] >300) & (df['T'] < 420), 'pca_ref'] = True
-    return df[df.pca_ref]
+    df = load_array(path_to_data_multi)
+    df_1217 = load_array(path_to_20241217)
+    df_0224 = load_array(path_to_20250224)
+
+    df = pd.concat([df,df_1217,df_0224],ignore_index=True)
+    return df
 
 def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
     '''Add metadata columns to DataFrame df.'''
