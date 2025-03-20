@@ -55,34 +55,35 @@ A catalog of the current datasets we have is [here](https://github.com/orgs/aics
 - try and improve segmentation consistency by using segmentations from multiple contiguous timepoints
 - run "optical flow" workflow on more (all?) live datasets
     - requires building of an analysis queue function and multiprocessing 
+- test feasibility of label-free prediction of cells using a mode trained on the classic segmentations of cells
 
 ```mermaid
 
 flowchart TD
 
 subgraph three [optical flow]
-wf3[VE-Cadherin 20X imaging] --> wf3a[optical flow calculations] --random crops--> vecfield_results[measurements:
+wf3_fluor([VE-Cadherin 20X raw imaging data]) --> wf3_mip[generate MIP] --> wf3_optiflow[optical flow calculations] --random crops--> vecfield_results[[measurements:
     vector fields
     magnitudes of vectors
     angles relative to flow
-]
+]]
 end
 
 subgraph two [label-free nuclei prediction]
-bf[brightfield 20X st. dev. projections] --> wf2a[label-free nuclei predictions] -.-> wf2b[tracking nuclei] -.-> nuc_results_basic[basic measurements:
+wf2_bf([brightfield 20X raw imaging data]) --> wf2_stdproj[generate standard deviation projections] --> wf2_labfree[label-free nuclei predictions] -.-> wf2_track[tracking nuclei] -.-> nuc_results_basic[[basic measurements:
     centroid positions
     centroid velocities
-]
+]]
 end
 
 subgraph one [Cdh5 classic segmentation]
-wf1[VE-Cadherin 20X + 40X imaging] --> wf1a[cell segmentations] --> wf1b[tracking cells] --> seg_results_basic[basic measurements:
+wf1_fluor([VE-Cadherin 20X + 40X raw imaging data]) --> wf1_mip[generate MIPs] --> wf1_seg[generate cell segmentations] --> wf1_track[track cell segmentations] --> seg_results_basic[[basic measurements:
     centroid velocities
     cell elongation
     cell orientation
-]
-wf1b --> wf1c[nodes and edges]
---> results_adv(advanced measurements:
+]]
+wf1_track --> wf1c[represent boundaries of segmentations as nodes and edges]
+--> results_adv[[advanced measurements:
     cell perimeters
     cell areas
     number of neighbors
@@ -91,7 +92,7 @@ wf1b --> wf1c[nodes and edges]
     velocities of neighbors
     cell-cell edge lengths
     fluorescence intensities
-)
+]]
 end
 
 ```
@@ -101,9 +102,11 @@ end
 <summary>Classic Segmentation</summary>
 
 ### Purpose
-Generates semantic segmentations of cells from VE-cadherin.
+Generates semantic segmentations of cells from maximum intensity projections of the VE-cadherin channel of the raw imaging data.
+Processes all datasets in the `data_config.yaml` that were acquired on the 3i microscope by default.
 
 ### Usage
+(`--N_PROC` can be changed to use fewer processes. Beware that this workflow requires a lot of memory if you use the default 30 processes.)
 From the directory where you cloned cellsmap to:
 ```bash
 cd cellsmap
@@ -124,7 +127,10 @@ Outputs segmentations of the Cdh5-GFP-expressing cells using a classical image s
 - `--N_PROC 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
 - `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
 - `--IS_TEST False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
-- `--VERBOSE False` : Whether to print out what the script is currently doing (default is "False").
+- `--VERBOSE False` : Whether to print out what the script is currently doing in detail (default is "False").
+
+#### Inputs
+1. All datasets found in the `data_config.yaml` file as unstitched images with their full Z-dimension.
 
 #### Outputs
 1. `cellsmap/results/cdh5_classic_seg/`: Classic segmentations based on timelapses of Cdh5-GFP. Each folder is a dataset name containing .ome.tiff files (1 file per timepoint).
@@ -132,6 +138,17 @@ Outputs segmentations of the Cdh5-GFP-expressing cells using a classical image s
 
 <details>
 <summary>cdh5_classic_seg_tracking.py</summary>
+
+#### Summary
+Tracks segmentations through time. Relabels segmentations such that their labels represent their track ID.
+
+#### Options
+- `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
+- `--IS_TEST False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
+- `--VERBOSE False` : Whether to print out what the script is currently doing in detail (default is "False").
+
+#### Inputs
+1. The outputs of `cellsmap/analyses/workflows/cdh5_classic_seg.py` (instance segmentations).
 
 #### Outputs
 1. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_images/`: 
@@ -148,7 +165,10 @@ Outputs tables of measured features from the segmentation borders produced from 
 - `--N_PROC 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
 - `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
 - `--IS_TEST False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
-- `--VERBOSE False` : Whether to print out what the script is currently doing (default is "False").
+- `--VERBOSE False` : Whether to print out what the script is currently doing in detail (default is "False").
+
+#### Inputs
+1. The outputs from `cellsmap/features/cdh5_classic_seg_tracking.py` (instance segmentations).
 
 #### Outputs
 1. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/alignments/`: Tables from individual timepoints saved as .csv files of features measured from node-and-edge representations of the Cdh5 segmentations.
@@ -191,12 +211,16 @@ Outputs tables of measured features from the segmentation borders produced from 
 <details>
 <summary>cdh5_nodes_and_edges_analysis.py</summary>
 
+#### Summary
 Outputs tables of measured features from the segmentation borders produced from Step 1 above and their raw Cdh5 dataset.
 
 #### Options
 - `--N_PROC 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
 - `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
 - `--SHOW_PLOTS True` : Whether or not to draw the plots (default is True). Showing plots may raise an error if executed on a command line interface-only machine, in which case this should be set to "False".
+
+#### Inputs
+1. The outputs from `cellsmap/features/cdh5_nodes_and_edges.py` (the "alignments" tables and the "segmentation_properties" tables).
 
 #### Outputs
 - `cellsmap/results/cdh5_nodes_and_edges_analysis` : Plots and summary tables of measured features.
@@ -209,7 +233,9 @@ Outputs tables of measured features from the segmentation borders produced from 
 <summary>Label-free Nuclei Prediction</summary>
 
 ### Purpose
-Generates semantic segmentations of nuclei from standard deviation projections of the brightfield channel.
+Generates semantic segmentations of nuclei from standard deviation projections of the raw brightfield channel.
+Currently evaluates every 48th timeframe (i.e. every 4hrs) for all datasets in the `data_confg.yaml` that were acquired with the 3i microscope with a 20X magnification objective.
+**NOTE** Tracking of nuclei has not been implemented yet.
 
 ### Usage
 ```bash
@@ -223,9 +249,24 @@ pdm run cellsmap/analyses/nuclei_predictions/generate_label_free_nuc_pred.py
 <details>
 <summary>generate_label_free_nuc_pred.py</summary>
 
+#### Summary
+
+[!NOTE]
+**TO BE COMPLETED.**
+
+Creates instance segmentations of nuclei from a standard deviation projection of the raw brightfield channel along the Z axis. A CellPose model was trained (by Goutham) on endothelial cell data (undocumented/unknown) and then re-trained on fixed-sample imaging data using a 20X objective where one channel was the brightfield standard deviation projection and the ground-truth was DAPI staining of nuclei (datasets: `20240328_T01_001` and `20240328_T02_001`)
+
 #### Options
+- `--n_proc 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
+- `--save_output True` : Whether or not to save the output (default is True).
+- `--overwrite False` : Whether or not to overwrite any existing outputs that this file produces. If False then timepoints where an output file already exists will be skipped (the user will be notified when skipping a file).
+- `--is_test False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
+
+#### Inputs
+1. All datasets in the `data_config.yaml` acquired with a 20X objective using the 3i microscope.
 
 #### Outputs
+1. `cellsmap/results/generate_label_free_nuc_pred/[dataset_name]/[position_number]` : multichannel ome.tiff images where each image is a single timepoint and consists of 3 channels in this order: 1. a single plane of the brightfield channel that shows contrast, 2. the standard deviation projection of the brightfield channel along the Z axis, 3. the instance segmentations of the nuclei made by the CellPose model.
 
 </details>
 &nbsp;
@@ -249,7 +290,15 @@ pdm run cellsmap/analyses/flow/flow_features.py
 <details>
 <summary>flow_features.py</summary>
 
+[!IMPORTANT] **NEEDS TO BE RE-RUN ON A NEW DATASET THAT IS STILL INCLUDED IN THIS PROJECT**
+
+[!NOTE] THIS DOCUMENTATION TO BE COMPLETED WHEN THE WORKFLOW HAS BEEN UPDATED.
+
+#### Summary
+
 #### Options
+
+#### Inputs
 
 #### Outputs
 
