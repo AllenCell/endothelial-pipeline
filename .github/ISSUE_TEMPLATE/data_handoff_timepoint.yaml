@@ -2,13 +2,21 @@ name: "Imaging Experiment"
 
 description: "Create image data handoff"
 
-title: "Brief description of live imaging experiment"
+title: "Brief description of snapshot experiment"
 
 labels: []
 
 projects: ["aics-int/40"]
 
 body:
+
+- type: input
+  attributes:
+    label: FMS ID
+    description: File ID from the FMS
+    placeholder: FMS ID
+  validations:
+    required: false
 
 - type: input
   attributes:
@@ -44,8 +52,8 @@ body:
 
 - type: textarea
   attributes:
-    label: Description
-    description: Experiment description, including a copy of the plate layout.
+    label: Notes
+    description: Is there anything we should know about this data before we analyze it? Did you observe any issues during the experiment?
     placeholder: description
   validations:
     required: true
@@ -65,8 +73,7 @@ body:
     multiple: true
     options:
       - AICS-12 (TUBA1B)
-      - AICS-126
-      - CDH5
+      - AICS-126 (CDH5)
       - Mito
   validations:
     required: true
@@ -75,7 +82,7 @@ body:
   attributes:
     label: Flow history
     description: What was the flow rate prior to imaging
-    placeholder: dyn/cm
+    placeholder: dyn/cm2
   validations:
     required: true
 
@@ -83,7 +90,7 @@ body:
   attributes:
     label: Initial flow rate
     description: What was the flow rate at the start of imaging
-    placeholder: dyn/cm
+    placeholder: dyn/cm2
   validations:
     required: true
 
@@ -91,7 +98,7 @@ body:
   attributes:
     label: Flow rate change
     description: Was the flow rate changed? If so, what was the flow rate and between which frames was it changed?
-    placeholder: dyn/cm, between frames X and Y
+    placeholder: dyn/cm2, between frames X and Y
   validations:
     required: true
 
@@ -102,7 +109,7 @@ body:
     options:
       - label: fixed
       - label: live
-      - label: timelapse
+      - label: paired
 
 - type: dropdown
   attributes:

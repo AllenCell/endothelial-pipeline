@@ -2,13 +2,21 @@ name: "Imaging Experiment"
 
 description: "Create image data handoff"
 
-title: "Brief description of live imaging experiment"
+title: "Brief description of timelapse imaging experiment"
 
 labels: []
 
 projects: ["aics-int/40"]
 
 body:
+
+- type: input
+  attributes:
+    label: FMS ID
+    description: File ID from the FMS
+    placeholder: FMS ID
+  validations:
+    required: false
 
 - type: input
   attributes:
@@ -44,11 +52,12 @@ body:
 
 - type: textarea
   attributes:
-    label: Description
-    description: Experiment description, including a copy of the plate layout.
+    label: Notes
+    description: Is there anything we should know about this data before we analyze it? Did you observe any issues during the experiment?
     placeholder: description
   validations:
     required: true
+
 
 - type: input
   attributes:
@@ -100,9 +109,7 @@ body:
     label: Experimental conditions
     description: Labels to annotate the dataset with
     options:
-      - label: fixed
-      - label: live
-      - label: timelapse
+      - label: 48hr
 
 - type: dropdown
   attributes:
