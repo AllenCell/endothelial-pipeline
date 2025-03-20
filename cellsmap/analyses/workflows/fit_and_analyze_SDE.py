@@ -6,12 +6,9 @@ import numdifftools as nd
 
 import cellsmap.util.pca as cmpca
 import cellsmap.analyses.utils.gen_potential as gp
-from cellsmap.analyses.utils import viz, pplane
-import cellsmap.analyses.utils.manifest_io as eaio
-import cellsmap.analyses.utils.viz as eaviz
 import cellsmap.analyses.utils.regression as eareg
-import cellsmap.analyses.utils.model_eval as model_eval
-import cellsmap.analyses.utils.model_analysis as model_analysis
+from cellsmap.analyses.utils import manifest_viz, manifest_io, pplane, model_eval, model_analysis
+
 
 # %%
 # load data
@@ -19,38 +16,30 @@ path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyt
 path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
 path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
 
-df = eaio.load_array(path_to_data)
-df_1217 = eaio.load_array(path_to_20241217)
-df_0224 = eaio.load_array(path_to_20250224)
+df = manifest_io.load_array(path_to_data)
+df_1217 = manifest_io.load_array(path_to_20241217)
+df_0224 = manifest_io.load_array(path_to_20250224)
 # THIS IS A HACK TO GET THE GROUPS TO MATCH THE DATA CONFIG
 # WILL NOT BE AN ISSUE WHEN WE CHANGE HOW WE PROCESS DATA
 df = pd.concat([df,df_1217,df_0224],ignore_index=True)
 df, pca = cmpca.get_pca(df, num_pcs=8)
 df = cmpca._get_outliers(df)
 df.loc[df.group.str.contains('20250224'),'group'] = '20250224_20X'
-list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
+list_of_datasets = manifest_io.get_list_of_datasets(df,'group',verbose=True)
 
 # plot explained variance
-fig, ax = eaviz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
+fig, ax = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
 
 # %%
-# To do: write io function that builds this from data config
 title_dict = {'20241016_20X':'24H High, 24H Low',
               '20241105_20X':'24H Low, 24H High (11/5/24)',
               '20241120_20X':'48H High',
               '20241203_20X':'48H Low',
               '20241210_20X':'48H No Flow 1',
               '20241217_20X':'48H No Flow 2',
-              '20250224_GE00006991_20X':'24H Low, 24H High (2/24/25)',}
+              '20250224_20X':'24H Low, 24H High (2/24/25)',}
 
-# example visualization of PCA projection for a single dataset
-ds_ID = 0 # index of dataset in list_of_datasets
-my_mv = list_of_datasets[ds_ID] # get dataset identifier
-mv_name = eaio.get_dataset_name(my_mv) # get dataset name (shortened identifier)
-df_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv)
-feats_proj = eaio.df_to_array(df_proj,[str(i) for i in range(8)])
-
-fig2,ax2 = eaviz.plot_PCA_projection(feats_proj, title_dict[mv_name])
+fig, axs = manifest_viz.plot_top_3_PCs_alldata(df,pca['pca'],list_of_datasets, title_dict)
 
 # %%
 # now fit model using multiple datasets
@@ -74,7 +63,7 @@ u_test_list = []
 Nbins = 25*np.ones(ndim,dtype=int)
 # %%
 for my_mv in list_of_datasets: 
-    mv_name = eaio.get_dataset_name(my_mv)
+    mv_name = manifest_io.get_dataset_name(my_mv)
 
     # don't fit model using no flow datasets
     if mv_name in ds_to_skip:
@@ -84,7 +73,7 @@ for my_mv in list_of_datasets:
     print('**** Generating train/test sets for dataset',mv_name,'**** \n')
 
     # project data from this one dataset onto PCs as defined by fit PCA object pca
-    df_proj = eaio.project_PCA_one_dataset(df,pca,'group',my_mv)
+    df_proj = manifest_io.project_PCA_one_dataset(df,pca,'group',my_mv)
 
     # for extracting just the PCs we want from the dataframe
     feat_cols = [str(i) for i in PCs]
@@ -268,7 +257,7 @@ plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 
 # fix bins and centers for all datasets
 
 for my_mv in list_of_datasets: 
-    mv_name = eaio.get_dataset_name(my_mv)
+    mv_name = manifest_io.get_dataset_name(my_mv)
 
     # if we don't want to fit model using this dataset, skip it
     if mv_name in ds_to_skip:
@@ -278,7 +267,7 @@ for my_mv in list_of_datasets:
     print('**** Running model analysis for dataset',mv_name,'**** \n')
 
     # project data from this one dataset onto PCs as defined by fit PCA object pca
-    df_proj = eaio.project_PCA_one_dataset(df,pca,'group',my_mv)
+    df_proj = manifest_io.project_PCA_one_dataset(df,pca,'group',my_mv)
 
     # for extracting just the PCs we want from the dataframe
     feat_cols = [str(i) for i in PCs]
@@ -350,7 +339,7 @@ for u in u_range:
 fpt_stable = []
 u_stable = []
 for j in range(ndim):
-    fig, ax = viz.init_plot()
+    fig, ax = manifest_viz.init_plot()
     for u in u_range:
         if str(u) in fpt_dict.keys():
             fpts = fpt_dict[str(u)]['fixed_points']
@@ -373,7 +362,7 @@ for j in range(ndim):
                     ax.set_ylabel('PC'+str(PCs[j]+1))
 # %%
 # plot stable fixed points as a colored by shear stress value
-fig, ax = viz.init_plot()
+fig, ax = manifest_viz.init_plot()
 u_stable = np.array(u_stable)
 fpt_stable = np.array(fpt_stable)
 im = ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
@@ -405,7 +394,7 @@ for u in u_range:
 
     epr[u_range.tolist().index(u)] = gp.entropy_production(J,D_mat,P,centers)
 
-fig, ax = viz.init_plot()
+fig, ax = manifest_viz.init_plot()
 ax.plot(u_range,epr,'-o',color='k')
 ax.set_xlabel('Shear stress (dyn/cm$^2$)')
 ax.set_ylabel('Entropy production rate')
@@ -441,7 +430,7 @@ U= -np.log(p_fit)
 
 print('**** Plotting generalized potential energy landscape **** \n')
 
-fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
+fig,ax = manifest_viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
 ax.set_xlabel('PC'+str(PCs[0]+1))
 ax.set_ylabel('PC'+str(PCs[1]+1))
 ax.set_title('Shear stress: '+str(u)+' dyn/cm$^2$')
@@ -457,7 +446,7 @@ if normed:
     grad_ = grad_/(np.sqrt(grad_[0]**2+grad_[1]**2))
     flux_ = flux_/(np.sqrt(flux_[0]**2+flux_[1]**2))
 
-fig,ax = viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],
+fig,ax = manifest_viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],
                                    cmap='jet',surf=False)
 downsample=10
 ax.quiver(centers_fine[0][::downsample],
