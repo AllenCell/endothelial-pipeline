@@ -29,7 +29,7 @@ df, pca = cmpca.get_pca(df, num_pcs=8)
 df = cmpca._get_outliers(df)
 df.loc[df.group.str.contains('20250224'),'group'] = '20250224_20X'
 list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
-# %%
+
 # plot explained variance
 fig, ax = eaviz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
 
@@ -44,7 +44,7 @@ title_dict = {'20241016_20X':'24H High, 24H Low',
               '20250224_GE00006991_20X':'24H Low, 24H High (2/24/25)',}
 
 # example visualization of PCA projection for a single dataset
-ds_ID = 3 # index of dataset in list_of_datasets
+ds_ID = 0 # index of dataset in list_of_datasets
 my_mv = list_of_datasets[ds_ID] # get dataset identifier
 mv_name = eaio.get_dataset_name(my_mv) # get dataset name (shortened identifier)
 df_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv)
@@ -57,8 +57,8 @@ fig2,ax2 = eaviz.plot_PCA_projection(feats_proj, title_dict[mv_name])
 PCs = [0,1] # index of PCs to use for model fitting
 ndim = len(PCs) # get ndim from number of PCs
 
-# datasets to leave out of SDE model fitting, currently just the no flow datasets
-ds_to_skip = ['20241210_20X','20241217_20X']
+# datasets to leave out of SDE model fitting
+ds_to_skip = ['20241016_20X','20241210_20X','20241217_20X']
 
 # list of training/test sets for each dataset
 X_train_list = []
@@ -376,13 +376,13 @@ for j in range(ndim):
 fig, ax = viz.init_plot()
 u_stable = np.array(u_stable)
 fpt_stable = np.array(fpt_stable)
-ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
+cax = ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
             c=u_stable[1:-7],cmap='bwr',edgecolors='k')
 
-ax.xlabel('PC'+str(PCs[0]+1))
-ax.ylabel('PC'+str(PCs[1]+1))
-ax.colorbar(label='dyn/cm$^2$')
-ax.title('Stable fixed points by shear stress')
+ax.set_xlabel('PC'+str(PCs[0]+1))
+ax.set_ylabel('PC'+str(PCs[1]+1))
+fig.colorbar(label='dyn/cm$^2$', ax = cax)
+ax.set_title('Stable fixed points by shear stress')
 
 
 # %%
@@ -407,8 +407,8 @@ for u in u_range:
 
 fig, ax = viz.init_plot()
 ax.plot(u_range,epr,'-o',color='k')
-ax.xlabel('Shear stress (dyn/cm$^2$)')
-ax.ylabel('Entropy production rate')
+ax.set_xlabel('Shear stress (dyn/cm$^2$)')
+ax.set_ylabel('Entropy production rate')
 
 
 # %%
@@ -472,3 +472,5 @@ ax.quiver(centers_fine[0][::downsample],
           color='r',pivot='tail')
 ax.set_xlabel('PC'+str(PCs[0]+1))
 ax.set_ylabel('PC'+str(PCs[1]+1))
+
+# %%
