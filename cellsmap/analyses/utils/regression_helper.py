@@ -1,22 +1,27 @@
 import numpy as np
-import cellsmap.util.dataset_io as io
-import cellsmap.analyses.utils.manifest_io as eaio
+import cellsmap.util.dataset_io as dio
+import cellsmap.analyses.utils.manifest_io as mio
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
 def get_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,PCs:list=[0,1],verbose:bool=True) -> None:
+    if 'outlier' in df_proj.columns:
+        df_proj = df_proj[df_proj['outlier']==False] # remove outliers
+
     num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
 
-    data_config = io.get_dataset_info(mv_name)
+    data_config = dio.get_dataset_info(mv_name)
     first_flow = float(data_config['flow'][0][-1])
 
     PC_cols = [str(i) for i in PCs]
     # get array of num crops x num timepoints x num PCs
-    feats_proj = eaio.df_to_array(df_proj,PC_cols)
+    feats_proj = mio.df_to_array(df_proj,PC_cols)
+    # get array of timepoints present for each crop
+    time_points = df_proj['T'].unique()
 
     flow_list = [first_flow]
     if len(data_config['flow']) > 1:
-        change_frame = eaio.get_flow_change_frame(mv_name) # change from time in hours to frame number
+        change_frame = mio.get_flow_change_frame(mv_name) # change from time in hours to frame number
         second_flow = float(data_config['flow'][1][-1])
         if verbose:
             if first_flow > second_flow:
@@ -39,7 +44,7 @@ def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,feat_cols:list=[str(i
     num_T = df_proj['T'].nunique() # number of timepoints in the movie
     num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
 
-    data_config = io.get_dataset_info(mv_name)
+    data_config = dio.get_dataset_info(mv_name)
     first_flow = float(data_config['flow'][0][-1])
 
     flow_list = [first_flow]
