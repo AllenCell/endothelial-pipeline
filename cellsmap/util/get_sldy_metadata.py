@@ -361,7 +361,7 @@ def all_sldy_metadata_to_tsv(save_dir: str|Path = '//allen/aics/users/serge.pare
         df_list.append(sldy_metadata_to_df(sldy_filepath))
 
     # Save the metadata as a single tsv file
-    save_path = save_dir / f'{dataset_name}_metadata.tsv'
+    save_path = save_dir / f'endo-holistic_sldy_metadata.tsv'
     pd.concat(df_list).to_csv(save_path, sep='\t', index=False)
     return
 
