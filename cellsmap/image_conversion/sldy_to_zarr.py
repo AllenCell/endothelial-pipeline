@@ -1,6 +1,10 @@
 # %%
 import argparse
-from cellsmap.util.dataset_io import get_number_of_positions, get_time_interval_in_minutes
+from cellsmap.util.dataset_io import (
+    get_number_of_positions, 
+    get_time_interval_in_minutes,
+    get_microscope,
+    get_barcode,)
 from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
@@ -8,7 +12,6 @@ from cellsmap.image_conversion.process_images.write_zarr import (
 )
 from cellsmap.util.dataset_io import get_original_path
 from bioio import BioImage
-import bioio_sldy, bioio_nd2
 from pathlib import Path
 
 # %%
@@ -25,7 +28,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/sldy_to_zarr.py 20240305_T01_001 /allen/aics/assay-dev/users/Chantelle/outputs/temp
+    python cellsmap/image_conversion/sldy_to_zarr.py 20250224_20X 20250224 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -91,7 +94,9 @@ def parse_arguments():
         help="The output datset name for the Zarr files",
     )
     parser.add_argument(
-        "output_path", type=str, help="The output path for the Zarr files"
+        "output_path", 
+        type=str, 
+        help="The output path for the Zarr files"
     )
     parser.add_argument(
         "--channel_names",
@@ -102,17 +107,11 @@ def parse_arguments():
 
     args = parser.parse_args()
     channel_names = args.channel_names.split(",")
-    return args.dataset, args.output_path, args.output_dataset_name, channel_names
+    return args.dataset, args.output_dataset_name, args.output_path, channel_names
 
 
 # %%
 if __name__ == "__main__":
-    # dataset, output_path, output_dataset_name, channel_names = parse_arguments()
-    dataset = "20241120_20X" 
-    output_dataset_name = "20241120" 
-    output_path = (
-        "/allen/aics/endothelial/morphological_features/image_data/converted_zarrs/"
-    )
-    channel_names = ["EGFP", "BF"]
+    dataset, output_dataset_name, output_path, channel_names = parse_arguments()
     main(dataset, output_path, output_dataset_name, channel_names)
 # %%
