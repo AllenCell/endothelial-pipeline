@@ -47,6 +47,8 @@ ndim = len(PCs) # get ndim from number of PCs
 ds_to_skip = ['20241016_20X','20241210_20X','20241217_20X']
 
 # list of training/test sets for each dataset
+# right now set up to get list of lists to organize by flow condition,
+# concatenate all datasets together at the end to fit model
 X_train_list = []
 X_test_list = []
 Y_train_list = []

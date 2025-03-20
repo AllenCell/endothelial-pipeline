@@ -3,22 +3,25 @@ import pandas as pd
 from sklearn.decomposition import PCA
 import os
 from pathlib import Path
-import cellsmap.util.dataset_io as io
 
-def make_savedir(savedir:str,subfolders:bool=True) -> None:
+from cellsmap.util import dataset_io
+
+def make_savedir(savedir:str='',subfolders:bool=True) -> None:
     '''Create directory savedir if it does not exist and/or subfolders
     for various outputs of model fitting and analysis if those do not exist.'''
+    if savedir == '': # default save directory called 'dynamics_output' made in head of repo
+        parent_folder = Path(__file__).resolve().parent.parent
+        savedir = str(parent_folder / 'dynamics_output/')
     if not os.path.exists(savedir):
         if not savedir.endswith('/'):
             savedir += '/'
         print("*** Creating directory to save results... \n")
+        print(f"Directory: {savedir} \n")
         os.makedirs(savedir)
-    if subfolders:
-        os.makedirs(savedir+'data')
         os.makedirs(savedir+'outputs')
         os.makedirs(savedir+'figs')
 
-def load_array(file_path:str) -> pd.DataFrame:
+def load_df(file_path:str) -> pd.DataFrame:
     '''Load Pandas DataFrame from file_path.'''
     if file_path.endswith('.csv'):
         return pd.read_csv(file_path)
@@ -41,9 +44,9 @@ def load_manifest_to_df() -> pd.DataFrame:
     path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
     path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
 
-    df = load_array(path_to_data_multi)
-    df_1217 = load_array(path_to_20241217)
-    df_0224 = load_array(path_to_20250224)
+    df = load_df(path_to_data_multi)
+    df_1217 = load_df(path_to_20241217)
+    df_0224 = load_df(path_to_20250224)
 
     df = pd.concat([df,df_1217,df_0224],ignore_index=True)
     return df
@@ -54,6 +57,23 @@ def add_metadata_from_path(df:pd.DataFrame) -> pd.DataFrame:
     df['T'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])//6)
     df['FOV_ID'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])%6)
     return df
+
+def get_descriptive_metadata(list_of_datasets) -> dict:
+    '''Get descriptive metadata for each dataset in list_of_datasets.
+    Describes the experimental conditions for each dataset, 
+    e.g., "48H low flow (date)".'''
+    description_dic = {}
+    for mv in list_of_datasets:
+        mv_name = get_dataset_name(mv) # datasets are labeled by group in manifest, but by name (shortened from group) in data config
+        data_config = dataset_io.get_dataset_info(mv_name) # get dataset info from data_config.yaml via dataset_io
+        flow_config = data_config['flow'] # get flow conditions for dataset
+        num_flows = len(flow_config) # number of flow conditions in dataset
+        shear_rate = [flow_config[i][-1] for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
+        shear_rate_str = [str(i)+' dyn/cm^2' for i in shear_rate] # convert shear rates to strings
+        time_str = [str(flow_config[i][1]-flow_config[i][0])+' hours' for i in range(num_flows)] # get time of each flow condition
+        description = ', '.join([time_str[i]+' at '+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
+        description_dic[mv_name] = description
+    return description_dic
 
 def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict) -> pd.DataFrame:
     '''Add metadata columns to DataFrame df.'''
@@ -95,7 +115,7 @@ def get_flow_change_frame(ds_name:str) -> int:
     '''Get frame number at which flow changes in dataset ds_name.'''
     if 'SLDY' or 'timelapse' in ds_name: # passed in last part of file path, i.e., 'group' column
         ds_name = get_dataset_name(ds_name)
-    data_config = io.get_dataset_info(ds_name)
+    data_config = dataset_io.get_dataset_info(ds_name)
     change_frame = int(data_config['flow'][0][1]*60/5) # change from time in hours to frame number
     return change_frame
 
