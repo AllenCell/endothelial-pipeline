@@ -49,7 +49,7 @@ def build_diff_lib(ndim:int,diff_deg:int=0,param_deg=3) -> ps.ParameterizedLibra
     return diff_lib
 
 def fit_sindy_model(lib:ps.ParameterizedLibrary,X_train:np.ndarray,Y_train:np.ndarray,\
-                    u_train:np.ndarray,optimizer:ps.BaseOptimizer=ps.SSR()) -> ps.SINDy:
+                    u_train:np.ndarray,t:float,optimizer:ps.BaseOptimizer=ps.SSR()) -> ps.SINDy:
     # fit SINDy model to data
     model = ps.SINDy(feature_library = lib, optimizer = optimizer)
     model.fit(X_train,t=5,x_dot=Y_train,u=u_train)
