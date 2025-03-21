@@ -1,52 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from cellsmap.analyses.utils.viz import pplane
-from cellsmap.analyses.utils import model_eval
-import cellsmap.analyses.utils.regression_helper as rh
-import cellsmap.analyses.utils.viz.dynamics_viz as dviz
-import cellsmap.analyses.utils.viz.viz_base as vb
-import cellsmap.analyses.utils.io.manifest_io as mio
-
-def run_model_analysis_1D(model, data, feat_cols, bins, centers, u, args={}):
-    '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
-    fit diffusion regression model object.'''
-    f = model_eval.scalar_function(model[0])
-    D = model_eval.scalar_function(model[1])
-
-    if 'pplane_N' in args:
-        pplane_N = args['pplane_N']
-    else:
-        pplane_N = 50
-    if 'pplane_xlim' in args:
-        x_lim = args['pplane_xlim']
-    else:
-        x_lim = [centers[0],centers[-1]]
-    x = np.linspace(x_lim[0],x_lim[1],pplane_N)
-    fig1,ax1 = pplane.phase_line(lambda x: f(x,u),x)
-
-    if 'plt_xlabel' in args:
-        ax1.set_xlabel(args['plt_xlabel'])
-    plt.show()
-
-    p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u,ndim=1)
-
-    # get "stationary" distribution from data
-    if 'frame_index' in args:
-        p_hist = rh.get_stationary_hist(data,feat_cols,[bins],frame_index=args['frame_index'])
-    else:
-        p_hist = rh.get_stationary_hist(data,feat_cols,[bins])
-
-    fig2,ax2 = dviz.compare_stationary_distributions(p_fit,p_hist,bins,ndim=1)
-    if 'plt_xlabel' in args:
-        for j in range(2):
-            ax2[j].set_xlabel(args['plt_xlabel'])
-    plt.show()
-    
-    return fig1, ax1, fig2, ax2
+from cellsmap.analyses.utils.io import manifest_io as mio
+from cellsmap.analyses.utils import model_eval, regression_helper as rh
+from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
+from cellsmap.analyses.utils.numerics import gen_potential as gp
 
 
-def run_model_analysis_2D_one_dataset(model, data, feat_cols, bins, centers, u, args={}):
+
+def model_data_comparison_one_dataset(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
     f = model_eval.vector_field_function(model[0])
@@ -108,7 +70,7 @@ def run_model_analysis_2D_one_dataset(model, data, feat_cols, bins, centers, u, 
     
     return fig1, ax1, fig2, ax2
 
-def run_model_analysis_2D(model:list,savedir:str,PCs:list,bins:list,\
+def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,\
                           centers:list,ds_to_skip:list,args:dict={}) -> None:
     
     df = mio.load_manifest_to_df(verbose=False)
@@ -136,7 +98,7 @@ def run_model_analysis_2D(model:list,savedir:str,PCs:list,bins:list,\
         for j in range(num_flow): # get bins and centers for data at high and low flow    
             print('**** Shear stress =',shear_list[j],'dyn/cm^2 **** \n')
 
-            fig1, ax1, fig2, ax2 = run_model_analysis_2D_one_dataset(model,df_by_flow[j],feat_cols,
+            fig1, ax1, fig2, ax2 = model_data_comparison_one_dataset(model,df_by_flow[j],feat_cols,
                                                                      bins,centers,shear_list[j],args=args)
             
             sup_title = fig2._suptitle.get_text()
@@ -146,3 +108,35 @@ def run_model_analysis_2D(model:list,savedir:str,PCs:list,bins:list,\
 
             vb.save_plot(fig1,savedir+'figs/'+ds_name+'_phase_portrait_shear_'+str(shear_list[j]))
             vb.save_plot(fig2,savedir+'figs/'+ds_name+'_stationary_dist_shear_'+str(shear_list[j]))
+
+def get_epr(model, bins, centers, shear_range, savedir):
+    '''Get entropy production rate as a function of shear stress for a fit model object.'''
+    driftModel = model[0]
+    diffModel = model[1]
+    f = model_eval.vector_field_function(driftModel)
+    D = model_eval.vector_field_function(diffModel)
+    epr = np.zeros(len(shear_range))
+    for i,u in enumerate(shear_range):
+        # get stationary probability distribution   
+        P = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
+
+        # evaluate drift and diffusion functions at grid points
+        f_mesh = model_eval.mesh_grid_function(f)
+        D_mesh = model_eval.mesh_grid_function(D)
+
+        X1,X2 = np.meshgrid(centers[0],centers[1])
+        f_vals = f_mesh([X1,X2],u).T
+        D_vals = D_mesh([X1,X2],u).T
+
+        # get probability flux
+        J = gp.probability_flux(P,f_vals,D_vals,centers)
+        # expand D_vals to matrix (diagonal elements)
+        D_mat = gp.expand_to_matrix(D_vals)
+
+        epr[i] = gp.entropy_production(J,D_mat,P,centers)
+
+    fig, ax = vb.init_plot()
+    ax.plot(shear_range,epr,'-o',color='k')
+    ax.set_xlabel('Shear stress (dyn/cm$^2$)')
+    ax.set_ylabel('Entropy production rate')
+    vb.save_plot(fig,savedir+'figs/epr')

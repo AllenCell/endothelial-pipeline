@@ -1,4 +1,5 @@
 # config file for visualization of dynamical systems model fits (dynamics_summarize.py workflow)
+import numpy as np
 
 # specification of plot limits for phase plane plots and bins for histogram plots
 pplane_xlim = [-4,4]
@@ -13,4 +14,6 @@ bin_limits = [bin_xlim,bin_ylim]
 
 plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
             'truncate_p':[True,[0,Nbins_plot[0]-0],[0,Nbins_plot[1]-0]]}
+
+shear_range = np.linspace(4,30,60) # range of shear stresses to consider when computing epr, fixed points, etc.
 
