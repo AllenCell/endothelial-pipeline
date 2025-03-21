@@ -1,38 +1,47 @@
 # %%
-import numpy as np
-import pandas as pd
 import pysindy as ps
-import numdifftools as nd
 
-import cellsmap.analyses.utils.gen_potential as gp
-import cellsmap.analyses.utils.regression_helper as eareg
-from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca
-
-# %%
-# load data
-df = manifest_io.load_manifest_to_df()
-# fit PCA to data
-df, pca = manifest_pca.get_pca(df, num_pcs=8)
-# add outliers to dataframe
-df = manifest_pca.get_outliers(df)
-# filepath for this dataset in manifest includes barcode, so we need to change the group name to match data config
-# something that should be fixed in the manifest in the future
-df.loc[df.group.str.contains('20250224'),'group'] = '20250224_20X'
-# get list of datasets by 'group' identifier
-list_of_datasets = manifest_io.get_list_of_datasets(df,'group',verbose=True)
-
-# plot explained variance ratio of PCA components
-fig, ax = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
+from cellsmap.analyses.utils import dynamics_io
+from cellsmap.analyses.utils import model_fitting
+# import config parameters
+from cellsmap.analyses.configs.manifest_postproc_config import savedir, PCs
+from cellsmap.analyses.configs.dynamics_fit_config import drift_deg, diff_deg, param_deg_drift, param_deg_diff, sigmoid_funcs, func_names, include_sigmoid
 
 # %%
-# plot top 3 principal components of feature data vs. frame number
-# should write a function to do this for all datasets in the manifest via data_config
-title_dict = {'20241016_20X':'24H High, 24H Low',
-              '20241105_20X':'24H Low, 24H High (11/5/24)',
-              '20241120_20X':'48H High',
-              '20241203_20X':'48H Low',
-              '20241210_20X':'48H No Flow 1',
-              '20241217_20X':'48H No Flow 2',
-              '20250224_20X':'24H Low, 24H High (2/24/25)',}
+# load train test data from file
+train_test_dict = dynamics_io.load_train_test(savedir+'outputs/train_test_data.npz')
+# %%
+# build SINDy libraries for fitting model of drift and diffusion terms
+drift_lib = model_fitting.build_drift_lib(ndim=len(PCs),drift_deg=drift_deg,param_deg=param_deg_drift,
+                                          include_sigmoid=include_sigmoid,sigmoid_funcs=sigmoid_funcs,func_names=func_names)
 
-fig, axs = manifest_viz.plot_top_3_PCs_alldata(df,pca['pca'],list_of_datasets, title_dict)
+diff_lib = model_fitting.build_diff_lib(ndim=len(PCs),diff_deg=diff_deg,param_deg=param_deg_diff)
+# %%
+# fit model for drift term - SINDy based regression
+driftModel = ps.SINDy(feature_library = drift_lib, optimizer = ps.SSR())
+driftModel.fit(train_test_dict['X_train'],t=5,x_dot=train_test_dict['Y_train'],u=train_test_dict['u_train'])
+
+# score on test set
+drift_R2 = driftModel.score(train_test_dict['X_test'],x_dot=train_test_dict['Y_test'],u=train_test_dict['u_test'])
+driftModel.print()
+
+print('Score (R^2) for model of drift term: %f' %drift_R2)
+# %%
+import matplotlib.pyplot as plt
+plt.quiver(train_test_dict['X_test'][:,0],train_test_dict['X_test'][:,1],
+           train_test_dict['Y_test'][:,0],train_test_dict['Y_test'][:,1])
+# %%
+# fit model for diffusion term - SINDy based regression
+diffModel = ps.SINDy(feature_library = diff_lib, optimizer = ps.SSR())
+diffModel.fit(train_test_dict['X_train'],t=5,x_dot=train_test_dict['V_train'],u=train_test_dict['u_train'])
+
+# score on test set
+diff_R2 = diffModel.score(train_test_dict['X_test'],x_dot=train_test_dict['V_test'],u=train_test_dict['u_test'])
+diffModel.print()
+
+print('Score (R^2) for model of diffusion term: %f' %diff_R2)
+# %%
+# save models
+model_dict = {'driftModel':driftModel,'diffModel':diffModel}
+dynamics_io.save_model(model_dict, savedir+'outputs/')
+# %%
