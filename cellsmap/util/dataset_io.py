@@ -77,12 +77,14 @@ def get_number_of_positions(dataset_name:str) -> int:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['n_positions']
 
-def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
+def load_dataset(dataset_name:str, channels:List, time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
     dir = get_zarr_path(dataset_name)
     dataset = {}
 
     if zarr_name:
-        filepath_list = [fp for fp in Path(dir).glob('*.zarr') if fp.name == zarr_name]
+        filepath = Path(dir) / zarr_name
+        assert filepath.exists(), f'Zarr file {filepath} does not exist.'
+        filepath_list = [filepath]
     else:
         filepath_list = [fp for fp in Path(dir).glob('*.zarr')]
 
