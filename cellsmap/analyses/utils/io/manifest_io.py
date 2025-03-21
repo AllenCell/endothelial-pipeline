@@ -35,7 +35,7 @@ def load_df(file_path:str) -> pd.DataFrame:
     else:
         raise ValueError(f'File extension not supported: {file_path}')
     
-def load_manifest_to_df() -> pd.DataFrame:
+def load_manifest_to_df(verbose=True) -> pd.DataFrame:
     '''Load manifest files of DiffAE model predictions to DataFrame.
     Right now, this is hard-coded to load the manifest files for specific
     datasets. This will be updated in the future once we standardize the
@@ -64,7 +64,7 @@ def load_manifest_to_df() -> pd.DataFrame:
     df = pd.concat([df,df_1217,df_0224],ignore_index=True)
 
     # add metadata columns for dataset, FOV, and timepoint
-    df = add_metadata_from_path(df)
+    df = add_metadata_from_path(df,verbose=verbose)
 
     # add descriptive metadata for each dataset (flow conditions for each dataset)
     description_dic = get_descriptive_metadata(df)
