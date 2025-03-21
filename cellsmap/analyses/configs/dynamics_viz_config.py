@@ -11,3 +11,6 @@ bin_ylim = [-4,3]
 Nbins_plot = [50 for i in range(2)]
 bin_limits = [bin_xlim,bin_ylim]
 
+plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
+            'truncate_p':[True,[0,Nbins_plot[0]-0],[0,Nbins_plot[1]-0]]}
+

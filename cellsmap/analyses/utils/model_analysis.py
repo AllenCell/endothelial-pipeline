@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import cellsmap.analyses.utils.viz.pplane as pplane
-import cellsmap.analyses.utils.model_eval as model_eval
+from cellsmap.analyses.utils.viz import pplane
+from cellsmap.analyses.utils import model_eval
 import cellsmap.analyses.utils.regression_helper as rh
-import cellsmap.analyses.utils.viz.manifest_viz as mviz
+import cellsmap.analyses.utils.viz.dynamics_viz as dviz
+import cellsmap.analyses.utils.viz.viz_base as vb
+import cellsmap.analyses.utils.io.manifest_io as mio
 
 def run_model_analysis_1D(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
@@ -35,7 +37,7 @@ def run_model_analysis_1D(model, data, feat_cols, bins, centers, u, args={}):
     else:
         p_hist = rh.get_stationary_hist(data,feat_cols,[bins])
 
-    fig2,ax2 = mviz.compare_stationary_distributions(p_fit,p_hist,bins,ndim=1)
+    fig2,ax2 = dviz.compare_stationary_distributions(p_fit,p_hist,bins,ndim=1)
     if 'plt_xlabel' in args:
         for j in range(2):
             ax2[j].set_xlabel(args['plt_xlabel'])
@@ -44,7 +46,7 @@ def run_model_analysis_1D(model, data, feat_cols, bins, centers, u, args={}):
     return fig1, ax1, fig2, ax2
 
 
-def run_model_analysis_2D(model, data, feat_cols, bins, centers, u, args={}):
+def run_model_analysis_2D_one_dataset(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
     f = model_eval.vector_field_function(model[0])
@@ -76,6 +78,7 @@ def run_model_analysis_2D(model, data, feat_cols, bins, centers, u, args={}):
         ax1.set_xlabel(args['plt_xlabel'])
     if 'plt_ylabel' in args:
         ax1.set_ylabel(args['plt_ylabel'])
+    ax1.set_title('Shear stress = '+str(u)+' dyn/cm^2')
     plt.show()
 
     p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
@@ -93,15 +96,53 @@ def run_model_analysis_2D(model, data, feat_cols, bins, centers, u, args={}):
         p_fit_ = p_fit[x1_trunc[0]:x1_trunc[1],x2_trunc[0]:x2_trunc[1]]
         p_hist_ = p_hist[x1_trunc[0]:x1_trunc[1],x2_trunc[0]:x2_trunc[1]]
         bins_ = [bins[0][x1_trunc[0]:x1_trunc[1]],bins[1][x2_trunc[0]:x2_trunc[1]]]
-        fig2,ax2 = mviz.compare_stationary_distributions(p_fit_,p_hist_,bins_)
+        fig2,ax2 = dviz.compare_stationary_distributions(p_fit_,p_hist_,bins_)
     else:
-        fig2,ax2 = mviz.compare_stationary_distributions(p_fit,p_hist,bins)
+        fig2,ax2 = dviz.compare_stationary_distributions(p_fit,p_hist,bins)
     if 'plt_xlabel' in args:
         for j in range(2):
             ax2[j].set_xlabel(args['plt_xlabel'])
     if 'plt_ylabel' in args:
         for j in range(2):
             ax2[j].set_ylabel(args['plt_ylabel'])
-    plt.show()
     
     return fig1, ax1, fig2, ax2
+
+def run_model_analysis_2D(model:list,savedir:str,PCs:list,bins:list,\
+                          centers:list,ds_to_skip:list,args:dict={}) -> None:
+    
+    df = mio.load_manifest_to_df(verbose=False)
+    pca = mio.load_pca_model(savedir+'outputs/')
+    list_of_datasets = mio.get_list_of_datasets(df)
+    for ds_name in list_of_datasets: 
+        # if we don't want to fit model using this dataset, skip it
+        if ds_name in ds_to_skip:
+            print('**** Skipping dataset',ds_name,'**** \n')
+            continue
+
+        print('**** Running model analysis for dataset',ds_name,'**** \n')
+
+        # project data from this one dataset onto PCs as defined by fit PCA object pca
+        df_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
+
+        # split out data by flow condition
+        df_by_flow, shear_list = rh.get_X_by_flow(df_proj,ds_name,verbose=False)
+        del df_proj # free up memory
+        num_flow = len(shear_list)
+
+        # for extracting just the PCs we want from the dataframe when passing to model analysis
+        feat_cols = [str(i) for i in PCs]
+        
+        for j in range(num_flow): # get bins and centers for data at high and low flow    
+            print('**** Shear stress =',shear_list[j],'dyn/cm^2 **** \n')
+
+            fig1, ax1, fig2, ax2 = run_model_analysis_2D_one_dataset(model,df_by_flow[j],feat_cols,
+                                                                     bins,centers,shear_list[j],args=args)
+            
+            sup_title = fig2._suptitle.get_text()
+            sup_title = ds_name+'\n'+sup_title
+            fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(),y = 1.15)
+            plt.show()
+
+            vb.save_plot(fig1,savedir+'figs/'+ds_name+'_phase_portrait_shear_'+str(shear_list[j]))
+            vb.save_plot(fig2,savedir+'figs/'+ds_name+'_stationary_dist_shear_'+str(shear_list[j]))
