@@ -12,6 +12,7 @@ def plot_fixed_points_by_parameter(fpt_dict:dict,u_range:np.ndarray,plt_lims:lis
             if str(u) in fpt_dict.keys():
                 fpts = fpt_dict[str(u)]['fixed_points']
                 fpt_types = fpt_dict[str(u)]['fixed_point_types']
+                assert len(fpts) == len(fpt_types)
                 if len(fpts) > 0:
                     for i,fpt in enumerate(fpts):
                         if fpt_types[i] == 'stable':
@@ -22,7 +23,6 @@ def plot_fixed_points_by_parameter(fpt_dict:dict,u_range:np.ndarray,plt_lims:lis
                             color = 'tab:purple'
                         else:
                             color = 'darkgoldenrod'
-
                         ax.plot(u,fpt[j],'o',color=color)
                         if 'plt_xlabel' in args:
                             ax.set_xlabel(args['plt_xlabel'])
