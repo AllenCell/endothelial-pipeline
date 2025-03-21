@@ -105,9 +105,12 @@ def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,\
             vb.save_plot(fig1,savedir+'figs/'+ds_name+'_phase_portrait_shear_'+str(shear_list[j]))
             vb.save_plot(fig2,savedir+'figs/'+ds_name+'_stationary_dist_shear_'+str(shear_list[j]))
 
-def get_fixed_points_by_parameter(f, plt_lims, u_range):
+def get_fixed_points_by_shear(f, plt_lims, shear_range):
     # currently only works for 2D systems
-    fpt_dict = {}
+    f1 = model_eval.vector_field_component(f,0)
+    f2 = model_eval.vector_field_component(f,1)
+
+    fpt_dict_list = []
 
     x1_lims = plt_lims[0]
     x2_lims = plt_lims[1]
@@ -117,9 +120,11 @@ def get_fixed_points_by_parameter(f, plt_lims, u_range):
     x1_coarse = np.linspace(x1_lims[0],x1_lims[1],7)
     x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
 
-    for u in u_range:
+    for u in shear_range:
+        f1_ = lambda x1,x2: f1([x1,x2],u)
+        f2_ = lambda x1,x2: f2([x1,x2],u)
         def myFlow(x):
-            return f(x,u=u)
+            return np.array([f1_(x[0],x[1]),f2_(x[0],x[1])])
 
         init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
                     for i in range(len(x1_coarse)) 
@@ -129,18 +134,21 @@ def get_fixed_points_by_parameter(f, plt_lims, u_range):
         fpt_types, fpts_, _ = pplane.classify_fps(myFlow,fpts,[x1,x2],
                                            unique=False,verbose=False) # classify fixed points
 
-        fpt_dict[str(u)] = {}
-        fpt_dict[str(u)]['fixed_points'] = fpts_
-        fpt_dict[str(u)]['fixed_point_types'] = fpt_types
+        fpt_dict = {}
+        fpt_dict['fixed_points'] = fpts_
+        fpt_dict['fixed_point_types'] = fpt_types
+        fpt_dict['shear'] = u
+        fpt_dict_list.append(fpt_dict)
     
-    return fpt_dict
+    return fpt_dict_list
 
 def run_fixed_point_analysis(drift_model, shear_range, plt_args, savedir):
     f = model_eval.vector_field_function(drift_model)
     plt_lims = plt_args['plt_lims']
-    fpt_dict = get_fixed_points_by_parameter(f, plt_lims, shear_range)
-    fig, _ = dviz.plot_fixed_points_by_parameter(fpt_dict,shear_range,plt_lims,ndim=2,args=plt_args)
-    vb.save_plot(fig,savedir+'figs/fixed_points_by_shear.png')
+    fpt_dict_list = get_fixed_points_by_shear(f, plt_lims, shear_range)
+    figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list,shear_range,plt_lims,ndim=2,args=plt_args)
+    for i in range(len(figs)):
+        vb.save_plot(figs[i],savedir+'figs/fixed_points_by_shear_'+str(i)+'.png')
 
 
 def get_epr(model, bins, centers, shear_range, savedir):

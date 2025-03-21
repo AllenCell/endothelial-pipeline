@@ -246,7 +246,7 @@ def phase_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,pa
     fpts = get_fps(myFlow,init_coarse) # get fixed points
 
     if len(fpts) > 0:
-        fpt_types, ax = classify_fps(myFlow,fpts,[x1,x2],ax=ax)
+        fpt_types, _ , ax = classify_fps(myFlow,fpts,[x1,x2],ax=ax)
     else:
         print('No fixed points found.')
         fpt_types = []
@@ -292,7 +292,7 @@ def phase_line(f,x,params=None):
     init_coarse = np.linspace(x[0],x[-1],20)
     fpts = get_fps(myFlow,init_coarse) # get fixed points
     if len(fpts) > 0:
-        fpt_types, ax = classify_fps(myFlow,fpts,x,ndim=1,ax=ax)
+        fpt_types, _ , ax = classify_fps(myFlow,fpts,x,ndim=1,ax=ax)
     else:
         print('No fixed points found.')
         fpt_types = []

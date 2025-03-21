@@ -5,33 +5,39 @@ from scipy.stats import wasserstein_distance_nd as emd
 
 from cellsmap.analyses.utils.viz import viz_base as vb
 
-def plot_fixed_points_by_parameter(fpt_dict:dict,u_range:np.ndarray,plt_lims:list,ndim:int=2,args:dict={}):
+def plot_fixed_points_by_shear(fpt_dict_list:list,shear_range:np.ndarray,plt_lims:list,ndim:int=2,args:dict={}):
+    assert len(fpt_dict_list) == len(shear_range)
+    figs = []
+    axs = []
     for j in range(ndim):
         fig, ax = vb.init_plot()
-        for u in u_range:
-            if str(u) in fpt_dict.keys():
-                fpts = fpt_dict[str(u)]['fixed_points']
-                fpt_types = fpt_dict[str(u)]['fixed_point_types']
-                assert len(fpts) == len(fpt_types)
-                if len(fpts) > 0:
-                    for i,fpt in enumerate(fpts):
-                        if fpt_types[i] == 'stable':
-                            color = 'b'
-                        elif fpt_types[i] == 'unstable':
-                            color = 'r'
-                        elif fpt_types[i] == 'saddle':
-                            color = 'tab:purple'
-                        else:
-                            color = 'darkgoldenrod'
-                        ax.plot(u,fpt[j],'o',color=color)
-                        if 'plt_xlabel' in args:
-                            ax.set_xlabel(args['plt_xlabel'])
-                        if 'plt_ylabel' in args:
-                            ax.set_ylabel(args['plt_ylabel'][j])
+        for i,u in enumerate(shear_range):
+            fpt_dict = fpt_dict_list[i]
+            assert u == fpt_dict['shear']
+            fpts = fpt_dict['fixed_points']
+            fpt_types = fpt_dict['fixed_point_types']
+            assert len(fpts) == len(fpt_types)
+            if len(fpts) > 0:
+                for ii,fpt in enumerate(fpts):
+                    if fpt_types[ii] == 'stable':
+                        color = 'b'
+                    elif fpt_types[ii] == 'unstable':
+                        color = 'r'
+                    elif fpt_types[ii] == 'saddle':
+                        color = 'tab:purple'
+                    else:
+                        color = 'darkgoldenrod'
+                    ax.plot(u,fpt[j],'o',color=color)
+                    if 'plt_xlabel' in args:
+                        ax.set_xlabel(args['plt_xlabel'])
+                    if 'plt_ylabel' in args:
+                        ax.set_ylabel(args['plt_ylabel'][j])
         if 'plt_title' in args:
             ax.set_title(args['plt_title'])
         ax.set_ylim(plt_lims[j])
-    return fig, ax
+        figs.append(fig)
+        axs.append(ax)
+    return figs, axs
 
 def plot_histogram_1D(ax,p_hist,bins,color):
     '''Plot 1D histogram data with specified color.'''
@@ -72,7 +78,7 @@ def compare_stationary_distributions(p_model,p_hist,bins,ndim=2):
         fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
     return fig, ax
 
-def plot_entropy_production_rate(ax,epr,shear_range):
+def plot_entropy_production_rate(epr,shear_range):
     fig, ax = vb.init_plot()
     ax.plot(shear_range,epr,'-o',color='k')
     ax.set_xlabel('Shear stress (dyn/cm$^2$)')
