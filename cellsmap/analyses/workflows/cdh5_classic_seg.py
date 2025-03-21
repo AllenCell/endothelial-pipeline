@@ -31,13 +31,15 @@ from typing import Optional
 #     return out_dir_list, img_metadata
 
 def build_analysis_queue(dataset_name_list: list,
+                         channels: Optional[list[int]]=None,
                          t_start: int=0, t_final: Optional[int]=None, t_step: int=1,
                          overwrite: bool=False, out_dir: Optional[str|Path]=None,
-                         img_bin_level: int=0, magnification: Optional[int]=None,
+                         img_bin_level: int=0,
                          save_output: bool=True, is_test: bool=False, verbose: bool=False,
                          use_original_data=False) -> list:
     """
     Constructs a list of tuples of parameters to pass to generate_results.
+    NOTE THE ARGUMENT 'channels' IS NOT YET IMPLEMENTED.
     """
 
     analysis_queue: list = []
@@ -46,19 +48,21 @@ def build_analysis_queue(dataset_name_list: list,
     for dataset_name in dataset_name_list:
         img_path = Path(dataset_io.get_zarr_path(dataset_name)) if not use_original_data else Path(dataset_io.get_original_path(dataset_name))
         if img_path.exists():
-            if not use_original_data:
+            if use_original_data:
                 img = BioImage(img_path)
             else:
-                img = BioImage(img_path)
+                img_dict = {fp.name: BioImage(fp) for fp in img_path.glob('*.zarr')}
+                img_list = list(img_dict.items())
         else:
             print(f"""No image found for dataset {dataset_name} with use_original_data={use_original_data} \n(filepath = {img_path}). \nSkipping...""")
             continue
 
         num_positions = dataset_io.get_number_of_positions(dataset_name)
+        num_scenes = len(img.scenes) if use_original_data else len(img_list)
 
-        assert num_positions % len(img.scenes) == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}'
-        num_pos_in_T = num_positions // len(img.scenes)
-        num_pos_in_S = len(img.scenes)
+        assert num_positions % num_scenes == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({num_scenes}) in the image file for dataset {dataset_name}'
+        num_pos_in_T = num_positions // num_scenes
+        num_pos_in_S = num_scenes
 
         positions_in_T, positions_in_S = [], []
         for scene_index in range(num_pos_in_S):
@@ -67,20 +71,34 @@ def build_analysis_queue(dataset_name_list: list,
 
         # t_start, t_step, t_final = 0, 1, None
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
-            img.set_scene(pos_in_S)
+            if use_original_data:
+                current_img = img
+                current_img.set_scene(pos_in_S)
+                scene = current_img.current_scene
+            else:
+                scene, current_img = img_list[pos_in_S]
             # print(pos, pos_in_T, pos_in_S)
             # run the workflow on only the 20X datasets
             # print(pos, pos_in_T, pos_in_S)
             # print(sldmd.get_objective_info(img.metadata)['magnification'])
-            if magnification and sldmd.get_objective_info(img.metadata)['magnification'] != magnification:
-                print(f'Dataset{dataset_name}: Position{pos} (scene {img.current_scene}) -- does not use {magnification}X magnification, skipping...')
-                continue
-            else:
-                print(f'Dataset{dataset_name}: Position {pos} (scene {img.current_scene}) -- processing...')
 
-            assert img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
+            print(f'Dataset{dataset_name}: Position {pos} (scene {scene}) -- processing...')
+
+            # if magnification:
+            #     if use_original_data:
+            #         img_metadata = current_img.metadata
+            #     else:
+            #         original_path = dataset_io.get_original_path(dataset_name)
+            #         img_metadata = sldmd.get_sldy_metadata(original_path)
+            #     if sldmd.get_objective_info(img_metadata)['magnification'] != magnification:
+            #         print(f'Dataset{dataset_name}: Position{pos} (scene {scene}) -- does not use {magnification}X magnification, skipping...')
+            #         continue
+            #     else:
+            #         print(f'Dataset{dataset_name}: Position {pos} (scene {scene}) -- processing...')
+
+            assert current_img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({current_img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
             # calculate the duration of the positions in frames (they must all have the same duration)
-            duration_in_frames = t_final if isinstance(t_final, int) else img.dims.T // num_pos_in_T
+            duration_in_frames = t_final if isinstance(t_final, int) else current_img.dims.T // num_pos_in_T
             # correct the t_start, t_final, and t_step values to account for the intercalation of positions with timeframes
             t_start_adjusted = t_start or pos_in_T
             t_step_adjusted = t_step * num_pos_in_T
@@ -104,7 +122,7 @@ def build_analysis_queue(dataset_name_list: list,
 
                 # if t >= t_start_adjusted and t < t_final_adjusted:
                 analysis_queue.append({'dataset_name': dataset_name,
-                                        'scene_index': pos_in_S, #scene,
+                                        'scene': scene,
                                         'position': pos,
                                         'crop': crop,
                                         # 'T': t, # replace this with the crop variable from the old method?
@@ -120,7 +138,7 @@ def build_analysis_queue(dataset_name_list: list,
 
 def generate_results_multiproc_wrapper(args):
     dataset_name = args['dataset_name']
-    scene_indices = (args['scene_index'],)
+    scenes = (args['scene'],)
     crop = args['crop']
     T = crop['T'].start
     img_bin_level = args['img_bin_level']
@@ -128,9 +146,9 @@ def generate_results_multiproc_wrapper(args):
     out_dir = args['output_dir']
     is_test = args['is_test']
     verbose = args['verbose']
-    generate_results(dataset_name, T, scene_indices, img_bin_level, out_dir=out_dir, save_output=save_output, is_test=is_test, verbose=verbose)
+    generate_results(dataset_name, T, scenes, img_bin_level, out_dir=out_dir, save_output=save_output, is_test=is_test, verbose=verbose)
 
-def generate_results(dataset_name, T, scene_indices=None, img_bin_level=0, out_dir=None, save_output=True, verbose=True):
+def generate_results(dataset_name, T, scene_list=None, img_bin_level=0, out_dir=None, save_output=True, verbose=True):
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if verbose else None
@@ -145,15 +163,30 @@ def generate_results(dataset_name, T, scene_indices=None, img_bin_level=0, out_d
     # load the raw image data of from the cadherin channel
     # raw_arr = dataset_io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
+    build_analysis_queue([dataset_name], t_start=T, t_final=T+1, overwrite=False, out_dir=None, img_bin_level=img_bin_level, save_output=False, is_test=False, verbose=False, use_original_data=True)
+
+    original_path = Path(dataset_io.get_original_path(dataset_name))
+    zarr_path = Path(dataset_io.get_zarr_path(dataset_name))
+
+    if zarr_path.exists():
+        img_path = zarr_path
+        img_dict = {fp.name: BioImage(fp) for fp in img_path.glob('*.zarr')}
+        scene_list = scene_list if scene_list else img_dict.keys()
+    else:
+        img_path = original_path
+        img = BioImage(img_path)
+        scene_list = scene_list or img.scenes
+
     dim_map = dataset_io.get_dim_map('TCZYX')
     egfp_index = dataset_io.get_dataset_info(dataset_name)['egfp_channel_index']
-    img_path = dataset_io.get_original_path(dataset_name)
-    img = BioImage(img_path)
-    scene_indices = scene_indices or range(len(img.scenes))
 
-    for scene_index in scene_indices:
-        img.set_scene(scene_index)
-        raw_dask_arr = img.get_image_dask_data('TCZYX', T=T, C=egfp_index)
+    for scene in scene_list:
+        if zarr_path.exists():
+            current_img = img_dict[scene]
+        else:
+            current_img = img
+            current_img.set_scene(scene)
+        raw_dask_arr = current_img.get_image_dask_data('TCZYX', T=T, C=egfp_index)
         raw_arr_MIP = raw_dask_arr.max(axis=dim_map['Z'], keepdims=True).compute()
 
 
@@ -205,7 +238,8 @@ def main(n_proc=1, save_output=True, overwrite=False, is_test=False, verbose=Fal
                              and config_data['live_or_fixed_sample'] == 'live')]
 
     # TODO if possible it would be good to use parallel processing to build analysis_queue
-    analysis_queue = build_analysis_queue(dataset_name_list, t_final=10, overwrite=overwrite, save_output=save_output, is_test=is_test, verbose=verbose, magnification=20, use_original_data=True)
+    dataset_name_list = ['20241016_20X']
+    analysis_queue = build_analysis_queue(dataset_name_list, t_final=10, overwrite=overwrite, save_output=save_output, is_test=is_test, verbose=verbose, use_original_data=False)
     # analysis_args_queue = build_classic_seg_analysis_queue(dataset_name_list, save_output=save_output, is_test=is_test, verbose=verbose)
 
     if n_proc > 1:
