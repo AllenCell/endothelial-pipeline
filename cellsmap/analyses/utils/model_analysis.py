@@ -6,8 +6,6 @@ from cellsmap.analyses.utils import model_eval, regression_helper as rh
 from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
 from cellsmap.analyses.utils.numerics import gen_potential as gp
 
-
-
 def model_data_comparison_one_dataset(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
@@ -40,7 +38,7 @@ def model_data_comparison_one_dataset(model, data, feat_cols, bins, centers, u, 
         ax1.set_xlabel(args['plt_xlabel'])
     if 'plt_ylabel' in args:
         ax1.set_ylabel(args['plt_ylabel'])
-    ax1.set_title('Shear stress = '+str(u)+' dyn/cm^2')
+    ax1.set_title('Shear stress = '+str(u)+' dyn/cm$^2$')
     plt.show()
 
     p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
@@ -96,18 +94,46 @@ def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,\
         feat_cols = [str(i) for i in PCs]
         
         for j in range(num_flow): # get bins and centers for data at high and low flow    
-            print('**** Shear stress =',shear_list[j],'dyn/cm^2 **** \n')
-
             fig1, ax1, fig2, ax2 = model_data_comparison_one_dataset(model,df_by_flow[j],feat_cols,
                                                                      bins,centers,shear_list[j],args=args)
             
             sup_title = fig2._suptitle.get_text()
-            sup_title = ds_name+'\n'+sup_title
+            sup_title = ds_name+', '+str(shear_list[j])+' dyn/cm$^2$ \n'+sup_title
             fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(),y = 1.15)
             plt.show()
 
             vb.save_plot(fig1,savedir+'figs/'+ds_name+'_phase_portrait_shear_'+str(shear_list[j]))
             vb.save_plot(fig2,savedir+'figs/'+ds_name+'_stationary_dist_shear_'+str(shear_list[j]))
+
+def get_fixed_points_by_parameter(f, plt_lims, u_range):
+    # currently only works for 2D systems
+    fpt_dict = {}
+
+    x1_lims = plt_lims[0]
+    x2_lims = plt_lims[1]
+
+    x1 = np.linspace(x1_lims[0],x1_lims[1],50)
+    x2 = np.linspace(x2_lims[0],x2_lims[1],50)
+    x1_coarse = np.linspace(x1_lims[0],x1_lims[1],7)
+    x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
+
+    for u in u_range:
+        def myFlow(x):
+            return f(x,u=u)
+
+        init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
+                    for i in range(len(x1_coarse)) 
+                    for j in range(len(x2_coarse))
+                    ]
+        fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
+        fpt_types, _ = pplane.classify_fps(myFlow,fpts,[x1,x2]) # classify fixed points
+
+        fpt_dict[str(u)] = {}
+        fpt_dict[str(u)]['fixed_points'] = fpts
+        fpt_dict[str(u)]['fixed_point_types'] = fpt_types
+    
+    return fpt_dict
+
 
 def get_epr(model, bins, centers, shear_range, savedir):
     '''Get entropy production rate as a function of shear stress for a fit model object.'''
@@ -118,7 +144,7 @@ def get_epr(model, bins, centers, shear_range, savedir):
     epr = np.zeros(len(shear_range))
     for i,u in enumerate(shear_range):
         # get stationary probability distribution   
-        P = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
+        P = model_eval.get_stationary_probability(f,D,bins,centers,u)
 
         # evaluate drift and diffusion functions at grid points
         f_mesh = model_eval.mesh_grid_function(f)
@@ -135,8 +161,6 @@ def get_epr(model, bins, centers, shear_range, savedir):
 
         epr[i] = gp.entropy_production(J,D_mat,P,centers)
 
-    fig, ax = vb.init_plot()
-    ax.plot(shear_range,epr,'-o',color='k')
-    ax.set_xlabel('Shear stress (dyn/cm$^2$)')
-    ax.set_ylabel('Entropy production rate')
+    fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
+    plt.show()
     vb.save_plot(fig,savedir+'figs/epr')

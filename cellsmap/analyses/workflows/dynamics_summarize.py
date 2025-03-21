@@ -5,7 +5,7 @@ import numdifftools as nd
 from cellsmap.analyses.utils import model_analysis, model_eval, regression_helper as rh
 from cellsmap.analyses.utils.numerics import gen_potential as gp
 from cellsmap.analyses.utils.io import dynamics_io
-from cellsmap.analyses.utils.viz import pplane, dynamics_viz, viz_base as vb
+from cellsmap.analyses.utils.viz import dynamics_viz, viz_base as vb
 
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, ds_to_skip, PCs
 from cellsmap.analyses.configs.dynamics_viz_config import Nbins_plot, bin_limits, plt_args, shear_range
@@ -31,97 +31,25 @@ model_analysis.model_data_comparison(myModel,savedir,PCs,bins,centers,ds_to_skip
 
 
 # %%
-# WRAP THESE INTO FUNCTIONS
+# WRAP THIS INTO FUNCTION?
 # fixed point analysis: plot coordinates of fixed points as a function of shear stress
-u_range = np.linspace(4,30,60)
 
-fpt_dict = {}
-
-x1_lims = plt_args['pplane_xlim']
-x2_lims = plt_args['pplane_ylim']
-
-x1 = np.linspace(x1_lims[0],x1_lims[1],50)
-x2 = np.linspace(x2_lims[0],x2_lims[1],50)
-x1_coarse = np.linspace(x1_lims[0],x1_lims[1],7)
-x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
+fpt_args = {'plt_xlabel':'Shear stress (dyn/cm$^2$)',
+            'plt_ylabel':['PC'+str(PCs[0]+1)+'$^*$','PC'+str(PCs[1]+1)+'$^*$'],
+            'plt_title':'Fixed points by shear stress'}
 
 f = model_eval.vector_field_function(driftModel)
-for u in u_range:
-
-    def myFlow(x):
-        return f(x,u=u)
-    flowJacobian = nd.Jacobian(myFlow)
-
-    init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
-                   for i in range(len(x1_coarse)) 
-                   for j in range(len(x2_coarse))
-                   ]
-    fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
-    fpt_types = []
-    if len(fpts) > 0:
-        for fpt in fpts:
-            fptStability = pplane.find_stability(flowJacobian(fpt))
-            if 'Stable' in fptStability:
-                fpt_types.append('stable')
-            elif 'Unstable' in fptStability:
-                fpt_types.append('unstable')
-            elif 'Saddle' in fptStability:
-                fpt_types.append('saddle')
-            else:
-                fpt_types.append('indeterminate')
-
-    fpts_new = []
-    fpt_types_new = []
-    for fpt in fpts:
-        # if far out of bounds of the plot window, don't report it
-        if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]) or fpt[1]<x2[0]-0.5*abs(x2[0]) or fpt[1]>x2[-1]+0.5*abs(x2[-1]):
-            continue
-        else:
-            fpts_new.append(fpt)
-            fpt_types_new.append(fpt_types[fpts.index(fpt)])
-
-    fpt_dict[str(u)] = {}
-    fpt_dict[str(u)]['fixed_points'] = fpts_new
-    fpt_dict[str(u)]['fixed_point_types'] = fpt_types_new
-
-fpt_stable = []
-u_stable = []
-for j in range(2):
-    fig, ax = vb.init_plot()
-    for u in u_range:
-        if str(u) in fpt_dict.keys():
-            fpts = fpt_dict[str(u)]['fixed_points']
-            fpt_types = fpt_dict[str(u)]['fixed_point_types']
-            if len(fpts) > 0:
-                for i,fpt in enumerate(fpts):
-                    if fpt_types[i] == 'stable':
-                        color = 'b'
-                        fpt_stable.append(fpt)
-                        u_stable.append(u)
-                    elif fpt_types[i] == 'unstable':
-                        color = 'r'
-                    elif fpt_types[i] == 'saddle':
-                        color = 'tab:purple'
-                    else:
-                        color = 'darkgoldenrod'
-
-                    ax.plot(u,fpt[j],'o',color=color)
-                    ax.set_xlabel('Shear stress (dyn/cm^2)')
-                    ax.set_ylabel('PC'+str(PCs[j]+1))
-    ax.set_title('Fixed points by shear stress')
-    if j == 0:
-        ax.set_ylim(x1_lims)
-    else:    
-        ax.set_ylim(x2_lims)
+plt_lims = [plt_args['pplane_xlim'],plt_args['pplane_ylim']]
+fpt_dict = model_analysis.get_fixed_points_by_parameter(f, plt_lims, shear_range)
+fig, ax = dynamics_viz.plot_fixed_points_by_parameter(fpt_dict,shear_range,plt_lims,ndim=2,args=fpt_args)
+vb.save_plot(fig,savedir+'figs/fixed_points_by_shear.png')
 
 # %%
 # entropy production rate as a function of shear stress
-
 model_analysis.get_epr(myModel,bins,centers,shear_range,savedir)
 
-
 # %%
-##### WRAP THIS INTO FUNCTION in thermo_viz.py #####
+##### WRAP THIS INTO FUNCTIONS IN MODEL ANALYSIS #####
 ################### Generalized potential energy landscape ###################
 
 # this should all go in config file
