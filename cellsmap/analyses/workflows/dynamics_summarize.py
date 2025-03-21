@@ -25,12 +25,6 @@ bins, centers = rh.get_bins(Nbins_plot,bin_limits=bin_limits)
 # run comparison of model and data for each dataset
 model_analysis.model_data_comparison(myModel,savedir,PCs,bins,centers,ds_to_skip,plt_args)
 
-#%%
-plt_lims = fpt_args['plt_lims']
-f= model_eval.vector_field_function(driftModel)
-fpt_dict = model_analysis.get_fixed_points_by_parameter(f, plt_lims, shear_range)
-# %%
-
 # %%
 # fixed point analysis: plot coordinates of fixed points as a function of shear stress
 model_analysis.run_fixed_point_analysis(driftModel,shear_range,fpt_args,savedir)
