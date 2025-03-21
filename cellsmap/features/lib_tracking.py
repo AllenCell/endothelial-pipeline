@@ -10,38 +10,7 @@ from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths
 from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
 
 
-## NOTE THIS BLOCK SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
-try:
-    from IPython import get_ipython
-except ModuleNotFoundError:
-    pass
-import fire
-def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = False, *args: Any, **kwargs: Any) -> Any:
-    """
-    Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
-    """
-    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
-    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
-    # some non-interactive shell like bash
-    try:
-        # the following line will return a string if an interactive shell is in use,
-        # otherwise raises NameError since get_ipython is not imported from IPython
-        # or returns None if get_ipython is present but script is being executed
-        # from a non-interactive shell
-        if get_ipython().__class__.__name__ != 'NoneType':
-            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
-            results = function(*args, **kwargs)
-        else: raise NameError
-    except NameError:
-        print('Using non-interactive shell.')
-        results = fire.Fire(function)
-
-    return results if return_results else None
-
-def get_chan_map(filepath: Path) -> dict:
-    img = BioImage(filepath)
-    return {name:index for index, name in enumerate(img.channel_names)}
-
+## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension='*', sorting_function: Optional[Callable] = None):
     if isinstance(filepath, (Path, str)):
         filepath = Path(filepath)

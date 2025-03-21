@@ -5,7 +5,12 @@ import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
-from typing import List, Dict, Any, Union, Tuple
+try:
+    from IPython import get_ipython
+except ModuleNotFoundError:
+    pass
+import fire
+from typing import List, Dict, Any, Union, Tuple, Callable
 
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
@@ -151,3 +156,31 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
+
+
+# Other miscellaneous methods
+def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = False, *args: Any, **kwargs: Any) -> Any:
+    """
+    Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
+    """
+    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # some non-interactive shell like bash
+    try:
+        # the following line will return a string if an interactive shell is in use,
+        # otherwise raises NameError since get_ipython is not imported from IPython
+        # or returns None if get_ipython is present but script is being executed
+        # from a non-interactive shell
+        if get_ipython().__class__.__name__ != 'NoneType':
+            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+            results = function(*args, **kwargs)
+        else: raise NameError
+    except NameError:
+        print('Using non-interactive shell.')
+        results = fire.Fire(function)
+
+    return results if return_results else None
+
+def get_chan_map(filepath: Path) -> dict:
+    img = BioImage(filepath)
+    return {name:index for index, name in enumerate(img.channel_names)}
