@@ -11,7 +11,7 @@ def load_train_test(file_path:str) -> dict:
 
 def save_model(model_dict:dict, savedir:str) -> None:
     '''Save model to file in savedir.'''
-    with open(savedir+'fit_model.pkl', 'wb') as f:
+    with open(savedir+'drift_diffusion_model.pkl', 'wb') as f:
         pickle.dump(model_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 def load_model(file_path:str) -> dict:

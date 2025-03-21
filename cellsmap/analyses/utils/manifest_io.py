@@ -150,6 +150,19 @@ def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=Fals
                 print(get_dataset_name(ds))
     return np.unique(df['dataset_name'].values).tolist()
 
+def save_list_of_datasets(df:pd.DataFrame,savedir:str) -> None:
+    '''Save list of datasets to a text file in savedir.'''
+    list_of_datasets = get_list_of_datasets(df)
+    with open(savedir+'list_of_datasets.txt','w') as f:
+        for ds in list_of_datasets:
+            f.write(ds+'\n')
+
+def load_list_of_datasets(savedir:str) -> list:
+    '''Load list of datasets from text file in savedir.'''
+    with open(savedir+'list_of_datasets.txt','r') as f:
+        list_of_datasets = f.read().splitlines()
+    return list_of_datasets
+
 def get_one_dataset(df:pd.DataFrame,ds_name:str) -> pd.DataFrame:
     '''Get DataFrame corresponding to dataset named ds_name only,
     as identitified by the dataset_name column.'''
