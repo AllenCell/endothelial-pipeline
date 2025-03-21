@@ -200,6 +200,11 @@ def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
     # compute flux term
     flux_term = probability_flux(P,f_vals,D_vals,xArrays)/P
 
+    assert U.__class__ == np.ndarray
+    assert gradient_term.__class__ == np.ndarray
+    assert divD.__class__ == np.ndarray
+    assert flux_term.__class__ == np.ndarray
+
     return U, gradient_term, divD, flux_term
 
 def invert_D(D):

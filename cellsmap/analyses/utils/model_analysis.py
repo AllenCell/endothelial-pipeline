@@ -151,7 +151,7 @@ def run_fixed_point_analysis(drift_model, shear_range, plt_args, savedir):
         vb.save_plot(figs[i],savedir+'figs/fixed_points_by_shear_'+str(i))
 
 
-def get_epr(model, bins, centers, shear_range, savedir):
+def get_epr(model, bins, centers, shear_range):
     '''Get entropy production rate as a function of shear stress for a fit model object.'''
     driftModel = model[0]
     diffModel = model[1]
@@ -176,7 +176,13 @@ def get_epr(model, bins, centers, shear_range, savedir):
         D_mat = gp.expand_to_matrix(D_vals)
 
         epr[i] = gp.entropy_production(J,D_mat,P,centers)
+    return epr
 
+def run_epr_analysis(model, bins, centers, shear_range, savedir):
+    epr = get_epr(model, bins, centers, shear_range, savedir)
     fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
     plt.show()
     vb.save_plot(fig,savedir+'figs/epr')
+
+def run_gen_potential_analysis():
+    return None

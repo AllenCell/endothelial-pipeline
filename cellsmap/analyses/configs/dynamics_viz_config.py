@@ -28,7 +28,7 @@ fpt_args = {'plt_lims':[[pplane_xlim[0],pplane_xlim[1]],[pplane_ylim[0],pplane_y
 
 # plotting args for plotting generalized potential energy landscape
 Nbins_gp = [60 for i in range(ndim)]
-shear_range_gp = np.linspace(5,30,5) # range of shear stresses to consider when plotting generalized potential energy landscape
+shear_range_gp = np.linspace(4,30,15) # range of shear stresses to consider when plotting generalized potential energy landscape
 p_tol = 1e-6 # tolerance for computing stationary probability: zero out probabilities below this value
 
 # plotting args for plotting generalized potential energy landscape
