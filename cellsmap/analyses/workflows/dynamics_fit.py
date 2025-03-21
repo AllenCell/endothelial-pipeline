@@ -1,6 +1,4 @@
 # %%
-import pysindy as ps
-
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import model_fitting
 # import config parameters

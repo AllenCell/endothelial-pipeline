@@ -1,12 +1,15 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from typing import Tuple, Callable
+import pysindy as ps
 
 from cellsmap.analyses.utils.io import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
 from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
 from cellsmap.analyses.utils.numerics import gen_potential as gp
 
-def model_data_comparison_one_dataset(model, data, feat_cols, bins, centers, u, args={}):
+def model_data_comparison_one_dataset(model:list, data:pd.DataFrame, feat_cols:list, bins:list, centers:list, u:float, args:dict={}) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
     f = model_eval.vector_field_function(model[0])
@@ -68,8 +71,7 @@ def model_data_comparison_one_dataset(model, data, feat_cols, bins, centers, u, 
     
     return fig1, ax1, fig2, ax2
 
-def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,\
-                          centers:list,ds_to_skip:list,args:dict={}) -> None:
+def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,centers:list,ds_to_skip:list,args:dict={}) -> None:
     
     df = mio.load_manifest_to_df(verbose=False)
     pca = mio.load_pca_model(savedir+'outputs/')
@@ -105,7 +107,7 @@ def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,\
             vb.save_plot(fig1,savedir+'figs/'+ds_name+'_phase_portrait_shear_'+str(shear_list[j]))
             vb.save_plot(fig2,savedir+'figs/'+ds_name+'_stationary_dist_shear_'+str(shear_list[j]))
 
-def get_fixed_points_by_shear(f, plt_lims, shear_range):
+def get_fixed_points_by_shear(f:Callable, plt_lims:list, shear_range:np.ndarray) -> list[dict]:
     # currently only works for 2D systems
     fpt_dict_list = []
 
@@ -137,7 +139,7 @@ def get_fixed_points_by_shear(f, plt_lims, shear_range):
     
     return fpt_dict_list
 
-def run_fixed_point_analysis(drift_model, shear_range, plt_args, savedir):
+def run_fixed_point_analysis(drift_model:ps.SINDy, shear_range:np.ndarray, plt_args:dict, savedir:str) -> None:
     f = model_eval.vector_field_function(drift_model)
     plt_lims = plt_args['plt_lims']
     fpt_dict_list = get_fixed_points_by_shear(f, plt_lims, shear_range)
@@ -146,7 +148,7 @@ def run_fixed_point_analysis(drift_model, shear_range, plt_args, savedir):
         vb.save_plot(figs[i],savedir+'figs/fixed_points_by_shear_'+str(i))
 
 
-def get_epr(model, bins, centers, shear_range):
+def get_epr(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarray) -> np.ndarray:
     '''Get entropy production rate as a function of shear stress for a fit model object.'''
     driftModel = model[0]
     diffModel = model[1]
@@ -173,13 +175,13 @@ def get_epr(model, bins, centers, shear_range):
         epr[i] = gp.entropy_production(J,D_mat,P,centers)
     return epr
 
-def run_epr_analysis(model, bins, centers, shear_range, savedir):
+def run_epr_analysis(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarray, savedir:str) -> None:
     epr = get_epr(model, bins, centers, shear_range, savedir)
     fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
     plt.show()
     vb.save_plot(fig,savedir+'figs/epr')
 
-def run_gen_potential_analysis(model,bins,centers,shear_range,plt_args,savedir):
+def run_gen_potential_analysis(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarray, plt_args:dict, savedir:str) -> None:
     f = model_eval.vector_field_function(model[0])
     D = model_eval.vector_field_function(model[1])
 
@@ -216,4 +218,3 @@ def run_gen_potential_analysis(model,bins,centers,shear_range,plt_args,savedir):
         fig.suptitle(plt_args['plt_title'], y = 1.0, fontsize=16)
         plt.show()
         vb.save_plot(fig,savedir+'figs/gp_decomp_shear_'+str(ii))
-    return None

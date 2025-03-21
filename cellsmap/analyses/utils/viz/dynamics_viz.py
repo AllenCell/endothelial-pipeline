@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import Tuple
 
 from scipy.stats import wasserstein_distance_nd as emd
 
 from cellsmap.analyses.utils.viz import viz_base as vb
 
-def plot_fixed_points_by_shear(fpt_dict_list:list,shear_range:np.ndarray,plt_lims:list,ndim:int=2,args:dict={}):
+def plot_fixed_points_by_shear(fpt_dict_list:list,shear_range:np.ndarray,plt_lims:list,\
+                               ndim:int=2,args:dict={}) -> Tuple[list[plt.Figure],list[plt.Axes]]:
     assert len(fpt_dict_list) == len(shear_range)
     figs = []
     axs = []
@@ -39,7 +41,7 @@ def plot_fixed_points_by_shear(fpt_dict_list:list,shear_range:np.ndarray,plt_lim
         axs.append(ax)
     return figs, axs
 
-def plot_histogram_1D(ax,p_hist,bins,color):
+def plot_histogram_1D(ax:plt.Axes, p_hist:np.ndarray, bins:np.ndarray, color:str) -> plt.Axes:
     '''Plot 1D histogram data with specified color.'''
     centers = 0.5*(bins[1:]+bins[:-1])
     ax.plot(centers,p_hist,color=color,linewidth=2)
@@ -47,7 +49,7 @@ def plot_histogram_1D(ax,p_hist,bins,color):
     ax.set_ylabel('$P(x)$')
     return ax
 
-def plot_histogram_2D(ax,p_hist,bins,cmap):
+def plot_histogram_2D(ax:plt.Axes, p_hist:np.ndarray, bins:list, cmap:str) -> plt.Axes:
     '''Plot 2D histogram data with specified colormap.'''
     # should label with a title, also add colorbar
     ax.imshow(p_hist.T,interpolation='nearest', origin='lower',
@@ -57,7 +59,7 @@ def plot_histogram_2D(ax,p_hist,bins,cmap):
     ax.set_ylabel('$x_2$')
     return ax
 
-def compare_stationary_distributions(p_model,p_hist,bins,ndim=2):
+def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins, ndim:int=2) -> Tuple[plt.Figure,plt.Axes]:
     if ndim == 2:
         fig,ax = vb.init_subplots(figsize=(12,4))
         ax[0] = plot_histogram_2D(ax[0],p_hist,bins,cmap='inferno') # plot empirical PDF
@@ -78,14 +80,14 @@ def compare_stationary_distributions(p_model,p_hist,bins,ndim=2):
         fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
     return fig, ax
 
-def plot_entropy_production_rate(epr,shear_range):
+def plot_entropy_production_rate(epr:np.ndarray, shear_range:np.ndarray) -> Tuple[plt.Figure,plt.Axes]:
     fig, ax = vb.init_plot()
     ax.plot(shear_range,epr,'-o',color='k')
     ax.set_xlabel('Shear stress (dyn/cm$^2$)')
     ax.set_ylabel('Entropy production rate')
     return fig, ax
 
-def plot_gen_potential_1D(U,xvec):
+def plot_gen_potential_1D(U:np.ndarray, xvec:np.ndarray) -> Tuple[plt.Figure,plt.Axes]:
     '''Plot 1D generalized potential energy landscape with specified color.'''
     fig,ax = vb.init_plot()
     ax.plot(xvec,U,'k-',linewidth=2)
@@ -93,7 +95,7 @@ def plot_gen_potential_1D(U,xvec):
     ax.set_ylabel('$-\ln P(x)$')
     return fig, ax
 
-def plot_gen_potential_2D(U,xvec,yvec,cmap='jet',surf=False):
+def plot_gen_potential_2D(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, cmap:str='jet', surf:bool=False) -> Tuple[plt.Figure,plt.Axes]:
     '''Plot 2D generalized potential energy landscape with specified colormap.'''
     if surf: 
         fig = plt.figure(figsize=plt.figaspect(1/3))
@@ -110,7 +112,8 @@ def plot_gen_potential_2D(U,xvec,yvec,cmap='jet',surf=False):
         fig.colorbar(im,label='$-\ln P$')
     return fig, ax
 
-def plot_grad_flux_decomposition(U,xvec,yvec,grad,flux,cmap='jet',normed=False,downsample=10):
+def plot_grad_flux_decomposition(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, cmap:str='jet', \
+                                 normed:bool=False, downsample:int=10) -> Tuple[plt.Figure,plt.Axes]:
     '''Plot gradient and flux decomposition on 2D generalized potential energy landscape.'''
     fig,ax = plot_gen_potential_2D(U,xvec,yvec,cmap=cmap,surf=False)
     ax.imshow(U.T,interpolation='nearest', origin='lower',

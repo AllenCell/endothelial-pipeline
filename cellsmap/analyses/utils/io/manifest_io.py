@@ -35,7 +35,7 @@ def load_df(file_path:str) -> pd.DataFrame:
     else:
         raise ValueError(f'File extension not supported: {file_path}')
     
-def load_manifest_to_df(verbose=True) -> pd.DataFrame:
+def load_manifest_to_df(verbose:bool=True) -> pd.DataFrame:
     '''Load manifest files of DiffAE model predictions to DataFrame.
     Right now, this is hard-coded to load the manifest files for specific
     datasets. This will be updated in the future once we standardize the

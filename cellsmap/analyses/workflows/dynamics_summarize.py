@@ -1,11 +1,6 @@
 # %%
-import numpy as np
-import numdifftools as nd
-
-from cellsmap.analyses.utils import model_analysis, model_eval, regression_helper as rh
-from cellsmap.analyses.utils.numerics import gen_potential as gp
+from cellsmap.analyses.utils import model_analysis, regression_helper as rh
 from cellsmap.analyses.utils.io import dynamics_io
-from cellsmap.analyses.utils.viz import dynamics_viz, viz_base as vb
 
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, ds_to_skip, PCs
 from cellsmap.analyses.configs.dynamics_viz_config import Nbins_plot, bin_limits, \
@@ -22,7 +17,6 @@ myModel = [driftModel,diffModel]
 # for plotting phase plane and histogram plots, fix grid and bin limits across all datasets
 bins, centers = rh.get_bins(Nbins_plot,bin_limits=bin_limits)
 
-# %%
 # run comparison of model and data for each dataset
 model_analysis.model_data_comparison(myModel,savedir,PCs,bins,centers,ds_to_skip,pplane_args)
 

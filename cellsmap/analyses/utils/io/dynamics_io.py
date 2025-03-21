@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 
-def save_train_test(train_test_dict, savedir) -> None:
+def save_train_test(train_test_dict:dict, savedir:str) -> None:
     '''Save train test data to file in savedir, using numpy savez.'''
     np.savez(savedir+'train_test_data', **train_test_dict)
 

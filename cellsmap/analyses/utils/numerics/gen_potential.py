@@ -1,7 +1,9 @@
 import numpy as np
+from typing import Tuple
+
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
-def generalized_potential(P,grid=None,tol=1e-8):
+def generalized_potential(P:np.ndarray, grid=None, tol:float=1e-8) -> np.ndarray:
     '''
     Compute the generalized potential U = -ln(P) corresponding to 
     stationary probability density P.
@@ -24,7 +26,7 @@ def generalized_potential(P,grid=None,tol=1e-8):
 
     return -np.log(P)
 
-def gradient_flow_term(U,D,xArrays,ndim=2,isConstant=False):
+def gradient_flow_term(U:np.ndarray, D, xArrays:list, ndim:int=2) -> np.ndarray:
     '''
     Compute the gradient flow term -D(x) grad(U) for a given potential U
     and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
@@ -60,7 +62,7 @@ def gradient_flow_term(U,D,xArrays,ndim=2,isConstant=False):
 
     return flow_term
 
-def expand_to_matrix(D_vals):
+def expand_to_matrix(D_vals:np.ndarray) -> np.ndarray:
     """
     Expand the vector-valued function D_vals into the matrix-valued function D_vals.
 
@@ -82,7 +84,7 @@ def expand_to_matrix(D_vals):
     
     return D_mat
 
-def probability_flux(P,f,D,xArrays):
+def probability_flux(P:np.ndarray, f, D, xArrays:list) -> np.ndarray:
     '''
     Compute the probability flux term f(x)P(x) - div(D(x) P(x)) for a given stationary
     probability density P, drift vector field f, and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
@@ -130,7 +132,7 @@ def probability_flux(P,f,D,xArrays):
 
     return fP - divD * P - np.einsum(einsum_str, D_full, grad_P)
 
-def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
+def grad_flux_decomposition(f, D, xArrays:list, ndim:int=2, tol:float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
     Compute the gradient/flux decomposition of the drift vector field f(x) for 
     stochastic dynamics with diagonal diffusion matrix D(x):
@@ -186,7 +188,7 @@ def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
     U = -np.log(P)
 
     # compute gradient flow term
-    gradient_term = gradient_flow_term(U,D_vals,xArrays,ndim=ndim,isConstant=isConstant)
+    gradient_term = gradient_flow_term(U,D_vals,xArrays,ndim=ndim)
 
     # compute divergence of D(x)
     if ndim == 1:
@@ -200,14 +202,9 @@ def grad_flux_decomposition(f,D,xArrays,ndim=2,tol=1e-8,isConstant=False):
     # compute flux term
     flux_term = probability_flux(P,f_vals,D_vals,xArrays)/P
 
-    assert U.__class__ == np.ndarray
-    assert gradient_term.__class__ == np.ndarray
-    assert divD.__class__ == np.ndarray
-    assert flux_term.__class__ == np.ndarray
-
     return U, gradient_term, divD, flux_term
 
-def invert_D(D):
+def invert_D(D:np.ndarray) -> np.ndarray:
     if len(D.shape) == 2:
         return np.linalg.inv(D)
     else:
@@ -227,7 +224,7 @@ def invert_D(D):
         else:
             return D_inv
 
-def entropy_production(J,D,P,x):
+def entropy_production(J:np.ndarray, D:np.ndarray, P:np.ndarray, x:list) -> float:
     ndim = len(x)
     D_inv = invert_D(D)
 
