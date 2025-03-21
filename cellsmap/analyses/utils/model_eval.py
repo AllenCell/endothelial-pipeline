@@ -154,7 +154,9 @@ def get_stationary_probability_fipy(f,D,bins,centers,u,ndim=2,tol=1e-10):
         D = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
 
         eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D,var=p)
-        eq.sweep(var=p)
+        res = 1
+        while res > 1e-10:
+            res = eq.sweep(var=p)
 
         p_fit = p.value.reshape(Nbins[1],Nbins[0])
         C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=1),dx=dx[1])
