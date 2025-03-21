@@ -1,12 +1,7 @@
 # %%
-import numpy as np
-import pandas as pd
-import pysindy as ps
-import numdifftools as nd
-
 from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca, regression_main, dynamics_io
 # import config parameters
-from cellsmap.analyses.configs.dynamics_postproc_config import savedir, PCs, ds_to_skip, Nbins
+from cellsmap.analyses.configs.manifest_postproc_config import savedir, PCs, ds_to_skip, Nbins, dt
 
 # %%
 # make save directory for workflow outputs
@@ -28,8 +23,10 @@ fig, axs = manifest_viz.plot_top_3_PCs_alldata(df,pca)
 manifest_viz.save_plot(fig,filename=savedir+'figs/top_3_PCs',format='.png',dpi=500)
 
 # %%
-train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, ds_to_skip)
+train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, dt, ds_to_skip)
 
 # %%
 dynamics_io.save_train_test(train_test_dict, savedir+'outputs/')
+
+
 # %%

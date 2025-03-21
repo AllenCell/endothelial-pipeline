@@ -87,7 +87,7 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
     return X_list, dX_list, dT_list
 
 
-def KM_avg_ND(X_list,dX_list,dT_list,bins,dt=5):
+def KM_avg_ND(X_list,dX_list,dT_list,bins,dt):
     '''Kramers-Moyal average drift and diffusion estimates for N-dimensional data'''
     ndim = len(bins)
     n = len(X_list) # number of trajectories from which dX was computed
