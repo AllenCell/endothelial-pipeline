@@ -4,6 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 import os
 from pathlib import Path
+import pickle
 
 from cellsmap.util import dataset_io
 from cellsmap.analyses.utils.manifest_pca import get_outliers
@@ -150,19 +151,6 @@ def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=Fals
                 print(get_dataset_name(ds))
     return np.unique(df['dataset_name'].values).tolist()
 
-def save_list_of_datasets(df:pd.DataFrame,savedir:str) -> None:
-    '''Save list of datasets to a text file in savedir.'''
-    list_of_datasets = get_list_of_datasets(df)
-    with open(savedir+'list_of_datasets.txt','w') as f:
-        for ds in list_of_datasets:
-            f.write(ds+'\n')
-
-def load_list_of_datasets(savedir:str) -> list:
-    '''Load list of datasets from text file in savedir.'''
-    with open(savedir+'list_of_datasets.txt','r') as f:
-        list_of_datasets = f.read().splitlines()
-    return list_of_datasets
-
 def get_one_dataset(df:pd.DataFrame,ds_name:str) -> pd.DataFrame:
     '''Get DataFrame corresponding to dataset named ds_name only,
     as identitified by the dataset_name column.'''
@@ -189,6 +177,21 @@ def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
     df['crop_index'] = df.apply(lambda x: pos_to_index(x['start_x'],x['start_y'],
                                                        x['FOV_ID']),axis=1)
     return df
+
+def save_pca_model(pca:Pipeline,savedir:str) -> None:
+    '''Save PCA model to file.'''
+    if not savedir.endswith('/'):
+        savedir += '/'
+    with open(savedir+'pca_model.pkl','wb') as f:
+        pickle.dump(pca,f)
+
+def load_pca_model(savedir:str) -> Pipeline:
+    '''Load PCA model from file.'''
+    if not savedir.endswith('/'):
+        savedir += '/'
+    with open(savedir+'pca_model.pkl','rb') as f:
+        pca = pickle.load(f)
+    return pca
 
 def project_PCA_one_dataset(df:pd.DataFrame,pca:Pipeline,ds_name:str,feat_cols:list=[str(i) for i in range(8)]) -> pd.DataFrame:
     '''Project feature data of crops from one dataset onto principal component axes.'''
