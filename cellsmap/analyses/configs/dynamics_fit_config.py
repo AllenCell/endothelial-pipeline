@@ -1,7 +1,7 @@
 # config parameters for fitting dynamical systems model to manifest data
 import numpy as np
 
-include_sigmoid = True
+include_sigmoid = False
 
 drift_deg = 3
 diff_deg = 0

@@ -188,21 +188,23 @@ def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
     
     return X_train, X_test, Y_train, Y_test, V_train, V_test
 
-def get_stationary_hist(data, bins,ndim=2,frame_index=-100):
+def get_stationary_hist(data:pd.DataFrame,feat_cols:list,bins:list,frame_index=-100):
     '''Get stationary histogram of data, using values 
     at time frame_index and on as the stationary data.'''
+    ndim = len(feat_cols)
+    T_max = data['T'].max()
+    if frame_index < 0:
+        frame_index = T_max + frame_index
 
     if ndim == 2:
-        p_hist, _, _ = np.histogram2d(np.concatenate([data[j][frame_index:,0] for j in range(len(data))]).flatten(),
-                              np.concatenate([data[j][frame_index:,1] for j in range(len(data))]).flatten(), 
-                              bins, density=True)
+        # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
+        p_hist, _, _ = np.histogram2d(data[data['T']>frame_index][feat_cols[0]], 
+                                      data[data['T']>frame_index][feat_cols[1]], bins, density=True)
     elif ndim == 1:
-        p_hist, _ = np.histogram(np.concatenate([data[j][frame_index:] for j in range(len(data))]).flatten(), 
-                                 bins, density=True)
+        p_hist, _ = np.histogram(data[data['T']>frame_index][feat_cols[0]], bins[0], density=True)
     
     else:
-        p_hist, _ = np.histogramdd(np.concatenate([data[j][frame_index:] for j in range(len(data))],axis=0), 
-                                   bins, density=True)
+        raise ValueError('Only 1D or 2D data supported.')
     return p_hist
 
 

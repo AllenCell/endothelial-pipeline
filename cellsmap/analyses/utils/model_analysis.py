@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 
 import cellsmap.analyses.utils.pplane as pplane
 import cellsmap.analyses.utils.model_eval as model_eval
-import cellsmap.analyses.utils.regression_helper as eareg
-import cellsmap.analyses.utils.manifest_viz as eaviz
+import cellsmap.analyses.utils.regression_helper as rh
+import cellsmap.analyses.utils.manifest_viz as mviz
 
-def run_model_analysis_1D(model, data, bins, centers, u, args={}):
+def run_model_analysis_1D(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object.'''
     f = model_eval.scalar_function(model[0])
@@ -31,11 +31,11 @@ def run_model_analysis_1D(model, data, bins, centers, u, args={}):
 
     # get "stationary" distribution from data
     if 'frame_index' in args:
-        p_hist = eareg.get_stationary_hist(data,bins,ndim=1,frame_index=args['frame_index'])
+        p_hist = rh.get_stationary_hist(data,feat_cols,[bins],frame_index=args['frame_index'])
     else:
-        p_hist = eareg.get_stationary_hist(data,bins,ndim=1)
+        p_hist = rh.get_stationary_hist(data,feat_cols,[bins])
 
-    fig2,ax2 = eaviz.compare_stationary_distributions(p_fit,p_hist,bins,ndim=1)
+    fig2,ax2 = mviz.compare_stationary_distributions(p_fit,p_hist,bins,ndim=1)
     if 'plt_xlabel' in args:
         for j in range(2):
             ax2[j].set_xlabel(args['plt_xlabel'])
@@ -44,7 +44,7 @@ def run_model_analysis_1D(model, data, bins, centers, u, args={}):
     return fig1, ax1, fig2, ax2
 
 
-def run_model_analysis_2D(model, data, bins, centers, u, args={}):
+def run_model_analysis_2D(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
     f = model_eval.vector_field_function(model[0])
@@ -81,7 +81,7 @@ def run_model_analysis_2D(model, data, bins, centers, u, args={}):
     p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
 
     # get "stationary" distribution from data
-    p_hist = eareg.get_stationary_hist(data,bins)
+    p_hist = rh.get_stationary_hist(data,feat_cols,bins)
 
     if 'truncate_p' in args:
         truncate_p = args['truncate_p'][0]
@@ -93,9 +93,9 @@ def run_model_analysis_2D(model, data, bins, centers, u, args={}):
         p_fit_ = p_fit[x1_trunc[0]:x1_trunc[1],x2_trunc[0]:x2_trunc[1]]
         p_hist_ = p_hist[x1_trunc[0]:x1_trunc[1],x2_trunc[0]:x2_trunc[1]]
         bins_ = [bins[0][x1_trunc[0]:x1_trunc[1]],bins[1][x2_trunc[0]:x2_trunc[1]]]
-        fig2,ax2 = eaviz.compare_stationary_distributions(p_fit_,p_hist_,bins_)
+        fig2,ax2 = mviz.compare_stationary_distributions(p_fit_,p_hist_,bins_)
     else:
-        fig2,ax2 = eaviz.compare_stationary_distributions(p_fit,p_hist,bins)
+        fig2,ax2 = mviz.compare_stationary_distributions(p_fit,p_hist,bins)
     if 'plt_xlabel' in args:
         for j in range(2):
             ax2[j].set_xlabel(args['plt_xlabel'])
