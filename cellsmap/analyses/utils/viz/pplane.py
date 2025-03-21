@@ -93,7 +93,8 @@ def find_stability(J,ndim=2):
             nature = "Semi-stable"
     return nature
 
-def classify_fps(myFlow,fpts,x,ndim=2,ax=None,verbose=True):
+def classify_fps(myFlow,fpts,x,unique=True,ndim=2,ax=None,verbose=True):
+    fpts_new = []
     fpt_types = []
     if ndim == 1: # 1D system
         if verbose:
@@ -112,19 +113,25 @@ def classify_fps(myFlow,fpts,x,ndim=2,ax=None,verbose=True):
             if 'Stable' in fptStability:
                 if ax is not None:
                     ax.plot(fpt,0,'g.',markersize=15)
-                if 'stable' not in fpt_types:
+                if unique and 'stable' not in fpt_types:
+                    fpt_types.append('stable')
+                elif not unique:
                     fpt_types.append('stable')
             elif 'Unstable' in fptStability: # unstable
                 if ax is not None:
                     ax.plot(fpt,0,'rs',markersize=8)
-                if 'unstable' not in fpt_types:
+                if unique and 'unstable' not in fpt_types:
+                    fpt_types.append('unstable')
+                elif not unique:
                     fpt_types.append('unstable')
             else: # indeterminate
                 if ax is not None:
                     ax.plot(fpt,0,'P',color='tab:purple',markersize=8)
-                if 'semi-stable' not in fpt_types:
+                if unique and 'semi-stable' not in fpt_types:
                     fpt_types.append('semi-stable')
-
+                elif not unique:
+                    fpt_types.append('semi-stable')
+            fpts_new.append(fpt) # build list of only those fixed points that are plotted
     else: # 2D system
         x1,x2 = x
         # define Jacobian as a function of x - for getting stability:
@@ -144,24 +151,34 @@ def classify_fps(myFlow,fpts,x,ndim=2,ax=None,verbose=True):
             if 'Stable' in fptStability:
                 if ax is not None:
                     ax.plot(fpt[0],fpt[1],'g.',markersize=15)
-                if 'stable' not in fpt_types:
+                if unique and 'stable' not in fpt_types:
+                    fpt_types.append('stable')
+                elif not unique:
                     fpt_types.append('stable')
             elif 'Saddle' in fptStability:
                 if ax is not None:
                     ax.plot(fpt[0],fpt[1],'P',color='tab:purple',markersize=8)
-                if 'saddle' not in fpt_types:
+                if unique and 'saddle' not in fpt_types:
+                    fpt_types.append('saddle')
+                elif not unique:
                     fpt_types.append('saddle')
             elif 'Unstable' in fptStability: # unstable
                 if ax is not None:
                     ax.plot(fpt[0],fpt[1],'rs',markersize=8)
-                if 'unstable' not in fpt_types:
+                if unique and 'unstable' not in fpt_types:
+                    fpt_types.append('unstable')
+                elif not unique:
                     fpt_types.append('unstable')
             else: # indeterminate
                 if ax is not None:
                     ax.plot(fpt[0],fpt[1],'p',color='darkgoldenrod',markersize=8)
-                if 'indeterminate' not in fpt_types:
+                if unique and 'indeterminate' not in fpt_types:
                     fpt_types.append('indeterminate')
-    return fpt_types, ax        
+                elif not unique:
+                    fpt_types.append('indeterminate')
+            fpts_new.append(fpt)
+
+    return fpt_types, fpts_new, ax        
 
 def plot_null(ax,f1,f2,x1,x2,params = None):
     X1,X2 = np.meshgrid(x1,x2)

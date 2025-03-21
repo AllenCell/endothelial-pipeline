@@ -8,7 +8,7 @@ from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.viz import dynamics_viz, viz_base as vb
 
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, ds_to_skip, PCs
-from cellsmap.analyses.configs.dynamics_viz_config import Nbins_plot, bin_limits, plt_args, shear_range
+from cellsmap.analyses.configs.dynamics_viz_config import Nbins_plot, bin_limits, plt_args, shear_range, fpt_args
 
 # %%
 # load fitted drift-diffusion model (list of fit SINDy objects)
@@ -21,28 +21,19 @@ myModel = [driftModel,diffModel]
 # for plotting phase plane and histogram plots, fix grid and bin limits across all datasets
 bins, centers = rh.get_bins(Nbins_plot,bin_limits=bin_limits)
 
-# add keys for labeling axes in plots according to the PCs we are interested in
-plt_args['plt_xlabel'] = 'PC'+str(PCs[0]+1)
-plt_args['plt_ylabel'] = 'PC'+str(PCs[1]+1)
-
 # %%
 # run comparison of model and data for each dataset
 model_analysis.model_data_comparison(myModel,savedir,PCs,bins,centers,ds_to_skip,plt_args)
 
+#%%
+plt_lims = fpt_args['plt_lims']
+f= model_eval.vector_field_function(driftModel)
+fpt_dict = model_analysis.get_fixed_points_by_parameter(f, plt_lims, shear_range)
+# %%
 
 # %%
-# WRAP THIS INTO FUNCTION?
 # fixed point analysis: plot coordinates of fixed points as a function of shear stress
-
-fpt_args = {'plt_xlabel':'Shear stress (dyn/cm$^2$)',
-            'plt_ylabel':['PC'+str(PCs[0]+1)+'$^*$','PC'+str(PCs[1]+1)+'$^*$'],
-            'plt_title':'Fixed points by shear stress'}
-
-f = model_eval.vector_field_function(driftModel)
-plt_lims = [plt_args['pplane_xlim'],plt_args['pplane_ylim']]
-fpt_dict = model_analysis.get_fixed_points_by_parameter(f, plt_lims, shear_range)
-fig, ax = dynamics_viz.plot_fixed_points_by_parameter(fpt_dict,shear_range,plt_lims,ndim=2,args=fpt_args)
-vb.save_plot(fig,savedir+'figs/fixed_points_by_shear.png')
+model_analysis.run_fixed_point_analysis(driftModel,shear_range,fpt_args,savedir)
 
 # %%
 # entropy production rate as a function of shear stress

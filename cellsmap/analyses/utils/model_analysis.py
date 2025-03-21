@@ -126,13 +126,21 @@ def get_fixed_points_by_parameter(f, plt_lims, u_range):
                     for j in range(len(x2_coarse))
                     ]
         fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
-        fpt_types, _ = pplane.classify_fps(myFlow,fpts,[x1,x2]) # classify fixed points
+        fpt_types, fpts_, _ = pplane.classify_fps(myFlow,fpts,[x1,x2],
+                                           unique=False,verbose=False) # classify fixed points
 
         fpt_dict[str(u)] = {}
-        fpt_dict[str(u)]['fixed_points'] = fpts
+        fpt_dict[str(u)]['fixed_points'] = fpts_
         fpt_dict[str(u)]['fixed_point_types'] = fpt_types
     
     return fpt_dict
+
+def run_fixed_point_analysis(drift_model, shear_range, plt_args, savedir):
+    f = model_eval.vector_field_function(drift_model)
+    plt_lims = plt_args['plt_lims']
+    fpt_dict = get_fixed_points_by_parameter(f, plt_lims, shear_range)
+    fig, _ = dviz.plot_fixed_points_by_parameter(fpt_dict,shear_range,plt_lims,ndim=2,args=plt_args)
+    vb.save_plot(fig,savedir+'figs/fixed_points_by_shear.png')
 
 
 def get_epr(model, bins, centers, shear_range, savedir):
