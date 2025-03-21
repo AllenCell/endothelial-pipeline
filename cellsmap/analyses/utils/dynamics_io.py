@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+import pickle
 
 def save_train_test(train_test_dict, savedir) -> None:
     '''Save train test data to file in savedir, using numpy savez.'''
@@ -11,8 +11,10 @@ def load_train_test(file_path:str) -> dict:
 
 def save_model(model_dict:dict, savedir:str) -> None:
     '''Save model to file in savedir.'''
-    np.savez(savedir+'drift_diffusion_model',**model_dict)
+    with open(savedir+'fit_model.pkl', 'wb') as f:
+        pickle.dump(model_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 def load_model(file_path:str) -> dict:
     '''Load model from file_path.'''
-    return dict(np.load(file_path, allow_pickle=True))
+    with open(file_path, 'rb') as f:
+        return pickle.load(f)

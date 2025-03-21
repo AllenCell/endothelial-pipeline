@@ -6,6 +6,12 @@ from typing import Tuple
 import cellsmap.util.dataset_io as dio
 import cellsmap.analyses.utils.manifest_io as mio
 
+# suppress RuntimeWarnings that come up - happens when taking the mean of an empty array
+# occurs in KM_avg_ND function for bins with no data points
+# probably a better way to handle this, but for now, suppress warnings
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning) 
+
 def get_bins(Nbins,data=None,bin_limits=None):
     '''Generate histogram bins for the data.'''
     if bin_limits is None: # Automatically determine bins based on data
@@ -79,7 +85,7 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
         X_crop = X[X['crop_index']==crop].sort_values(by='T')
         num_T = X_crop['T'].nunique()
         assert X_crop[feat_cols].values.shape == (num_T,len(feat_cols))
-        dX = np.diff(X_crop[feat_cols].values,axis=1)
+        dX = np.diff(X_crop[feat_cols].values,axis=0)
         dT = np.diff(X_crop['T'].values)
         X_list.append(X_crop[feat_cols].values)
         dX_list.append(dX)

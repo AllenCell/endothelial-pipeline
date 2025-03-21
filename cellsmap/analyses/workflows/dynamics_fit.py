@@ -27,10 +27,6 @@ driftModel.print()
 
 print('Score (R^2) for model of drift term: %f' %drift_R2)
 # %%
-import matplotlib.pyplot as plt
-plt.quiver(train_test_dict['X_test'][:,0],train_test_dict['X_test'][:,1],
-           train_test_dict['Y_test'][:,0],train_test_dict['Y_test'][:,1])
-# %%
 # fit model for diffusion term - SINDy based regression
 diffModel = ps.SINDy(feature_library = diff_lib, optimizer = ps.SSR())
 diffModel.fit(train_test_dict['X_train'],t=5,x_dot=train_test_dict['V_train'],u=train_test_dict['u_train'])
