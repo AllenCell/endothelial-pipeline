@@ -148,7 +148,7 @@ def run_fixed_point_analysis(drift_model, shear_range, plt_args, savedir):
     fpt_dict_list = get_fixed_points_by_shear(f, plt_lims, shear_range)
     figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list,shear_range,plt_lims,ndim=2,args=plt_args)
     for i in range(len(figs)):
-        vb.save_plot(figs[i],savedir+'figs/fixed_points_by_shear_'+str(i)+'.png')
+        vb.save_plot(figs[i],savedir+'figs/fixed_points_by_shear_'+str(i))
 
 
 def get_epr(model, bins, centers, shear_range, savedir):
