@@ -100,8 +100,6 @@ def plot_gen_potential_2D(U,xvec,yvec,cmap='jet',surf=False):
         ax = fig.add_subplot(1,2,1, projection='3d')
         x_, y_ = np.meshgrid(xvec,yvec,indexing='ij')
         surf = ax.plot_surface(x_,y_, U, cmap=cmap)
-        ax.set_xlabel('$x_1$')
-        ax.set_ylabel('$x_2$')
         ax.set_zlabel('$-\ln P$')
         plt.tight_layout()
     else:
@@ -109,7 +107,24 @@ def plot_gen_potential_2D(U,xvec,yvec,cmap='jet',surf=False):
         im = ax.imshow(U.T,interpolation='nearest', origin='lower',
             extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],
             cmap=cmap, aspect=(xvec[-1]-xvec[0])/(yvec[-1]-yvec[0]))
-        ax.set_xlabel('$x_1$')
-        ax.set_ylabel('$x_2$')
         fig.colorbar(im,label='$-\ln P$')
+    return fig, ax
+
+def plot_grad_flux_decomposition(U,xvec,yvec,grad,flux,cmap='jet',normed=False,downsample=10):
+    '''Plot gradient and flux decomposition on 2D generalized potential energy landscape.'''
+    fig,ax = plot_gen_potential_2D(U,xvec,yvec,cmap=cmap,surf=False)
+    ax.imshow(U.T,interpolation='nearest', origin='lower',
+            extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],
+            cmap='jet', aspect=(xvec[-1]-xvec[0])/(yvec[-1]-yvec[0]))
+    if normed:
+        grad = grad/(np.sqrt(grad[0]**2+grad[1]**2))
+        flux = flux/(np.sqrt(flux[0]**2+flux[1]**2))
+
+    x_ = xvec[::downsample]
+    y_ = yvec[::downsample]
+    grad_ = grad[:,::downsample,::downsample]
+    flux_ = flux[:,::downsample,::downsample]
+
+    ax.quiver(x_,y_,grad_[0].T,grad_[1].T,color='w',pivot='tail')
+    ax.quiver(x_,y_,flux_[0].T,flux_[1].T,color='r',pivot='tail')
     return fig, ax
