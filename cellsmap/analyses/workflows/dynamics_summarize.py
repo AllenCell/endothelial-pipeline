@@ -42,41 +42,5 @@ bins_gp, centers_gp = rh.get_bins(Nbins_gp,bin_limits=bin_limits)
 
 # plot generalized potential energy landscape for each shear stress specified in shear_range_gp
 model_analysis.run_gen_potential_analysis(myModel,bins_gp,centers_gp,shear_range_gp,gp_args,savedir)
-# %%
-X1,X2 = np.meshgrid(*centers_gp)
-
-f = model_eval.vector_field_function(driftModel)
-D = model_eval.vector_field_function(diffModel)
-
-f_mesh = model_eval.mesh_grid_function(f)
-D_mesh = model_eval.mesh_grid_function(D)
-
-for ii, u in enumerate(shear_range_gp):
-
-    p_fit = model_eval.get_stationary_probability(f,D,bins_gp,centers_gp,u,tol=p_tol)
-    U= -np.log(p_fit)
-
-    fig,ax = dynamics_viz.plot_gen_potential_2D(U,centers_gp[0],centers_gp[1],cmap='jet',surf=False)
-    ax.set_xlabel(gp_args['plt_xlabel'])
-    ax.set_ylabel(gp_args['plt_ylabel'])
-    ax.set_title(gp_args['plt_title'])
-    fig.suptitle('Shear stress: '+str(u)+' dyn/cm$^2$', y = 1.05, fontsize=16)
-    vb.save_plot(fig,savedir+'figs/gp_shear_'+str(ii))
-
-    f_vals = f_mesh([X1,X2],u).T
-    D_vals = D_mesh([X1,X2],u).T
-
-    _, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers_gp,tol=gp_args['p_tol'])
-    flux_term = np.array(flux_term)
-
-    fig,ax = dynamics_viz.plot_grad_flux_decomposition(U,centers_gp[0],centers_gp[1],
-                                                       grad_term,flux_term,
-                                                       cmap='jet',normed=gp_args['normed'],
-                                                       downsample=gp_args['downsample'])
-    ax.set_xlabel(gp_args['plt_xlabel'])
-    ax.set_ylabel(gp_args['plt_ylabel'])
-    ax.set_title('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$')
-    fig.suptitle(gp_args['plt_title'], y = 0.8, fontsize=16)
-    vb.save_plot(fig,savedir+'figs/gp_decomp_shear_'+str(ii))
 
 # %%

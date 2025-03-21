@@ -193,8 +193,8 @@ def run_gen_potential_analysis(model,bins,centers,shear_range,plt_args,savedir):
         fig,ax = dviz.plot_gen_potential_2D(U,centers[0],centers[1],cmap=plt_args['cmap'],surf=False)
         ax.set_xlabel(plt_args['plt_xlabel'])
         ax.set_ylabel(plt_args['plt_ylabel'])
-        ax.set_title(plt_args['plt_title'])
-        fig.suptitle('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$', y = 1.0, fontsize=16)
+        ax.set_title('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$')
+        fig.suptitle(plt_args['plt_title'], y = 1.0, fontsize=16)
         plt.show()
         vb.save_plot(fig,savedir+'figs/gp_shear_'+str(ii))
 
@@ -212,7 +212,8 @@ def run_gen_potential_analysis(model,bins,centers,shear_range,plt_args,savedir):
                                                         downsample=plt_args['downsample'])
         ax.set_xlabel(plt_args['plt_xlabel'])
         ax.set_ylabel(plt_args['plt_ylabel'])
-        ax.set_title(plt_args['plt_title'])
-        fig.suptitle('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$', y = 1.0, fontsize=16)
+        ax.set_title('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$')
+        fig.suptitle(plt_args['plt_title'], y = 1.0, fontsize=16)
+        plt.show()
         vb.save_plot(fig,savedir+'figs/gp_decomp_shear_'+str(ii))
     return None
