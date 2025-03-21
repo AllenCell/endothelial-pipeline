@@ -7,13 +7,14 @@ pplane_xlim = [-4,4]
 bin_xlim = [-5,5]
 
 pplane_ylim = [-3.5,2.5]
-bin_ylim = [-4,3]
+bin_ylim = [-4,3.5]
 
 # fix bins and centers for all datasets using bin limits defined above
-Nbins_plot = [50 for i in range(2)]
+ndim = len(PCs)
+Nbins_plot = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
 
-plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
+pplane_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
             'plt_xlabel':'PC'+str(PCs[0]+1),'plt_ylabel':'PC'+str(PCs[1]+1),
             'truncate_p':[True,[0,Nbins_plot[0]-0],[0,Nbins_plot[1]-0]]}
 
@@ -25,3 +26,12 @@ fpt_args = {'plt_lims':[[pplane_xlim[0],pplane_xlim[1]],[pplane_ylim[0],pplane_y
             'plt_ylabel':['PC'+str(PCs[0]+1)+'$^*$','PC'+str(PCs[1]+1)+'$^*$'],
             'plt_title':'Fixed points by shear stress'}
 
+# plotting args for plotting generalized potential energy landscape
+Nbins_gp = [60 for i in range(ndim)]
+shear_range_gp = np.linspace(5,30,5) # range of shear stresses to consider when plotting generalized potential energy landscape
+p_tol = 1e-6 # tolerance for computing stationary probability: zero out probabilities below this value
+
+# plotting args for plotting generalized potential energy landscape
+gp_args = {'downsample':10, 
+           'plt_xlabel':'PC'+str(PCs[0]+1),'plt_ylabel':'PC'+str(PCs[1]+1),
+           'plt_title':'Generalized potential energy landscape'}
