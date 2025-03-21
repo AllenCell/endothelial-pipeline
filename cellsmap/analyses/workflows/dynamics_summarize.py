@@ -2,11 +2,13 @@
 import numpy as np
 import numdifftools as nd
 
-from cellsmap.analyses.utils import dynamics_io, manifest_io, model_analysis, manifest_viz, model_eval, pplane
-from cellsmap.analyses.utils import gen_potential as gp
+from cellsmap.analyses.utils import model_analysis, model_eval
+from cellsmap.analyses.utils.numerics import gen_potential as gp
+from cellsmap.analyses.utils.io import dynamics_io, manifest_io
 import cellsmap.analyses.utils.regression_helper as rh
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, ds_to_skip, PCs
 from cellsmap.analyses.configs.dynamics_viz_config import Nbins_plot, bin_limits, pplane_xlim, pplane_ylim
+from cellsmap.analyses.utils.viz import manifest_viz, dynamics_viz, pplane
 
 # %%
 model_dict = dynamics_io.load_model(savedir+'outputs/drift_diffusion_model.pkl')
@@ -147,7 +149,7 @@ ax.set_title('Stable fixed points by shear stress')
 # %%
 # WRAP THIS INTO FUNCTION
 # entropy production rate as a function of shear stress
-u_range = np.linspace(6,35,40) 
+u_range = np.linspace(4,30,40) 
 
 D = model_eval.vector_field_function(diffModel)
 epr = np.zeros(len(u_range))
@@ -183,7 +185,7 @@ centers_fine = [0.5*(x_fine[1:]+x_fine[:-1]),
                 0.5*(y_fine[1:]+y_fine[:-1])]
 X1,X2 = np.meshgrid(centers_fine[0],centers_fine[1])
 # %%
-u = 25
+u = 5.5 # shear stress
 
 tol = 1e-6
 

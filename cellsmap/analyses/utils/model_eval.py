@@ -1,5 +1,5 @@
 import numpy as np
-import cellsmap.analyses.utils.fp_solvers as fps
+import cellsmap.analyses.utils.numerics.fp_solvers as fps
 import fipy
 
 

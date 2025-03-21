@@ -1,7 +1,9 @@
 # %%
-from cellsmap.analyses.utils import manifest_viz, manifest_io, manifest_pca, regression_main, dynamics_io
+from cellsmap.analyses.utils import manifest_pca, regression_main
 # import config parameters
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, PCs, ds_to_skip, Nbins, dt
+from cellsmap.analyses.utils.io import dynamics_io, manifest_io
+from cellsmap.analyses.utils.viz import manifest_viz
 
 # %%
 # make save directory for workflow outputs

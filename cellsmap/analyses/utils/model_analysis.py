@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import cellsmap.analyses.utils.pplane as pplane
+import cellsmap.analyses.utils.viz.pplane as pplane
 import cellsmap.analyses.utils.model_eval as model_eval
 import cellsmap.analyses.utils.regression_helper as rh
-import cellsmap.analyses.utils.manifest_viz as mviz
+import cellsmap.analyses.utils.viz.manifest_viz as mviz
 
 def run_model_analysis_1D(model, data, feat_cols, bins, centers, u, args={}):
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
