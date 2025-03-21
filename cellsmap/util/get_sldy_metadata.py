@@ -326,7 +326,7 @@ def sldy_metadata_to_df(sldy_filepath: str|Path, save_path: Optional[str|Path]=N
     metadata_df = pd.DataFrame(metadata_table)
 
     if save_path:
-        metadata_df.to_tsv(save_path, sep='\t', index=False)
+        metadata_df.to_csv(save_path, sep='\t', index=False)
 
     return metadata_df
 
