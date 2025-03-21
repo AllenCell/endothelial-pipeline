@@ -8,16 +8,15 @@ model_dict = dynamics_io.load_model(savedir+'outputs/drift_diffusion_model.pkl')
 driftModel = model_dict['driftModel']
 diffModel = model_dict['diffModel']
 # %%
-list_of_datasets = manifest_io.get_list_of_datasets(savedir+'outputs/manifest.csv')
-for my_mv in list_of_datasets: 
-    mv_name = manifest_io.get_dataset_name(my_mv)
+list_of_datasets = manifest_io.load_list_of_datasets(savedir+'outputs/')
 
+for ds_name in list_of_datasets: 
     # if we don't want to fit model using this dataset, skip it
-    if mv_name in ds_to_skip:
-        print('**** Skipping dataset',mv_name,'**** \n')
+    if ds_name in ds_to_skip:
+        print('**** Skipping dataset',ds_name,'**** \n')
         continue
 
-    print('**** Running model analysis for dataset',mv_name,'**** \n')
+    print('**** Running model analysis for dataset',ds_name,'**** \n')
 
     # project data from this one dataset onto PCs as defined by fit PCA object pca
     df_proj = manifest_io.project_PCA_one_dataset(df,pca,'group',my_mv)

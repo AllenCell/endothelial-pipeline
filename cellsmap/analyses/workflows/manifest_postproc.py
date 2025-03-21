@@ -11,8 +11,8 @@ manifest_io.make_savedir(savedir)
 df = manifest_io.load_manifest_to_df()
 # fit PCA to data
 df, pca = manifest_pca.fit_pca(df, num_pcs=8)
-# save out list of datasets present in manifest as a text file
-manifest_io.save_list_of_datasets(df, savedir+'outputs/')
+# save out PCA object (need later for analysis and summary of fit dynamical systems model)
+manifest_io.save_pca_model(pca, savedir+'outputs/')
 #%%
 # plot explained variance ratio of PCA components
 fig, ax = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
