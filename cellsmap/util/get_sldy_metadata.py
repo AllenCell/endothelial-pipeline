@@ -1,5 +1,4 @@
 from bioio import BioImage
-import bioio_sldy, bioio_nd2, bioio_ome_zarr
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -7,14 +6,7 @@ from cellsmap.util.dataset_io import get_available_datasets, get_dataset_info, g
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
 from typing import Literal, Optional
 from tqdm import tqdm
-from fire import Fire
 
-def get_reader(filename_or_filepath: Path|str):
-    available_readers = {'.sldy': bioio_sldy.Reader,
-                         '.nd2': bioio_nd2.Reader,
-                         '.zarr': bioio_ome_zarr.Reader}
-    reader = available_readers[Path(filename_or_filepath).suffix]
-    return reader
 
 def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=False):
     '''
@@ -91,7 +83,7 @@ def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=
 
 def get_sldy_metadata(filepath: Path, scene_index: int = 0):# -> dict:
     """Returns the metadata from a .sldy file which is a series of nested dictionaries."""
-    img = BioImage(filepath, reader=get_reader(filepath))
+    img = BioImage(filepath)
     img.set_scene(scene_index)
     return img.metadata
 
@@ -269,15 +261,16 @@ def get_time_intervals(sldy_metadata: dict, units='msec') -> dict[str, float]:
     time_intervals = {chan: float(t / conversion_factors[units]) for chan, t in time_intervals.items()}
     return time_intervals
 
-def sldy_metadata_to_df(sldy_filepath: str|Path, save_path: Optional[Path]=None):
-    """Creates a dataframe from some of the metadata from a .sldy file as a csv file."""
+def sldy_metadata_to_df(sldy_filepath: str|Path, save_path: Optional[str|Path]=None):
+    """Creates a dataframe from some of the metadata from a .sldy file
+    and saves it as a tsv file if "save_path" is provided."""
 
     # Create an empty list to hold the rows of data
     metadata_table = []
 
     # Load the metadata from the .sldy file
     sldy_filepath = Path(sldy_filepath)
-    img = BioImage(sldy_filepath, reader=get_reader(sldy_filepath))
+    img = BioImage(sldy_filepath)
     for scene in img.scenes:
         img.set_scene(scene)
         sldy_metadata = img.metadata
@@ -337,9 +330,19 @@ def sldy_metadata_to_df(sldy_filepath: str|Path, save_path: Optional[Path]=None)
 
     return metadata_df
 
-def all_sldy_metadata_to_tsv(save_dir: str|Path = '//allen/aics/users/serge.parent/cellsmap_sandbox/get_sldy_metadata', verbose: bool = True):
-    """This function will save the metadata for all of our .sldy files currently listed
-    in the cellsmap repos config_data.yaml file as a single tsv file."""
+def all_sldy_metadata_to_tsv(save_dir: Optional[str|Path] = None, verbose: bool = True):
+    """
+    This function will save the metadata for all of our .sldy files
+    currently listed in the cellsmap repos config_data.yaml file as a
+    single tsv file.
+    If no save_dir is provided then the metadata will be saved in the
+    tests/results folder of the top-level cellsmap folder.
+    """
+
+    # define the output directory if none was given
+    if not save_dir:
+        prj_dir = Path(__file__).parents[2]
+        save_dir = prj_dir / 'tests/results'
 
     # Get the name of all the datasets and then filter out datasets
     # that aren't from the 3i microscope
@@ -366,13 +369,17 @@ def all_sldy_metadata_to_tsv(save_dir: str|Path = '//allen/aics/users/serge.pare
     return
 
 def get_test_of_metadata():
+    """
+    Constructs a nested dictionary that can be used as a
+    minimal example of the sldy metadata file structure.
+    To see the keys in the nested dictionary:
+    [x for x in md_keys]
+    """
     md_test = {'a': {'b': {'c1': {'d1': 1, 'd2': 2, 'd3': 3},
                         'c2': {'e1': 1, 'e2': 2, 'e3': 3},},},
             'aa': {'bb': {'cc': {'dd1': 1, 'dd2': 2, 'dd3': 3}}},
             'aaa': {'bbb': {'ccc': {'ddd1': 1, 'ddd2': 2, 'ddd3': 3}}}}
     md_keys = [x for x in get_nested_keys(md_test, ls=[], iterable_size_limit=10, check_for_lists=True)]
-    # To see the keys in the nested dictionary:
-    # [x for x in md_keys]
     return md_test, md_keys
 
 def get_example_metadata():
