@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.analyses.utils import manifest_io as mio
+from cellsmap.analyses.utils.io import manifest_io as mio
 from cellsmap.analyses.utils import regression_helper as rh
 
 def build_kramers_moyal_train_test(df:pd.DataFrame, pca:Pipeline, PCs:list, Nbins:list, dt:float, ds_to_skip:list, train_frac:float=0.8) -> None:

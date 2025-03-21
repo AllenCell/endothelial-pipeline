@@ -1,7 +1,7 @@
 # %%
 import pysindy as ps
 
-from cellsmap.analyses.utils import dynamics_io
+from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import model_fitting
 # import config parameters
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, PCs
