@@ -1,5 +1,9 @@
 # %%
-from cellsmap.analyses.utils import dynamics_io, manifest_io, model_analysis
+import numpy as np
+import numdifftools as nd
+
+from cellsmap.analyses.utils import dynamics_io, manifest_io, model_analysis, manifest_viz, model_eval, pplane
+from cellsmap.analyses.utils import gen_potential as gp
 import cellsmap.analyses.utils.regression_helper as rh
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, ds_to_skip, PCs
 from cellsmap.analyses.configs.dynamics_viz_config import Nbins_plot, bin_limits, pplane_xlim, pplane_ylim
@@ -18,6 +22,7 @@ plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 
             'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1),
             'truncate_p':[True,[0,Nbins_plot[0]-0],[0,Nbins_plot[1]-0]]}
 # %%
+# WRAP THIS INTO FUNCTION
 df = manifest_io.load_manifest_to_df()
 list_of_datasets = manifest_io.get_list_of_datasets(df)
 pca = manifest_io.load_pca_model(savedir+'outputs/')
@@ -46,5 +51,186 @@ for ds_name in list_of_datasets:
 
         plot_tuple = model_analysis.run_model_analysis_2D(myModel,df_by_flow[j],feat_cols,bins,centers,shear_list[j],args=plt_args)
 
+
+# %%
+# WRAP THESE INTO FUNCTIONS
+# fixed point analysis: plot coordinates of fixed points as a function of shear stress
+u_range = np.linspace(0,35,20)
+
+fpt_dict = {}
+
+x1_lims = plt_args['pplane_xlim']
+x2_lims = plt_args['pplane_ylim']
+
+x1 = np.linspace(x1_lims[0],x1_lims[1],50)
+x2 = np.linspace(x2_lims[0],x2_lims[1],50)
+x1_coarse = np.linspace(x1_lims[0],x1_lims[1],7)
+x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
+
+f = model_eval.vector_field_function(driftModel)
+for u in u_range:
+
+    def myFlow(x):
+        return f(x,u=u)
+    flowJacobian = nd.Jacobian(myFlow)
+
+    init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
+                   for i in range(len(x1_coarse)) 
+                   for j in range(len(x2_coarse))
+                   ]
+    fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
+    fpt_types = []
+    if len(fpts) > 0:
+        for fpt in fpts:
+            fptStability = pplane.find_stability(flowJacobian(fpt))
+            if 'Stable' in fptStability:
+                fpt_types.append('stable')
+            elif 'Unstable' in fptStability:
+                fpt_types.append('unstable')
+            elif 'Saddle' in fptStability:
+                fpt_types.append('saddle')
+            else:
+                fpt_types.append('indeterminate')
+
+    fpts_new = []
+    fpt_types_new = []
+    for fpt in fpts:
+        # if far out of bounds of the plot window, don't report it
+        if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]) or fpt[1]<x2[0]-0.5*abs(x2[0]) or fpt[1]>x2[-1]+0.5*abs(x2[-1]):
+            continue
+        else:
+            fpts_new.append(fpt)
+            fpt_types_new.append(fpt_types[fpts.index(fpt)])
+
+    fpt_dict[str(u)] = {}
+    fpt_dict[str(u)]['fixed_points'] = fpts_new
+    fpt_dict[str(u)]['fixed_point_types'] = fpt_types_new
+
+fpt_stable = []
+u_stable = []
+for j in range(2):
+    fig, ax = manifest_viz.init_plot()
+    for u in u_range:
+        if str(u) in fpt_dict.keys():
+            fpts = fpt_dict[str(u)]['fixed_points']
+            fpt_types = fpt_dict[str(u)]['fixed_point_types']
+            if len(fpts) > 0:
+                for i,fpt in enumerate(fpts):
+                    if fpt_types[i] == 'stable':
+                        color = 'b'
+                        fpt_stable.append(fpt)
+                        u_stable.append(u)
+                    elif fpt_types[i] == 'unstable':
+                        color = 'r'
+                    elif fpt_types[i] == 'saddle':
+                        color = 'tab:purple'
+                    else:
+                        color = 'darkgoldenrod'
+
+                    ax.plot(u,fpt[j],'o',color=color)
+                    ax.set_xlabel('Shear stress (dyn/cm^2)')
+                    ax.set_ylabel('PC'+str(PCs[j]+1))
+# %%
+# plot stable fixed points as a colored by shear stress value
+fig, ax = manifest_viz.init_plot()
+u_stable = np.array(u_stable)
+fpt_stable = np.array(fpt_stable)
+im = ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
+            c=u_stable[1:-7],cmap='bwr',edgecolors='k')
+
+ax.set_xlabel('PC'+str(PCs[0]+1))
+ax.set_ylabel('PC'+str(PCs[1]+1))
+fig.colorbar(im, ax= ax, label='dyn/cm$^2$')
+ax.set_title('Stable fixed points by shear stress')
+
+
+# %%
+# WRAP THIS INTO FUNCTION
+# entropy production rate as a function of shear stress
+u_range = np.linspace(6,35,40) 
+
+D = model_eval.vector_field_function(diffModel)
+epr = np.zeros(len(u_range))
+for u in u_range:   
+    P = model_eval.get_stationary_probability(f,D,bins,centers,u)
+    f_mesh = model_eval.mesh_grid_function(f)
+    D_mesh = model_eval.mesh_grid_function(D)
+
+    X1,X2 = np.meshgrid(centers[0],centers[1])
+    f_vals = f_mesh([X1,X2],u).T
+    D_vals = D_mesh([X1,X2],u).T
+
+    J = gp.probability_flux(P,f_vals,D_vals,centers)
+    D_mat = gp.expand_to_matrix(D_vals)
+
+    epr[u_range.tolist().index(u)] = gp.entropy_production(J,D_mat,P,centers)
+
+fig, ax = manifest_viz.init_plot()
+ax.plot(u_range,epr,'-o',color='k')
+ax.set_xlabel('Shear stress (dyn/cm$^2$)')
+ax.set_ylabel('Entropy production rate')
+
+# %%
+##### WRAP THIS INTO FUNCTION #####
+################### Generalized potential energy landscape ###################
+    
+N_fine = 60
+
+x_fine = np.linspace(-4,4.5,N_fine+1)
+y_fine = np.linspace(-3,3.5,N_fine+1)
+bins_fine = [x_fine,y_fine]
+centers_fine = [0.5*(x_fine[1:]+x_fine[:-1]),
+                0.5*(y_fine[1:]+y_fine[:-1])]
+X1,X2 = np.meshgrid(centers_fine[0],centers_fine[1])
+# %%
+u = 25
+
+tol = 1e-6
+
+f = model_eval.vector_field_function(driftModel)
+D = model_eval.vector_field_function(diffModel)
+
+f_mesh = model_eval.mesh_grid_function(f)
+D_mesh = model_eval.mesh_grid_function(D)
+
+f_vals_new = f_mesh([X1,X2],u).T
+D_vals_new = D_mesh([X1,X2],u).T
+
+p_fit = model_eval.get_stationary_probability(f,D,bins_fine,centers_fine,u,tol=tol)
+U= -np.log(p_fit)
+
+print('**** Plotting generalized potential energy landscape **** \n')
+
+fig,ax = manifest_viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],cmap='jet',surf=False)
+ax.set_xlabel('PC'+str(PCs[0]+1))
+ax.set_ylabel('PC'+str(PCs[1]+1))
+ax.set_title('Shear stress: '+str(u)+' dyn/cm$^2$')
+
+# %%
+# same but with vector field decomposition
+normed = False # if True, normalize vectors by their magnitudes
+
+_, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals_new,D_vals_new,centers_fine,tol=tol)
+grad_ = grad_term.copy()
+flux_ = np.array(flux_term)
+if normed:
+    grad_ = grad_/(np.sqrt(grad_[0]**2+grad_[1]**2))
+    flux_ = flux_/(np.sqrt(flux_[0]**2+flux_[1]**2))
+
+fig,ax = manifest_viz.plot_gen_potential_2D(U,centers_fine[0],centers_fine[1],
+                                   cmap='jet',surf=False)
+downsample=10
+ax.quiver(centers_fine[0][::downsample],
+          centers_fine[1][::downsample],
+          grad_[0][::downsample,::downsample].T,
+          grad_[1][::downsample,::downsample].T,
+          color='w',pivot='tail')
+ax.quiver(centers_fine[0][::downsample],
+          centers_fine[1][::downsample],
+          flux_[0][::downsample,::downsample].T,
+          flux_[1][::downsample,::downsample].T,
+          color='r',pivot='tail')
+ax.set_xlabel('PC'+str(PCs[0]+1))
+ax.set_ylabel('PC'+str(PCs[1]+1))
 
 # %%
