@@ -1,14 +1,14 @@
 import numpy as np
 import pysindy as ps
-from typing import Iterable
+from typing import Callable
 
-def make_sigmoid(n):
+def make_sigmoid(n:int) -> Callable:
     # callable function for adding sigmoid functions to SINDy library
     def _(x):
         return 1/(1+np.exp(-n*x))
     return _
 
-def make_sigmoid_string(n):
+def make_sigmoid_string(n:int) -> Callable:
     # string representation of sigmoid function
     def _(x):
         return '1/(1+exp(-'+str(n)+'*'+x+')'

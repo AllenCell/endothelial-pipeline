@@ -1,4 +1,3 @@
-from pathlib import Path
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -12,7 +11,7 @@ def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
   Z = 3/2. * X - 0.6
   return Z > Y
 
-def get_outliers(data: pd.DataFrame):
+def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     # find outlier crops
     data['outlier'] = simple_linear_classifier(data['1'], data['4'])
     return data

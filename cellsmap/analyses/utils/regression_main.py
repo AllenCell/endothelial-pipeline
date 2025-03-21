@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
+from typing import Tuple
 
 from cellsmap.analyses.utils.io import manifest_io as mio
 from cellsmap.analyses.utils import regression_helper as rh
@@ -63,7 +64,8 @@ def build_kramers_moyal_train_test(df:pd.DataFrame, pca:Pipeline, PCs:list, Nbin
 
     return out_dict
 
-def kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac):
+def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame, ds_name:str, PCs:list, Nbins:list, \
+                                         dt:float, train_frac:float) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     # for extracting just the axes (specified via PCs) we want from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components, we want to extract columns '0' and '1'
     feat_cols = [str(i) for i in PCs]
@@ -84,7 +86,7 @@ def kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train
         bins, centers = rh.get_bins(Nbins,data=X_list)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
-        f_KM_, D_KM_, f_err_, D_err_ = rh.KM_avg_ND(X_list,dX_list,dT_list,bins,dt)
+        f_KM_, D_KM_, _, _ = rh.KM_avg_ND(X_list,dX_list,dT_list,bins,dt)
 
         # remove NaNs from drift and diffusion estimates (bins with no data), get corresponding bin centers as well
         f_KM_noNAN, X_pts_, = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)

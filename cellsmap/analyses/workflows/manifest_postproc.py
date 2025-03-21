@@ -3,10 +3,10 @@ from cellsmap.analyses.utils import manifest_pca, regression_main
 # import config parameters
 from cellsmap.analyses.configs.manifest_postproc_config import savedir, PCs, ds_to_skip, Nbins, dt
 from cellsmap.analyses.utils.io import dynamics_io, manifest_io
-from cellsmap.analyses.utils.viz import manifest_viz
+from cellsmap.analyses.utils.viz import manifest_viz, viz_base as vb
 
 # %%
-# make save directory for workflow outputs
+# make save directory for workflow outputs (set in config file manifest_postproc_config.py)
 manifest_io.make_savedir(savedir)
 # %%
 # load manifest to DataFrame with metadata
@@ -18,11 +18,11 @@ manifest_io.save_pca_model(pca, savedir+'outputs/')
 #%%
 # plot explained variance ratio of PCA components
 fig, ax = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
-manifest_viz.save_plot(fig,filename=savedir+'figs/explained_variance_ratio',format='.png',dpi=500)
+vb.save_plot(fig,filename=savedir+'figs/explained_variance_ratio',format='.png',dpi=500)
 # %%
 # plot top 3 principal components of feature data vs. frame number
 fig, axs = manifest_viz.plot_top_3_PCs_alldata(df,pca)
-manifest_viz.save_plot(fig,filename=savedir+'figs/top_3_PCs',format='.png',dpi=500)
+vb.save_plot(fig,filename=savedir+'figs/top_3_PCs',format='.png',dpi=500)
 
 # %%
 train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, dt, ds_to_skip)

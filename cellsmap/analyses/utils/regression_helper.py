@@ -12,7 +12,7 @@ import cellsmap.analyses.utils.io.manifest_io as mio
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
-def get_bins(Nbins,data=None,bin_limits=None):
+def get_bins(Nbins:list,data=None,bin_limits=None) -> Tuple[list,list]:
     '''Generate histogram bins for the data.'''
     if bin_limits is None: # Automatically determine bins based on data
         if data is None:
@@ -93,7 +93,7 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
     return X_list, dX_list, dT_list
 
 
-def KM_avg_ND(X_list,dX_list,dT_list,bins,dt):
+def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     '''Kramers-Moyal average drift and diffusion estimates for N-dimensional data'''
     ndim = len(bins)
     n = len(X_list) # number of trajectories from which dX was computed
@@ -149,7 +149,7 @@ def KM_avg_ND(X_list,dX_list,dT_list,bins,dt):
 
     return f_KM_avg, D_KM_avg, f_err, D_err
 
-def masked_vector_field(F,X):
+def masked_vector_field(F:np.ndarray, X:np.ndarray) -> Tuple[np.ndarray,np.ndarray]:
     '''Mask out the vector field F defined over points X 
     where F(X) is NaN'''
     mask = np.where(np.isfinite(F))
@@ -158,7 +158,8 @@ def masked_vector_field(F,X):
     F_mask = F[mask].reshape((-1,ndim))
     return F_mask, X_mask
 
-def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
+def train_test_all(X:list[np.ndarray], F:list[np.ndarray], D:list[np.ndarray], num_flow:int, \
+                   train_frac:float=0.8, seed:int=47, concat:bool=False) -> tuple:
     '''Split data for different flow conditions into training and testing sets (80/20 by default)'''
     X_train = []
     X_test = []
@@ -177,8 +178,7 @@ def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
         V_train.append(V_train_temp)
         V_test.append(V_test_temp)
 
-    # concatenate lists into arrays (one train/test set for all flow conditions)
-    if concat:
+    if concat: # concatenate all data into one array, one train/test for all flow conditions
         X_train = np.concatenate(X_train)
         X_test = np.concatenate(X_test)
         Y_train = np.concatenate(Y_train)
@@ -188,7 +188,7 @@ def train_test_all(X,F,D,num_flow,train_frac=0.8,seed=47,concat=False):
     
     return X_train, X_test, Y_train, Y_test, V_train, V_test
 
-def get_stationary_hist(data:pd.DataFrame,feat_cols:list,bins:list,frame_index=-100):
+def get_stationary_hist(data:pd.DataFrame, feat_cols:list, bins:list, frame_index:int=-100) -> np.ndarray:
     '''Get stationary histogram of data, using values 
     at time frame_index and on as the stationary data.'''
     ndim = len(feat_cols)
