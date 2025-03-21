@@ -1,10 +1,8 @@
 # %% Import libraries
 from pathlib import Path
-import importlib
-import flow_calculator
+from cellsmap.analyses.flow import flow_calculator
 import concurrent
 from pandas import DataFrame
-importlib.reload(flow_calculator)
 from matplotlib.gridspec import GridSpec
 
 # %% Make list of datasets to analzye
