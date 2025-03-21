@@ -93,18 +93,19 @@ def find_stability(J,ndim=2):
             nature = "Semi-stable"
     return nature
 
-def classify_fps(myFlow,fpts,x,ndim=2,ax=None):
-    # separate classification and plotting of fixed points?
+def classify_fps(myFlow,fpts,x,ndim=2,ax=None,verbose=True):
     fpt_types = []
     if ndim == 1: # 1D system
-        print('Fixed points:')
+        if verbose:
+            print('Fixed points:')
         flowDerivative = nd.Derivative(myFlow)
         for fpt in fpts:
             # if far out of bounds of the plot window, don't report it
             if fpt[0]<x[0]-0.5*abs(x[0]) or fpt[0]>x[-1]+0.5*abs(x[-1]):
                 continue
             fptStability = find_stability(flowDerivative(fpt),ndim=1)
-            print('  • '+fptStability+" at x = %5.3f" % fpt)
+            if verbose:
+                print('  • '+fptStability+" at x = %5.3f" % fpt)
             # if out of bounds of the plot window, don't plot it
             if fpt[0]<x[0] or fpt[0]>x[-1]:
                 continue
@@ -128,13 +129,15 @@ def classify_fps(myFlow,fpts,x,ndim=2,ax=None):
         x1,x2 = x
         # define Jacobian as a function of x - for getting stability:
         flowJacobian = nd.Jacobian(myFlow)
-        print('Fixed points:')
+        if verbose:
+            print('Fixed points:')
         for fpt in fpts:
             # if far out of bounds of the plot window, don't report it
             if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]) or fpt[1]<x2[0]-0.5*abs(x2[0]) or fpt[1]>x2[-1]+0.5*abs(x2[-1]):
                 continue
             fptStability = find_stability(flowJacobian(fpt))
-            print('  • '+fptStability+" at x = (%5.3f,%5.3f)" % (fpt[0],fpt[1]))
+            if verbose:
+                print('  • '+fptStability+" at x = (%5.3f,%5.3f)" % (fpt[0],fpt[1]))
             # if out of bounds of the plot window, don't plot it
             if fpt[0]<x1[0] or fpt[0]>x1[-1] or fpt[1]<x2[0] or fpt[1]>x2[-1]:
                 continue
