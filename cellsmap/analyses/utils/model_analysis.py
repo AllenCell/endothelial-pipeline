@@ -107,9 +107,6 @@ def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,\
 
 def get_fixed_points_by_shear(f, plt_lims, shear_range):
     # currently only works for 2D systems
-    f1 = model_eval.vector_field_component(f,0)
-    f2 = model_eval.vector_field_component(f,1)
-
     fpt_dict_list = []
 
     x1_lims = plt_lims[0]
@@ -121,10 +118,8 @@ def get_fixed_points_by_shear(f, plt_lims, shear_range):
     x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
 
     for u in shear_range:
-        f1_ = lambda x1,x2: f1([x1,x2],u)
-        f2_ = lambda x1,x2: f2([x1,x2],u)
         def myFlow(x):
-            return np.array([f1_(x[0],x[1]),f2_(x[0],x[1])])
+            return f(x,u)
 
         init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
                     for i in range(len(x1_coarse)) 
@@ -184,5 +179,40 @@ def run_epr_analysis(model, bins, centers, shear_range, savedir):
     plt.show()
     vb.save_plot(fig,savedir+'figs/epr')
 
-def run_gen_potential_analysis():
+def run_gen_potential_analysis(model,bins,centers,shear_range,plt_args,savedir):
+    f = model_eval.vector_field_function(model[0])
+    D = model_eval.vector_field_function(model[1])
+
+    f_mesh = model_eval.mesh_grid_function(f)
+    D_mesh = model_eval.mesh_grid_function(D)
+
+    for ii, u in enumerate(shear_range):
+        p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u,tol=plt_args['p_tol'])
+        U= -np.log(p_fit)
+
+        fig,ax = dviz.plot_gen_potential_2D(U,centers[0],centers[1],cmap=plt_args['cmap'],surf=False)
+        ax.set_xlabel(plt_args['plt_xlabel'])
+        ax.set_ylabel(plt_args['plt_ylabel'])
+        ax.set_title(plt_args['plt_title'])
+        fig.suptitle('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$', y = 1.0, fontsize=16)
+        plt.show()
+        vb.save_plot(fig,savedir+'figs/gp_shear_'+str(ii))
+
+        f_vals = f_mesh(np.meshgrid(*centers),u).T
+        D_vals = D_mesh(np.meshgrid(*centers),u).T
+
+        _, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers,tol=plt_args['p_tol'])
+        if flux_term.__class__ != np.ndarray: 
+            flux_term = np.array(flux_term)
+
+        fig,ax = dviz.plot_grad_flux_decomposition(U,centers[0],centers[1],
+                                                        grad_term,flux_term,
+                                                        cmap=plt_args['cmap'],
+                                                        normed=plt_args['normed'],
+                                                        downsample=plt_args['downsample'])
+        ax.set_xlabel(plt_args['plt_xlabel'])
+        ax.set_ylabel(plt_args['plt_ylabel'])
+        ax.set_title(plt_args['plt_title'])
+        fig.suptitle('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$', y = 1.0, fontsize=16)
+        vb.save_plot(fig,savedir+'figs/gp_decomp_shear_'+str(ii))
     return None
