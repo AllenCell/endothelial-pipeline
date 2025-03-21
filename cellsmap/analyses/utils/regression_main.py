@@ -77,7 +77,6 @@ def kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train
     X_pts = []
 
     for j in range(num_flow):
-        print('**** Shear stress condition:',shear_list[j],'dyn/cm^2 ****')
         # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
         X_list, dX_list, dT_list = rh.get_X_dX_and_dT(df_by_flow[j],feat_cols=feat_cols)
 
