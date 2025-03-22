@@ -45,6 +45,7 @@ def run_model_analysis_1D(model, data, bins, centers, u, args={}):
 
 
 def run_model_analysis_2D(model, data, bins, centers, u, args={}):
+    # make all of these key word arguments with default values
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
     f = model_eval.vector_field_function(model[0])
