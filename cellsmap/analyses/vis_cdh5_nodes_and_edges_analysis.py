@@ -239,7 +239,14 @@ def generate_alignment_plots(out_path, filename_stem, timepoint, angles, distanc
     plt.close('all') if not SHOW_PLOTS else None
 
 
-def compare_metrics_temporal_colorcode(df: pd.DataFrame, x: str=None, y: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SHOW_PLOTS=False, SAVE_OUTPUT=False):
+def compare_metrics_temporal_colorcode(df: pd.DataFrame, 
+                                       x: str | None = None, 
+                                       y: str | None = None, 
+                                       semilog=False, 
+                                       out_path: Path | None= None, 
+                                       filename_stem: str | None= None, 
+                                       SHOW_PLOTS=False, 
+                                       SAVE_OUTPUT=False):
     fig, ax = plt.subplots(figsize=(6,6))
     sns.scatterplot(data=df, x=x, y=y,
                     marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
@@ -261,10 +268,16 @@ def compare_metrics_temporal_colorcode(df: pd.DataFrame, x: str=None, y: str=Non
     #                 linewidth=0, size=1, legend=False, zorder=10, ax=ax)
     # if SAVE_OUTPUT:
     #     fig.savefig(out_path / (filename_stem + f'_{x}_vs_{y}.pdf'))
-    plt.close('all') if not SHOW_PLOTS else None
+    # plt.close('all') if not SHOW_PLOTS else None
 
 
-def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, x: str=None, y: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SHOW_PLOTS=False, SAVE_OUTPUT=False):
+def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, 
+                                             x: str | None=None, 
+                                             y: str | None=None, 
+                                             out_path: Path | None=None, 
+                                             filename_stem: str | None=None, 
+                                             SHOW_PLOTS=False, 
+                                             SAVE_OUTPUT=False):
     fig, ax = plt.subplots(figsize=(6,6), subplot_kw={'projection': 'polar'})
     sns.scatterplot(data=df, x=x, y=y,
                     marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
