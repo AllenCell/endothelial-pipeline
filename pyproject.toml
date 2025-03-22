@@ -76,6 +76,8 @@ module = [
     "cyto_dl.utils",
     "fipy",
     "kramersmoyal",
+    "matplotlib",
+    "matplotlib.gridspec",
     "pysindy",
     "scipy",
     "scipy.sparse",
