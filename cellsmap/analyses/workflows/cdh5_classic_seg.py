@@ -146,9 +146,10 @@ def generate_results_multiproc_wrapper(args):
     out_dir = args['output_dir']
     is_test = args['is_test']
     verbose = args['verbose']
-    generate_results(dataset_name, T, scenes, img_bin_level, out_dir=out_dir, save_output=save_output, is_test=is_test, verbose=verbose)
+    use_original_data = args['use_original_data']
+    generate_results(dataset_name, T, scenes, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, is_test=is_test, verbose=verbose)
 
-def generate_results(dataset_name, T, scene_list=None, img_bin_level=0, out_dir=None, save_output=True, verbose=True):
+def generate_results(dataset_name, T, scene_list=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, verbose=True):
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if verbose else None
@@ -163,31 +164,30 @@ def generate_results(dataset_name, T, scene_list=None, img_bin_level=0, out_dir=
     # load the raw image data of from the cadherin channel
     # raw_arr = dataset_io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
-    build_analysis_queue([dataset_name], t_start=T, t_final=T+1, overwrite=False, out_dir=None, img_bin_level=img_bin_level, save_output=False, is_test=False, verbose=False, use_original_data=True)
-
-    original_path = Path(dataset_io.get_original_path(dataset_name))
-    zarr_path = Path(dataset_io.get_zarr_path(dataset_name))
-
-    if zarr_path.exists():
-        img_path = zarr_path
-        img_dict = {fp.name: BioImage(fp) for fp in img_path.glob('*.zarr')}
-        scene_list = scene_list if scene_list else img_dict.keys()
-    else:
+    if use_original_data:
+        original_path = Path(dataset_io.get_original_path(dataset_name))
         img_path = original_path
         img = BioImage(img_path)
         scene_list = scene_list or img.scenes
+    else:
+        zarr_path = Path(dataset_io.get_zarr_path(dataset_name))
+        img_path = zarr_path
+        img_dict = {fp.name: BioImage(fp) for fp in img_path.glob('*.zarr')}
+        scene_list = scene_list if scene_list else img_dict.keys()
 
     dim_map = dataset_io.get_dim_map('TCZYX')
     egfp_index = dataset_io.get_dataset_info(dataset_name)['egfp_channel_index']
 
     for scene in scene_list:
-        if zarr_path.exists():
-            current_img = img_dict[scene]
-        else:
+        if use_original_data:
             current_img = img
             current_img.set_scene(scene)
+        else:
+            current_img = img_dict[scene]
+            current_img.set_resolution_level(img_bin_level)
+
         raw_dask_arr = current_img.get_image_dask_data('TCZYX', T=T, C=egfp_index)
-        raw_arr_MIP = raw_dask_arr.max(axis=dim_map['Z'], keepdims=True).compute()
+        raw_arr_MIP = raw_dask_arr.max(axis=dim_map['Z'], keepdims=True).compute().squeeze()
 
 
         print(f'T={T} -- preprocessing image') if verbose else None
@@ -203,28 +203,32 @@ def generate_results(dataset_name, T, scene_list=None, img_bin_level=0, out_dir=
         if save_output:
             # save images for validation
             print(f'T={T} -- saving image input and output overlays') if verbose else None
-            val_path = val_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
-            Path.mkdir(val_dir / dataset_name, exist_ok=True, parents=True)
-            images_out = [raw_arr, processed_img, hyst_clean, seg2_lab, seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds]
-            images_out_metadata = {'image_name': dataset_name,
-                                'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
-                                'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
-                                'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
-                                'dim_order': 'YX'
-                                }
-            preproc.save_image_output(val_path, images_out, images_out_metadata)
-
-            # save just the cdh5 segmentations
+            # val_path = val_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
+            # Path.mkdir(val_dir / dataset_name, exist_ok=True, parents=True)
             out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
             Path.mkdir(seg_dir / dataset_name, exist_ok=True, parents=True)
-            images_out = [seg2_lab_no_mask_merge,]
+            images_out = [raw_arr_MIP, processed_img, hyst_clean, seg2_lab, seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds]
             images_out_metadata = {'image_name': dataset_name,
-                                'channel_names': ['segmentations_merged'], 
-                                'channel_colors': [(255,255,255),],
-                                'physical_pixel_sizes': img_metadata['physical_pixel_sizes'],
-                                'dim_order': 'YX'
-                                }
+                                   'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
+                                   'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
+                                   'physical_pixel_sizes': current_img.physical_pixel_sizes, #img_metadata['physical_pixel_sizes'],
+                                   'dim_order': 'YX',
+                                   'dtype': None,
+                                   }
+            # preproc.save_image_output(val_path, images_out, images_out_metadata)
             preproc.save_image_output(out_path, images_out, images_out_metadata)
+
+            # # save just the cdh5 segmentations
+            # out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
+            # Path.mkdir(seg_dir / dataset_name, exist_ok=True, parents=True)
+            # images_out = [seg2_lab_no_mask_merge,]
+            # images_out_metadata = {'image_name': dataset_name,
+            #                     'channel_names': ['segmentations_merged'], 
+            #                     'channel_colors': [(255,255,255),],
+            #                     'physical_pixel_sizes': current_img.physical_pixel_sizes, #img_metadata['physical_pixel_sizes'],
+            #                     'dim_order': 'YX'
+            #                     }
+            # preproc.save_image_output(out_path, images_out, images_out_metadata)
         else:
             pass
 
@@ -235,11 +239,12 @@ def main(n_proc=1, save_output=True, overwrite=False, is_test=False, verbose=Fal
     dataset_name_list = [config_data['name']
                          for config_data in dataset_io.load_config(config_type='data')
                          if (config_data['microscope'] == '3i'
-                             and config_data['live_or_fixed_sample'] == 'live')]
+                             and config_data['live_or_fixed_sample'] == 'live')
+                             and 'AICS-126' in config_data['cell_lines']]
 
     # TODO if possible it would be good to use parallel processing to build analysis_queue
-    dataset_name_list = ['20241016_20X']
-    analysis_queue = build_analysis_queue(dataset_name_list, t_final=10, overwrite=overwrite, save_output=save_output, is_test=is_test, verbose=verbose, use_original_data=False)
+    # dataset_name_list = ['20241016_20X']
+    analysis_queue = build_analysis_queue(dataset_name_list, overwrite=overwrite, save_output=save_output, is_test=is_test, verbose=verbose, use_original_data=True)
     # analysis_args_queue = build_classic_seg_analysis_queue(dataset_name_list, save_output=save_output, is_test=is_test, verbose=verbose)
 
     if n_proc > 1:
