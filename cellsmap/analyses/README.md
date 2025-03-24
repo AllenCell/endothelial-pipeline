@@ -16,24 +16,24 @@ Working directory: head of `cellsmap` repository
 
 
 `pdm run cellsmap/analyses/workflows/manifest_postproc.py`
-- Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
-- Get one time step displacements of crops over time, train/test split for fitting drift ($\mathbf{f}(\mathbf{x})$) and diffusion ($\mathbf{D}(\mathbf{x})$) coefficients from these displacements.
+* Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
+* Get one time step displacements of crops over time, train/test split for fitting drift ($\mathbf{f}(\mathbf{x})$) and diffusion ($\mathbf{D}(\mathbf{x})$) coefficients from these displacements.
 
 `pdm run cellsmap/analyses/workflows/dynamics_fit.py`
-- Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
+* Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
 
 `pdm run cellsmap/analyses/workflows/dynamics_summarize.py`
-- Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
+* Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
 $$ \frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t) $$
-    - Phase portrait for shear stress values (control parameter of fit model) present in the data
-    - Comparison of "stationary" histogram of the data and predicted stationary distribution for the SDE model
-    - Fixed points and stability as a function of shear stress (quasi bifurcation diagram)
-    - Entropy production rate as a function of shear stress
-    - Generalized potential energy ("landscape") $U = -ln P$ for various values of shear stress
+    * Phase portrait for shear stress values (control parameter of fit model) present in the data
+    * Comparison of "stationary" histogram of the data and predicted stationary distribution for the SDE model
+    * Fixed points and stability as a function of shear stress (quasi bifurcation diagram)
+    * Entropy production rate as a function of shear stress
+    * Generalized potential energy ("landscape") $U = -ln P$ for various values of shear stress
 
 
 ### Acessing and interpreting outputs
 Set output directory via `cellsmap/analyses/configs/manifest_postproc.py`
-- `outputs` subdirectory: fit PCA model (`sklearn.pipeline.Pipeline` object), train/test sets for displacement vectors, and fit drift and diffusion functions (`pysindy.SINDy` object)
-- `figs` subdirectory: summary figures for data, PCA, and SDE model
+* `outputs` subdirectory: fit PCA model (`sklearn.pipeline.Pipeline` object), train/test sets for displacement vectors, and fit drift and diffusion functions (`pysindy.SINDy` object)
+* `figs` subdirectory: summary figures for data, PCA, and SDE model
 
