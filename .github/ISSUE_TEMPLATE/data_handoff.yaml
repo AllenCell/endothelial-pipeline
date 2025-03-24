@@ -108,14 +108,15 @@ body:
   validations:
     required: false
 
-- type: checkboxes
+- type: dropdown
   attributes:
     label: Experimental conditions
     description: Labels to annotate the dataset with
+    multiple: false
     options:
-      - label: fixed
-      - label: live cell snapshot
-      - label: timelapse
+      - fixed
+      - live cell snapshot
+      - timelapse
 
 - type: dropdown
   attributes:
