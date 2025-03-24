@@ -113,6 +113,7 @@ def plot_gen_potential_2D(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, cmap:s
     return fig, ax
 
 def plot_grad_flux_decomposition(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, grad, flux, cmap:str='jet', \
+
                                  normed:bool=False, downsample:int=10) -> Tuple[plt.Figure,plt.Axes]:
     '''Plot gradient and flux decomposition on 2D generalized potential energy landscape.'''
     fig,ax = plot_gen_potential_2D(U,xvec,yvec,cmap=cmap,surf=False)
