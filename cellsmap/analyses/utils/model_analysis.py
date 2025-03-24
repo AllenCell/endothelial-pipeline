@@ -44,7 +44,7 @@ def model_data_comparison_one_dataset(model:list, data:pd.DataFrame, feat_cols:l
     ax1.set_title('Shear stress = '+str(u)+' dyn/cm$^2$')
     plt.show()
 
-    p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,centers,u)
+    p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
 
     # get "stationary" distribution from data
     p_hist = rh.get_stationary_hist(data,feat_cols,bins)
@@ -181,7 +181,8 @@ def run_epr_analysis(model:list[ps.SINDy], bins:list, centers:list, shear_range:
     plt.show()
     vb.save_plot(fig,savedir+'figs/epr')
 
-def run_gen_potential_analysis(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarray, plt_args:dict, savedir:str) -> None:
+def run_gen_potential_analysis(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarray, \
+     plt_args:dict, savedir:str) -> None:
     f = model_eval.vector_field_function(model[0])
     D = model_eval.vector_field_function(model[1])
 
@@ -189,7 +190,14 @@ def run_gen_potential_analysis(model:list[ps.SINDy], bins:list, centers:list, sh
     D_mesh = model_eval.mesh_grid_function(D)
 
     for ii, u in enumerate(shear_range):
-        p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u=u,tol=plt_args['p_tol'])
+        if 'use_fipy' in plt_args:
+            use_fipy = plt_args['use_fipy']
+        else:
+            use_fipy = False
+        if use_fipy:
+            p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u,tol=plt_args['p_tol'])
+        else:
+            p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u=u,tol=plt_args['p_tol'])
         U= -np.log(p_fit)
 
         fig,ax = dviz.plot_gen_potential_2D(U,centers[0],centers[1],cmap=plt_args['cmap'],surf=False)
