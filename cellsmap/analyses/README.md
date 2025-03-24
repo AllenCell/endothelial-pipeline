@@ -24,7 +24,7 @@ Working directory: head of `cellsmap` repository
 
 `pdm run cellsmap/analyses/workflows/dynamics_summarize.py`
 - Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
-$$ \frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t)
+$$ \frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t) $$
     - Phase portrait for shear stress values (control parameter of fit model) present in the data
     - Comparison of "stationary" histogram of the data and predicted stationary distribution for the SDE model
     - Fixed points and stability as a function of shear stress (quasi bifurcation diagram)
