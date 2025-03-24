@@ -29,3 +29,5 @@ train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, N
 
 # %%
 dynamics_io.save_train_test(train_test_dict, savedir+'outputs/')
+
+# %%
