@@ -48,22 +48,6 @@ body:
   validations:
     required: true
 
-- type: textarea
-  attributes:
-    label: Goal
-    description: What is the purpose of this experiment? 
-    placeholder: 1 - 3 sentences or bullets describing the purpose for the experiment. 
-  validations:
-    required: true
-
-- type: textarea
-  attributes:
-    label: Notes
-    description: Is there anything we should know about this data before we analyze it? Did you observe any issues during the experiment?
-    placeholder: description
-  validations:
-    required: true
-
 - type: dropdown
   attributes:
     label: Cell line(s)
@@ -76,29 +60,21 @@ body:
   validations:
     required: true
 
-- type: input
+- type: textarea
   attributes:
-    label: Flow history
-    description: What was the flow history of the cells before imaging? How long were they in flow? 
-    placeholder: no flow, flow started X minutes before imaging. 
+    label: Goal
+    description: What is the purpose of this experiment? 
+    placeholder: 1 - 3 sentences or bullets describing the purpose for the experiment. 
   validations:
     required: true
 
-- type: input
+- type: textarea
   attributes:
-    label: Initial flow rate
-    description: What was the flow rate at the start of imaging
-    placeholder: dyn/cm2
+    label: Notes
+    description: Is there anything we should know about this data before we analyze it? Did you observe any issues during the experiment?
+    placeholder: What do we need to know about this data? Where there any known issues? 
   validations:
     required: true
-
-- type: input
-  attributes:
-    label: Flow rate change
-    description: Was the flow rate changed? If so, what was the flow rate and between which frames was it changed?
-    placeholder: dyn/cm2, between frames X and Y
-  validations:
-    required: false
 
 - type: checkboxes
   attributes:
@@ -108,6 +84,40 @@ body:
       - label: fixed
       - label: live cell snapshot
       - label: timelapse
+      - label: paired
+
+- type: input
+  attributes:
+    label: Paired dataset
+    description: Was this a paired dataset? If so, what is the date and FMSID of the paired dataset?
+    placeholder: DATE FMSID
+  validations:
+    required: false
+
+- type: input
+  attributes:
+    label: Flow history
+    description: What was the flow history of the cells before imaging? How long were they in flow? 
+    placeholder: no flow, flow started X minutes before imaging. 
+  validations:
+    required: false
+
+- type: input
+  attributes:
+    label: Initial flow rate
+    description: What was the flow rate at the start of imaging
+    placeholder: dyn/cm2
+  validations:
+    required: false
+
+- type: input
+  attributes:
+    label: Flow rate change
+    description: Was the flow rate changed? If so, what was the flow rate and between which frames was it changed?
+    placeholder: dyn/cm2, between frames X and Y
+  validations:
+    required: false
+
 
 - type: dropdown
   attributes:
