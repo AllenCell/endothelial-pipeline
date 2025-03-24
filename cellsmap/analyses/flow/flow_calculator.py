@@ -1,22 +1,20 @@
 import pickle
-import concurrent
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-# import statsmodels.api as statm
 import matplotlib.pyplot as plt
 from matplotlib import gridspec as gs
 from skimage import registration as skreg
 from skimage.draw import circle_perimeter
 from skimage.filters import gaussian
 from sklearn.decomposition import PCA
-from matplotlib.backends.backend_agg import FigureCanvas
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from pathlib import Path
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from bioio_base.types import PhysicalPixelSizes
-
 from cellsmap.util import dataset_io
+from matplotlib.projections.polar import PolarAxes
 
 def expand_crop_region(crop_region, padding):
     crop_region = tuple(crop if isinstance(crop, slice) else slice(*crop) for crop in crop_region)
@@ -215,7 +213,7 @@ class FlowCalculator():
         return (vx, vy)
 
     @staticmethod
-    def make_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[float, float]=None, cmap: str="inferno", display=True, return_map=False, hide_axes=True):
+    def make_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[float, float] | None = None, cmap: str="inferno", display=True, return_map=False, hide_axes=True):
 
         norm = np.sqrt(vx ** 2 + vy ** 2)
 
@@ -314,7 +312,7 @@ def load_vector_field_img(img_dir, dataset_name):
 
     return vector_field
 
-def get_random_roi(image_shape: np.ndarray.shape, roi_shape: tuple[int, ...], num_rois: int=1, random_seed: int=None) -> tuple[slice, ...]:
+def get_random_roi(image_shape: tuple[int, ...], roi_shape: tuple[int, ...], num_rois: int=1, random_seed: int | None = None):
     """
     Returns a random region of interest (roi) within an image.
 
@@ -349,11 +347,11 @@ def get_random_roi(image_shape: np.ndarray.shape, roi_shape: tuple[int, ...], nu
     """
     assert isinstance(num_rois, int) and num_rois > 0, f"num_rois must be a positive integer, not {num_rois}."
     assert len(image_shape) == len(roi_shape), f"image_shape and roi_shape must have the same number of dimensions, but image_shape has {len(image_shape)} dimensions and roi_shape has {len(roi_shape)} dimensions."
-    image_shape = np.asarray(image_shape)
-    roi_shape = np.array(roi_shape)
+    image_shape_array = np.asarray(image_shape)
+    roi_shape_array = np.array(roi_shape)
     rand_gen = np.random.default_rng(seed=random_seed)
-    rand_coord = np.asarray([np.array(rand_gen.integers(0, random_space_limit + 1, size=num_rois), ndmin=1) for random_space_limit in image_shape - roi_shape])
-    roi = [tuple([slice(start, stop) for start, stop in zip(*coord_pair)]) for coord_pair in zip(rand_coord.T, rand_coord.T + np.array(roi_shape, ndmin=rand_coord.ndim))]
+    rand_coord = np.asarray([np.array(rand_gen.integers(0, random_space_limit + 1, size=num_rois), ndmin=1) for random_space_limit in image_shape_array - roi_shape_array])
+    roi = [tuple([slice(start, stop) for start, stop in zip(*coord_pair)]) for coord_pair in zip(rand_coord.T, rand_coord.T + np.array(roi_shape_array, ndmin=rand_coord.ndim))]
     return roi
 
 
@@ -370,14 +368,12 @@ def compute_PCA_on_features(features: list[np.ndarray], n_components: int=10, re
         pass
     return pca, feats_proj
 
-def get_point_closest_to_reference_point(points: np.ndarray, reference_point: tuple[float, float]) -> tuple[tuple[float, float], int]:
+def get_point_closest_to_reference_point(points: np.ndarray, reference_point: tuple[float, float]):
     distances = np.linalg.norm(points - np.array(reference_point), axis=1)
     assert len(distances) == len(points)
     return points[np.argmin(distances)], np.argmin(distances)
 
 def get_quadrant_means(points: np.ndarray, origin: tuple[float, float]=(0,0)) -> list[np.ndarray]:
-    origin = np.array(origin)
-
     top_right = points[(points[:,0] > origin[0]) & (points[:,1] > origin[1])]
     top_left = points[(points[:,0] < origin[0]) & (points[:,1] > origin[1])]
     bottom_left = points[(points[:,0] < origin[0]) & (points[:,1] < origin[1])]
@@ -439,8 +435,8 @@ def generate_validation_plot(out_dir: Path, raw_image, vector_image, features_an
     # crops being used as examples
     # find the extreme values of the example crops to use as the colormap normalization:
     cmap = 'summer'
-    cmap_norm = np.asarray([(vector_image[roi][:,vector_field_channel_map['norm'],...].min(), vector_image[roi][:,vector_field_channel_map['norm'],...].max()) for roi in rois])
-    cmap_norm = cmap_norm.min(), cmap_norm.max()
+    cmap_norm_all = np.asarray([(vector_image[roi][:,vector_field_channel_map['norm'],...].min(), vector_image[roi][:,vector_field_channel_map['norm'],...].max()) for roi in rois])
+    cmap_norm_min_max = cmap_norm_all.min(), cmap_norm_all.max()
     num_examples = len(example_points)
 
     fig = plt.figure(figsize=((1+num_examples) * 3, 6))
@@ -465,7 +461,14 @@ def generate_validation_plot(out_dir: Path, raw_image, vector_image, features_an
         feats_and_pcs_at_roi = features_and_pcs.query('crop_id == @crop_id')
         dataset_name = feats_and_pcs_at_roi['dataset_name'].iloc[0]
         cropped_raw_img, cropped_vector_img = raw_image[roi].compute(), vector_image[roi].compute()
-        flow_graph_at_roi = get_trimmed_vector_field_map(cropped_raw_img.squeeze(), cropped_vector_img[:,feats_and_pcs_at_roi['vx_chan_index'], ...].squeeze(), cropped_vector_img[:,feats_and_pcs_at_roi['vy_chan_index'], ...].squeeze(), resolution=15, cmap_norm=cmap_norm, cmap=cmap, display=False, return_map=True)
+        flow_graph_at_roi = get_trimmed_vector_field_map(cropped_raw_img.squeeze(), 
+                                                         cropped_vector_img[:,feats_and_pcs_at_roi['vx_chan_index'], ...].squeeze(), 
+                                                         cropped_vector_img[:,feats_and_pcs_at_roi['vy_chan_index'], ...].squeeze(), 
+                                                         resolution=15, 
+                                                         cmap_norm=cmap_norm_min_max, 
+                                                         cmap=cmap, 
+                                                         display=False, 
+                                                         return_map=True)
         ang = cropped_vector_img[:,feats_and_pcs_at_roi['theta_chan_index'],...].squeeze()
         roi_as_title = list(zip(*[(slc.start, slc.stop) for slc in roi]))
 
@@ -485,6 +488,7 @@ def generate_validation_plot(out_dir: Path, raw_image, vector_image, features_an
                     s=f'roi start: {roi_as_title[0]}\nroi stop:{roi_as_title[1]})')
 
             ax4 = fig.add_subplot(axs[1, i+1], projection='polar')
+            assert isinstance(ax4, PolarAxes)
             ax4.hist(ang.ravel(), bins=72, color=quad_color, alpha=1)
             y_min, y_max = ax4.get_ylim()
             ax4.arrow(x=float(quad_record['angle_of_mean_vector']), y=0, dx=0, dy=0.9*y_max, head_width=0.1, head_length=0.15*y_max, length_includes_head=True, lw=1, ls='-', facecolor=quad_color, edgecolor='k', alpha=0.5)
@@ -501,7 +505,7 @@ def generate_validation_plot(out_dir: Path, raw_image, vector_image, features_an
     fig.savefig(out_dir / f'{dataset_name}_crop_{crop_ids_for_filename}.png')
     plt.close(fig)
 
-def get_trimmed_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[float, float]=None, cmap: str="inferno", display=True, return_map=False, hide_axes=True):
+def get_trimmed_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[float, float] | None=None, cmap: str="inferno", display=True, return_map=False, hide_axes=True):
     # get the vector field map:
     vecfield_map = FlowCalculator.make_vector_field_map(image.squeeze(), vx, vy, resolution=resolution, cmap_norm=cmap_norm, cmap=cmap, display=display, return_map=return_map, hide_axes=hide_axes)
     # keep anything that isn't white-space:
@@ -511,8 +515,6 @@ def get_trimmed_vector_field_map(image, vx, vy, resolution=20, cmap_norm: tuple[
     vecfield_map_trimmed = vecfield_map[keep_me_slices]
 
     return vecfield_map_trimmed
-
-
 
 def discrete_divergence_like(vx, vy):
     vx_dx = np.gradient(vx, axis=1)
@@ -524,90 +526,90 @@ def discrete_curl_like(vx, vy):
     vx_dy = np.gradient(vx, axis=0)
     return vy_dx - vx_dy
 
-class vector_field_examples:
-    def source_vector_field_example(show_vector_field=False):
-        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-        vx = xx
-        vy = yy
-        vfield = (vx, vy)
-        if show_vector_field:
-            fig, ax = plt.subplots()
-            ax.quiver(xx, yy, *vfield)
-            ax.set_aspect('equal')
-            plt.show()
-        return vfield
+# vector_field_examples:
+def source_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = xx
+    vy = yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
 
-    def sink_vector_field_example(show_vector_field=False):
-        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-        vx = -1 * xx
-        vy = -1 * yy
-        vfield = (vx, vy)
-        if show_vector_field:
-            fig, ax = plt.subplots()
-            ax.quiver(xx, yy, *vfield)
-            ax.set_aspect('equal')
-            plt.show()
-        return vfield
+def sink_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = -1 * xx
+    vy = -1 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
 
-    def saddle_vector_field_example(show_vector_field=False):
-        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-        vx = xx
-        vy = -1 * yy
-        vfield = (vx, vy)
-        if show_vector_field:
-            fig, ax = plt.subplots()
-            ax.quiver(xx, yy, *vfield)
-            ax.set_aspect('equal')
-            plt.show()
-        return vfield
+def saddle_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = xx
+    vy = -1 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
 
-    def ridge_vector_field_example(show_vector_field=False):
-        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-        vx = xx
-        vy = 0 * yy
-        vfield = (vx, vy)
-        if show_vector_field:
-            fig, ax = plt.subplots()
-            ax.quiver(xx, yy, *vfield)
-            ax.set_aspect('equal')
-            plt.show()
-        return vfield
+def ridge_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = xx
+    vy = 0 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
 
-    def valley_vector_field_example(show_vector_field=False):
-        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-        vx = -1 * xx
-        vy = 0 * yy
-        vfield = (vx, vy)
-        if show_vector_field:
-            fig, ax = plt.subplots()
-            ax.quiver(xx, yy, *vfield)
-            ax.set_aspect('equal')
-            plt.show()
-        return vfield
+def valley_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = -1 * xx
+    vy = 0 * yy
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
 
-    def solenoidal_vector_field_example(show_vector_field=False):
-        xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-        vx = -1 * yy
-        vy = xx
-        vfield = (vx, vy)
-        if show_vector_field:
-            fig, ax = plt.subplots()
-            ax.quiver(xx, yy, *vfield)
-            ax.set_aspect('equal')
-            plt.show()
-        return vfield
+def solenoidal_vector_field_example(show_vector_field=False):
+    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
+    vx = -1 * yy
+    vy = xx
+    vfield = (vx, vy)
+    if show_vector_field:
+        fig, ax = plt.subplots()
+        ax.quiver(xx, yy, *vfield)
+        ax.set_aspect('equal')
+        plt.show()
+    return vfield
 
-    def get_divergence_curl_example(vfield: str='solenoidal', show_vector_field=False) -> tuple[tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray]:
-        '''Returns an example vector field, its divergence, and its curl'''
-        example_vfields = {'source': vector_field_examples.source_vector_field_example,
-                           'sink': vector_field_examples.sink_vector_field_example,
-                           'saddle': vector_field_examples.saddle_vector_field_example,
-                           'ridge': vector_field_examples.ridge_vector_field_example,
-                           'valley': vector_field_examples.valley_vector_field_example,
-                           'solenoidal': vector_field_examples.solenoidal_vector_field_example}
-        divergence = discrete_divergence_like(*example_vfields[vfield]())
-        curl = discrete_curl_like(*example_vfields[vfield]())
-        return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
+def get_divergence_curl_example(vfield='solenoidal', show_vector_field=False):
+    '''Returns an example vector field, its divergence, and its curl'''
+    example_vfields = {'source': source_vector_field_example,
+                        'sink': sink_vector_field_example,
+                        'saddle': saddle_vector_field_example,
+                        'ridge': ridge_vector_field_example,
+                        'valley': valley_vector_field_example,
+                        'solenoidal': solenoidal_vector_field_example}
+    divergence = discrete_divergence_like(*example_vfields[vfield]())
+    curl = discrete_curl_like(*example_vfields[vfield]())
+    return {'vector_field':example_vfields[vfield](show_vector_field), 'divergence':divergence, 'curl':curl}
 
 
 # The following checks that the last image is the same when loaded as it was when being saved:

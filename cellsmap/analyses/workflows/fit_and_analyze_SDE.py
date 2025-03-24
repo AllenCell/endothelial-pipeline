@@ -12,6 +12,8 @@ import cellsmap.analyses.utils.viz as eaviz
 import cellsmap.analyses.utils.regression as eareg
 import cellsmap.analyses.utils.model_eval as model_eval
 import cellsmap.analyses.utils.model_analysis as model_analysis
+from typing import List
+from collections import namedtuple
 
 # %%
 # load data
@@ -142,9 +144,9 @@ for my_mv in list_of_datasets:
         u_test = flow_list[0]*np.ones((N_test,1))
     else:
         N_tot = [X_pts_noNAN[0].shape[0],X_pts_noNAN[1].shape[0]]
-        N_train = [int(train_frac*N_tot[0]),int(train_frac*N_tot[1])]
-        N_test = [N_tot[0]-N_train[0],N_tot[1]-N_train[1]]
-        u_train = np.concatenate((flow_list[0]*np.ones((N_train[0],1)),flow_list[1]*np.ones((N_train[1],1))))
+        N_train_ls = [int(train_frac*N_tot[0]),int(train_frac*N_tot[1])]
+        N_test = [N_tot[0]-N_train_ls[0],N_tot[1]-N_train_ls[1]]
+        u_train = np.concatenate((flow_list[0]*np.ones((N_train_ls[0],1)),flow_list[1]*np.ones((N_train_ls[1],1))))
         u_test = np.concatenate((flow_list[0]*np.ones((N_test[0],1)),flow_list[1]*np.ones((N_test[1],1))))
     
     del X_pts_noNAN, f_KM_noNAN, D_KM_noNAN # free up memory
@@ -245,7 +247,7 @@ myModel = [driftModel,diffModel]
 
 # specification of plot limits for phase plane plots and bins for histogram plots
 pplane_xlim = [-4,4]
-bin_xlim = [-5,5]
+bin_xlim: List[float] = [-5,5] 
 
 if PCs[1] == 1:
     pplane_ylim = [-3.5,2.5]
@@ -256,13 +258,17 @@ else:
 
 
 # fix bins and centers for all datasets using bin limits defined above
-Nbins = [50 for i in range(ndim)]
+Numbins = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
-bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
+bins, centers = eareg.get_bins(Numbins,bin_limits=bin_limits)
 
-plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
-            'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1),
-            'truncate_p':[True,[0,Nbins[0]-0],[0,Nbins[1]-0]]}
+plt_args = {'pplane_xlim': pplane_xlim,
+            'pplane_ylim': pplane_ylim,
+            'pplane_N': 50,
+            'plt_xlabel': 'PC'+str(PCs[0]+1),
+            'plt_ylabel': 'PC'+str(PCs[1]+1),
+            'truncate_p':[True,[0,Numbins[0]-0],[0,Numbins[1]-0]]} # Dictionary of different types. 
+# This is being used as a package of variables to pass to the function. Plan is to make those arguments 
 
 # %%
 # fix bins and centers for all datasets
@@ -374,10 +380,10 @@ for j in range(ndim):
 # %%
 # plot stable fixed points as a colored by shear stress value
 fig, ax = viz.init_plot()
-u_stable = np.array(u_stable)
-fpt_stable = np.array(fpt_stable)
-im = ax.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
-            c=u_stable[1:-7],cmap='bwr',edgecolors='k')
+u_stable_array = np.array(u_stable)
+fpt_stable_array = np.array(fpt_stable)
+im = ax.scatter(fpt_stable_array[1:-7,0],fpt_stable_array[1:-7,1],
+            c=u_stable_array[1:-7],cmap='bwr',edgecolors='k')
 
 ax.set_xlabel('PC'+str(PCs[0]+1))
 ax.set_ylabel('PC'+str(PCs[1]+1))

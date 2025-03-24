@@ -4,6 +4,7 @@ from sklearn.decomposition import PCA
 import os
 from pathlib import Path
 import cellsmap.util.dataset_io as io
+from typing import Optional
 
 def make_savedir(savedir:str,subfolders:bool=True) -> None:
     '''Create directory savedir if it does not exist and/or subfolders
@@ -52,7 +53,7 @@ def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict) -> pd.DataFra
         df.loc[df['group'].str.contains(key),'description'] = description_dic[key]
     return df
 
-def get_dataset_name(ds_path:str,path_prefix:str=None,file_ext:str='.ome.zarr') -> str:
+def get_dataset_name(ds_path:str,path_prefix:Optional[str]=None,file_ext:str='.ome.zarr') -> str:
     '''Get dataset name from dataset path.'''
     if path_prefix is None:
         path_prefix = '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/' # default path prefix
@@ -63,10 +64,10 @@ def get_dataset_name(ds_path:str,path_prefix:str=None,file_ext:str='.ome.zarr') 
     if '_timelapse' in dataset_name:
         dataset_name = dataset_name.replace('_timelapse','')
     return dataset_name
-
+#%%
 def get_list_of_datasets(df:pd.DataFrame,ds_metadata:str,verbose:bool=False,print_path:bool=False) -> list:
     '''Get list of unique datasets from metadata column in DataFrame df.'''
-    mylist = np.unique(df[ds_metadata].values).tolist()
+    mylist = df['ds_metadata'].unique().tolist()
     if verbose:
         print(f'List of datasets represented in feature data: ')
         for ds in mylist:
@@ -74,7 +75,7 @@ def get_list_of_datasets(df:pd.DataFrame,ds_metadata:str,verbose:bool=False,prin
                 print(ds)
             else:
                 print(get_dataset_name(ds))
-    return np.unique(df[ds_metadata].values).tolist()
+    return mylist
 
 def get_one_dataset(df:pd.DataFrame,ds_metadata:str,ds_identifier:str) -> pd.DataFrame:
     '''Get DataFrame corresponding to one dataset, identified by 
@@ -103,7 +104,7 @@ def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
                                                        x['FOV_ID']),axis=1)
     return df
 
-def get_PCA(df:pd.DataFrame,n_components:int=None) -> PCA:
+def get_PCA(df:pd.DataFrame,n_components:Optional[int]=None) -> PCA:
     '''Get PCA of feature array (scaled or not) X.
     Default is to return all components, unless n_components
     is specified. Returns singular values, explained variance
@@ -117,17 +118,18 @@ def get_PCA(df:pd.DataFrame,n_components:int=None) -> PCA:
 
     return pca
 
-def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,feat_cols:list=[str(i) for i in range(8)]) -> pd.DataFrame:
+def project_PCA_one_dataset(df:pd.DataFrame,pca:PCA,ds_metadata:str,ds_ID:str,num_feat_cols:int=8) -> pd.DataFrame:
     '''Project feature data of one dataset onto PCA components.'''
+    feat_cols = [str(i) for i in range(num_feat_cols)]
     df_ = add_crop_index(get_one_dataset(df,ds_metadata,ds_ID))
     df_.loc[:,feat_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
 
-def df_to_array(df_:pd.DataFrame,feat_cols:list=[str(i) for i in range(8)]) -> np.ndarray:
+def df_to_array(df_:pd.DataFrame,num_feat_cols:int=8) -> np.ndarray:
     '''Convert DataFrame of features corresponding to one movie to array
     of shape num_crops x num_timepoints x num_features.'''
-
+    feat_cols = [str(i) for i in range(num_feat_cols)]
     num_T = df_['T'].nunique() # number of timepoints in the movie
     num_crop = df_['crop_index'].nunique() # number of crops made at each timepoint
 

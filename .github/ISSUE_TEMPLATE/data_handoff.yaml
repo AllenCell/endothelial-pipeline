@@ -34,8 +34,8 @@ body:
 
 - type: input
   attributes:
-    label: Path
-    description: What is the path to the data? (ideally after fms upload)
+    label: Data Path
+    description: What is the path to the data? (ideally after FMS upload)
     placeholder: allen/...
   validations:
     required: true
@@ -47,6 +47,14 @@ body:
     placeholder: link
   validations:
     required: true
+
+- type: input
+  attributes:
+    label: LabKey Path
+    description: What is the link to LabKey?
+    placeholder: link
+  validations:
+    required: true    
 
 - type: textarea
   attributes:
@@ -76,7 +84,7 @@ body:
   validations:
     required: true
 
-- type: input
+- type: textarea
   attributes:
     label: Flow history
     description: What was the flow history of the cells before imaging? How long were they in flow? 
@@ -84,15 +92,15 @@ body:
   validations:
     required: true
 
-- type: input
+- type: textarea
   attributes:
     label: Initial flow rate
-    description: What was the flow rate at the start of imaging
+    description: What was the flow rate at the start of imaging? 
     placeholder: dyn/cm2
   validations:
     required: true
 
-- type: input
+- type: textarea
   attributes:
     label: Flow rate change
     description: Was the flow rate changed? If so, what was the flow rate and between which frames was it changed?
@@ -108,6 +116,8 @@ body:
       - label: fixed
       - label: live cell snapshot
       - label: timelapse
+  validations:
+    required: false
 
 - type: dropdown
   attributes:
@@ -117,6 +127,8 @@ body:
     options:
       - Nikon0
       - 3i
+  validations:
+    required: true
 
 - type: dropdown
   attributes:
@@ -126,3 +138,5 @@ body:
     options:
       - 20x
       - 40x
+  validations:
+    required: true
