@@ -9,10 +9,10 @@ from skimage.exposure import rescale_intensity
 from skimage.filters import apply_hysteresis_threshold
 from scipy.ndimage import distance_transform_edt
 from skimage.feature import peak_local_max
-from skimage.segmentation import watershed#, find_boundaries
+from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
-from cellsmap.util import io
+from cellsmap.util import dataset_io
 from cellpose import models
 import re
 
@@ -30,18 +30,21 @@ def plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timep
 
 
 print('All available datasets:')
-dataset_names_all = io.get_available_datasets()
+dataset_names_all = dataset_io.get_available_datasets()
 
-test_datasets = ['20231122_T02_001', '20240328_T02_001', '20240328_T01_001',]
-                #  '20241016_20X', '20241105_20X', '20241120_20X']
+test_datasets = ['20240328_T02_001', '20240328_T01_001',]
 
 dataset_names_list = [name for name in dataset_names_all if name in test_datasets]
 
-out_dir = Path('../../').resolve() / 'results' / Path(__file__).stem
+out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=False)
 Path.mkdir(out_dir, exist_ok=True, parents=True)
 
 # CellPose label-free nuclear prediction model that Goutham trained:
-GN_nuc_model_path = '//allen/aics/assay-dev/computational/data/endothileal_cell_data/Timelapse_20x_dataset/montage_data_trainsets/models_weights/BF_STD_patch_model/models/bf_std_model_no_preprocess'
+model_config = dataset_io.load_config(config_type='model')
+nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
+assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
+model_path = Path(nuclei_models[0]['model_path_retrained'])
+model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=model_path)
 
 # CytoDL nuclei predictions from Benji:
 cytodl_nuc_pred_dir = list(Path(out_dir / 'raw_seg').glob('*.tif*'))
@@ -53,13 +56,13 @@ for dataset_name in dataset_names_list:
 
     Path.mkdir(out_dir / dataset_name, exist_ok=True, parents=True)
 
-    img_path = Path(io.get_zarr_path(dataset_name))
+    img_path = Path(dataset_io.get_zarr_path(dataset_name))
     img = BioImage(img_path)
     dim_order = 'TCZYX'
-    dim_map = io.get_dim_map(dim_order)
-    bf_chan = io.get_channel_index(dataset_name, ['BF_Center'])
-    bfstd_chan = io.get_channel_index(dataset_name, ['BF_STD'])
-    nuc_chan = io.get_channel_index(dataset_name, ['DAPI'])
+    dim_map = dataset_io.get_dim_map(dim_order)
+    bf_chan = dataset_io.get_channel_index(dataset_name, ['BF_Center'])
+    bfstd_chan = dataset_io.get_channel_index(dataset_name, ['BF_STD'])
+    nuc_chan = dataset_io.get_channel_index(dataset_name, ['DAPI'])
     img_arr = img.get_image_dask_data(dim_order)
 
     # function to extract the timepoint from the CytoDL output files:
@@ -70,8 +73,7 @@ for dataset_name in dataset_names_list:
 
         img_at_T = img_arr[timepoint].compute()
 
-        model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=GN_nuc_model_path)
-
+        # Use the CellPose model to predict nuclei from the brightfield std dev channel:
         masks_bf_std = model_bf_stdproject.eval(img_at_T[bfstd_chan].squeeze(), channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=0)
 
         overlay_bf = label2rgb(label=masks_bf_std[0], image=rescale_intensity(img_at_T[bf_chan].squeeze()), bg_label=0)
@@ -129,7 +131,7 @@ for dataset_name in dataset_names_list:
         })
 
 
-nuclei_count_data = pd.DataFrame(nuclei_count_data)
+nuclei_count_df = pd.DataFrame(nuclei_count_data)
 fig, ax = plt.subplots()
 sns.barplot(data=nuclei_count_data,
             x='dataset_name',
@@ -139,7 +141,7 @@ sns.barplot(data=nuclei_count_data,
 plt.tight_layout()
 fig.savefig(out_dir / 'nuclei_counts.png', bbox_inches='tight', dpi=180)
 
-for nm, grp in nuclei_count_data.groupby('dataset_name'):
+for nm, grp in nuclei_count_df.groupby('dataset_name'):
     fig, ax = plt.subplots()
     sns.barplot(data=grp,
                 x='image_id',
@@ -151,7 +153,7 @@ for nm, grp in nuclei_count_data.groupby('dataset_name'):
     plt.tight_layout()
     fig.savefig(out_dir / f'{nm}_nuclei_counts.png', bbox_inches='tight', dpi=180)
 
-for nm, grp in nuclei_count_data.groupby('dataset_name'):
+for nm, grp in nuclei_count_df.groupby('dataset_name'):
     fig, ax = plt.subplots()
     sns.barplot(data=grp,
                 x='image_id',

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
-from cellsmap.util import cdh5_preprocessing as preproc, io
+from cellsmap.util import cdh5_preprocessing as preproc, dataset_io
 
 def get_nuclei_count_from_image_filepath(filepath: Path, T=None, C=None) -> int:
     img = BioImage(filepath)
@@ -13,8 +13,8 @@ def get_nuclei_count_from_image_filepath(filepath: Path, T=None, C=None) -> int:
     return num_nuclei
 
 
-prj_dir = Path(__file__).parents[2]
-out_dir = prj_dir / 'results' / Path(__file__).stem
+prj_dir = dataset_io.get_prj_dir(is_test=False)
+out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=False)
 img_dir = prj_dir / 'results' / 'generate_label_free_nuc_pred' / '20241120_20X'
 annotation_dir = prj_dir / 'results' / 'generate_label_free_nuc_pred' / '20241120_20X_missed_nuclei'
 Path.mkdir(out_dir, exist_ok=True, parents=True)
@@ -30,7 +30,6 @@ nuclei_predictions = {fp: BioImage(fp) for fp in pred_paths}
 # first get number of nuclei for each image in pred_paths
 nuclei_counts = {}
 for fp in pred_paths:
-    # break
     # NOTE: I saved the nuclei predictions to the third Channel (C=2) and
     # each image was saved with a single timepoint (T=0)
     nuclei_counts[fp] = get_nuclei_count_from_image_filepath(fp, T=0, C=2)
@@ -76,10 +75,3 @@ ax.set_ylim(0, 1)
 plt.tight_layout()
 plt.savefig(out_dir / f'{dataset_name}_percent_nuclei_detected_over_time.png', bbox_inches='tight', dpi=300)
 plt.close(fig)
-
-
-# pct_nuc_data = nuclei_counts_df['percent_nuclei_detected']
-# np.mean(pct_nuc_data), np.std(pct_nuc_data)
-# np.median(pct_nuc_data), np.percentile(pct_nuc_data, 25), np.percentile(pct_nuc_data, 75)
-
-# np.round(nuclei_counts_df['percent_nuclei_detected'], decimals=3) * 100

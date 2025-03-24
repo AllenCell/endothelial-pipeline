@@ -23,4 +23,13 @@
   "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/eval_config.yaml",
   "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/train_config.yaml",
 },
+{
+  "name": "nuc_pred_labelfree",
+  "model_path": "//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess",
+  "model_path_retrained": "//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess_retrained",
+},
+{
+  "name": "cell_pred_labelfree",
+  "model_path_original": "//allen/aics/users/serge.parent/cellsmap_labelfree_cell_model/bf_std_model_no_preprocess_cell",
+}
 ]
