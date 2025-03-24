@@ -38,6 +38,7 @@ model_analysis.run_epr_analysis(myModel,bins,centers,shear_range,savedir)
 bins_gp, centers_gp = rh.get_bins(Nbins_gp,bin_limits=bin_limits)
 
 # plot generalized potential energy landscape for each shear stress specified in shear_range_gp
-model_analysis.run_gen_potential_analysis(myModel,bins_gp,centers_gp,shear_range_gp,gp_args,savedir)
+model_analysis.run_gen_potential_analysis(myModel,bins_gp,centers_gp,shear_range_gp,
+                                          plt_args=gp_args,savedir=savedir)
 
 # %%
