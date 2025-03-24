@@ -16,8 +16,10 @@ Working directory: head of `cellsmap` repository
 
 
 `pdm run cellsmap/analyses/workflows/manifest_postproc.py`
-* Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
-* Get one time step displacements of crops over time, train/test split for fitting drift ($\mathbf{f}(\mathbf{x})$) and diffusion ($\mathbf{D}(\mathbf{x})$) coefficients from these displacements.
+<ul>
+<li> Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
+<li> Get one time step displacements of crops over time, train/test split for fitting drift ($\mathbf{f}(\mathbf{x})$) and diffusion ($\mathbf{D}(\mathbf{x})$) coefficients from these displacements.
+</ul>
 
 `pdm run cellsmap/analyses/workflows/dynamics_fit.py`
 * Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
