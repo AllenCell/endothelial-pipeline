@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 import os
 from pathlib import Path
@@ -9,8 +8,8 @@ import pickle
 from cellsmap.util import dataset_io
 from cellsmap.analyses.utils.manifest_pca import get_outliers
 
-def make_savedir(savedir:str='',subfolders:bool=True) -> None:
-    '''Create directory savedir if it does not exist and/or subfolders
+def make_savedir(savedir:str='') -> None:
+    '''Create directory savedir if it does not exist
     for various outputs of model fitting and analysis if those do not exist.'''
     if savedir == '': # default save directory called 'dynamics_output' made in head of repo
         parent_folder = Path(__file__).resolve().parent.parent
@@ -129,7 +128,7 @@ def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict) -> pd.DataFra
         df.loc[df['dataset_name'].str.contains(key),'description'] = description_dic[key]
     return df
 
-def get_dataset_name(ds_path:str,path_prefix:str=None,file_ext:str='.ome.zarr') -> str:
+def get_dataset_name(ds_path:str,path_prefix:str|None=None,file_ext:str='.ome.zarr') -> str:
     '''Get dataset name from dataset path.'''
     if path_prefix is None:
         path_prefix = '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/' # default path prefix

@@ -6,7 +6,7 @@ from sklearn.pipeline import Pipeline
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.analyses.utils.io.manifest_io as mio
 
-def plot_explained_variance(explained_variance_ratio:np.ndarray) -> None:
+def plot_explained_variance(explained_variance_ratio:np.ndarray) -> tuple:
     '''Plot explained variance ratio of PCA components.'''
     fig, ax = vb.init_plot()
     n_components = len(explained_variance_ratio)
@@ -17,7 +17,7 @@ def plot_explained_variance(explained_variance_ratio:np.ndarray) -> None:
     ax.set_title('Explained variance ratio of PCA components')
     return fig, ax
 
-def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax=None) -> None:
+def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax:tuple|None=None) -> tuple:
     '''Plot top 3 principal components of feature data vs. frame number.'''
     if fig_ax is None:
         fig, ax = vb.init_subplots(1,3,figsize=(15,5))
@@ -36,7 +36,7 @@ def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax=None) -> None:
         ax_.set_xlabel('Frame number')
     return fig, ax
 
-def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> None:
+def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> tuple:
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
     list_of_datasets = mio.get_list_of_datasets(df)
     title_dict = mio.get_descriptive_metadata(df)
@@ -60,7 +60,7 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> None:
     
     return fig, axs
 
-def plot_PCA_projection_2D(feats_proj:np.ndarray,fig_title:str=None,fig_ax:tuple=None) -> None:
+def plot_PCA_projection_2D(feats_proj:np.ndarray,fig_title:str|None=None,fig_ax:tuple|None=None) -> tuple:
     '''Plot mean values of PCA projection of feature data of one dataset.'''
     if fig_ax is not None:
         fig, ax = fig_ax

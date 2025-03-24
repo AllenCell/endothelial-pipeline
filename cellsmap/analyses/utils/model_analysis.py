@@ -71,7 +71,13 @@ def model_data_comparison_one_dataset(model:list, data:pd.DataFrame, feat_cols:l
     
     return fig1, ax1, fig2, ax2
 
-def model_data_comparison(model:list,savedir:str,PCs:list,bins:list,centers:list,ds_to_skip:list,args:dict={}) -> None:
+def model_data_comparison(model:list,
+                          savedir:str,
+                          PCs:list,
+                          bins:list,
+                          centers:list,
+                          ds_to_skip:list,
+                          args:dict={}) -> None:
     
     df = mio.load_manifest_to_df(verbose=False)
     pca = mio.load_pca_model(savedir+'outputs/')

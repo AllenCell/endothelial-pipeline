@@ -6,7 +6,7 @@ from typing import Tuple
 from cellsmap.analyses.utils.io import manifest_io as mio
 from cellsmap.analyses.utils import regression_helper as rh
 
-def build_kramers_moyal_train_test(df:pd.DataFrame, pca:Pipeline, PCs:list, Nbins:list, dt:float, ds_to_skip:list, train_frac:float=0.8) -> None:
+def build_kramers_moyal_train_test(df:pd.DataFrame, pca:Pipeline, PCs:list, Nbins:list, dt:float, ds_to_skip:list, train_frac:float=0.8) -> dict:
     list_of_datasets = mio.get_list_of_datasets(df,verbose=True)
 
     X_train_list = []
