@@ -14,7 +14,7 @@ def make_sigmoid_string(n:int) -> Callable:
         return '1/(1+exp(-'+str(n)+'*'+x+')'
     return _
 
-def build_drift_lib(ndim:int,drift_deg:int=3,param_deg:int=3,include_sigmoid:bool=False,sigmoid_funcs:list=None,func_names:list=None) -> ps.ParameterizedLibrary:
+def build_drift_lib(ndim:int,drift_deg:int=3,param_deg:int=3,include_sigmoid:bool=False,sigmoid_funcs:list|None=None,func_names:list|None=None) -> ps.ParameterizedLibrary:
     # build set of basis functions for regression model for drift term of SDE model
 
     if include_sigmoid: # include sigmoid functions in basis functions

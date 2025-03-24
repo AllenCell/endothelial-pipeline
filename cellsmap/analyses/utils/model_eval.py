@@ -102,9 +102,9 @@ def get_stationary_probability(f:Callable,D:Callable,bins:list,centers:list,u:fl
         f_vals = f_mesh(mesh_grid,u).T
         D_vals = D_mesh(mesh_grid,u).T
 
-        Nbins = [len(bins[i])-1 for i in range(ndim)]
+        Nbins_ls = [len(bins[i])-1 for i in range(ndim)]
         dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
-        fp = fps.SteadyFP(Nbins, dx)
+        fp = fps.SteadyFP(Nbins_ls, dx)
 
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
@@ -119,8 +119,8 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, centers:l
         f_vals = f(centers,u)
         D_vals = D(centers,u)
         dx = (bins[1]-bins[0])
-        Nbins = len(bins)-1
-        fp = fps.SteadyFP(Nbins, dx)
+        Nbins_int = len(bins)-1
+        fp = fps.SteadyFP(Nbins_int, dx)
     else:
         Nbins = [len(bins[i])-1 for i in range(ndim)]
         dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
