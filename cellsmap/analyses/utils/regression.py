@@ -4,7 +4,7 @@ import cellsmap.analyses.utils.manifest_io as eaio
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
-def get_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,PCs:list=[0,1],verbose:bool=True) -> None:
+def get_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,PCs:list=[0,1],verbose:bool=True):
     num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
 
     data_config = io.get_dataset_info(mv_name)
@@ -35,7 +35,8 @@ def get_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,PCs:list=[0,1],verbose:bo
         data_all = [[feats_proj[:,:,PCs][i] for i in range(num_crop)]]
     return data_all, flow_list
 
-def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,feat_cols:list=[str(i) for i in range(8)],verbose:bool=True) -> None:
+def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,num_feat_cols:int=8,verbose:bool=True):
+    feat_cols = [str(i) for i in range(num_feat_cols)]
     num_T = df_proj['T'].nunique() # number of timepoints in the movie
     num_crop = df_proj['crop_index'].nunique() # number of crops made at each timepoint
 
@@ -74,10 +75,11 @@ def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,feat_cols:list=[str(i
 
         two_point_traj = [traj_flow1,traj_flow2]
         flow_list.append(second_flow)
+        return two_point_traj, flow_list
     else:
         if verbose:
             print('Constant flow')
-        two_point_traj = []
+        two_point_traj2 = []
         for ii in range(num_crop):
             df_crop_ = df_proj[df_proj['crop_index']==ii].sort_values(by='T')
             for jj in range(T_range[0],T_range[1]):
@@ -85,9 +87,9 @@ def get_2pt_traj_and_flow(df_proj:pd.DataFrame,mv_name:str,feat_cols:list=[str(i
                 if np.any(df_traj_['outlier']):
                     continue
                 else:
-                    two_point_traj.append(df_traj_[feat_cols].values)
-        two_point_traj = [two_point_traj]
-    return two_point_traj, flow_list
+                    two_point_traj2.append(df_traj_[feat_cols].values)
+        two_point_traj3 = [two_point_traj2]
+        return two_point_traj3, flow_list
 
 def get_bins(Nbins,data=None,bin_limits=None):
     '''Generate histogram bins for the data.'''

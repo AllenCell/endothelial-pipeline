@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.projections.polar import PolarAxes
 import seaborn as sns
 
 def set_max_plots(max_plots: int=plt.rcParams['figure.max_open_warning']):
@@ -239,7 +240,14 @@ def generate_alignment_plots(out_path, filename_stem, timepoint, angles, distanc
     plt.close('all') if not SHOW_PLOTS else None
 
 
-def compare_metrics_temporal_colorcode(df: pd.DataFrame, x: str=None, y: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SHOW_PLOTS=False, SAVE_OUTPUT=False):
+def compare_metrics_temporal_colorcode(df: pd.DataFrame, 
+                                       x: str | None = None, 
+                                       y: str | None = None, 
+                                       semilog=False, 
+                                       out_path: Path | None = None, 
+                                       filename_stem: str | None = None, 
+                                       SHOW_PLOTS=False, 
+                                       SAVE_OUTPUT=False):
     fig, ax = plt.subplots(figsize=(6,6))
     sns.scatterplot(data=df, x=x, y=y,
                     marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
@@ -252,6 +260,7 @@ def compare_metrics_temporal_colorcode(df: pd.DataFrame, x: str=None, y: str=Non
     ax.set_xlim(axismin, axismax)
     ax.set_ylim(axismin, axismax)
     if SAVE_OUTPUT:
+        assert out_path is not None and filename_stem is not None, 'Must provide out_path and filename_stem to save output.'
         fig.savefig(out_path / (filename_stem + f'_{x}_vs_{y}.pdf'))
     plt.close('all') if not SHOW_PLOTS else None
 
@@ -261,11 +270,18 @@ def compare_metrics_temporal_colorcode(df: pd.DataFrame, x: str=None, y: str=Non
     #                 linewidth=0, size=1, legend=False, zorder=10, ax=ax)
     # if SAVE_OUTPUT:
     #     fig.savefig(out_path / (filename_stem + f'_{x}_vs_{y}.pdf'))
-    plt.close('all') if not SHOW_PLOTS else None
+    # plt.close('all') if not SHOW_PLOTS else None
 
 
-def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, x: str=None, y: str=None, semilog=False, out_path: Path=None, filename_stem: str=None, SHOW_PLOTS=False, SAVE_OUTPUT=False):
+def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, 
+                                             x: str | None=None, 
+                                             y: str | None=None, 
+                                             out_path: Path | None=None, 
+                                             filename_stem: str | None=None, 
+                                             SHOW_PLOTS=False, 
+                                             SAVE_OUTPUT=False):
     fig, ax = plt.subplots(figsize=(6,6), subplot_kw={'projection': 'polar'})
+    assert isinstance(ax, PolarAxes), 'Axes must be polar for this plot.'
     sns.scatterplot(data=df, x=x, y=y,
                     marker='.', hue='Time (hours)', palette=plt.get_cmap('turbo'), alpha=0.3,
                     linewidth=0, size=1, legend=False, zorder=10, ax=ax)
@@ -275,6 +291,7 @@ def compare_metrics_temporal_colorcode_polar(df: pd.DataFrame, x: str=None, y: s
     ax.set_ylabel('')
     ax.text(x=np.deg2rad(-12), y=ax.get_rmax()/2, s=ax.get_xlabel(), horizontalalignment='center')
     if SAVE_OUTPUT:
+        assert out_path is not None and filename_stem is not None, 'Must provide out_path and filename_stem to save output.'
         fig.savefig(out_path / (filename_stem + f'_{x}_vs_{y}_polar.pdf'))
     plt.close('all') if not SHOW_PLOTS else None
 

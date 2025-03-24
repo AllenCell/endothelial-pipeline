@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.stats import wasserstein_distance_nd as emd
+from typing import Optional
 
 global plt_params
 
@@ -147,7 +148,7 @@ def plot_gen_potential_2D(U,xvec,yvec,cmap='jet',surf=False):
         fig.colorbar(im,label='$-\ln P$')
     return fig, ax
 
-def plot_explained_variance(explained_variance_ratio:np.ndarray) -> None:
+def plot_explained_variance(explained_variance_ratio:np.ndarray):
     '''Plot explained variance ratio of PCA components.'''
     fig, ax = plt.subplots()
     n_components = len(explained_variance_ratio)
@@ -158,7 +159,7 @@ def plot_explained_variance(explained_variance_ratio:np.ndarray) -> None:
     ax.set_title('Explained variance ratio of PCA components')
     return fig, ax
 
-def plot_top_3_PCs(feats_proj:np.ndarray) -> None:
+def plot_top_3_PCs(feats_proj:np.ndarray):
     '''Plot top 3 principal components of feature data vs. frame number.'''
     fig, ax = plt.subplots(1,3,figsize=(15,5))
     ax[0].set_title('PC1')
@@ -178,7 +179,7 @@ def plot_top_3_PCs(feats_proj:np.ndarray) -> None:
     
     return fig, ax
 
-def plot_PCA_projection(feats_proj:np.ndarray,fig_title:str=None,fig_ax:tuple=None) -> None:
+def plot_PCA_projection(feats_proj:np.ndarray, fig_title: Optional[str]= None, fig_ax: Optional[tuple]=None):
     '''Plot mean values of PCA projection of feature data of one dataset.'''
     if fig_ax is not None:
         fig, ax = fig_ax
@@ -200,9 +201,9 @@ def plot_PCA_projection_by_flow(feats_proj:np.ndarray,
                                 PCs:list,
                                 change_frame:int,
                                 flow_list_qual:list,
-                                marker_symbols:dict=None,
-                                fig_title:str=None,
-                                fig_ax:tuple=None) -> None:
+                                marker_symbols:Optional[dict]=None,
+                                fig_title:Optional[str]=None,
+                                fig_ax:Optional[tuple]=None):
     # add feature to pass in marker symbols
     '''Plot mean values of PCA projection of feature data of one dataset.'''
     if fig_ax is not None:
@@ -230,14 +231,14 @@ def plot_PCA_projection_by_flow(feats_proj:np.ndarray,
             cmap = 'Blues'
             if add_flow_legend:
                 point = Line2D([0], [0], label='manual point', marker='o', markersize=8, 
-                            markeredgecolor='k', markerfacecolor=plt.cm.Blues(0.8), 
+                            markeredgecolor='k', markerfacecolor=plt.get_cmap('Blues')(0.8), 
                             markeredgewidth=0.5, linestyle='')
                 handle_list.append(point)
         else:
             cmap = 'Reds'
             if add_flow_legend:
                 point = Line2D([0], [0], label='manual point', marker='o', markersize=8,
-                                markeredgecolor='k', markerfacecolor=plt.cm.Reds(0.8), 
+                                markeredgecolor='k', markerfacecolor=plt.get_cmap('Reds')(0.8), 
                                 markeredgewidth=0.5, linestyle='')
                 handle_list.append(point)
         if i == 0:
