@@ -1,6 +1,12 @@
 from bioio import BioImage
 from pathlib import Path
 import numpy as np
+import pandas as pd
+from cellsmap.util.dataset_io import get_available_datasets, get_dataset_info, get_original_path
+from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
+from typing import Literal, Optional
+from tqdm import tqdm
+
 
 def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=False):
     '''
@@ -75,9 +81,10 @@ def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=
         ls = ls_past.copy()
 
 
-def get_sldy_metadata(filepath: Path):# -> dict:
+def get_sldy_metadata(filepath: Path, scene_index: int = 0):# -> dict:
     """Returns the metadata from a .sldy file which is a series of nested dictionaries."""
     img = BioImage(filepath)
+    img.set_scene(scene_index)
     return img.metadata
 
 def get_voxel_size(sldy_metadata: dict) -> dict:
@@ -100,6 +107,11 @@ def get_objective_info(sldy_metadata: dict) -> dict:
     objective_info = {'magnification': sldy_metadata['image_record']['CLensDef70']['mActualMagnification'],
                       'numerical_aperture': sldy_metadata['image_record']['CLensDef70']['mNA']}
     return objective_info
+
+def get_magnification_changer_info(sldy_metadata: dict) -> dict:
+    """Returns information about the mag changer from the output of the get_sldy_metadata function."""
+    mag_changer_info = {'magnification_changer': sldy_metadata['image_record']['COptovarDef70']['mMagnification']}
+    return mag_changer_info
 
 def get_num_unique_imaging_positions(sldy_metadata: dict) -> int:
     """Returns the number of unique imaging positions from the output of the get_sldy_metadata function."""
@@ -200,24 +212,29 @@ def get_channel_name(sldy_metadata: dict, return_unprocessed_string=False) -> li
     channel_names = channel_names if return_unprocessed_string else [x.split('_#32;')[0] for x in channel_names]
     return channel_names
 
-def get_excitation_wavelength(sldy_metadata: dict) -> dict[str, float]:
+def get_channel_order(sldy_metadata: dict) -> dict:
+    channel_names = get_channel_name(sldy_metadata)
+    channel_order = {chan: i for i, chan in enumerate(channel_names)}
+    return channel_order
+
+def get_excitation_wavelength(sldy_metadata: dict, units: Literal['um', 'nm']='nm') -> dict[str, float]:
     """
     Returns the excitation wavelength in nanometers for each channel from the output of the get_sldy_metadata function.
     CAUTION: IF ONE OF YOUR CHANNELS IS BRIGHTFIELD THEN THE OUTPUT FOR THAT CHANNEL MAY NOT BE CORRECT.
     """
-    channel_names = [sldy_metadata['channel_record']['CFluorDef70'][i]['mName'] for i in range(sldy_metadata['image_record']['CImageRecord70']['mNumChannels'])]
-    channel_names = [x.split('_#32;')[0] for x in channel_names]
-    excitation_wavelengths = {chan: float(sldy_metadata['channel_record']['CFluorDef70'][i]['mExcitationLambda']) for i, chan in enumerate(channel_names)}
+    conversion_factors = {'um': 1, 'nm': 1000}
+    channel_names = get_channel_name(sldy_metadata)
+    excitation_wavelengths = {chan: conversion_factors[units] * float(sldy_metadata['channel_record']['CFluorDef70'][i]['mExcitationLambda']) for i, chan in enumerate(channel_names)}
     return excitation_wavelengths
 
-def get_emission_wavelength(sldy_metadata: dict) -> dict[str, float]:
+def get_emission_wavelength(sldy_metadata: dict, units: Literal['um', 'nm']='nm') -> dict[str, float]:
     """
     Returns the emission wavelength in nanometers for each channel from the output of the get_sldy_metadata function.
     CAUTION: IF ONE OF YOUR CHANNELS IS BRIGHTFIELD THEN THE OUTPUT FOR THAT CHANNEL MAY NOT BE CORRECT.
     """
-    channel_names = [sldy_metadata['channel_record']['CFluorDef70'][i]['mName'] for i in range(sldy_metadata['image_record']['CImageRecord70']['mNumChannels'])]
-    channel_names = [x.split('_#32;')[0] for x in channel_names]
-    emission_wavelengths = {chan: float(sldy_metadata['channel_record']['CFluorDef70'][i]['mLambda']) for i, chan in enumerate(channel_names)}
+    conversion_factors = {'um': 1, 'nm': 1000}
+    channel_names = get_channel_name(sldy_metadata)
+    emission_wavelengths = {chan: conversion_factors[units] * float(sldy_metadata['channel_record']['CFluorDef70'][i]['mLambda']) for i, chan in enumerate(channel_names)}
     return emission_wavelengths
 
 def get_exposure_time(sldy_metadata: dict) -> dict[str, int]:
@@ -225,8 +242,7 @@ def get_exposure_time(sldy_metadata: dict) -> dict[str, int]:
     Returns the exposure time for each channel in milliseconds from the output of the get_sldy_metadata function.
     CAUTION: IF ONE OF YOUR CHANNELS IS BRIGHTFIELD THEN THE OUTPUT FOR THAT CHANNEL MAY NOT BE CORRECT.
     """
-    channel_names = [sldy_metadata['channel_record']['CFluorDef70'][i]['mName'] for i in range(sldy_metadata['image_record']['CImageRecord70']['mNumChannels'])]
-    channel_names = [x.split('_#32;')[0] for x in channel_names]
+    channel_names = get_channel_name(sldy_metadata)
     exposure_times = {chan: int(sldy_metadata['channel_record']['CExposureRecord70'][i]['mExposureTime']) for i, chan in enumerate(channel_names)}
     return exposure_times
 
@@ -239,22 +255,131 @@ def get_time_intervals(sldy_metadata: dict, units='msec') -> dict[str, float]:
         'hr': hours
     CAUTION: IF ONE OF YOUR CHANNELS IS BRIGHTFIELD THEN THE OUTPUT FOR THAT CHANNEL MAY NOT BE CORRECT.
     """
-    channel_names = [sldy_metadata['channel_record']['CFluorDef70'][i]['mName'] for i in range(sldy_metadata['image_record']['CImageRecord70']['mNumChannels'])]
-    channel_names = [x.split('_#32;')[0] for x in channel_names]
+    channel_names = get_channel_name(sldy_metadata)
     conversion_factors = {'msec': 1, 'sec': 1000, 'min': 60*1000, 'hr': 60*60*1000}
     time_intervals = {chan: sldy_metadata['channel_record']['CExposureRecord70'][i]['mTimeLapseInterval'] for i, chan in enumerate(channel_names)}
     time_intervals = {chan: float(t / conversion_factors[units]) for chan, t in time_intervals.items()}
     return time_intervals
 
+def sldy_metadata_to_df(sldy_filepath: str|Path, save_path: Optional[str|Path]=None):
+    """Creates a dataframe from some of the metadata from a .sldy file
+    and saves it as a tsv file if "save_path" is provided."""
+
+    # Create an empty list to hold the rows of data
+    metadata_table = []
+
+    # Load the metadata from the .sldy file
+    sldy_filepath = Path(sldy_filepath)
+    img = BioImage(sldy_filepath)
+    for scene in img.scenes:
+        img.set_scene(scene)
+        sldy_metadata = img.metadata
+
+        # Get metadata of interest
+        time_intervals = get_time_intervals(sldy_metadata, units='sec')
+        exposure_times = get_exposure_time(sldy_metadata)
+        emission_wavelengths = get_emission_wavelength(sldy_metadata)
+        excitation_wavelengths = get_excitation_wavelength(sldy_metadata)
+        channel_names = get_channel_name(sldy_metadata)
+        channel_order = get_channel_order(sldy_metadata)
+        imaging_date = get_imaging_date(sldy_metadata)
+        tiling_arrangement = get_tiling_arrangement(sldy_metadata)
+        tiling_overlap = get_tiling_percentage_overlap(sldy_metadata)
+        num_timepoints = get_num_timepoints(sldy_metadata)
+        vx_size = get_voxel_size(sldy_metadata)
+        objective_info = get_objective_info(sldy_metadata)
+        mag_changer_info = get_magnification_changer_info(sldy_metadata)
+
+        # Organize metadata to be turned in to a dataframe
+        metadata = {'filepath': sldy_filepath,
+                    'filename': sldy_filepath.name,
+                    'number of scenes per .sldy file': len(img.scenes),
+                    'scene name': scene,
+                    'imaging date (YYYY-MM-DD)': f"{imaging_date['year']}-{imaging_date['month']}-{imaging_date['day']}",
+                    'imaging time (hr:min:sec)': f"{imaging_date['hour']}:{imaging_date['minute']}:{imaging_date['second']}",
+                    'objective magnification': objective_info['magnification'],
+                    'objective numerical aperture': objective_info['numerical_aperture'],
+                    'magnification changer': mag_changer_info['magnification_changer'],
+                    'number of tiles in X': tiling_arrangement['number_of_tiles_in_X'],
+                    'number of tiles in Y': tiling_arrangement['number_of_tiles_in_Y'],
+                    'percentage overlap in X': tiling_overlap['overlap_in_X'],
+                    'percentage overlap in Y': tiling_overlap['overlap_in_Y'],
+                    'pixel size X (um)': vx_size['X'],
+                    'pixel size Y (um)': vx_size['Y'],
+                    'Z step size (um)': vx_size['Z'],
+                    'number of pixels in X': img.dims.X,
+                    'number of pixels in Y': img.dims.Y,
+                    'number of Z steps': img.dims.Z,
+                    'number of timepoints': num_timepoints,
+                    'tiles intercalated in T dimension': img.dims.T > num_timepoints,
+                    'number of channels': img.dims.C,
+                    'channel indices': tuple(channel_order[nm] for nm in channel_names),
+                    'channel names': channel_names,
+                    'excitation wavelengths (nm)': tuple(excitation_wavelengths[nm] for nm in channel_names),
+                    'emission wavelengths': tuple(emission_wavelengths[nm] for nm in channel_names),
+                    'exposure times (ms)': tuple(exposure_times[nm] for nm in channel_names),
+                    'time intervals (s)': tuple(time_intervals[nm] for nm in channel_names),
+                    }
+        metadata_table.append(metadata)
+
+    # Put the metadata into a dataframe
+    metadata_df = pd.DataFrame(metadata_table)
+
+    if save_path:
+        metadata_df.to_csv(save_path, sep='\t', index=False)
+
+    return metadata_df
+
+def all_sldy_metadata_to_tsv(save_dir: Optional[str|Path] = None, verbose: bool = True):
+    """
+    This function will save the metadata for all of our .sldy files
+    currently listed in the cellsmap repos config_data.yaml file as a
+    single tsv file.
+    If no save_dir is provided then the metadata will be saved in the
+    tests/results folder of the top-level cellsmap folder.
+    """
+
+    # define the output directory if none was given
+    if not save_dir:
+        prj_dir = Path(__file__).parents[2]
+        save_dir = prj_dir / 'tests/results'
+
+    # Get the name of all the datasets and then filter out datasets
+    # that aren't from the 3i microscope
+    print('Available datasets:')
+    dataset_name_list = get_available_datasets()
+    print('\n')
+    datasets_3i = [name for name in dataset_name_list if get_dataset_info(name)['microscope'] == '3i']
+
+    # Create the folder where the metadata will be saved if it
+    # doesn't exist
+    save_dir = Path(save_dir)
+    Path.mkdir(save_dir, exist_ok=True, parents=True)
+
+    # Get the metadata for each dataset and put it in a list
+    df_list = []
+    for dataset_name in tqdm(datasets_3i):
+        print(f'Working on dataset: {dataset_name}') if verbose else None
+        sldy_filepath = Path(get_original_path(dataset_name))
+        df_list.append(sldy_metadata_to_df(sldy_filepath))
+
+    # Save the metadata as a single tsv file
+    save_path = save_dir / f'endo-holistic_sldy_metadata.tsv'
+    pd.concat(df_list).to_csv(save_path, sep='\t', index=False)
+    return
 
 def get_test_of_metadata():
+    """
+    Constructs a nested dictionary that can be used as a
+    minimal example of the sldy metadata file structure.
+    To see the keys in the nested dictionary:
+    [x for x in md_keys]
+    """
     md_test = {'a': {'b': {'c1': {'d1': 1, 'd2': 2, 'd3': 3},
                         'c2': {'e1': 1, 'e2': 2, 'e3': 3},},},
             'aa': {'bb': {'cc': {'dd1': 1, 'dd2': 2, 'dd3': 3}}},
             'aaa': {'bbb': {'ccc': {'ddd1': 1, 'ddd2': 2, 'ddd3': 3}}}}
     md_keys = [x for x in get_nested_keys(md_test, ls=[], iterable_size_limit=10, check_for_lists=True)]
-    # To see the keys in the nested dictionary:
-    # [x for x in md_keys]
     return md_test, md_keys
 
 def get_example_metadata():
@@ -280,3 +405,6 @@ def show_example_usage():
 
     print('What are is the voxel size for this acquisition?')
     print(get_voxel_size(metadata))
+
+if __name__ == '__main__':
+    ipython_cli_flexecute(all_sldy_metadata_to_tsv)

@@ -4,7 +4,7 @@ from bioio import BioImage
 from multiprocessing import Pool
 from tqdm import tqdm
 import fire
-from cellsmap.util import cdh5_preprocessing as preproc, io
+from cellsmap.util import cdh5_preprocessing as preproc, dataset_io
 try:
     from IPython import get_ipython
 except ModuleNotFoundError:
@@ -22,7 +22,7 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
     if SAVE_OUTPUT:
         [Path.mkdir(out, exist_ok=True, parents=True) for out in out_dir_list]
 
-    img = BioImage(Path(io.get_zarr_path(dataset_name)))
+    img = BioImage(Path(dataset_io.get_zarr_path(dataset_name)))
     px_res = img.physical_pixel_sizes
     img_metadata = {'physical_pixel_sizes': px_res,
                     }
@@ -38,11 +38,11 @@ def build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TES
     for dataset_name in DATASET_NAME_LIST:
 
         img_bin_level = 0
-        DIM_MAP = io.get_dim_map('TCYX')
+        DIM_MAP = dataset_io.get_dim_map('TCYX')
         # get the name of the cadherin channel
-        chan_names = [chan_name for chan_name in io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
+        chan_names = [chan_name for chan_name in dataset_io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
         # load the raw image data of from the cadherin channel
-        raw = io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
+        raw = dataset_io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
 
         if IS_TEST:
             T_list = range(0, 5)
@@ -82,9 +82,9 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
 
     print(f'T={T} -- loading dataset') if VERBOSE else None
     # get the name of the cadherin channel
-    chan_names = [chan_name for chan_name in io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
+    chan_names = [chan_name for chan_name in dataset_io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
     # load the raw image data of from the cadherin channel
-    raw_arr = io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
+    raw_arr = dataset_io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
 
     print(f'T={T} -- preprocessing image') if VERBOSE else None
     processed_img = preproc.preprocess(raw_arr)
@@ -128,7 +128,7 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
 
 def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
 
-    DATASET_NAME_LIST = [config_data['name'] for config_data in io.load_config(config_type='data')]
+    DATASET_NAME_LIST = [config_data['name'] for config_data in dataset_io.load_config(config_type='data')]
 
     analysis_args_queue = build_classic_seg_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
 

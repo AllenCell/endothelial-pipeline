@@ -1,10 +1,8 @@
 # %% Import libraries
 from pathlib import Path
-import importlib
-import flow_calculator
+from cellsmap.analyses.flow import flow_calculator
 import concurrent
 from pandas import DataFrame
-importlib.reload(flow_calculator)
 from matplotlib.gridspec import GridSpec
 
 # %% Make list of datasets to analzye
@@ -36,7 +34,7 @@ DataFrame({'dataset_name':dataset_list, 'vector_field_image_paths': out_path_lis
 
 # %% Example of usage:
 from bioio import BioImage
-from cellsmap.util.io import load_dataset
+from cellsmap.util.dataset_io import load_dataset
 import numpy as np
 from skimage.exposure import rescale_intensity
 import matplotlib.pyplot as plt

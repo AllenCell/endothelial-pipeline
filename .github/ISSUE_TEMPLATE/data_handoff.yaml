@@ -1,0 +1,128 @@
+name: "Imaging Experiment"
+
+description: "Create image data handoff"
+
+title: "DATE FMSID/BARCODE"
+
+projects: ["aics-int/40"]
+
+body:
+
+- type: input
+  attributes:
+    label: FMS ID
+    description: File ID from the FMS
+    placeholder: FMS ID
+  validations:
+    required: false
+
+- type: input
+  attributes:
+    label: Barcode
+    description: Plate barcode
+    placeholder: barcode
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Date
+    description: Experiment start date formatted as YYYYMMDD
+    placeholder: YYYYMMDD
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Path
+    description: What is the path to the data? (ideally after fms upload)
+    placeholder: allen/...
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: OneNote
+    description: OneNote link to experiment page
+    placeholder: link
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Goal
+    description: What is the purpose of this experiment? 
+    placeholder: 1 - 3 sentences or bullets describing the purpose for the experiment. 
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Notes
+    description: Is there anything we should know about this data before we analyze it? Did you observe any issues during the experiment?
+    placeholder: description
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: Cell line(s)
+    description: Select cell line(s) used in this experiment
+    multiple: true
+    options:
+      - AICS-12 (TUBA1B)
+      - AICS-126 (CDH5)
+      - AICS-120 (Mito)
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Flow history
+    description: What was the flow history of the cells before imaging? How long were they in flow? 
+    placeholder: no flow, flow started X minutes before imaging. 
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Initial flow rate
+    description: What was the flow rate at the start of imaging
+    placeholder: dyn/cm2
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Flow rate change
+    description: Was the flow rate changed? If so, what was the flow rate and between which frames was it changed?
+    placeholder: dyn/cm2, between frames X and Y
+  validations:
+    required: false
+
+- type: checkboxes
+  attributes:
+    label: Experimental conditions
+    description: Labels to annotate the dataset with
+    options:
+      - label: fixed
+      - label: live cell snapshot
+      - label: timelapse
+
+- type: dropdown
+  attributes:
+    label: Microscope
+    description: Select which microscope will be used in this experiment
+    multiple: true
+    options:
+      - Nikon0
+      - 3i
+
+- type: dropdown
+  attributes:
+    label: Objective
+    description: Select which magnification was used in this experiment
+    multiple: true
+    options:
+      - 20x
+      - 40x
