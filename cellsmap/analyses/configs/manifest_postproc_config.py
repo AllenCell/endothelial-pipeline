@@ -4,7 +4,8 @@ from pathlib import Path
 
 # get head of analyses folder in cellsmap repo
 parent_folder = Path(__file__).resolve().parent.parent
-savedir = str(parent_folder / 'dynamics_output')+'/' # directory to save results
+dir_name = 'workflow_test' # subfolder in cellsmap/analyses/results directory to save results
+savedir = str(parent_folder / 'results' / dir_name)+'/' # directory to save results
 
 # to be passed to the manifest_postproc script
 dt = 5 # time between consecutive frames in minutes
