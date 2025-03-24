@@ -196,14 +196,15 @@ def load_pca_model(savedir:str) -> Pipeline:
         pca = pickle.load(f)
     return pca
 
-def project_PCA_one_dataset(df:pd.DataFrame,pca:Pipeline,ds_name:str,feat_cols:list=[str(i) for i in range(8)]) -> pd.DataFrame:
+def project_PCA_one_dataset(df:pd.DataFrame,pca:Pipeline,ds_name:str) -> pd.DataFrame:
     '''Project feature data of crops from one dataset onto principal component axes.'''
+    feat_cols=[str(i) for i in range(8)]
     df_ = add_crop_index(get_one_dataset(df,ds_name))
     df_.loc[:,feat_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
 
-def df_to_array(df_:pd.DataFrame,feat_cols:list=[str(i) for i in range(8)]) -> np.ndarray:
+def df_to_array(df_:pd.DataFrame,feat_cols:list) -> np.ndarray:
     '''Convert DataFrame of features corresponding to one movie to array
     of shape num_crops x num_timepoints x num_features.'''
 
