@@ -31,6 +31,6 @@ Nbins_gp = [60 for i in range(ndim)]
 shear_range_gp = np.linspace(5,30,15) # range of shear stresses to consider when plotting generalized potential energy landscape
 
 # plotting args for plotting generalized potential energy landscape
-gp_args = {'downsample':10, 'normed':False, 'p_tol':1e-6, 'cmap':'jet',
+gp_args = {'downsample':10, 'normed':False, 'p_tol':1e-8, 'cmap':'jet',
            'plt_xlabel':'PC'+str(PCs[0]+1),'plt_ylabel':'PC'+str(PCs[1]+1),
            'plt_title':'Generalized potential energy landscape'}

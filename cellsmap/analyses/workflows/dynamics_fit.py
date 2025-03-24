@@ -43,3 +43,5 @@ print('Coefficient of determination (R^2) for model of diffusion term: %f' %diff
 ################### Save trained models ###################
 model_dict = {'driftModel':driftModel,'diffModel':diffModel}
 dynamics_io.save_model(model_dict, savedir+'outputs/')
+
+# %%

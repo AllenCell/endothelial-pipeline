@@ -63,6 +63,10 @@ def load_manifest_to_df(verbose:bool=True) -> pd.DataFrame:
 
     df = pd.concat([df,df_1217,df_0224],ignore_index=True)
 
+    # FOR NOW: drop 20241105 and 20241210 datasets from analysis, no longer in data_config.yaml
+    df = df[~df.filename_or_obj.str.contains('20241105')]
+    df = df[~df.filename_or_obj.str.contains('20241210')]
+
     # add metadata columns for dataset, FOV, and timepoint
     df = add_metadata_from_path(df,verbose=verbose)
 

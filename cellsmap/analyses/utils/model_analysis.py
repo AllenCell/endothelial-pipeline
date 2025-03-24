@@ -189,7 +189,7 @@ def run_gen_potential_analysis(model:list[ps.SINDy], bins:list, centers:list, sh
     D_mesh = model_eval.mesh_grid_function(D)
 
     for ii, u in enumerate(shear_range):
-        p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u,tol=plt_args['p_tol'])
+        p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u=u,tol=plt_args['p_tol'])
         U= -np.log(p_fit)
 
         fig,ax = dviz.plot_gen_potential_2D(U,centers[0],centers[1],cmap=plt_args['cmap'],surf=False)
