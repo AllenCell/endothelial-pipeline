@@ -176,7 +176,7 @@ def get_epr(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarra
     return epr
 
 def run_epr_analysis(model:list[ps.SINDy], bins:list, centers:list, shear_range:np.ndarray, savedir:str) -> None:
-    epr = get_epr(model, bins, centers, shear_range, savedir)
+    epr = get_epr(model, bins, centers, shear_range)
     fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
     plt.show()
     vb.save_plot(fig,savedir+'figs/epr')

@@ -7,15 +7,15 @@ import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
 
 
-def scalar_function(model:ps.SINDy) -> Callable:
+def scalar_function(model) -> Callable:
     '''
     Turn fit regression model object into scalar-valued function f that 
     can be evaluated at a point x as f(x) using the model's built-in
     `predict' function. Allows for control parameters as an additional argument.
     '''
-    def f(x, u=None) -> np.ndarray:
+    def f(x, u=None):
         if len(x.shape) == 1:
-            x_in = x[:,None]
+            x_in = x[None,:]
         else:
             x_in = x.copy()
         
@@ -31,13 +31,13 @@ def scalar_function(model:ps.SINDy) -> Callable:
         return np.asarray(f_out)
     return f
 
-def vector_field_function(model:ps.SINDy) -> Callable:
+def vector_field_function(model) -> Callable:
     '''
     Turn fit regression model object into vector-valued function f that 
     can be evaluated at a point x as f(x) using the model's built-in
     `predict' function. Allows for control parameters as an additional argument.
     '''
-    def f(x, u=None) -> np.ndarray:
+    def f(x, u=None):
         # CHANGE THIS TO MATCH TRAINING DATA DIMENSIONS OF MODEL
         if len(x.shape) == 1:
             x_in = x[None,:]
@@ -56,7 +56,7 @@ def vector_field_function(model:ps.SINDy) -> Callable:
 def mesh_grid_function(f:Callable, ndim:int=2) -> Callable:
     '''Turn vector-valued function f(x,u) into function f_mesh(x) that can be evaluated
      appropriately on a mesh grid. Allows for control parameters as an additional argument.'''
-    def f_mesh(mesh_grid:Tuple, u=None) -> np.ndarray:
+    def f_mesh(mesh_grid:Tuple, u=None):
         # Create a mesh grid of points
         mesh_shape = mesh_grid[0].shape
         grid_points = np.stack([mesh_grid[dim].flatten() for dim in range(ndim)], axis=-1)
@@ -72,7 +72,7 @@ def mesh_grid_function(f:Callable, ndim:int=2) -> Callable:
 
 def vector_field_component(f:Callable,i:int) -> Callable:
     '''Extract the i-th component (indexing starting at 0) of the vector-valued function f(x,u).'''
-    def f_i(x,u=None) -> np.ndarray:
+    def f_i(x,u=None):
         if isinstance(x, tuple) or isinstance(x, list): 
             if len(x[0].shape) == 2: # if meshgrid
                 f_mesh = mesh_grid_function(f)
