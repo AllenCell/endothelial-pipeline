@@ -34,8 +34,8 @@ body:
 
 - type: input
   attributes:
-    label: Path
-    description: What is the path to the data? (ideally after fms upload)
+    label: Data Path
+    description: What is the path to the data? (ideally after FMS upload)
     placeholder: allen/...
   validations:
     required: true
@@ -50,8 +50,8 @@ body:
 
 - type: input
   attributes:
-    label: Path
-    description: What is the link to labkey?
+    label: LabKey Path
+    description: What is the link to LabKey?
     placeholder: link
   validations:
     required: true    
@@ -108,15 +108,16 @@ body:
   validations:
     required: false
 
-- type: dropdown
+- type: checkboxes
   attributes:
     label: Experimental conditions
     description: Labels to annotate the dataset with
-    multiple: false
     options:
-      - fixed
-      - live cell snapshot
-      - timelapse
+      - label: fixed
+      - label: live cell snapshot
+      - label: timelapse
+  validations:
+    required: false
 
 - type: dropdown
   attributes:
@@ -126,6 +127,8 @@ body:
     options:
       - Nikon0
       - 3i
+  validations:
+    required: true
 
 - type: dropdown
   attributes:
@@ -135,3 +138,5 @@ body:
     options:
       - 20x
       - 40x
+  validations:
+    required: true
