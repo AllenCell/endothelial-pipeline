@@ -1,4 +1,6 @@
 # %%
+import pysindy as ps # import pysindy package for SINDy based regression
+
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import model_fitting
 # import config parameters
@@ -16,7 +18,7 @@ drift_lib = model_fitting.build_drift_lib(ndim=len(PCs),drift_deg=drift_deg,para
 diff_lib = model_fitting.build_diff_lib(ndim=len(PCs),diff_deg=diff_deg,param_deg=param_deg_diff)
 # %%
 
-import pysindy as ps
+
 # fit model for drift term - SINDy based regression
 driftModel = ps.SINDy(feature_library = drift_lib, optimizer = ps.SSR())
 driftModel.fit(train_test_dict['X_train'], t= dt,x_dot=train_test_dict['Y_train'],u=train_test_dict['u_train'])
@@ -36,27 +38,6 @@ diff_R2 = diffModel.score(train_test_dict['X_test'],x_dot=train_test_dict['V_tes
 diffModel.print()
 
 print('Coefficient of determination (R^2) for model of diffusion term: %f' %diff_R2)
-
-# %%
-# fit model for drift term - SINDy based regression
-driftModel = model_fitting.fit_sindy_model(drift_lib,train_test_dict['X_train'],train_test_dict['Y_train'],
-                                           train_test_dict['u_train'],t=dt)
-
-# score on test set
-drift_R2 = driftModel.score(train_test_dict['X_test'],x_dot=train_test_dict['Y_test'],u=train_test_dict['u_test'])
-driftModel.print()
-
-print('Score (R^2) for model of drift term: %f' %drift_R2)
-# %%
-# fit model for diffusion term - SINDy based regression
-diffModel = model_fitting.fit_sindy_model(diff_lib,train_test_dict['X_train'],train_test_dict['V_train'],
-                                          train_test_dict['u_train'],t=dt)
-
-# score on test set
-diff_R2 = diffModel.score(train_test_dict['X_test'],x_dot=train_test_dict['V_test'],u=train_test_dict['u_test'])
-diffModel.print()
-
-print('Score (R^2) for model of diffusion term: %f' %diff_R2)
 # %%
 # save models
 model_dict = {'driftModel':driftModel,'diffModel':diffModel}

@@ -1,4 +1,6 @@
 # %%
+import pysindy as ps
+
 from cellsmap.analyses.utils import model_analysis, regression_helper as rh
 from cellsmap.analyses.utils.io import dynamics_io
 

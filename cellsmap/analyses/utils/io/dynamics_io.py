@@ -16,8 +16,5 @@ def save_model(model_dict:dict, savedir:str) -> None:
 
 def load_model(file_path:str) -> dict:
     '''Load model from file_path.'''
-    # check if pysindy is imported, if not, import it
-    if 'ps' or 'pysindy' not in globals():
-        import pysindy as ps
     with open(file_path, 'rb') as f:
         return pickle.load(f)
