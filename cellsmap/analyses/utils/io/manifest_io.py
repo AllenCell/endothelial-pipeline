@@ -144,7 +144,7 @@ def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=Fals
     '''Get list of unique datasets from metadata column in DataFrame df.'''
     if 'dataset_name' not in df.columns:
         raise ValueError('Data must have a column for dataset_name')
-    mylist = np.unique(df['dataset_name'].values).tolist()
+    mylist = df['dataset_name'].unique().tolist()
     if verbose:
         print(f'List of datasets represented in feature data: ')
         for ds in mylist:
@@ -152,7 +152,7 @@ def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=Fals
                 print(ds)
             else:
                 print(get_dataset_name(ds))
-    return np.unique(df['dataset_name'].values).tolist()
+    return mylist
 
 def get_one_dataset(df:pd.DataFrame,ds_name:str) -> pd.DataFrame:
     '''Get DataFrame corresponding to dataset named ds_name only,
