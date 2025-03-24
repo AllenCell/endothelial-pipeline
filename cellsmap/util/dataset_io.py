@@ -77,7 +77,8 @@ def get_available_channels(dataset_name:str) -> list:
 
 def get_channel_index(dataset_name: str, channel_names: List[str]) -> List[int]:
     available_channels = get_available_channels(dataset_name)
-    return [available_channels.index(channel) if channel in available_channels else None for channel in channel_names]
+    available_channels = [available_channels.index(channel) if channel in available_channels else None for channel in channel_names]
+    return available_channels
 
 def get_specific_channel_order(dataset_name:str):
     gfp_index = get_dataset_info(dataset_name)['egfp_channel_index']
