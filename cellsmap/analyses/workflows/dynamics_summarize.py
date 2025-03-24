@@ -1,6 +1,4 @@
 # %%
-import pysindy as ps
-
 from cellsmap.analyses.utils import model_analysis, regression_helper as rh
 from cellsmap.analyses.utils.io import dynamics_io
 
@@ -16,6 +14,8 @@ driftModel = model_dict['driftModel']
 diffModel = model_dict['diffModel']
 myModel = [driftModel,diffModel]
 # %%
+################### Model-data comparison ###################
+
 # for plotting phase plane and histogram plots, fix grid and bin limits across all datasets
 bins, centers = rh.get_bins(Nbins_plot,bin_limits=bin_limits)
 
@@ -23,11 +23,12 @@ bins, centers = rh.get_bins(Nbins_plot,bin_limits=bin_limits)
 model_analysis.model_data_comparison(myModel,savedir,PCs,bins,centers,ds_to_skip,pplane_args)
 
 # %%
-# fixed point analysis: plot coordinates of fixed points as a function of shear stress
+################### Fixed point analysis ###################
+# plot coordinates of fixed points as a function of shear stress
 model_analysis.run_fixed_point_analysis(driftModel,shear_range,fpt_args,savedir)
 
 # %%
-# entropy production rate as a function of shear stress
+################### Entropy production rate as a function of shear stress ###################
 model_analysis.run_epr_analysis(myModel,bins,centers,shear_range,savedir)
 
 # %%
