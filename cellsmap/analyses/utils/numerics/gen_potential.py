@@ -3,29 +3,6 @@ from typing import Tuple
 
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
-def generalized_potential(P:np.ndarray, grid=None, tol:float=1e-8) -> np.ndarray:
-    '''
-    Compute the generalized potential U = -ln(P) corresponding to 
-    stationary probability density P.
-
-    Arguments:
-        P       stationary probability density (callable function or ND array of dimensions n1 x n2 x ... x nN)
-        grid    meshgrid (indexing = 'ij') of points in the state space (required if P is callable)
-        tol     set P<tol to tol to avoid log(0) errors
-
-    Returns:
-        U       generalized potential (ND array of dimensions n1 x n2 x ... x nN) 
-    '''
-
-    if callable(P):
-        if grid is None:
-            raise ValueError('grid must be provided if P is a callable function')
-        P = P(*grid)
-    
-    P[P<tol] = tol
-
-    return -np.log(P)
-
 def gradient_flow_term(U:np.ndarray, D, xArrays:list, ndim:int=2) -> np.ndarray:
     '''
     Compute the gradient flow term -D(x) grad(U) for a given potential U
