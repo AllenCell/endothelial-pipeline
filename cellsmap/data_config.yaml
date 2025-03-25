@@ -448,7 +448,7 @@
   flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
-  n_positions: 1, # each scene (10) has 1 position in it
+  n_positions: 10, # each scene (10) has 1 position in it
   notes: ""
 },{
   name: 20250227_paired40X,
