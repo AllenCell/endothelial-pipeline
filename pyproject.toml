@@ -35,6 +35,7 @@ dependencies = [
     "sympy==1.13.1",
     "tqdm>=4.66.5",
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
+    "vtk", 
     "wasmtime<22.0",
 ]
 requires-python = "<3.11,>=3.10"
