@@ -11,7 +11,7 @@
                     "diffusion_feats": 0,
                     "diffusion_param": 3},
   plt_xlim: {"pplane": [-4,4], "hist": [-5,5]},
-  plt_ylim: {"pplane": [-3.5,3.5], "hist": [-4,4]},
+  plt_ylim: {"pplane": [-2,4.5], "hist": [-3,6]},
   N_pts_pplane: 50,
   N_bins_hist: [50,50],
   N_bins_landscape: [60,60],

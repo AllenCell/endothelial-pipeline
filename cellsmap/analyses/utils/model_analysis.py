@@ -87,8 +87,8 @@ def model_data_comparison(model:list[Callable],
             fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(),y = 1.15)
             plt.show()
 
-            vb.save_plot(fig1,fig_savedir+ds_name+'_phase_portrait_shear_'+str(shear_list[j]))
-            vb.save_plot(fig2,fig_savedir+ds_name+'_stationary_dist_shear_'+str(shear_list[j]))
+            vb.save_plot(fig1,fig_savedir+ds_name+'_phase_portrait_shear_'+str(int(shear_list[j])))
+            vb.save_plot(fig2,fig_savedir+ds_name+'_stationary_dist_shear_'+str(int(shear_list[j])))
 
 def get_fixed_points_by_shear(f:Callable, 
                               plt_lims:list, 
@@ -129,6 +129,7 @@ def run_fixed_point_analysis(drift_function:Callable,
                              PCs:list,
                              plt_lims:list,
                              fig_savedir:str) -> None:
+    print('*** Running fixed point analysis...\n')
     fpt_dict_list = get_fixed_points_by_shear(drift_function,plt_lims,shear_range)
     figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list,shear_range,PCs,plt_lims)
     for i in range(len(figs)):
@@ -165,6 +166,7 @@ def run_epr_analysis(model:list[Callable],
                      centers:list, 
                      shear_range:np.ndarray, 
                      fig_savedir:str) -> None:
+    print('*** Running entropy production rate analysis...\n')
     epr = get_epr(model, bins, centers, shear_range)
     fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
     plt.show()
@@ -179,6 +181,7 @@ def run_gen_potential_analysis(model:list[Callable],
                                normed:bool, 
                                fig_savedir:str,
                                use_fipy:bool=False) -> None:
+    print('*** Running generalized potential energy landscape analysis...\n')
     f = model[0]
     D = model[1]
 
