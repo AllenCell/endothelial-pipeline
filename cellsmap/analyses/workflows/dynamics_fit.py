@@ -13,7 +13,7 @@ assert "output_subdir" in config, "output_subdir not found in dynamics_config.ya
 analyses_folder = Path(__file__).resolve().parent.parent
 savedir = str(analyses_folder / 'results' / config["output_subdir"])+'/' # directory to save results
 
-# figures saved into folder at head of repo
+# figures saved into folder at head of repo (should already exist from previous workflow)
 parent_folder = analyses_folder.parent
 fig_savedir = str(parent_folder / 'figs')+'/'
 

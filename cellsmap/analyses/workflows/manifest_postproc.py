@@ -47,7 +47,7 @@ vb.save_plot(fig,filename=fig_savedir+'top_3_PCs',format='.png',dpi=500)
 ################### Build train-test data for regression ###################
 # load inputs from dynamics_config.yaml
 PCs = config['PCs_to_analyze']
-Nbins = config['Nbins_kramers_moyal']
+Nbins = config['N_bins_kramers_moyal']
 dt = config['dt']
 ds_to_skip = config['datasets_to_skip']
 

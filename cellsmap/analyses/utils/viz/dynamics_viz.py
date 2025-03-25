@@ -6,11 +6,14 @@ from scipy.stats import wasserstein_distance_nd as emd
 
 from cellsmap.analyses.utils.viz import viz_base as vb
 
-def plot_fixed_points_by_shear(fpt_dict_list:list,shear_range:np.ndarray,plt_lims:list,\
-                               ndim:int=2,args:dict={}) -> Tuple[list[plt.Figure],list[plt.Axes]]:
+def plot_fixed_points_by_shear(fpt_dict_list:list,
+                               shear_range:np.ndarray,
+                               PCs:list,
+                               plt_lims:list) -> Tuple[list[plt.Figure],list[plt.Axes]]:
     assert len(fpt_dict_list) == len(shear_range)
     figs = []
     axs = []
+    ndim = len(PCs)
     for j in range(ndim):
         fig, ax = vb.init_plot()
         for i,u in enumerate(shear_range):
@@ -30,12 +33,9 @@ def plot_fixed_points_by_shear(fpt_dict_list:list,shear_range:np.ndarray,plt_lim
                     else:
                         color = 'darkgoldenrod'
                     ax.plot(u,fpt[j],'o',color=color)
-                    if 'plt_xlabel' in args:
-                        ax.set_xlabel(args['plt_xlabel'])
-                    if 'plt_ylabel' in args:
-                        ax.set_ylabel(args['plt_ylabel'][j])
-        if 'plt_title' in args:
-            ax.set_title(args['plt_title'])
+                    ax.set_xlabel("Shear stress (dyn/cm$^2$)")
+                    ax.set_ylabel('PC'+str(PCs[j]+1)+'$^*$')
+        ax.set_title('Fixed points by shear stress')
         ax.set_ylim(plt_lims[j])
         figs.append(fig)
         axs.append(ax)
