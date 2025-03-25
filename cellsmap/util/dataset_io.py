@@ -77,16 +77,16 @@ def get_number_of_positions(dataset_name:str) -> int:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['n_positions']
 
-def load_dataset(dataset_name:str, channels:List, time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
-    dir = get_zarr_path(dataset_name)
+def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
+    data_dir = get_zarr_path(dataset_name)
     dataset = {}
 
     if zarr_name:
-        filepath = Path(dir) / zarr_name
+        filepath = Path(data_dir) / zarr_name
         assert filepath.exists(), f'Zarr file {filepath} does not exist.'
         filepath_list = [filepath]
     else:
-        filepath_list = [fp for fp in Path(dir).glob('*.zarr')]
+        filepath_list = [fp for fp in Path(data_dir).glob('*.zarr')]
 
     for filepath in filepath_list:
         reader = BioImage(filepath)
@@ -99,6 +99,24 @@ def load_dataset(dataset_name:str, channels:List, time_start:int=0, time_end:int
         img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
         dataset[filepath.name] = img
     return dataset
+
+def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
+    """
+    position can be either an integer or a string.
+    If it is a string then it must the name of a zarr file found in
+    dataset (e.g. a folder ending with the .ome.zarr extension).
+    If it is an integer then it will be used as the index to
+    get the zarr file name from the dataset.
+    """
+    if isinstance(position, int):
+        data_dir = get_zarr_path(dataset_name)
+        filepath_list = sorted([fp for fp in Path(data_dir).glob('*.zarr')])
+        zarr_name = filepath_list[position].name
+    else:
+        zarr_name = position
+    img_dict = load_dataset(dataset_name, channels, time_start, time_end, level, zarr_name)
+    img_dask_arr = img_dict[zarr_name]
+    return img_dask_arr
 
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
