@@ -1,4 +1,5 @@
 import vtk
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -6,6 +7,7 @@ from skimage import filters as skfilt
 from sklearn import cluster as skcluster
 from scipy import interpolate as spinterp
 from vtk.util import numpy_support as vtknp
+from cellsmap.util.set_ouput import get_output_path
 
 def simple_linear_classifier(X, Y):
     Z = 3/2. * X - 0.6
@@ -44,20 +46,22 @@ def create_vector_field_imagedata(x, y, z):
 
     return imageData
 
-def save_image_data(img, file_name="test.vtk"):
+def save_image_data(img, file_name="test.vtk", workflow_name="3d_flow_analysis"):
+    output_dir = get_output_path(workflow_name)
     writer = vtk.vtkStructuredPointsWriter()
     writer.SetInputData(img)
-    writer.SetFileName(file_name)
+    writer.SetFileName(f"{output_dir}{file_name}")
     writer.Write()
 
-def save_points_as_polydata(coordinates, file_name):
+def save_points_as_polydata(coordinates, file_name, workflow_name="3d_flow_analysis"):
+    output_dir = get_output_path(workflow_name)
     pts = vtk.vtkPoints()
     pts.SetData(vtknp.numpy_to_vtk(coordinates))
     poly = vtk.vtkPolyData()
     poly.SetPoints(pts)
     writer = vtk.vtkPolyDataWriter()
     writer.SetInputData(poly)
-    writer.SetFileName(file_name)
+    writer.SetFileName(f"{output_dir}{file_name}")
     writer.Write()
 
 def run_flow_field_workflow(df, condition, time_step=2, grid_spacing=0.05, use_occupancy=False, verbose=False):
