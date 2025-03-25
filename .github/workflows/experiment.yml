@@ -1,0 +1,24 @@
+name: create
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  parse-issue-form:
+    runs-on: ubuntu-latest
+
+    if: ${{ contains( github.event.issue.labels.*.name, 'dataset') }}
+
+    steps:
+
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+
+      - name: Parse issue form
+        id: parse-form
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const script = require('./.github/scripts/parse-issue-form.js')
+            await script({github, context, core})
