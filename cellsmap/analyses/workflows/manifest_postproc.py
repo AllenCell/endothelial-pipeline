@@ -15,11 +15,13 @@ assert "output_subdir" in config, "output_subdir not found in dynamics_config.ya
 analyses_folder = Path(__file__).resolve().parent.parent
 savedir = str(analyses_folder / 'results' / config["output_subdir"])+'/' # directory to save results
 
+# if savedir does not exist, create it (make_savedir function will not overwrite existing directory)
 manifest_io.make_savedir(savedir)
 
 # figures saved into folder at head of repo
 parent_folder = analyses_folder.parent
 fig_savedir = str(parent_folder / 'figs')+'/'
+
 # if figs directory does not exist, create it (make_savedir function will not overwrite existing directory)
 manifest_io.make_savedir(fig_savedir)
 
