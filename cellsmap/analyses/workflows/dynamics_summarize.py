@@ -17,7 +17,7 @@ def main(config_name:str='default') -> None:
 
     # figures saved into folder at head of repo
     parent_folder = analyses_folder.parent
-    fig_savedir = str(parent_folder / 'figs')+'/'
+    fig_savedir = str(parent_folder / 'figs'/ config["output_subdir"])+'/'
 
     # get inputs for analysis/visualization from config
     PCs = config['PCs_to_analyze']

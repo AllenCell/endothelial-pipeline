@@ -12,7 +12,7 @@ Install `pdm` and configure project at the root of the `cellsmap` repository.
 
 ## Running SDE model fitting and analysis
 
-Working directory: head of `cellsmap` repository
+Set working directory to be the head of the `cellsmap` repository.
 
 `pdm run cellsmap/analyses/workflows/dynamics_preproc.py [config_name]`
 * Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
@@ -42,6 +42,6 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 Set output directory via `dynamics_config.yaml`, subdirectory of `cellsmap/analyses/results`
 * Contains fit PCA model (`sklearn.pipeline.Pipeline` object), train/test sets for displacement vectors, and fit drift and diffusion functions (`pysindy.SINDy` object)
 
-Figures are saved to the `figs` directory at the head of the `cellsmap` repo
+Figures are saved to the `figs` directory at the head of the `cellsmap` repo, subdirectory set with same name as results output directory via `dynamics_config.yaml`
 * summary figures for data, PCA, and SDE model
 
