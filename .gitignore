@@ -36,9 +36,12 @@ venv/
 
 # Data files
 *.npy
+*.npz
+*.pkl
 
 # ignore locally generated results
 results/
+analyses/results/
 
 # ignore CellPose models which can be quite large
 cellsmap/analyses/nuclei_predictions/models/
