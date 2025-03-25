@@ -145,7 +145,7 @@ def main(n_proc=1, save_output=True, overwrite=False, is_test=False):
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)
     print('\nBuilding analysis queue...')
-    analysis_queue_live = build_analysis_queue(live_datasets, t_step=48, use_original_data=True, out_dir=out_dir, save_output=save_output, overwrite=overwrite, is_test=is_test)
+    analysis_queue_live = build_analysis_queue(live_datasets, t_step=1, use_original_data=True, out_dir=out_dir, save_output=save_output, overwrite=overwrite, is_test=is_test)
     analysis_queue_fixed = build_analysis_queue(fixed_datasets, use_original_data=True, out_dir=out_dir, save_output=save_output, overwrite=overwrite, is_test=is_test)
     analysis_queue = analysis_queue_live + analysis_queue_fixed
 
