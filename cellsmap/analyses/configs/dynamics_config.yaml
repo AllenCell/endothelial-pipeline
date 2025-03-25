@@ -1,0 +1,14 @@
+
+[{
+  name: "default_config",
+  output_subdir: "dynamics_output",
+  PCs_to_analyze: [0,1],
+  datasets_to_skip: ['20241016_20X','20241210_20X','20241217_20X'],
+  Nbins_kramers_moyal: [35,25],
+  polynomial_lib: {"drift_x": 3, 
+                    "drift_param": 3, 
+                    "diffusion_x": 0,
+                    "diffusion_param": 3},
+   
+},
+]

@@ -19,10 +19,11 @@ drift_lib = model_fitting.build_drift_lib(ndim=len(PCs),drift_deg=drift_deg,para
 diff_lib = model_fitting.build_diff_lib(ndim=len(PCs),diff_deg=diff_deg,param_deg=param_deg_diff)
 # %%
 ################### Fit SINDy models ###################
+dt = 5 # time between consecutive frames in minutes - hardcoded for now because all datasets have the same time resolution
 
 # fit model for drift term - SINDy based regression
 driftModel = ps.SINDy(feature_library = drift_lib, optimizer = ps.SSR())
-driftModel.fit(train_test_dict['X_train'], t= dt,x_dot=train_test_dict['Y_train'],u=train_test_dict['u_train'])
+driftModel.fit(train_test_dict['X_train'],t=dt,x_dot=train_test_dict['Y_train'],u=train_test_dict['u_train'])
 
 # score on test set
 drift_R2 = driftModel.score(train_test_dict['X_test'],x_dot=train_test_dict['Y_test'],u=train_test_dict['u_test'])
@@ -32,7 +33,7 @@ print('Coefficient of determination (R^2) for model of drift term: %f' %drift_R2
 
 # fit model for diffusion term - SINDy based regression
 diffModel = ps.SINDy(feature_library = diff_lib, optimizer = ps.SSR())
-diffModel.fit(train_test_dict['X_train'], t= dt,x_dot=train_test_dict['V_train'],u=train_test_dict['u_train'])
+diffModel.fit(train_test_dict['X_train'], t=dt,x_dot=train_test_dict['V_train'],u=train_test_dict['u_train'])
 
 # score on test set
 diff_R2 = diffModel.score(train_test_dict['X_test'],x_dot=train_test_dict['V_test'],u=train_test_dict['u_test'])
