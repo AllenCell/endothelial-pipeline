@@ -38,6 +38,29 @@ $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t
 
 For each workflow, `[config_name]` is an optional command line input to specify the config in `dynamics_config.yaml` to use when running the workflow. If this is not specified via command line, the workflows are run using the `default` config in `dynamics_config.yaml`.
 
+### Config file documentation
+- `name` (type: `str`): Name of this set of config variables. This is what gets passed in as `[config_name]` via command line.
+- `output_subdir` (type: `str`): Name of subdirectory to save workflow outputs (e.g., train/test set for vector field regression) and figures. If it does not already exist, the directories `cellsmap/analyses/results/[output_subdir]` and `cellsmap/figs/[output_subdir]` are made for saving the outputs and figures, respectively. 
+- `PCs_to_analyze` (type `list[int]`): Which two of the principal component axes to project data onto and analyze trajectories from there.
+- `datasets_to_skip` (type `list[str]`):
+- `N_bins_kramers_moyal` (type `list`):
+- `dt` (type `int` or `float`):
+- `polynomial_lib` type `dict`:
+    - `drift_feats` (type `int`):
+    - `drift_param` (type `int`):
+    - `diffusion_feats` (type `int`):
+    - `diffusion_param` (type `int`):
+- `plt_xlim` (type `list[int]`):
+- `plt_ylim` (type `list[int]`):
+- `N_pts_pplane` (type `list[int]`):
+- `N_bins_hist` (type `list[int]`):
+- `N_bins_landscape` (type `list[int]`):
+- `shear_range` (type `list[int]`):
+- `N_shear_fpt` (type `int`):
+- `N_shear_landscape` (type `int`):
+- `downsample_quiver` (type `int`):
+- `norm_vectors` (type `bool`):
+
 ### Acessing and interpreting outputs
 Set output directory via `dynamics_config.yaml`, subdirectory of `cellsmap/analyses/results`
 * Contains fit PCA model (`sklearn.pipeline.Pipeline` object), train/test sets for displacement vectors, and fit drift and diffusion functions (`pysindy.SINDy` object)
