@@ -15,7 +15,8 @@ def model_data_comparison_one_dataset(model:list[Callable],
                                       PCs:list, 
                                       bins:list, 
                                       pplane_xvec:np.ndarray,
-                                      pplane_yvec:np.ndarray) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
+                                      pplane_yvec:np.ndarray,
+                                      use_fipy:bool=False) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
     '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
     fit diffusion regression model object].'''
     f = model[0]
@@ -34,7 +35,11 @@ def model_data_comparison_one_dataset(model:list[Callable],
     ax1.set_title('Shear stress = '+str(u)+' dyn/cm$^2$')
     plt.show()
 
-    p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
+    if use_fipy:
+        p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
+    else:
+        centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(len(bins))]
+        p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u)
 
     # get "stationary" distribution from data
     feat_cols = [str(i) for i in PCs] # for extracting PC values from DataFrame
