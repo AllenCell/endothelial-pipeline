@@ -42,24 +42,30 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 - `name` (type: `str`): Name of this set of config variables. This is what gets passed in as `[config_name]` via command line.
 - `output_subdir` (type: `str`): Name of subdirectory to save workflow outputs (e.g., train/test set for vector field regression) and figures. If it does not already exist, the directories `cellsmap/analyses/results/[output_subdir]` and `cellsmap/figs/[output_subdir]` are made for saving the outputs and figures, respectively. 
 - `PCs_to_analyze` (type `list[int]`): Which two of the principal component axes to project data onto and analyze trajectories from there.
-- `datasets_to_skip` (type `list[str]`): Datasets to skip when 
-- `N_bins_kramers_moyal` (type `list`):
-- `dt` (type `int` or `float`):
-- `polynomial_lib` type `dict`:
-    - `drift_feats` (type `int`):
-    - `drift_param` (type `int`):
-    - `diffusion_feats` (type `int`):
-    - `diffusion_param` (type `int`):
-- `plt_xlim` (type `list[int]`):
-- `plt_ylim` (type `list[int]`):
-- `N_pts_pplane` (type `list[int]`):
-- `N_bins_hist` (type `list[int]`):
-- `N_bins_landscape` (type `list[int]`):
-- `shear_range` (type `list[int]`):
-- `N_shear_fpt` (type `int`):
-- `N_shear_landscape` (type `int`):
-- `downsample_quiver` (type `int`):
-- `norm_vectors` (type `bool`):
+- `datasets_to_skip` (type `list[str]`): Datasets to skip when fitting drift and diffusion models. 
+    - *NOTE:* This will probably be depreciated in the future, as one of the datasets being skipped (`20241016_20X`) will be recollected and we will replace that dataset with the replicate in the config. The other datasets to skip are the no flow datasets (not being used to fit the SDE model, are being used to generate principal component axes), and that can be checked without needing to specify datasets here.
+- `N_bins_kramers_moyal` (type `list`): Number of bins to use in each dimension when computing the Kramers-Moyal estimates of the drift and diffusion coefficients. These averages are what get passed into the SINDy regression script to learn the drift and diffusion as functions of the state variables (i.e., the coordinates as specified by `PCs`) and the shear stress level.
+- `dt` (type `int` or `float`): Time interval between frames in minutes. I am hardcoding this here because it is the same for all timelapse datasets we are collecting to be passed into the Diffusion AE model.
+- `polynomial_lib` type `dict`: Highest order polynomial term to include in SINDy basis library for regression against Kramers-Moyal estimates to get the drift and diffusion functions.
+    - `drift_feats` (type `int`): Polynomial order in powers of the state variables (i.e., the "features") for estimate of drift.
+    - `drift_param` (type `int`): Polynomial order in powers of shear stress (dynamical systems model parameter) for estimate of drift.
+    - `diffusion_feats` (type `int`): Polynomial order in powers of the state variables (i.e., the "features") for estimate of diffusion.
+        - Default is 0, i.e., additive noise / D is assumed constant over state space. If 
+        $$>0$$
+        , then we are assuming multiplicative noise.
+    - `diffusion_param` (type `int`): Polynomial order in powers of shear stress (dynamical systems model parameter) for estimate of diffusion.
+- `plt_xlim` (type `list[list]`): Plotting limits along x-axis for model summary plots. This axis corresponds to the principal component axis specified in the first element of `PCs`.
+    - `pplane` (type `list[int]`): Bounds along x-axis for grid of points used to generate `pplane` summary plots (deterministic dynamics, i.e., drift flow field).
+    - `hist` (type `list[int]`): Bounds along x-axis for bins used to generate plots comparing histogram of data at last ~100 frames of a given flow condition to stationary histogram predicted by fit SDE model.
+- `plt_ylim` (type `list[list]`): Same as `plt_xlim` but for y-axis. This axis corresponds to the principal component axis specified in the second element of `PCs`.
+- `N_pts_pplane` (type `list[int]`): Number of grid points to use when generating `pplane` summary figures.
+- `N_bins_hist` (type `list[int]`): Number of bins to use when generating histogram/stationary distribution comparison plots.
+- `N_bins_landscape` (type `list[int]`): Number of bins to use when generating plots of the generalize potential energy landscape, defined as the negative log of the predicted stationary probability distribution. The `hist` entry of `plt_xlim` and `plt_ylim` is re-used for generating the bins for these plots.
+- `shear_range` (type `list[int]`): Range (low, high) of shear stress values to consider when summarizing model predictions (e.g., fixed points and stability) for values of shear stress beyond what is present in the data.
+- `N_shear_fpt` (type `int`): Number of values of shear stress within `shear_range` to consider when plotting fixed points and their stability as a function of shear stress (quasi-bifurcation diagram).
+- `N_shear_landscape` (type `int`): Number of values of shear stress within `shear_range` to consider when plotting generalized potential landscape as a function of shear stress.
+- `downsample_quiver` (type `int`): Downsampling of vector field on grid for plotting gradient-flux decomposition of drift term on top of the landscape plot.
+- `norm_vectors` (type `bool`): Whether or not to normalize the gradient and flux vector fields when plotting (sometimes looks better when vectors are unit vectors).
 
 ### Acessing and interpreting outputs
 Set output directory via `dynamics_config.yaml`, subdirectory of `cellsmap/analyses/results`
