@@ -42,7 +42,7 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 - `name` (type: `str`): Name of this set of config variables. This is what gets passed in as `[config_name]` via command line.
 - `output_subdir` (type: `str`): Name of subdirectory to save workflow outputs (e.g., train/test set for vector field regression) and figures. If it does not already exist, the directories `cellsmap/analyses/results/[output_subdir]` and `cellsmap/figs/[output_subdir]` are made for saving the outputs and figures, respectively. 
 - `PCs_to_analyze` (type `list[int]`): Which two of the principal component axes to project data onto and analyze trajectories from there.
-- `datasets_to_skip` (type `list[str]`):
+- `datasets_to_skip` (type `list[str]`): Datasets to skip when 
 - `N_bins_kramers_moyal` (type `list`):
 - `dt` (type `int` or `float`):
 - `polynomial_lib` type `dict`:
