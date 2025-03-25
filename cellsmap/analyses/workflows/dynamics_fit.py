@@ -13,8 +13,7 @@ train_test_dict = dynamics_io.load_train_test(savedir+'outputs/train_test_data.n
 # %%
 ################### Build SINDy libraries ###################
 # for fitting model of drift and diffusion terms
-drift_lib = model_fitting.build_drift_lib(ndim=len(PCs),drift_deg=drift_deg,param_deg=param_deg_drift,
-                                          include_sigmoid=include_sigmoid,sigmoid_funcs=sigmoid_funcs,func_names=func_names)
+drift_lib = model_fitting.build_drift_lib(ndim=len(PCs),drift_deg=drift_deg,param_deg=param_deg_drift)
 
 diff_lib = model_fitting.build_diff_lib(ndim=len(PCs),diff_deg=diff_deg,param_deg=param_deg_diff)
 # %%
