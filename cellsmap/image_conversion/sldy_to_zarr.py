@@ -28,7 +28,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/sldy_to_zarr.py 20250110_paired20X 20250110 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/sldy_to_zarr.py 20241016_20X 20241016 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -51,10 +51,8 @@ def convert_sldy_dataset(
     if get_microscope(dataset) == "Nikon":
         physical_pixel_sizes = img.physical_pixel_sizes
     interval_min = get_time_interval_in_minutes(dataset)
-    # barcode = get_barcode(dataset)
     fmsid = get_fmsid(dataset)
     n_positions = get_total_number_of_positions(dataset)
-    print(f"hard coded positions {n_positions}")
 
     assert n_positions % len(img.scenes) == 0, \
         f'Number of positions ({n_positions}) in data_config.yaml must be divisible by ' \
