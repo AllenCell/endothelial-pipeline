@@ -73,9 +73,12 @@ def get_specific_channel_order(dataset_name:str):
     bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
     return gfp_index, bf_index
 
-def get_number_of_positions(dataset_name:str) -> int:
+def get_total_number_of_positions(dataset_name:str) -> int:
+    """
+    n positions is the product of n_scenes x n_positions_per_scene
+    """
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['n_positions']
+    return dataset_info['n_total_positions']
 
 def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
     data_dir = get_zarr_path(dataset_name)
