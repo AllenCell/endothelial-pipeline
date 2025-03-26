@@ -29,7 +29,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/sldy_to_zarr.py 20250224_20X 20250224 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/sldy_to_zarr.py 20250110_paired40X 20250110 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -60,7 +60,7 @@ def convert_sldy_dataset(
     ), "One of number of positions or number of scenes must be greater than one."
     for scene_index in range(len(img.scenes)):
         for position in range(n_positions):
-            if n_positions > 1:
+            if img.scenes < 1:
                 output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{position}.ome.zarr"
             else:
                 output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{scene_index}.ome.zarr"
