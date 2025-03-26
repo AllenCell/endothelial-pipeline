@@ -59,7 +59,8 @@ def plot_histogram_2D(ax:plt.Axes, p_hist:np.ndarray, bins:list, cmap:str) -> pl
     ax.set_ylabel('$x_2$')
     return ax
 
-def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins, ndim:int=2) -> Tuple[plt.Figure,plt.Axes]:
+def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins) -> Tuple[plt.Figure,plt.Axes]:
+    ndim = len(bins)
     if ndim == 2:
         fig,ax = vb.init_subplots(figsize=(12,4))
         ax[0] = plot_histogram_2D(ax[0],p_hist,bins,cmap='inferno') # plot empirical PDF
@@ -71,9 +72,9 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
         fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
     elif ndim == 1:
         fig,ax = vb.init_subplots(figsize=(12,4))
-        ax[0].plot(bins[:-1],p_hist,'k',label='Empirical PDF')
+        ax[0].plot(bins[0][:-1],p_hist,'k',label='Empirical PDF')
         ax[0].set_title('Empirical PDF')
-        ax[1].plot(bins[:-1],p_model,'k',label='Model PDF')
+        ax[1].plot(bins[0][:-1],p_model,'k',label='Model PDF')
         ax[1].set_title('Model PDF')
 
         W_1 = emd(p_hist,p_model) # Wasserstein distance

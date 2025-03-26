@@ -85,7 +85,7 @@ def vector_field_component(f:Callable,i:int) -> Callable:
         return f_out[i].T # get the i-th component of the vector field, transpose to get correct shape (n_samples,1)
     return f_i # return the the callable function f_i
 
-def get_stationary_probability(f:Callable,D:Callable,bins:list,centers:list,u:float,ndim:int=2,tol:float=1e-10) -> np.ndarray:
+def get_stationary_probability(f:Callable,D:Callable,bins:list,u:float,tol:float=1e-10) -> np.ndarray:
     '''
     Get stationary probability distribution of fit SDE (Langevin) model with drift function f and diffusion D by solving the
     stationary Fokker-Planck equation. The drift and diffusion functions can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
@@ -95,12 +95,8 @@ def get_stationary_probability(f:Callable,D:Callable,bins:list,centers:list,u:fl
     Inputs:
     - f: Callable, drift function of the SDE model
     - D: Callable, diffusion function of the SDE model
-    - bins: list, list of bin edges for the state variable
-        - if ndim == 1, bins is a list of bin edges for the state variable
-        - if ndim > 1, bins is a list of lists of bin edges for each dimension of the state variable
-    - centers: list, list of bin centers for the state variable
+    - bins: list of arrays defining bin edges for each dimension of the state variable
     - u: float, control parameter (shear stress)
-    - ndim: int, number of dimensions of the SDE model (default is 2)
     - tol: float, tolerance for small values in the stationary probability distribution (default is 1e-10)
         - if the probability distribution is less than tol, it is set to tol
     
@@ -108,13 +104,16 @@ def get_stationary_probability(f:Callable,D:Callable,bins:list,centers:list,u:fl
     - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
     '''
 
+    ndim = len(bins)
+    centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(ndim)] # get bin centers
+
     if ndim==1:
         # evaluate f and D at the bin centers
-        f_vals = f(centers,u)
-        D_vals = D(centers,u)
+        f_vals = f(centers[0],u)
+        D_vals = D(centers[0],u)
         # if 1D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be scalars
-        dx = (bins[1]-bins[0])
-        Nbins = len(bins)-1
+        dx = (bins[0][1]-bins[0][0])
+        Nbins = len(bins[0])-1
         # initialize SteadyFP object
         fp = fps.SteadyFP(Nbins, dx)
     else:

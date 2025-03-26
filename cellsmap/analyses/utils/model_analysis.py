@@ -59,7 +59,7 @@ def model_data_comparison_one_dataset(model:list[Callable],
         p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
     else:
         centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(len(bins))]
-        p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u)
+        p_fit = model_eval.get_stationary_probability(f,D,bins,u)
 
     # get "stationary" distribution from data
     feat_cols = [str(i) for i in PCs] # for extracting PC values from DataFrame
@@ -233,7 +233,7 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     epr = np.zeros(len(shear_range))
     for i,u in enumerate(shear_range):
         # get stationary probability distribution   
-        P = model_eval.get_stationary_probability(f,D,bins,centers,u)
+        P = model_eval.get_stationary_probability(f,D,bins,u)
 
         # evaluate drift and diffusion functions at grid points
         f_mesh = model_eval.mesh_grid_function(f)
@@ -302,6 +302,7 @@ def run_gen_potential_analysis(model:list[Callable],
     '''
     print('*** Running generalized potential energy landscape analysis...\n')
     f = model[0]
+    D = model[1]
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
@@ -309,7 +310,7 @@ def run_gen_potential_analysis(model:list[Callable],
         if use_fipy:
             p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
         else:
-            p_fit = model_eval.get_stationary_probability(f,D,bins,centers,u=u)
+            p_fit = model_eval.get_stationary_probability(f,D,bins,u)
         U= -np.log(p_fit)
 
         fig,ax = dviz.plot_gen_potential_2D(U,centers[0],centers[1],cmap='jet',surf=False)
