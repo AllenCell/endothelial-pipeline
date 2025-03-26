@@ -1,7 +1,7 @@
 import fire
 import pysindy as ps # import pysindy package for SINDy based regression
-from pathlib import Path
 
+from cellsmap.util.set_ouput import get_output_path
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import model_fitting
 
@@ -10,9 +10,10 @@ def main(config_name:str='default') -> None:
     config = dynamics_io.load_dynamics_config(config_name)
     assert "output_subdir" in config, "output_subdir not found in dynamics_config.yaml"
 
-    # get head of analyses folder in cellsmap repo
-    analyses_folder = Path(__file__).resolve().parent.parent
-    savedir = str(analyses_folder / 'results' / config["output_subdir"])+'/' # directory to save results
+    # get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
+    # if directory does not exist, get_output_path function will create it
+    workflow_output_folder = "stochastic_dynamics/"+config["output_subdir"]+"/outputs"
+    savedir = get_output_path(workflow_output_folder)
 
     # get inputs for regression from config
     PCs = config['PCs_to_analyze']

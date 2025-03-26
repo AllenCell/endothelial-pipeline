@@ -1,6 +1,6 @@
 import fire
-from pathlib import Path
 
+from cellsmap.util.set_ouput import get_output_path
 from cellsmap.analyses.utils import manifest_pca, regression_main
 from cellsmap.analyses.utils.io import dynamics_io, manifest_io
 from cellsmap.analyses.utils.viz import manifest_viz, viz_base as vb
@@ -12,19 +12,15 @@ def main(config_name:str='default') -> None:
     config = dynamics_io.load_dynamics_config(config_name)
     assert "output_subdir" in config, "output_subdir not found in dynamics_config.yaml"
 
-    # get head of analyses folder in cellsmap repo
-    analyses_folder = Path(__file__).resolve().parent.parent
-    savedir = str(analyses_folder / 'results' / config["output_subdir"])+'/' # directory to save results
+    # get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
+    # if directory does not exist, get_output_path function will create it
+    workflow_output_folder = "stochastic_dynamics/"+config["output_subdir"]+"/outputs"
+    savedir = get_output_path(workflow_output_folder)
 
-    # if savedir does not exist, create it (make_savedir function will not overwrite existing directory)
-    manifest_io.make_savedir(savedir)
-
-    # figures saved into folder at head of repo
-    parent_folder = analyses_folder.parent
-    fig_savedir = str(parent_folder / 'figs'/ config["output_subdir"])+'/'
-
-    # if figs directory does not exist, create it (make_savedir function will not overwrite existing directory)
-    manifest_io.make_savedir(fig_savedir)
+    # get output subdirectory for figures that workflow outputs (set in config file dynamics_config.yaml)
+    # if directory does not exist, get_output_path function will create it
+    workflow_fig_folder = "stochastic_dynamics/"+config["output_subdir"]+"/figs"
+    fig_savedir = get_output_path(workflow_fig_folder)
 
     # load manifest to DataFrame with metadata
     df = manifest_io.load_manifest_to_df()
