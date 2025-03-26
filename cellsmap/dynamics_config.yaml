@@ -1,7 +1,6 @@
 
 [{
   name: "default",
-  output_subdir: "dynamics_output",
   PCs_to_analyze: [0,1],
   datasets_to_skip: ['20241016_20X','20241210_20X','20241217_20X'],
   N_bins_kramers_moyal: [35,25],
@@ -11,7 +10,7 @@
                     "diffusion_feats": 0,
                     "diffusion_param": 3},
   plt_xlim: {"pplane": [-4,4], "hist": [-5,5]},
-  plt_ylim: {"pplane": [-2,4.5], "hist": [-3,5]},
+  plt_ylim: {"pplane": [-3.5,3.5], "hist": [-4,4]},
   N_pts_pplane: 50,
   N_bins_hist: [50,50],
   N_bins_landscape: [60,60],
@@ -23,7 +22,6 @@
 },
 {
   name: "test_config",
-  output_subdir: "dynamics_output_test",
   PCs_to_analyze: [0,1],
   datasets_to_skip: ['20241016_20X','20241210_20X','20241217_20X'],
   N_bins_kramers_moyal: [25,25],
@@ -43,26 +41,4 @@
   downsample_quiver: 10,
   norm_vectors: 'True',
 },
-{
-  name: "include_1016",
-  output_subdir: "include_1016_output",
-  PCs_to_analyze: [0,1],
-  datasets_to_skip: ['20241210_20X','20241217_20X'],
-  N_bins_kramers_moyal: [25,25],
-  dt: 5,
-  polynomial_lib: {"drift_feats": 3, 
-                    "drift_param": 3, 
-                    "diffusion_feats": 0,
-                    "diffusion_param": 3},
-  plt_xlim: {"pplane": [-4,4], "hist": [-5,5]},
-  plt_ylim: {"pplane": [-3.5,3.5], "hist": [-4,4]},
-  N_pts_pplane: 50,
-  N_bins_hist: [50,50],
-  N_bins_landscape: [60,60],
-  shear_range: [4,30],
-  N_shear_fpt: 60,
-  N_shear_landscape: 15,
-  downsample_quiver: 10,
-  norm_vectors: 'True',
-}
 ]
