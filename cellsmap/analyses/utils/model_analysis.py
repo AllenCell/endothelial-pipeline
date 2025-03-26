@@ -17,8 +17,28 @@ def model_data_comparison_one_dataset(model:list[Callable],
                                       pplane_xvec:np.ndarray,
                                       pplane_yvec:np.ndarray,
                                       use_fipy:bool=False) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
-    '''Run analysis on fit SDE (Langevin) model = [fit drift regression model object, 
-    fit diffusion regression model object].'''
+    '''
+    Qualitative evaluation of fit SDE model by taking one dataset at one flow condition,
+    generating phase portrait of the drift term at shear stress = shear stress from data, and comparing 
+    the predicted stationary distribution of the model at that shear stress to the histogram
+    of the data from the last 100 frames of the given flow condition (approx. stationary).
+
+    Inputs:
+    - model: list of Callable functions, [drift, diffusion]
+    - data: DataFrame, feature data for one dataset at one flow condition within that dataset
+    - u: float, shear stress at which to evaluate model (this is the shear stress from the data)
+    - PCs: list of ints, indices of which PCs model fitting was performed on
+    - bins: list of np.ndarrays, bin edges for each PC
+    - pplane_xvec: np.ndarray, x values for phase portrait
+    - pplane_yvec: np.ndarray, y values for phase portrait
+    - use_fipy: bool, optional argument whether to use FiPy solver to calculate stationary distribution (default False)
+
+    Outputs:
+    - fig1: plt.Figure, phase portrait of drift term at shear stress u
+    - ax1: plt.Axes, axis object for fig1
+    - fig2: plt.Figure, comparison of predicted and data stationary distributions
+    - ax2: plt.Axes, axis object for fig2
+    '''
     f = model[0]
     D = model[1]
 
@@ -61,6 +81,24 @@ def model_data_comparison(model:list[Callable],
                           ds_to_skip:list,
                           pplane_xvec:np.ndarray,
                           pplane_yvec:np.ndarray) -> None:
+    '''
+    Compare model fit to data for all datasets in manifest, at all flow conditions.
+    For each dataset, project data onto PCs, split by flow condition, and compare model fit to data
+    for each flow condition by calling the function `model_data_comparison_one_dataset`.
+
+    Inputs:
+    - model: list of Callable functions, [drift, diffusion]
+    - fig_savedir: str, directory to save figures
+    - pca: Pipeline object, PCA object fit to feature data (can include scaling)
+    - PCs: list of ints, indices of which PCs model fitting was performed on
+    - bins: list of np.ndarrays, bin edges for each PC
+    - ds_to_skip: list of str, dataset names to skip in analysis (also skipped in fitting model)
+    - pplane_xvec: np.ndarray, x values for phase portrait
+    - pplane_yvec: np.ndarray, y values for phase portrait
+
+    Outputs:
+    - None, saves figures to fig_savedir
+    '''
     
     # load manifest to DataFrame with metadata
     df = mio.load_manifest_to_df(verbose=False)
@@ -87,20 +125,33 @@ def model_data_comparison(model:list[Callable],
             fig1, _, fig2, _ = model_data_comparison_one_dataset(model,df_by_flow[j],shear_list[j],PCs,
                                                                      bins,pplane_xvec,pplane_yvec)
             
+            # add dataset name and shear stress to figure suptitle for comparison of histograms
             sup_title = fig2._suptitle.get_text()
             sup_title = ds_name+', '+str(shear_list[j])+' dyn/cm$^2$ \n'+sup_title
             fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(),y = 1.15)
             plt.show()
-
+            
+            # save figures
             vb.save_plot(fig1,fig_savedir+ds_name+'_phase_portrait_shear_'+str(int(shear_list[j])))
             vb.save_plot(fig2,fig_savedir+ds_name+'_stationary_dist_shear_'+str(int(shear_list[j])))
 
-def get_fixed_points_by_shear(f:Callable, 
-                              plt_lims:list, 
-                              shear_range:np.ndarray) -> list[dict]:
-    # currently only works for 2D systems
+def get_fixed_points_by_shear(f:Callable, plt_lims:list, shear_range:np.ndarray) -> list[dict]:
+    '''
+    Get fixed points and their types for a given drift function at different shear stresses.
+    Currently only implemented for 2D systems.
+
+    Inputs:
+    - f: Callable, drift function
+    - plt_lims: list of np.ndarrays, limits for excluding fixed points outside of plotting range
+    - shear_range: np.ndarray, shear stresses at which to evaluate fixed points
+
+    Outputs:
+    - fpt_dict_list: list of dicts, each dict contains fixed points and their types for a given shear stress
+    '''
+    # initialize list to store fixed points and their types
     fpt_dict_list = []
 
+    # get grid for phase plane
     x1_lims = plt_lims[0]
     x2_lims = plt_lims[1]
 
@@ -110,22 +161,26 @@ def get_fixed_points_by_shear(f:Callable,
     x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
 
     for u in shear_range:
-        def myFlow(x):
+        def myFlow(x): # define ODE "flow" function (drift function, u is fixed)
             return f(x,u)
 
+        # for finding fixed points numerically, we need to provide initial guesses
+        # we will use a coarse grid of points as initial guesses
         init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
                     for i in range(len(x1_coarse)) 
                     for j in range(len(x2_coarse))
                     ]
-        fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
+        # get fixed points and classify them
+        fpts = pplane.get_fps(myFlow,init_coarse)
         fpt_types, fpts_, _ = pplane.classify_fps(myFlow,fpts,[x1,x2],
-                                           unique=False,verbose=False) # classify fixed points
+                                           unique=False,verbose=False)
 
+        # store fixed points and their types in dictionary
         fpt_dict = {}
-        fpt_dict['fixed_points'] = fpts_
-        fpt_dict['fixed_point_types'] = fpt_types
-        fpt_dict['shear'] = u
-        fpt_dict_list.append(fpt_dict)
+        fpt_dict['fixed_points'] = fpts_ # list of fixed points
+        fpt_dict['fixed_point_types'] = fpt_types # corresponding types
+        fpt_dict['shear'] = u # value of shear stress
+        fpt_dict_list.append(fpt_dict) # add to list
     
     return fpt_dict_list
 
@@ -134,6 +189,22 @@ def run_fixed_point_analysis(drift_function:Callable,
                              PCs:list,
                              plt_lims:list,
                              fig_savedir:str) -> None:
+    
+    '''
+    Run fixed point analysis for a given drift function at different shear stresses.
+    Calls `get_fixed_points_by_shear` to get fixed points and their types at each shear stress,
+    then calls `viz.dynamics_viz.plot_fixed_points_by_shear` to plot the fixed points. Saves figures to fig_savedir.
+
+    Inputs:
+    - drift_function: Callable, drift function
+    - shear_range: np.ndarray, shear stresses at which to evaluate fixed points
+    - PCs: list of ints, indices of which PCs model fitting was performed on
+    - plt_lims: list of np.ndarrays, limits for excluding fixed points outside of plotting range
+    - fig_savedir: str, directory to save figures
+
+    Outputs:
+    - None, saves figures to fig_savedir
+    '''
     print('*** Running fixed point analysis...\n')
     fpt_dict_list = get_fixed_points_by_shear(drift_function,plt_lims,shear_range)
     figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list,shear_range,PCs,plt_lims)
@@ -142,9 +213,23 @@ def run_fixed_point_analysis(drift_function:Callable,
 
 
 def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray) -> np.ndarray:
-    '''Get entropy production rate as a function of shear stress for a fit model object.'''
+    '''
+    Get entropy production rate as a function of shear stress for a fit model object.
+    
+    Inputs:
+    - model: list of Callables, [drift, diffusion]
+    - bins: list of np.ndarrays, bin edges for each dimension of state space
+    - centers: list of np.ndarrays, bin centers for each dimension of state space
+    - shear_range: np.ndarray, shear stresses at which to evaluate entropy production rate
+
+    Outputs:
+    - epr: np.ndarray, entropy production rate as a function of shear stress
+    '''
+    # get drift and diffusion functions
     f = model[0]
     D = model[1]
+
+    # initialize array to store entropy production rate
     epr = np.zeros(len(shear_range))
     for i,u in enumerate(shear_range):
         # get stationary probability distribution   
@@ -158,19 +243,30 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
         f_vals = f_mesh([X1,X2],u).T
         D_vals = D_mesh([X1,X2],u).T
 
-        # get probability flux
+        # get probability flux: J(x) = f(x)P(x) - div(D(x) P(x))
         J = gp.probability_flux(P,f_vals,D_vals,centers)
         # expand D_vals to matrix (diagonal elements)
         D_mat = gp.expand_to_matrix(D_vals)
-
+        # get entropy production rate (numerical integration)
+        # right now this is a huge bottleneck, need to optimize
         epr[i] = gp.entropy_production(J,D_mat,P,centers)
     return epr
 
-def run_epr_analysis(model:list[Callable], 
-                     bins:list, 
-                     centers:list, 
-                     shear_range:np.ndarray, 
-                     fig_savedir:str) -> None:
+def run_epr_analysis(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray, fig_savedir:str) -> None:
+    '''
+    Get and plot entropy production rate as a function of shear stress for a fit SDE model.
+    Calls `get_epr` to get entropy production rate, then calls `viz.dynamics_viz.plot_entropy_production_rate` to plot it.
+
+    Inputs:
+    - model: list of Callables, [drift, diffusion]
+    - bins: list of np.ndarrays, bin edges for each dimension of state space
+    - centers: list of np.ndarrays, bin centers for each dimension of state space
+    - shear_range: np.ndarray, shear stresses at which to evaluate entropy production rate
+    - fig_savedir: str, directory to save figures
+
+    Outputs:
+    - None, saves figures to fig_savedir
+    '''
     print('*** Running entropy production rate analysis...\n')
     epr = get_epr(model, bins, centers, shear_range)
     fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
@@ -186,6 +282,24 @@ def run_gen_potential_analysis(model:list[Callable],
                                normed:bool, 
                                fig_savedir:str,
                                use_fipy:bool=False) -> None:
+    '''
+    Run generalized potential energy landscape analysis for a fit SDE model. This is a qualitative evaluation of the model
+    by plotting the generalized potential energy landscape and its gradient/flux decomposition at different shear stresses.
+
+    Inputs:
+    - model: list of Callables, [drift, diffusion]
+    - bins: list of np.ndarrays, bin edges for each dimension of state space
+    - centers: list of np.ndarrays, bin centers for each dimension of state space
+    - shear_range: np.ndarray, shear stresses at which to evaluate entropy production rate
+    - PCs: list of ints, indices of which PCs model fitting was performed on
+    - downsample_quiver: int, downsample factor for quiver plot of gradient/flux decomposition
+    - normed: bool, whether to normalize quiver plot of gradient/flux decomposition
+    - fig_savedir: str, directory to save figures 
+    - use_fipy: bool, optional argument whether to use FiPy solver to calculate stationary distribution (default False)
+
+    Outputs:
+    - None, saves figures to fig_savedir
+    '''
     print('*** Running generalized potential energy landscape analysis...\n')
     f = model[0]
     D = model[1]
