@@ -178,7 +178,7 @@ def run_gen_potential_analysis(model:list[Callable],
                                downsample_quiver:int,
                                normed:bool, 
                                fig_savedir:str,
-                               use_fipy:bool=False) -> None:
+                               use_fipy:bool=True) -> None:
     f = model[0]
     D = model[1]
 

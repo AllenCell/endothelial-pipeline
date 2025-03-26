@@ -18,7 +18,7 @@
   N_shear_fpt: 60,
   N_shear_landscape: 15,
   downsample_quiver: 10,
-  norm_vectors: 'True',
+  norm_vectors: 'False',
 },
 {
   name: "test_config",
@@ -28,7 +28,7 @@
   dt: 5,
   polynomial_lib: {"drift_feats": 3, 
                     "drift_param": 3, 
-                    "diffusion_feats": 0,
+                    "diffusion_feats": 2,
                     "diffusion_param": 3},
   plt_xlim: {"pplane": [-4,4], "hist": [-5,5]},
   plt_ylim: {"pplane": [-3.5,3.5], "hist": [-4,4]},
@@ -39,6 +39,6 @@
   N_shear_fpt: 60,
   N_shear_landscape: 15,
   downsample_quiver: 10,
-  norm_vectors: 'True',
+  norm_vectors: 'False',
 },
 ]
