@@ -1,6 +1,16 @@
 import numpy as np
 import pickle
 
+from cellsmap.util.dataset_io import load_config
+
+def load_dynamics_config(config_name:str='default') -> dict:
+    '''Load dynamics config file.'''
+    configs = load_config("dynamics")
+    for config in configs:
+        if config['name'] == config_name:
+            return config
+    raise ValueError(f'Config {config_name} not found in dynamics_config.yaml')
+
 def save_train_test(train_test_dict:dict, savedir:str) -> None:
     '''Save train test data to file in savedir, using numpy savez.'''
     np.savez(savedir+'train_test_data', **train_test_dict)
