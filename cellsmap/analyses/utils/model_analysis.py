@@ -302,8 +302,6 @@ def run_gen_potential_analysis(model:list[Callable],
     '''
     print('*** Running generalized potential energy landscape analysis...\n')
     f = model[0]
-    D = model[1]
-
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
