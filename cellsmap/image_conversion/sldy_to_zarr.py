@@ -1,10 +1,9 @@
 # %%
 import argparse
 from cellsmap.util.dataset_io import (
-    get_number_of_positions, 
+    get_total_number_of_positions, 
     get_time_interval_in_minutes,
     get_microscope,
-    get_barcode,
     get_fmsid,)
 from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
@@ -54,19 +53,23 @@ def convert_sldy_dataset(
     interval_min = get_time_interval_in_minutes(dataset)
     # barcode = get_barcode(dataset)
     fmsid = get_fmsid(dataset)
-    n_positions = get_number_of_positions(dataset)
-    assert not (
-        n_positions > 1 and len(img.scenes) > 1
-    ), "One of number of positions or number of scenes must be greater than one."
-    for scene_index in range(len(img.scenes)):
-        for position in range(n_positions):
-            if img.scenes < 1:
-                output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{position}.ome.zarr"
-            else:
-                output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{scene_index}.ome.zarr"
+    n_positions = get_total_number_of_positions(dataset)
+    print(f"hard coded positions {n_positions}")
+
+    assert n_positions % len(img.scenes) == 0, \
+        f'Number of positions ({n_positions}) in data_config.yaml must be divisible by ' \
+        f'number of scenes ({len(img.scenes)}) in the image file for dataset {dataset}'
+    
+    num_pos_in_T = n_positions // len(img.scenes)
+    num_pos_in_S = len(img.scenes)
+    
+    count = 0
+    for scene_index in range(num_pos_in_S):
+        for position in range(num_pos_in_T):
+            output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
             print(f"Writing to {output}")
             scene = get_delayed_array_for_position(
-                position, dataset, n_positions, scene_index, img
+                position, dataset, num_pos_in_T, scene_index, img
             )
             write_scene(
                 scene,
@@ -77,7 +80,7 @@ def convert_sldy_dataset(
                 physical_pixel_sizes,
                 interval_min,
             )
-
+            count += 1
 
 def main(dataset: str, output_path: str, output_dataset_name: str, channel_names: list):
     convert_sldy_dataset(dataset, output_path, output_dataset_name, channel_names)

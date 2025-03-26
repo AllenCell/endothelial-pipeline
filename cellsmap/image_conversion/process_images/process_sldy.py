@@ -3,7 +3,7 @@ from bioio import BioImage
 from cellsmap.util.dataset_io import (
     get_original_path,
     get_specific_channel_order,
-    get_number_of_positions,
+    get_total_number_of_positions,
 )
 import dask.array as da
 
@@ -31,7 +31,7 @@ def get_delayed_array_for_position(
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position
     t_final = img.dims.T #  the total number of timepoints in "img"; if testing set t_final to some smaller number (recommended: 18)
-    number_positions = get_number_of_positions(dataset_name)
+    number_positions = get_total_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
     gfp_index, bf_index = get_specific_channel_order(dataset_name)
