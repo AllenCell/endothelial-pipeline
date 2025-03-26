@@ -12,12 +12,27 @@ import cellsmap.analyses.utils.io.manifest_io as mio
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
-def get_bins(Nbins:list,data=None,bin_limits=None) -> Tuple[list,list]:
-    '''Generate histogram bins for the data.'''
+def get_bins(Nbins:list,data:pd.DataFrame|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
+    '''
+    Generate histogram bins for computing Kramers-Moyal estimates from trajectories, either automatically based on data or user-defined.
+
+    Inputs:
+    - Nbins: list of number of bins in each dimension (list of length ndim, where ndim is the number of dimensions of the feature space)
+    - data: list of numpy arrays, each array is the trajectory of a single crop in feature space (ndim = len(Nbins))
+    - bin_limits: list of tuples, each tuple contains the lower and upper bounds for the bins in each dimension
+    Either data or bin_limits must be provided. If bin_limits provided, data is ignored.
+
+    Outputs:
+    - bins: list of numpy arrays, each array contains the bin edges for a dimension
+    - centers: list of numpy arrays, each array contains the center of each bin in a dimension
+
+    If the dimension is 1, bins and centers are still lists (of length 1), containing the bin edges and centers for the single dimension.
+    '''
     if bin_limits is None: # Automatically determine bins based on data
         if data is None:
             raise ValueError('Please provide data or or upper and lower bounds for bins.')
         ndim = data[0].shape[1]
+        assert ndim == len(Nbins), 'Number of bins must match number of dimensions in data.'
         bins = []
         centers = []
         for i in range(ndim):
@@ -30,6 +45,7 @@ def get_bins(Nbins:list,data=None,bin_limits=None) -> Tuple[list,list]:
             centers.append(0.5*(my_bins[1:]+my_bins[:-1]))
     else: # Use user-defined bins
         ndim = len(bin_limits)
+        assert ndim == len(Nbins), 'Number of bins must match number of dimensions in data.'
         bins = []
         centers = []
         for i in range(ndim):
@@ -39,36 +55,65 @@ def get_bins(Nbins:list,data=None,bin_limits=None) -> Tuple[list,list]:
     return bins, centers
 
 def get_X_by_flow(df_proj:pd.DataFrame,ds_name:str,verbose:bool=True) -> Tuple[list,list]:
-    '''Get feature data for different flow conditions in dataset ds_name.
-    Returns list of feature data (dataframes) and list of corresponding flow conditions.'''
+    '''
+    Get crop-based feature data (Diffusion AE output) for different flow conditions present in dataset ds_name.
+
+    Inputs:
+    - df_proj: pandas dataframe containing the dataset of interest, projected onto all principal component axes (change of basis, no dimensionality reduction)
+    - ds_name: name of the dataset (used to split out data by flow condition, acessed via data_config.yaml)
+
+    Outputs:
+    - data_all: list of dataframes, each containing the feature data for one flow condition
+    - shear_list: list of shear stress conditions for each flow condition
+    
+    If there is only one flow condition, data_all and shear_list are still lists (of length 1), respectively containing the original dataframe and single shear stress condition.
+    '''
 
     if 'outlier' in df_proj.columns:
-        df_proj = df_proj[df_proj['outlier']==False] # remove outliers
+        df_proj = df_proj[df_proj['outlier']==False] # remove outliers (bubble detection)
 
+    # load dataset information from data_config.yaml
     data_config = dio.get_dataset_info(ds_name)
-    first_shear = float(data_config['flow'][0][-1])
 
+    # split out data by flow condition, starting with first flow condition
+    first_shear = float(data_config['flow'][0][-1])
+    # initialize list of shear stress conditions
     shear_list = [first_shear]
-    if len(data_config['flow']) > 1:
-        change_frame = mio.get_flow_change_frame(ds_name) # change from time in hours to frame number
+    if len(data_config['flow']) > 1: # if there is a change in flow condition
+        # get frame number where flow condition changes (reported in hours in data_config.yaml)
+        change_frame = mio.get_flow_change_frame(ds_name)
+        # get second shear stress condition
         second_shear = float(data_config['flow'][1][-1])
-        if verbose:
+        shear_list.append(second_shear)
+        if verbose: # option to print out shear stress conditions and frame number where flow condition changes
             print('Shear stress',first_shear,'dyn/cm^2 until frame',change_frame)
             print('Shear stress',second_shear,'dyn/cm^2 after frame',change_frame)
+        # separate data into two dataframes based on frame number where flow condition changes
         data_flow1 = df_proj[df_proj['T']<change_frame].copy()
         data_flow2 = df_proj[df_proj['T']>=change_frame].copy()
+        # return list of dataframes for each flow condition
         data_all = [data_flow1,data_flow2]
-        shear_list.append(second_shear)
-    else:
+    else: # else, there is only one flow condition
         if verbose:
-            print('Constant shear stress')
+            print('Constant shear stress at',first_shear,'dyn/cm^2')
+        # list of dataframes for one flow condition = list containing the original dataframe
         data_all = [df_proj.copy()]
     return data_all, shear_list
 
 def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
-    '''X is a pandas DataFrame with columns for each feature. Should have a column for time, a column
-    for the crop index, and a column indicating an outlier point. Returns tuple of lists, 
-    each a list of numpy arrays.'''
+    '''
+    Get list of per-crop trajectories, the corresponding displacement vectors, and time differences along the trajectory for each crop in the dataset.
+
+    Inputs:
+    - X: pandas DataFrame with columns for each feature. Should have a column for time, a column for the crop index, and a column indicating an outlier point.
+        This data should be for one dataset and one flow condition.
+    - feat_cols: list of feature column names (used to extract feature data from the dataframe X)
+
+    Outputs:
+    - X_list: list of numpy arrays, each array is the trajectory of a single crop in feature space
+    - dX_list: list of numpy arrays, each array is the displacement vectors along that trajectory for a single crop in feature space
+    - dT_list: list of numpy arrays, each array is the time differences along that trajectory for a single crop
+    '''
     if 'outlier' not in X.columns:
         raise ValueError('Data must have a column for outlier')
     if 'T' not in X.columns:
