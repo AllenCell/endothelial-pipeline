@@ -131,10 +131,13 @@ def get_dataset_name(ds_path:str,path_prefix:str|None=None,file_ext:str='.ome.za
         path_prefix = '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/' # default path prefix
     dataset_name = ds_path.replace(path_prefix,'') # remove path prefix, only get dataset name (file name at end of path)
     dataset_name = dataset_name.replace(file_ext,'') # remove file extension
+    # remove any additional strings in dataset name - there should be a better way to do this
     if '_SLDY' in dataset_name:
         dataset_name = dataset_name.replace('_SLDY','')
     if '_timelapse' in dataset_name:
         dataset_name = dataset_name.replace('_timelapse','')
+    if '_Timelapsee' in dataset_name: # typo in file path for 20250319 dataset
+        dataset_name = dataset_name.replace('_Timelapsee','')
     return dataset_name
 
 def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=False) -> list:

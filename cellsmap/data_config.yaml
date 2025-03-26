@@ -558,7 +558,7 @@
 },
 {
   name: 20250319_20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250319/20250319_GE00007419_20X_Timelapse_SLDY.sldy",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250319/20250319_GE00007419_20X_Timelapsee.sldy",
   zarr_path: None,
   barcode: GE00007419,
   live_or_fixed_sample: live,
