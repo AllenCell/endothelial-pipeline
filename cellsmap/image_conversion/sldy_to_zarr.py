@@ -4,7 +4,8 @@ from cellsmap.util.dataset_io import (
     get_number_of_positions, 
     get_time_interval_in_minutes,
     get_microscope,
-    get_barcode,)
+    get_barcode,
+    get_fmsid,)
 from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
@@ -51,7 +52,8 @@ def convert_sldy_dataset(
     if get_microscope(dataset) == "Nikon":
         physical_pixel_sizes = img.physical_pixel_sizes
     interval_min = get_time_interval_in_minutes(dataset)
-    barcode = get_barcode(dataset)
+    # barcode = get_barcode(dataset)
+    fmsid = get_fmsid(dataset)
     n_positions = get_number_of_positions(dataset)
     assert not (
         n_positions > 1 and len(img.scenes) > 1
@@ -59,9 +61,9 @@ def convert_sldy_dataset(
     for scene_index in range(len(img.scenes)):
         for position in range(n_positions):
             if n_positions > 1:
-                output = f"{output_path}/{output_dataset_name}_{barcode}/{output_dataset_name}_{barcode}_P{position}.ome.zarr"
+                output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{position}.ome.zarr"
             else:
-                output = f"{output_path}/{output_dataset_name}_{barcode}/{output_dataset_name}_{barcode}_P{scene_index}.ome.zarr"
+                output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{scene_index}.ome.zarr"
             print(f"Writing to {output}")
             scene = get_delayed_array_for_position(
                 position, dataset, n_positions, scene_index, img

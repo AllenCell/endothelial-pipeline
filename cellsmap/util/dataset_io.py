@@ -157,6 +157,10 @@ def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['microscope']
 
+def get_fmsid(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['fmsid']
+
 # model methods
 
 def get_available_models():
