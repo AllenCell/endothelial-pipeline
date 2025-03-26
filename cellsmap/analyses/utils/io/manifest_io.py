@@ -90,6 +90,7 @@ def add_metadata_from_path(df:pd.DataFrame,verbose:bool=True) -> pd.DataFrame:
     # dataset_name value in df to match the name int data_config.yaml
     # something that should be fixed in the manifest in the future
     df.loc[df.dataset_name.str.contains('20250224'),'dataset_name'] = '20250224_20X'
+    df.loc[df.dataset_name.str.contains('20250319'),'dataset_name'] = '20250319_20X'
 
     # drop filename_or_obj column
     df.drop(columns=['filename_or_obj'],inplace=True)
