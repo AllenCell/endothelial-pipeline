@@ -50,13 +50,12 @@ def load_manifest_to_df(verbose:bool=True) -> pd.DataFrame:
     # manifest files for newer datasets
     path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
     path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
-    path_to_20250319 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/mixed_flow/2025-03-26_10-47-46/predict.parquet'
+    path_to_20250319 = '//allen/aics/users/benjamin.morris/cyto_dl/logs/eval/runs/diffae/mixed_flow/2025-03-26_10-47-46/predict.parquet'
 
     df = load_df(path_to_data_multi)
     df_1217 = load_df(path_to_20241217)
     df_0224 = load_df(path_to_20250224)
     df_0319 = load_df(path_to_20250319)
-    print(df_0319['T'].max())
 
     df = pd.concat([df,df_1217,df_0224,df_0319],ignore_index=True)
 
