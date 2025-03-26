@@ -14,7 +14,7 @@ Install `pdm` and configure project at the root of the `cellsmap` repository.
 
 Set working directory to be the head of the `cellsmap` repository.
 
-`pdm run cellsmap/analyses/workflows/dynamics_preproc.py [config_name]`
+`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py [config_name]`
 * Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
 * Get one time step displacements of crops over time, train/test split for fitting drift
  $$\mathbf{f}(\mathbf{x})$$ 
@@ -22,10 +22,10 @@ Set working directory to be the head of the `cellsmap` repository.
  $$D(\mathbf{x})$$ 
  coefficients from these displacements.
 
-`pdm run cellsmap/analyses/workflows/dynamics_fit.py [config_name]`
+`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_fit.py [config_name]`
 * Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
 
-`pdm run cellsmap/analyses/workflows/dynamics_summarize.py [config_name]`
+`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_summarize.py [config_name]`
 * Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model 
 $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t)$$
 
@@ -40,7 +40,6 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 
 ### Config file documentation
 - `name` (type: `str`): Name of this set of config variables. This is what gets passed in as `[config_name]` via command line.
-- `output_subdir` (type: `str`): Name of subdirectory to save workflow outputs (e.g., train/test set for vector field regression) and figures. If it does not already exist, the directories `cellsmap/analyses/results/[output_subdir]` and `cellsmap/figs/[output_subdir]` are made for saving the outputs and figures, respectively. 
 - `PCs_to_analyze` (type `list[int]`): Which two of the principal component axes to project data onto and analyze trajectories from there.
 - `datasets_to_skip` (type `list[str]`): Datasets to skip when fitting drift and diffusion models. 
     - *NOTE:* This will probably be depreciated in the future, as one of the datasets being skipped (`20241016_20X`) will be recollected and we will replace that dataset with the replicate in the config. The other datasets to skip are the no flow datasets (not being used to fit the SDE model, are being used to generate principal component axes), and that can be checked without needing to specify datasets here.
@@ -68,9 +67,13 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 - `norm_vectors` (type `bool`): Whether or not to normalize the gradient and flux vector fields when plotting (sometimes looks better when vectors are unit vectors).
 
 ### Acessing and interpreting outputs
-Set output directory via `dynamics_config.yaml`, subdirectory of `cellsmap/analyses/results`
-* Contains fit PCA model (`sklearn.pipeline.Pipeline` object), train/test sets for displacement vectors, and fit drift and diffusion functions (`pysindy.SINDy` object)
+Intermediate workflow outputs (e.g., train/test sets) are saved to `cellsmap/results/stochastic_dynamics/[config_name]/outputs`. Figures are saved to `cellsmap/results/stochastic_dynamics/[config_name]/figs`. If they do not already exist, these directories are created automatically. 
 
-Figures are saved to the `figs` directory at the head of the `cellsmap` repo, subdirectory set with same name as results output directory via `dynamics_config.yaml`
+Intermediate outputs:
+* fit PCA model (`sklearn.pipeline.Pipeline` object)
+* train/test sets for displacement vectors
+* fit drift and diffusion functions (`pysindy.SINDy` object)
+
+Figures:
 * summary figures for data, PCA, and SDE model
 

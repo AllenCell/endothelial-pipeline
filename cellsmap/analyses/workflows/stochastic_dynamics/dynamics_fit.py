@@ -8,11 +8,10 @@ from cellsmap.analyses.utils import model_fitting
 def main(config_name:str='default') -> None:
     ################### Load configs from dynamics_config ###################
     config = dynamics_io.load_dynamics_config(config_name)
-    assert "output_subdir" in config, "output_subdir not found in dynamics_config.yaml"
 
     # get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
-    workflow_output_folder = "stochastic_dynamics/"+config["output_subdir"]+"/outputs"
+    workflow_output_folder = "stochastic_dynamics/"+config["name"]+"/outputs"
     savedir = get_output_path(workflow_output_folder)
 
     # get inputs for regression from config
