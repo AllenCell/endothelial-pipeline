@@ -1,6 +1,6 @@
 import os
 
-def get_output_path(workflow_name: str) -> str:
+def get_output_path(workflow_name: str, verbose:bool=True) -> str:
     """
     Save results to a universal results directory in a folder titled after the workflow. 
     The contents are gitignored. 
@@ -12,7 +12,8 @@ def get_output_path(workflow_name: str) -> str:
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         
-    print(f"Output saved to directory: {output_dir}")
+    if verbose:
+        print(f"Output saved to directory: {output_dir}")
     
     return output_dir
     

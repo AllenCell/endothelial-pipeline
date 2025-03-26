@@ -13,12 +13,12 @@ def main(config_name:str='default') -> None:
     # get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_output_folder = "stochastic_dynamics/"+config["name"]+"/outputs"
-    savedir = get_output_path(workflow_output_folder)
+    savedir = get_output_path(workflow_output_folder,verbose=False)
 
     # get output subdirectory for figures that workflow outputs (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_fig_folder = "stochastic_dynamics/"+config["name"]+"/figs"
-    fig_savedir = get_output_path(workflow_fig_folder)
+    fig_savedir = get_output_path(workflow_fig_folder,verbose=False)
 
     # get inputs for analysis/visualization from config
     PCs = config['PCs_to_analyze']
