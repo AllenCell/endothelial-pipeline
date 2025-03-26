@@ -1,33 +1,8 @@
-import numpy as np
 import pysindy as ps
-from typing import Callable
 
-def make_sigmoid(n:int) -> Callable:
-    # callable function for adding sigmoid functions to SINDy library
-    def _(x):
-        return 1/(1+np.exp(-n*x))
-    return _
-
-def make_sigmoid_string(n:int) -> Callable:
-    # string representation of sigmoid function
-    def _(x):
-        return '1/(1+exp(-'+str(n)+'*'+x+')'
-    return _
-
-def build_drift_lib(ndim:int,drift_deg:int=3,param_deg:int=3,include_sigmoid:bool=False,sigmoid_funcs:list|None=None,func_names:list|None=None) -> ps.ParameterizedLibrary:
+def build_drift_lib(ndim:int,drift_deg:int=3,param_deg:int=3) -> ps.ParameterizedLibrary:
     # build set of basis functions for regression model for drift term of SDE model
-
-    if include_sigmoid: # include sigmoid functions in basis functions
-        # pass in custom sigmoid functions (defined in dynamics_fit_config.py) to include in SINDy library
-        # pySINDy custom library
-        sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
-                                    function_names=func_names)
-        # full library for drift term (functions of state variables)
-        drift_feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=drift_deg, 
-                                        include_bias=True),
-                                        sigmoid_lib])
-    else: # just polynomial library for basis functions
-        drift_feature_lib = ps.PolynomialLibrary(degree=drift_deg, include_bias=True)
+    drift_feature_lib = ps.PolynomialLibrary(degree=drift_deg, include_bias=True)
 
     # library for model dependence on control parameters (shear stress)
     drift_parameter_lib=ps.PolynomialLibrary(degree=param_deg, include_bias=True) # library for model dependence on control parameters (shear stress)

@@ -10,18 +10,13 @@ from cellsmap.analyses.utils.manifest_pca import get_outliers
 
 def make_savedir(savedir:str='') -> None:
     '''Create directory savedir if it does not exist
-    for various outputs of model fitting and analysis if those do not exist.'''
-    if savedir == '': # default save directory called 'dynamics_output' made in head of repo
-        parent_folder = Path(__file__).resolve().parent.parent
-        savedir = str(parent_folder / 'dynamics_output/')
+    for various inputs for/outputs of model fitting workflows.'''
     if not os.path.exists(savedir):
         if not savedir.endswith('/'):
             savedir += '/'
         print("*** Creating directory to save results... \n")
         print(f"Directory: {savedir} \n")
         os.makedirs(savedir)
-        os.makedirs(savedir+'outputs')
-        os.makedirs(savedir+'figs')
 
 def load_df(file_path:str) -> pd.DataFrame:
     '''Load Pandas DataFrame from file_path.'''
