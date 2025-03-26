@@ -7,7 +7,16 @@ import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.analyses.utils.io.manifest_io as mio
 
 def plot_explained_variance(explained_variance_ratio:np.ndarray) -> tuple:
-    '''Plot explained variance ratio of PCA components.'''
+    '''
+    Plot explained variance ratio of PCA components.
+    
+    Input:
+    - explained_variance_ratio: np.ndarray, explained variance ratio of PCA components
+
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     fig, ax = vb.init_plot()
     n_components = len(explained_variance_ratio)
     ax.plot(np.arange(1,n_components+1),np.cumsum(explained_variance_ratio),'k-o')
@@ -18,7 +27,21 @@ def plot_explained_variance(explained_variance_ratio:np.ndarray) -> tuple:
     return fig, ax
 
 def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax:tuple|None=None) -> tuple:
-    '''Plot top 3 principal components of feature data vs. frame number.'''
+    '''
+    Plot Diffusion AE feature data from a dataset along the top 3 principal components.
+    At each frame in the dataset, takes the mean and standard deviation of the feature data 
+    projected onto the top 3 PCs over all crops. Then plots the mean and standard deviation
+    of the feature data projected onto each PC over all frames in the dataset.
+
+    Input:
+    - feats_proj: np.ndarray, feature data projected onto the top 3 PCs for a single dataset
+    - fig_ax: tuple (default=None), tuple of plt.Figure and plt.Axes objects to plot on
+        - if None, initializes a new figure and axes
+    
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     if fig_ax is None:
         fig, ax = vb.init_subplots(1,3,figsize=(15,5))
     else:
@@ -37,6 +60,22 @@ def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax:tuple|None=None) -> tuple:
     return fig, ax
 
 def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> tuple:
+    '''
+    Plot projection of feature data from all datasets along the top 3 principal components.
+
+    For each dataset, projects the feature data onto the top 3 PCs, gets the mean and standard deviation
+    over all crops at each frame, and plots this mean and standard deviation vs. frame number for each PC.
+    Calls plot_top_3_PCs() to plot the data for each dataset.
+
+    Input:
+    - df: pd.DataFrame, the manifest dataframe containing feature data for multiple datasets
+    - pca: Pipeline, the PCA model used to project the feature data onto the top 3 PCs
+        - can include any preprocessing steps before PCA, such as scaling
+    
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
     list_of_datasets = mio.get_list_of_datasets(df)
     title_dict = mio.get_descriptive_metadata(df)
@@ -61,7 +100,19 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> tuple:
     return fig, axs
 
 def plot_PCA_projection_2D(feats_proj:np.ndarray,fig_title:str|None=None,fig_ax:tuple|None=None) -> tuple:
-    '''Plot mean values of PCA projection of feature data of one dataset.'''
+    '''
+    Plot mean values of projected feature data onto the top 2 PCs for each frame in the dataset.
+
+    Input:
+    - feats_proj: np.ndarray, feature data projected onto the top 2 PCs for a single dataset
+    - fig_title: str (default=None), title of the figure
+    - fig_ax: tuple (default=None), tuple of plt.Figure and plt.Axes objects to plot on
+        - if None, initializes a new figure and axes
+    
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     if fig_ax is not None:
         fig, ax = fig_ax
     else:
