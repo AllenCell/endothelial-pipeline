@@ -139,7 +139,22 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
 
 
 def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
-    '''Kramers-Moyal average drift and diffusion estimates for N-dimensional data'''
+    '''
+    Kramers-Moyal average drift and diffusion estimates for trajectories in N-dimensional space.
+
+    Inputs:
+    - X_list: list of numpy arrays, each array is a single trajectory in feature space
+    - dX_list: list of numpy arrays, each array is the displacement vectors along that trajectory
+    - dT_list: list of numpy arrays, each array is the time differences along that trajectory
+    - bins: list of numpy arrays, each array contains the bin edges for a dimension (used for computing conditional averages)
+    - dt: time step between data points (used to compute Kramers-Moyal coefficients)
+
+    Outputs:
+    - f_KM_avg: numpy array, average drift estimate for each bin in feature space (average taken over all trajectories)
+    - D_KM_avg: numpy array, average diffusion estimate for each bin in feature space (average taken over all trajectories)
+    - f_err: numpy array, error estimate for drift (standard deviation of samples in each bin)
+    - D_err: numpy array, error estimate for diffusion (standard deviation of samples in each bin)
+    '''
     ndim = len(bins)
     n = len(X_list) # number of trajectories from which dX was computed
     my_list = [len(bins[i])-1 for i in range(ndim)]
@@ -195,23 +210,58 @@ def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple
     return f_KM_avg, D_KM_avg, f_err, D_err
 
 def masked_vector_field(F:np.ndarray, X:np.ndarray) -> Tuple[np.ndarray,np.ndarray]:
-    '''Mask out the vector field F defined over points X 
-    where F(X) is NaN'''
+    '''
+    For the vector field F over grid X, mask out F at points X where F(X) is NaN.
+
+    Inputs:
+    - F: numpy array (n_1 x n_2 x ... x n_ndim x ndim), ndim-D vector field evaluated on a meshgrid
+    - X: numpy array (n_1 x n_2 x ... x n_ndim x ndim), ndim-D meshgrid where vector field is evaluated
+
+    Outputs:
+    - F_mask: numpy array (n x ndim), masked vector field flattened to 2D array (n = number of non-NaN points)
+    - X_mask: numpy array (n x ndim), masked meshgrid flattened to 2D array (n = number of non-NaN points)
+    '''
     mask = np.where(np.isfinite(F))
     ndim = F.shape[-1]
     X_mask = X[mask].reshape((-1,ndim))
     F_mask = F[mask].reshape((-1,ndim))
     return F_mask, X_mask
 
-def train_test_all(X:list[np.ndarray], F:list[np.ndarray], D:list[np.ndarray], num_flow:int, \
-                   train_frac:float=0.8, seed:int=47, concat:bool=False) -> tuple:
-    '''Split data for different flow conditions into training and testing sets (80/20 by default)'''
+def train_test_all(X:list[np.ndarray], 
+                   F:list[np.ndarray], 
+                   D:list[np.ndarray], 
+                   train_frac:float=0.8, 
+                   seed:int=47, 
+                   concat:bool=False) -> tuple:
+    '''
+    Split feature data from a given dataset into training and testing sets for each flow condition present in the dataset.
+
+    Inputs:
+    - X: list of numpy arrays, each array contains the points in feature space for a single flow condition
+    - F: list of numpy arrays, each array contains the drift estimates for each point in feature space in X for a single flow condition
+    - D: list of numpy arrays, each array contains the diffusion estimates for each point in feature space in X for a single flow condition
+    - train_frac: fraction of data to use for training (default = 0.8)
+    - seed: random seed for train/test split (default = 47)
+    - concat: whether to concatenate all data into one array, one train/test for all flow conditions (default = False)
+
+    Outputs:
+    - X_train: points in feature space corresponding to the drift and diffusion estimates in the training sets
+    - X_test: points in feature space corresponding to the drift and diffusion estimates in the test sets
+    - Y_train: training data for drift estimates
+    - Y_test: test data for drift estimates
+    - V_train: training data for diffusion estimates
+    - V_test: test data for diffusion estimates
+
+    If concat=True, X_train, X_test, Y_train, Y_test, V_train, and V_test are all numpy arrays. Else, they are lists of numpy arrays, one for each flow condition.
+    '''
     X_train = []
     X_test = []
     Y_train = []
     Y_test = []
     V_train = []
     V_test = []
+
+    num_flow = len(X)
 
     for j in range(num_flow):
         X_train_temp, X_test_temp, Y_train_temp, Y_test_temp = train_test_split(X[j], F[j], train_size=train_frac, random_state=seed+j)
@@ -234,8 +284,18 @@ def train_test_all(X:list[np.ndarray], F:list[np.ndarray], D:list[np.ndarray], n
     return X_train, X_test, Y_train, Y_test, V_train, V_test
 
 def get_stationary_hist(data:pd.DataFrame, feat_cols:list, bins:list, frame_index:int=-100) -> np.ndarray:
-    '''Get stationary histogram of data, using values 
-    at time frame_index and on as the stationary data.'''
+    '''
+    Get stationary histogram of data.
+    
+    Inputs:
+    - data: pandas DataFrame containing the dataset of interest
+    - feat_cols: list of feature column names (used to extract feature data from the dataframe data)
+    - bins: list of number of bins in each dimension (list of length ndim, where ndim is the number of dimensions of the feature space)
+    - frame_index: index of the time point (frame number) to use as the reference point for reaching stationarity (default is 100 timepoints before the last frame)
+
+    Outputs:
+    - p_hist: numpy array, stationary histogram of the data in feature space
+    '''
     ndim = len(feat_cols)
     T_max = data['T'].max()
     if frame_index < 0:
