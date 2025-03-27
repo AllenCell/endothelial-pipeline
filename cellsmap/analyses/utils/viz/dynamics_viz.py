@@ -10,6 +10,22 @@ def plot_fixed_points_by_shear(fpt_dict_list:list,
                                shear_range:np.ndarray,
                                PCs:list,
                                plt_lims:list) -> Tuple[list[plt.Figure],list[plt.Axes]]:
+    '''
+    Plot individual components of fixed points (one for each dimension of the 
+    state space used to fit the dynamical systems model) of the system by shear stress.
+
+    Input:
+    - fpt_dict_list: list of dictionaries, each containing fixed points, the corresponding types, and the shear stress value
+    - shear_range: np.ndarray, shear stress values corresponding to each dictionary in fpt_dict_list
+    - PCs: list, list of principal components used to fit the dynamical systems model
+    - plt_lims: list, list of tuples containing the limits for each plot
+
+    Output:
+    - figs: list of plt.Figure
+    - axs: list of plt.Axes
+    The length of figs and axs is equal to the number of principal components (i.e., the dimension of the state space).
+    Figure i in figs corresponds to the plot of the i-th component of the identified fixed points.
+    '''
     assert len(fpt_dict_list) == len(shear_range)
     figs = []
     axs = []
@@ -42,7 +58,18 @@ def plot_fixed_points_by_shear(fpt_dict_list:list,
     return figs, axs
 
 def plot_histogram_1D(ax:plt.Axes, p_hist:np.ndarray, bins:np.ndarray, color:str) -> plt.Axes:
-    '''Plot 1D histogram data with specified color.'''
+    '''
+    Plot 1D histogram with specified color.
+
+    Input:
+    - ax: plt.Axes, the axes to plot on
+    - p_hist: np.ndarray, histogram data (e.g., obtained by np.histogram)
+    - bins: np.ndarray, bin edges used to compute the histogram
+    - color: str, linecolor to plot the histogram (plotted as a curve, not bars)
+
+    Output:
+    - ax: plt.Axes
+    '''
     centers = 0.5*(bins[1:]+bins[:-1])
     ax.plot(centers,p_hist,color=color,linewidth=2)
     ax.set_xlabel('$x$')
@@ -50,7 +77,18 @@ def plot_histogram_1D(ax:plt.Axes, p_hist:np.ndarray, bins:np.ndarray, color:str
     return ax
 
 def plot_histogram_2D(ax:plt.Axes, p_hist:np.ndarray, bins:list, cmap:str) -> plt.Axes:
-    '''Plot 2D histogram data with specified colormap.'''
+    '''
+    Plot 2D histogram with specified colormap.
+
+    Input:
+    - ax: plt.Axes, the axes to plot on
+    - p_hist: np.ndarray, histogram data (e.g., obtained by np.histogram2d)
+    - bins: list, list of bin edges used to compute the histogram for each dimension
+    - cmap: str, colormap to use for the plot
+
+    Output:
+    - ax: plt.Axes
+    '''
     # should label with a title, also add colorbar
     ax.imshow(p_hist.T,interpolation='nearest', origin='lower',
            extent=[bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]],
@@ -60,6 +98,22 @@ def plot_histogram_2D(ax:plt.Axes, p_hist:np.ndarray, bins:list, cmap:str) -> pl
     return ax
 
 def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins) -> Tuple[plt.Figure,plt.Axes]:
+    '''
+    Side-by-side plots of the histogram of the data at steady state ("empirical PDF") and the numerical solution 
+    to the stationary Fokker-Planck equation for the fit SDE model ("model PDF"). The figure suptitle includes
+    the first Wasserstein distance (aka Earth Mover's Distance, denoted W_1) between the two distributions.
+
+    Input:
+    - p_model: np.ndarray, model PDF (obtained from the numerical solution to the stationary Fokker-Planck equation)
+    - p_hist: np.ndarray, empirical PDF (obtained from the data at steady state, e.g., by histogramming)
+        - "steady state" here refers to the assumption that the data are stationary in some sense
+    - bins: list, list of bin edges used to compute the p_hist for each dimension
+        - should be the same as the bins used to compute p_model
+    
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     ndim = len(bins)
     if ndim == 2:
         fig,ax = vb.init_subplots(figsize=(12,4))
@@ -82,6 +136,17 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
     return fig, ax
 
 def plot_entropy_production_rate(epr:np.ndarray, shear_range:np.ndarray) -> Tuple[plt.Figure,plt.Axes]:
+    '''
+    Plot entropy production rate as a function of shear stress.
+    
+    Input:
+    - epr: np.ndarray, entropy production rate values
+    - shear_range: np.ndarray, shear stress values corresponding to each entropy production rate value
+
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     fig, ax = vb.init_plot()
     ax.plot(shear_range,epr,'-o',color='k')
     ax.set_xlabel('Shear stress (dyn/cm$^2$)')
@@ -89,7 +154,17 @@ def plot_entropy_production_rate(epr:np.ndarray, shear_range:np.ndarray) -> Tupl
     return fig, ax
 
 def plot_gen_potential_1D(U:np.ndarray, xvec:np.ndarray) -> Tuple[plt.Figure,plt.Axes]:
-    '''Plot 1D generalized potential energy landscape with specified color.'''
+    '''
+    Plot 1D generalized potential energy landscape.
+    
+    Input:
+    - U: np.ndarray, generalized potential energy landscape
+    - xvec: np.ndarray, x-axis values corresponding to each point in U
+
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     fig,ax = vb.init_plot()
     ax.plot(xvec,U,'k-',linewidth=2)
     ax.set_xlabel('$x$')
@@ -97,7 +172,20 @@ def plot_gen_potential_1D(U:np.ndarray, xvec:np.ndarray) -> Tuple[plt.Figure,plt
     return fig, ax
 
 def plot_gen_potential_2D(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, cmap:str='jet', surf:bool=False) -> Tuple[plt.Figure,plt.Axes]:
-    '''Plot 2D generalized potential energy landscape with specified colormap.'''
+    '''
+    Plot 2D generalized potential energy landscape with specified colormap.
+    
+    Input:
+    - U: np.ndarray, generalized potential energy landscape
+    - xvec: np.ndarray, x-axis values corresponding to each point in U
+    - yvec: np.ndarray, y-axis values corresponding to each point in U
+    - cmap: str, colormap to use for the plot
+    - surf: bool (default=False), whether to plot the surface as a 3D plot
+
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     if surf: 
         fig = plt.figure(figsize=plt.figaspect(1/3))
         ax = fig.add_subplot(1,2,1, projection='3d')
@@ -113,10 +201,26 @@ def plot_gen_potential_2D(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, cmap:s
         fig.colorbar(im,label='$-\ln P$')
     return fig, ax
 
-def plot_grad_flux_decomposition(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, grad, flux, cmap:str='jet', \
-
+def plot_grad_flux_decomposition(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray, grad, flux, cmap:str='jet',
                                  normed:bool=False, downsample:int=10) -> Tuple[plt.Figure,plt.Axes]:
-    '''Plot gradient and flux decomposition on 2D generalized potential energy landscape.'''
+    '''
+    Plot quiver plot of gradient and flux decomposition of drift vector field 
+    over a contour plot of the 2D generalized potential energy landscape.
+    
+    Input:
+    - U: np.ndarray, generalized potential energy landscape
+    - xvec: np.ndarray, x-axis values corresponding to each point in U
+    - yvec: np.ndarray, y-axis values corresponding to each point in U
+    - grad: np.ndarray, gradient part of the vector field
+    - flux: np.ndarray, flux remainder part of the vector field
+    - cmap: str (default='jet'), colormap to use for the plot
+    - normed: bool (default=False), whether to normalize the gradient and flux vectors in the quiver plot
+    - downsample: int (default=10), downsample factor for the quiver plot
+
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    '''
     fig,ax = plot_gen_potential_2D(U,xvec,yvec,cmap=cmap,surf=False)
     ax.imshow(U.T,interpolation='nearest', origin='lower',
             extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],

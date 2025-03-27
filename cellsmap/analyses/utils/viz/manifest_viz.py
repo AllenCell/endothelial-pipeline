@@ -67,6 +67,8 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> tuple:
     over all crops at each frame, and plots this mean and standard deviation vs. frame number for each PC.
     Calls plot_top_3_PCs() to plot the data for each dataset.
 
+    TO DO: set y-axis limits to be the same for all subplots (tbd based on inputs or data)
+
     Input:
     - df: pd.DataFrame, the manifest dataframe containing feature data for multiple datasets
     - pca: Pipeline, the PCA model used to project the feature data onto the top 3 PCs
