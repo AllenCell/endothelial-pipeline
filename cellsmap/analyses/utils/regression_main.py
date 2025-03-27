@@ -68,7 +68,7 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
     del df_by_flow # free up memory
 
     # get train test split of Kramers-Moyal estimates for each flow condition
-    X_train, X_test, Y_train, Y_test, V_train, V_test = rh.train_test_all(X_pts,f_KM,D_KM,train_frac,seed=47,concat=True)
+    X_train, X_test, Y_train, Y_test, V_train, V_test = rh.train_test_all(X_pts,f_KM,D_KM,train_frac,seed=47)
     
     # get number of training and test points for each flow condition
     N_tot = [X_pts[j].shape[0] for j in range(num_flow)]

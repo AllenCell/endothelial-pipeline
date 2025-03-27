@@ -307,27 +307,39 @@ def run_gen_potential_analysis(model:list[Callable],
     D_mesh = model_eval.mesh_grid_function(D)
 
     for ii, u in enumerate(shear_range):
+        # get stationary probability distribution to get generalized potential energy landscape U
         if use_fipy:
             p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
         else:
             p_fit = model_eval.get_stationary_probability(f,D,bins,u)
         U= -np.log(p_fit)
 
+        # plot generalized potential energy landscape
         fig,ax = dviz.plot_gen_potential_2D(U,centers[0],centers[1],cmap='jet',surf=False)
         ax.set_xlabel('PC'+str(PCs[0]+1))
         ax.set_ylabel('PC'+str(PCs[1]+1))
         ax.set_title('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$')
         fig.suptitle('Generalized potential energy landscape', y = 1.0, fontsize=16)
         plt.show()
+
+        # save out plot, filename indexed by shear stress index in shear_range
         vb.save_plot(fig,fig_savedir+'gp_shear_'+str(ii))
 
+        ######## plot gradient/flux decomposition ########
+
+        # get f and D values at grid points
         f_vals = f_mesh(np.meshgrid(*centers),u).T
         D_vals = D_mesh(np.meshgrid(*centers),u).T
-
+        
+        # get gradient/flux decomposition
         _, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers)
+
+        # was having issues with flux_term being an AxesArray object (inherited from SINDy model)
+        # should test this to see if no longer a problem (should be fixed in model_eval scripts now)
         if flux_term.__class__ != np.ndarray: 
             flux_term = np.array(flux_term)
 
+        # plot gradient/flux decomposition on top of landscape
         fig,ax = dviz.plot_grad_flux_decomposition(U,centers[0],centers[1],
                                                         grad_term,flux_term,
                                                         cmap='jet',
@@ -338,4 +350,6 @@ def run_gen_potential_analysis(model:list[Callable],
         ax.set_title('Shear stress: '+str(np.round(u,2))+' dyn/cm$^2$')
         fig.suptitle('Generalized potential energy landscape', y = 1.0, fontsize=16)
         plt.show()
+
+        # save out plot, filename indexed by shear stress index in shear_range
         vb.save_plot(fig,fig_savedir+'gp_decomp_shear_'+str(ii))

@@ -27,18 +27,36 @@ def plot_fixed_points_by_shear(fpt_dict_list:list,
     Figure i in figs corresponds to the plot of the i-th component of the identified fixed points.
     '''
     assert len(fpt_dict_list) == len(shear_range)
+
+    # plot fixed points by shear stress
+    # initialize figure and axes
     figs = []
     axs = []
+
+    # loop over components
     ndim = len(PCs)
     for j in range(ndim):
+        # initialize figure and axes for the j-th component
         fig, ax = vb.init_plot()
+
+        # loop over shear stress values
         for i,u in enumerate(shear_range):
+            # get fixed points and types for the i-th shear stress value
             fpt_dict = fpt_dict_list[i]
+
+            # check that the dict corresponds to the correct shear stress value
             assert u == fpt_dict['shear']
+
+            # get fixed points and types
             fpts = fpt_dict['fixed_points']
             fpt_types = fpt_dict['fixed_point_types']
+
+            # check that we have a type for each fixed point
             assert len(fpts) == len(fpt_types)
+
+            # plot component j of each fixed point (if any)
             if len(fpts) > 0:
+                # color code by type (stability)
                 for ii,fpt in enumerate(fpts):
                     if fpt_types[ii] == 'stable':
                         color = 'b'
@@ -46,15 +64,18 @@ def plot_fixed_points_by_shear(fpt_dict_list:list,
                         color = 'r'
                     elif fpt_types[ii] == 'saddle':
                         color = 'tab:purple'
-                    else:
+                    else: # can be indeterminate stability
                         color = 'darkgoldenrod'
+                    # plot
                     ax.plot(u,fpt[j],'o',color=color)
                     ax.set_xlabel("Shear stress (dyn/cm$^2$)")
                     ax.set_ylabel('PC'+str(PCs[j]+1)+'$^*$')
+        # set fig title and limits, and append to lists
         ax.set_title('Fixed points by shear stress')
         ax.set_ylim(plt_lims[j])
         figs.append(fig)
         axs.append(ax)
+
     return figs, axs
 
 def plot_histogram_1D(ax:plt.Axes, p_hist:np.ndarray, bins:np.ndarray, color:str) -> plt.Axes:
@@ -70,8 +91,13 @@ def plot_histogram_1D(ax:plt.Axes, p_hist:np.ndarray, bins:np.ndarray, color:str
     Output:
     - ax: plt.Axes
     '''
+    # get bin centers
     centers = 0.5*(bins[1:]+bins[:-1])
+
+    # plot histogram
     ax.plot(centers,p_hist,color=color,linewidth=2)
+
+    # set labels
     ax.set_xlabel('$x$')
     ax.set_ylabel('$P(x)$')
     return ax
@@ -89,12 +115,15 @@ def plot_histogram_2D(ax:plt.Axes, p_hist:np.ndarray, bins:list, cmap:str) -> pl
     Output:
     - ax: plt.Axes
     '''
-    # should label with a title, also add colorbar
+    # plot histogram, setting origin to lower left and setting the aspect ratio to be square
     ax.imshow(p_hist.T,interpolation='nearest', origin='lower',
            extent=[bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]],
            cmap=cmap, aspect=(bins[0][-1]-bins[0][0])/(bins[1][-1]-bins[1][0]))
+
+    # label axes
     ax.set_xlabel('$x_1$')
     ax.set_ylabel('$x_2$')
+
     return ax
 
 def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins) -> Tuple[plt.Figure,plt.Axes]:
@@ -114,8 +143,9 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
     - fig: plt.Figure
     - ax: plt.Axes
     '''
+    # check if 1D or 2D
     ndim = len(bins)
-    if ndim == 2:
+    if ndim == 2: # call 2D histogram plot function
         fig,ax = vb.init_subplots(figsize=(12,4))
         ax[0] = plot_histogram_2D(ax[0],p_hist,bins,cmap='inferno') # plot empirical PDF
         ax[0].set_title('Empirical PDF')
@@ -124,7 +154,8 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
 
         W_1 = emd(p_hist,p_model) # Wasserstein distance
         fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
-    elif ndim == 1:
+
+    elif ndim == 1: # call 1D histogram plot function
         fig,ax = vb.init_subplots(figsize=(12,4))
         ax[0].plot(bins[0][:-1],p_hist,'k',label='Empirical PDF')
         ax[0].set_title('Empirical PDF')
@@ -133,6 +164,7 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
 
         W_1 = emd(p_hist,p_model) # Wasserstein distance
         fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
+
     return fig, ax
 
 def plot_entropy_production_rate(epr:np.ndarray, shear_range:np.ndarray) -> Tuple[plt.Figure,plt.Axes]:
@@ -221,19 +253,23 @@ def plot_grad_flux_decomposition(U:np.ndarray, xvec:np.ndarray, yvec:np.ndarray,
     - fig: plt.Figure
     - ax: plt.Axes
     '''
+    # contour plot of the potential energy landscape
     fig,ax = plot_gen_potential_2D(U,xvec,yvec,cmap=cmap,surf=False)
-    ax.imshow(U.T,interpolation='nearest', origin='lower',
-            extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],
-            cmap='jet', aspect=(xvec[-1]-xvec[0])/(yvec[-1]-yvec[0]))
+
+    # quiver plot of gradient and flux decomposition
+    # normalize vectors if specified
     if normed:
         grad = grad/(np.sqrt(grad[0]**2+grad[1]**2))
         flux = flux/(np.sqrt(flux[0]**2+flux[1]**2))
 
+    # downsample vectors for visualization
     x_ = xvec[::downsample]
     y_ = yvec[::downsample]
     grad_ = grad[:,::downsample,::downsample]
     flux_ = flux[:,::downsample,::downsample]
 
+    # plot quiver, color code by type (gradient or flux)
     ax.quiver(x_,y_,grad_[0].T,grad_[1].T,color='w',pivot='tail')
     ax.quiver(x_,y_,flux_[0].T,flux_[1].T,color='r',pivot='tail')
+    
     return fig, ax

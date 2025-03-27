@@ -38,10 +38,14 @@ def build_diff_lib(ndim:int,diff_deg:int=0,param_deg=3) -> ps.ParameterizedLibra
     Outputs:
     - diff_lib: ps.ParameterizedLibrary object, library of polynomial basis functions for the diffusion term of the SDE model
     '''
-    # build set of basis functions for regression model for diffusion term of SDE model
 
+    # build set of basis functions for regression model for diffusion term of SDE model
     diff_feature_lib=ps.PolynomialLibrary(degree=diff_deg, include_bias=True)
+
+    # library for model dependence on control parameters (shear stress)
     diff_parameter_lib=ps.PolynomialLibrary(degree=param_deg, include_bias=False)
+
+    # build full library for diffusion term: pySINDy parameterized library
     diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
         parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
     

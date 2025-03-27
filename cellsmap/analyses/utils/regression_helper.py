@@ -98,6 +98,7 @@ def get_X_by_flow(df_proj:pd.DataFrame,ds_name:str,verbose:bool=True) -> Tuple[l
             print('Constant shear stress at',first_shear,'dyn/cm^2')
         # list of dataframes for one flow condition = list containing the original dataframe
         data_all = [df_proj.copy()]
+
     return data_all, shear_list
 
 def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
@@ -122,19 +123,33 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
         raise ValueError('Data must have a column for crop_index')
     
     X = X[X['outlier']==False] # remove outliers
+
+    # get list of unique crop indices
     crop_list = X['crop_index'].unique()
+
+    # initialize lists for storing data
     X_list = []
     dX_list = []
     dT_list = []
+
+    # loop over each crop in the dataset
     for crop in crop_list:
+        # get data for each crop, sorted by time
         X_crop = X[X['crop_index']==crop].sort_values(by='T')
-        num_T = X_crop['T'].nunique()
+
+        num_T = X_crop['T'].nunique() # number of timepoints for this crop
+        # check that the array of feature data has the correct shape (num_T x ndim)
         assert X_crop[feat_cols].values.shape == (num_T,len(feat_cols))
+
+        # get displacement vectors and time differences for each crop
         dX = np.diff(X_crop[feat_cols].values,axis=0)
         dT = np.diff(X_crop['T'].values)
+
+        # append data to lists: trajectory, displacement vectors, time differences
         X_list.append(X_crop[feat_cols].values)
         dX_list.append(dX)
         dT_list.append(dT)
+
     return X_list, dX_list, dT_list
 
 
@@ -194,6 +209,7 @@ def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple
     # take average over all trajectories to get Kramers-Moyal drift and diffusion estimates
     f_KM_avg = np.nanmean(f_KM,axis=-1)
     D_KM_avg = np.nanmean(D_KM,axis=-1)
+
     # think about how to generalize standard deviation computation to short traj vs. long traj
     f_err_mean = np.nanmean(f_err,axis=-1)
     f_err_mean = np.nan_to_num(f_err_mean,nan=1e10)
@@ -221,18 +237,21 @@ def masked_vector_field(F:np.ndarray, X:np.ndarray) -> Tuple[np.ndarray,np.ndarr
     - F_mask: numpy array (n x ndim), masked vector field flattened to 2D array (n = number of non-NaN points)
     - X_mask: numpy array (n x ndim), masked meshgrid flattened to 2D array (n = number of non-NaN points)
     '''
+    # mask out NaN values in F
     mask = np.where(np.isfinite(F))
     ndim = F.shape[-1]
+
+    # mask and flatten F and X over grid
     X_mask = X[mask].reshape((-1,ndim))
     F_mask = F[mask].reshape((-1,ndim))
+
     return F_mask, X_mask
 
 def train_test_all(X:list[np.ndarray], 
                    F:list[np.ndarray], 
                    D:list[np.ndarray], 
                    train_frac:float=0.8, 
-                   seed:int=47, 
-                   concat:bool=False) -> tuple:
+                   seed:int=47) -> tuple:
     '''
     Split feature data from a given dataset into training and testing sets for each flow condition present in the dataset.
 
@@ -242,7 +261,6 @@ def train_test_all(X:list[np.ndarray],
     - D: list of numpy arrays, each array contains the diffusion estimates for each point in feature space in X for a single flow condition
     - train_frac: fraction of data to use for training (default = 0.8)
     - seed: random seed for train/test split (default = 47)
-    - concat: whether to concatenate all data into one array, one train/test for all flow conditions (default = False)
 
     Outputs:
     - X_train: points in feature space corresponding to the drift and diffusion estimates in the training sets
@@ -263,23 +281,25 @@ def train_test_all(X:list[np.ndarray],
 
     num_flow = len(X)
 
+    # get train/test split for each flow condition
     for j in range(num_flow):
-        X_train_temp, X_test_temp, Y_train_temp, Y_test_temp = train_test_split(X[j], F[j], train_size=train_frac, random_state=seed+j)
-        _, _, V_train_temp, V_test_temp = train_test_split(X[j], D[j], train_size=train_frac, random_state=seed+j) # same random seed to get same x points for train and test
-        X_train.append(X_train_temp)
-        X_test.append(X_test_temp)
-        Y_train.append(Y_train_temp)
-        Y_test.append(Y_test_temp)
-        V_train.append(V_train_temp)
-        V_test.append(V_test_temp)
+       
+        X_train_, X_test_, Y_train_, Y_test_ = train_test_split(X[j], F[j], train_size=train_frac, random_state=seed+j)
+        _, _, V_train_, V_test_ = train_test_split(X[j], D[j], train_size=train_frac, random_state=seed+j) # same random seed to get same x points for train and test
+        X_train.append(X_train_)
+        X_test.append(X_test_)
+        Y_train.append(Y_train_)
+        Y_test.append(Y_test_)
+        V_train.append(V_train_)
+        V_test.append(V_test_)
 
-    if concat: # concatenate all data into one array, one train/test for all flow conditions
-        X_train = np.concatenate(X_train)
-        X_test = np.concatenate(X_test)
-        Y_train = np.concatenate(Y_train)
-        Y_test = np.concatenate(Y_test)
-        V_train = np.concatenate(V_train)
-        V_test = np.concatenate(V_test)
+    # concatenate all data into one array, one train/test for all flow conditions
+    X_train = np.concatenate(X_train)
+    X_test = np.concatenate(X_test)
+    Y_train = np.concatenate(Y_train)
+    Y_test = np.concatenate(Y_test)
+    V_train = np.concatenate(V_train)
+    V_test = np.concatenate(V_test)
     
     return X_train, X_test, Y_train, Y_test, V_train, V_test
 
@@ -298,18 +318,19 @@ def get_stationary_hist(data:pd.DataFrame, feat_cols:list, bins:list, frame_inde
     '''
     ndim = len(feat_cols)
     T_max = data['T'].max()
-    if frame_index < 0:
+    if frame_index < 0: # if negative, frame_index is relative to the last frame
         frame_index = T_max + frame_index
 
+    # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
         # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
         p_hist, _, _ = np.histogram2d(data[data['T']>frame_index][feat_cols[0]], 
                                       data[data['T']>frame_index][feat_cols[1]], bins, density=True)
     elif ndim == 1:
         p_hist, _ = np.histogram(data[data['T']>frame_index][feat_cols[0]], bins[0], density=True)
-    
     else:
         raise ValueError('Only 1D or 2D data supported.')
+    
     return p_hist
 
 
