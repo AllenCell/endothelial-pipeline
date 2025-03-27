@@ -8,16 +8,6 @@ import pickle
 from cellsmap.util import dataset_io
 from cellsmap.analyses.utils.manifest_pca import get_outliers
 
-def make_savedir(savedir:str='') -> None:
-    '''Create directory savedir if it does not exist
-    for various inputs for/outputs of model fitting workflows.'''
-    if not os.path.exists(savedir):
-        if not savedir.endswith('/'):
-            savedir += '/'
-        print("*** Creating directory to save results... \n")
-        print(f"Directory: {savedir} \n")
-        os.makedirs(savedir)
-
 def load_df(file_path:str) -> pd.DataFrame:
     '''Load Pandas DataFrame from file_path.'''
     if file_path.endswith('.csv'):
