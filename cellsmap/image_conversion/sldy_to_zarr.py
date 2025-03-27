@@ -28,7 +28,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/sldy_to_zarr.py 20241016_20X 20241016 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/sldy_to_zarr.py 20241217_20X 20241217 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
