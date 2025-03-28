@@ -135,23 +135,33 @@ def plot_planes(dataset, timepoint, zstack, method='min_max', flow="nan"):
     Returns:
     None
     """
-    fig, axes = plt.subplots(1, zstack.shape[1], figsize=(15, 5))
+    fig, axes = plt.subplots(2, zstack.shape[1], figsize=(15, 10))
 
     indices = [zstack.shape[2] // 2]
     titles = ['Middle Plane']
 
-    contrast_setting = 'Contrast stretching min-max' if method == 'min_max' else 'Contrast stretching 2-98 percentile'
-
-    for i, ax in enumerate(axes):
+    # Plot the first row with 'min_max' method
+    for i in range(zstack.shape[1]):
+        ax = axes[0, i]
         for index, title in zip(indices, titles):
             current_slice = zstack[0, i, index, :, :]
-            enhanced_slice = contrast_stretching(current_slice, method=method)
+            enhanced_slice = contrast_stretching(current_slice, method='min-max')
             ax.imshow(enhanced_slice, cmap='gray', vmin=0, vmax=255)
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_title(f'Channel {i+1} - {title} (Z-Slice {index})', fontsize=10, pad=10)
 
-    # plt.suptitle(f'{contrast_setting}', fontsize=12, y=1.05)
+    # Plot the second row with 'percentile' method
+    for i in range(zstack.shape[1]):
+        ax = axes[1, i]
+        for index, title in zip(indices, titles):
+            current_slice = zstack[0, i, index, :, :]
+            enhanced_slice = contrast_stretching(current_slice, method='percentile')
+            ax.imshow(enhanced_slice, cmap='gray', vmin=0, vmax=255)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_title(f'Channel {i+1} - {title} (Z-Slice {index})', fontsize=10, pad=10)
+
     plt.tight_layout()
     plt.show()
     
@@ -167,7 +177,8 @@ paths = {
     "path_0324_01_20": PREFIX_PATH + "/20230324/20230324_3i1_20X_endo_post-dye_1dyn.sldy",
     "path_0324_15_20": PREFIX_PATH + "/20230324/20230324_3i1_20X_endo_post-dye_15dyn.sldy",
     "path_0324_01_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_1dyn.sldy",
-    "path_0324_15_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_15dyn.sldy"
+    "path_0324_15_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_15dyn.sldy",
+    "path_"
 }
 
 flows = {
@@ -207,11 +218,7 @@ for key, path in paths.items():
     if resolutions[key] == 63:
         zstack = get_zstack_crop(path)
         print(key, flows[key], resolutions[key], zstack.shape)
-        # zstack = zstack[:, channels_keep[key], :, :, :]
+        zstack = zstack[:, channels_keep[key], :, :, :]
         plot_planes(key, 1, zstack, method='min-max', flow=flows[key])
-
-
-# plot_planes("path_0721_1_20", 1, zstack, method='percentile')
-
 
 # %%
