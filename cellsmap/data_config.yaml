@@ -514,9 +514,9 @@
   notes: ""
 },{
   name: 20250228_paired20X,
-  original_path: "//allen/programs/allencell/data/proj0/1d2/d22/95a/5e2/a5c/718/64f/7b9/2ee/c98/62/20250204_GE00006610_20X_POST_FIX_sldy/20250228_GE00006610_20x_zstacks_sldy.sldy",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250228 20x 40x/20250228_GE00006610_20x_zstacks_sldy.sldy",
   zarr_path: None,
-  fmsid: "62c982ee7b964f718a5c5e295ad221d2",
+  fmsid: "",
   barcode: GE00006610,
   live_or_fixed_sample: fixed,
   microscope: 3i,
@@ -584,5 +584,23 @@
   brightfield_channel_index: 1,
   n_total_positions: 50, # positions are represented as scenes in the dataset
   notes: ""
+},{
+  name: 20250319_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250319/20250319_GE00007419_20X_Timelapsee/20250319_GE00007419_20X_Timelapsee.sldy",
+  zarr_path: None, 
+  fmsid: "",
+  barcode: GE00007419,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: intermediate,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 542, 
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 48, 12.16]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  egfp_channel_index: 0, # TO DO
+  brightfield_channel_index: 1, # TO DO
+  n_total_positions: 6, # positions are represented as timeframes in the dataset
+  notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress"
 }
 ]
