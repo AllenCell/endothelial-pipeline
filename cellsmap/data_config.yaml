@@ -320,10 +320,10 @@
   n_total_positions: 10, # positions are represented as timeframes in the dataset
   notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
 },{
-  name: 20250203_pairedPreFixation,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250203/GE00006610_20250204_20X_PRE_FIX_sldy.sldy",
+  name: 20250204_pairedPreFixation,
+  original_path: "/allen/programs/allencell/data/proj0/3b4/7a8/eeb/e46/04c/7a8/242/6fa/5b8/d4b/cb/20250204_GE00006610_20X_PRE_FIX_sldy/GE00006610_20250204_20X_PRE_FIX_sldy.sldy",
   zarr_path: None,
-  fmsid: "",
+  fmsid: "cbd4b5b86fa2427a804ce46eeb7a83b4",
   barcode: GE00006610,
   live_or_fixed_sample: fixed,
   microscope: 3i,
@@ -339,9 +339,9 @@
   n_total_positions: 10, # positions are represented as scenes in the dataset
   notes: ''
 },{
-  name: 20250203_pairedPostFixation,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250203/GE00006610_20250204_20X_POST_FIX_sldy.sldy",
-  fmsid: "",
+  name: 20250204_pairedPostFixation,
+  original_path: "/allen/programs/allencell/data/proj0/1d2/d22/95a/5e2/a5c/718/64f/7b9/2ee/c98/62/20250204_GE00006610_20X_POST_FIX_sldy/GE00006610_20250204_20X_POST_FIX_sldy.sldy",
+  fmsid: "62c982ee7b964f718a5c5e295ad221d2",
   zarr_path: None,
   barcode: GE00006610,
   live_or_fixed_sample: fixed,
@@ -514,9 +514,9 @@
   notes: ""
 },{
   name: 20250228_paired20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250228 20x 40x/20250228_GE00006610_20x_zstacks_sldy.sldy",
+  original_path: "//allen/programs/allencell/data/proj0/1d2/d22/95a/5e2/a5c/718/64f/7b9/2ee/c98/62/20250204_GE00006610_20X_POST_FIX_sldy/20250228_GE00006610_20x_zstacks_sldy.sldy",
   zarr_path: None,
-  fmsid: "",
+  fmsid: "62c982ee7b964f718a5c5e295ad221d2",
   barcode: GE00006610,
   live_or_fixed_sample: fixed,
   microscope: 3i,
