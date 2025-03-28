@@ -2,14 +2,22 @@
 # This code generates the figures presented APS March Meeting 2025
 
 #%%
+import pathlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn import decomposition as skdecomp
+from cellsmap.util.set_ouput import get_output_path
+from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.analyses.workflows.flow_analysis_3d import tools
-#%%
+#%% 
 df = pd.read_csv("/allen/aics/assay-dev/users/Erin/endo_features/pca_ref_features.csv", index_col=0)
 df.head()
+
+#%%
+# Create output folder if does not exist yet
+workflow_fig_folder = "flow_analysis_3d/figs"
+fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 
 #%%
 # Exclude bad no flow dataset
@@ -21,14 +29,17 @@ fig, ax = plt.subplots(1,1, figsize=(5,5))
 for (group, dfs) in df.groupby("group"):
     ax.scatter(dfs["1"], dfs["4"], s=0.1, label=group)
 plt.legend()
-plt.show()
+# plt.show()
+
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4", dpi=72)
 
 #%%
 # Matheus' blubbles classifier. Maybe to be replaced with something else
 vals = tools.simple_linear_classifier(X=df["1"].values, Y=df["4"].values)
 fig, ax = plt.subplots(1,1, figsize=(5,5))
 ax.scatter(df["1"], df["4"], c=vals, s=0.2)
-plt.show()
+# plt.show()
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4_no_bubbles", dpi=72)
 
 #%%
 print(df.shape)
