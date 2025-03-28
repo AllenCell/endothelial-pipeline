@@ -98,7 +98,7 @@ def get_zstack(dataset, timepoint, channel):
     return zstack.compute()
 
 def get_zstack_crop(im_path):
-    im = BioImage(im_path, bioio_ome_tiff.Reader)
+    im = BioImage(im_path)
     print(im.shape)
     zstack = im.get_image_dask_data("TCZYX")
     return zstack.compute()
@@ -119,4 +119,99 @@ for dataset in ['20241210','20241212', '20250214', '20250203', '20250131']:
     im_path = df_dataset.iloc[0].filename_or_obj
     zstack = get_zstack_crop(im_path)
     plot_planes(dataset, timepoint, zstack, method='percentile')
+    
+# %%
+def plot_planes(dataset, timepoint, zstack, method='min_max', flow="nan"):
+    """
+    Plot different planes and projections of a z-stack image.
+
+    Parameters:
+    dataset (str): The name of the dataset.
+    timepoint (str): The timepoint of the dataset.
+    zstack (ndarray): The z-stack image data.
+    method (str): The method of contrast stretching ('min_max' or 'percentile'). Default is 'min_max'.
+    flow (str): The flow condition. Default is "nan".
+
+    Returns:
+    None
+    """
+    fig, axes = plt.subplots(1, zstack.shape[1], figsize=(15, 5))
+
+    indices = [zstack.shape[2] // 2]
+    titles = ['Middle Plane']
+
+    contrast_setting = 'Contrast stretching min-max' if method == 'min_max' else 'Contrast stretching 2-98 percentile'
+
+    for i, ax in enumerate(axes):
+        for index, title in zip(indices, titles):
+            current_slice = zstack[0, i, index, :, :]
+            enhanced_slice = contrast_stretching(current_slice, method=method)
+            ax.imshow(enhanced_slice, cmap='gray', vmin=0, vmax=255)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_title(f'Channel {i+1} - {title} (Z-Slice {index})', fontsize=10, pad=10)
+
+    # plt.suptitle(f'{contrast_setting}', fontsize=12, y=1.05)
+    plt.tight_layout()
+    plt.show()
+    
+
+# %%
+# %%
+PREFIX_PATH = "/allen/aics/endothelial/morphological_features/image_data/original_data"
+paths = {
+    "path_0721_1_20": PREFIX_PATH + "/20230721/20230721_T01_001.sldy",  # 1.4 dyn/cm2
+    "path_0721_2_63": PREFIX_PATH + "/20230721/20230721_T02_001.sldy",  # 1.4 dyn/cm2
+    "path_0721_3_20": PREFIX_PATH + "/20230721/20230721_T03_001.sldy",  # 1.4 dyn/cm2
+    "path_0721_4_63": PREFIX_PATH + "/20230721/20230721_T04_001.sldy",  # 1.4 dyn/cm2
+    "path_0324_01_20": PREFIX_PATH + "/20230324/20230324_3i1_20X_endo_post-dye_1dyn.sldy",
+    "path_0324_15_20": PREFIX_PATH + "/20230324/20230324_3i1_20X_endo_post-dye_15dyn.sldy",
+    "path_0324_01_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_1dyn.sldy",
+    "path_0324_15_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_15dyn.sldy"
+}
+
+flows = {
+    "path_0721_1_20": "1.4 dyn/cm2",
+    "path_0721_2_63": "1.4 dyn/cm2",
+    "path_0721_3_20": "1.4 dyn/cm2",
+    "path_0721_4_63": "1.4 dyn/cm2",
+    "path_0324_01_20": "1 dyn/cm2",
+    "path_0324_15_20": "15 dyn/cm2",
+    "path_0324_01_63": "1 dyn/cm2",
+    "path_0324_15_63": "15 dyn/cm2"
+}
+
+resolutions = {
+    "path_0721_1_20": 20,
+    "path_0721_2_63": 63,
+    "path_0721_3_20": 20,
+    "path_0721_4_63": 63,
+    "path_0324_01_20": 20,
+    "path_0324_15_20": 20,
+    "path_0324_01_63": 63,
+    "path_0324_15_63": 63,
+}
+
+channels_keep = {
+    "path_0721_1_20": [0, 2, 3],
+    "path_0721_2_63": [0, 2, 3],
+    "path_0721_3_20": [0, 2, 3],
+    "path_0721_4_63": [0, 2, 3],
+    "path_0324_01_20": [0, 1, 3],
+    "path_0324_15_20": [0, 1, 3],
+    "path_0324_01_63": [0, 1, 3],
+    "path_0324_15_63": [0, 1, 3],
+}
+# %%
+for key, path in paths.items():
+    if resolutions[key] == 63:
+        zstack = get_zstack_crop(path)
+        print(key, flows[key], resolutions[key], zstack.shape)
+        # zstack = zstack[:, channels_keep[key], :, :, :]
+        plot_planes(key, 1, zstack, method='min-max', flow=flows[key])
+
+
+# plot_planes("path_0721_1_20", 1, zstack, method='percentile')
+
+
 # %%
