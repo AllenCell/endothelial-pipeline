@@ -12,8 +12,6 @@ from cellsmap.image_conversion.process_images.write_zarr import (
 )
 from cellsmap.util.dataset_io import get_original_path
 from bioio import BioImage
-from pathlib import Path
-
 # %%
 """
 This script processes images from a dataset and writes them to Zarr format.
@@ -28,7 +26,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/sldy_to_zarr.py 20250204_pairedPreFixation 20250204 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20250204_pairedPreFixation 20250204 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -38,8 +36,7 @@ This will process the dataset '20240305_T01_001' and save the output to the spec
 The resulting zarr contains images from one scene.
 """
 
-
-def convert_sldy_dataset(
+def convert_dataset(
     dataset: str,
     output_path: str,
     output_dataset_name: str,  # barcode_date
@@ -81,7 +78,7 @@ def convert_sldy_dataset(
             count += 1
 
 def main(dataset: str, output_path: str, output_dataset_name: str, channel_names: list):
-    convert_sldy_dataset(dataset, output_path, output_dataset_name, channel_names)
+    convert_dataset(dataset, output_path, output_dataset_name, channel_names)
 
 
 def parse_arguments():
