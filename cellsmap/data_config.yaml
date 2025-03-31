@@ -597,9 +597,10 @@
   pixel_size_xy_in_um: 0.382,
   duration: 542, 
   time_interval_in_minutes: 5.0,
-  flow: [[0, 48, 12.16]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: 0, # TO DO
-  brightfield_channel_index: 1, # TO DO
+  flow: [[0, 48, 12.20]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  # 12.20 dyn/cm^2 = 33.83 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide) 
+  egfp_channel_index: 0, 
+  brightfield_channel_index: 1, 
   n_total_positions: 6, # positions are represented as timeframes in the dataset
   notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress"
 }
