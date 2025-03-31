@@ -321,7 +321,7 @@
   notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
 },{
   name: 20250204_pairedPreFixation,
-  original_path: "/allen/programs/allencell/data/proj0/3b4/7a8/eeb/e46/04c/7a8/242/6fa/5b8/d4b/cb/20250204_GE00006610_20X_PRE_FIX_sldy/GE00006610_20250204_20X_PRE_FIX_sldy.sldy",
+  original_path: "//allen/programs/allencell/data/proj0/3b4/7a8/eeb/e46/04c/7a8/242/6fa/5b8/d4b/cb/20250204_GE00006610_20X_PRE_FIX_sldy/GE00006610_20250204_20X_PRE_FIX_sldy.sldy",
   zarr_path: None,
   fmsid: "cbd4b5b86fa2427a804ce46eeb7a83b4",
   barcode: GE00006610,
@@ -340,7 +340,7 @@
   notes: ''
 },{
   name: 20250204_pairedPostFixation,
-  original_path: "/allen/programs/allencell/data/proj0/1d2/d22/95a/5e2/a5c/718/64f/7b9/2ee/c98/62/20250204_GE00006610_20X_POST_FIX_sldy/GE00006610_20250204_20X_POST_FIX_sldy.sldy",
+  original_path: "//allen/programs/allencell/data/proj0/1d2/d22/95a/5e2/a5c/718/64f/7b9/2ee/c98/62/20250204_GE00006610_20X_POST_FIX_sldy/GE00006610_20250204_20X_POST_FIX_sldy.sldy",
   fmsid: "62c982ee7b964f718a5c5e295ad221d2",
   zarr_path: None,
   barcode: GE00006610,
