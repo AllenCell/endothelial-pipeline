@@ -178,7 +178,7 @@ paths = {
     "path_0324_15_20": PREFIX_PATH + "/20230324/20230324_3i1_20X_endo_post-dye_15dyn.sldy",
     "path_0324_01_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_1dyn.sldy",
     "path_0324_15_63": PREFIX_PATH + "/20230324/20230324_3i1_63X_endo_post-dye_15dyn.sldy",
-    "path_"
+    # "path_"
 }
 
 flows = {
