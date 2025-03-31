@@ -25,7 +25,7 @@ def main(config_name:str='default') -> None:
     df = manifest_io.load_manifest_to_df()
 
     # fit PCA to data
-    df, pca = manifest_pca.fit_pca(df, num_pcs=8)
+    pca = manifest_pca.fit_pca(df, num_pcs=8)
 
     # save out PCA object (need later for analysis and summary of fit dynamical systems model)
     manifest_io.save_pca_model(pca, savedir)

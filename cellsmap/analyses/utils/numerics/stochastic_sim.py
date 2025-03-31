@@ -1,9 +1,33 @@
 import numpy as np
 import numpy.random as rnd
+from typing import Callable
 
-def stochastic_sim_EM(x0,drift,noise,n_timepoints,dt,rng=rnd.default_rng(),verbose=False):
-    '''Simulates ensemble of n_traj = x0.shape[1] (n_dim = x0.shape[0])D stochastic trajectories 
-    of length n_timepoints starting at initial points x0 using Euler-Maruyama method.'''
+def stochastic_sim_EM(x0:np.ndarray,
+                      drift:Callable,
+                      noise:Callable,
+                      n_timepoints:int,
+                      dt:float,
+                      rng:rnd.Generator=rnd.default_rng(),
+                      verbose:bool=False) -> np.ndarray:
+    '''
+    Simulates ensemble of ND stochastic trajectories of length n_timepoints 
+    starting at initial points x0 using Euler-Maruyama method. The number
+    of trajectories n_traj is determined by the number of columns in x0 (x0.shape[1]),
+    and the number of dimensions n_dim is determined by the number of rows in x0 (x0.shape[0]).
+
+    Input:
+    - x0: np.ndarray, initial points of the trajectories, shape (n_dim,n_traj)
+    - drift: Callable, drift function of the SDE
+    - noise: Callable, coefficient of the noise term of the SDE
+        - the matrix of diffusion coefficients is equal to 0.5*noise(x)*noise(x).T
+    - n_timepoints: int, number of timepoints to step through
+    - dt: float, time step size
+    - rng: numpy.random.Generator (default=numpy.random.default_rng()), random number generator
+    - verbose: bool (default=False), whether to print NaN warnings
+
+    Output:
+    - ensemble: np.ndarray, ensemble of stochastic trajectories, shape (n_dim,n_timepoints,n_traj)
+    '''
     n_traj = x0.shape[1]
     n_dim = x0.shape[0]
     ensemble = np.zeros((n_dim,n_timepoints,n_traj))
@@ -29,15 +53,34 @@ def stochastic_sim_EM(x0,drift,noise,n_timepoints,dt,rng=rnd.default_rng(),verbo
 
     return ensemble
 
-def unique_list(l):
+def unique_list(l:list) -> list:
+    '''
+    Returns a list with only the unique elements of the input list l.
+
+    Input:
+    - l: list, input list
+
+    Output:
+    - unq: list, list with only the unique elements of l (in order of appearance)
+    '''
     unq = []
     for i in l:
         if i not in unq:
             unq.append(i)
     return unq
 
-def complement_list(l,n):
-    '''Returns the complement of the list l with respect to the list [0,1,...,n-1].'''
+def complement_list(l:list,n:int) -> list:
+    '''
+    Returns the complement of the list l with respect to the list [0,1,...,n-1].
+    That is, returns the elements in [0,1,...,n-1] that are not in l.
+
+    Input:
+    - l: list, input list
+    - n: int, length of the list to complement
+
+    Output:
+    - compl: list, complement of l with respect to [0,1,...,n-1]
+    '''
     compl = []
     for i in range(n):
         if i not in l:
