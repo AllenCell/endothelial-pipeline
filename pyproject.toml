@@ -7,13 +7,13 @@ authors = [
 ]
 
 dependencies = [
-    "bioio==1.2.0",
-    "bioio-base==1.0.4",
-    "bioio-nd2==1.0.0",
-    "bioio-ome-tiff==1.0.1",
-    "bioio-ome-zarr==1.1.0",
-    "bioio-sldy==1.0.2",
-    "bioio-tifffile==1.0.1",
+    "bioio>=1.4.0",
+    "bioio-base>=1.0.5",
+    "bioio-nd2>=1.0.1",
+    "bioio-ome-tiff>=1.0.1",
+    "bioio-ome-zarr>=1.1.1",
+    "bioio-sldy>=1.0.3",
+    "bioio-tifffile>=1.0.1",
     "fipy>=3.4.5",
     "fire>=0.6.0",
     "ipykernel>=6.29.5",
@@ -35,7 +35,7 @@ dependencies = [
     "sympy==1.13.1",
     "tqdm>=4.66.5",
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
-    "vtk", 
+    "vtk>=9.4.1", 
     "wasmtime<22.0",
 ]
 requires-python = "<3.11,>=3.10"
