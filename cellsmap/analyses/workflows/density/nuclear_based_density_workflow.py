@@ -2,6 +2,7 @@
 from cellsmap.analyses.workflows.density.support.get_nuclear_manifest import create_nuclear_manifest
 from cellsmap.analyses.workflows.density.support.plot_nuclei import plot_number_of_nuclei_per_fov
 from cellsmap.analyses.workflows.density.support.visualize_nuclei import visualize_nuclear_seg
+from cellsmap.analyses.workflows.density.support.calculate_density import get_nuclear_centroids
 #%%
 import pandas as pd
 #%%
@@ -22,4 +23,8 @@ for frame in [100,125,150,175,200,225,250,300]:
 # %%
 for pos in range(6):
     visualize_nuclear_seg(df, '20241016_20X', 0, pos)
+# %%
+centroids = get_nuclear_centroids(df, '20241016_20X', 0, 0)
+# %%
+print(centroids)
 # %%

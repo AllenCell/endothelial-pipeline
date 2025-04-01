@@ -86,9 +86,15 @@ def create_nuclear_manifest(dataset, num_workers=32):
 # %%
 if __name__ == '__main__':
     
-    dataset_list = ['20241016_20X']
+    # Done '20241016_20X', 
+    # in progress '20241022_20X_mito'
+    # to do '20241203_20X'
+    # to do once seg are available: '20250319_20X'
+    
+    dataset_list = ['20241217_20X', '20250224_20X','20241120_20X']
     
     for dataset in dataset_list:
+        print(f"Creating nuclear manifest for {dataset}")
         create_nuclear_manifest(dataset)
 # %%
 """
