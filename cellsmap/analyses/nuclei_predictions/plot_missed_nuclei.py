@@ -45,13 +45,19 @@ missed_nuc_df['T'] = missed_nuc_df['Name'].apply(lambda x: preproc.extract_T(x))
 
 # add the number of missed nuclei at each timepoint to nuclei_counts_df
 num_missed_nuc_per_timepoint_map = dict(zip(missed_nuc_df['T'], missed_nuc_df['Points']))
-nuclei_counts_df['dataset_name'] = nuclei_counts_df['image_filepath'].apply(lambda x: x.parent.stem)
+nuclei_counts_df['dataset_name'] = nuclei_counts_df['image_filepath'].transform(lambda x: x.parent.stem)
 nuclei_counts_df['missed_nuclei'] = nuclei_counts_df['T'].transform(lambda t: num_missed_nuc_per_timepoint_map[t])
 nuclei_counts_df['total_nuclei'] = nuclei_counts_df['num_nuclei_predicted'] + nuclei_counts_df['missed_nuclei']
 nuclei_counts_df['percent_nuclei_detected'] = nuclei_counts_df.apply(lambda row: row['num_nuclei_predicted'] / row['total_nuclei'], axis=1)
 
 # rearrange the order of the columns for readability
-nuclei_counts_df = nuclei_counts_df[['T', 'num_nuclei_predicted', 'missed_nuclei', 'percent_nuclei_detected', 'image_filepath']]
+nuclei_counts_df = nuclei_counts_df[['dataset_name',
+                                     'T',
+                                     'num_nuclei_predicted',
+                                     'missed_nuclei',
+                                     'total_nuclei',
+                                     'percent_nuclei_detected',
+                                     'image_filepath']]
 
 # finally, plot the change in the number of nuclei over time
 dataset_name = nuclei_counts_df['dataset_name'].iloc[0]

@@ -1,6 +1,5 @@
 from pathlib import Path
 from bioio import BioImage
-import matplotlib.pyplot as plt
 import numpy as np
 from cellsmap.util import dataset_io, get_sldy_metadata as sldmd
 from cellsmap.util.cdh5_preprocessing import save_image_output
@@ -9,7 +8,7 @@ from tqdm import tqdm
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
 from multiprocessing import Pool
 
-def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|None=None, t_step: int=1, save_output=True, overwrite=False, out_dir: str|Path|None=None, is_test=False, use_original_data=False) -> list:
+def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|None=None, t_step: int=1, save_output=True, overwrite_old_outputs=False, out_dir: str|Path|None=None, is_test=False, use_original_data=False) -> list:
     analysis_queue: list = []
     out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=is_test)
     for dataset_name in dataset_name_list:
@@ -56,7 +55,7 @@ def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|N
                                                 'input_path': img_path,
                                                 'output_dir': out_dir,
                                                 'save_output': save_output,
-                                                'overwrite': overwrite,
+                                                'overwrite': overwrite_old_outputs,
                                                 'use_original_data': use_original_data,
                                                 'is_test': is_test})
     return analysis_queue

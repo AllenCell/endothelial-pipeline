@@ -11,6 +11,14 @@ from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
 
+# NOTE
+# because we don't have zarr files for the datasets in the
+# datasets_to_use list, the loading of fixed data used for
+# retraining the model would need to use the original data
+# which could be compplicated or inconsistent. Therefore I
+# will check this script after the zarrs are available.
+# Until then, this script is not functional.
+
 datasets_to_use = ['20240328_T02_001', '20240328_T01_001',]
 
 

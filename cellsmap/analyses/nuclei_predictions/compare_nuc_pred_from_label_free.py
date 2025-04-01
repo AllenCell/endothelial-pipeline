@@ -16,6 +16,12 @@ from cellsmap.util import dataset_io
 from cellpose import models
 import re
 
+# NOTE
+# because we don't have zarr files for the datasets in the
+# test_datasets list, the function dataset_io.get_channel_index
+# does not work. Therefore this script is currently broken.
+use_original_data = False
+
 def plot_and_save_overlays(overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix=''):
     fig, (ax1, ax2) = plt.subplots(ncols=2)
     ax1.imshow(overlay_bf)
@@ -44,7 +50,7 @@ model_config = dataset_io.load_config(config_type='model')
 nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
 assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
 model_path = Path(nuclei_models[0]['model_path_retrained'])
-model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=model_path)
+model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
 # CytoDL nuclei predictions from Benji:
 cytodl_nuc_pred_dir = list(Path(out_dir / 'raw_seg').glob('*.tif*'))
@@ -56,7 +62,10 @@ for dataset_name in dataset_names_list:
 
     Path.mkdir(out_dir / dataset_name, exist_ok=True, parents=True)
 
-    img_path = Path(dataset_io.get_zarr_path(dataset_name))
+    if use_original_data:
+        img_path = Path(dataset_io.get_original_path(dataset_name))
+    else:
+        img_path = Path(dataset_io.get_zarr_path(dataset_name))
     img = BioImage(img_path)
     dim_order = 'TCZYX'
     dim_map = dataset_io.get_dim_map(dim_order)
