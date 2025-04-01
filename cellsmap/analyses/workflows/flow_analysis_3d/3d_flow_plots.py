@@ -151,7 +151,6 @@ for group, df_group in df.groupby("group"):
     coords = df_group[[f"PC{u+1}" for u in range(3)]].values
     for u, umax in zip(range(3), [xmax, ymax, zmax]):
         coords[:, u] = (umax-coords[:, u])/grid_spacing
-    tools.save_points_as_polydata(coordinates=coords, file_name=f"Dataset_{group}.vtk")
     ax1.scatter(df_group.PC1, df_group.PC2, s=0.5, alpha=0.05)
     ax1.scatter(df_initial.PC1, df_initial.PC2, s=2, alpha=1, color="black")
     ax2.scatter(df_group.PC1, df_group.PC3, s=0.5, alpha=0.05)
