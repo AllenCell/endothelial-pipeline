@@ -2,9 +2,9 @@
 # This code generates the figures presented APS March Meeting 2025
 
 #%%
-import pathlib
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn import decomposition as skdecomp
 from cellsmap.util.set_ouput import get_output_path
@@ -17,7 +17,9 @@ df.head()
 #%%
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_analysis_3d/figs"
+workflow_vtk_folder = "flow_analysis_3d/vtks"
 fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
+vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 #%%
 # Exclude bad no flow dataset
@@ -29,7 +31,6 @@ fig, ax = plt.subplots(1,1, figsize=(5,5))
 for (group, dfs) in df.groupby("group"):
     ax.scatter(dfs["1"], dfs["4"], s=0.1, label=group)
 plt.legend()
-# plt.show()
 
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4", dpi=72)
 
@@ -38,10 +39,10 @@ vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4", d
 vals = tools.simple_linear_classifier(X=df["1"].values, Y=df["4"].values)
 fig, ax = plt.subplots(1,1, figsize=(5,5))
 ax.scatter(df["1"], df["4"], c=vals, s=0.2)
-# plt.show()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4_no_bubbles", dpi=72)
 
 #%%
+print("Manifest shape before and after outlier removal:")
 print(df.shape)
 df["outlier"] = vals
 df = df.loc[df.outlier==False]
@@ -79,7 +80,7 @@ for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
     ax.set_ylim(zmin, zmax)
     ax.set_aspect("equal")
 plt.tight_layout()
-plt.show()
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
 
 #%% Display one crop trajectory for each condition
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -92,7 +93,7 @@ ax.set_xlim(xmin, xmax)
 ax.set_ylim(ymin, ymax)
 ax.set_aspect("equal")
 plt.legend()
-plt.show()
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
 
 #%%
 df = df.sort_values(by=["CropId", "T"])
@@ -108,7 +109,6 @@ for group, df_group in df.groupby("group"):
     coords = df_group[[f"PC{u+1}" for u in range(3)]].values
     for u, umax in zip(range(3), [xmax, ymax, zmax]):
         coords[:, u] = (umax-coords[:, u])/grid_spacing
-    tools.save_points_as_polydata(coordinates=coords, file_name=f"Dataset_{group}.vtk")
     ax1.scatter(df_group.PC1, df_group.PC2, s=0.5, alpha=0.05)
     ax2.scatter(df_group.PC1, df_group.PC3, s=0.5, alpha=0.05)
     for axid, ax in enumerate([ax1, ax2]):
@@ -118,15 +118,15 @@ for group, df_group in df.groupby("group"):
         ax.set_ylim(ymin, ymax)
         ax.set_aspect("equal")
 plt.tight_layout()
-plt.show()
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs", dpi=72)
 
 #%%
 # Compute landscapes
 for condition, fname in zip(["48hr High", "48hr Low", "48hr No Flow (12/17/24)"], ["high", "low", "no"]):
     dUis, dVis, dQis, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition=condition, time_step=time_step)
     img = tools.create_vector_field_imagedata(dUis, dVis, dQis)
-    tools.save_image_data(img, file_name=f"{fname}.vtk")
-    
+    tools.save_image_data(img, output_path=vtk_savedir+f"{fname}.vtk")
+
 #%%
 # Sample no flow at early timepoints points for setting initial condition of the simulations
 buffer = 0.1
@@ -140,6 +140,7 @@ df_initial = df.loc[
     (df.PC3>(1-buffer)*zmin)&
     (df.PC3<(1-buffer)*zmax)
 ].sample(n=500)
+print("Bounds of PC 1, 2 and 3")
 print(df_initial[["PC1", "PC2", "PC3"]].values.min(axis=0))
 print(df_initial[["PC1", "PC2", "PC3"]].values.max(axis=0))
 
@@ -162,19 +163,19 @@ for group, df_group in df.groupby("group"):
         ax.set_ylim(ymin, ymax)
         ax.set_aspect("equal")
 plt.tight_layout()
-plt.show()
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_sampled_points", dpi=72)
 
 #%%
 # Run simulation
 initial_coords = df_initial[["PC1", "PC2", "PC3"]].values
 for u, (vmin, vmax) in enumerate([(xmin, xmax), (ymin, ymax), (zmin, zmax)]):
     initial_coords[:, u] = (vmax-initial_coords[:, u])/grid_spacing
-print(initial_coords.max(axis=0))
 
 #%%
 # Visualize final state of the simulation
 dUis, dVis, dQis, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition="48hr No Flow (12/17/24)", time_step=time_step)
-trajs = tools.simulate_particles_in_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, initial_coords=initial_coords)
+prefix = vtk_savedir+"/no_flow"
+trajs = tools.simulate_particles_in_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, prefix=prefix, initial_coords=initial_coords)
 
 #%%
 # Visualize mean trajectory (red cross is initial state)
@@ -187,16 +188,17 @@ for tid, traj in enumerate(trajs):
     ax1.scatter(xp, yp, color="black", s=10)
     ax2.scatter(xp, zp, color="black", s=10)
     if tid == 0:
-        ax1.scatter(xmin+rmean[0]*grid_spacing, ymin+rmean[1]*grid_spacing, color="red", marker="X", s=50)
-        ax2.scatter(xmin+rmean[0]*grid_spacing, zmin+rmean[2]*grid_spacing, color="red", marker="X", s=50)
+        ax1.scatter(xmin+rmean[0]*grid_spacing, ymin+rmean[1]*grid_spacing, color="red", marker="X", s=50, label="start")
+        ax2.scatter(xmin+rmean[0]*grid_spacing, zmin+rmean[2]*grid_spacing, color="red", marker="X", s=50, label="start")
     for axid, (ax, (vmin, vmax)) in enumerate(zip([ax1, ax2], [(ymin,ymax), (zmin,zmax)])):
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(f"PC{axid+2}", fontsize=14)
         ax.set_aspect("equal")
+plt.legend()
 plt.tight_layout()
-plt.show()
+vb.save_plot(fig, filename=fig_savedir+"mean_trajectories", dpi=72)
 
 #%%
 # Invert final coordinate to get 8D representation
@@ -220,11 +222,11 @@ fig, ax = plt.subplots(1,1, figsize=(3,3))
 ax.plot(speed)
 ax.set_xlabel("Simulation frame")
 ax.set_ylabel("Speed (unit of length \n in state space/frame)")
-plt.show()
+vb.save_plot(fig, filename=fig_savedir+"population_speed", dpi=72)
 
 #%%
 # Run simulation for changing flow
 dUis, dVis, dQis, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition="48hr High", time_step=time_step)
 dUis2, dVis2, dQis2, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition="48hr Low", time_step=time_step)
-tools.simulate_particles_in_changing_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, transition=50, dUis2=dUis2, dVis2=dVis2, dQis2=dQis2, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax)
-#%%
+prefix = vtk_savedir+"/high_to_low"
+tools.simulate_particles_in_changing_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, transition=50, dUis2=dUis2, dVis2=dVis2, dQis2=dQis2, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, prefix=prefix)
