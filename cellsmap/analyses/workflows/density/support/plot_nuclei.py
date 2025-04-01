@@ -16,7 +16,7 @@ def plot_number_of_nuclei_per_fov(df, dataset):
     
     for frame, dft in df.groupby('frame'):
         for position, dfp in dft.groupby('position'):
-            x = frame * 5/60
+            x = frame 
             y = dfp['nuclear_label'].nunique()
             if position not in added_labels and len(added_labels) < 6:
                 plt.scatter(x, y, alpha=.75, color=colors[position], label=position)
@@ -24,7 +24,7 @@ def plot_number_of_nuclei_per_fov(df, dataset):
             else:
                 plt.scatter(x, y, alpha=.75, color=colors[position])
 
-    plt.xlabel('Frame (Hrs)')
+    plt.xlabel('Frame')
     plt.ylabel('Number of Nuclei')
     plt.title(f'{dataset}')
     plt.legend(title='Position')
