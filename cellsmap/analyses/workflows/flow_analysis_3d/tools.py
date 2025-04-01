@@ -163,7 +163,7 @@ def run_flow_field_workflow(df, condition, time_step=2, grid_spacing=0.05, use_o
 
     return dUis, dVis, dQis, mean_speed, (xgrid, ygrid, zgrid)
 
-def simulate_particles_in_vector_field(dUis, dVis, dQis, grid, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, prefix, initial_coords=None, target_nframes=100, offset=5, clusters=0, verbose=False):
+def simulate_particles_in_vector_field(dUis, dVis, dQis, grid, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, initial_coords=None, target_nframes=100, offset=5, clusters=0, verbose=False):
     coord = initial_coords
     if coord is None:
         coord = [
@@ -174,7 +174,7 @@ def simulate_particles_in_vector_field(dUis, dVis, dQis, grid, n_particles, spee
             print(coord.shape)
 
     tp = 0
-    save_points_as_polydata(coordinates=coord, file_name=f"{prefix}_{tp:05}.vtk")
+    save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
     
     sim_speed = (48*60/5)/100 * speed
     if verbose:
@@ -203,7 +203,7 @@ def simulate_particles_in_vector_field(dUis, dVis, dQis, grid, n_particles, spee
 
         summary.append(coord_new)
         coord = np.array(coord_new).copy()
-        save_points_as_polydata(coordinates=coord, file_name=f"{prefix}_{tp:05}.vtk")
+        save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
 
     if clusters > 0:
         n_clusters = clusters
@@ -229,7 +229,7 @@ def simulate_particles_in_vector_field(dUis, dVis, dQis, grid, n_particles, spee
     print(f"Cluster centroid: {xc:.2f}, {yc:.2f}, {zc:.2f}")
     return summary
 
-def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, grid, dUis2, dVis2, dQis2, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, prefix, target_nframes=100, offset=5, clusters=0, verbose=False):
+def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, grid, dUis2, dVis2, dQis2, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, target_nframes=100, offset=5, clusters=0, verbose=False):
     coord = [
         [offset+(((vmax-vmin)/grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
     ] for _ in range(n_particles)]
@@ -238,7 +238,7 @@ def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, gr
         print(coord.shape)
 
     tp = 0
-    save_points_as_polydata(coordinates=coord, file_name=f"{prefix}_{tp:05}.vtk")
+    save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
     
     sim_speed = (48*60/5)/100 * speed
     if verbose:
@@ -269,7 +269,7 @@ def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, gr
             coord_new.append([x_new, y_new, z_new])
         
         coord = np.array(coord_new).copy()
-        save_points_as_polydata(coordinates=coord, file_name=f"{prefix}_{tp:05}.vtk")
+        save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
 
     if clusters > 0:
         n_clusters = clusters

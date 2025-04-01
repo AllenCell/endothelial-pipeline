@@ -174,8 +174,8 @@ for u, (vmin, vmax) in enumerate([(xmin, xmax), (ymin, ymax), (zmin, zmax)]):
 #%%
 # Visualize final state of the simulation
 dUis, dVis, dQis, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition="48hr No Flow (12/17/24)", time_step=time_step)
-prefix = vtk_savedir+"/no_flow"
-trajs = tools.simulate_particles_in_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, prefix=prefix, initial_coords=initial_coords)
+filename_prefix = vtk_savedir+"/no_flow"
+trajs = tools.simulate_particles_in_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, filename_prefix=filename_prefix, initial_coords=initial_coords)
 
 #%%
 # Visualize mean trajectory (red cross is initial state)
@@ -228,5 +228,5 @@ vb.save_plot(fig, filename=fig_savedir+"population_speed", dpi=72)
 # Run simulation for changing flow
 dUis, dVis, dQis, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition="48hr High", time_step=time_step)
 dUis2, dVis2, dQis2, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition="48hr Low", time_step=time_step)
-prefix = vtk_savedir+"/high_to_low"
-tools.simulate_particles_in_changing_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, transition=50, dUis2=dUis2, dVis2=dVis2, dQis2=dQis2, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, prefix=prefix)
+filename_prefix = vtk_savedir+"/high_to_low"
+tools.simulate_particles_in_changing_vector_field(dUis=dUis, dVis=dVis, dQis=dQis, transition=50, dUis2=dUis2, dVis2=dVis2, dQis2=dQis2, grid=grid, n_particles=500, speed=mean_speed, grid_spacing=grid_spacing, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax, filename_prefix=filename_prefix)
