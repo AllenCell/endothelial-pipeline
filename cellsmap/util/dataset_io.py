@@ -164,6 +164,12 @@ def get_fmsid(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['fmsid']
 
+def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
+
 # model methods
 
 def get_available_models():
