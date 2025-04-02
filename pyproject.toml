@@ -23,6 +23,7 @@ dependencies = [
     "ngff-zarr==0.8.2",
     "notebook==7.2.1",
     "numdifftools==0.9.41",
+    "numba>=0.55.0",
     "numpy>=1.2.3",
     "pandas==2.2.2",
     "pathlib>=1.0.1",

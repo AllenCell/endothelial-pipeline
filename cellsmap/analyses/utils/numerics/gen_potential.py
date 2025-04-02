@@ -1,4 +1,6 @@
 import numpy as np
+from numba import njit
+from scipy.integrate import simpson
 from typing import Tuple
 
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
@@ -178,6 +180,74 @@ def invert_D(D:np.ndarray) -> np.ndarray:
         else:
             return D_inv
 
+@njit
+def compute_D_gradU_f(U, f, D, dx):
+    '''
+    Compute the term D(x) grad(U) + f(x) for a given potential U, drift vector field f, and diagonal diffusion matrix D(x).
+
+    Uses numba's njit to speed up computation.
+
+    Inputs:
+    - U: np.ndarray, potential evaluated on an ND grid (dimensions n1 x n2 x ... x nN)
+    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
+    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
+    - dx: list, grid spacing in each dimension
+
+    Outputs:
+    - D_gradU_f: np.ndarray, D(x) grad(U) + f(x) (dimensions N x n1 x n2 x ... x nN)
+    '''
+    N = len(dx) # number of dimensions
+
+    D_gradU_f = np.zeros_like(f) # initialize array to store D(x) grad(U) + f(x)
+    # take advantage of diagonal matrix structure: element i of D(x)*grad(U(x)) is D[i]*gradU[i]
+    for i in range(N):
+        gradU_i = np.gradient(U, dx[i], axis=i, edge_order=2)
+        D_gradU_f[i] = D[i] * gradU_i + f[i]
+
+    return D_gradU_f
+
+def entropy_production_NEW(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list) -> float:
+    '''
+    Compute the entropy production rate for a given stationary probability P(x), 
+    drift vector field f(x), diffusion matrix D(x), and probability flux J(x).
+
+    Inputs:
+    - P: np.ndarray, stationary probability density evaluated on an ND grid (n1 x n2 x ... x nN array)
+    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
+    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
+    - x: list, arrays [x1,x2,..xN] such that U, f, and J have been evaluated on np.meshgrid(*x, indexing = 'ij')
+    
+    Outputs:
+    - integral: float, entropy production rate
+        - computed numerically as the integral of ||D grad U + F||^2 * P(x) over the grid x, where
+            U(x) = -log P(x) is the generalized potential
+        - Simpson's rule is used for numerical integration
+    '''
+    N = len(x) # number of dimensions
+    dx = [x[i][1] - x[i][0] for i in range(N)] # grid spacing
+
+    # D * gradient of U + f, where U = -log P
+    D_gradU_f = compute_D_gradU_f(-np.log(P), f, D, dx)
+
+    # # take advantage of diagonal matrix structure: element i of D(x)*grad(U(x)) is D[i]*gradU[i]
+    # D_gradU_f = np.zeros_like(f)
+    # for i in range(N):
+    #     D_gradU_f[i] = D[i]*np.gradient(-np.log(P),dx[i],axis=i,edge_order=2) + f[i]
+
+    # compute inner product of D grad U + F with itself: ||D grad U + F||^2
+    # multiplied by the stationary probability density P(x) = exp(-U(x))
+    # variable named epr to initialize integral, this is actually the integrand
+    epr = np.sum(D_gradU_f**2, axis=0) * P
+    
+    # epr = integral{ ||D grad U + F||^2 * P(x) }
+    # numerical integration via Simpson's rule
+    # integrate over each dimension
+    for i in range(N):
+        epr = simpson(epr,dx=dx[i],axis=0)
+
+    print("epr:",epr)
+    return epr
+
 def entropy_production(J:np.ndarray, D:np.ndarray, P:np.ndarray, x:list) -> float:
     '''
     Compute the entropy production rate for a given probability flux J, diagonal diffusion matrix D(x),
@@ -205,7 +275,7 @@ def entropy_production(J:np.ndarray, D:np.ndarray, P:np.ndarray, x:list) -> floa
     einsum_ip = 'i' + ''.join([chr(107 + j) for j in range(N)]) + ',i' + ''.join([chr(107 + j) for j in range(N)]) + '->' + ''.join([chr(107 + j) for j in range(N)])
     inner_prod = np.einsum(einsum_ip,D_inv_J,J/P)
     
-    # weight numerical integration by P(x)
+    # weight numerical integration by P(x)?
     weighted_entropy_prod = inner_prod * P
     dx = np.prod([x[i][1] - x[i][0] for i in range(N)])
     integral = np.sum(weighted_entropy_prod) * dx

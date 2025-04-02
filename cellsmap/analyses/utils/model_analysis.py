@@ -243,13 +243,20 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
         f_vals = f_mesh([X1,X2],u).T
         D_vals = D_mesh([X1,X2],u).T
 
-        # get probability flux: J(x) = f(x)P(x) - div(D(x) P(x))
-        J = gp.probability_flux(P,f_vals,D_vals,centers)
-        # expand D_vals to matrix (diagonal elements)
-        D_mat = gp.expand_to_matrix(D_vals)
+        # # get probability flux: J(x) = f(x)P(x) - div(D(x) P(x))
+        # J = gp.probability_flux(P,f_vals,D_vals,centers)
+
+        # # expand D_vals to matrix (diagonal elements)
+        # D_mat = gp.expand_to_matrix(D_vals)
+
         # get entropy production rate (numerical integration)
         # right now this is a huge bottleneck, need to optimize
-        epr[i] = gp.entropy_production(J,D_mat,P,centers)
+        # epr[i] = gp.entropy_production(J,D_mat,P,centers)
+
+        # trying out new method for entropy production rate calculation
+        print('Calculating entropy production rate for shear stress:',u)
+        epr[i] = gp.entropy_production_NEW(P,f_vals,D_vals,centers)
+
     return epr
 
 def run_epr_analysis(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray, fig_savedir:str) -> None:
