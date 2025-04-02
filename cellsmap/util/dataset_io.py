@@ -78,18 +78,23 @@ def get_specific_channel_order(dataset_name:str):
     bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
     return gfp_index, bf_index
 
-def get_number_of_positions(dataset_name:str) -> int:
+def get_total_number_of_positions(dataset_name:str) -> int:
+    """
+    n positions is the product of n_scenes x n_positions_per_scene
+    """
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['n_positions']
+    return dataset_info['n_total_positions']
 
-def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
-    dir = get_zarr_path(dataset_name)
+def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
+    data_dir = get_zarr_path(dataset_name)
     dataset = {}
 
     if zarr_name:
-        filepath_list = [fp for fp in Path(dir).glob('*.zarr') if fp.name == zarr_name]
+        filepath = Path(data_dir) / zarr_name
+        assert filepath.exists(), f'Zarr file {filepath} does not exist.'
+        filepath_list = [filepath]
     else:
-        filepath_list = [fp for fp in Path(dir).glob('*.zarr')]
+        filepath_list = [fp for fp in Path(data_dir).glob('*.zarr')]
 
     for filepath in filepath_list:
         reader = BioImage(filepath)
@@ -99,9 +104,27 @@ def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int
         reader.set_resolution_level(level)
         if time_end < 0:
             time_end = get_dataset_duration_in_frames(dataset_name)-1
-        img = reader.get_image_dask_data("TCZYX", T=range(time_start, time_end+1), C=channels_index)
+        img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
         dataset[filepath.name] = img
     return dataset
+
+def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
+    """
+    position can be either an integer or a string.
+    If it is a string then it must the name of a zarr file found in
+    dataset (e.g. a folder ending with the .ome.zarr extension).
+    If it is an integer then it will be used as the index to
+    get the zarr file name from the dataset.
+    """
+    if isinstance(position, int):
+        data_dir = get_zarr_path(dataset_name)
+        filepath_list = sorted([fp for fp in Path(data_dir).glob('*.zarr')])
+        zarr_name = filepath_list[position].name
+    else:
+        zarr_name = position
+    img_dict = load_dataset(dataset_name, channels, time_start, time_end, level, zarr_name)
+    img_dask_arr = img_dict[zarr_name]
+    return img_dask_arr
 
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
@@ -141,6 +164,10 @@ def get_barcode(dataset_name: str) -> str:
 def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['microscope']
+
+def get_fmsid(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['fmsid']
 
 # model methods
 

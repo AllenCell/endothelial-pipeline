@@ -36,9 +36,13 @@ venv/
 
 # Data files
 *.npy
+*.npz
+*.pkl
 
 # ignore locally generated results
+figs/
 results/
+analyses/results/
 
 # ignore files that might not be included
 cdh5_classic_seg_old.py

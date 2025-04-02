@@ -1,57 +1,54 @@
 import numpy as np
-import cellsmap.analyses.utils.fp_solvers as fps
 import fipy
+import pysindy as ps
+from typing import Tuple, Callable
 
+import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
-def scalar_function(model):
+def vector_field_function(model:ps.SINDy) -> Callable:
     '''
-    Turn fit regression model object into scalar-valued function f that 
+    Turn fit regression model (SINDy object) into vector-valued function f that 
     can be evaluated at a point x as f(x) using the model's built-in
-    `predict' function. Allows for control parameters as an additional argument.
+    `predict' function. This function serves to wrap the model's predict function
+    into a callable function that can be used to evaluate the model at a single point x.
+    
+    The returned function allows for control parameters as an optional argument.
+
+    This function is used when the dimension of the state space is greater than 1.
     '''
     def f(x, u=None):
-        if len(x.shape) == 1:
-            x_in = x[:,None]
-        else:
-            x_in = x.copy()
-        
-        if u is None:
-            f_out = model.predict(x_in)
-        else:
-            f_out = model.predict(x_in, u = u)
-
-        if f_out.shape[0] == 1:
-            f_out = f_out[0]
-        else:
-            f_out = f_out.T[0]
-        return np.asarray(f_out)
-    return f
-
-def vector_field_function(model):
-    '''
-    Turn fit regression model object into vector-valued function f that 
-    can be evaluated at a point x as f(x) using the model's built-in
-    `predict' function. Allows for control parameters as an additional argument.
-    '''
-    def f(x, u=None):
-        # CHANGE THIS TO MATCH TRAINING DATA DIMENSIONS OF MODEL
+        # if x is a single point, convert to 2D array
+        # input shape has to be (n_samples, n_features), where n_features = dimension of state space
         if len(x.shape) == 1:
             x_in = x[None,:]
         else:
             x_in = x.copy()
         
+        # optionally pass control parameter u to the model
         if u is None:
-            f_out = model.predict(x_in)
+            f_out = model.predict(x_in) # predict = evaluate the model at x
         else:
-            f_out = model.predict(x_in, u = u)
+            f_out = model.predict(x_in, u = u) # predict = evaluate the model at x with control parameter u
+        
+        # if the output is a single point, convert to 1D array
         if f_out.shape[0] == 1:
             f_out = f_out[0]
+        
+        # SINDy model outputs its own class of arrays (AxesArray), so convert to numpy array
         return np.asarray(f_out)
-    return f
+    return f # return the the callable function f
 
-def mesh_grid_function(f, ndim=2):
-    '''Turn vector-valued function f(x,u) into function f_mesh(x) that can be evaluated
-     appropriately on a mesh grid. Allows for control parameters as an additional argument.'''
+def mesh_grid_function(f:Callable, ndim:int=2) -> Callable:
+    '''
+    Turn vector-valued function f(x,u) into function f_mesh(x,u) that can be evaluated
+    appropriately on a mesh grid (i.e., np.meshgrid(*arrays) object), where x is the state variable
+    and u is the (optional) control parameter.
+
+    If the dimension of the state variable is greater than 2, the dimension must be passed in explicitly as ndim.
+    It is assumed that the state variable x and the vector field f(x) are of the same dimension.
+    
+    The returned function allows for control parameters as an optional argument.
+    '''
     def f_mesh(mesh_grid, u=None):
         # Create a mesh grid of points
         mesh_shape = mesh_grid[0].shape
@@ -63,104 +60,154 @@ def mesh_grid_function(f, ndim=2):
         # Reshape the result to match the original grid shape
         V = V_flat.reshape(*mesh_shape, ndim)
         
-        return np.asarray(V)
-    return f_mesh
+        return np.asarray(V) # return the result as a numpy array (not AxesArray)
+    return f_mesh # return the the callable function f_mesh
 
-def vector_field_component(f,i):
-    '''Extract the i-th component (indexing starting at 0) of the vector-valued function f(x,u).'''
+def vector_field_component(f:Callable,i:int) -> Callable:
+    '''
+    Returns the scalar valued function corresponding to the i-th component (indexing starting at 0) 
+    of the vector-valued function f(x,u), where x is the state variable
+    and u is the (optional) control parameter.
+
+    The returned function allows for control parameters as an optional argument.
+    '''
     def f_i(x,u=None):
+        # check input type - this is done because this component function is meant to be passed into the pplane
+        # script, which alternatively passes in a meshgrid, an array of points, or single points as tuples
         if isinstance(x, tuple) or isinstance(x, list): 
-            if len(x[0].shape) == 2: # if meshgrid
+            if len(x[0].shape) == 2: # if passing in a meshgrid, make sure to evaluate the function on the meshgrid
                 f_mesh = mesh_grid_function(f)
-                f_out = f_mesh(x,u).T
-            else: # if single point in ND
-                f_out = f(np.array(x).reshape(-1,len(x)),u).T
-        else:
-            f_out = f(x,u).T
-        return f_out[i].T
-    return f_i
+                f_out = f_mesh(x,u).T # transpose output so that the components are the first axis
+            else: # if single point in ND, convert tuple to array
+                f_out = f(np.array(x).reshape(-1,len(x)),u).T # transpose output so that the components are the first axis
+        else: # if passing in an array of points, evaluate the function on the array of points
+            f_out = f(x,u).T # transpose output so that the components are the first axis
+        return f_out[i].T # get the i-th component of the vector field, transpose to get correct shape (n_samples,1)
+    return f_i # return the the callable function f_i
 
-def get_stationary_probability(f,D,bins,centers,u,ndim=2,tol=1e-10):
-    '''Get stationary probability distribution of fit SDE (Langevin) model
-    with drift function f and diffusion D.'''
+def get_stationary_probability(f:Callable,D:Callable,bins:list,u:float,tol:float=1e-10) -> np.ndarray:
+    '''
+    Get stationary probability distribution of fit SDE (Langevin) model with drift function f and diffusion D by solving the
+    stationary Fokker-Planck equation. The drift and diffusion functions can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
+
+    This function calls the PDE solver SteadyFP implemented in the `numerics.fp_solvers' module.
+
+    Inputs:
+    - f: Callable, drift function of the SDE model
+    - D: Callable, diffusion function of the SDE model
+    - bins: list of arrays defining bin edges for each dimension of the state variable
+    - u: float, control parameter (shear stress)
+    - tol: float, tolerance for small values in the stationary probability distribution (default is 1e-10)
+        - if the probability distribution is less than tol, it is set to tol
+    
+    Outputs:
+    - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
+    '''
+
+    ndim = len(bins)
+    centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(ndim)] # get bin centers
 
     if ndim==1:
-        f_vals = f(centers,u)
-        D_vals = D(centers,u)
-        dx = (bins[1]-bins[0])
-        Nbins = len(bins)-1
+        # evaluate f and D at the bin centers
+        f_vals = f(centers[0],u)
+        D_vals = D(centers[0],u)
+        # if 1D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be scalars
+        dx = (bins[0][1]-bins[0][0])
+        Nbins = len(bins[0])-1
+        # initialize SteadyFP object
         fp = fps.SteadyFP(Nbins, dx)
     else:
+        # evaluate f and D at the mesh grid of bin centers
         f_mesh = mesh_grid_function(f,ndim=ndim)
         D_mesh = mesh_grid_function(D,ndim=ndim)
 
         mesh_grid = np.meshgrid(*centers)
-        f_vals = f_mesh(mesh_grid,u).T
-        D_vals = D_mesh(mesh_grid,u).T
+        f_vals = f_mesh(mesh_grid,u).T # transpose to get shape (ndim,N_x,N_y,...)
+        D_vals = D_mesh(mesh_grid,u).T # transpose to get shape (ndim,N_x,N_y,...)
 
-        Nbins = [len(bins[i])-1 for i in range(ndim)]
+        # if 2D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be lists (one for each dimension)
+        Nbins_ls = [len(bins[i])-1 for i in range(ndim)]
         dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
-        fp = fps.SteadyFP(Nbins, dx)
+        # initialize SteadyFP object
+        fp = fps.SteadyFP(Nbins_ls, dx)
 
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
+    p_fit = p_fit/np.sum(p_fit) # normalize probability distribution
 
     return p_fit
 
-def get_stationary_probability_fipy(f,D,bins,centers,u,ndim=2,tol=1e-10):
-    '''Get stationary probability distribution of fit SDE (Langevin) model
-    with drift function f and diffusion D.'''
+def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, tol:float=1e-10) -> np.ndarray:
+    '''
+    Get stationary probability distribution of fit SDE (Langevin) model with drift function f and diffusion D by solving the
+    stationary Fokker-Planck equation. 
+    
+    This function is currently only implemented to accept two-dimensional vector valued drift and diffusion functions.
 
-    if ndim==1:
-        f_vals = f(centers,u)
-        D_vals = D(centers,u)
-        dx = (bins[1]-bins[0])
-        Nbins = len(bins)-1
-        fp = fps.SteadyFP(Nbins, dx)
-    else:
-        Nbins = [len(bins[i])-1 for i in range(ndim)]
-        dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
-        bin_min = [bins[i][0] for i in range(ndim)]
+    This function calls the finite volume PDE solver FiPy to solve the stationary Fokker-Planck equation.
 
-        f1 = vector_field_component(f,0)
-        f2 = vector_field_component(f,1)
-        D1 = vector_field_component(D,0)
-        D2 = vector_field_component(D,1)
+    Inputs:
+    - f: Callable, drift function of the SDE model
+    - D: Callable, diffusion function of the SDE model
+    - bins: list of lists of bin edges for each dimension of the state variable
+    - u: float, control parameter (shear stress)
+    - tol: float, tolerance for small values in the stationary probability distribution (default is 1e-10)
+        - if the probability distribution is less than tol, it is set to tol
+    
+    Outputs:
+    - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
+    '''
 
-        mesh = fipy.Grid2D(dx=dx[0], dy=dx[1], nx=Nbins[0], ny=Nbins[1])
-        x, y = mesh.cellCenters
-        x_ = x.reshape((Nbins[1],Nbins[0]))+bin_min[0]
-        y_ = y.reshape((Nbins[1],Nbins[0]))+bin_min[1]
-        f1_vals = f1([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
-        f2_vals = f2([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
-        f_vals = np.array(np.concatenate([f1_vals,f2_vals]))
-        D1_vals = D1([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
-        D2_vals = D2([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
-        D_vals = np.array(np.concatenate([D1_vals,D2_vals]))
+    Nbins = [len(bins[i])-1 for i in range(2)] # number of bins in each dimension
+    dx = [bins[i][1]-bins[i][0] for i in range(2)] # bin width in each dimension
+    bin_min = [bins[i][0] for i in range(2)] # minimum value of bin in each dimension
 
-        # get Div(D)
-        divD = np.zeros_like(f_vals)
-        for i in range(D_vals.shape[0]):
-            divD[i] = np.gradient(D_vals[i], dx[i], axis=i, edge_order=2)
+    # get drift and diffusion components, used to define terms in the Fokker-Planck equation
+    f1 = vector_field_component(f,0)
+    f2 = vector_field_component(f,1)
+    D1 = vector_field_component(D,0)
+    D2 = vector_field_component(D,1)
 
-        f_vals = f_vals.reshape(2,-1)
-        D_vals = D_vals.reshape(2,-1)
-        divD = divD.reshape(2,-1)
-        
-        p = fipy.CellVariable(mesh=mesh, name=r"$P$", value = 1/(Nbins[0]*Nbins[1]))
+    # create fipy mesh
+    mesh = fipy.Grid2D(dx=dx[0], dy=dx[1], nx=Nbins[0], ny=Nbins[1])
+    x, y = mesh.cellCenters # get cell centers
+    x_ = x.reshape((Nbins[1],Nbins[0]))+bin_min[0] # reshape to 2D array, shift by bin_min (fipy mesh is defined with origin at (0,0))
+    y_ = y.reshape((Nbins[1],Nbins[0]))+bin_min[1] # reshape to 2D array, shift by bin_min (fipy mesh is defined with origin at (0,0))
+    f1_vals = f1([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0]) # evaluate drift function at cell centers
+    f2_vals = f2([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0]) # evaluate drift function at cell centers
+    f_vals = np.array(np.concatenate([f1_vals,f2_vals])) # concatenate drift components
+    D1_vals = D1([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0]) # evaluate diffusion function at cell centers
+    D2_vals = D2([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0]) # evaluate diffusion function at cell centers
+    D_vals = np.array(np.concatenate([D1_vals,D2_vals])) # concatenate diffusion components
 
-        # psi = f(x) - div (D(x))
-        psi = fipy.CellVariable(mesh=mesh, value = [f_vals[0]-divD[0], f_vals[1]-divD[1]])
-        D = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
+    # get Div(D)
+    divD = np.zeros_like(f_vals)
+    for i in range(D_vals.shape[0]):
+        divD[i] = np.gradient(D_vals[i], dx[i], axis=i, edge_order=2)
 
-        eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D,var=p)
-        eq.sweep(var=p)
+    # reshape arrays for fipy
+    f_vals = f_vals.reshape(2,-1)
+    D_vals = D_vals.reshape(2,-1)
+    divD = divD.reshape(2,-1)
+    
+    # create fipy variables for initializing the PDE
+    p = fipy.CellVariable(mesh=mesh, name=r"$P$", value = 1/(Nbins[0]*Nbins[1])) # this is the probability distribution, variable to solve for
 
-        p_fit = p.value.reshape(Nbins[1],Nbins[0])
-        C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=1),dx=dx[1])
-        p_fit = p_fit.T/C
+    # psi = f(x) - div (D(x))
+    psi = fipy.CellVariable(mesh=mesh, value = [f_vals[0]-divD[0], f_vals[1]-divD[1]])
+    D = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
 
+    # define the Fokker-Planck equation via FiPy's ConvectionTerm and DiffusionTerm
+    eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D,var=p)
+    keep_solving = True
+    while keep_solving:
+        res = eq.sweep(var=p) # sweep to solve the PDE
+        if res < 1e-6: # if residual is small, stop solving, else, sweep again
+            keep_solving = False
+
+    p_fit = p.value.reshape(Nbins[1],Nbins[0])
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
+    p_fit = p_fit.T/np.sum(p_fit) # transpose to get expected shape for downstream visualization, normalize probability distribution
 
     return p_fit
 
