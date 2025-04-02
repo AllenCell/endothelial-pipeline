@@ -5,7 +5,7 @@ from cellsmap.util.dataset_io import (
     get_time_interval_in_minutes,
     get_microscope,
     get_fmsid,)
-from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
+from cellsmap.image_conversion.process_images.process_image import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
     get_sldy_pixel_sizes,
@@ -26,7 +26,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20250204_pairedPreFixation 20250204 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20250115_paired3iNikon_3i1st 20250115 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -83,7 +83,7 @@ def main(dataset: str, output_path: str, output_dataset_name: str, channel_names
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="Process sldy images and write to Zarr format."
+        description="Process sldy or nd2 images and write to Zarr format."
     )
     parser.add_argument(
         "dataset", type=str, help="The dataset name matching dataset_config.yaml"
