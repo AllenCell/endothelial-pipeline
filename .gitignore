@@ -16,6 +16,7 @@ pdm.lock
 
 # PDM virtual environment directory
 .pdm-python
+.python-version
 
 # Environment variables
 venv/
