@@ -5,6 +5,8 @@ import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
+from cellsmap.util.set_output import get_output_path
+from cellsmap.util import get_sldy_metadata as sldmd
 try:
     from IPython import get_ipython
 except ModuleNotFoundError:
@@ -223,12 +225,12 @@ def get_chan_map(filepath: Path) -> dict:
 
 def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|None=None, t_step: int=1, save_output=True, overwrite=False, out_dir: str|Path|None=None, is_test=False, use_original_data=False) -> list:
     analysis_queue: list = []
-    out_dir = get_results_dir(Path(__file__).stem, is_test=is_test)
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
     for dataset_name in dataset_name_list:
-        img_path = Path(dataset_io.get_zarr_path(dataset_name)) if not use_original_data else Path(dataset_io.get_original_path(dataset_name))
+        img_path = Path(get_zarr_path(dataset_name)) if not use_original_data else Path(get_original_path(dataset_name))
         img = BioImage(img_path)
 
-        num_positions = dataset_io.get_number_of_positions(dataset_name)
+        num_positions = get_total_number_of_positions(dataset_name)
 
         assert num_positions % len(img.scenes) == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}'
         num_pos_in_T = num_positions // len(img.scenes)
