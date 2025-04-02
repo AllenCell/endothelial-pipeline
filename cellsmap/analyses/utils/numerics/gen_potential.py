@@ -258,7 +258,7 @@ def compute_D_gradU_f(U, f, D, dx):
 
     return D_gradU_f
 
-def entropy_production_NEW(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list) -> float:
+def entropy_production(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list) -> float:
     '''
     Compute the entropy production rate for a given stationary probability P(x), 
     drift vector field f(x), diffusion matrix D(x), and probability flux J(x).
@@ -281,11 +281,6 @@ def entropy_production_NEW(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list) -> 
     # D * gradient of U + f, where U = -log P
     D_gradU_f = compute_D_gradU_f(-np.log(P), f, D, dx)
 
-    # # take advantage of diagonal matrix structure: element i of D(x)*grad(U(x)) is D[i]*gradU[i]
-    # D_gradU_f = np.zeros_like(f)
-    # for i in range(N):
-    #     D_gradU_f[i] = D[i]*np.gradient(-np.log(P),dx[i],axis=i,edge_order=2) + f[i]
-
     # compute inner product of D grad U + F with itself: ||D grad U + F||^2
     # multiplied by the stationary probability density P(x) = exp(-U(x))
     # variable named epr to initialize integral, this is actually the integrand
@@ -299,40 +294,6 @@ def entropy_production_NEW(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list) -> 
 
     print("epr:",epr)
     return epr
-
-def entropy_production(J:np.ndarray, D:np.ndarray, P:np.ndarray, x:list) -> float:
-    '''
-    Compute the entropy production rate for a given probability flux J, diagonal diffusion matrix D(x),
-    and stationary probability density P(x).
-
-    Inputs:
-    - J: np.ndarray, probability flux evaluated on an ND grid (dimensions N x n1 x n2 x ... x nN)
-        - computed as J(x) = f(x)P(x) - div(D(x) P(x)), using probability_flux() function
-    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
-    - P: np.ndarray, stationary probability density evaluated on an ND grid (n1 x n2 x ... x nN array)
-    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
-    
-    Outputs:
-    - integral: float, entropy production rate
-        - computed numerically as the integral of (J D^{-1} J)/P over the grid x
-    '''
-    N = len(x)
-    D_inv = invert_D(D)
-
-    # Generalized Einstein summation for matrix multiplication on a meshgrid
-    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(N)]) + ',j' + ''.join([chr(107 + j) for j in range(N)]) + '->i' + ''.join([chr(107 + j) for j in range(N)])
-    D_inv_J = np.einsum(einsum_str, D_inv, J)
-
-    # compute inner product of D_inv_J and J/P
-    einsum_ip = 'i' + ''.join([chr(107 + j) for j in range(N)]) + ',i' + ''.join([chr(107 + j) for j in range(N)]) + '->' + ''.join([chr(107 + j) for j in range(N)])
-    inner_prod = np.einsum(einsum_ip,D_inv_J,J/P)
-    
-    # weight numerical integration by P(x)?
-    weighted_entropy_prod = inner_prod * P
-    dx = np.prod([x[i][1] - x[i][0] for i in range(N)])
-    integral = np.sum(weighted_entropy_prod) * dx
-
-    return integral
 
 
 
