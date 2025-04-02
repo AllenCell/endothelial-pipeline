@@ -7,6 +7,11 @@ import pandas as pd
 
 PATH_PREFIX = '/allen/aics/users/chantelle.leveille/repos/cellsmap/results/nuclear_seg_manifests/'
 
+# for parquet files in PATH_PREFIX, load them into dataframes
+
+
+
+
 df1016 = pd.read_parquet(f"{PATH_PREFIX}20241016_20X_nuclear_manifest.parquet")
 df1022 = pd.read_parquet(f"{PATH_PREFIX}20241022_20X_mito_nuclear_manifest.parquet")
 df1217 = pd.read_parquet(f"{PATH_PREFIX}20241217_20X_nuclear_manifest.parquet")
