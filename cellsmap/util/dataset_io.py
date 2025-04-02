@@ -220,3 +220,55 @@ def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = F
 def get_chan_map(filepath: Path) -> dict:
     img = BioImage(filepath)
     return {name:index for index, name in enumerate(img.channel_names)}
+
+def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|None=None, t_step: int=1, save_output=True, overwrite=False, out_dir: str|Path|None=None, is_test=False, use_original_data=False) -> list:
+    analysis_queue: list = []
+    out_dir = get_results_dir(Path(__file__).stem, is_test=is_test)
+    for dataset_name in dataset_name_list:
+        img_path = Path(dataset_io.get_zarr_path(dataset_name)) if not use_original_data else Path(dataset_io.get_original_path(dataset_name))
+        img = BioImage(img_path)
+
+        num_positions = dataset_io.get_number_of_positions(dataset_name)
+
+        assert num_positions % len(img.scenes) == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}'
+        num_pos_in_T = num_positions // len(img.scenes)
+        num_pos_in_S = len(img.scenes)
+
+        positions_in_T, positions_in_S = [], []
+        for scene_index in range(num_pos_in_S):
+            positions_in_T += list(range(num_pos_in_T))
+            positions_in_S += [scene_index] * num_pos_in_T
+
+        for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
+            img.set_scene(pos_in_S)
+            if sldmd.get_objective_info(img.metadata)['magnification'] != 20:
+                print(f'Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping...')
+            else:
+                print(f'Position {pos} (scene {img.current_scene}) -- processing...')
+                assert img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
+                # calculate the duration of the positions in frames (they must all have the same duration)
+                duration_in_frames = t_final if isinstance(t_final, int) else img.dims.T // num_pos_in_T
+                # correct the t_start, t_final, and t_step values to account for the intercalation of positions with timeframes
+                t_start_adjusted = t_start or pos_in_T
+                t_step_adjusted = t_step * num_pos_in_T
+                t_final_adjusted = pos_in_T + duration_in_frames * num_pos_in_T
+                t_range = range(t_start_adjusted, t_final_adjusted, t_step_adjusted)
+
+                for i,t in enumerate(t_range):
+                    if is_test and i >= 10:
+                        break
+                    else:
+                        pass
+
+                    if t >= t_start_adjusted and t < t_final_adjusted:
+                        analysis_queue.append({'dataset_name': dataset_name,
+                                                'scene_index': pos_in_S,
+                                                'position': pos,
+                                                'T': t,
+                                                'input_path': img_path,
+                                                'output_dir': out_dir,
+                                                'save_output': save_output,
+                                                'overwrite': overwrite,
+                                                'use_original_data': use_original_data,
+                                                'is_test': is_test})
+    return analysis_queue
