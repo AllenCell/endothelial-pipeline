@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Tuple, Callable
 from sklearn.pipeline import Pipeline
+from time import time
 
 from cellsmap.analyses.utils.io import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
@@ -229,16 +230,20 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     f = model[0]
     D = model[1]
 
+    # get mesh grid functions for drift and diffusion
+    f_mesh = model_eval.mesh_grid_function(f)
+    D_mesh = model_eval.mesh_grid_function(D)
+
     # initialize array to store entropy production rate
     epr = np.zeros(len(shear_range))
     for i,u in enumerate(shear_range):
         # get stationary probability distribution   
+        tic = time()
         P = model_eval.get_stationary_probability(f,D,bins,u)
+        toc = time()
+        print('Time to calculate stationary distribution:',toc-tic,'s')
 
         # evaluate drift and diffusion functions at grid points
-        f_mesh = model_eval.mesh_grid_function(f)
-        D_mesh = model_eval.mesh_grid_function(D)
-
         X1,X2 = np.meshgrid(centers[0],centers[1])
         f_vals = f_mesh([X1,X2],u).T
         D_vals = D_mesh([X1,X2],u).T
@@ -253,9 +258,12 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
         # right now this is a huge bottleneck, need to optimize
         # epr[i] = gp.entropy_production(J,D_mat,P,centers)
 
+        tic = time()
         # trying out new method for entropy production rate calculation
         print('Calculating entropy production rate for shear stress:',u)
         epr[i] = gp.entropy_production_NEW(P,f_vals,D_vals,centers)
+        toc = time()
+        print('Time to calculate EPR:',toc-tic,'s')
 
     return epr
 

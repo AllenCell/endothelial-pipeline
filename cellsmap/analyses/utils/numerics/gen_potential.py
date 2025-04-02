@@ -201,7 +201,13 @@ def compute_D_gradU_f(U, f, D, dx):
     D_gradU_f = np.zeros_like(f) # initialize array to store D(x) grad(U) + f(x)
     # take advantage of diagonal matrix structure: element i of D(x)*grad(U(x)) is D[i]*gradU[i]
     for i in range(N):
-        gradU_i = np.gradient(U, dx[i], axis=i, edge_order=2)
+        # grad(U): numerical gradient without using np.gradient
+        gradU_i = np.zeros_like(U)
+        gradU_i[1:-1] = (U[2:] - U[:-2])/(2*dx[i])
+        gradU_i[0] = (U[1] - U[0])/dx[i]
+        gradU_i[-1] = (U[-1] - U[-2])/dx[i]
+
+        # compute D(x) grad(U) + f(x)
         D_gradU_f[i] = D[i] * gradU_i + f[i]
 
     return D_gradU_f
