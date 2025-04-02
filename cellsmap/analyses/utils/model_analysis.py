@@ -60,7 +60,11 @@ def model_data_comparison_one_dataset(model:list[Callable],
         p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
     else:
         centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(len(bins))]
-        p_fit = model_eval.get_stationary_probability(f,D,bins,u)
+        f_mesh = model_eval.mesh_grid_function(f)
+        D_mesh = model_eval.mesh_grid_function(D)
+        f_vals = f_mesh(np.meshgrid(*centers),u).T
+        D_vals = D_mesh(np.meshgrid(*centers),u).T
+        p_fit = model_eval.get_stationary_probability(f_vals,D_vals,u)
 
     # get "stationary" distribution from data
     feat_cols = [str(i) for i in PCs] # for extracting PC values from DataFrame
@@ -237,23 +241,15 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     # initialize array to store entropy production rate
     epr = np.zeros(len(shear_range))
     for i,u in enumerate(shear_range):
+        # evaluate drift and diffusion functions at grid points for given shear stress
+        f_vals = f_mesh(np.meshgrid(*centers),u).T
+        D_vals = D_mesh(np.meshgrid(*centers),u).T
+
         # get stationary probability distribution   
-        tic = time()
-        P = model_eval.get_stationary_probability(f,D,bins,u)
-        toc = time()
-        print('Time to calculate stationary distribution:',toc-tic,'s')
+        P = model_eval.get_stationary_probability(f_vals,D_vals,bins)
 
-        # evaluate drift and diffusion functions at grid points
-        X1,X2 = np.meshgrid(centers[0],centers[1])
-        f_vals = f_mesh([X1,X2],u).T
-        D_vals = D_mesh([X1,X2],u).T
-
-        tic = time()
         # get entropy production rate
-        print('Calculating entropy production rate for shear stress:',u)
         epr[i] = gp.entropy_production(P,f_vals,D_vals,centers)
-        toc = time()
-        print('Time to calculate EPR:',toc-tic,'s')
 
     return epr
 
@@ -308,15 +304,21 @@ def run_gen_potential_analysis(model:list[Callable],
     print('*** Running generalized potential energy landscape analysis...\n')
     f = model[0]
     D = model[1]
+
+    # define mesh grid functions for drift and diffusion
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
     for ii, u in enumerate(shear_range):
+        # evaluate drift and diffusion functions at grid points for given shear stress
+        f_vals = f_mesh(np.meshgrid(*centers),u).T
+        D_vals = D_mesh(np.meshgrid(*centers),u).T
+        
         # get stationary probability distribution to get generalized potential energy landscape U
         if use_fipy:
             p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
         else:
-            p_fit = model_eval.get_stationary_probability(f,D,bins,u)
+            p_fit = model_eval.get_stationary_probability(f_vals,D_vals,u)
         U= -np.log(p_fit)
 
         # plot generalized potential energy landscape
@@ -331,10 +333,6 @@ def run_gen_potential_analysis(model:list[Callable],
         vb.save_plot(fig,fig_savedir+'gp_shear_'+str(ii))
 
         ######## plot gradient/flux decomposition ########
-
-        # get f and D values at grid points
-        f_vals = f_mesh(np.meshgrid(*centers),u).T
-        D_vals = D_mesh(np.meshgrid(*centers),u).T
         
         # get gradient/flux decomposition
         _, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers)

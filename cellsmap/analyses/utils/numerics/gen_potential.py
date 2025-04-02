@@ -33,33 +33,6 @@ def gradient_flow_term(U:np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
 
     return flow_term
 
-def expand_to_matrix(D:np.ndarray) -> np.ndarray:
-    """
-    Expand the vector-valued function D into the matrix-valued function D_mat.
-
-    Inputs:
-    - D: np.ndarray, the array representing the N diagonal terms of the diffusion matrix evaluated on an ND meshgrid
-        (dimensions N x n1 x n2 x ... x nN)
-    
-    Outputs:
-    - D_mat: np.ndarray, the matrix-valued function D(x) = diag[D1(x), D2(x), ..., DN(x)] evaluated on an ND meshgrid
-        (dimensions N x N x n1 x n2 x ... x nN)
-    """
-
-    N = D.shape[0] # number of dimensions of state space
-    N_grid = D.shape[1:] # grid dimensions (number of grid points in each dimension)
-
-    if N_grid.__class__ == int: # if 1D grid, convert to tuple
-        N_grid = (N_grid,)
-
-    D_mat = np.zeros((N, N) + N_grid) # initialize matrix-valued function
-    
-    # fill in diagonal terms
-    for i in range(N):
-        D_mat[i, i] = D[i]
-    
-    return D_mat
-
 def compute_J_terms(P:np.ndarray, f:np.ndarray, D:np.ndarray, dx:list) -> np.ndarray:
     '''
     Compute the terms needed for the stationary probability flux J(x) = f(x)P(x) - div(D(x) P(x))
@@ -211,26 +184,6 @@ def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, tol:float=1e-8) 
     diffusion_geometry = f - gradient_term - flux_term
 
     return U, gradient_term, diffusion_geometry, flux_term
-
-def invert_D(D:np.ndarray) -> np.ndarray:
-    if len(D.shape) == 2:
-        return np.linalg.inv(D)
-    else:
-        if len(D.shape) == 4:
-            N = D.shape[0]
-            N_grid = D.shape[2:]
-            D_ = D.reshape((N,N,-1))
-        elif len(D.shape) == 3:
-            N = D.shape[0]
-            N_grid = None
-            D_ = D.copy()
-        D_inv = np.zeros(D_.shape)
-        for i in range(D_.shape[-1]):
-            D_inv[:,:,i] = np.linalg.inv(D_[:,:,i])
-        if N_grid is not None:
-            return D_inv.reshape((N,N) + N_grid)
-        else:
-            return D_inv
 
 def compute_D_gradU_f(U, f, D, dx):
     '''
