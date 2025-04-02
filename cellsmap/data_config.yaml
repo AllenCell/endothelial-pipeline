@@ -123,7 +123,7 @@
   flow: [[0, 48, 5.88]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   # 5.88 dyn/cm^2 = 8.02mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
-  brightfield_channel_in_total_positions: 6,
+  n_total_positions: 6,
   notes: "This timelapse has not yet been converted to ZARR.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241203_20X",
 },{
