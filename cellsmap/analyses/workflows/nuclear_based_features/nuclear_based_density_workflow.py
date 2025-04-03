@@ -1,6 +1,7 @@
 #%%
-from cellsmap.analyses.workflows.density.support.plot_nuclei import plot_number_of_nuclei_per_fov, plot_number_of_nuclei_per_dataset
-from cellsmap.analyses.workflows.density.support.visualize_nuclei import visualize_nuclear_seg
+from cellsmap.analyses.workflows.nuclear_based_features.support.plot_nuclei import plot_number_of_nuclei_per_fov, plot_number_of_nuclei_per_dataset
+from cellsmap.analyses.workflows.nuclear_based_features.support.visualize_nuclei import visualize_nuclear_seg
+from cellsmap.util.set_output import get_output_path
 from pathlib import Path
 import pandas as pd
 
