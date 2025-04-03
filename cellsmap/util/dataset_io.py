@@ -140,7 +140,7 @@ def get_flow_info(dataset_name: str) -> list:
 def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
     flow_list = get_flow_info(dataset_name)
     for t_start, t_stop, flow in flow_list:
-        if t_start <= frame < t_stop:
+        if t_start <= frame <= t_stop:
             return flow
     print(f"Frame {frame} not found in flow list.")
     return None
