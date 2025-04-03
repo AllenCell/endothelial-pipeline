@@ -26,7 +26,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20250115_paired3iNikon_3i1st 20250115 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20250131_pairedPreFixation 20250131
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -91,11 +91,12 @@ def parse_arguments():
     parser.add_argument(
         "output_dataset_name",
         type=str,
-        help="The output datset name for the Zarr files",
+        help="The output dataset name for the Zarr files",
     )
     parser.add_argument(
-        "output_path", 
+        "--output_path", 
         type=str, 
+        default="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs",
         help="The output path for the Zarr files"
     )
     parser.add_argument(
@@ -109,8 +110,10 @@ def parse_arguments():
     channel_names = args.channel_names.split(",")
     return args.dataset, args.output_dataset_name, args.output_path, channel_names
 
+def main(dataset: str, output_path: str, output_dataset_name: str, channel_names: list):
+    convert_dataset(dataset, output_path, output_dataset_name, channel_names)
 
-# %%
+#%%
 if __name__ == "__main__":
     dataset, output_dataset_name, output_path, channel_names = parse_arguments()
     main(dataset, output_path, output_dataset_name, channel_names)

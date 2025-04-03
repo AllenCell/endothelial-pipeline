@@ -283,9 +283,9 @@
           It was thawed and on the same day as barcode GE00006323."
 },{
   name: 20250131_pairedPreFixation,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PreFix_sldy.sldy",
-  zarr_path: None,
-  fmsid: "",
+  original_path: "//allen/programs/allencell/data/proj0/2af/f39/d6d/550/023/278/641/1a8/5a5/83c/87/20250131_GE00006569_20X_PreFix_sldy/20250131_GE00006569_20X_PreFix_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_8783c5a51a8641278023550d6df392af",
+  fmsid: "8783c5a51a8641278023550d6df392af",
   barcode: GE00006569,
   live_or_fixed_sample: fixed-methanol,
   microscope: 3i,
@@ -302,9 +302,9 @@
   notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
 },{
   name: 20250131_pairedPostFixation,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PostFix_sldy.sldy",
-  zarr_path: None,
-  fmsid: "",
+  original_path: "//allen/programs/allencell/data/proj0/f29/cf2/6d9/fb5/b26/9fb/24e/c6e/419/d7a/39/20250131_GE00006569_20X_PostFix_sldy/20250131_GE00006569_20X_PostFix_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_39d7a419c6e24e9fbb26fb56d9cf2f29",
+  fmsid: "39d7a419c6e24e9fbb26fb56d9cf2f29",
   barcode: GE00006569,
   live_or_fixed_sample: fixed-methanol,
   microscope: 3i,
