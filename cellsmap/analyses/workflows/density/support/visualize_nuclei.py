@@ -16,27 +16,27 @@ def visualize_nuclear_seg(df, dataset, frame, position):
     print(fov_path)
     
     image = BioImage(fov_path)
+    stdev_proj = image.get_image_data("YX", C=1)
     brightfield_data = image.get_image_data("YX", C=0)  # Assuming C=0 is the brightfield channel
     segmentation_data = image.get_image_data("YX", C=2)
     labeled_image = label(segmentation_data)
     
     num_labels = labeled_image.max() + 1
-
-
+    
+    p1, p99 = np.percentile(brightfield_data, (1, 99))
+    brightfield_data_norm = np.clip((brightfield_data - p1) / (p99 - p1), 0, 1)
+    
+    p1, p99 = np.percentile(stdev_proj, (1, 99))
+    stdev_proj_norm = np.clip((stdev_proj - p1) / (p99 - p1), 0, 1)
+    
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-    # Calculate the 1st and 99th percentiles
-    p1, p99 = np.percentile(brightfield_data, (1, 99))
-
-    # Normalize using the 1st and 99th percentiles
-    brightfield_data_norm = np.clip((brightfield_data - p1) / (p99 - p1), 0, 1)
-
     # Plot the brightfield image
-    axes[0].imshow(brightfield_data_norm, cmap='gray')
-    axes[0].set_title('Brightfield')
+    axes[0].imshow(stdev_proj_norm, cmap='gray')
+    axes[0].set_title('Std Dev Projection')
     axes[0].axis('off')
 
-    colors = [(0, 0, 0, 1)] + list(cc.glasbey_light[:num_labels])  # Prepend black for the background
+    colors = [(0, 0, 0, 1)] + [cc.glasbey_light[i % len(cc.glasbey_light)] for i in range(num_labels)]  # Prepend black for the background
     cmap = ListedColormap(colors)
     norm = BoundaryNorm(np.arange(-0.5, num_labels + 0.5, 1), cmap.N)
 
@@ -45,7 +45,7 @@ def visualize_nuclear_seg(df, dataset, frame, position):
     axes[1].set_title('Segmentation')
     axes[1].axis('off')
     
-    colors = [(0, 0, 0, 0)] + list(cc.glasbey_light[:num_labels])  # Prepend transparent for the background
+    colors = [(0, 0, 0, 0)] + [cc.glasbey_light[i % len(cc.glasbey_light)] for i in range(num_labels)] # Prepend transparent for the background
     cmap = ListedColormap(colors)
     norm = BoundaryNorm(np.arange(-0.5, num_labels + 0.5, 1), cmap.N)
 
@@ -55,6 +55,9 @@ def visualize_nuclear_seg(df, dataset, frame, position):
     axes[2].set_title('Merged')
     axes[2].axis('off')
 
-    plt.suptitle(f"Dataset: {dataset}, Frame: {frame}, Position: {position}")
+    flow = dataset_io.get_flow_for_frame(dataset, frame)
+    plt.suptitle(f"Dataset: {dataset}, Frame: {frame}, Position: {position}, Flow: {flow} dyn/cm²")
     plt.tight_layout()
     plt.show()
+    
+    
