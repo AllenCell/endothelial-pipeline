@@ -13,7 +13,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 244, 22.35], [244, 576, 5.62]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 244, 22.35], [245, 576, 5.62]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 22.35 dyn/cm^2 = 30.5 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 5.62 dyn/cm^2 = 7.67 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -35,7 +35,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 288, 25.13], [288, 576, 6.24]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 263, 25.13], [264, 576, 6.24]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow switched between timeframes 263-264
   # 25.13 = 34.29 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 6.24 = 8.51 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
@@ -158,7 +158,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 288, 6.02], [288, 576, 35.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.02], [289, 576, 35.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 8.21mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 47.76mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -179,7 +179,7 @@
   pixel_size_xy_in_um: 0.191,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 288, 6.02], [288, 576, 35.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.02], [289, 576, 35.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 8.21mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 47.76mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -200,7 +200,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 288, 6.37], [288, 576, 27.83], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.37 dyn/cm^2 = 8.69mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 27.83 dyn/cm^2 = 37.97mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -221,7 +221,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 288, 6.51], [288, 576, 29.9], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.51 dyn/cm^2 = 8.88mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 29.90 dyn/cm^2 = 40.8mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -242,7 +242,7 @@
   pixel_size_xy_in_um: 0.325, # note that the magnification changer was not used here, thus the pixel size is 0.325 instead of 0.392
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 288, 6.51], [288, 576, 29.9], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.51 dyn/cm^2 = 8.88mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 29.90 dyn/cm^2 = 40.8mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -263,7 +263,7 @@
   pixel_size_xy_in_um: 0.325, # note that the magnification changer was not used here, thus the pixel size is 0.325 instead of 0.392
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 288, 6.37], [288, 576, 27.83], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.37 dyn/cm^2 = 8.69mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 27.83 dyn/cm^2 37.97mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
@@ -284,7 +284,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 24, 6.00], [24, 48, 28.93]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.00], [289, 576, 28.93]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.00 = 8.19 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 28.93 = 39.47 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   dapi_channel_index: 0,
@@ -308,7 +308,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 288, 6.0], [288, 576, 28.93]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.0], [289, 576, 28.93]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.23 dyn/cm^2 = 17.28mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
@@ -447,7 +447,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 263, 5.83], [263, 576, 22.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 262, 5.83], [263, 576, 22.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow change occurred at 12PM between timeframes 262-263
   # 5.83 dyn/cm^2 = 16.16 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   # 22.00 dyn/cm^2 = 61.02 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
@@ -469,7 +469,7 @@
   pixel_size_xy_in_um: 0.392,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 276, 5.62], [276, 576, 25.91]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 277, 5.62], [278, 576, 25.91]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow change occurred at 2:58PM between timeframes 277-278
   # 5.62 dyn/cm^2 = 15.6mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   # 25.91 dyn/cm^2 = 71.86mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
