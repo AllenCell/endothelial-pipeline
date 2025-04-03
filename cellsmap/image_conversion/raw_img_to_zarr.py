@@ -4,7 +4,8 @@ from cellsmap.util.dataset_io import (
     get_total_number_of_positions, 
     get_time_interval_in_minutes,
     get_microscope,
-    get_fmsid,)
+    get_fmsid,
+)
 from cellsmap.image_conversion.process_images.process_image import get_delayed_array_for_position
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
@@ -12,6 +13,10 @@ from cellsmap.image_conversion.process_images.write_zarr import (
 )
 from cellsmap.util.dataset_io import get_original_path
 from bioio import BioImage
+
+# Define the default output path
+DEFAULT_OUTPUT_PATH = "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs"
+
 # %%
 """
 This script processes images from a dataset and writes them to Zarr format.
@@ -38,8 +43,8 @@ The resulting zarr contains images from one scene.
 
 def convert_dataset(
     dataset: str,
-    output_path: str,
     output_dataset_name: str,  # barcode_date
+    output_path: str = DEFAULT_OUTPUT_PATH,
     channel_names: list[str] = ["EGFP", "BF"],
 ):
     img = BioImage(get_original_path(dataset))
@@ -77,10 +82,6 @@ def convert_dataset(
             )
             count += 1
 
-def main(dataset: str, output_path: str, output_dataset_name: str, channel_names: list):
-    convert_dataset(dataset, output_path, output_dataset_name, channel_names)
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Process sldy or nd2 images and write to Zarr format."
@@ -96,7 +97,7 @@ def parse_arguments():
     parser.add_argument(
         "--output_path", 
         type=str, 
-        default="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs",
+        default=DEFAULT_OUTPUT_PATH,
         help="The output path for the Zarr files"
     )
     parser.add_argument(
@@ -110,11 +111,8 @@ def parse_arguments():
     channel_names = args.channel_names.split(",")
     return args.dataset, args.output_dataset_name, args.output_path, channel_names
 
-def main(dataset: str, output_path: str, output_dataset_name: str, channel_names: list):
-    convert_dataset(dataset, output_path, output_dataset_name, channel_names)
-
-#%%
+# %%
 if __name__ == "__main__":
     dataset, output_dataset_name, output_path, channel_names = parse_arguments()
-    main(dataset, output_path, output_dataset_name, channel_names)
+    convert_dataset(dataset, output_dataset_name, output_path, channel_names)
 # %%
