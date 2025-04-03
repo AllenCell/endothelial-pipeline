@@ -1,33 +1,29 @@
 #%%
 from cellsmap.analyses.workflows.density.support.plot_nuclei import plot_number_of_nuclei_per_fov, plot_number_of_nuclei_per_dataset
 from cellsmap.analyses.workflows.density.support.visualize_nuclei import visualize_nuclear_seg
+from pathlib import Path
 import pandas as pd
 #%%
-# df = create_nuclear_manifest('20241016_20X')
-
 PATH_PREFIX = '/allen/aics/users/chantelle.leveille/repos/cellsmap/results/nuclear_seg_manifests/'
-
-# for parquet files in PATH_PREFIX, load them into dataframes
-
-
-
-
-df1016 = pd.read_parquet(f"{PATH_PREFIX}20241016_20X_nuclear_manifest.parquet")
-df1022 = pd.read_parquet(f"{PATH_PREFIX}20241022_20X_mito_nuclear_manifest.parquet")
-df1217 = pd.read_parquet(f"{PATH_PREFIX}20241217_20X_nuclear_manifest.parquet")
-df0224 = pd.read_parquet(f"{PATH_PREFIX}20250224_20X_nuclear_manifest.parquet")
+parquet_files = [f for f in Path(PATH_PREFIX).glob('*.parquet')]
+dataframes = {file.stem: pd.read_parquet(file) for file in parquet_files}
+print(f"Loaded {len(dataframes)} dataframes.")
 
 #%%
-for df in [df1016, df1022, df1217, df0224]:
+df = dataframes['20241217_20X_nuclear_manifest']
+df = df[(df["frame"] < 100) | ((df["frame"] > 300) & (df["frame"] < 420))]
+dataframes['20241217_20X_nuclear_manifest'] = df
+
+#%%
+for df in dataframes:
     plot_number_of_nuclei_per_fov(df, df.dataset.iloc[0]) 
-plot_number_of_nuclei_per_dataset([df1016, df1022, df1217, df0224])
-# %%
-visualize_nuclear_seg(df, '20241016_20X', 0, 0)
+plot_number_of_nuclei_per_dataset(list(dataframes.values()))
 
 # %%
-for frame in [100,125,150,175,200,225,250,300]:
-    visualize_nuclear_seg(df, '20241016_20X', frame, 3)
-# %%
-for pos in range(6):
-    visualize_nuclear_seg(df, '20241016_20X', 0, pos)
-
+for df in list(dataframes.values()):
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 0)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 1)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 2)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 3)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 4)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 5)
