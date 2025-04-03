@@ -3,239 +3,211 @@ from typing import Tuple
 
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
-def generalized_potential(P:np.ndarray, grid=None, tol:float=1e-8) -> np.ndarray:
-    '''
-    Compute the generalized potential U = -ln(P) corresponding to 
-    stationary probability density P.
-
-    Arguments:
-        P       stationary probability density (callable function or ND array of dimensions n1 x n2 x ... x nN)
-        grid    meshgrid (indexing = 'ij') of points in the state space (required if P is callable)
-        tol     set P<tol to tol to avoid log(0) errors
-
-    Returns:
-        U       generalized potential (ND array of dimensions n1 x n2 x ... x nN) 
-    '''
-
-    if callable(P):
-        if grid is None:
-            raise ValueError('grid must be provided if P is a callable function')
-        P = P(*grid)
-    
-    P[P<tol] = tol
-
-    return -np.log(P)
-
-def gradient_flow_term(U:np.ndarray, D, xArrays:list, ndim:int=2) -> np.ndarray:
+def gradient_flow_term(U:np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
     '''
     Compute the gradient flow term -D(x) grad(U) for a given potential U
     and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
 
-    Arguments:
-        U               potential evaluated on a grid (ND array of dimensions n1 x n2 x ... x nN)
-        D               diagonal terms of diffusion matrix (callable function R^N -> R^N or N x n1 x n2 x ... nN array)
-        xArrays         arrays [x1,x2,..xN] such that U has been evaluated on np.meshgrid(*xArray, indexing = 'ij')
-        isConstant      True if D is a constant matrix, False otherwise
+    Inputs:
+    - U: np.ndarray, potential evaluated on an ND grid (dimensions n1 x n2 x ... x nN)
+    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
+    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
 
-    Returns:
-        -D(x) gradU       gradient flow term ((N+1)D array of dimensions N x n1 x n2 x ... x nN)
+    Outputs:
+    - flow_term: np.ndarray, gradient flow term = -D(x) grad[U] (dimensions N x n1 x n2 x ... x nN)
     '''
-    if ndim == 1:
-        grid = [xArrays]
-        dx = [xArrays[1] - xArrays[0]]
-    else:
-        grid = np.meshgrid(*xArrays,indexing='ij')
-        dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
 
-    if callable(D):
-        D_vals = D(*grid)
-    else:
-        D_vals = D.copy()
+    N = len(x) # number of dimensions 
+    dx = [x[i][1] - x[i][0] for i in range(N)] # grid spacing
 
-    gradU = np.zeros(D_vals.shape)
-    for i in range(D_vals.shape[0]):
+    # compute gradient of generalized potential U
+    gradU = np.zeros(D.shape)
+    for i in range(D.shape[0]):
         gradU[i] = np.gradient(U,dx[i],axis=i,edge_order=2)
 
-    flow_term = np.zeros(D_vals.shape)
-    for i in range(D_vals.shape[0]):
-        flow_term[i] = -D_vals[i]*gradU[i]
+    # compute gradient flow term = -D(x) grad(U)
+    flow_term = np.zeros(D.shape)
+    for i in range(D.shape[0]):
+        flow_term[i] = -D[i]*gradU[i]
 
     return flow_term
 
-def expand_to_matrix(D_vals:np.ndarray) -> np.ndarray:
+def expand_to_matrix(D:np.ndarray) -> np.ndarray:
     """
-    Expand the vector-valued function D_vals into the matrix-valued function D_vals.
+    Expand the vector-valued function D into the matrix-valued function D_mat.
 
-    Arguments:
-        D_flat : ndarray
-            The (n, N_1, N_2, ..., N_n) array representing the diagonal terms of the diffusion matrix.
-    Returns:
-        D_vals : ndarray
-            The (n,n, N_1, N_2,...,N_n) matrix-valued function.
-    """
-    n = D_vals.shape[0]
-    N_grid = D_vals.shape[1:]
-    if N_grid.__class__ == int:
-        N_grid = (N_grid,)
-    D_mat = np.zeros((n, n) + N_grid)
+    Inputs:
+    - D: np.ndarray, the array representing the N diagonal terms of the diffusion matrix evaluated on an ND meshgrid
+        (dimensions N x n1 x n2 x ... x nN)
     
-    for i in range(n):
-        D_mat[i, i] = D_vals[i]
+    Outputs:
+    - D_mat: np.ndarray, the matrix-valued function D(x) = diag[D1(x), D2(x), ..., DN(x)] evaluated on an ND meshgrid
+        (dimensions N x N x n1 x n2 x ... x nN)
+    """
+
+    N = D.shape[0] # number of dimensions of state space
+    N_grid = D.shape[1:] # grid dimensions (number of grid points in each dimension)
+
+    if N_grid.__class__ == int: # if 1D grid, convert to tuple
+        N_grid = (N_grid,)
+
+    D_mat = np.zeros((N, N) + N_grid) # initialize matrix-valued function
+    
+    # fill in diagonal terms
+    for i in range(N):
+        D_mat[i, i] = D[i]
     
     return D_mat
 
-def probability_flux(P:np.ndarray, f, D, xArrays:list) -> np.ndarray:
+def probability_flux(P:np.ndarray, f: np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
     '''
     Compute the probability flux term f(x)P(x) - div(D(x) P(x)) for a given stationary
     probability density P, drift vector field f, and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
 
-    Arguments:
-        P               stationary probability density evaluated on a grid (ND array of dimensions n1 x n2 x ... x nN)
-        f               drift vector field (callable function R^N -> R^N or N x n1 x n2 x ... x nN array)
-        D               diagonal terms of diffusion matrix (callable function R^N -> R^N or N x n1 x n2 x ... nN array)
-        xArrays         arrays [x1,x2,..xN] such that P has been evaluated on np.meshgrid(*xArray, indexing = 'ij')
-        isConstant      True if D is a constant matrix, False otherwise
+    Inputs:
+    - P: np.ndarray, stationary probability density evaluated on an ND grid (n1 x n2 x ... x nN array)
+    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
+    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
+    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
 
-    Returns:
-        f(x)P(x) - div(D(x) P(x))       probability flux term ((N+1)D array of dimensions N x n1 x n2 x ... x nN)
+    Outputs:
+    - p_flux: np.ndarray, probability flux term of Fokker-Planck equation (dimensions N x n1 x n2 x ... x nN)
+        J(x) = f(x)P(x) - div(D(x) P(x))
     '''
 
-    ndim = len(xArrays)
-    grid = np.meshgrid(*xArrays,indexing='ij')
-    dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
+    N = len(x) # number of dimensions
+    dx = [x[i][1] - x[i][0] for i in range(len(x))] # grid spacing
 
-    if callable(f):
-        f_vals = f(*grid)
-    else:
-        f_vals = f.copy()
+    fP = np.zeros_like(f)
+    divD = np.zeros_like(f)
 
-    if callable(D):
-        D_vals = D(*grid)
-    else:
-        D_vals = D.copy()
-
-    fP = np.zeros_like(f_vals)
-    divD = np.zeros_like(f_vals)
-
-    for i in range(D_vals.shape[0]):
-        divD[i] = np.gradient(D_vals[i], dx[i], axis=i, edge_order=2)
-        fP[i] = f_vals[i] * P
-
-    grad_P = np.gradient(P, *dx, edge_order=2)
-    if ndim == 1:
-        grad_P = grad_P.reshape((-1,1))
-    D_full = expand_to_matrix(D_vals)
+    # compute 1) divergence of matrix D(x) and 
+    # 2) the vector-scalar product f(x) P(x)
+    # at each grid point
+    for i in range(N):
+        divD[i] = np.gradient(D[i], dx[i], axis=i, edge_order=2)
+        fP[i] = f[i] * P
     divD = np.sum(divD, axis=0)
 
-    # Generalized Einstein summation
-    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(ndim)]) + ',j' + ''.join([chr(107 + j) for j in range(ndim)]) + '->i' + ''.join([chr(107 + j) for j in range(ndim)])
+    # compute gradient of P(x)
+    grad_P = np.gradient(P, *dx, edge_order=2)
+    if N == 1: # expand array dimensions for 1D case
+        grad_P = grad_P.reshape((-1,1))
 
-    return fP - divD * P - np.einsum(einsum_str, D_full, grad_P)
+    # expand D(x) to matrix form (need for einsum)
+    D_full = expand_to_matrix(D)
+    
+    # Generalized Einstein summation to comput second part of divergence term: D(x) grad(P(x))
+    # using einsum to do matrix multiplication in a generalized way at each grid point
+    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(N)]) + ',j' + ''.join([chr(107 + j) for j in range(N)]) + '->i' + ''.join([chr(107 + j) for j in range(N)])
 
-def grad_flux_decomposition(f, D, xArrays:list, ndim:int=2, tol:float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    # compute probability flux term
+    p_flux = fP - divD * P - np.einsum(einsum_str, D_full, grad_P) 
+
+    return p_flux
+
+def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, tol:float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
     Compute the gradient/flux decomposition of the drift vector field f(x) for 
     stochastic dynamics with diagonal diffusion matrix D(x):
-        f(x) = [gradient flow] + [flux term]
+        f(x) = [gradient flow] + [diffusion geometry] + [flux term]
     where
         [gradient flow] = -D(x) grad(U) 
         [diffusion geometry] = div(D(x))
         [flux term] = (f(x)P(x) - div(D(x) P(x)))/P(x)
     
-    Arguments:
-        f               drift vector field (callable function R^N -> R^N or N x n1 x n2 x ... x nN array)
-        D               diagonal terms of diffusion matrix (callable function R^N -> R^N or N x n1 x n2 x ... nN array)
-        xArrays         arrays [x1,x2,..xN] such that f and D have been (or will be) evaluated on np.meshgrid(*xArray, indexing = 'ij')
-        tol             set P<tol to tol to avoid log(0) and divide by 0 errors
-        isConstant      True if D is a constant matrix, False otherwise
+    Inputs:
+    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
+    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
+    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
+    - tol: float, set P = tol where P<tol to avoid log(0) and divide by 0 errors (P is stationary probability density)
 
     Returns:
-        U                   generalized potential (n1 x n2 x ... x nN array)
-        gradient_term       gradient term (N x n1 x n2 x ... x nN array)
-        flux_term           flux term (N x n1 x n2 x ... x nN array)
+    - U: np.ndarray, generalized potential U := -ln P evaluated on a grid (n1 x n2 x ... x nN array)
+    - gradient_term: np.ndarray, gradient flow term = -D(x) grad(U) (dimensions N x n1 x n2 x ... x nN)
+    - diffustion_geometry: np.ndarray, contribution from multiplicative noise (dimensions n1 x n2 x ... x nN)
+        - computed as the remainder of f - gradient_term - flux_term
+    - flux_term: np.ndarray, flux term = (f(x)P(x) - div(D(x) P(x)))/P(x) (dimensions N x n1 x n2 x ... x nN)
     '''
 
-    if ndim == 1:
-        grid = [xArrays]
-        grid_len = len(xArrays)
-        dx = xArrays[1] - xArrays[0]
-    else:
-        grid = np.meshgrid(*xArrays,indexing='ij')
-        dx = [xArrays[i][1] - xArrays[i][0] for i in range(len(xArrays))]
-        grid_len = [len(xArrays[i]) for i in range(len(xArrays))]
+    N = len(x)
+    dx = [x[i][1] - x[i][0] for i in range(N)]
+    grid_len = [len(x[i]) for i in range(N)]
     
-    if callable(f):
-        f_vals = f(*grid)
-    else:
-        f_vals = f.copy()
-        if ndim == 1:
-            f_vals = f_vals.reshape((1,-1))
-    
-    if callable(D):
-        D_vals = D(*grid)
-    else:
-        D_vals = D.copy()
-        if ndim == 1:
-            D_vals = D_vals.reshape((1,-1))
+    if N == 1: # expand array dimensions for 1D case
+        f = f[None,:]
+        D = D[None,:]
 
     # solve stationary Fokker-Planck equation
-    stationary_fp = fps.SteadyFP(grid_len, dx)
-    P = stationary_fp.solve(f_vals,D_vals)
-    P[P<tol] = tol
-    P = P/np.sum(P)
+    stationary_fp = fps.SteadyFP(grid_len, dx) # initialize stationary Fokker-Planck solver
+    P = stationary_fp.solve(f,D) # solve for stationary probability density
+    P[P<tol] = tol # set values less than tol to tol to avoid log(0) and divide by 0 errors
+    P = P/np.sum(P) # normalize
 
     # get generalized potential
     U = -np.log(P)
 
     # compute gradient flow term
-    gradient_term = gradient_flow_term(U,D_vals,xArrays,ndim=ndim)
-
-    # compute divergence of D(x)
-    if ndim == 1:
-        divD = np.gradient(D_vals,dx,edge_order=2)
-    else:
-        divD = np.zeros(D_vals.shape)
-        for i in range(D.shape[0]):
-            divD[i] = np.gradient(D[i],dx[i],axis=i,edge_order=2)
-        divD = np.sum(divD,axis=0)
+    gradient_term = gradient_flow_term(U,D,x)
 
     # compute flux term
-    flux_term = probability_flux(P,f_vals,D_vals,xArrays)/P
+    flux_term = probability_flux(P,f,D,x)/P
 
-    return U, gradient_term, divD, flux_term
+    # remainder is term from gradient of multiplicative noise tensor
+    diffusion_geometry = f - gradient_term - flux_term
+
+    return U, gradient_term, diffusion_geometry, flux_term
 
 def invert_D(D:np.ndarray) -> np.ndarray:
     if len(D.shape) == 2:
         return np.linalg.inv(D)
     else:
         if len(D.shape) == 4:
-            ndim = D.shape[0]
+            N = D.shape[0]
             N_grid = D.shape[2:]
-            D_ = D.reshape((ndim,ndim,-1))
+            D_ = D.reshape((N,N,-1))
         elif len(D.shape) == 3:
-            ndim = D.shape[0]
+            N = D.shape[0]
             N_grid = None
             D_ = D.copy()
         D_inv = np.zeros(D_.shape)
         for i in range(D_.shape[-1]):
             D_inv[:,:,i] = np.linalg.inv(D_[:,:,i])
         if N_grid is not None:
-            return D_inv.reshape((ndim,ndim) + N_grid)
+            return D_inv.reshape((N,N) + N_grid)
         else:
             return D_inv
 
 def entropy_production(J:np.ndarray, D:np.ndarray, P:np.ndarray, x:list) -> float:
-    ndim = len(x)
+    '''
+    Compute the entropy production rate for a given probability flux J, diagonal diffusion matrix D(x),
+    and stationary probability density P(x).
+
+    Inputs:
+    - J: np.ndarray, probability flux evaluated on an ND grid (dimensions N x n1 x n2 x ... x nN)
+        - computed as J(x) = f(x)P(x) - div(D(x) P(x)), using probability_flux() function
+    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
+    - P: np.ndarray, stationary probability density evaluated on an ND grid (n1 x n2 x ... x nN array)
+    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
+    
+    Outputs:
+    - integral: float, entropy production rate
+        - computed numerically as the integral of (J D^{-1} J)/P over the grid x
+    '''
+    N = len(x)
     D_inv = invert_D(D)
 
-    # Generalized Einstein summation for matrix multiplication
-    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(ndim)]) + ',j' + ''.join([chr(107 + j) for j in range(ndim)]) + '->i' + ''.join([chr(107 + j) for j in range(ndim)])
+    # Generalized Einstein summation for matrix multiplication on a meshgrid
+    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(N)]) + ',j' + ''.join([chr(107 + j) for j in range(N)]) + '->i' + ''.join([chr(107 + j) for j in range(N)])
     D_inv_J = np.einsum(einsum_str, D_inv, J)
 
-    einsum_ip = 'i' + ''.join([chr(107 + j) for j in range(ndim)]) + ',i' + ''.join([chr(107 + j) for j in range(ndim)]) + '->' + ''.join([chr(107 + j) for j in range(ndim)])
+    # compute inner product of D_inv_J and J/P
+    einsum_ip = 'i' + ''.join([chr(107 + j) for j in range(N)]) + ',i' + ''.join([chr(107 + j) for j in range(N)]) + '->' + ''.join([chr(107 + j) for j in range(N)])
     inner_prod = np.einsum(einsum_ip,D_inv_J,J/P)
+    
+    # weight numerical integration by P(x)
     weighted_entropy_prod = inner_prod * P
-    dx = np.prod([x[i][1] - x[i][0] for i in range(ndim)])
+    dx = np.prod([x[i][1] - x[i][0] for i in range(N)])
     integral = np.sum(weighted_entropy_prod) * dx
 
     return integral
