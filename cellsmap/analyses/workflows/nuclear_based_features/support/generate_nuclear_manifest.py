@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 from bioio import BioImage
-from cellsmap.util import dataset_io, set_ouput
+from cellsmap.util import dataset_io, set_output
 from skimage.measure import label, regionprops
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
@@ -78,7 +78,7 @@ def create_nuclear_manifest(dataset, num_workers=32):
         'area': areas
     })
     
-    out_put_path = set_ouput.get_output_path('nuclear_seg_manifests')
+    out_put_path = set_output.get_output_path('nuclear_seg_manifests')
     df.to_parquet(f'{out_put_path}{dataset}_nuclear_manifest.parquet')
         
     return df

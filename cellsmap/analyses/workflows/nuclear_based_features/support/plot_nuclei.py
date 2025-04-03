@@ -9,9 +9,12 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 import colorcet as cc
 import matplotlib.colors as mcolors
 from matplotlib.lines import Line2D
+from cellsmap.analyses.utils.viz import viz_base as vb
 
-def plot_number_of_nuclei_per_fov(df, dataset):
-    plt.figure(figsize=(10, 10))
+
+
+def plot_number_of_nuclei_per_fov(df, dataset, fig_savedir):
+    fig = plt.figure(figsize=(10, 10))
     colors = list(mcolors.TABLEAU_COLORS.values())
     added_labels = set()
     
@@ -32,10 +35,12 @@ def plot_number_of_nuclei_per_fov(df, dataset):
     plt.title(f'{dataset}')
     plt.legend(title='Position', loc='lower left')
     plt.show()
+    vb.save_plot(fig, filename=fig_savedir+f"number_of_detected_nuclei_per_frame{dataset}", dpi=72)
     
-def plot_number_of_nuclei_per_dataset(df_list):
     
-    plt.figure(figsize=(10, 10))
+def plot_number_of_nuclei_per_dataset(df_list, fig_savedir):
+    
+    fig = plt.figure(figsize=(10, 10))
     
     colors = list(mcolors.TABLEAU_COLORS.values())
     legend_elements = []
@@ -57,4 +62,4 @@ def plot_number_of_nuclei_per_dataset(df_list):
     plt.ylabel('Number of detected nuclei')
     plt.legend(handles=legend_elements, title='Dataset', loc='lower left')
     plt.show()
-            
+    vb.save_plot(fig, filename=fig_savedir+f"number_of_detected_nuclei_per_frame_all_datasets", dpi=72)

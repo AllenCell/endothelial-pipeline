@@ -8,8 +8,11 @@ from skimage.measure import label, regionprops
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import colorcet as cc
 import matplotlib.colors as mcolors
+from cellsmap.analyses.utils.viz import viz_base as vb
 
-def visualize_nuclear_seg(df, dataset, frame, position): 
+
+
+def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir): 
     df_img = df[(df['position'] == position) & (df['frame'] == frame)]
     
     fov_path = df_img['fov_path'].iloc[0]
@@ -59,5 +62,6 @@ def visualize_nuclear_seg(df, dataset, frame, position):
     plt.suptitle(f"Dataset: {dataset}, Frame: {frame}, Position: {position}, Flow: {flow} dyn/cm²")
     plt.tight_layout()
     plt.show()
+    vb.save_plot(fig, filename=fig_savedir+f"nuclear_segmentation_overlay_{dataset}_{position}_{frame}", dpi=72)
     
     
