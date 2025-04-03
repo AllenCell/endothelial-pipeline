@@ -1,7 +1,6 @@
 import numpy as np
 import fipy
 import pysindy as ps
-from time import time
 from typing import Callable
 
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
@@ -94,16 +93,20 @@ def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol
     This function calls the PDE solver SteadyFP implemented in the `numerics.fp_solvers' module.
 
     Inputs:
-    - f: Callable, drift function of the SDE model
-    - D: Callable, diffusion function of the SDE model
+    - f_vals: np.ndarray, values of the drift function evaluated at the bin centers
+        - if the drift function is scalar-valued, f_vals is a 1D array
+        - if the drift function is vector-valued, f_vals is an (ndim+1)D array with shape (ndim, N_x, N_y, ...)
+    - D_vals: np.ndarray, values of the diffusion function evaluated at the bin centers
+        - if the diffusion function is scalar-valued, D_vals is a 1D array
+        - if the diffusion function is vector-valued, D_vals is an (ndim+1)D array with shape (ndim, N_x, N_y, ...)
     - bins: list of arrays defining bin edges for each dimension of the state variable
-    - u: float, control parameter (shear stress)
     - tol: float, tolerance for small values in the stationary probability distribution (default is 1e-10)
         - if the probability distribution is less than tol, it is set to tol
     
     Outputs:
     - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
     '''
+
     ndim = len(bins)
     dx = [bins[i][1]-bins[i][0] for i in range(ndim)] # bin width in each dimension
     Nbins = [len(bins[i])-1 for i in range(ndim)] # number of bins in each dimension
