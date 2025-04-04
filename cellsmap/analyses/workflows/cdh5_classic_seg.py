@@ -82,13 +82,14 @@ def generate_results(dataset_name, T, scene_list=None, use_original_data=False, 
                 # out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
                 # Path.mkdir(seg_dir / dataset_name, exist_ok=True, parents=True)
                 images_out = [raw_arr_MIP, processed_img, hyst_clean, seg2_lab, seg2_lab_no_mask_merge, seg2_lab_no_mask_merge_bounds]
-                images_out_metadata = {'image_name': dataset_name,
-                                    'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
-                                    'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
-                                    'physical_pixel_sizes': current_img.physical_pixel_sizes, #img_metadata['physical_pixel_sizes'],
-                                    'dim_order': 'YX',
-                                    'dtype': None,
-                                    }
+                images_out_metadata = {
+                    'image_name': dataset_name,
+                    'channel_names': ['raw', 'processed', 'hysteresis_threshold', 'segmentations_initial', 'segmentations_merged', 'segmentations_merged_borders'], 
+                    'channel_colors': [(255,255,255), (255,255,255), (0,255,255), (255,0,255), (255,0,255), (255,255,0)],
+                    'physical_pixel_sizes': current_img.physical_pixel_sizes, #img_metadata['physical_pixel_sizes'],
+                    'dim_order': 'YX',
+                    'dtype': None,
+                    }
                 save_image_output(val_path, images_out, images_out_metadata)
             # save_image_output(out_path, images_out, images_out_metadata)
 
@@ -96,12 +97,13 @@ def generate_results(dataset_name, T, scene_list=None, use_original_data=False, 
             out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
             Path.mkdir(seg_dir / dataset_name, exist_ok=True, parents=True)
             images_out = [seg2_lab_no_mask_merge,]
-            images_out_metadata = {'image_name': dataset_name,
-                                'channel_names': ['segmentations_merged'], 
-                                'channel_colors': [(255,255,255),],
-                                'physical_pixel_sizes': current_img.physical_pixel_sizes, #img_metadata['physical_pixel_sizes'],
-                                'dim_order': 'YX'
-                                }
+            images_out_metadata = {
+                'image_name': dataset_name,
+                'channel_names': ['segmentations_merged'], 
+                'channel_colors': [(255,255,255),],
+                'physical_pixel_sizes': current_img.physical_pixel_sizes, #img_metadata['physical_pixel_sizes'],
+                'dim_order': 'YX'
+                }
             save_image_output(out_path, images_out, images_out_metadata)
         else:
             pass

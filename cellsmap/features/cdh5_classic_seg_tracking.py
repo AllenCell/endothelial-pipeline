@@ -1,7 +1,9 @@
 from pathlib import Path
 from bioio import BioImage
 from cellsmap.util import dataset_io, cdh5_preprocessing as preproc
-from cellsmap.features.lib_tracking import ipython_cli_flexecute, get_chan_map, run_tracking
+from cellsmap.features.lib_tracking import run_tracking
+from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute
+from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_chan_map
 
 
 def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
@@ -45,14 +47,19 @@ def run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE):
         print(f'No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False.')
         return
 
-def main(SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
+def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test=False, verbose=False):
 
-    print('Datasets in analysis queue:')
-    DATASET_NAME_LIST = dataset_io.get_available_datasets()
-    print('')
+    if not dataset_name:
+        dataset_name_list = [config_data['name']
+                            for config_data in load_config(config_type='data')
+                            if (config_data['microscope'] == '3i'
+                                and config_data['live_or_fixed_sample'] == 'live')
+                                and 'AICS-126' in config_data['cell_lines']]
+    else:
+        dataset_name_list = [dataset_name]
 
-    for dataset_name in DATASET_NAME_LIST:
-        run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE)
+    for dataset_name in dataset_name_list:
+        run_workflow(dataset_name, save_output, is_test, verbose)
 
     print('\N{microscope} Done analysis.')
 
