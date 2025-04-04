@@ -128,7 +128,8 @@ def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test
                                           overwrite=overwrite,
                                           verbose=verbose,
                                           is_test=is_test,
-                                          use_original_data=True)
+                                          use_original_data=True,
+                                          image_validation_frequency=20)
 
     if n_proc > 1:
             if __name__ == '__main__':
