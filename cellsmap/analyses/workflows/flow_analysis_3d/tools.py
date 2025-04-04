@@ -62,6 +62,67 @@ def save_points_as_polydata(coordinates, file_name):
     writer.SetFileName(file_name)
     writer.Write()
 
+class CuboidBounds():
+    def __init__(self, x: np.array, y: np.array, z: np.array, excluded_fraction: float=0.1) -> None:
+        bounds = []
+        for var in [x, y, z]:
+            bounds.append(np.percentile(var, [excluded_fraction, 100-excluded_fraction]))
+        self.xmin, self.xmax = bounds[0]
+        self.ymin, self.ymax = bounds[1]
+        self.zmin, self.zmax = bounds[2]
+
+class DataDrivenFlowField3D():
+    def __init__(self, verbose: bool) -> None:
+        self._time_step = 2
+        self._grid_spacing = 0.05
+        self._use_occupancy = False
+        self._excluded_fraction = 0.1
+        self._verbose = verbose
+    def set_time_step(self, time_step: int) -> None:
+        self._time_step = time_step
+    def set_grid_spacing(self, grid_spacing: float) -> None:
+        self._grid_spacing = grid_spacing
+    def set_use_occupancy(self, use_occupancy: bool) -> None:
+        self._use_occupancy = use_occupancy
+    def set_excluded_fraction(self, excluded_fraction: float) -> None:
+        self._excluded_fraction = excluded_fraction
+
+    def set_dataframe(self, df: pd.DataFrame, identifier: str) -> None:
+        # identifier determines the building blocks of the dataframe. For 
+        # example, CellId or CropId. We assume that dataframe has been
+        # sorted by identifier and time with:
+        #     df = df.sort_values(by=["CropId", "T"])
+        self._df = df.copy()
+        self._identifier = identifier
+    def set_state_space_variables(self, vars: list) -> None:
+        self._ss_vars = vars
+    
+    def compute_state_space_bounds(self) -> None:
+        self._bounds = CuboidBounds(
+            x=self._df[self._ss_vars[0]],
+            y=self._df[self._ss_vars[1]],
+            z=self._df[self._ss_vars[2]],
+            excluded_fraction = self._excluded_fraction)
+
+    def compute_displacement_vectors(self) -> None:
+        df_list = []
+        for _, df_track in self._df.groupby(self._identifier):
+            diff = df_track[self._ss_vars].diff(periods=self._time_step)
+            diff.columns = [f"d{col}" for col in diff.columns]
+            df_list.append(pd.concat([df_track, diff], axis=1))
+        df_vecs = pd.concat(df_list).dropna()
+        # Correct for diff behavior of numpy vs. pandas
+        for var in self._ss_vars:
+            df_vecs[f"d{var}"] = -df_vecs[f"d{var}"]
+        self._df_vecs = df_vecs
+
+    def run(self) -> None:
+
+        self.compute_state_space_bounds()
+
+        self.compute_displacement_vectors()
+
+
 def run_flow_field_workflow(df, condition, time_step=2, grid_spacing=0.05, use_occupancy=False, verbose=False):
 
     xmin, xmax = np.percentile(df.PC1, [0.1, 99.9])

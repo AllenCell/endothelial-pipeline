@@ -42,7 +42,7 @@ ax.scatter(df["1"], df["4"], c=vals, s=0.2)
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4_no_bubbles", dpi=72)
 
 #%%
-print("Manifest shape before and after outlier removal:")
+print("Manifest shape before and after outlier (bubbles) removal:")
 print(df.shape)
 df["outlier"] = vals
 df = df.loc[df.outlier==False]
@@ -64,10 +64,18 @@ df.head()
 #%% Check datasets available
 df.description.unique()
 
+import importlib
+importlib.reload(tools)
+Bounds = tools.CuboidBounds(df.PC1, df.PC2, df.PC3)
+print(Bounds.xmin)
+print(Bounds.xmax)
+print(Bounds.zmax)
+
 #%% Compute data bounds
 xmin, xmax = np.percentile(df.PC1, [0.1, 99.9])
 ymin, ymax = np.percentile(df.PC2, [0.1, 99.9])
 zmin, zmax = np.percentile(df.PC3, [0.1, 99.9])
+print(xmin, xmax)
 
 #%%
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
