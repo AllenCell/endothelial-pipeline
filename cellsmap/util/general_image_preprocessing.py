@@ -1,7 +1,7 @@
-import yaml
-import dask
+# import yaml
+# import dask
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import re
 from pathlib import Path
 from bioio import BioImage
@@ -74,6 +74,7 @@ def build_analysis_queue(dataset_name_list: list,
                          img_bin_level: int=0,
                          save_output=True, overwrite=False, out_dir: str|Path|None=None,
                          magnification: int|None=None,
+                         image_validation_frequency: int|None=None,
                          verbose=None, is_test=False, use_original_data=False) -> list:
     analysis_queue: list = []
     out_dir = Path(out_dir) if out_dir != None else Path(get_output_path('analysis_queue_output_temp', verbose=False))
@@ -124,6 +125,7 @@ def build_analysis_queue(dataset_name_list: list,
                             'output_dir': out_dir,
                             'save_output': save_output,
                             'overwrite': overwrite,
+                            'image_validation_frequency': image_validation_frequency,
                             'use_original_data': use_original_data,
                             'is_test': is_test,
                             'verbose': verbose,

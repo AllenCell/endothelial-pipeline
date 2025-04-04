@@ -5,7 +5,8 @@ from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute
 from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_chan_map
-
+from multiprocessing import Pool
+from tqdm import tqdm
 
 def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
     # NOTE: this function is unique to each workflow
@@ -34,7 +35,7 @@ def run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE):
     out_dir, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
 
     image_filepaths = preproc.get_cdh5_classic_segmentation_paths(dataset_name, sort_paths=True)
-    image_filepaths = image_filepaths[574:] if IS_TEST else image_filepaths
+    image_filepaths = image_filepaths[:10] if IS_TEST else image_filepaths
     if image_filepaths:
         segmentation_channel = get_chan_map(image_filepaths[0])['segmentations_merged']
 
@@ -73,6 +74,18 @@ def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test
         is_test = dataset_name_and_args['is_test']
         verbose = dataset_name_and_args['verbose']
         run_workflow(dataset_name, save_output, is_test, verbose)
+
+    if n_proc > 1:
+            if __name__ == '__main__':
+                print('Starting multiprocessing...')
+                with Pool(processes=n_proc) as pool:
+                    list(tqdm(pool.imap(run_workflow, dataset_name_list, chunksize=5), total=len(analysis_queue)))
+                    pool.close()
+                    pool.join()
+                print('Done multiprocessing.')
+    else:
+        for dataset_name_and_args in analysis_queue:
+            run_workflow(dataset_name_and_args)
 
     print('\N{microscope} Done analysis.')
 
