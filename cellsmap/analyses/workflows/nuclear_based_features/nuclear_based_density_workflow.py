@@ -4,12 +4,15 @@ from cellsmap.analyses.workflows.nuclear_based_features.support.visualize_nuclei
 from cellsmap.util.set_output import get_output_path
 from pathlib import Path
 import pandas as pd
+from cellsmap.util import dataset_io
+from cellsmap.util.manifest_io import get_nuclear_manifest
 
 #%%
 SAVE_DIR = get_output_path("nuclear_based_density_workflow/figs")
 #%%
-PATH_PREFIX = '/allen/aics/users/chantelle.leveille/repos/cellsmap/results/nuclear_seg_manifests/'
-parquet_files = [f for f in Path(PATH_PREFIX).glob('*.parquet')]
+df = get_nuclear_manifest("20241016_20X")
+
+#%%
 dataframes = {file.stem: pd.read_parquet(file) for file in parquet_files}
 print(f"Loaded {len(dataframes)} dataframes.")
 
@@ -32,4 +35,15 @@ for df in list(dataframes.values()):
     visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 4, SAVE_DIR)
     visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 5, SAVE_DIR)
 
+#%%
+fmsid = "a90e321dff584e7f95e0c5e81122c751"
+#%%
+from aicsfiles import fms, FileLevelMetadataKeys
+annotations = {
+   FileLevelMetadataKeys.FILE_ID.value: fmsid
+}
+record = fms.find(annotations=annotations)
+#%%
+print(record)
 # %%
+recordpath = record.path
