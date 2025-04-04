@@ -17,12 +17,13 @@ def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     return config_data
 
 # dataset methods
-def get_available_datasets() -> List[str]:
+def get_available_datasets(verbose: bool = True) -> List[str]:
     datasets = []
     config = load_config()
     for dataset in config:
         datasets.append(dataset['name'])
-        print(dataset['name'])
+        if verbose:
+            print(dataset['name'])
     return datasets
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
