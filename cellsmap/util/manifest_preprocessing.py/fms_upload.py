@@ -51,16 +51,4 @@ def save_file_to_fms(
     fms_file = fms.upload_file(file_path, file_type, annotations)
     print(f"{dataset} File ID: {fms_file.id}")
 
-#%%
-PREFIX = "/allen/aics/users/chantelle.leveille/repos/cellsmap/results/nuclear_seg_manifests/"
-
-save_file_to_fms(
-    file_path=f"{PREFIX}/20250224_20X_nuclear_manifest.parquet",
-    dataset="20250224_20X FMSID: cbd4b5b86fa2427a804ce46eeb7a83b4",
-    commit_hash="df69a3e6db5367a456a83f6f8bdb26661a07caec",
-    misc_notes="2D nuclear segmentation manifest predicted from standard deviation brightfeild projection images\n Goutham's version was V0, this model was updated by Serge. We are calling if V202503 this is the month the model was run and new outputs were generated.",
-    model_version="202503",
-)
-#%%
-
 
