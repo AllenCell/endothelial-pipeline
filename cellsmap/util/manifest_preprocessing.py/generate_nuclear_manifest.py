@@ -1,4 +1,4 @@
-#%%
+# %%
 import os
 import pandas as pd
 from bioio import BioImage
@@ -7,7 +7,11 @@ from skimage.measure import label, regionprops
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 from cellsmap.util.cdh5_preprocessing import extract_T
+import argparse
 
+"""
+python generate_nuclear_manifest.py my_dataset_name
+"""
 # %%
 def process_frame(frame, img_name, dataset_position_path, position):
     fov_path = os.path.join(dataset_position_path, img_name)
@@ -15,17 +19,22 @@ def process_frame(frame, img_name, dataset_position_path, position):
     image_data = nuc_seg_image.get_image_data("XY", C=2)
     labeled_image = label(image_data)
     props = regionprops(labeled_image)
-    
+
     results = []
     for prop in props:
-        results.append((position, 
-                        frame, 
-                        fov_path, 
-                        prop.label, 
-                        round(prop.centroid[1], 2), 
-                        round(prop.centroid[0], 2), 
-                        prop.area))
+        results.append(
+            (
+                position,
+                frame,
+                fov_path,
+                prop.label,
+                round(prop.centroid[1], 2),
+                round(prop.centroid[0], 2),
+                prop.area,
+            )
+        )
     return results
+
 
 def process_position(position, dataset, num_workers):
     dataset_position_path = dataset_io.get_nuclear_prediction_path(dataset, position)
@@ -34,24 +43,30 @@ def process_position(position, dataset, num_workers):
 
     position_results = []
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
-        futures = [executor.submit(process_frame, frame, img_name, dataset_position_path, position) for frame, img_name in enumerate(sorted_images)]
+        futures = [
+            executor.submit(
+                process_frame, frame, img_name, dataset_position_path, position
+            )
+            for frame, img_name in enumerate(sorted_images)
+        ]
         with tqdm(total=len(futures), desc=f"Processing frames in P{position}") as pbar:
             for future in as_completed(futures):
                 results = future.result()
                 position_results.extend(results)
                 pbar.update(1)
-    
+
     return position_results
 
+
 def create_nuclear_manifest(dataset, num_workers=32):
-    positions = []    
+    positions = []
     frames = []
     fov_paths = []
     nuclear_labels = []
     x_coords = []
     y_coords = []
     areas = []
-    
+
     n_positions = dataset_io.get_total_number_of_positions(dataset)
 
     for position in range(n_positions):
@@ -67,35 +82,35 @@ def create_nuclear_manifest(dataset, num_workers=32):
             areas.append(area)
 
     # Create a DataFrame from the lists
-    df = pd.DataFrame({
-        'dataset': dataset,
-        'position': positions,
-        'frame': frames,
-        'fov_path': fov_paths,
-        'nuclear_label': nuclear_labels,
-        'x': x_coords,
-        'y': y_coords,
-        'area': areas
-    })
-    
-    out_put_path = set_output.get_output_path('nuclear_seg_manifests')
-    df.to_parquet(f'{out_put_path}{dataset}_nuclear_manifest.parquet')
-        
+    df = pd.DataFrame(
+        {
+            "dataset": dataset,
+            "position": positions,
+            "frame": frames,
+            "fov_path": fov_paths,
+            "nuclear_label": nuclear_labels,
+            "x": x_coords,
+            "y": y_coords,
+            "area": areas,
+        }
+    )
+
+    out_put_path = set_output.get_output_path("nuclear_seg_manifests")
+    df.to_parquet(f"{out_put_path}{dataset}_nuclear_manifest.parquet")
+
     return df
 
+
 # %%
-if __name__ == '__main__':
-    
-    # Done '20241016_20X', '20241022_20X_mito'
-    # in progress '20241217_20X', '20250224_20X','20241120_20X', '20241203_20X'
-    # to do once seg are available: '20250319_20X'
-    
-    dataset_list = ['20241203_20X']
-    
-    for dataset in dataset_list:
-        print(f"Creating nuclear manifest for {dataset}")
-        create_nuclear_manifest(dataset)
+def parse_arguments():
+    """
+    Parse command-line arguments.
+    """
+    parser = argparse.ArgumentParser(description="Generate nuclear manifest for a dataset.")
+    parser.add_argument("dataset", type=str, help="The name of the dataset.")
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_arguments()
+    create_nuclear_manifest(args.dataset)
 # %%
-"""
-python cellsmap/analyses/workflows/density/support/get_nuclear_manifest.py
-"""
