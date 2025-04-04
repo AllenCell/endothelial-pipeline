@@ -226,7 +226,6 @@ def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], imag
     px_res = images_metadata['physical_pixel_sizes']
     img_dim_order = images_metadata['dim_order']
     dim_order_out = 'TCZYX'
-    dtype = images_metadata['dtype'] or np.uint16
 
     dim_map = get_dim_map(dim_order_out)
 
