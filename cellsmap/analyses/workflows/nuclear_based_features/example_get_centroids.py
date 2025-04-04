@@ -10,9 +10,7 @@ print(dataset_list)
 # %%
 
 df = get_nuclear_manifest("20241022_20X_mito")
-centroid_list = get_nuclear_centroids(
-    df, dataset="20241022_20X_mito", position=0, frame=0
-)
+centroid_list = get_nuclear_centroids(df, position=0, frame=0)
 
 # %%
 print(centroid_list)

@@ -11,6 +11,8 @@ import argparse
 
 """
 python generate_nuclear_manifest.py my_dataset_name
+
+path to nuclear segmenation images must be prepopulated in the data_config.yaml file
 """
 # %%
 def process_frame(frame, img_name, dataset_position_path, position):
