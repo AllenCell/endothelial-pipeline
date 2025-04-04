@@ -1,5 +1,6 @@
 import json
 import fire
+import torch
 from typing import Dict, Union
 from cellsmap.util.dataset_io import get_model_info, get_dataset_info, get_zarr_path
 from cyto_dl.api import CytoDLModel
@@ -76,6 +77,9 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, mlflow_id: s
     return prediction_path
 
 def apply_model(model_name:str, dataset_name: str, resolution:int=0, overrides:Union[str, Dict]={}):
+    if not torch.cuda.is_available():
+        raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
+
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):
