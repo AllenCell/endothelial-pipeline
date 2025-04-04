@@ -7,19 +7,19 @@ import pandas as pd
 from typing import List
 
 def plot_flow_over_time_per_dataset(dataset_name_list: List[str], fig_savedir: str):
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(15, 10))
     colors = list(mcolors.TABLEAU_COLORS.values())
     for i, dataset in enumerate(dataset_name_list):
         duration = dataset_io.get_dataset_duration_in_frames(dataset)
         frames = range(0, duration, 1)
         flows = [dataset_io.get_flow_for_frame(dataset, frame) for frame in frames]
-        plt.plot(frames, flows, label=dataset, color=colors[i], alpha=0.5)
+        plt.plot(frames, flows, label=dataset, color=colors[i], alpha=0.75, linewidth=2.5)
         
     plt.xlabel("Time (frames)")
     plt.ylabel("Flow (dyn/cm²)")
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.show()
-    plt.savefig(fig, fig_savedir + f"flow_over_time.png", dpi=72)
+    vb.save_plot(fig, fig_savedir + f"flow_over_time.png", dpi=72)
 
 
 def plot_number_of_nuclei_per_fov(df: pd.DataFrame, dataset: str, fig_savedir: str):
