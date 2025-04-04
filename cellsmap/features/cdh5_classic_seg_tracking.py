@@ -2,6 +2,7 @@ from pathlib import Path
 from bioio import BioImage
 from cellsmap.util import dataset_io, cdh5_preprocessing as preproc
 from cellsmap.features.lib_tracking import run_tracking
+from cellsmap.util.set_output import get_output_path
 from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute
 from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_chan_map
 
@@ -49,7 +50,7 @@ def run_workflow(dataset_name, SAVE_OUTPUT, IS_TEST, VERBOSE):
 
 def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test=False, verbose=False):
 
-    if not dataset_name:
+    if dataset_name == None:
         dataset_name_list = [config_data['name']
                             for config_data in load_config(config_type='data')
                             if (config_data['microscope'] == '3i'
@@ -58,7 +59,19 @@ def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test
     else:
         dataset_name_list = [dataset_name]
 
-    for dataset_name in dataset_name_list:
+    analysis_queue = build_analysis_queue(dataset_name_list,
+                                          save_output=save_output,
+                                          out_dir=get_output_path(Path(__file__).stem, verbose=False),
+                                          overwrite=overwrite,
+                                          verbose=verbose,
+                                          is_test=is_test,
+                                          use_original_data=True)
+
+    for dataset_name_and_args in analysis_queue:
+        dataset_name = dataset_name_and_args['dataset_name']
+        save_output = dataset_name_and_args['save_output']
+        is_test = dataset_name_and_args['is_test']
+        verbose = dataset_name_and_args['verbose']
         run_workflow(dataset_name, save_output, is_test, verbose)
 
     print('\N{microscope} Done analysis.')

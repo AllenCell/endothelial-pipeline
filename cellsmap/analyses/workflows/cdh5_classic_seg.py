@@ -112,7 +112,7 @@ def generate_results(dataset_name, T, scene_list=None, use_original_data=False, 
 
 def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test=False, verbose=False):
 
-    if not dataset_name:
+    if dataset_name == None:
         dataset_name_list = [config_data['name']
                             for config_data in load_config(config_type='data')
                             if (config_data['microscope'] == '3i'
