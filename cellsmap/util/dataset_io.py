@@ -137,6 +137,25 @@ def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['flow']
 
+def get_flow_change_frame(dataset_name:str) -> int:
+    '''
+    Get frame number at which flow changes in dataset ds_name.
+    
+    Inputs:
+    - dataset_name: str, name of dataset to get flow change frame for
+        - This string must match the dataset name in data_config.yaml
+    
+    Outputs:
+    - change_frame: int, frame number at which flow changes in dataset dataset_name
+    '''
+    # load config for dataset from data_config.yaml
+    flow_info = get_flow_info(dataset_name)
+
+    # get frame number at which flow changes
+    change_frame = flow_info[0][1]
+
+    return change_frame
+
 def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
     flow_list = get_flow_info(dataset_name)
     for t_start, t_stop, flow in flow_list:
