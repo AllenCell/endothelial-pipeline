@@ -77,7 +77,7 @@ def generate_results(dataset_name, T, scene_list=None, position_name=None, use_o
         if save_output:
             # save every nth image for validation
             if create_validation_image:
-                print(f'T={T} -- saving image input and output overlays') if verbose else None
+                print(f'T={T} -- saving validation overlay') if verbose else None
                 val_path = val_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_P{position_name}_T{T}.ome.tiff'
                 Path.mkdir(val_path.parent, exist_ok=True, parents=True)
                 # out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
@@ -94,7 +94,8 @@ def generate_results(dataset_name, T, scene_list=None, position_name=None, use_o
                 save_image_output(val_path, images_out, images_out_metadata)
 
             # save just the cdh5 segmentations
-            out_path = seg_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_T{T}.ome.tiff'
+            print(f'T={T} -- saving segmentation') if verbose else None
+            out_path = seg_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_P{position_name}_T{T}.ome.tiff'
             Path.mkdir(out_path.parent, exist_ok=True, parents=True)
             images_out = [seg2_lab_no_mask_merge,]
             images_out_metadata = {
