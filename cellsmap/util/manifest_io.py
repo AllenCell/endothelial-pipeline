@@ -76,7 +76,7 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
-def get_diffae_manifest(dataset_name: str) -> str:
+def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     fmsid = get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
     df = get_dataframe_by_fmsid(fmsid)
     return df
