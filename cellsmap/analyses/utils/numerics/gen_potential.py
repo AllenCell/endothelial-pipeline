@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.integrate import simpson
 from typing import Tuple
 
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
@@ -33,62 +32,36 @@ def gradient_flow_term(U:np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
 
     return flow_term
 
-def compute_J_terms(P:np.ndarray, f:np.ndarray, D:np.ndarray, dx:list, additive_noise:bool) -> np.ndarray:
-    '''
-    Compute the terms needed for the stationary probability flux J(x) = f(x)P(x) - div(D(x) P(x))
-    for a given drift vector field f and diagonal diffusion matrix D with stationary
-    probability P (solution to stationary Fokker-Planck Equation).
-
-    Terms computed:
-    - f(x)P(x)
-    - div(D(x)) * P
-    - D(x) grad(P)
-
+def expand_to_matrix(D:np.ndarray) -> np.ndarray:
+    """
+    Expand the vector-valued function D into the matrix-valued function D_mat.
 
     Inputs:
-    - P: np.ndarray, stationary probability density evaluated on an ND grid (n1 x n2 x ... x nN array)
-    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
-    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
-    - dx: list, grid spacing in each dimension
-    - additive_noise: bool, if True, assume additive noise (default), else multiplicative noise
-        - if additive noise, div(D) = 0, as D is constant
-
-    Outputs:
-    - fP: np.ndarray, f(x)P(x) (dimensions N x n1 x n2 x ... x nN)
-    - divD_P: np.ndarray, div(D(x)) * P (dimensions n1 x n2 x ... x nN)
-    - D_gradP: np.ndarray, D(x) grad(P) (dimensions N x n1 x n2 x ... x nN)
-    '''
-    N = len(dx) # number of dimensions
-
-    fP = np.zeros_like(f) # initialize array to store f(x)P(x)
-    divD_P = np.zeros_like(f) # initialize array to store div(D(x)) * P(x)
-    D_gradP = np.zeros_like(f) # initialize array to store D(x) grad(P)
-    # take advantage of diagonal matrix structure: element i of D(x)*grad(P(x)) is D[i]*gradP[i]
-    for i in range(N):
-        # f(x)P(x)
-        fP[i] = f[i] * P
-
-        # div(D): sum of gradients of diagonal terms
-        # multiply by P(x) to get div(D(x)) * P(x) at end of loop
-        if not additive_noise:
-            divD_P[i] = divD_P[i] + np.gradient(D[i], dx[i], axis=i, edge_order=2)
-
-        # grad(P): numerical gradient
-        gradP_i = np.gradient(P,dx[i],axis=i,edge_order=2)
-
-        # compute D(x) grad(P)
-        D_gradP[i] = D[i] * gradP_i
-
-    if not additive_noise:
-        # multiply div(D) by P(x)
-        divD_P = divD_P * P
-
-    return fP, divD_P, D_gradP
+    - D: np.ndarray, the array representing the N diagonal terms of the diffusion matrix evaluated on an ND meshgrid
+        (dimensions N x n1 x n2 x ... x nN)
     
+    Outputs:
+    - D_mat: np.ndarray, the matrix-valued function D(x) = diag[D1(x), D2(x), ..., DN(x)] evaluated on an ND meshgrid
+        (dimensions N x N x n1 x n2 x ... x nN)
+    """
 
-def probability_flux(P:np.ndarray, f: np.ndarray, D:np.ndarray, x:list, additive_noise:bool) -> np.ndarray:
+    N = D.shape[0] # number of dimensions of state space
+    N_grid = D.shape[1:] # grid dimensions (number of grid points in each dimension)
+
+    if N_grid.__class__ == int: # if 1D grid, convert to tuple
+        N_grid = (N_grid,)
+
+    D_mat = np.zeros((N, N) + N_grid) # initialize matrix-valued function
+    
+    # fill in diagonal terms
+    for i in range(N):
+        D_mat[i, i] = D[i]
+    
+    return D_mat
+
+def probability_flux(P:np.ndarray, f: np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
     '''
-    Compute the probability flux term J(x) = f(x)P(x) - div(D(x) P(x)) for a given stationary
+    Compute the probability flux term f(x)P(x) - div(D(x) P(x)) for a given stationary
     probability density P, drift vector field f, and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
 
     Inputs:
@@ -96,8 +69,6 @@ def probability_flux(P:np.ndarray, f: np.ndarray, D:np.ndarray, x:list, additive
     - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
     - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
     - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
-    - additive_noise: bool, if True, assume additive noise (default), else multiplicative noise
-        - additive noise: D = const, non-additive noise: D = D(x)
 
     Outputs:
     - p_flux: np.ndarray, probability flux term of Fokker-Planck equation (dimensions N x n1 x n2 x ... x nN)
@@ -105,17 +76,37 @@ def probability_flux(P:np.ndarray, f: np.ndarray, D:np.ndarray, x:list, additive
     '''
 
     N = len(x) # number of dimensions
-    dx = [x[i][1] - x[i][0] for i in range(N)] # grid spacing
+    dx = [x[i][1] - x[i][0] for i in range(len(x))] # grid spacing
 
-    # D grad P
-    fP, divD_P, D_gradP = compute_J_terms(P, f, D, dx, additive_noise)
+    fP = np.zeros_like(f)
+    divD = np.zeros_like(f)
+
+    # compute 1) divergence of matrix D(x) and 
+    # 2) the vector-scalar product f(x) P(x)
+    # at each grid point
+    for i in range(N):
+        divD[i] = np.gradient(D[i], dx[i], axis=i, edge_order=2)
+        fP[i] = f[i] * P
+    divD = np.sum(divD, axis=0)
+
+    # compute gradient of P(x)
+    grad_P = np.gradient(P, *dx, edge_order=2)
+    if N == 1: # expand array dimensions for 1D case
+        grad_P = grad_P.reshape((-1,1))
+
+    # expand D(x) to matrix form (need for einsum)
+    D_full = expand_to_matrix(D)
+    
+    # Generalized Einstein summation to comput second part of divergence term: D(x) grad(P(x))
+    # using einsum to do matrix multiplication in a generalized way at each grid point
+    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(N)]) + ',j' + ''.join([chr(107 + j) for j in range(N)]) + '->i' + ''.join([chr(107 + j) for j in range(N)])
 
     # compute probability flux term
-    p_flux = fP - divD_P - D_gradP
+    p_flux = fP - divD * P - np.einsum(einsum_str, D_full, grad_P) 
 
     return p_flux
 
-def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, additive_noise:bool, tol:float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, tol:float=1e-8) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
     Compute the gradient/flux decomposition of the drift vector field f(x) for 
     stochastic dynamics with diagonal diffusion matrix D(x):
@@ -130,8 +121,6 @@ def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, additive_noise:b
     - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
     - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
     - tol: float, set P = tol where P<tol to avoid log(0) and divide by 0 errors (P is stationary probability density)
-    - additive_noise: bool, if True, assume additive noise, else multiplicative noise
-        - additive noise: D = const, non-additive noise: D = D(x)
 
     Returns:
     - U: np.ndarray, generalized potential U := -ln P evaluated on a grid (n1 x n2 x ... x nN array)
@@ -143,19 +132,14 @@ def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, additive_noise:b
 
     N = len(x)
     dx = [x[i][1] - x[i][0] for i in range(N)]
-    Nbins = [len(x[i]) for i in range(N)]
+    grid_len = [len(x[i]) for i in range(N)]
     
     if N == 1: # expand array dimensions for 1D case
         f = f[None,:]
         D = D[None,:]
 
-    # numerical solution of Fokker-Planck equation
-    # initialize stationary Fokker-Planck solver
-    if N == 1:
-        stationary_fp = fps.SteadyFP(Nbins[0], dx[0])
-    else:
-        stationary_fp = fps.SteadyFP(Nbins, dx) 
-
+    # solve stationary Fokker-Planck equation
+    stationary_fp = fps.SteadyFP(grid_len, dx) # initialize stationary Fokker-Planck solver
     P = stationary_fp.solve(f,D) # solve for stationary probability density
     P[P<tol] = tol # set values less than tol to tol to avoid log(0) and divide by 0 errors
     P = P/np.sum(P) # normalize
@@ -167,84 +151,66 @@ def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, additive_noise:b
     gradient_term = gradient_flow_term(U,D,x)
 
     # compute flux term
-    flux_term = probability_flux(P,f,D,x,additive_noise)/P
+    flux_term = probability_flux(P,f,D,x)/P
 
     # remainder is term from gradient of multiplicative noise tensor
     diffusion_geometry = f - gradient_term - flux_term
 
     return U, gradient_term, diffusion_geometry, flux_term
 
-def compute_D_gradU_f(U, f, D, dx):
+def invert_D(D:np.ndarray) -> np.ndarray:
+    if len(D.shape) == 2:
+        return np.linalg.inv(D)
+    else:
+        if len(D.shape) == 4:
+            N = D.shape[0]
+            N_grid = D.shape[2:]
+            D_ = D.reshape((N,N,-1))
+        elif len(D.shape) == 3:
+            N = D.shape[0]
+            N_grid = None
+            D_ = D.copy()
+        D_inv = np.zeros(D_.shape)
+        for i in range(D_.shape[-1]):
+            D_inv[:,:,i] = np.linalg.inv(D_[:,:,i])
+        if N_grid is not None:
+            return D_inv.reshape((N,N) + N_grid)
+        else:
+            return D_inv
+
+def entropy_production(J:np.ndarray, D:np.ndarray, P:np.ndarray, x:list) -> float:
     '''
-    Compute the term D(x) grad(U) + f(x) for a given potential U, drift vector field f, and diagonal diffusion matrix D(x).
+    Compute the entropy production rate for a given probability flux J, diagonal diffusion matrix D(x),
+    and stationary probability density P(x).
 
     Inputs:
-    - U: np.ndarray, potential evaluated on an ND grid (dimensions n1 x n2 x ... x nN)
-    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
+    - J: np.ndarray, probability flux evaluated on an ND grid (dimensions N x n1 x n2 x ... x nN)
+        - computed as J(x) = f(x)P(x) - div(D(x) P(x)), using probability_flux() function
     - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
-    - dx: list, grid spacing in each dimension
-
-    Outputs:
-    - D_gradU_f: np.ndarray, D(x) grad(U) + f(x) (dimensions N x n1 x n2 x ... x nN)
-    '''
-    N = len(dx) # number of dimensions
-
-    D_gradU_f = np.zeros_like(f) # initialize array to store D(x) grad(U) + f(x)
-    # take advantage of diagonal matrix structure: element i of D(x)*grad(U(x)) is D[i]*gradU[i]
-    for i in range(N):
-        # grad(U): numerical gradient
-        gradU_i = np.gradient(U,dx[i],axis=i,edge_order=2)
-
-        # compute D(x) grad(U) + f(x)
-        D_gradU_f[i] = D[i] * gradU_i + f[i]
-
-    return D_gradU_f
-
-def entropy_production(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list, additive_noise:bool) -> float:
-    '''
-    Compute the entropy production rate for a given stationary probability P(x) via the Fokker-Planck equation
-    with drift vector field f(x) and diffusion matrix D(x).
-
-    Inputs:
     - P: np.ndarray, stationary probability density evaluated on an ND grid (n1 x n2 x ... x nN array)
-    - f: np.ndarray, drift vector field evaluated on an ND grid (N x n1 x n2 x ... x nN array)
-    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
-    - x: list, arrays [x1,x2,..xN] such that U, f, and J have been evaluated on np.meshgrid(*x, indexing = 'ij')
-    - additive_noise: bool, if True, assume additive noise (default), else multiplicative noise
-        - additive noise: D = const, non-additive noise: D = D(x)
+    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
     
     Outputs:
     - integral: float, entropy production rate
-        - computed numerically as the integral of ||D grad U + F||^2 * P(x) over the grid x, where
-            U(x) = -log P(x) is the generalized potential
-        - Simpson's rule is used for numerical integration
+        - computed numerically as the integral of (J D^{-1} J)/P over the grid x
     '''
+    N = len(x)
+    D_inv = invert_D(D)
 
+    # Generalized Einstein summation for matrix multiplication on a meshgrid
+    einsum_str = 'ij' + ''.join([chr(107 + j) for j in range(N)]) + ',j' + ''.join([chr(107 + j) for j in range(N)]) + '->i' + ''.join([chr(107 + j) for j in range(N)])
+    D_inv_J = np.einsum(einsum_str, D_inv, J)
 
-    J = probability_flux(P,f,D,x,additive_noise) # compute probability flux term J(x) = f(x)P(x) - div(D(x) P(x))
-
-    # initialize with inner product of f and J
-    epr = np.sum(f*J, axis=0)
-
-    # # D * gradient of U + f, where U = -log P
-    # D_gradU_f = compute_D_gradU_f(-np.log(P), f, D, dx)
-
-    # # compute inner product of D grad U + F with itself: ||D grad U + F||^2
-    # # multiplied by the stationary probability density P(x) = exp(-U(x))
-    # # variable named epr to initialize integral, this is actually the integrand
-    # epr = np.sum(D_gradU_f**2, axis=0) * P
+    # compute inner product of D_inv_J and J/P
+    einsum_ip = 'i' + ''.join([chr(107 + j) for j in range(N)]) + ',i' + ''.join([chr(107 + j) for j in range(N)]) + '->' + ''.join([chr(107 + j) for j in range(N)])
+    inner_prod = np.einsum(einsum_ip,D_inv_J,J/P)
     
-    # epr = integral{ ||D grad U + F||^2 * P(x) }
-    # numerical integration via Simpson's rule
-    # integrate over each dimension
+    # weight numerical integration by P(x)
+    weighted_entropy_prod = inner_prod * P
+    dx = np.prod([x[i][1] - x[i][0] for i in range(N)])
+    integral = np.sum(weighted_entropy_prod) * dx
 
-    N = len(x) # number of dimensions
-    dx = [x[i][1] - x[i][0] for i in range(N)] # grid spacing
-
-    for i in range(N):
-        epr = simpson(epr,dx=dx[i],axis=0)
-
-    return epr
+    return integral
 
 
 

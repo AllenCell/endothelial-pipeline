@@ -1,7 +1,7 @@
 import numpy as np
 import fipy
 import pysindy as ps
-from typing import Callable
+from typing import Tuple, Callable
 
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
@@ -85,7 +85,7 @@ def vector_field_component(f:Callable,i:int) -> Callable:
         return f_out[i].T # get the i-th component of the vector field, transpose to get correct shape (n_samples,1)
     return f_i # return the the callable function f_i
 
-def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol:float=1e-10) -> np.ndarray:
+def get_stationary_probability(f:Callable,D:Callable,bins:list,u:float,tol:float=1e-10) -> np.ndarray:
     '''
     Get stationary probability distribution of fit SDE (Langevin) model with drift function f and diffusion D by solving the
     stationary Fokker-Planck equation. The drift and diffusion functions can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
@@ -93,13 +93,10 @@ def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol
     This function calls the PDE solver SteadyFP implemented in the `numerics.fp_solvers' module.
 
     Inputs:
-    - f_vals: np.ndarray, values of the drift function evaluated at the bin centers
-        - if the drift function is scalar-valued, f_vals is a 1D array
-        - if the drift function is vector-valued, f_vals is an (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - D_vals: np.ndarray, values of the diffusion function evaluated at the bin centers
-        - if the diffusion function is scalar-valued, D_vals is a 1D array
-        - if the diffusion function is vector-valued, D_vals is an (ndim+1)D array with shape (ndim, N_x, N_y, ...)
+    - f: Callable, drift function of the SDE model
+    - D: Callable, diffusion function of the SDE model
     - bins: list of arrays defining bin edges for each dimension of the state variable
+    - u: float, control parameter (shear stress)
     - tol: float, tolerance for small values in the stationary probability distribution (default is 1e-10)
         - if the probability distribution is less than tol, it is set to tol
     
@@ -108,20 +105,33 @@ def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol
     '''
 
     ndim = len(bins)
-    dx = [bins[i][1]-bins[i][0] for i in range(ndim)] # bin width in each dimension
-    Nbins = [len(bins[i])-1 for i in range(ndim)] # number of bins in each dimension
+    centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(ndim)] # get bin centers
 
-    # initialize SteadyFP object
     if ndim==1:
+        # evaluate f and D at the bin centers
+        f_vals = f(centers[0],u)
+        D_vals = D(centers[0],u)
         # if 1D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be scalars
-        fp = fps.SteadyFP(Nbins[0], dx[0])
-    else:
-        # if 2D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be lists (one for each dimension)
+        dx = (bins[0][1]-bins[0][0])
+        Nbins = len(bins[0])-1
+        # initialize SteadyFP object
         fp = fps.SteadyFP(Nbins, dx)
+    else:
+        # evaluate f and D at the mesh grid of bin centers
+        f_mesh = mesh_grid_function(f,ndim=ndim)
+        D_mesh = mesh_grid_function(D,ndim=ndim)
 
+        mesh_grid = np.meshgrid(*centers)
+        f_vals = f_mesh(mesh_grid,u).T # transpose to get shape (ndim,N_x,N_y,...)
+        D_vals = D_mesh(mesh_grid,u).T # transpose to get shape (ndim,N_x,N_y,...)
+
+        # if 2D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be lists (one for each dimension)
+        Nbins_ls = [len(bins[i])-1 for i in range(ndim)]
+        dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
+        # initialize SteadyFP object
+        fp = fps.SteadyFP(Nbins_ls, dx)
 
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
-
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
     p_fit = p_fit/np.sum(p_fit) # normalize probability distribution
 
