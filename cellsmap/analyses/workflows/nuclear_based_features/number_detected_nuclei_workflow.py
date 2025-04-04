@@ -2,6 +2,7 @@
 from cellsmap.analyses.workflows.nuclear_based_features.plot.plot_nuclei import (
     plot_number_of_nuclei_per_fov,
     plot_number_of_nuclei_per_dataset,
+    plot_flow_over_time_per_dataset,
 )
 from cellsmap.analyses.workflows.nuclear_based_features.plot.visualize_nuclei import (
     visualize_nuclear_seg,
@@ -28,7 +29,7 @@ dataframes["20241217_20X"] = df
 # %% Plot the number of nuclei per fov and per dataset
 for df in list(dataframes.values()):
     plot_number_of_nuclei_per_fov(df, df.dataset.iloc[0], SAVE_DIR)
-
+#%%
 plot_number_of_nuclei_per_dataset(list(dataframes.values()), SAVE_DIR)
 
 # %% Plot the first frame for each position in each dataset
@@ -39,3 +40,7 @@ for df in list(dataframes.values()):
     visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 3, SAVE_DIR)
     visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 4, SAVE_DIR)
     visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 5, SAVE_DIR)
+    
+#%%
+plot_flow_over_time_per_dataset(dataset_list, SAVE_DIR)
+# %%
