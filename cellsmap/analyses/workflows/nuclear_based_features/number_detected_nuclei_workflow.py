@@ -1,9 +1,9 @@
 # %%
-from cellsmap.analyses.workflows.nuclear_based_features.support.plot_nuclei import (
+from cellsmap.analyses.workflows.nuclear_based_features.plot.plot_nuclei import (
     plot_number_of_nuclei_per_fov,
     plot_number_of_nuclei_per_dataset,
 )
-from cellsmap.analyses.workflows.nuclear_based_features.support.visualize_nuclei import (
+from cellsmap.analyses.workflows.nuclear_based_features.plot.visualize_nuclei import (
     visualize_nuclear_seg,
 )
 from cellsmap.util.manifest_io import list_datasets_with_manifest, get_nuclear_manifest
@@ -18,6 +18,7 @@ dataframes = {
     dataset_name: get_nuclear_manifest(dataset_name) for dataset_name in dataset_list
 }
 print(f"Loaded {len(dataframes)} datasets.")
+print(f"Datasets: {list(dataframes.keys())}")
 
 # %% Filter out frames
 df = dataframes["20241217_20X"]
