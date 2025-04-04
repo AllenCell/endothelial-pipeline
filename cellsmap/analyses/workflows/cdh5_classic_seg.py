@@ -19,9 +19,10 @@ def generate_results_multiproc_wrapper(args):
     out_dir = args['output_dir']
     verbose = args['verbose']
     use_original_data = args['use_original_data']
-    generate_results(dataset_name, T, scenes, position, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, verbose=verbose)
+    create_validation_image = args['validation_image']
+    generate_results(dataset_name, T, scenes, position, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
 
-def generate_results(dataset_name, T, scene_list=None, position_name=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, image_validation_frequency=20, verbose=True):
+def generate_results(dataset_name, T, scene_list=None, position_name=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, create_validation_image=False, verbose=True):
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if verbose else None
@@ -75,7 +76,7 @@ def generate_results(dataset_name, T, scene_list=None, position_name=None, use_o
 
         if save_output:
             # save every nth image for validation
-            if (image_validation_frequency != None) and (T % image_validation_frequency == 0):
+            if create_validation_image:
                 print(f'T={T} -- saving image input and output overlays') if verbose else None
                 val_path = val_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_P{position_name}_T{T}.ome.tiff'
                 Path.mkdir(val_path.parent, exist_ok=True, parents=True)
@@ -91,7 +92,6 @@ def generate_results(dataset_name, T, scene_list=None, position_name=None, use_o
                     'dtype': None,
                     }
                 save_image_output(val_path, images_out, images_out_metadata)
-            # save_image_output(out_path, images_out, images_out_metadata)
 
             # save just the cdh5 segmentations
             out_path = seg_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_T{T}.ome.tiff'

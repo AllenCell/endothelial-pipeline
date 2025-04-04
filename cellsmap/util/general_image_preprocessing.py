@@ -107,12 +107,18 @@ def build_analysis_queue(dataset_name_list: list,
                 t_step_adjusted = t_step * num_pos_in_T
                 t_final_adjusted = pos_in_T + duration_in_frames * num_pos_in_T
                 t_range = range(t_start_adjusted, t_final_adjusted, t_step_adjusted)
+                if image_validation_frequency is not None:
+                    validation_t_range = range(t_start_adjusted, t_final_adjusted, image_validation_frequency * t_step_adjusted)
+                else:
+                    # return an empty range
+                    validation_t_range = range(0, 0, -1)
 
                 for i,t in enumerate(t_range):
                     if is_test and i >= 10:
                         break
                     else:
                         pass
+                    validation_image = True if t in validation_t_range else False
 
                     if t >= t_start_adjusted and t < t_final_adjusted:
                         analysis_queue.append({
@@ -125,7 +131,7 @@ def build_analysis_queue(dataset_name_list: list,
                             'output_dir': out_dir,
                             'save_output': save_output,
                             'overwrite': overwrite,
-                            'image_validation_frequency': image_validation_frequency,
+                            'validation_image': validation_image,
                             'use_original_data': use_original_data,
                             'is_test': is_test,
                             'verbose': verbose,
