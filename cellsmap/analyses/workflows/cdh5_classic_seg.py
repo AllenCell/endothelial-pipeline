@@ -12,18 +12,6 @@ from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysi
 def generate_results_multiproc_wrapper(args):
     dataset_name = args['dataset_name']
     scenes = (args['scene_index'],)
-    T = args['T']
-    img_bin_level = args['image_bin_level']
-    save_output = args['save_output']
-    out_dir = args['output_dir']
-    verbose = args['verbose']
-    use_original_data = args['use_original_data']
-    generate_results(dataset_name, T, scenes, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, verbose=verbose)
-
-# def generate_results(dataset_name, T, scene_list=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, image_validation_frequency=20, verbose=True):
-def generate_results(args):
-    dataset_name = args['dataset_name']
-    scene_list = [args['scene_index'],]
     position = args['position']
     T = args['T']
     img_bin_level = args['image_bin_level']
@@ -31,7 +19,9 @@ def generate_results(args):
     out_dir = args['output_dir']
     verbose = args['verbose']
     use_original_data = args['use_original_data']
-    image_validation_frequency = args['image_validation_frequency']
+    generate_results(dataset_name, T, scenes, position, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, verbose=verbose)
+
+def generate_results(dataset_name, T, scene_list=None, position_name=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, image_validation_frequency=20, verbose=True):
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if verbose else None
@@ -61,6 +51,7 @@ def generate_results(args):
     egfp_index = get_dataset_info(dataset_name)['egfp_channel_index']
 
     for scene in scene_list:
+        position_name = scene if position_name == None else position_name
         if use_original_data:
             current_img = img
             current_img.set_scene(scene)
@@ -86,7 +77,7 @@ def generate_results(args):
             # save every nth image for validation
             if (image_validation_frequency != None) and (T % image_validation_frequency == 0):
                 print(f'T={T} -- saving image input and output overlays') if verbose else None
-                val_path = val_dir / dataset_name / f'P{position}' / f'{dataset_name}_P{position}_T{T}.ome.tiff'
+                val_path = val_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_P{position_name}_T{T}.ome.tiff'
                 Path.mkdir(val_path.parent, exist_ok=True, parents=True)
                 # out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
                 # Path.mkdir(seg_dir / dataset_name, exist_ok=True, parents=True)
@@ -103,7 +94,7 @@ def generate_results(args):
             # save_image_output(out_path, images_out, images_out_metadata)
 
             # save just the cdh5 segmentations
-            out_path = seg_dir / dataset_name / f'P{position}' / f'{dataset_name}_T{T}.ome.tiff'
+            out_path = seg_dir / dataset_name / f'P{position_name}' / f'{dataset_name}_T{T}.ome.tiff'
             Path.mkdir(out_path.parent, exist_ok=True, parents=True)
             images_out = [seg2_lab_no_mask_merge,]
             images_out_metadata = {
