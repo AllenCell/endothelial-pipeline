@@ -247,26 +247,6 @@ def get_one_dataset(df:pd.DataFrame,ds_name:str) -> pd.DataFrame:
     df_one_dataset = df[df['dataset_name'] == ds_name].copy()
     return df_one_dataset
 
-def get_flow_change_frame(ds_name:str) -> int:
-    '''
-    Get frame number at which flow changes in dataset ds_name.
-    
-    Inputs:
-    - ds_name: str, name of dataset to get flow change frame for
-        - This string must match the dataset name in data_config.yaml
-    
-    Outputs:
-    - change_frame: int, frame number at which flow changes in dataset ds_name
-    '''
-    # load config for dataset from data_config.yaml
-    data_config = dataset_io.get_dataset_info(ds_name)
-
-    # get frame number at which flow changes
-    # change from time in hours (currently how it is reported in the data config) to frame number
-    change_frame = int(data_config['flow'][0][1]*60/5) # 5 minutes between each frame
-
-    return change_frame
-
 def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
     '''
     Add crop index column to DataFrame df. (Crops are currently identified by their starting position in x and y.)
