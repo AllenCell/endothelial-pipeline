@@ -1,13 +1,13 @@
 import vtk
-import os
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import matplotlib.pyplot as plt
 from skimage import filters as skfilt
 from sklearn import cluster as skcluster
 from scipy import interpolate as spinterp
 from vtk.util import numpy_support as vtknp
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.analyses.utils.viz import viz_base as vb
 
 def simple_linear_classifier(X, Y):
     Z = 3/2. * X - 0.6
@@ -72,14 +72,23 @@ class CuboidBounds():
         self.zmin, self.zmax = bounds[2]
 
 class DataDrivenFlowField3D():
-    def __init__(self, verbose: bool) -> None:
+    def __init__(self, verbose: bool=False) -> None:
         self._time_step = 2
+        self._verbose = verbose
+        self._level_sparsity = 2
         self._grid_spacing = 0.05
         self._use_occupancy = False
         self._excluded_fraction = 0.1
-        self._verbose = verbose
+        self._output_folder = None
     def set_time_step(self, time_step: int) -> None:
         self._time_step = time_step
+    def set_output_folders(self, fig_output_folder: Path, vtk_output_folder: Path) -> None:
+        self._fig_output_folder = fig_output_folder
+        self._vtk_output_folder = vtk_output_folder
+    def get_vtk_folder(self) -> Path:
+        return self._vtk_output_folder
+    def get_fig_folder(self) -> Path:
+        return self._fig_output_folder
     def set_grid_spacing(self, grid_spacing: float) -> None:
         self._grid_spacing = grid_spacing
     def set_use_occupancy(self, use_occupancy: bool) -> None:
@@ -103,6 +112,10 @@ class DataDrivenFlowField3D():
             y=self._df[self._ss_vars[1]],
             z=self._df[self._ss_vars[2]],
             excluded_fraction = self._excluded_fraction)
+        if self._verbose:
+            print("Domain bounds:")
+            print(self._bounds.xmin, self._bounds.ymin, self._bounds.zmin)
+            print(self._bounds.xmax, self._bounds.ymax, self._bounds.zmax)
 
     def compute_displacement_vectors(self) -> None:
         df_list = []
@@ -112,183 +125,189 @@ class DataDrivenFlowField3D():
             df_list.append(pd.concat([df_track, diff], axis=1))
         df_vecs = pd.concat(df_list).dropna()
         # Correct for diff behavior of numpy vs. pandas
-        for var in self._ss_vars:
-            df_vecs[f"d{var}"] = -df_vecs[f"d{var}"]
+        self._ss_dvars = [f"d{var}" for var in self._ss_vars]
+        for dvar in self._ss_dvars:
+            df_vecs[dvar] = -df_vecs[dvar]
         self._df_vecs = df_vecs
 
-    def run(self) -> None:
+    def compute_mean_speed_from_displacement_vectors(self) -> None:
+        self._mean_speed = np.linalg.norm(self._df_vecs[self._ss_dvars].abs().mean())
+        if self._verbose:
+            print("Mean speed in PC space:")
+            print(self._mean_speed)
+
+    def build(self) -> None:
 
         self.compute_state_space_bounds()
 
         self.compute_displacement_vectors()
 
+        # Computing this mean using all conditions. Should we
+        # do per condition instead?
+        self.compute_mean_speed_from_displacement_vectors()
 
-def run_flow_field_workflow(df, condition, time_step=2, grid_spacing=0.05, use_occupancy=False, verbose=False):
+    def compute_landscape(self, condition: str) -> None:
 
-    xmin, xmax = np.percentile(df.PC1, [0.1, 99.9])
-    ymin, ymax = np.percentile(df.PC2, [0.1, 99.9])
-    zmin, zmax = np.percentile(df.PC3, [0.1, 99.9])
-    
-    df_list = []
-    for crop, df_crop in df.groupby("CropId"):
-        diff = df_crop[["PC1", "PC2", "PC3"]].diff(periods=2)
-        diff.columns = [f"d{col}" for col in diff.columns]
-        df_list.append(pd.concat([df_crop, diff], axis=1))
-    df_vecs = pd.concat(df_list).dropna()
-    # Correct for diff behavior of numopy vs. pandas
-    for pc in range(3):
-        df_vecs[f"dPC{pc+1}"] = -df_vecs[f"dPC{pc+1}"]
+        condition_key = condition.replace(" ", "_")
 
-    mean_speed = np.linalg.norm(df_vecs[["dPC1", "dPC2", "dPC3"]].abs().mean())
-    
-    if verbose:
-        print("Mean speed in PC space:")
-        print(mean_speed)
+        xmin, xmax = self._bounds.xmin, self._bounds.xmax
+        ymin, ymax = self._bounds.ymin, self._bounds.ymax
+        zmin, zmax = self._bounds.zmin, self._bounds.zmax
 
-    df_full = df_vecs.copy()
-    if verbose:
-        print(df_full.shape)
+        df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
+        if self._verbose:
+            print(f"Shape of dataframe for condition: {condition}")
+            print(df_vecs_cond.shape)
 
-    df_vecs = df_full.copy()
-    df_vecs = df_vecs.loc[df_vecs.description==condition]
-    if verbose:
-        print(df_vecs.shape)
+        U, V, Q, dU, dV, dQ = [
+            df_vecs_cond[col].values[::self._level_sparsity]
+            for col in self._ss_vars + self._ss_dvars]
+        norm = np.sqrt(dU**2 + dV**2 + dQ**2)
+        dU = dU/norm
+        dV = dV/norm
+        dQ = dQ/norm
+        if self.get_fig_folder() is not None:
+            fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
+            ax1.quiver(U, V, dU, dV, df_vecs_cond.start_y.values[::self._level_sparsity])
+            ax2.quiver(U, Q, dU, dQ, df_vecs_cond.start_y.values[::self._level_sparsity])
+            for ax in [ax1, ax2]:
+                ax.set_xlim(xmin, xmax)
+                ax.set_ylim(ymin, ymax)
+                ax.set_aspect("equal")
+            vb.save_plot(fig, filename=self.get_fig_folder()+f"quiver_pc_{condition_key}", dpi=72)
 
-    U, V, Q, dU, dV, dQ = [df_vecs[col].values[::time_step] for col in ["PC1", "PC2", "PC3", "dPC1", "dPC2", "dPC3"]]
-    norm = np.sqrt(dU**2+dV**2+dQ**2)
-    dU = dU/norm
-    dV = dV/norm
-    dQ = dQ/norm
-    if verbose:
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
-        ax1.quiver(U, V, dU, dV, df_vecs.start_y.values[::time_step])
-        ax2.quiver(U, Q, dU, dQ, df_vecs.start_y.values[::time_step])
-        for ax in [ax1, ax2]:
+        xgrid, ygrid, zgrid = np.meshgrid(
+            np.linspace(xmin, xmax, int((xmax-xmin)/self._grid_spacing)),
+            np.linspace(ymin, ymax, int((ymax-ymin)/self._grid_spacing)),
+            np.linspace(zmin, zmax, int((zmax-zmin)/self._grid_spacing)), indexing='ij')
+        if self._verbose:
+            print("Shape of grid:")
+            print(xgrid.shape, ygrid.shape, zgrid.shape)
+
+        points = np.transpose(np.vstack((U, V, Q)))
+
+        dUi = spinterp.griddata(points, dU, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
+        dVi = spinterp.griddata(points, dV, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
+        dQi = spinterp.griddata(points, dQ, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
+
+        dUis = skfilt.gaussian(dUi, sigma=3, preserve_range=True)
+        dVis = skfilt.gaussian(dVi, sigma=3, preserve_range=True)
+        dQis = skfilt.gaussian(dQi, sigma=3, preserve_range=True)
+
+        epson = 1e-18
+        norm = np.sqrt(epson+dUis**2+dVis**2+dQis**2)
+        dUis /= norm
+        dVis /= norm
+        dQis /= norm
+
+        pc3val = 0.0
+        zgridmin = pc3val-0.8*self._grid_spacing
+        zgridmax = pc3val+1.2*self._grid_spacing
+        zvalids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax))
+        if self._verbose:
+            print("Number of points found withing the z-range of interest:")
+            print(len(zvalids[0]))
+        pc2val = 0.0
+        ygridmin = pc2val-0.8*self._grid_spacing
+        ygridmax = pc2val+1.2*self._grid_spacing
+        yvalids = np.where((ygrid.ravel()>ygridmin)&(ygrid.ravel()<ygridmax))
+        if self._verbose:
+            print("Number of points found withing the y-range of interest:")
+            print(len(yvalids[0]))
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
+        ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
+        ax1.quiver(xgrid.ravel()[zvalids], ygrid.ravel()[zvalids], dUis.ravel()[zvalids], dVis.ravel()[zvalids], scale=50, color="red")
+        ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
+        ax2.quiver(xgrid.ravel()[yvalids], zgrid.ravel()[yvalids], dUis.ravel()[yvalids], dQis.ravel()[yvalids], scale=50, color="red")
+        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)]):
             ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
+            ax.set_ylim(qmin, qmax)
             ax.set_aspect("equal")
-        plt.show()
+        plt.tight_layout()
+        vb.save_plot(fig, filename=self.get_fig_folder()+f"landscape_pc_{condition_key}", dpi=72)
 
-    xgrid, ygrid, zgrid = np.meshgrid(
-        np.linspace(xmin, xmax, int((xmax-xmin)/grid_spacing)),
-        np.linspace(ymin, ymax, int((ymax-ymin)/grid_spacing)),
-        np.linspace(zmin, zmax, int((zmax-zmin)/grid_spacing)), indexing='ij')
-    if verbose:
-        print(xgrid.shape, ygrid.shape, zgrid.shape)
+        self._landscape = {
+            condition_key: {
+                "velocities": (dUis, dVis, dQis),
+                "grid": (xgrid, ygrid, zgrid)
+            }
+        }
 
-    points = np.transpose(np.vstack((U, V, Q)))
-
-    dUi = spinterp.griddata(points, dU, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
-    dVi = spinterp.griddata(points, dV, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
-    dQi = spinterp.griddata(points, dQ, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
-    
-    # Use nearest neigh interpolation where no data is available (ocuppancy=0)    
-    if use_occupancy:
-        occupancy = spinterp.griddata(points, dU, (xgrid, ygrid, zgrid), method='linear')#, fill_value=0)
-        occupancy = np.abs(occupancy)
-        occupancy[np.isnan(occupancy)] = 0.0
-        occupancy[occupancy>0.0] = 1.0
-        occupancy = occupancy.astype(int)
-        
-        dUi_nn = spinterp.griddata(points, dU, (xgrid, ygrid, zgrid), method='nearest', fill_value=0)
-        dVi_nn = spinterp.griddata(points, dV, (xgrid, ygrid, zgrid), method='nearest', fill_value=0)
-        dQi_nn = spinterp.griddata(points, dQ, (xgrid, ygrid, zgrid), method='nearest', fill_value=0)
-        
-        dUi[occupancy==0] = dUi_nn[occupancy==0]
-        dVi[occupancy==0] = dVi_nn[occupancy==0]
-        dQi[occupancy==0] = dQi_nn[occupancy==0]
-
-    dUis = skfilt.gaussian(dUi, sigma=3, preserve_range=True)
-    dVis = skfilt.gaussian(dVi, sigma=3, preserve_range=True)
-    dQis = skfilt.gaussian(dQi, sigma=3, preserve_range=True)
-
-    epson = 1e-18
-    norm = np.sqrt(epson+dUis**2+dVis**2+dQis**2)
-    dUis /= norm
-    dVis /= norm
-    dQis /= norm
-
-    pc3val = 0.0
-    zgridmin = pc3val-0.8*grid_spacing
-    zgridmax = pc3val+1.2*grid_spacing
-    valids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax));
-    if verbose:
-        print(len(valids[0]))
-    fig, ax = plt.subplots(1,1, figsize=(6,6))
-    ax.scatter(df_vecs.PC1, df_vecs.PC2, s=0.25, color="black", alpha=0.1)
-    ax.quiver(xgrid.ravel()[valids], ygrid.ravel()[valids], dUis.ravel()[valids], dVis.ravel()[valids], scale=50, color="red")
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
-    ax.set_aspect("equal")
-    plt.show()
-
-    return dUis, dVis, dQis, mean_speed, (xgrid, ygrid, zgrid)
-
-def simulate_particles_in_vector_field(dUis, dVis, dQis, grid, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, initial_coords=None, target_nframes=100, offset=5, clusters=0, verbose=False):
-    coord = initial_coords
-    if coord is None:
+    def get_random_coordinates(self, n_particles: int, offset:int=5) -> np.array:
+        xmin, xmax = self._bounds.xmin, self._bounds.xmax
+        ymin, ymax = self._bounds.ymin, self._bounds.ymax
+        zmin, zmax = self._bounds.zmin, self._bounds.zmax
         coord = [
-            [offset+(((vmax-vmin)/grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
+            [offset+(((vmax-vmin)/self._grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
         ] for _ in range(n_particles)]
         coord = np.array(coord)
-        if verbose:
+        if self._verbose:
+            print("Shape of sampled coordinated:")
             print(coord.shape)
 
-    tp = 0
-    save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
-    
-    sim_speed = (48*60/5)/100 * speed
-    if verbose:
-        print(f"Crops' speed in the simulation for the target number of frames: {sim_speed:.3f} pc units/min")
+        return coord
 
-    summary = []
-    
-    eps = 2
-    for tp in range(1, target_nframes):
+    def calculate_simulation_speed(self, target_nframes: int=100) -> float:
+        TOTAL_DURATION_IN_HOURS = 48
+        speed = (TOTAL_DURATION_IN_HOURS*60/5)/target_nframes * self._mean_speed
+        if self._verbose:
+            print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
+        return speed
+
+    def simulate_particles_in_landscape(self, condition, n_particles=500, initial_coords=None, target_nframes=100, offset=5, use_pc_units=False, clusters=0):
+
+        coords = initial_coords
+        if coords is None:
+            coords = self.get_random_coordinates(n_particles=n_particles, offset=offset)
+
+        condition = condition.replace(" ", "_")
+
+        assert condition in self._landscape.keys(), "Landscape for this condition has not been yet computed."
+
+        tp = 0
+        filename_prefix = self.get_vtk_folder() + condition
+        save_points_as_polydata(coordinates=coords, file_name=f"{filename_prefix}_{tp:05}.vtk")
+
+        sim_speed = self.calculate_simulation_speed(target_nframes=target_nframes)
+
+        evolution = []
         
-        coord_new = []
-        for r in coord:
-            x, y, z = r
-            vx = dUis[int(x), int(y), int(z)]
-            vy = dVis[int(x), int(y), int(z)]
-            vz = dQis[int(x), int(y), int(z)]
-            x_new = x + sim_speed * vx
-            y_new = y + sim_speed * vy
-            z_new = z + sim_speed * vz
-    
-            x_new = (x_new + eps) % ((xmax-xmin)/grid_spacing) - eps
-            y_new = (y_new + eps) % ((ymax-ymin)/grid_spacing) - eps
-            z_new = (z_new + eps) % ((zmax-zmin)/grid_spacing) - eps
-    
-            coord_new.append([x_new, y_new, z_new])
+        eps = 2
+        for tp in range(1, target_nframes):
+            
+            coords_new = []
+            for r in coords:
+                x, y, z = r
+                vx = self._landscape[condition]["velocities"][0][int(x), int(y), int(z)]
+                vy = self._landscape[condition]["velocities"][1][int(x), int(y), int(z)]
+                vz = self._landscape[condition]["velocities"][2][int(x), int(y), int(z)]
+                x_new = x + sim_speed * vx
+                y_new = y + sim_speed * vy
+                z_new = z + sim_speed * vz
+        
+                x_new = (x_new + eps) % ((self._bounds.xmax-self._bounds.xmin)/self._grid_spacing) - eps
+                y_new = (y_new + eps) % ((self._bounds.ymax-self._bounds.ymin)/self._grid_spacing) - eps
+                z_new = (z_new + eps) % ((self._bounds.zmax-self._bounds.zmin)/self._grid_spacing) - eps
+        
+                coords_new.append([x_new, y_new, z_new])
 
-        summary.append(coord_new)
-        coord = np.array(coord_new).copy()
-        save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
+            evolution.append(np.array(coords_new))
+            coords = np.array(coords_new).copy()
+            save_points_as_polydata(coordinates=coords, file_name=f"{filename_prefix}_{tp:05}.vtk")
 
-    if clusters > 0:
-        n_clusters = clusters
-        model = skcluster.AgglomerativeClustering(n_clusters=n_clusters)
-        attractors = model.fit_predict(coord)
 
-    pc3val = 0.0
-    xgrid, ygrid, zgrid = [grid[u] for u in range(3)]
-    zgridmin = pc3val-0.8*grid_spacing
-    zgridmax = pc3val+1.2*grid_spacing
-    valids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax)); print(len(valids[0]))
-    fig, ax = plt.subplots(1,1, figsize=(6,6))
-    ax.quiver(xgrid.ravel()[valids], ygrid.ravel()[valids], dUis.ravel()[valids], dVis.ravel()[valids], scale=50)
-    if clusters == 0:
-        attractors = np.zeros_like(coord[:,1])
-    ax.scatter(xmin+grid_spacing*coord[:,0], ymin+grid_spacing*coord[:,1], c=attractors)
-    ax.set_aspect("equal")
-    plt.show()
+        mean_evolution = []
+        for coords in evolution:
+            xc, yc, zc = coords.mean(axis=0)
+            if use_pc_units:
+                xc = self._bounds.xmin+self._grid_spacing*xc
+                yc = self._bounds.ymin+self._grid_spacing*yc
+                zc = self._bounds.zmin+self._grid_spacing*zc
+            mean_evolution.append([xc, yc, zc])
+        mean_evolution = np.array(mean_evolution)
+        save_points_as_polydata(coordinates=mean_evolution, file_name=f"{filename_prefix}_mean.vtk")
 
-    xc = np.mean(xmin+grid_spacing*coord[:,0])
-    yc = np.mean(ymin+grid_spacing*coord[:,1])
-    zc = np.mean(zmin+grid_spacing*coord[:,2])
-    print(f"Cluster centroid: {xc:.2f}, {yc:.2f}, {zc:.2f}")
-    return summary
+        return mean_evolution
 
 def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, grid, dUis2, dVis2, dQis2, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, target_nframes=100, offset=5, clusters=0, verbose=False):
     coord = [

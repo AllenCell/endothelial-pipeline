@@ -63,19 +63,15 @@ df.head()
 
 #%% Check datasets available
 df.description.unique()
+#%%
+df = df.sort_values(by=["CropId", "T"])
+df.head()
 
-import importlib
-importlib.reload(tools)
-Bounds = tools.CuboidBounds(df.PC1, df.PC2, df.PC3)
-print(Bounds.xmin)
-print(Bounds.xmax)
-print(Bounds.zmax)
-
-#%% Compute data bounds
-xmin, xmax = np.percentile(df.PC1, [0.1, 99.9])
-ymin, ymax = np.percentile(df.PC2, [0.1, 99.9])
-zmin, zmax = np.percentile(df.PC3, [0.1, 99.9])
-print(xmin, xmax)
+DDFF = tools.DataDrivenFlowField3D(verbose=True)
+DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
+DDFF.set_dataframe(df, identifier="CropId")
+DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
+DDFF.build()
 
 #%%
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
@@ -84,8 +80,8 @@ ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["T"])
 for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
     ax.set_xlabel("PC1", fontsize=14)
     ax.set_ylabel(ylab, fontsize=14)
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(zmin, zmax)
+    ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
+    ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
     ax.set_aspect("equal")
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
@@ -97,15 +93,11 @@ for group, df_group in df.groupby("group"):
     for track, df_track in df_group.groupby("CropId"):
         ax.plot(df_track.PC1, df_track.PC2, label=group)
         break
-ax.set_xlim(xmin, xmax)
-ax.set_ylim(ymin, ymax)
+ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
+ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
 ax.set_aspect("equal")
 plt.legend()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
-
-#%%
-df = df.sort_values(by=["CropId", "T"])
-df.head()
 
 #%%
 time_step = 1
@@ -115,21 +107,28 @@ grid_spacing = 0.05
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 for group, df_group in df.groupby("group"):
     coords = df_group[[f"PC{u+1}" for u in range(3)]].values
-    for u, umax in zip(range(3), [xmax, ymax, zmax]):
+    for u, umax in zip(range(3), [DDFF._bounds.xmax, DDFF._bounds.ymax, DDFF._bounds.zmax]):
         coords[:, u] = (umax-coords[:, u])/grid_spacing
     ax1.scatter(df_group.PC1, df_group.PC2, s=0.5, alpha=0.05)
     ax2.scatter(df_group.PC1, df_group.PC3, s=0.5, alpha=0.05)
     for axid, ax in enumerate([ax1, ax2]):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(f"PC{axid+2}", fontsize=14)
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
+        ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
+        ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
         ax.set_aspect("equal")
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs", dpi=72)
 
 #%%
 # Compute landscapes
+
+#
+# Here
+# 1. image data inside class
+# 2. Better intial condition based on what is in line 139
+#
+
 for condition, fname in zip(["48hr High", "48hr Low", "48hr No Flow (12/17/24)"], ["high", "low", "no"]):
     dUis, dVis, dQis, mean_speed, grid = tools.run_flow_field_workflow(df=df, condition=condition, time_step=time_step)
     img = tools.create_vector_field_imagedata(dUis, dVis, dQis)
@@ -171,6 +170,17 @@ for group, df_group in df.groupby("group"):
         ax.set_aspect("equal")
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_sampled_points", dpi=72)
+
+#%%
+import importlib
+importlib.reload(tools)
+DDFF = tools.DataDrivenFlowField3D(verbose=True)
+DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
+DDFF.set_dataframe(df, identifier="CropId")
+DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
+DDFF.build()
+DDFF.compute_landscape(condition="48hr High")
+DDFF.simulate_particles_in_landscape(condition="48hr High")
 
 #%%
 # Run simulation
