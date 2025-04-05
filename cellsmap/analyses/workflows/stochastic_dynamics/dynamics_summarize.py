@@ -2,7 +2,7 @@
 import numpy as np
 import fire
 
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils import model_eval, model_analysis, regression_helper as rh
 from cellsmap.analyses.utils.io import dynamics_io, manifest_io
 
