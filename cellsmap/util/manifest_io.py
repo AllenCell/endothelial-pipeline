@@ -215,7 +215,7 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
         num_flows = len(flow_config) # number of flow conditions in dataset
 
         shear_rate = [flow_config[i][-1] for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
-        shear_rate_str = [str(i)+'_dyn/cm^2' for i in shear_rate] # convert shear rates to strings
+        shear_rate_str = [str(i)+'_dyncm2' for i in shear_rate] # convert shear rates to strings
 
         time_str = [str(int((flow_config[i][1]-flow_config[i][0])*5/60))+'_hours' for i in range(num_flows)] # get duration of each flow condition in hours
         description = '_'.join([time_str[i]+'_at_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
@@ -231,7 +231,7 @@ def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict|None=None) -> 
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
         - The string in the dataset_name column should match the dataset name in data_config.yaml
     - description_dic (optional): dict, dictionary of dataset names and their descriptive metadata
-        - Describes the experimental conditions for each dataset, e.g., "48H low flow (date)"
+        - Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2"
         - Keys should match dataset names in data_config.yaml
         - If not provided, will be generated using get_descriptive_metadata
     '''
