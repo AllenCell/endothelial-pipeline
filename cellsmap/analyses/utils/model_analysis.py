@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from typing import Tuple, Callable
 from sklearn.pipeline import Pipeline
 
-from cellsmap.analyses.utils.io import manifest_io as mio
+from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
 from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
 from cellsmap.analyses.utils.numerics import gen_potential as gp
@@ -16,7 +16,7 @@ def model_data_comparison_one_dataset(model:list[Callable],
                                       bins:list, 
                                       pplane_xvec:np.ndarray,
                                       pplane_yvec:np.ndarray,
-                                      use_fipy:bool=True) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
+                                      use_fipy:bool=False) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
     '''
     Qualitative evaluation of fit SDE model by taking one dataset at one flow condition,
     generating phase portrait of the drift term at shear stress = shear stress from data, and comparing 
@@ -79,7 +79,8 @@ def model_data_comparison(model:list[Callable],
                           bins:list,
                           ds_to_skip:list,
                           pplane_xvec:np.ndarray,
-                          pplane_yvec:np.ndarray) -> None:
+                          pplane_yvec:np.ndarray,
+                          use_fipy:bool=False) -> None:
     '''
     Compare model fit to data for all datasets in manifest, at all flow conditions.
     For each dataset, project data onto PCs, split by flow condition, and compare model fit to data
@@ -94,6 +95,7 @@ def model_data_comparison(model:list[Callable],
     - ds_to_skip: list of str, dataset names to skip in analysis (also skipped in fitting model)
     - pplane_xvec: np.ndarray, x values for phase portrait
     - pplane_yvec: np.ndarray, y values for phase portrait
+    - use_fipy: bool, optional argument whether to use FiPy solver to calculate stationary distribution (default False)
 
     Outputs:
     - None, saves figures to fig_savedir
@@ -103,6 +105,11 @@ def model_data_comparison(model:list[Callable],
     df = mio.load_manifest_to_df(verbose=False)
     # get list of datasets represented in feature data
     list_of_datasets = mio.get_list_of_datasets(df)
+
+    if use_fipy:
+        print("Using FiPy Finite Volume solver to calculate stationary distribution")
+    else:
+        print("Using Fourier-Galerkin solver to calculate stationary distribution")
 
     for ds_name in list_of_datasets: 
         # if we don't want to fit model using this dataset, skip it
@@ -122,7 +129,7 @@ def model_data_comparison(model:list[Callable],
         
         for j in range(num_flow): # get bins and centers for data at high and low flow    
             fig1, _, fig2, _ = model_data_comparison_one_dataset(model,df_by_flow[j],shear_list[j],PCs,
-                                                                     bins,pplane_xvec,pplane_yvec)
+                                                                     bins,pplane_xvec,pplane_yvec,use_fipy=use_fipy)
             
             # add dataset name and shear stress to figure suptitle for comparison of histograms
             sup_title = fig2._suptitle.get_text()
@@ -211,7 +218,11 @@ def run_fixed_point_analysis(drift_function:Callable,
         vb.save_plot(figs[i],fig_savedir+'fixed_points_by_shear_'+str(i))
 
 
-def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray) -> np.ndarray:
+def get_epr(model:list[Callable], 
+            bins:list, 
+            centers:list, 
+            shear_range:np.ndarray,
+            use_fipy:bool=False) -> np.ndarray:
     '''
     Get entropy production rate as a function of shear stress for a fit model object.
     
@@ -220,6 +231,7 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     - bins: list of np.ndarrays, bin edges for each dimension of state space
     - centers: list of np.ndarrays, bin centers for each dimension of state space
     - shear_range: np.ndarray, shear stresses at which to evaluate entropy production rate
+    - use_fipy: bool, optional argument whether to use FiPy solver to calculate stationary distribution (default False)
 
     Outputs:
     - epr: np.ndarray, entropy production rate as a function of shear stress
@@ -231,8 +243,13 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     # initialize array to store entropy production rate
     epr = np.zeros(len(shear_range))
     for i,u in enumerate(shear_range):
-        # get stationary probability distribution   
-        P = model_eval.get_stationary_probability(f,D,bins,u)
+        # get stationary probability distribution
+        if use_fipy:
+            print("Using FiPy Finite Volume solver to calculate stationary distribution")
+            P = model_eval.get_stationary_probability_fipy(f,D,bins,u)
+        else:
+            print("Using Fourier-Galerkin solver to calculate stationary distribution")
+            P = model_eval.get_stationary_probability(f,D,bins,u)
 
         # evaluate drift and diffusion functions at grid points
         f_mesh = model_eval.mesh_grid_function(f)

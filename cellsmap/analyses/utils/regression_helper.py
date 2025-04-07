@@ -4,7 +4,6 @@ import pandas as pd
 from typing import Tuple
 
 import cellsmap.util.dataset_io as dio
-import cellsmap.util.manifest_io as mio
 
 # suppress RuntimeWarnings that come up - happens when taking the mean of an empty array
 # occurs in KM_avg_ND function for bins with no data points
@@ -151,7 +150,6 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
         dT_list.append(dT)
 
     return X_list, dX_list, dT_list
-
 
 def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     '''

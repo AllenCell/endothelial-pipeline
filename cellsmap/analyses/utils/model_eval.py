@@ -208,5 +208,5 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, 
     p_fit = p.value.reshape(Nbins[1],Nbins[0])
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
     C = np.trapz(np.trapz(p_fit, dx=dx[0],axis=1), dx=dx[1]) # integrate over the probability distribution to normalize
-    return p_fit/C
+    return p_fit.T/C
 

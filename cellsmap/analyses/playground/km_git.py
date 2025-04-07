@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import pysindy as ps
 import numdifftools as nd
 
-from cellsmap.analyses.utils.io import manifest_io as mio, dynamics_io
+from cellsmap.util import manifest_io as mio
+from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import manifest_pca, regression_helper as rh, model_analysis, model_eval
 from cellsmap.analyses.utils.viz import manifest_viz, pplane
 from cellsmap.analyses.utils.numerics import gen_potential as gp
@@ -32,13 +33,13 @@ fig, _ = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_rati
 # plot top 3 principal components of feature data vs. frame number
 fig, _ = manifest_viz.plot_top_3_PCs_alldata(df,pca)
 # %%
-ds_ID = 1
+ds_ID = 2
 ds_name = list_of_datasets[ds_ID]
 feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
 PCs = [0,1]
 data_all, u_list = rh.get_X_by_flow(feats_proj,ds_name,verbose=True)
 num_flow = len(u_list)
-
+print("Number of flow conditions in dataset: ",num_flow)
 # %%
 ndim = len(PCs)
 # Choose the size of your target space in two dimensions 
@@ -57,60 +58,22 @@ bw = 0.1
 
 # Calculate the Kramers−Moyal coefficients
 flow_ID = 0
+if flow_ID == 1 and num_flow == 1:
+    print('Only one flow condition in dataset, using flow_ID = 0')
+    flow_ID = 0
+
 X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data_all[flow_ID],feat_cols=[str(i) for i in PCs])
 
-# %%
 kmc, edges = km.km(X_list, dX_list, bw = bw, bins = bins, 
                     powers = powers, multi_traj=True)
+
 # %%
-# Initialise the figure for 3d ploting
-fig = plt.figure(figsize = (12,8))
-
-
 #lets fix a range where we have good statistics and generate a meshgrid
 idx0 = 3
 idx1 = -3
 X_1, X_2 = np.meshgrid(edges[0][idx0:idx1],edges[1][idx0:idx1])
 
-
-# the Kramers−Moyal coefficients [1,0]
-ax_00 = fig.add_subplot(2, 2, 1, projection='3d')
-
-# kmc[1,...] i.e, power [1,0] (transpose, python stores arrays transposed)
-ax_00.contour3D(X_1, X_2, kmc[1,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens')
-ax_00.set_title(r'K−M coefficient [1,0]');
-
-
-# the Kramers−Moyal coefficients [0,1]
-ax_01 = fig.add_subplot(2, 2, 2, projection='3d')
-
-# kmc[2,...] i.e, power [0,1] (transpose, python stores arrays transposed)
-ax_01.contour3D(X_1, X_2, kmc[2,idx0:idx1,idx0:idx1].T /5, 50, cmap='Greens')
-ax_01.set_title(r'K−M coefficient [0,1]');
-
-
-# the Kramers−Moyal coefficients [2,0]
-ax_10 = fig.add_subplot(2, 2, 3, projection='3d')
-
-# kmc[4,...] i.e, power [2,0] (transpose, python stores arrays transposed)
-ax_10.contour3D(X_1, X_2, kmc[4,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens')
-ax_10.set_title(r'K−M coefficient [2,0]');
-
-
-# the Kramers−Moyal coefficients [0,2]
-ax_11 = fig.add_subplot(2, 2, 4, projection='3d')
-
-# kmc[5,...] i.e, power [0,2] (transpose, python stores arrays transposed)
-ax_11.contour3D(X_1, X_2, kmc[5,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens')
-
-ax_11.set_title(r'K−M coefficient [0,2]');
-# Rotate views and add labels
-ax_00.view_init(30, 20); ax_01.view_init(30, 20); ax_10.view_init(30, 20); ax_11.view_init(30, 20)
-ax_00.set_xlabel(r'$y_1$'); ax_01.set_xlabel(r'$y_1$'); ax_10.set_xlabel(r'$y_1$'); ax_11.set_xlabel(r'$y_1$')
-ax_00.set_ylabel(r'$y_2$'); ax_01.set_ylabel(r'$y_2$'); ax_10.set_ylabel(r'$y_2$'); ax_11.set_ylabel(r'$y_2$')
-
-plt.show()
-# %%
+# drift coefficients
 fig, ax = plt.subplots(1,2,figsize=(12,6))
 ax[0].quiver(X_1,X_2,
              kmc[1,idx0:idx1,idx0:idx1].T / 5,
@@ -126,7 +89,7 @@ X = np.array([X_1.flatten(),X_2.flatten()]).T
 # polynomial regression on Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
 Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
 
-f1_mdl = Pipeline([('poly', PolynomialFeatures(degree=5)),
+f1_mdl = Pipeline([('poly', PolynomialFeatures(degree=4)),
                    ('linear', LinearRegression())]).fit(X,Y_1.flatten())
 
 Y_1_pred = f1_mdl.predict(X)
@@ -136,7 +99,7 @@ print('R^2 for polynomial regression on Y_1:',r2_f1)
 # linear regression on Y_2 = kmc[2,idx0:idx1,idx0:idx1].T/5
 Y_2 = kmc[2,idx0:idx1,idx0:idx1].T/5
 
-f2_mdl = Pipeline([('poly', PolynomialFeatures(degree=2)),
+f2_mdl = Pipeline([('poly', PolynomialFeatures(degree=4)),
                      ('linear', LinearRegression())]).fit(X,Y_2.flatten())
 
 Y_2_pred = f2_mdl.predict(X)
@@ -165,8 +128,57 @@ V_2_pred = D2_mdl.predict(X)
 r2_D2 = r2_score(V_2.flatten(),V_2_pred)
 print('R^2 for polynomial regression on V_2:',r2_D2)
 
+# %%
+# Initialise the figure for 3d ploting
+fig = plt.figure(figsize = (12,8))
 
 
+# the Kramers−Moyal coefficients [1,0]
+ax_00 = fig.add_subplot(2, 2, 1, projection='3d')
+
+# kmc[1,...] i.e, power [1,0] (transpose, python stores arrays transposed)
+ax_00.contour3D(X_1, X_2, kmc[1,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens',alpha=0.5)
+ax_00.contour3D(X_1, X_2, Y_1_pred.reshape(X_1.shape), 50, cmap='Blues')
+ax_00.set_title(r'K−M coefficient [1,0]');
+
+
+# the Kramers−Moyal coefficients [0,1]
+ax_01 = fig.add_subplot(2, 2, 2, projection='3d')
+
+# kmc[2,...] i.e, power [0,1] (transpose, python stores arrays transposed)
+ax_01.contour3D(X_1, X_2, kmc[2,idx0:idx1,idx0:idx1].T /5, 50, cmap='Greens',alpha=0.5)
+ax_01.contour3D(X_1, X_2, Y_2_pred.reshape(X_1.shape), 50, cmap='Blues')
+ax_01.set_title(r'K−M coefficient [0,1]');
+
+
+# the Kramers−Moyal coefficients [2,0]
+ax_10 = fig.add_subplot(2, 2, 3, projection='3d')
+
+# kmc[4,...] i.e, power [2,0] (transpose, python stores arrays transposed)
+ax_10.contour3D(X_1, X_2, kmc[4,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens',alpha=0.5)
+ax_10.contour3D(X_1, X_2, V_1_pred.reshape(X_1.shape), 50, cmap='Blues')
+ax_10.set_title(r'K−M coefficient [2,0]');
+
+
+# the Kramers−Moyal coefficients [0,2]
+ax_11 = fig.add_subplot(2, 2, 4, projection='3d')
+
+# kmc[5,...] i.e, power [0,2] (transpose, python stores arrays transposed)
+ax_11.contour3D(X_1, X_2, kmc[5,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens',alpha=0.5)
+ax_11.contour3D(X_1, X_2, V_2_pred.reshape(X_1.shape), 50, cmap='Blues')
+
+ax_11.set_title(r'K−M coefficient [0,2]');
+# Rotate views and add labels
+ax_00.view_init(30, 20); ax_01.view_init(30, 20); ax_10.view_init(30, 20); ax_11.view_init(30, 20)
+ax_00.set_xlabel(r'$y_1$'); ax_01.set_xlabel(r'$y_1$'); ax_10.set_xlabel(r'$y_1$'); ax_11.set_xlabel(r'$y_1$')
+ax_00.set_ylabel(r'$y_2$'); ax_01.set_ylabel(r'$y_2$'); ax_10.set_ylabel(r'$y_2$'); ax_11.set_ylabel(r'$y_2$')
+
+plt.show()
+
+
+# %%
+# %%
+# %%
 # %%
 # now fit model using multiple datasets
 config = dynamics_io.load_dynamics_config()
@@ -193,6 +205,7 @@ for ds_name  in list_of_datasets:
     feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
 
     data_all, u_list = rh.get_X_by_flow(feats_proj,ds_name)
+    num_flow = len(u_list)
     del feats_proj # free up memory
 
     centers = []
@@ -207,9 +220,16 @@ for ds_name  in list_of_datasets:
 
         idx0 = 3
         idx1 = -3
+        centers_ = [centers[j][i][idx0:idx1] for i in range(ndim)]
+        X_1, X_2 = np.meshgrid(*centers_)
 
         f_KM_temp = np.array((kmc[1,idx0:idx1,idx0:idx1].T,
                               kmc[2,idx0:idx1,idx0:idx1].T)).T/dt
+        
+        fig, ax = plt.subplots()
+        ax.streamplot(X_1,X_2,f_KM_temp[:,:,0].T,f_KM_temp[:,:,1].T)
+        plt.show()
+
         D_KM_temp = np.array((kmc[4,idx0:idx1,idx0:idx1].T,
                               kmc[5,idx0:idx1,idx0:idx1].T)).T/dt
 
@@ -265,7 +285,7 @@ u_train = np.concatenate(u_train_list)
 u_test = np.concatenate(u_test_list)
 # %%
 
-feature_lib = ps.PolynomialLibrary(degree=5, include_bias=True)
+feature_lib = ps.PolynomialLibrary(degree=4, include_bias=True)
 parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
     parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
@@ -293,7 +313,6 @@ diffModel.print()
 
 print('Coefficient of determination (R^2) for diffusion coefficient model on test set: %f' %diff_R2)
 # %%
-myModel = [driftModel,diffModel]
 
 pplane_xlim = [-4,4]
 bin_xlim = [-5,5]
@@ -313,9 +332,10 @@ plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 
 
 
 # %%
-u = 5.0
+u = 5.83
 f = model_eval.vector_field_function(driftModel)
 D = model_eval.vector_field_function(diffModel)
+myModel = [f,D]
 f1 = model_eval.vector_field_component(f,0)
 f2 = model_eval.vector_field_component(f,1)
 D1 = model_eval.vector_field_component(D,0)
@@ -329,13 +349,14 @@ bin_min = [bins[i][0] for i in range(ndim)]
 
 mesh = fipy.Grid2D(dx=dx[0], dy=dx[1], nx=Nbins[0], ny=Nbins[1])
 x, y = mesh.cellCenters
+
 x_ = x.reshape((Nbins[1],Nbins[0]))+bin_min[0]
 y_ = y.reshape((Nbins[1],Nbins[0]))+bin_min[1]
-f1_vals = f1([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
-f2_vals = f2([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
+f1_vals = f1([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
+f2_vals = f2([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
 f_vals = np.array(np.concatenate([f1_vals,f2_vals]))
-D1_vals = D1([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
-D2_vals = D2([x_,y_],u)[None,:].reshape(1,Nbins[1],Nbins[0])
+D1_vals = D1([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
+D2_vals = D2([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
 D_vals = np.array(np.concatenate([D1_vals,D2_vals]))
 print(f_vals.shape)
 
@@ -368,28 +389,39 @@ fig, ax = plt.subplots()
 ax.pcolormesh(divD[1])
 
 # %%
+p = fipy.CellVariable(mesh=mesh, name=r"$P$", value = 1/np.prod(Nbins))
+
+# psi = f(x) - div (D(x))
 f_vals = f_vals.reshape(2,-1)
 D_vals = D_vals.reshape(2,-1)
 divD = divD.reshape(2,-1)
-
-p = fipy.CellVariable(mesh=mesh, name=r"$P$", value = 1/(Nbins[0]*Nbins[1]))
-
-# psi = f(x) - div (D(x))
 psi = fipy.CellVariable(mesh=mesh, value = [f_vals[0]-divD[0], f_vals[1]-divD[1]])
-D = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
+D_ = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
 
-eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D,var=p)
-eq.sweep(var=p)
+eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D_,var=p)
+
+res_tol = 1e-8
+stop_solve = False
+sweep_count = 1
+
+while not stop_solve:
+    res = eq.sweep(var=p)
+    print('Sweep count:',sweep_count,',  Residual:',res)
+    if res < res_tol:
+        stop_solve = True
+        print('Converged')
+    sweep_count += 1
+
 
 p_fit = p.value.reshape(Nbins[1],Nbins[0])
 C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=1),dx=dx[1])
 p_sol = p_fit/C
 # %%
 fig, ax = plt.subplots()
-x0 = 5
-y0 = 5
-Nx = Nbins[0]-5
-Ny = Nbins[1]-5
+x0 = 0
+y0 = 0
+Nx = Nbins[0]-0
+Ny = Nbins[1]-0
 p_sol_ = p_sol[x0:Ny,y0:Nx]
 C_ = np.trapz(np.trapz(p_sol_, dx=dx[0], axis=1),dx=dx[1])
 p_sol_ = p_sol_/C_
@@ -419,7 +451,20 @@ for ds_name in list_of_datasets:
 
     for j in range(num_flow): # get bins and centers for data at high and low flow    
         print('**** Shear stress u =',u_list[j],'dyn/cm^2 **** \n')
-        plot_tuple = model_analysis.run_model_analysis_2D(myModel,data_all[j],bins,centers,u_list[j],args=plt_args)
+        _, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(myModel,
+                                                                       data_all[j],
+                                                                       u_list[j],
+                                                                       PCs,
+                                                                       bins,
+                                                                       np.linspace(*pplane_xlim,50),
+                                                                       np.linspace(*pplane_ylim,50),
+                                                                       use_fipy=False)
+        sup_title = fig2._suptitle.get_text()
+        sup_title = ds_name+', '+str(u_list[j])+' dyn/cm$^2$ \n'+sup_title
+                                                                         
+        fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(),y = 1.15)
+        plt.show()
+        
 
 
 # %%
