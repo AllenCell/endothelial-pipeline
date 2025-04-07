@@ -17,12 +17,13 @@ def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     return config_data
 
 # dataset methods
-def get_available_datasets() -> List[str]:
+def get_available_datasets(verbose: bool = True) -> List[str]:
     datasets = []
     config = load_config()
     for dataset in config:
         datasets.append(dataset['name'])
-        print(dataset['name'])
+        if verbose:
+            print(dataset['name'])
     return datasets
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
@@ -163,7 +164,6 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
             return flow
     print(f"Frame {frame} not found in flow list.")
     return None
-    
 
 def get_dim_map(dim_order: str) -> dict:
 
