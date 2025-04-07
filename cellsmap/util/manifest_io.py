@@ -191,7 +191,7 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
     '''
     Get descriptive metadata for each dataset present in the DataFrame df.
 
-    Describes the experimental conditions for each dataset, e.g., "48H low flow (date)".
+    Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2".
     
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
