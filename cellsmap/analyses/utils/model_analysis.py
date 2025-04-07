@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from typing import Tuple, Callable
 from sklearn.pipeline import Pipeline
 
-from cellsmap.analyses.utils.io import manifest_io as mio
+from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
 from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
 from cellsmap.analyses.utils.numerics import gen_potential as gp
