@@ -41,6 +41,7 @@ class CuboidBounds():
 class DataDrivenFlowField3D():
     def __init__(self, verbose: bool=False) -> None:
         self._time_step = 2
+        self._landscape = {}
         self._verbose = verbose
         self._level_sparsity = 2
         self._grid_spacing = 0.05
@@ -193,12 +194,12 @@ class DataDrivenFlowField3D():
         plt.tight_layout()
         vb.save_plot(fig, filename=self.get_fig_folder()+f"landscape_pc_{condition_key}", dpi=72)
 
-        self._landscape = {
+        self._landscape.update({
             condition_key: {
                 "velocities": (dUis, dVis, dQis),
                 "grid": (xgrid, ygrid, zgrid)
             }
-        }
+        })
 
         if save_image_data:
             imgdata = self.get_imagedata_from_lasdscape(condition=condition_key)
@@ -297,19 +298,27 @@ class DataDrivenFlowField3D():
             print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
         return speed
 
-    def simulate_particles_in_landscape(self, condition, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
+    def simulate_particles_in_landscape(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
+        # condition can be either a string or a list of string that serve
+        # as a secheduler for changes between landspace.
+
+        if isinstance(condition, str):
+            condition = [condition] * target_nframes
 
         coords = initial_coords
         if coords is None:
-            coords = self.get_random_early_points(condition=condition, npoints=npoints)
+            coords = self.get_random_early_points(condition=condition[0], npoints=npoints)
 
-        condition = condition.replace(" ", "_")
+        start_condition = condition[0].replace(" ", "_")
 
-        assert condition in self._landscape.keys(), "Landscape for this condition has not been yet computed."
+        assert start_condition in self._landscape.keys(), f"Landscape for condition {start_condition} has not been yet computed."
 
         tp = 0
-        filename_prefix = self.get_vtk_folder() + condition
-        save_points_as_polydata(coordinates=coords, file_name=f"{filename_prefix}_{tp:05}.vtk")
+        if filename_prefix is None:
+            filename_prefix = start_condition
+
+        output_path = self.get_vtk_folder() + filename_prefix
+        save_points_as_polydata(coordinates=coords, file_name=f"{output_path}_{tp:05}.vtk")
 
         sim_speed = self.calculate_simulation_speed(target_nframes=target_nframes)
 
@@ -321,9 +330,11 @@ class DataDrivenFlowField3D():
             coords_new = []
             for r in coords:
                 x, y, z = r
-                vx = self._landscape[condition]["velocities"][0][int(x), int(y), int(z)]
-                vy = self._landscape[condition]["velocities"][1][int(x), int(y), int(z)]
-                vz = self._landscape[condition]["velocities"][2][int(x), int(y), int(z)]
+                # TODO: get rid of condition_key after values are standardized
+                condition_key = condition[tp].replace(" ", "_")
+                vx = self._landscape[condition_key]["velocities"][0][int(x), int(y), int(z)]
+                vy = self._landscape[condition_key]["velocities"][1][int(x), int(y), int(z)]
+                vz = self._landscape[condition_key]["velocities"][2][int(x), int(y), int(z)]
                 x_new = x + sim_speed * vx
                 y_new = y + sim_speed * vy
                 z_new = z + sim_speed * vz
@@ -336,7 +347,7 @@ class DataDrivenFlowField3D():
 
             evolution.append(np.array(coords_new))
             coords = np.array(coords_new).copy()
-            save_points_as_polydata(coordinates=coords, file_name=f"{filename_prefix}_{tp:05}.vtk")
+            save_points_as_polydata(coordinates=coords, file_name=f"{output_path}_{tp:05}.vtk")
 
 
         mean_evolution = []
@@ -348,66 +359,6 @@ class DataDrivenFlowField3D():
                 zc = self._bounds.zmin+self._grid_spacing*zc
             mean_evolution.append([xc, yc, zc])
         mean_evolution = np.array(mean_evolution)
-        save_points_as_polydata(coordinates=mean_evolution, file_name=f"{filename_prefix}_mean.vtk")
+        save_points_as_polydata(coordinates=mean_evolution, file_name=f"{output_path}_mean_trajectory.vtk")
 
         return mean_evolution
-
-def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, grid, dUis2, dVis2, dQis2, npoints, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, target_nframes=100, offset=5, clusters=0, verbose=False):
-    coord = [
-        [offset+(((vmax-vmin)/grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-    ] for _ in range(npoints)]
-    coord = np.array(coord)
-    if verbose:
-        print(coord.shape)
-
-    tp = 0
-    save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
-    
-    sim_speed = (48*60/5)/100 * speed
-    if verbose:
-        print(f"Crops' speed in the simulation for the target number of frames: {sim_speed:.3f} pc units/min")
-    
-    eps = 2
-    for tp in range(1, target_nframes):
-        
-        coord_new = []
-        for r in coord:
-            x, y, z = r            
-            vx = dUis[int(x), int(y), int(z)]
-            vy = dVis[int(x), int(y), int(z)]
-            vz = dQis[int(x), int(y), int(z)]
-            if tp > transition:
-                vx = dUis2[int(x), int(y), int(z)]
-                vy = dVis2[int(x), int(y), int(z)]
-                vz = dQis2[int(x), int(y), int(z)]
-
-            x_new = x + sim_speed * vx
-            y_new = y + sim_speed * vy
-            z_new = z + sim_speed * vz
-    
-            x_new = (x_new + eps) % ((xmax-xmin)/grid_spacing) - eps
-            y_new = (y_new + eps) % ((ymax-ymin)/grid_spacing) - eps
-            z_new = (z_new + eps) % ((zmax-zmin)/grid_spacing) - eps
-    
-            coord_new.append([x_new, y_new, z_new])
-        
-        coord = np.array(coord_new).copy()
-        save_points_as_polydata(coordinates=coord, file_name=f"{filename_prefix}_{tp:05}.vtk")
-
-    if clusters > 0:
-        n_clusters = clusters
-        model = skcluster.AgglomerativeClustering(n_clusters=n_clusters)
-        attractors = model.fit_predict(coord)
-
-    pc3val = 0.0
-    xgrid, ygrid, zgrid = [grid[u] for u in range(3)]
-    zgridmin = pc3val-0.8*grid_spacing
-    zgridmax = pc3val+1.2*grid_spacing
-    valids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax)); print(len(valids[0]))
-    fig, ax = plt.subplots(1,1, figsize=(6,6))
-    ax.quiver(xgrid.ravel()[valids], ygrid.ravel()[valids], dUis.ravel()[valids], dVis.ravel()[valids], scale=50)
-    if clusters == 0:
-        attractors = np.zeros_like(coord[:,1])
-    ax.scatter(xmin+grid_spacing*coord[:,0], ymin+grid_spacing*coord[:,1], c=attractors)
-    ax.set_aspect("equal")
-    plt.show()

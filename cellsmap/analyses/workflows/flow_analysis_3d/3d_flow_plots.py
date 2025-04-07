@@ -2,6 +2,7 @@
 # This code generates the figures presented APS March Meeting 2025
 
 #%%
+import pickle
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,6 +14,11 @@ from cellsmap.analyses.workflows.flow_analysis_3d import tools
 #%% 
 df = pd.read_csv("/allen/aics/assay-dev/users/Erin/endo_features/pca_ref_features.csv", index_col=0)
 df.head()
+
+# for index, row in df.iterrows():
+#     df.loc[index, "description"] = row.description.replace(" ", "").replace("(","").replace(")","").replace("//","")
+df["description"] = df["description"].str.replace(" ", "_", regex=False).str.replace("(", "", regex=False).str.replace(")", "", regex=False).str.replace("/", "", regex=False)
+print(df.description.unique())
 
 #%%
 # Create output folder if does not exist yet
@@ -53,6 +59,10 @@ print(df.shape)
 X = df[[str(u) for u in range(8)]].values
 reducer = skdecomp.PCA(n_components=3)
 Xt = reducer.fit_transform(X)
+
+# Save PCA model
+with open(Path(vtk_savedir).parent/"pca_model.pkl", "wb") as file:
+    pickle.dump(reducer, file)
 
 #%%
 # Create unique ID for each crop
@@ -129,9 +139,11 @@ DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_sav
 DDFF.set_dataframe(df, identifier="CropId")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
-DDFF.compute_landscape(condition="48hr High")
-DDFF.simulate_particles_in_landscape(condition="48hr High")
-
+for condition in df.description.unique():
+    DDFF.compute_landscape(condition=condition)
+    DDFF.simulate_particles_in_landscape(condition=condition)
+DDFF.simulate_particles_in_landscape(condition=["48hr High"]*50+["48hr Low"]*50, filename_prefix="High_to_Low")
+DDFF.simulate_particles_in_landscape(condition=["48hr Low"]*50+["48hr High"]*50, filename_prefix="Low_to_High")
 exit()
 
 #%%
