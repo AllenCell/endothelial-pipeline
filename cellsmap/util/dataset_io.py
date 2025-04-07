@@ -5,7 +5,7 @@ import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
-from typing import List, Dict, Any, Union, Tuple
+from typing import List, Dict, Any, Union, Tuple, Optional
 
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
@@ -73,21 +73,53 @@ def get_specific_channel_order(dataset_name:str):
     bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
     return gfp_index, bf_index
 
-def get_number_of_positions(dataset_name:str) -> int:
+def get_total_number_of_positions(dataset_name:str) -> int:
+    """
+    n positions is the product of n_scenes x n_positions_per_scene
+    """
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['n_positions']
+    return dataset_info['n_total_positions']
 
-def load_dataset(dataset_name:str, channels:list, time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
-    path = get_zarr_path(dataset_name)
-    reader = BioImage(path)
-    available_channels = reader.channel_names
-    channels_index = [available_channels.index(c) for c in channels]
-    assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
-    reader.set_resolution_level(level)
-    if time_end < 0:
-        time_end = get_dataset_duration_in_frames(dataset_name)-1
-    img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
-    return img
+def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
+    data_dir = get_zarr_path(dataset_name)
+    dataset = {}
+
+    if zarr_name:
+        filepath = Path(data_dir) / zarr_name
+        assert filepath.exists(), f'Zarr file {filepath} does not exist.'
+        filepath_list = [filepath]
+    else:
+        filepath_list = [fp for fp in Path(data_dir).glob('*.zarr')]
+
+    for filepath in filepath_list:
+        reader = BioImage(filepath)
+        available_channels = reader.channel_names
+        channels_index = [available_channels.index(c) for c in channels]
+        assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
+        reader.set_resolution_level(level)
+        if time_end < 0:
+            time_end = get_dataset_duration_in_frames(dataset_name)-1
+        img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
+        dataset[filepath.name] = img
+    return dataset
+
+def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
+    """
+    position can be either an integer or a string.
+    If it is a string then it must the name of a zarr file found in
+    dataset (e.g. a folder ending with the .ome.zarr extension).
+    If it is an integer then it will be used as the index to
+    get the zarr file name from the dataset.
+    """
+    if isinstance(position, int):
+        data_dir = get_zarr_path(dataset_name)
+        filepath_list = sorted([fp for fp in Path(data_dir).glob('*.zarr')])
+        zarr_name = filepath_list[position].name
+    else:
+        zarr_name = position
+    img_dict = load_dataset(dataset_name, channels, time_start, time_end, level, zarr_name)
+    img_dask_arr = img_dict[zarr_name]
+    return img_dask_arr
 
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
@@ -105,6 +137,34 @@ def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['flow']
 
+def get_flow_change_frame(dataset_name:str) -> int:
+    '''
+    Get frame number at which flow changes in dataset ds_name.
+    
+    Inputs:
+    - dataset_name: str, name of dataset to get flow change frame for
+        - This string must match the dataset name in data_config.yaml
+    
+    Outputs:
+    - change_frame: int, frame number at which flow changes in dataset dataset_name
+    '''
+    # load config for dataset from data_config.yaml
+    flow_info = get_flow_info(dataset_name)
+
+    # get frame number at which flow changes
+    change_frame = flow_info[0][1]
+
+    return change_frame
+
+def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
+    flow_list = get_flow_info(dataset_name)
+    for t_start, t_stop, flow in flow_list:
+        if t_start <= frame <= t_stop:
+            return flow
+    print(f"Frame {frame} not found in flow list.")
+    return None
+    
+
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
@@ -119,6 +179,24 @@ def get_original_path(dataset_name: str) -> Path:
     """
     dataset_info = get_dataset_info(dataset_name)
     return Path(dataset_info['original_path'])
+
+def get_barcode(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['barcode']
+
+def get_microscope(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['microscope']
+
+def get_fmsid(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['fmsid']
+
+def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
 
 # model methods
 
@@ -143,67 +221,3 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
-
-# dynamics learning config functions
-
-def get_available_dynamics_configs():
-    config = load_config('dynamics')
-    for inputs in config:
-        print(inputs['name'])
-
-def get_dynamics_inputs(config_name: str) -> tuple:
-    '''Unpack the dynamics config file to get the necessary inputs for the dynamics learning pipeline (analyses/workflows/fit_SDE_model.py).'''
-    dynamics_config = None
-
-    # load the specific dict for the config_name
-    for config in load_config('dynamics'):
-        if config['name'] == config_name:
-            dynamics_config = config
-            break
-    
-    if dynamics_config is None:
-        raise ValueError(f"Configuration with name '{config_name}' not found.")
-        
-    dt = dynamics_config['dt'] # time interval between frames (units depend on the data & the selected value)
-
-    PCA = dynamics_config['PCA'] # if "yes", perform PCA on data before fitting dynamical model
-    ndim = dynamics_config['ndim'] # number of principal components to keep if PCA is "yes"
-    if PCA == 'yes':
-        feats_to_analyze = None
-        PCA = True
-    else: # if PCA is "no", feats_to_analyze is a list of which of the original features to analyze (max 2 features)
-        feats_to_analyze = dynamics_config['feats_to_analyze']
-        PCA = False
-
-    center_traj = True if dynamics_config['center_traj']=='yes' else False # if "yes", the initial conditions of all trajectories are centered at 0 before splitting (or not) and fitting dynamical model
-    
-    split_flow = dynamics_config['split_flow'] # if "yes", the data is split into high and low flow regimes before fitting dynamical model
-    if split_flow == 'yes':
-        split_flow = True
-        split_frame = dynamics_config['split_frame'] # frame(s) # at which to split the data into the flow regimes listed below in split_order
-        split_order = dynamics_config['split_order'] # temporal order of the flow regimes (list of strings)
-    else:
-        split_flow = False
-        split_frame = None
-        split_order = None
-
-    metadata_cols = dynamics_config['metadata_cols'] # list of names of metadata columns in the data (first is trajectory index, second is frame #)
-
-    N = dynamics_config['N_bins'] # number of grid points in each dimension (int if 1D, tuple if 2D)
-    auto_bin = dynamics_config['auto_bin'] # if "yes", automatically determine the number of bins for each dimension
-    auto_bin = True if auto_bin == 'yes' else False
-    bin_limits = dynamics_config['bin_limits'] # limits of the grid in each dimension (None if auto_bin True, else list of tuples)
-
-    nf = dynamics_config['poly_degree_drift'] # highest order of the polynomial terms in SINDy library for drift (int)
-    ns = dynamics_config['poly_degree_diffusion'] # highest order of the polynomial terms in SINDy library for diffusion (int)
-
-    savedir = dynamics_config['savedir'] # directory where model outputs will be saved
-
-    logging = dynamics_config['logging'] # if "yes", log results to a file
-    if logging == 'yes':
-        log_file = savedir+'logs/langevin_regression_log.txt'
-    else:
-        log_file = None
-
-    return metadata_cols, PCA, ndim, dt, feats_to_analyze, center_traj, split_flow, split_frame, split_order, N, auto_bin, bin_limits, nf, ns, savedir, log_file
-

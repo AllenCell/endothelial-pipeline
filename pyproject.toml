@@ -7,26 +7,26 @@ authors = [
 ]
 
 dependencies = [
-    "bioio==1.2.0",
-    "bioio-base>=1.0.1",
-    "bioio-nd2>=1.0.0",
+    "bioio>=1.4.0",
+    "bioio-base>=1.0.5",
+    "bioio-nd2>=1.0.1",
     "bioio-ome-tiff>=1.0.1",
-    "bioio-ome-zarr>=1.1.0",
-    "bioio-sldy>=1.0.2",
-    "cyto-dl>=0.4.0",
+    "bioio-ome-zarr>=1.1.1",
+    "bioio-sldy>=1.0.3",
+    "bioio-tifffile>=1.0.1",
+    "fipy>=3.4.5",
     "fire>=0.6.0",
-    "fplanck>=0.2.2",
     "ipykernel>=6.29.5",
     "itkwasm==1.0b171",
     "jupyter>=1.0.0",
     "matplotlib>=3.10",
-    "monai",
     "ngff-zarr==0.8.2",
     "notebook==7.2.1",
     "numdifftools==0.9.41",
     "numpy>=1.2.3",
     "pandas==2.2.2",
     "pathlib>=1.0.1",
+    "pysindy>=1.7.5",
     "pytest>=8.2.2",
     "scikit-image==0.22.0",
     "scikit-learn==1.5.1",
@@ -35,6 +35,7 @@ dependencies = [
     "sympy==1.13.1",
     "tqdm>=4.66.5",
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
+    "vtk>=9.4.1", 
     "wasmtime<22.0",
 ]
 requires-python = "<3.11,>=3.10"
@@ -43,9 +44,13 @@ license = {text = "AISL"}
 
 [project.optional-dependencies]
 optional = [
+    "aicsfiles>=7.10.0", # internal package
+]
+ml_workflows = [
+    "cyto-dl>=0.4.0",
+    "monai",
     # pytorch is an optional dependency because it does not install on non-linux machines
     "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
-    "aicsfiles>=7.10.0", # internal package
 ]
 
 [build-system]
@@ -71,6 +76,11 @@ module = [
     "cyto_dl",
     "cyto_dl.api",
     "cyto_dl.utils",
+    "fipy",
+    "kramersmoyal",
+    "matplotlib",
+    "matplotlib.gridspec",
+    "pysindy",
     "scipy",
     "scipy.sparse",
     "scipy.linalg",

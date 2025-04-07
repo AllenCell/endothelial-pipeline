@@ -1,11 +1,10 @@
 # %% Import libraries
 from pathlib import Path
-import importlib
-import flow_calculator
+from cellsmap.analyses.flow import flow_calculator
 import concurrent
 from pandas import DataFrame
-importlib.reload(flow_calculator)
 from matplotlib.gridspec import GridSpec
+from matplotlib.projections.polar import PolarAxes
 
 # %% Make list of datasets to analzye
 dataset_list = ['20240305_T01_001', '20240917_20X_48hr', '20241016_20X']
@@ -26,8 +25,8 @@ if __name__ == '__main__':
 
     else:
         for dataset_name in dataset_list:
-            executor = None
-            out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t, executor, ncores, debug)
+            no_executor = None
+            out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t, no_executor, ncores, debug)
             out_path_list.append(out_path)
 
 # %% Save the locations of the outputs
@@ -228,7 +227,7 @@ for i in range(num_crops_to_plot):
 
 # %% Below are some tests:
 # first, a quick test of the divergence and curl functions:
-diverg_curl_test = flow_calculator.vector_field_examples.get_divergence_curl_example()
+diverg_curl_test = flow_calculator.get_divergence_curl_example() # vector field example
 
 # %% Create some synthetic data to test the above vector field plotting:
 synth_img = flow_calculator.generate_synthetic_data()
@@ -249,7 +248,8 @@ ax1.imshow(flow_graphs, cmap='gray')
 ax1.set_title(f'''Flow Field (synthetic data)\nMean (True) angle: {mean_angle_deg:.2f} deg (135 deg)\nMean (True) mag: {mean_mag:.2f} px (sqrt(2) px)''',
               fontsize=10)
 
-ax2 = fig.add_subplot(axs[1], projection='polar')
+ax2 = fig.add_subplot(axs[1], projection='polar') 
+assert isinstance(ax2, PolarAxes)
 ax2.arrow(x=np.deg2rad(mean_angle_deg), y=0, dx=0, dy=0.9, head_width=0.1, head_length=0.15, length_includes_head = True, lw=2, color='r', zorder=10)
 # create minor ticks on the polar plot
 [ax2.plot((theta, theta), (0.95, 1), c='k', lw=0.5, zorder=0) for theta in np.linspace(0, 2*np.pi, 36+1)]
