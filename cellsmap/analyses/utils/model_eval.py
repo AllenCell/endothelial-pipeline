@@ -183,7 +183,7 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, 
     # get Div(D)
     divD = np.zeros_like(f_vals)
     for i in range(D_vals.shape[0]):
-        divD[i] = np.gradient(D_vals[i], dx[i], axis=i, edge_order=2)
+        divD[i] = np.gradient(D_vals[i], dx[i], axis=(i+1)%2, edge_order=2)
 
     # reshape arrays for fipy
     f_vals = f_vals.reshape(2,-1)
@@ -202,12 +202,11 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, 
     keep_solving = True
     while keep_solving:
         res = eq.sweep(var=p) # sweep to solve the PDE
-        if res < 1e-6: # if residual is small, stop solving, else, sweep again
+        if res < 1e-8: # if residual is small, stop solving, else, sweep again
             keep_solving = False
 
     p_fit = p.value.reshape(Nbins[1],Nbins[0])
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    p_fit = p_fit.T/np.sum(p_fit) # transpose to get expected shape for downstream visualization, normalize probability distribution
-
-    return p_fit
+    C = np.trapz(np.trapz(p_fit, dx=dx[0],axis=1), dx=dx[1]) # integrate over the probability distribution to normalize
+    return p_fit/C
 

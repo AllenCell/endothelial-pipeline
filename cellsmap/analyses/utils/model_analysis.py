@@ -16,7 +16,7 @@ def model_data_comparison_one_dataset(model:list[Callable],
                                       bins:list, 
                                       pplane_xvec:np.ndarray,
                                       pplane_yvec:np.ndarray,
-                                      use_fipy:bool=False) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
+                                      use_fipy:bool=True) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
     '''
     Qualitative evaluation of fit SDE model by taking one dataset at one flow condition,
     generating phase portrait of the drift term at shear stress = shear stress from data, and comparing 
@@ -58,7 +58,6 @@ def model_data_comparison_one_dataset(model:list[Callable],
     if use_fipy:
         p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
     else:
-        centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(len(bins))]
         p_fit = model_eval.get_stationary_probability(f,D,bins,u)
 
     # get "stationary" distribution from data
@@ -281,7 +280,7 @@ def run_gen_potential_analysis(model:list[Callable],
                                downsample_quiver:int,
                                normed:bool, 
                                fig_savedir:str,
-                               use_fipy:bool=False) -> None:
+                               use_fipy:bool=True) -> None:
     '''
     Run generalized potential energy landscape analysis for a fit SDE model. This is a qualitative evaluation of the model
     by plotting the generalized potential energy landscape and its gradient/flux decomposition at different shear stresses.

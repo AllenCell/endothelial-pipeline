@@ -4,14 +4,10 @@ import matplotlib.pyplot as plt
 import pysindy as ps
 import numdifftools as nd
 
-import cellsmap.analyses.utils.io as eaio
-import cellsmap.analyses.utils.regression as eareg
-import cellsmap.analyses.utils.viz as eaviz
-import cellsmap.analyses.utils.model_analysis as model_analysis
-import cellsmap.analyses.utils.model_eval as model_eval
-
-import cellsmap.analyses.utils.pplane as pplane
-import cellsmap.analyses.utils.gen_potential as gp
+from cellsmap.analyses.utils.io import manifest_io as mio, dynamics_io
+from cellsmap.analyses.utils import manifest_pca, regression_helper as rh, model_analysis, model_eval
+from cellsmap.analyses.utils.viz import manifest_viz, pplane
+from cellsmap.analyses.utils.numerics import gen_potential as gp
 
 import sys
 sys.path.append('//allen/aics/users/erin.angelini/git-repos/KramersMoyal')
@@ -21,38 +17,32 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score
 # %%
-path_to_data = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
-df = eaio.add_metadata_from_path(eaio.load_array(path_to_data))
+# load manifest to DataFrame with metadata
+df = mio.load_manifest_to_df()
+
+# fit PCA to data
+pca = manifest_pca.fit_pca(df, num_pcs=8)
 df.head()
-list_of_datasets = eaio.get_list_of_datasets(df,'group',verbose=True)
+list_of_datasets = mio.get_list_of_datasets(df,verbose=False)
 # %%
-df_ref = eaio.get_PCA_reference(df) # dataset for getting PCA reference
-metadata_col = ['filename_or_obj','T','start_x','start_y','group','pca_ref','FOV_ID']
-df_ref_ = eaio.rm_metadata(df_ref,metadata_col) # remove metadata columns
-pca = eaio.get_PCA(df_ref_)
-del df_ref_ # free up memory
+################### Visualize PCA results ###################
+# plot explained variance ratio of PCA components
+fig, _ = manifest_viz.plot_explained_variance(pca['pca'].explained_variance_ratio_)
+
+# plot top 3 principal components of feature data vs. frame number
+fig, _ = manifest_viz.plot_top_3_PCs_alldata(df,pca)
 # %%
 ds_ID = 1
-my_mv = list_of_datasets[ds_ID]
-mv_name = eaio.get_dataset_name(my_mv)
-feats_proj = eaio.project_PCA_one_dataset(df,pca, 'group', my_mv, metadata_cols=metadata_col)
+ds_name = list_of_datasets[ds_ID]
+feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
 PCs = [0,1]
-data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
+data_all, u_list = rh.get_X_by_flow(feats_proj,ds_name,verbose=True)
 num_flow = len(u_list)
-
-fig1,ax1 = eaviz.plot_top_3_PCs(feats_proj)
-ax1[0].set_ylim([-1.75,0.075])
-ax1[1].set_ylim([-0.05,1.05])
-# ax1[2].set_ylim([-1.5,-0.75])
-
-fig2,ax2 = eaviz.plot_PCA_projection(feats_proj,mv_name)
-ax2.set_xlim([-1.75,0.075])
-ax2.set_ylim([-0.05,1.05])
 
 # %%
 ndim = len(PCs)
 # Choose the size of your target space in two dimensions 
-bins = 35*np.ones(ndim, dtype = int)
+bins = 15*np.ones(ndim, dtype = int)
 
 # Introduce the desired orders to calculate, but in 2 dimensions
 # Please keep the [0,0] term. It is the normalisation. 
@@ -67,18 +57,19 @@ bw = 0.1
 
 # Calculate the Kramers−Moyal coefficients
 flow_ID = 0
-feats_proj_ = np.array(data_all[flow_ID])
+X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data_all[flow_ID],feat_cols=[str(i) for i in PCs])
 
-kmc, edges = km.km(feats_proj_, bw = bw, bins = bins, 
-                    powers = powers,multi_traj=True)
+# %%
+kmc, edges = km.km(X_list, dX_list, bw = bw, bins = bins, 
+                    powers = powers, multi_traj=True)
 # %%
 # Initialise the figure for 3d ploting
 fig = plt.figure(figsize = (12,8))
 
 
 #lets fix a range where we have good statistics and generate a meshgrid
-idx0 = 8
-idx1 = -5
+idx0 = 3
+idx1 = -3
 X_1, X_2 = np.meshgrid(edges[0][idx0:idx1],edges[1][idx0:idx1])
 
 
@@ -135,7 +126,7 @@ X = np.array([X_1.flatten(),X_2.flatten()]).T
 # polynomial regression on Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
 Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
 
-f1_mdl = Pipeline([('poly', PolynomialFeatures(degree=4)),
+f1_mdl = Pipeline([('poly', PolynomialFeatures(degree=5)),
                    ('linear', LinearRegression())]).fit(X,Y_1.flatten())
 
 Y_1_pred = f1_mdl.predict(X)
@@ -145,27 +136,29 @@ print('R^2 for polynomial regression on Y_1:',r2_f1)
 # linear regression on Y_2 = kmc[2,idx0:idx1,idx0:idx1].T/5
 Y_2 = kmc[2,idx0:idx1,idx0:idx1].T/5
 
-f2_mdl = LinearRegression().fit(X,Y_2.flatten())
+f2_mdl = Pipeline([('poly', PolynomialFeatures(degree=2)),
+                     ('linear', LinearRegression())]).fit(X,Y_2.flatten())
 
 Y_2_pred = f2_mdl.predict(X)
 r2_f2 = r2_score(Y_2.flatten(),Y_2_pred)
-print('R^2 for linear regression on Y_2:',r2_f2)
+print('R^2 for polynomial regression on Y_2:',r2_f2)
 
 
 # linear regression on V_1 = kmc[4,idx0:idx1,idx0:idx1].T/5
 V_1 = kmc[4,idx0:idx1,idx0:idx1].T/5
 
-D1_mdl = LinearRegression().fit(X,V_1.flatten())
+D1_mdl = Pipeline([('poly', PolynomialFeatures(degree=2)),
+                     ('linear', LinearRegression())]).fit(X,V_1.flatten())
 
 V_1_pred = D1_mdl.predict(X)
 r2_D1 = r2_score(V_1.flatten(),V_1_pred)
-print('R^2 for linear regression on V_1:',r2_D1)
+print('R^2 for polynomial regression on V_1:',r2_D1)
 
 
 # polynomial regression on V_2 = kmc[5,idx0:idx1,idx0:idx1].T/5
 V_2 = kmc[5,idx0:idx1,idx0:idx1].T/5
 
-D2_mdl = Pipeline([('poly', PolynomialFeatures(degree=3)),
+D2_mdl = Pipeline([('poly', PolynomialFeatures(degree=2)),
                    ('linear', LinearRegression())]).fit(X,V_2.flatten())
 
 V_2_pred = D2_mdl.predict(X)
@@ -176,8 +169,8 @@ print('R^2 for polynomial regression on V_2:',r2_D2)
 
 # %%
 # now fit model using multiple datasets
-PCs = [0,1]
-ndim = len(PCs)
+config = dynamics_io.load_dynamics_config()
+
 
 # list of training/test sets for each dataset
 # do this with dictionaries instead?
@@ -190,90 +183,66 @@ V_test_list = []
 u_train_list = []
 u_test_list = []
 
-Nbins = 35*np.ones(ndim, dtype = int)
+Nbins = 15*np.ones(ndim, dtype = int)
 dt = 5
 
-for ds_ID in range(4): 
-    print('**** Generating train/test sets for dataset',ds_ID,'**** \n')
-    my_mv = list_of_datasets[ds_ID]
-    mv_name = eaio.get_dataset_name(my_mv)
-    feats_proj = eaio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
+for ds_name  in list_of_datasets:
+    if ds_name in config['datasets_to_skip']:
+        continue 
+    print('**** Generating train/test sets for ',ds_name,'**** \n')
+    feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
 
-    data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
+    data_all, u_list = rh.get_X_by_flow(feats_proj,ds_name)
     del feats_proj # free up memory
-    num_flow = len(u_list)
-    if 0 in u_list: # right now, only using timepoints 300:450 of no flow
-        data_all_temp = []
-        for traj in data_all[0]:
-            data_all_temp.append(traj[300:450,:])
-        data_all = [data_all_temp]
-        u_traj = [u_traj[0][300:450]]
 
     centers = []
 
-    f_KM = []
-    D_KM = []
+    f_KM_ = []
+    D_KM_ = []
 
     for j in range(num_flow): # get bins and centers for data at high and low flow
-        feats_proj_ = np.array(data_all[j])
-        kmc, edges = km.km(feats_proj_, bw = bw, bins = Nbins, 
-                    powers = powers, multi_traj=True)
+        X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data_all[j],feat_cols=[str(i) for i in PCs])
+        kmc, edges = km.km(X_list, dX_list, bw = bw, bins = Nbins, powers = powers, multi_traj=True)
         centers.append(edges)
-        # # need to mask out areas with no data, km doesn't do this
-        # # get mask for bins with no data via histogram
-        # hist, _ = np.histogramdd(feats_proj_.reshape((-1,ndim)),bins=Nbins)
-        # mask = hist == 0
 
-        idx0 = 8
-        idx1 = -8
+        idx0 = 3
+        idx1 = -3
 
         f_KM_temp = np.array((kmc[1,idx0:idx1,idx0:idx1].T,
                               kmc[2,idx0:idx1,idx0:idx1].T)).T/dt
         D_KM_temp = np.array((kmc[4,idx0:idx1,idx0:idx1].T,
                               kmc[5,idx0:idx1,idx0:idx1].T)).T/dt
-        # set masked values to NaN
-        # f_KM_temp[mask] = np.nan
-        # D_KM_temp[mask] = np.nan
-        f_KM.append(f_KM_temp)
-        D_KM.append(D_KM_temp)
 
-    f_KM_noNAN = []
-    D_KM_noNAN = []
-    X_pts_noNAN = []
+        f_KM_.append(f_KM_temp)
+        D_KM_.append(D_KM_temp)
+
+    f_KM = []
+    D_KM = []
+    X_pts = []
 
     for j in range(num_flow):
         centers_ = [centers[j][i][idx0:idx1] for i in range(ndim)]
-        f_KM_noNAN_temp, X_pts_temp = eareg.masked_vector_field(f_KM[j], 
-                                                                np.array(np.meshgrid(*centers_)).T)
-        D_KM_noNAN_temp, _ = eareg.masked_vector_field(D_KM[j], np.array(np.meshgrid(*centers_)).T)
-        f_KM_noNAN.append(f_KM_noNAN_temp)
-        D_KM_noNAN.append(D_KM_noNAN_temp)
-        X_pts_noNAN.append(X_pts_temp)
+        f_KM_temp, X_pts_temp = rh.masked_vector_field(f_KM_[j],np.array(np.meshgrid(*centers_)).T)
+        D_KM_temp, _ = rh.masked_vector_field(D_KM_[j], np.array(np.meshgrid(*centers_)).T)
+        f_KM.append(f_KM_temp)
+        D_KM.append(D_KM_temp)
+        X_pts.append(X_pts_temp)
 
-    del f_KM, D_KM, centers, centers_ # free up memory
+    del f_KM_, D_KM_, centers, centers_ # free up memory
 
-    train_frac = 0.8
-    seed = 47
+    train_frac = 0.8   
+    X_train, X_test, Y_train, Y_test, V_train, V_test = rh.train_test_all(X_pts,f_KM,D_KM,train_frac=0.8)
 
-    # should write in generating u_train and u_test
-    X_train, X_test, Y_train, Y_test, V_train, V_test = eareg.train_test_all(X_pts_noNAN,f_KM_noNAN,
-                                                                            D_KM_noNAN,num_flow,
-                                                                            train_frac,seed,concat=True)
+    # get number of training and test points for each flow condition
+    N_tot = [X_pts[j].shape[0] for j in range(num_flow)]
+    N_train = [int(train_frac*N_tot[j]) for j in range(num_flow)]
+    N_test = [N_tot[j]-N_train[j] for j in range(num_flow)]
 
-    if num_flow == 1:
-        N_tot = X_pts_noNAN[0].shape[0]
-        N_train = int(train_frac*N_tot)
-        N_test = N_tot-N_train
-        u_train = u_list[0]*np.ones((N_train,1))
-        u_test = u_list[0]*np.ones((N_test,1))
-    else:
-        N_tot = [X_pts_noNAN[0].shape[0],X_pts_noNAN[1].shape[0]]
-        N_train = [int(train_frac*N_tot[0]),int(train_frac*N_tot[1])]
-        N_test = [N_tot[0]-N_train[0],N_tot[1]-N_train[1]]
-        u_train = np.concatenate((u_list[0]*np.ones((N_train[0],1)),u_list[1]*np.ones((N_train[1],1))))
-        u_test = np.concatenate((u_list[0]*np.ones((N_test[0],1)),u_list[1]*np.ones((N_test[1],1))))
+    # get corresponding flow condition for each training and test point
+    u_train = np.concatenate([u_list[j]*np.ones((N_train[j],1)) for j in range(num_flow)])
+    u_test = np.concatenate([u_list[j]*np.ones((N_test[j],1)) for j in range(num_flow)])
     
-    del X_pts_noNAN, f_KM_noNAN, D_KM_noNAN # free up memory
+    del X_pts, f_KM, D_KM # free up memory
 
     X_train_list.append(X_train)
     X_test_list.append(X_test)
@@ -286,8 +255,6 @@ for ds_ID in range(4):
 
     del X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test # free up memory
 
-
-# %%
 X_train = np.concatenate(X_train_list)
 X_test = np.concatenate(X_test_list)
 Y_train = np.concatenate(Y_train_list)
@@ -297,28 +264,8 @@ V_test = np.concatenate(V_test_list)
 u_train = np.concatenate(u_train_list)
 u_test = np.concatenate(u_test_list)
 # %%
-sigmoid_range = range(3,4)
 
-def make_sigmoid(n):
-    def _(x):
-        return 1/(1+np.exp(-n*x))
-    return _
-
-
-def make_sigmoid_string(n):
-    def _(x):
-        return '1/(1+exp(-'+str(n)+'*'+x+')'
-    return _
-
-sigmoid_funcs = [make_sigmoid(n) for n in sigmoid_range]
-func_names = [make_sigmoid_string(n) for n in sigmoid_range]
-
-sigmoid_lib=ps.CustomLibrary(library_functions=sigmoid_funcs,
-                             function_names=func_names)
-feature_lib = ps.ConcatLibrary([ps.PolynomialLibrary(degree=3, 
-                                include_bias=True),
-                                sigmoid_lib])
-# feature_lib = ps.PolynomialLibrary(degree=3, include_bias=True)
+feature_lib = ps.PolynomialLibrary(degree=3, include_bias=True)
 parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
     parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
@@ -339,12 +286,12 @@ diffModel.fit(X_train,t=dt,x_dot=V_train,u=u_train)
 drift_R2 = driftModel.score(X_test,x_dot=Y_test,u=u_test)
 driftModel.print()
 
-print('Coefficient of determination (R^2) of drift model on test set: %f' %drift_R2)
+print('Coefficient of determination (R^2) for drift coefficient model on test set: %f' %drift_R2)
 
 diff_R2 = diffModel.score(X_test,x_dot=V_test,u=u_test)
 diffModel.print()
 
-print('Coefficient of determination (R^2) of diffusion model on test set: %f' %diff_R2)
+print('Coefficient of determination (R^2) for diffusion coefficient model on test set: %f' %diff_R2)
 # %%
 myModel = [driftModel,diffModel]
 
@@ -366,7 +313,7 @@ else:
 # fix bins and centers for all datasets
 Nbins = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
-bins, centers = eareg.get_bins(Nbins,bin_limits=bin_limits)
+bins, centers = rh.get_bins(Nbins,bin_limits=bin_limits)
 
 plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
             'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1),
@@ -471,10 +418,10 @@ ax.set_yticklabels(np.round(np.linspace(bins[1][y0],bins[1][Ny],10),1))
 for ds_ID in range(len(list_of_datasets)):
     print('**** Running model analysis for dataset',ds_ID,'**** \n')
     my_mv = list_of_datasets[ds_ID]
-    mv_name = eaio.get_dataset_name(my_mv)
-    feats_proj = eaio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
+    mv_name = mio.get_dataset_name(my_mv)
+    feats_proj = mio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
 
-    data_all, u_traj, u_list = eareg.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
+    data_all, u_traj, u_list = rh.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
     del feats_proj # free up memory
     num_flow = len(u_list)
     if 0 in u_list: # right now, only using timepoints 300:450 of no flow

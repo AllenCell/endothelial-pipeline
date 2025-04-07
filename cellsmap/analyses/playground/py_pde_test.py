@@ -23,8 +23,11 @@ p = fipy.CellVariable(mesh=mesh, name=r"$P$", value = 1/(Nx*Ny))
 def f(x):
     return np.array([-2*(x[0]-0.5), -6*(x[1]-0.4)])
 
-def D(x):
-    return np.array([0.5*x[0]**2,0.5*x[1]**2])
+def D(x,additive=False):
+    if additive:
+        return np.array([0.05*np.ones_like(x[0]),0.05*np.ones_like(x[1])])
+    else:
+        return np.array([0.5+0.75*(x[0]-0.5)**2,0.5+0.75*(x[1]-0.4)**2])
 
 f_vals = f([x,y]).reshape(2,Ny,Nx)
 D_vals = D([x,y]).reshape(2,Ny,Nx)
@@ -64,10 +67,10 @@ f_vals = f_vals.reshape(2,-1)
 D_vals = D_vals.reshape(2,-1)
 divD = divD.reshape(2,-1)
 psi = fipy.CellVariable(mesh=mesh, value = [f_vals[0]-divD[0], f_vals[1]-divD[1]])
-D = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
+D_ = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
 
 # %%
-eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D,var=p)
+eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D_,var=p)
 
 res_tol = 1e-8
 stop_solve = False
@@ -91,7 +94,7 @@ p_sol = p_sol/C
 fig, ax = plt.subplots()
 ax.pcolormesh(p_sol)
 # add colorbar
-cbar = plt.colorbar(ax.pcolormesh(p_sol));
+cbar = plt.colorbar(ax.pcolormesh(p_sol))
 
 # reset x labels to reflect range from 0 to x_max
 ax.set_xticks(np.linspace(0,Nx,10))
