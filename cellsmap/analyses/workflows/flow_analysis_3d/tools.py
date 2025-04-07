@@ -13,39 +13,6 @@ def simple_linear_classifier(X, Y):
     Z = 3/2. * X - 0.6
     return Z > Y
 
-def create_vector_field_imagedata(x, y, z):
-
-    assert x.shape == y.shape == z.shape, "Input arrays must have the same shape"
-    dims = x.shape
-
-    imageData = vtk.vtkImageData()
-    imageData.SetDimensions(dims)
-    imageData.SetSpacing(1, 1, 1)
-
-    # Create VTK arrays from NumPy arrays
-    x_array = vtknp.numpy_to_vtk(x.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
-    x_array.SetName("x")
-    y_array = vtknp.numpy_to_vtk(y.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
-    y_array.SetName("y")
-    z_array = vtknp.numpy_to_vtk(z.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
-    z_array.SetName("z")
-
-    # Create a vector array
-    vectors = vtk.vtkFloatArray()
-    vectors.SetNumberOfComponents(3)
-    vectors.SetName("Vectors")
-
-    # Interleave the x, y, and z components into the vector array
-    for i in range(x.size):
-        vectors.InsertTuple3(i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i))
-
-    # Add vector array to PointData
-    pointData = imageData.GetPointData()
-    pointData.AddArray(vectors)
-    pointData.SetActiveVectors("Vectors")
-
-    return imageData
-
 def save_image_data(img, output_path, workflow_name="3d_flow_analysis"):
     writer = vtk.vtkStructuredPointsWriter()
     writer.SetInputData(img)
@@ -146,7 +113,7 @@ class DataDrivenFlowField3D():
         # do per condition instead?
         self.compute_mean_speed_from_displacement_vectors()
 
-    def compute_landscape(self, condition: str) -> None:
+    def compute_landscape(self, condition: str, save_imagedata=True) -> None:
 
         condition_key = condition.replace(" ", "_")
 
@@ -233,19 +200,95 @@ class DataDrivenFlowField3D():
             }
         }
 
-    def get_random_coordinates(self, n_particles: int, offset:int=5) -> np.array:
+        if save_image_data:
+            imgdata = self.get_imagedata_from_lasdscape(condition=condition_key)
+            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"landscape_{condition_key}.vtk")
+
+    def get_imagedata_from_lasdscape(self, condition: str) -> None:
+
+        vx = self._landscape[condition]["velocities"][0]
+        vy = self._landscape[condition]["velocities"][1]
+        vz = self._landscape[condition]["velocities"][2]
+
+        dims = vx.shape
+
+        imageData = vtk.vtkImageData()
+        imageData.SetDimensions(dims)
+        imageData.SetSpacing(1, 1, 1)
+
+        # Create VTK arrays from NumPy arrays
+        x_array = vtknp.numpy_to_vtk(vx.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
+        x_array.SetName("vx")
+        y_array = vtknp.numpy_to_vtk(vy.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
+        y_array.SetName("vy")
+        z_array = vtknp.numpy_to_vtk(vz.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
+        z_array.SetName("vz")
+
+        # Create a vector array
+        vectors = vtk.vtkFloatArray()
+        vectors.SetNumberOfComponents(3)
+        vectors.SetName("Vectors")
+
+        # Interleave the x, y, and z components into the vector array
+        for i in range(vx.size):
+            vectors.InsertTuple3(i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i))
+
+        # Add vector array to PointData
+        pointData = imageData.GetPointData()
+        pointData.AddArray(vectors)
+        pointData.SetActiveVectors("Velocity")
+
+        return imageData
+
+    def get_random_early_points(self, condition:str, npoints:int, buffer:float=0.1, tmax:int=50) -> np.array:
+        # Sample no flow at early timepoints points for setting initial
+        # condition of the simulations
+        df_initial = self._df.loc[
+            (self._df.description==condition)&
+            (self._df["T"]<tmax)&
+            (self._df.PC1>(1-buffer)*self._bounds.xmin)&
+            (self._df.PC1<(1-buffer)*self._bounds.xmax)&
+            (self._df.PC2>(1-buffer)*self._bounds.ymin)&
+            (self._df.PC2<(1-buffer)*self._bounds.ymax)&
+            (self._df.PC3>(1-buffer)*self._bounds.zmin)&
+            (self._df.PC3<(1-buffer)*self._bounds.zmax)
+        ]
+        if len(df_initial) < npoints:
+            raise Exception(f"Number of points available is {len(df_initial)}.")
+        df_initial = df_initial.sample(npoints).copy()
+        
+        for var, origin in zip(self._ss_vars, [self._bounds.xmin, self._bounds.ymin, self._bounds.zmin]):
+            df_initial[var] = self.convert_coordinates_from_pc_to_volume(xpc=df_initial[var], origin=origin)
+
+        print("Bounds of state space variables:")
+        coords = df_initial[self._ss_vars].values
+        print(coords.min(axis=0))
+        print(coords.max(axis=0))
+        if self._verbose:
+            print("Shape of sampled coordinated:")
+            print(coords.shape)
+        return coords
+
+    def convert_coordinates_from_pc_to_volume(self, xpc:np.array, origin:float) -> np.array:
+        xvol = (xpc - origin) / self._grid_spacing
+        return xvol
+
+    def convert_coordinates_from_volume_to_pc(self, xvol:np.array, origin:float) -> np.array:
+        xpc = origin + xvol*self._grid_spacing
+        return xpc
+
+    def get_random_points(self, npoints: int, offset:int=5) -> np.array:
         xmin, xmax = self._bounds.xmin, self._bounds.xmax
         ymin, ymax = self._bounds.ymin, self._bounds.ymax
         zmin, zmax = self._bounds.zmin, self._bounds.zmax
-        coord = [
+        coords = [
             [offset+(((vmax-vmin)/self._grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-        ] for _ in range(n_particles)]
-        coord = np.array(coord)
+        ] for _ in range(npoints)]
+        coords = np.array(coords)
         if self._verbose:
             print("Shape of sampled coordinated:")
-            print(coord.shape)
-
-        return coord
+            print(coords.shape)
+        return coords
 
     def calculate_simulation_speed(self, target_nframes: int=100) -> float:
         TOTAL_DURATION_IN_HOURS = 48
@@ -254,11 +297,11 @@ class DataDrivenFlowField3D():
             print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
         return speed
 
-    def simulate_particles_in_landscape(self, condition, n_particles=500, initial_coords=None, target_nframes=100, offset=5, use_pc_units=False, clusters=0):
+    def simulate_particles_in_landscape(self, condition, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
 
         coords = initial_coords
         if coords is None:
-            coords = self.get_random_coordinates(n_particles=n_particles, offset=offset)
+            coords = self.get_random_early_points(condition=condition, npoints=npoints)
 
         condition = condition.replace(" ", "_")
 
@@ -309,10 +352,10 @@ class DataDrivenFlowField3D():
 
         return mean_evolution
 
-def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, grid, dUis2, dVis2, dQis2, n_particles, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, target_nframes=100, offset=5, clusters=0, verbose=False):
+def simulate_particles_in_changing_vector_field(dUis, dVis, dQis, transition, grid, dUis2, dVis2, dQis2, npoints, speed, grid_spacing, xmin, xmax, ymin, ymax, zmin, zmax, filename_prefix, target_nframes=100, offset=5, clusters=0, verbose=False):
     coord = [
         [offset+(((vmax-vmin)/grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-    ] for _ in range(n_particles)]
+    ] for _ in range(npoints)]
     coord = np.array(coord)
     if verbose:
         print(coord.shape)
