@@ -265,7 +265,7 @@ u_train = np.concatenate(u_train_list)
 u_test = np.concatenate(u_test_list)
 # %%
 
-feature_lib = ps.PolynomialLibrary(degree=3, include_bias=True)
+feature_lib = ps.PolynomialLibrary(degree=5, include_bias=True)
 parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True)
 full_lib=ps.ParameterizedLibrary(feature_library=feature_lib,
     parameter_library=parameter_lib,num_features=ndim,num_parameters=1)
@@ -274,7 +274,7 @@ driftModel = ps.SINDy(feature_library = full_lib, optimizer = ps.SSR())
 driftModel.fit(X_train,t=dt,x_dot=Y_train,u=u_train)
 
 
-diff_feature_lib=ps.PolynomialLibrary(degree=0, include_bias=True)
+diff_feature_lib=ps.PolynomialLibrary(degree=2, include_bias=True)
 diff_parameter_lib=ps.PolynomialLibrary(degree=2, include_bias=True)
 diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
     parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
@@ -295,19 +295,11 @@ print('Coefficient of determination (R^2) for diffusion coefficient model on tes
 # %%
 myModel = [driftModel,diffModel]
 
-if PCs[0] == 0:
-    pplane_xlim = [-2,1.5]
-    bin_xlim = [-2.25,1]
-elif PCs[0] == 1:
-    pplane_xlim = [0,1]
-    bin_xlim = [-0.25,0.8]
+pplane_xlim = [-4,4]
+bin_xlim = [-5,5]
 
-if PCs[1] == 1:
-    pplane_ylim = [-0.25,1]
-    bin_ylim = [-0.25,1.0]
-else:
-    pplane_ylim = [-1,-0.6]
-    bin_ylim = [-1.5,-0.6]
+pplane_ylim = [-3.5,3.5]
+bin_ylim = [-4,4]
 
 
 # fix bins and centers for all datasets
@@ -321,7 +313,7 @@ plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 
 
 
 # %%
-u = 35.0
+u = 5.0
 f = model_eval.vector_field_function(driftModel)
 D = model_eval.vector_field_function(diffModel)
 f1 = model_eval.vector_field_component(f,0)
@@ -415,21 +407,14 @@ ax.set_yticklabels(np.round(np.linspace(bins[1][y0],bins[1][Ny],10),1))
 # %%
 
 
-for ds_ID in range(len(list_of_datasets)):
-    print('**** Running model analysis for dataset',ds_ID,'**** \n')
-    my_mv = list_of_datasets[ds_ID]
-    mv_name = mio.get_dataset_name(my_mv)
-    feats_proj = mio.project_PCA_one_dataset(df,pca,'group', my_mv,metadata_cols=metadata_col)
-
-    data_all, u_traj, u_list = rh.get_traj_and_flow(feats_proj,mv_name,PCs=PCs,verbose=True)
+for ds_name in list_of_datasets:
+    if ds_name in config['datasets_to_skip']:
+        continue
+    print('**** Running model analysis for ',ds_name,'**** \n')
+    feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
+    data_all, u_list = rh.get_X_by_flow(feats_proj,ds_name,verbose=True)
     del feats_proj # free up memory
     num_flow = len(u_list)
-    if 0 in u_list: # right now, only using timepoints 300:450 of no flow
-        data_all_temp = []
-        for traj in data_all[0]:
-            data_all_temp.append(traj[300:450,:])
-        data_all = [data_all_temp]
-        u_traj = [u_traj[0][300:450]]
 
 
     for j in range(num_flow): # get bins and centers for data at high and low flow    
