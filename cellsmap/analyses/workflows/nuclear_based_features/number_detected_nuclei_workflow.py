@@ -1,0 +1,46 @@
+# %%
+from cellsmap.analyses.workflows.nuclear_based_features.plot.plot_nuclei import (
+    plot_number_of_nuclei_per_fov,
+    plot_number_of_nuclei_per_dataset,
+    plot_flow_over_time_per_dataset,
+)
+from cellsmap.analyses.workflows.nuclear_based_features.plot.visualize_nuclei import (
+    visualize_nuclear_seg,
+)
+from cellsmap.util.manifest_io import list_datasets_with_manifest, get_nuclear_manifest
+from cellsmap.util.set_output import get_output_path
+
+# %%
+SAVE_DIR = get_output_path("nuclear_based_density_workflow/figs")
+
+# %% Load datasets
+dataset_list = list_datasets_with_manifest("nuclear_seg_manifest_fmsid")
+dataframes = {
+    dataset_name: get_nuclear_manifest(dataset_name) for dataset_name in dataset_list
+}
+print(f"Loaded {len(dataframes)} datasets.")
+print(f"Datasets: {list(dataframes.keys())}")
+
+# %% Filter out frames
+df = dataframes["20241217_20X"]
+df = df[(df["frame"] < 100) | ((df["frame"] > 300) & (df["frame"] < 420))]
+dataframes["20241217_20X"] = df
+
+# %% Plot the number of nuclei per fov and per dataset
+for df in list(dataframes.values()):
+    plot_number_of_nuclei_per_fov(df, df.dataset.iloc[0], SAVE_DIR)
+#%%
+plot_number_of_nuclei_per_dataset(list(dataframes.values()), SAVE_DIR)
+
+# %% Plot the first frame for each position in each dataset
+for df in list(dataframes.values()):
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 0, SAVE_DIR)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 1, SAVE_DIR)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 2, SAVE_DIR)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 3, SAVE_DIR)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 4, SAVE_DIR)
+    visualize_nuclear_seg(df, df.dataset.iloc[0], 0, 5, SAVE_DIR)
+    
+#%%
+plot_flow_over_time_per_dataset(dataset_list, SAVE_DIR)
+# %%

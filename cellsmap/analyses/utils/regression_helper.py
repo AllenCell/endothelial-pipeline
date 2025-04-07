@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Tuple
 
 import cellsmap.util.dataset_io as dio
-import cellsmap.analyses.utils.io.manifest_io as mio
+import cellsmap.util.manifest_io as mio
 
 # suppress RuntimeWarnings that come up - happens when taking the mean of an empty array
 # occurs in KM_avg_ND function for bins with no data points

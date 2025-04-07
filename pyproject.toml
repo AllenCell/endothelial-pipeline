@@ -61,6 +61,7 @@ build-backend = "pdm.pep517.api"
 testpaths = "tests/"
 
 [tool.mypy]
+packages = "cellsmap"
 # Relax the checks by ignoring specific error codes
 disable_error_code = [
     "call-overload", 
@@ -106,6 +107,6 @@ dev = [
     "types-PyYAML>=6.0.12.20241230",
     "typing_extensions>=4.12.2",
     "types-seaborn>=0.13.2.20250111",
-    "types-tqdm-4.67.0.20250301",
-    "types-requests-2.32.0.20250306",
+    "types-tqdm>=4.67.0.20250301",
+    "types-requests>=2.32.0.20250306",
 ]
