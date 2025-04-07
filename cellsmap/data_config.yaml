@@ -692,9 +692,9 @@
   egfp_channel_index: 0, 
   brightfield_channel_index: 1, 
   n_  nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "", total_positions: 6, # positions are represented as timeframes in the dataset
+  n_total_positions: 6, # positions are represented as timeframes in the dataset
   notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress",
   nuclear_label_free_seg_path: "",
-
+  diffae_manifest_fmsid: "", 
 }
 ]
