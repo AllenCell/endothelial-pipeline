@@ -32,7 +32,7 @@ def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-    # Plot the brightfield image
+    # Plot the std. dev brightfield image
     axes[0].imshow(stdev_proj_norm, cmap="gray")
     axes[0].set_title("Std Dev Projection")
     axes[0].axis("off")
@@ -54,7 +54,7 @@ def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
     cmap = ListedColormap(colors)
     norm = BoundaryNorm(np.arange(-0.5, num_labels + 0.5, 1), cmap.N)
 
-    # Plot the merged image
+    # Plot the merge of the segmentation and the raw brightfield image slice
     axes[2].imshow(brightfield_data_norm, cmap="gray")
     axes[2].imshow(labeled_image, cmap=cmap, norm=norm, alpha=0.4)
     axes[2].set_title("Merged")
