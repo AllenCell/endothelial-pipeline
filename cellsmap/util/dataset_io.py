@@ -198,6 +198,19 @@ def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
     position_path = f"{base_path}/P{position}/"
     return position_path
 
+def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
+    # NOTE at some point the cdh5 classic segmentation paths
+    # will probably be added to the dataconfig.yaml file
+    # for the base_path, but until then I will hardcode the
+    # path here
+    base_path = Path('//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg')
+    base_path = base_path / dataset_name
+    # NOTE this is what the code is expected to be when the
+    # path is added to the dataconfig.yaml file:
+    # base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
+
 # model methods
 
 def get_available_models():
