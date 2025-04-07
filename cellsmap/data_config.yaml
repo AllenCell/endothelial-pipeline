@@ -14,14 +14,17 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 20.4, 22.35], [20.4, 48, 5.62]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 244, 22.35], [245, 576, 5.62]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 22.35 dyn/cm^2 = 30.5 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 5.62 dyn/cm^2 = 7.67 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 6, # product of n_scenes x n_positions_per_scene
   notes: "This is a high-to-low flow dataset. 
-          There is some cell debris in the CDH5 channel."
+          There is some cell debris in the CDH5 channel.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241016_230d119061e749d98c1abde77f2f4fa3",
+  nuclear_seg_manifest_fmsid: "a90e321dff584e7f95e0c5e81122c751",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20241022_20X_mito,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241022/20241022_20X_timelapse_SLDY.sldy",
@@ -36,14 +39,17 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 24, 25.13], [24, 48, 6.24]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 263, 25.13], [264, 576, 6.24]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow switched between timeframes 263-264
   # 25.13 = 34.29 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 6.24 = 8.51 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 1,
   brightfield_channel_index: 0,
   n_total_positions: 6, # product of n_scenes x n_positions_per_scene
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241022_20X_mito",
+  nuclear_seg_manifest_fmsid: "4cc9c9f7be764040b4c0250504ed49a2",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.sldy", 
@@ -58,13 +64,16 @@
   pixel_size_xy_in_um: 0.382,
   duration: 4, # number of frames
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 13]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 5, # from the original .sldy file
   brightfield_channel_index: 2, # from the original .sldy file
   n_total_positions: 10,
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
-          Each timepoint is a different position."
+          Each timepoint is a different position.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T01_001.sldy",
@@ -79,13 +88,16 @@
   pixel_size_xy_in_um: 0.382,
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 1, # from the original .sldy file
   brightfield_channel_index: 4, # from the original .sldy file
   n_total_positions: 10,
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
-          Each timepoint is a different position."
+          Each timepoint is a different position.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },
 {
   name: 20241120_20X,
@@ -101,12 +113,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 48, 28.83]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 576, 28.83]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 28.83 dyn/cm^2 = 39.34 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 6,
-  notes: "This is a nice 48hr high flow dataset."
+  notes: "This is a nice 48hr high flow dataset.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X",
+  nuclear_seg_manifest_fmsid: "a9ef7c8557334f1fb36393f79b582609",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20241203_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241203/20241203_20X_timelapse_SLDY.sldy",
@@ -121,12 +136,14 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 48, 5.88]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 576, 5.88]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 5.88 dyn/cm^2 = 8.02mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
-  brightfield_channel_index: 1,
   n_total_positions: 6,
-  notes: "This timelapse has not yet been converted to ZARR."
+  notes: "This timelapse has not yet been converted to ZARR.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241203_20X",
+  nuclear_seg_manifest_fmsid: "f17ac69d490b43d48492332c29e338ee",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20241217_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20241217/20241217_20X_timelapse_SLDY.sldy",
@@ -141,11 +158,14 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 48, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 576, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 6,
-  notes: "This dataset seems to be missing a metadata file... No flow with 1 feed only."
+  notes: "This dataset seems to be missing a metadata file... No flow with 1 feed only.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241217_20X",
+  nuclear_seg_manifest_fmsid: "225e4e4f67934f2781caba8db82401f6",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250110_paired20X,
   original_path: "//allen/programs/allencell/data/proj0/030/79c/609/5c6/ec5/d9b/047/4ff/376/5cc/d9/20250110_GE00006323_20X_zstacks_SLDY/20250110_GE00006323_20X_zstacks_SLDY.sldy",
@@ -160,13 +180,16 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 24, 6.02], [24, 48, 35.00]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.02], [289, 576, 35.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 8.21mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 47.76mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10,
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250110_paired40X,
   original_path: "//allen/programs/allencell/data/proj0/093/f29/5ce/e2f/dc7/fab/845/8b0/b10/74f/0b/20250110_GE00006323_40X_zstacks_SLDY/20250110_GE00006323_40X_zstacks_SLDY.sldy",
@@ -181,13 +204,16 @@
   pixel_size_xy_in_um: 0.191,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 24, 6.02], [24, 48, 35.00]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.02], [289, 576, 35.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 8.21mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 47.76mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10,
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i1st,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250115/20250115_GE00006392_20X_NikonPaired_SLDY.sldy",
@@ -202,13 +228,16 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 24, 6.37], [24, 48, 27.83], [48, 48.25, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.37 dyn/cm^2 = 8.69mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 27.83 dyn/cm^2 = 37.97mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 12, # 4 timeframes (which are actually positions) x 3 scenes
-  notes: "Due to complications with Z focus when trying to get a 4x3 tiled region, 3 positions each consisting of 4x1 tilings were taken instead."
+  notes: "Due to complications with Z focus when trying to get a 4x3 tiled region, 3 positions each consisting of 4x1 tilings were taken instead.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i2nd,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250115/20250115_GE00006393_20X_NikonPaired_SLDY.sldy",
@@ -223,13 +252,16 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 24, 6.51], [24, 48, 29.90], [48, 48.25, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.51 dyn/cm^2 = 8.88mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 29.90 dyn/cm^2 = 40.8mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 12, # 4 timeframes (which are actually positions) x 3 scenes
-  notes: "Due to complications with Z focus when trying to get a 4x3 tiled region, 3 positions each consisting of 4x1 tilings were taken instead."
+  notes: "Due to complications with Z focus when trying to get a 4x3 tiled region, 3 positions each consisting of 4x1 tilings were taken instead.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_Nikon1st,
   original_path: "//allen/aics/microscopy/Endo Timelapses/Nikon imaging/20250115/GE00006393_20250115_endo_imaged_on_nikon_first_piezo.nd2",
@@ -244,13 +276,16 @@
   pixel_size_xy_in_um: 0.325, # note that the magnification changer was not used here, thus the pixel size is 0.325 instead of 0.392
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 24, 6.51], [24, 48, 29.90], [48, 48.25, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.51 dyn/cm^2 = 8.88mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 29.90 dyn/cm^2 = 40.8mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 1, # imaged was stitched during acquisition
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_Nikon2nd,
   original_path: "//allen/aics/microscopy/Endo Timelapses/Nikon imaging/20250115/GE00006392_20250115_endo_from_3i_imaged_on_nikon_piezo.nd2",
@@ -265,13 +300,16 @@
   pixel_size_xy_in_um: 0.325, # note that the magnification changer was not used here, thus the pixel size is 0.325 instead of 0.392
   duration: 1,
   time_interval_in_minutes: -1.0, # this is a LIVE sample that was imaged at the end of the flow regime
-  flow: [[0, 24, 6.37], [24, 48, 27.83], [48, 48.25, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.37 dyn/cm^2 = 8.69mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 27.83 dyn/cm^2 37.97mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 1, # imaged was stitched during acquisition
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/image_segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250122_SMAD1,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250122/20250122_GE00006322_SMAD1_SLDY.sldy",
@@ -286,7 +324,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 24, 6.00], [24, 48, 28.93]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.00], [289, 576, 28.93]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.00 = 8.19 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   # 28.93 = 39.47 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   dapi_channel_index: 0,
@@ -295,7 +333,10 @@
   brightfield_channel_index: 3,
   n_total_positions: 10, # positions are represented as timeframes in the dataset
   notes: "This sample (barcode GE00006322) was PFA-fixed on 01/10/2025, and the flow experiment for it was initiated on 01/08/2025, but it was imaged on 01/22/2025.
-          It was thawed and on the same day as barcode GE00006323."
+          It was thawed and on the same day as barcode GE00006323.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250131_pairedPreFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PreFix_sldy.sldy",
@@ -310,12 +351,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 48, 6.23]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 6.0], [289, 576, 28.93]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.23 dyn/cm^2 = 17.28mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as timeframes in the dataset
-  notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
+  notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed).",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250131_pairedPostFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PostFix_sldy.sldy",
@@ -330,12 +374,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 48, 6.23]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 576, 6.23]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 6.23 dyn/cm^2 = 17.28mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as timeframes in the dataset
-  notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed)."
+  notes: "These cells were fixed with methanol (PFA is for most other datasets if fixed).",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250204_pairedPreFixation,
   original_path: "//allen/programs/allencell/data/proj0/3b4/7a8/eeb/e46/04c/7a8/242/6fa/5b8/d4b/cb/20250204_GE00006610_20X_PRE_FIX_sldy/GE00006610_20250204_20X_PRE_FIX_sldy.sldy",
@@ -350,12 +397,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 24, 5.71]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 5.71]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 5.71 dyn/cm^2 = 15.84mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as scenes in the dataset
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250204_pairedPostFixation,
   original_path: "//allen/programs/allencell/data/proj0/1d2/d22/95a/5e2/a5c/718/64f/7b9/2ee/c98/62/20250204_GE00006610_20X_POST_FIX_sldy/GE00006610_20250204_20X_POST_FIX_sldy.sldy",
@@ -370,12 +420,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, 24, 5.71]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 288, 5.71]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 5.71 dyn/cm^2 = 15.84mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as scenes in the dataset
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250214_pairedPreFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250214/20250214_GE0000XXXX_20X_PRE_FIX_SLDY.sldy",
@@ -390,12 +443,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # no flow condition
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as scenes in the dataset
-  notes: ''
+  notes: '',
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250214_pairedPostFixation,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250214/20250219_GE00006747_20X_POST_FIX_SLDY.sldy",
@@ -410,12 +466,15 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # no flow condition
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as scenes in the dataset
-  notes: "These cells were fed about 2 hours before fixation (previously the cells had not been fed prior to fixation). This sample was imaged at a later date than the pre-fix sample due to blobs / bubbles appearing in the sample after fixation which had to be washed out first."
+  notes: "These cells were fed about 2 hours before fixation (previously the cells had not been fed prior to fixation). This sample was imaged at a later date than the pre-fix sample due to blobs / bubbles appearing in the sample after fixation which had to be washed out first.",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250219_40X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250219/20250219_GE00006885_40X_sldy.sldy",
@@ -434,7 +493,10 @@
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 32, # positions are represented as scenes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250224_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250224/20250224_GE00006991_20X_timelapse_SLDY.sldy",
@@ -449,14 +511,17 @@
   pixel_size_xy_in_um: 0.382,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 21.92, 5.83], [21.92, 48, 22.00]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 262, 5.83], [263, 576, 22.0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow change occurred at 12PM between timeframes 262-263
   # 5.83 dyn/cm^2 = 16.16 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   # 22.00 dyn/cm^2 = 61.02 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 6, # positions are represented as timeframes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250224_20X",
+  nuclear_seg_manifest_fmsid: "dd80c432b37e4268a4dc44d96fb3e475",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250224_20X_Nikon,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250224/20250224_GE00006992_endo_low_to_high.nd2",
@@ -471,14 +536,17 @@
   pixel_size_xy_in_um: 0.392,
   duration: 577, # number of frames
   time_interval_in_minutes: 5.0,
-  flow: [[0, 23.08, 5.62], [23.08, 48, 25.91]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 277, 5.62], [278, 576, 25.91]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow change occurred at 2:58PM between timeframes 277-278
   # 5.62 dyn/cm^2 = 15.6mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   # 25.91 dyn/cm^2 = 71.86mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 6, # positions are represented as scenes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250227_paired20X, 
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250227 20x 40x paired/20250227_GE00007101_20X_zstacks_SLDY.sldy",
@@ -493,11 +561,14 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, 
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/image_data/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250227_paired40X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250227 20x 40x paired/20250227_GE00007101_40X_zstacks_SLDY.sldy",
@@ -512,11 +583,14 @@
   pixel_size_xy_in_um: 0.191,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, 
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250227_40X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250227 timelapse/20250227_GE00007101_40X_timelapse_SLDY.sldy",
@@ -531,14 +605,17 @@
   pixel_size_xy_in_um: 0.191,
   duration: 481, # number of frames
   time_interval_in_minutes: 1.0,
-  flow: [[0, 0.52, 6.16], [0.52, 8, 21.7]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 6, 6.16], [6, 96, 21.7]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow changed between timeframes 30-31
   # 6.16 dyn/cm^2 = 17.1mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   # 21.63 dyn/cm^2 = 60.0mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 1,
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/image_data/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250228_paired20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250228 20x 40x/20250228_GE00006610_20x_zstacks_sldy.sldy",
@@ -553,11 +630,14 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as scenes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250228_paired40X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250228 20x 40x/20250228_GE00006610_40x_zstacks_sldy.sldy",
@@ -572,11 +652,14 @@
   pixel_size_xy_in_um: 0.191,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 10, # positions are represented as scenes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250304_paired3iNikon_3i1st,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250304/20250304_GE00006610_20X_pairedNikon.sldy",
@@ -591,11 +674,14 @@
   pixel_size_xy_in_um: 0.382,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 50, # positions are represented as timeframes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250304_paired3iNikon_Nikon2nd,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250304/20250304_20X_paired3iNikon_GE00006610.nd2",
@@ -610,11 +696,14 @@
   pixel_size_xy_in_um: 0.392,
   duration: 1,
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 0,
   brightfield_channel_index: 1,
   n_total_positions: 50, # positions are represented as scenes in the dataset
-  notes: ""
+  notes: "",
+  nuclear_label_free_seg_path: "",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "", 
 },{
   name: 20250319_20X,
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250319/20250319_GE00007419_20X_Timelapsee/20250319_GE00007419_20X_Timelapsee.sldy",
@@ -629,11 +718,14 @@
   pixel_size_xy_in_um: 0.382,
   duration: 542, 
   time_interval_in_minutes: 5.0,
-  flow: [[0, 48, 12.20]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, 576, 12.2]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 12.20 dyn/cm^2 = 33.83 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide) 
   egfp_channel_index: 0, 
   brightfield_channel_index: 1, 
+  n_  nuclear_seg_manifest_fmsid: "",
   n_total_positions: 6, # positions are represented as timeframes in the dataset
-  notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress"
+  notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress",
+  nuclear_label_free_seg_path: "",
+  diffae_manifest_fmsid: "", 
 }
 ]
