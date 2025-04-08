@@ -33,7 +33,7 @@ def gradient_flow_term(U:np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
 
     return flow_term
 
-def compute_J_terms(P:np.ndarray, f:np.ndarray, D:np.ndarray, dx:list, additive_noise:bool) -> np.ndarray:
+def compute_J_terms(P:np.ndarray, f:np.ndarray, D:np.ndarray, dx:list, additive_noise:bool) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     '''
     Compute the terms needed for the stationary probability flux J(x) = f(x)P(x) - div(D(x) P(x))
     for a given drift vector field f and diagonal diffusion matrix D with stationary
@@ -167,7 +167,8 @@ def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, additive_noise:b
     gradient_term = gradient_flow_term(U,D,x)
 
     # compute flux term
-    flux_term = probability_flux(P,f,D,x,additive_noise)/P
+    J = probability_flux(P,f,D,x,additive_noise) # compute probability flux term J(x) = f(x)P(x) - div(D(x) P(x))
+    flux_term = J/P # flux term in decomposition is J/P
 
     # remainder is term from gradient of multiplicative noise tensor
     diffusion_geometry = f - gradient_term - flux_term
@@ -222,29 +223,16 @@ def entropy_production(P:np.ndarray, f:np.ndarray, D:np.ndarray, x:list, additiv
 
 
     J = probability_flux(P,f,D,x,additive_noise) # compute probability flux term J(x) = f(x)P(x) - div(D(x) P(x))
-
-    # initialize with inner product of f and J
-    epr = np.sum(f*J, axis=0)
-
-    # # D * gradient of U + f, where U = -log P
-    # D_gradU_f = compute_D_gradU_f(-np.log(P), f, D, dx)
-
-    # # compute inner product of D grad U + F with itself: ||D grad U + F||^2
-    # # multiplied by the stationary probability density P(x) = exp(-U(x))
-    # # variable named epr to initialize integral, this is actually the integrand
-    # epr = np.sum(D_gradU_f**2, axis=0) * P
     
-    # epr = integral{ ||D grad U + F||^2 * P(x) }
-    # numerical integration via Simpson's rule
-    # integrate over each dimension
+    # epr = integral{ <F(x), J(x)> } dx
+    # initialize with inner product of f and J
+    epr = np.sum(f*J, axis=0)    
 
+    # numerical integration via Simpson's rule
     N = len(x) # number of dimensions
     dx = [x[i][1] - x[i][0] for i in range(N)] # grid spacing
-
-    for i in range(N):
+        
+    for i in range(N): # integrate over each dimension
         epr = simpson(epr,dx=dx[i],axis=0)
 
     return epr
-
-
-
