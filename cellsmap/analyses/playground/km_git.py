@@ -2,14 +2,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pysindy as ps
-import numdifftools as nd
+
+from matplotlib import animation
+from IPython.display import HTML
 
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import manifest_pca, regression_helper as rh, model_analysis, model_eval
-from cellsmap.analyses.utils.viz import manifest_viz, pplane
-from cellsmap.analyses.utils.numerics import gen_potential as gp
+from cellsmap.analyses.utils.viz import viz_base as vb, dynamics_viz, manifest_viz, pplane
 
 import sys
 sys.path.append('//allen/aics/users/erin.angelini/git-repos/KramersMoyal')
@@ -296,7 +297,7 @@ driftModel.fit(X_train,t=dt,x_dot=Y_train,u=u_train)
 
 
 diff_feature_lib=ps.PolynomialLibrary(degree=2, include_bias=True)
-diff_parameter_lib=ps.PolynomialLibrary(degree=2, include_bias=True)
+diff_parameter_lib=ps.PolynomialLibrary(degree=3, include_bias=True)
 diff_lib=ps.ParameterizedLibrary(feature_library=diff_feature_lib,
     parameter_library=diff_parameter_lib,num_features=ndim,num_parameters=1)
 
@@ -314,18 +315,31 @@ diffModel.print()
 
 print('Coefficient of determination (R^2) for diffusion coefficient model on test set: %f' %diff_R2)
 # %%
+# save directory for plots
+workflow_fig_folder = "stochastic_dynamics/km_test/figs"
+fig_savedir = get_output_path(workflow_fig_folder,verbose=False)
 
+# datasets to skip in model comparison
+ds_to_skip = config['datasets_to_skip']
+
+# set limits for phase plane and histogram plots
 pplane_xlim = [-4,4]
-bin_xlim = [-5,5]
+bin_xlim = [-5,5.5]
 
 pplane_ylim = [-1.5,3.5]
 bin_ylim = [-2,4]
 
+# for phase plane plots, fix grid across all datasets
+pplane_xvec = np.linspace(*pplane_xlim,50)
+pplane_yvec = np.linspace(*pplane_ylim,50)
 
-# fix bins and centers for all datasets
+# for histogram/stationary pdf plots, fix bins and centers for all datasets
 Nbins = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
 bins, centers = rh.get_bins(Nbins,bin_limits=bin_limits)
+
+# for fixed point analysis and entropy production rate analysis
+shear_range_fpt = np.linspace(config['shear_range'][0],config['shear_range'][1],config['N_shear_fpt'])
 
 f = model_eval.vector_field_function(driftModel)
 D = model_eval.vector_field_function(diffModel)
@@ -333,16 +347,11 @@ myModel = [f,D]
 
 
 # %%
-workflow_fig_folder = "stochastic_dynamics/km_test/figs"
-fig_savedir = get_output_path(workflow_fig_folder,verbose=False)
-
-ds_to_skip = config['datasets_to_skip']
-pplane_xvec = np.linspace(*pplane_xlim,50)
-pplane_yvec = np.linspace(*pplane_ylim,50)
+################### Model-data comparison ###################
+# run comparison of model and data for each dataset
 model_analysis.model_data_comparison(myModel,fig_savedir,pca,PCs,bins,ds_to_skip,pplane_xvec,pplane_yvec)
         
 # %%
-shear_range_fpt = np.linspace(config['shear_range'][0],config['shear_range'][1],config['N_shear_fpt'])
 ################### Fixed point analysis ###################
 # plot coordinates of fixed points as a function of shear stress
 plt_lims = [pplane_xlim,pplane_ylim] # set limits for plotted/reported fixed points
@@ -353,4 +362,46 @@ model_analysis.run_fixed_point_analysis(f,shear_range_fpt,PCs,plt_lims,fig_saved
 ################### Entropy production rate as a function of shear stress ###################
 model_analysis.run_epr_analysis(myModel,bins,centers,shear_range_fpt,fig_savedir,additive_noise=False)
 
+# %%
+
+f1 = model_eval.vector_field_component(f,0)
+f2 = model_eval.vector_field_component(f,1)
+
+
+# %%
+
+# Assuming pplane, f1, f2, pplane_xvec, pplane_yvec are defined elsewhere in your code
+
+# Initial plot
+fig1, ax1 = pplane.phase_portrait(lambda x1, x2: f1([x1, x2], 21.9),
+                                  lambda x1, x2: f2([x1, x2], 21.9),
+                                  pplane_xvec, pplane_yvec)
+
+def animate(u):
+    ax1.clear()
+    pplane.phase_portrait(lambda x1, x2: f1([x1, x2], u),
+                          lambda x1, x2: f2([x1, x2], u),
+                          pplane_xvec, pplane_yvec, fig_ax=(fig1,ax1))
+    plt.title(f'Shear Stress: {u:.2f}')
+    return fig1, ax1
+
+# Create animation
+shear_ = [21.925, 21.95, 21.975, 22.0, 22.025, 22.05, 22.075, 22.1]
+anim = animation.FuncAnimation(fig1, animate, frames=shear_, interval=1000)
+
+# Display animation
+HTML(anim.to_jshtml())
+# %%
+f_mesh = model_eval.mesh_grid_function(f)
+D_mesh = model_eval.mesh_grid_function(D)
+
+
+
+f_vals = f_mesh(np.meshgrid(*centers),u=u).T
+D_vals = D_mesh(np.meshgrid(*centers),u=u).T
+
+P = model_eval.get_stationary_probability(f_vals, D_vals, bins)
+
+fig, ax = vb.init_plot()
+ax = dynamics_viz.plot_histogram_2D(ax,P,bins,'inferno')
 # %%
