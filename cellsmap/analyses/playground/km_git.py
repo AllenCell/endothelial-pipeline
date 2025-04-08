@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pysindy as ps
 import numdifftools as nd
 
+from cellsmap.util.set_output import get_output_path
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import manifest_pca, regression_helper as rh, model_analysis, model_eval
@@ -326,284 +327,30 @@ Nbins = [50 for i in range(ndim)]
 bin_limits = [bin_xlim,bin_ylim]
 bins, centers = rh.get_bins(Nbins,bin_limits=bin_limits)
 
-plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 50,
-            'plt_xlabel': 'PC'+str(PCs[0]+1), 'plt_ylabel': 'PC'+str(PCs[1]+1),
-            'truncate_p':[True,[5,Nbins[0]-5],[5,Nbins[1]-5]]}
-
-
-# %%
-u = 22
 f = model_eval.vector_field_function(driftModel)
 D = model_eval.vector_field_function(diffModel)
 myModel = [f,D]
-f1 = model_eval.vector_field_component(f,0)
-f2 = model_eval.vector_field_component(f,1)
-D1 = model_eval.vector_field_component(D,0)
-D2 = model_eval.vector_field_component(D,1)
-import fipy
+
 
 # %%
-Nbins = [len(bins[i])-1 for i in range(ndim)]
-dx = [bins[i][1]-bins[i][0] for i in range(ndim)]
-bin_min = [bins[i][0] for i in range(ndim)]
+workflow_fig_folder = "stochastic_dynamics/km_test/figs"
+fig_savedir = get_output_path(workflow_fig_folder,verbose=False)
 
-mesh = fipy.Grid2D(dx=dx[0], dy=dx[1], nx=Nbins[0], ny=Nbins[1])
-x, y = mesh.cellCenters
-
-x_ = x.reshape((Nbins[1],Nbins[0]))+bin_min[0]
-y_ = y.reshape((Nbins[1],Nbins[0]))+bin_min[1]
-f1_vals = f1([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
-f2_vals = f2([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
-f_vals = np.array(np.concatenate([f1_vals,f2_vals]))
-D1_vals = D1([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
-D2_vals = D2([x_,y_],u)[None,:].reshape(Nbins[0],Nbins[1],1).T
-D_vals = np.array(np.concatenate([D1_vals,D2_vals]))
-print(f_vals.shape)
-
-# get Div(D)
-divD = np.zeros_like(f_vals)
-for i in range(D_vals.shape[0]):
-    divD[i] = np.gradient(D_vals[i], dx[i], axis=(i+1)%2, edge_order=2)
-
-# %%
-# check f_vals, D_vals, divD
-x_vec= centers[0]
-y_vec = centers[1]
-
-fig, ax = plt.subplots()
-ax.streamplot(x_vec, y_vec, f_vals[0], f_vals[1])
-
-fig, ax = plt.subplots()
-ax.streamplot(x_vec, y_vec, f_vals[0]-divD[0], f_vals[1]-divD[1])
-
-fig, ax = plt.subplots()
-ax.pcolormesh(D_vals[0])
-
-fig, ax = plt.subplots()
-ax.pcolormesh(D_vals[1])
-
-fig, ax = plt.subplots()
-ax.pcolormesh(divD[0])
-
-fig, ax = plt.subplots()
-ax.pcolormesh(divD[1])
-
-# %%
-p = fipy.CellVariable(mesh=mesh, name=r"$P$", value = 1/np.prod(Nbins))
-
-# psi = f(x) - div (D(x))
-f_vals = f_vals.reshape(2,-1)
-D_vals = D_vals.reshape(2,-1)
-divD = divD.reshape(2,-1)
-psi = fipy.CellVariable(mesh=mesh, value = [f_vals[0]-divD[0], f_vals[1]-divD[1]])
-D_ = fipy.CellVariable(mesh=mesh, value = [D_vals[0],D_vals[1]])
-
-eq = fipy.ConvectionTerm(coeff=psi,var=p) == fipy.DiffusionTerm(coeff=D_,var=p)
-
-res_tol = 1e-8
-stop_solve = False
-sweep_count = 1
-
-while not stop_solve:
-    res = eq.sweep(var=p)
-    print('Sweep count:',sweep_count,',  Residual:',res)
-    if res < res_tol:
-        stop_solve = True
-        print('Converged')
-    sweep_count += 1
-
-
-p_fit = p.value.reshape(Nbins[1],Nbins[0]).T
-C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=1),dx=dx[1])
-p_sol = p_fit/C
-# %%
-fig, ax = plt.subplots()
-x0 = 0
-y0 = 0
-Nx = Nbins[0]-0
-Ny = Nbins[1]-0
-p_sol_ = p_sol[x0:Ny,y0:Nx]
-cax = ax.pcolormesh(p_sol_)
-# add colorbar
-cbar = plt.colorbar(cax);
-
-# reset x labels to reflect range from 0 to x_max
-ax.set_xticks(np.linspace(0,Nx-x0,10))
-ax.set_xticklabels(np.round(np.linspace(bins[0][x0],bins[0][Nx],10),1)) # round to 1 decimal place
-# reset y labels to reflect range from 0 to y_max
-ax.set_yticks(np.linspace(0,Ny-y0,10))
-ax.set_yticklabels(np.round(np.linspace(bins[1][y0],bins[1][Ny],10),1))
-# %%
-
-
-for ds_name in list_of_datasets:
-    if ds_name in config['datasets_to_skip']:
-        continue
-    print('**** Running model analysis for ',ds_name,'**** \n')
-    feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
-    data_all, u_list = rh.get_X_by_flow(feats_proj,ds_name,verbose=True)
-    del feats_proj # free up memory
-    num_flow = len(u_list)
-
-
-    for j in range(num_flow): # get bins and centers for data at high and low flow    
-        print('**** Shear stress u =',u_list[j],'dyn/cm^2 **** \n')
-        _, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(myModel,
-                                                                       data_all[j],
-                                                                       u_list[j],
-                                                                       PCs,
-                                                                       bins,
-                                                                       np.linspace(*pplane_xlim,50),
-                                                                       np.linspace(*pplane_ylim,50),
-                                                                       use_fipy=False)
-        sup_title = fig2._suptitle.get_text()
-        sup_title = ds_name+', '+str(u_list[j])+' dyn/cm$^2$ \n'+sup_title
-                                                                         
-        fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(),y = 1.15)
-        plt.show()
+ds_to_skip = config['datasets_to_skip']
+pplane_xvec = np.linspace(*pplane_xlim,50)
+pplane_yvec = np.linspace(*pplane_ylim,50)
+model_analysis.model_data_comparison(myModel,fig_savedir,pca,PCs,bins,ds_to_skip,pplane_xvec,pplane_yvec)
         
+# %%
+shear_range_fpt = np.linspace(config['shear_range'][0],config['shear_range'][1],config['N_shear_fpt'])
+################### Fixed point analysis ###################
+# plot coordinates of fixed points as a function of shear stress
+plt_lims = [pplane_xlim,pplane_ylim] # set limits for plotted/reported fixed points
 
+model_analysis.run_fixed_point_analysis(f,shear_range_fpt,PCs,plt_lims,fig_savedir)
 
 # %%
-# %%
-
-u_range = np.linspace(0,35,20)
-
-fpt_dict = {}
-
-x1_lims = plt_args['pplane_xlim']
-x2_lims = plt_args['pplane_ylim']
-
-x1 = np.linspace(x1_lims[0],x1_lims[1],50)
-x2 = np.linspace(x2_lims[0],x2_lims[1],50)
-x1_coarse = np.linspace(x1_lims[0],x1_lims[1],7)
-x2_coarse = np.linspace(x2_lims[0],x2_lims[1],7)
-
-f = model_eval.vector_field_function(driftModel)
-# %%
-for u in u_range:
-
-    def myFlow(x):
-        return f(x,u=u)
-    flowJacobian = nd.Jacobian(myFlow)
-
-    init_coarse = [np.array([x1_coarse[i],x2_coarse[j]]) 
-                   for i in range(len(x1_coarse)) 
-                   for j in range(len(x2_coarse))
-                   ]
-    fpts = pplane.get_fps(myFlow,init_coarse) # get fixed points
-    fpt_types = []
-    if len(fpts) > 0:
-        for fpt in fpts:
-            fptStability = pplane.find_stability(flowJacobian(fpt))
-            if 'Stable' in fptStability:
-                fpt_types.append('stable')
-            elif 'Unstable' in fptStability:
-                fpt_types.append('unstable')
-            elif 'Saddle' in fptStability:
-                fpt_types.append('saddle')
-            else:
-                fpt_types.append('indeterminate')
-
-    fpts_new = []
-    fpt_types_new = []
-    for fpt in fpts:
-        # if far out of bounds of the plot window, don't report it
-        if fpt[0]<x1[0]-0.5*abs(x1[0]) or fpt[0]>x1[-1]+0.5*abs(x1[-1]) or fpt[1]<x2[0]-0.5*abs(x2[0]) or fpt[1]>x2[-1]+0.5*abs(x2[-1]):
-            continue
-        else:
-            fpts_new.append(fpt)
-            fpt_types_new.append(fpt_types[fpts.index(fpt)])
-
-    fpt_dict[str(u)] = {}
-    fpt_dict[str(u)]['fixed_points'] = fpts_new
-    fpt_dict[str(u)]['fixed_point_types'] = fpt_types_new
-# %%
-for j in range(ndim):
-    fig, ax = plt.subplots()
-    for u in u_range:
-        if str(u) in fpt_dict.keys():
-            fpts = fpt_dict[str(u)]['fixed_points']
-            fpt_types = fpt_dict[str(u)]['fixed_point_types']
-            if len(fpts) > 0:
-                for i,fpt in enumerate(fpts):
-                    if fpt_types[i] == 'stable':
-                        color = 'b'
-                    elif fpt_types[i] == 'unstable':
-                        color = 'r'
-                    elif fpt_types[i] == 'saddle':
-                        color = 'tab:purple'
-                    else:
-                        color = 'darkgoldenrod'
-
-                    ax.plot(u,fpt[j],'o',color=color)
-                    ax.set_xlabel('Shear stress (dyn/cm^2)')
-                    ax.set_ylabel('PC'+str(PCs[j]+1))
-# %%
-fpt_stable = []
-u_stable = []
-for u in u_range:
-    if str(u) in fpt_dict.keys():
-        fpts = fpt_dict[str(u)]['fixed_points']
-        fpt_types = fpt_dict[str(u)]['fixed_point_types']
-        if len(fpts) > 0:
-            for i,fpt in enumerate(fpts):
-                if fpt_types[i] == 'stable':
-                    color = 'b'
-                    fpt_stable.append(fpt)
-                    u_stable.append(u)
-                elif fpt_types[i] == 'unstable':
-                    color = 'r'
-                elif fpt_types[i] == 'saddle':
-                    color = 'tab:purple'
-                else:
-                    color = 'darkgoldenrod'
-
-                plt.plot(fpt[0],fpt[1],'o',color=color)
-                plt.xlabel('PC'+str(PCs[0]+1))
-                plt.ylabel('PC'+str(PCs[1]+1))
-
-# %%
-# plot stable fixed points as a colored by shear stress value
-u_stable = np.array(u_stable)
-fpt_stable = np.array(fpt_stable)
-plt.scatter(fpt_stable[1:-7,0],fpt_stable[1:-7,1],
-            c=u_stable[1:-7],cmap='bwr',edgecolors='k')
-
-plt.xlabel('PC'+str(PCs[0]+1))
-plt.ylabel('PC'+str(PCs[1]+1))
-plt.colorbar(label='dyn/cm$^2$')
-plt.title('Stable fixed points by shear stress')
-
-
-
-
-
-
-
-# %%
-u_range = np.linspace(6,35,40)
-# entropy production rate as a function of u
-D = model_eval.vector_field_function(diffModel)
-epr = np.zeros(len(u_range))
-for u in u_range:   
-    P = model_eval.get_stationary_probability(f,D,bins,centers,u)
-    f_mesh = model_eval.mesh_grid_function(f)
-    D_mesh = model_eval.mesh_grid_function(D)
-
-    X1,X2 = np.meshgrid(centers[0],centers[1])
-    f_vals = f_mesh([X1,X2],u).T
-    D_vals = D_mesh([X1,X2],u).T
-
-    J = gp.probability_flux(P,f_vals,D_vals,centers)
-    D_mat = gp.expand_to_matrix(D_vals)
-
-    epr[u_range.tolist().index(u)] = gp.entropy_production(J,D_mat,P,centers)
-
-# %%
-plt.plot(u_range,epr,'-o',color='k')
-plt.xlabel('Shear stress (dyn/cm$^2$)')
-plt.ylabel('Entropy production rate')
-
+################### Entropy production rate as a function of shear stress ###################
+model_analysis.run_epr_analysis(myModel,bins,centers,shear_range_fpt,fig_savedir,additive_noise=False)
 
 # %%
