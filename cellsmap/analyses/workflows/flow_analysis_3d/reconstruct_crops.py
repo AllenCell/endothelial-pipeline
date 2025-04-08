@@ -18,6 +18,13 @@ workflow_vtk_folder = "flow_analysis_3d/vtks"
 csv_savedir = get_output_path(workflow_csv_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
+df = pd.read_csv(Path(vtk_savedir).parent/"manifest.csv")
+
+DDFF = tools.DataDrivenFlowField3D(verbose=True)
+DDFF.set_dataframe(df, identifier="CropId")
+DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
+DDFF.build()
+
 # Load PCA model
 with open(Path(csv_savedir).parent/"pca_model.pkl", "rb") as file:
     reducer = pickle.load(file)
@@ -29,6 +36,8 @@ for file_name in os.listdir(vtk_savedir):
         print(file_name)
         trajectory = tools.load_polydata(Path(vtk_savedir)/file_name)
         coords = vtknp.vtk_to_numpy(trajectory.GetPoints().GetData())
+        for i, origin in enumerate([DDFF._bounds.xmin, DDFF._bounds.ymin, DDFF._bounds.zmin]):
+            coords[:, i] = DDFF.convert_coordinates_from_volume_to_pc(xvol=coords[:, i], origin=origin)
         latent = reducer.inverse_transform(coords)
         print(latent.shape)
         df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
