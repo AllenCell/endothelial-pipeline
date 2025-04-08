@@ -29,6 +29,13 @@ def save_points_as_polydata(coordinates, file_name):
     writer.SetFileName(file_name)
     writer.Write()
 
+def load_polydata(file_name) -> vtk.vtkPolyData:
+    reader = vtk.vtkPolyDataReader()
+    reader.SetFileName(file_name)
+    reader.Update()
+    polydata = reader.GetOutput()
+    return polydata
+
 class CuboidBounds():
     def __init__(self, x: np.array, y: np.array, z: np.array, excluded_fraction: float=0.1) -> None:
         bounds = []
