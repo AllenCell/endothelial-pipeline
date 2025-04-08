@@ -17,12 +17,13 @@ def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     return config_data
 
 # dataset methods
-def get_available_datasets() -> List[str]:
+def get_available_datasets(verbose: bool = True) -> List[str]:
     datasets = []
     config = load_config()
     for dataset in config:
         datasets.append(dataset['name'])
-        print(dataset['name'])
+        if verbose:
+            print(dataset['name'])
     return datasets
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
@@ -140,6 +141,33 @@ def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['flow']
 
+def get_flow_change_frame(dataset_name:str) -> int:
+    '''
+    Get frame number at which flow changes in dataset ds_name.
+    
+    Inputs:
+    - dataset_name: str, name of dataset to get flow change frame for
+        - This string must match the dataset name in data_config.yaml
+    
+    Outputs:
+    - change_frame: int, frame number at which flow changes in dataset dataset_name
+    '''
+    # load config for dataset from data_config.yaml
+    flow_info = get_flow_info(dataset_name)
+
+    # get frame number at which flow changes
+    change_frame = flow_info[0][1]
+
+    return change_frame
+
+def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
+    flow_list = get_flow_info(dataset_name)
+    for t_start, t_stop, flow in flow_list:
+        if t_start <= frame <= t_stop:
+            return flow
+    print(f"Frame {frame} not found in flow list.")
+    return None
+
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
@@ -166,6 +194,25 @@ def get_microscope(dataset_name: str) -> str:
 def get_fmsid(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['fmsid']
+
+def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
+
+def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
+    # NOTE at some point the cdh5 classic segmentation paths
+    # will probably be added to the dataconfig.yaml file
+    # for the base_path, but until then I will hardcode the
+    # path here
+    base_path = Path('//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg')
+    base_path = base_path / dataset_name
+    # NOTE this is what the code is expected to be when the
+    # path is added to the dataconfig.yaml file:
+    # base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
 
 # model methods
 

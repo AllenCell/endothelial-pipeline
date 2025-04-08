@@ -1,16 +1,17 @@
+#%%
 from aicsfiles import FileManagementSystem
 
 
 def save_file_to_fms(
-    file_path,
-    dataset,
-    commit_hash,
-    misc_notes,
-    file_type="parquet",
-    model_version="",
-    mlflow_run_id=None,
-    effort="Core",
-    env="prod",
+    file_path: str,
+    dataset: str,
+    commit_hash: str,
+    misc_notes: str,
+    file_type: str = "parquet",
+    model_version: str = "",
+    mlflow_run_id: str | None = None,
+    effort: str = "Core",
+    env: str = "prod",
 ):
     """
     Save a file to FMS with Endo project specific metadata annotations.
@@ -49,3 +50,5 @@ def save_file_to_fms(
 
     fms_file = fms.upload_file(file_path, file_type, annotations)
     print(f"{dataset} File ID: {fms_file.id}")
+
+

@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn import decomposition as skdecomp
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.analyses.workflows.flow_analysis_3d import tools
 #%% 
