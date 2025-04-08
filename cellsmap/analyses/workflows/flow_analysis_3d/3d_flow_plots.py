@@ -15,8 +15,6 @@ from cellsmap.analyses.workflows.flow_analysis_3d import tools
 df = pd.read_csv("/allen/aics/assay-dev/users/Erin/endo_features/pca_ref_features.csv", index_col=0)
 df.head()
 
-# for index, row in df.iterrows():
-#     df.loc[index, "description"] = row.description.replace(" ", "").replace("(","").replace(")","").replace("//","")
 df["description"] = df["description"].str.replace(" ", "_", regex=False).str.replace("(", "", regex=False).str.replace(")", "", regex=False).str.replace("/", "", regex=False)
 print(df.description.unique())
 
@@ -142,8 +140,8 @@ DDFF.build()
 for condition in df.description.unique():
     DDFF.compute_landscape(condition=condition)
     DDFF.simulate_particles_in_landscape(condition=condition)
-DDFF.simulate_particles_in_landscape(condition=["48hr High"]*50+["48hr Low"]*50, filename_prefix="High_to_Low")
-DDFF.simulate_particles_in_landscape(condition=["48hr Low"]*50+["48hr High"]*50, filename_prefix="Low_to_High")
+DDFF.simulate_particles_in_landscape(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
+DDFF.simulate_particles_in_landscape(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
 exit()
 
 #%%

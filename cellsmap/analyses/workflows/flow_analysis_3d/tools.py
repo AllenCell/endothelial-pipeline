@@ -116,8 +116,6 @@ class DataDrivenFlowField3D():
 
     def compute_landscape(self, condition: str, save_imagedata=True) -> None:
 
-        condition_key = condition.replace(" ", "_")
-
         xmin, xmax = self._bounds.xmin, self._bounds.xmax
         ymin, ymax = self._bounds.ymin, self._bounds.ymax
         zmin, zmax = self._bounds.zmin, self._bounds.zmax
@@ -142,7 +140,7 @@ class DataDrivenFlowField3D():
                 ax.set_xlim(xmin, xmax)
                 ax.set_ylim(ymin, ymax)
                 ax.set_aspect("equal")
-            vb.save_plot(fig, filename=self.get_fig_folder()+f"quiver_pc_{condition_key}", dpi=72)
+            vb.save_plot(fig, filename=self.get_fig_folder()+f"quiver_pc_{condition}", dpi=72)
 
         xgrid, ygrid, zgrid = np.meshgrid(
             np.linspace(xmin, xmax, int((xmax-xmin)/self._grid_spacing)),
@@ -192,18 +190,18 @@ class DataDrivenFlowField3D():
             ax.set_ylim(qmin, qmax)
             ax.set_aspect("equal")
         plt.tight_layout()
-        vb.save_plot(fig, filename=self.get_fig_folder()+f"landscape_pc_{condition_key}", dpi=72)
+        vb.save_plot(fig, filename=self.get_fig_folder()+f"landscape_pc_{condition}", dpi=72)
 
         self._landscape.update({
-            condition_key: {
+            condition: {
                 "velocities": (dUis, dVis, dQis),
                 "grid": (xgrid, ygrid, zgrid)
             }
         })
 
         if save_image_data:
-            imgdata = self.get_imagedata_from_lasdscape(condition=condition_key)
-            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"landscape_{condition_key}.vtk")
+            imgdata = self.get_imagedata_from_lasdscape(condition=condition)
+            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"landscape_{condition}.vtk")
 
     def get_imagedata_from_lasdscape(self, condition: str) -> None:
 
@@ -255,7 +253,7 @@ class DataDrivenFlowField3D():
             (self._df.PC3<(1-buffer)*self._bounds.zmax)
         ]
         if len(df_initial) < npoints:
-            raise Exception(f"Number of points available is {len(df_initial)}.")
+            raise Exception(f"Number of points available in condition {condition} is {len(df_initial)}.")
         df_initial = df_initial.sample(npoints).copy()
         
         for var, origin in zip(self._ss_vars, [self._bounds.xmin, self._bounds.ymin, self._bounds.zmin]):
@@ -309,7 +307,7 @@ class DataDrivenFlowField3D():
         if coords is None:
             coords = self.get_random_early_points(condition=condition[0], npoints=npoints)
 
-        start_condition = condition[0].replace(" ", "_")
+        start_condition = condition[0]
 
         assert start_condition in self._landscape.keys(), f"Landscape for condition {start_condition} has not been yet computed."
 
@@ -330,11 +328,9 @@ class DataDrivenFlowField3D():
             coords_new = []
             for r in coords:
                 x, y, z = r
-                # TODO: get rid of condition_key after values are standardized
-                condition_key = condition[tp].replace(" ", "_")
-                vx = self._landscape[condition_key]["velocities"][0][int(x), int(y), int(z)]
-                vy = self._landscape[condition_key]["velocities"][1][int(x), int(y), int(z)]
-                vz = self._landscape[condition_key]["velocities"][2][int(x), int(y), int(z)]
+                vx = self._landscape[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
+                vy = self._landscape[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
+                vz = self._landscape[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
                 x_new = x + sim_speed * vx
                 y_new = y + sim_speed * vy
                 z_new = z + sim_speed * vz
