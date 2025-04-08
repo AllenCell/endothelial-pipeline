@@ -6,7 +6,7 @@ from skimage.segmentation import find_boundaries
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
 # from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation
-from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
+from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output, extract_T
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 # from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths
@@ -814,6 +814,7 @@ def run_tracking(
 
     # create output directories if they don't exist and get image metadata from the input image
     if save_output:
+        output_T_last_resort = 0
         for idx, input_image_filepath, track_labeled_image, track_table in results:
             images_out_dir = out_dir / 'tracked_images'
             # tables_out_dir = out_dir / 'tracked_tables'
@@ -828,9 +829,23 @@ def run_tracking(
             # as the input (which are assumed to have the T positions in the
             # filenames already in that case).
             t = f"_T{crops_for_tracking[idx]['T'].start}" if crops_for_tracking[idx]['T'].start else ''
+            # if an out_filename_prefix was provided and a T position was found then
+            # use those to create the output filename
             if out_filename_prefix:
+                # if no T position is specified in crop then try and extract T from the filename
+                t = extract_T(input_image_filepath.name, default_if_not_found="") if t=='' else t
+                t = f'_T{t}' if t else ''
+                # if there is still no T position found then use an increasing counter
+                # as a last resort for the T value
+                if t=='':
+                    t = f'_T{output_T_last_resort}'
+                    output_T_last_resort += 1
                 out_path = images_out_dir / (f'{out_filename_prefix}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
+            # otherwise use the input image filename to create the output filename
+            # along with any T position if it was found
             else:
+                # there is no risk of to the same filename over and over again because
+                # if a single BioImage is provided then T will be present in the crops
                 out_path = images_out_dir / (f'{input_image_filepath.name.split(".")[0]}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
 
             print(f'- saving images to {out_path}') if verbose else None

@@ -12,7 +12,7 @@ from cellsmap.util.set_output import get_output_path
 from cellsmap.util.get_sldy_metadata import get_objective_info
 from typing import List, Dict, Any, Union, Tuple, Callable, Optional
 
-def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True):
+def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
     """
     Extract the timepoint value from a string or Path.name.
     Searches for the pattern "T[0-9]+" to find the timepoint.
@@ -51,9 +51,8 @@ def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
     if t:
         t_value = int(t[index].split('T')[-1])
     else:
-        t_value = 0 
-        print("""No 'T[0-9]+' found in filename. Assuming only 
-              1 timepoint and assuming T = 0.""")
+        t_value = default_if_not_found
+        print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
 
     return t_value if int_only else f'T{t_value}'
 

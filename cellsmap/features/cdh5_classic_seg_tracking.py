@@ -16,13 +16,13 @@ import pandas as pd
 def run_workflow(queue):
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df['T'].tolist()
-    scene_index, position = int(queue_df['scene_index'][0]), queue_df['position'][0]
-    save_output = queue_df['save_output'][0]
-    verbose = queue_df['verbose'][0]
-    out_dir = queue_df['output_dir'][0] / f'{dataset_name}/P{position}'
+    scene_index, position = int(queue_df['scene_index'].unique()[0]), queue_df['position'].unique()[0]
+    save_output = queue_df['save_output'].unique()[0]
+    verbose = queue_df['verbose'].unique()[0]
+    out_dir = queue_df['output_dir'].unique()[0] / f'{dataset_name}/P{position}'
     out_filename_prefix = f'{dataset_name}_P{position}'
-    use_original_data = queue_df['use_original_data'][0]
-    binning_level = queue_df['image_bin_level'][0]
+    use_original_data = queue_df['use_original_data'].unique()[0]
+    binning_level = queue_df['image_bin_level'].unique()[0]
 
     # get the segmentation images
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position=position))
@@ -66,7 +66,7 @@ def run_workflow(queue):
         print(f'No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False.')
         return
 
-def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test=False, verbose=False):
+def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
 
     if dataset_name == None:
         dataset_name_list = [config_data['name']
@@ -80,7 +80,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test
     analysis_queue = build_analysis_queue(dataset_name_list,
                                           save_output=save_output,
                                           out_dir=get_output_path(Path(__file__).stem, verbose=False),
-                                          overwrite=overwrite,
+                                          overwrite=True,
                                           verbose=verbose,
                                           is_test=is_test,
                                           image_validation_frequency=1,
@@ -99,10 +99,12 @@ def main(n_proc=1, dataset_name=None, save_output=True, overwrite=False, is_test
             print('Done multiprocessing.')
     else:
         for queue in analysis_queue_per_position:
-            run_workflow(queue, save_output, is_test, verbose)
+            print('Running workflow with single process...')
+            run_workflow(queue)
+            print('Done single-processing.')
 
     print('\N{microscope} Done analysis.')
 
 
 if __name__ == '__main__':
-    ipython_cli_flexecute(main)
+    ipython_cli_flexecute(main, verbose=True)
