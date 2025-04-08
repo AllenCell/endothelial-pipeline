@@ -45,8 +45,8 @@
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.sldy", 
-  fmsid: "",
-  zarr_path: none,
+  fmsid: "02",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_02",
   barcode: GE00007383,
   live_or_fixed_sample: fixed,
   microscope: 3i,
@@ -60,14 +60,15 @@
   brightfield_channel_index: 2, # from the original .sldy file
   405_channel_index: 1, # from the original .sldy file
   n_total_positions: 10,
+  scene_list: ["20240328_T02_001-1711659785-  8", "20240328_T02_001-1711659785- 24", "20240328_T02_001-1711659785-990", "20240328_T02_001-1711659785- 39",],
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
           Each timepoint is a different position."
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T01_001.sldy",
-  fmsid: "",
-  zarr_path: none,
+  fmsid: "01",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_01",
   barcode: GE00007384,
   live_or_fixed_sample: fixed,
   microscope: 3i,
@@ -77,10 +78,11 @@
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
-  egfp_channel_index: 1, # from the original .sldy file
+  egfp_channel_index: 5, # from the original .sldy file
   brightfield_channel_index: 4, # from the original .sldy file
-  dapi_channel_index: 1, # from the original .sldy file
+  405_channel_index: 1, # from the original .sldy file
   n_total_positions: 10,
+  scene_list: ["20240328_T01_001-1711663662-276", "20240328_T01_001-1711663662-293", "20240328_T01_001-1711663662-307", "20240328_T01_001-1711663662-322", "20240328_T01_001-1711663662-337",],
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
           Each timepoint is a different position."
