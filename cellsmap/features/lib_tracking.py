@@ -1,4 +1,5 @@
 import numpy as np
+import dask as da
 import pandas as pd
 from pathlib import Path
 from skimage.segmentation import find_boundaries
@@ -7,6 +8,7 @@ from cellsmap.util.shape_features import numpy_mesh_coords
 # from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation
 from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
 from bioio import BioImage
+from bioio_base.types import PhysicalPixelSizes
 # from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths
 from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
 
@@ -685,11 +687,13 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
     extra_image, extra_name, extra_color = [extra_channel[prop] if prop in extra_image_props else [] for prop in extra_image_props] if extra_channel else [[], [], []]
     extra_color = [extra_color] or [(255,255,255)] if isinstance(extra_image, np.ndarray) else []
     extra_name = [extra_name] or ['extra_channel'] if isinstance(extra_image, np.ndarray) else []
-    
-    physical_pixel_sizes = (1, 1, 1)
+
+    voxel_size = (1, 1, 1)
     if image_metadata is not None and 'physical_pixel_sizes' in image_metadata:
-        physical_pixel_sizes = image_metadata['physical_pixel_sizes']
-       
+        assert len(image_metadata['physical_pixel_sizes']) == 3, 'physical_pixel_sizes must be a 3D iterable with entries for Z, Y, X in that order.'
+        voxel_size = tuple([image_metadata['physical_pixel_sizes'][dim] for dim in 'ZYX'])
+        physical_pixel_sizes = PhysicalPixelSizes(*voxel_size)
+
     if image_metadata is None or 'image_name' not in image_metadata:
         image_name = out_path.stem
     else:
@@ -708,16 +712,24 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
 
 
 def run_tracking(
-    in_dir: Union[str, Path, List[Path], List[str]], 
-    out_dir: Path, 
+    in_dir: Union[str, Path, List[Path], List[str]],
+    out_dir: Path,
+    out_filename_prefix: Optional[str|None] = None,
     tracking_metrics: List[str] = ['region_overlap'], # for nuclei try 'centroids'
-    sorting_key: Optional[Callable[[Any], int]] = None, 
-    C: int = 0, 
-    extra_in_dir: Optional[Union[Path, List[Path]]] = None, 
-    extra_C: int = 0, 
-    img_metadata: Optional[Any] = None, 
-    SAVE_OUTPUT: bool = True, 
-    VERBOSE: bool = False
+    sorting_key: Optional[Callable[[Any], int]] = None,
+    C: int = 0,
+    scene: Optional[Union[str, int]] = None,
+    bin_level: Optional[int] = None,
+    T: Optional[List[int]] = None,
+    extra_in_dir: Optional[Union[Path, List[Path]]] = None,
+    extra_C: int = 0,
+    extra_scene: Optional[str|int] = None,
+    extra_bin_level: Optional[int] = None,
+    extra_T: Optional[List[int]] = None,
+    Z_projection: Optional[Callable] = None,
+    img_metadata: Optional[Any] = None,
+    save_output: bool = True,
+    verbose: bool = False
 ):
     """
     in_dir_extra is supposed to be a folder or list of filepaths to the raw images that can be
@@ -754,10 +766,18 @@ def run_tracking(
     # a timelapse regardless of whether it is a single file or a folder
     # of images (one image per timepoint)
     img_queue = {}
-    for key, filepath, chan in [('images_to_track', image_filepaths_to_track, C),
-                                ('images_for_overlay', extra_image_filepaths_to_overlay, extra_C)]:
+    for key, filepath, chan, time_list in [('images_to_track', image_filepaths_to_track, C, T),
+                                           ('images_for_overlay', extra_image_filepaths_to_overlay, extra_C, extra_T)]:
         if isinstance(filepath, Path):
-            T_range = range(int(*BioImage(filepath).dims['T']))
+            img = BioImage(filepath)
+            if scene:
+                img.set_scene(scene)
+            if bin_level:
+                img.set_resolution_level(bin_level)
+            if time_list:
+                T_range = list(time_list)
+            else:
+                T_range = list(range(int(*img.dims['T'])))
             img_queue[key] = {timeframe:
                               {'path': filepath,
                                'crop': {'T': slice(timeframe, timeframe+1),
@@ -768,6 +788,8 @@ def run_tracking(
                               for timeframe in T_range}
         else:
             T_range_dict = {sorting_function(fp): fp for fp in filepath} if sorting_function else {i: fp for i, fp in enumerate(filepath)}
+            if time_list:
+                T_range_dict = {t: fp for t, fp in T_range_dict.items() if t in time_list}
             img_queue[key] = {timeframe:
                               {'path': fp,
                                'crop': {'T': slice(None),
@@ -787,15 +809,16 @@ def run_tracking(
                        for t in sorted(img_queue['images_to_track'])]
     timeframes, img_fps_for_tracking, crops_for_tracking, img_fps_for_overlay, crops_for_overlay = zip(*img_queue_list)
 
-    print(f'Generating tracks...') if VERBOSE else None
-    results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, initial_T_offset=timeframes[0], image_buffer_prior=0, image_buffer_next=2, VERBOSE=VERBOSE)
+    print(f'Generating tracks...') if verbose else None
+    results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, initial_T_offset=timeframes[0], image_buffer_prior=0, image_buffer_next=2, VERBOSE=verbose)
 
     # create output directories if they don't exist and get image metadata from the input image
-    if SAVE_OUTPUT:
+    if save_output:
         for idx, input_image_filepath, track_labeled_image, track_table in results:
             images_out_dir = out_dir / 'tracked_images'
-            tables_out_dir = out_dir / 'tracked_tables'
-            for out in (images_out_dir, tables_out_dir):
+            # tables_out_dir = out_dir / 'tracked_tables'
+            # for out in (images_out_dir, tables_out_dir):
+            for out in (images_out_dir, out_dir):
                 out.mkdir(parents=True, exist_ok=True)
             # the line below uses the T position from the crop if it exists (i.e. if a
             # timelapse was provided), otherwise it uses the name of the input file, which
@@ -807,14 +830,25 @@ def run_tracking(
             t = f"_T{crops_for_tracking[idx]['T'].start}" if crops_for_tracking[idx]['T'].start else ''
             out_path = images_out_dir / (f'{input_image_filepath.name.split(".")[0]}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
 
-            print(f'- saving images to {out_path}') if VERBOSE else None
+            print(f'- saving images to {out_path}') if verbose else None
             overlay_path = img_fps_for_overlay[idx]
             overlay_crop = crops_for_overlay[idx]
             if extra_in_dir:
                 if overlay_path and overlay_crop:
+                    dim_order = 'TCZYX'
+                    dim_map = get_dim_map(dim_order)
                     raw_image = BioImage(overlay_path)
-                    raw_image_daskarr = raw_image.get_image_dask_data('TCZYX', T=range(raw_image.dims.T)[overlay_crop['T']], C=range(raw_image.dims.C)[overlay_crop['C']]).compute().squeeze()
-                    raw_channel = {'image': raw_image_daskarr, 'name': 'raw_image', 'color': (255,255,255)}
+                    if extra_scene:
+                        raw_image.set_scene(extra_scene)
+                    if extra_bin_level:
+                        raw_image.set_resolution_level(extra_bin_level)
+                    raw_image_daskarr = raw_image.get_image_dask_data(dim_order,
+                                                                      T=range(raw_image.dims.T)[overlay_crop['T']],
+                                                                      C=range(raw_image.dims.C)[overlay_crop['C']])
+                    if Z_projection:
+                        raw_image_daskarr = Z_projection(raw_image_daskarr, axis=dim_map['Z'], keepdims=True)
+                    raw_image_arr = raw_image_daskarr.compute().squeeze()
+                    raw_channel = {'image': raw_image_arr, 'name': 'raw_image', 'color': (255,255,255)}
                 else:
                     blank_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
                     raw_channel = {'image': blank_image, 'name': 'raw_image', 'color': (255,255,255)}
@@ -823,9 +857,10 @@ def run_tracking(
 
             save_track_labeled_images(out_path, track_labeled_image=track_labeled_image, image_metadata=img_metadata, extra_channel=raw_channel)
 
-        table_out_name = f'{out_dir.stem}_tracking.tsv'
-        out_path = tables_out_dir / table_out_name
-        print(f'Saving tracking table to {out_path}') if VERBOSE else None
+        out_filename_prefix = out_filename_prefix or out_dir.stem
+        table_out_name = f'{out_filename_prefix}_tracking.tsv'
+        out_path = out_dir / table_out_name
+        print(f'Saving tracking table to {out_path}') if verbose else None
         track_table.to_csv(out_path, index=False, sep='\t')# if SAVE_OUTPUT else None
 
 
@@ -892,3 +927,5 @@ def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid
         track_labeled_image, current_tracks, track_table = update_track_table(labeled_images, track_table, tracking_metrics, image_buffer_prior, image_buffer_next, reference_index=0, initial_T_offset=initial_T_offset, VERBOSE=VERBOSE)
 
         yield i, fp, track_labeled_image, track_table
+
+# %%

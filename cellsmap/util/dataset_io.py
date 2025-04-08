@@ -212,7 +212,7 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     base_path = base_path / dataset_name
     # NOTE this is what the code is expected to be when the
     # path is added to the dataconfig.yaml file:
-    # base_path = dataset_info['nuclear_label_free_seg_path']
+    # base_path = dataset_info['cdh5_classic_seg_path']
     position_path = f"{base_path}/P{position}/"
     return position_path
 
