@@ -58,6 +58,7 @@
   flow: [[0, -1, 13]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 5, # from the original .sldy file
   brightfield_channel_index: 2, # from the original .sldy file
+  405_channel_index: 1, # from the original .sldy file
   n_total_positions: 10,
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
@@ -78,6 +79,7 @@
   flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
   egfp_channel_index: 1, # from the original .sldy file
   brightfield_channel_index: 4, # from the original .sldy file
+  dapi_channel_index: 1, # from the original .sldy file
   n_total_positions: 10,
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.

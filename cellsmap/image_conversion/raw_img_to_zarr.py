@@ -69,7 +69,7 @@ def convert_dataset(
             output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
             print(f"Writing to {output}")
             scene = get_delayed_array_for_position(
-                position, dataset, num_pos_in_T, scene_index, img
+                position, dataset, channel_names, num_pos_in_T, scene_index, img
             )
             write_scene(
                 scene,
