@@ -1,9 +1,14 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 from typing import Tuple, Callable
+
 from sklearn.pipeline import Pipeline
 from time import time
+
+from multiprocessing import Pool
+from functools import partial
 
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
@@ -217,6 +222,36 @@ def run_fixed_point_analysis(drift_function:Callable,
         vb.save_plot(figs[i],fig_savedir+'fixed_points_by_shear_'+str(i))
 
 
+def get_epr_one_shear(mesh_model:list[Callable], bins:list, centers:list, shear:float, additive_noise:bool) -> float:
+    '''
+    Get entropy production rate for a given shear stress for a fit model object.
+    
+    Inputs:
+    - mesh_model: list of Callables, [drift, diffusion]
+        - specifically, functions that have been configured to be evaluated on a mesh grid (e.g. using model_eval.mesh_grid_function)
+    - bins: list of np.ndarrays, bin edges for each dimension of state space
+    - centers: list of np.ndarrays, bin centers for each dimension of state space
+    - shear: float, shear stress at which to evaluate entropy production rate
+    - additive_noise: bool, indicates whether model has additive noise (constant diffusion) or not
+
+    Outputs:
+    - epr: float, entropy production rate at given shear stress
+    '''
+    f_mesh = mesh_model[0]
+    D_mesh = mesh_model[1]
+
+    # evaluate drift and diffusion functions at grid points for given shear stress
+    f_vals = f_mesh(np.meshgrid(*centers),shear).T
+    D_vals = D_mesh(np.meshgrid(*centers),shear).T
+
+    # get stationary probability distribution   
+    P = model_eval.get_stationary_probability(f_vals,D_vals,bins)
+
+    # get entropy production rate
+    epr = gp.entropy_production(P,f_vals,D_vals,centers,additive_noise)
+
+    return epr
+
 def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray, additive_noise:bool) -> np.ndarray:
     '''
     Get entropy production rate as a function of shear stress for a fit model object.
@@ -239,19 +274,12 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
+    epr_func = partial(get_epr_one_shear, mesh_model=[f_mesh, D_mesh], bins=bins, centers=centers, additive_noise=additive_noise)
+    # use multiprocessing to calculate entropy production rate at each shear stress
     tic = time()
-    # initialize array to store entropy production rate
-    epr = np.zeros(len(shear_range))
-    for i,u in enumerate(shear_range):
-        # evaluate drift and diffusion functions at grid points for given shear stress
-        f_vals = f_mesh(np.meshgrid(*centers),u).T
-        D_vals = D_mesh(np.meshgrid(*centers),u).T
-
-        # get stationary probability distribution   
-        P = model_eval.get_stationary_probability(f_vals,D_vals,bins)
-
-        # get entropy production rate
-        epr[i] = gp.entropy_production(P,f_vals,D_vals,centers,additive_noise)
+    with Pool() as pool:
+        epr = pool.map(epr_func, shear_range)
+    epr = np.array(epr)
     toc = time()
     print('Time to calculate EPR: {:.2f} s'.format(toc-tic))
 
