@@ -86,7 +86,7 @@
   pixel_size_xy_in_um: 0.382,
   duration: 5, # number of frames
   time_interval_in_minutes: -1.0,
-  flow: [[0, -1, 0]], # format: [[start_time_in_hours, end_time_in_hours, flow in dyn/cm2], ...]
+  flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 5, # from the original .sldy file
   brightfield_channel_index: 4, # from the original .sldy file
   405_channel_index: 1, # from the original .sldy file
