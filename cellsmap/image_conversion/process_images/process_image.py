@@ -1,5 +1,6 @@
 from bioio import BioImage
 from cellsmap.util.dataset_io import (
+    get_dataset_info,
     get_original_path,
     get_specific_channel_order,
     get_total_number_of_positions,
@@ -60,3 +61,12 @@ def get_delayed_array_for_position(
     scene = da.stack(results, axis=0)  # TCZYX
     print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
+
+def custom_scene_list(dataset_name: str) -> list | None:
+    dataset_info = get_dataset_info(dataset_name)
+    if 'scene_list' in dataset_info:
+        return dataset_info['scene_list']
+    else:
+        return None 
+        
+    

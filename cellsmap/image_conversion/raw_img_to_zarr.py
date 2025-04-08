@@ -6,7 +6,10 @@ from cellsmap.util.dataset_io import (
     get_microscope,
     get_fmsid,
 )
-from cellsmap.image_conversion.process_images.process_image import get_delayed_array_for_position
+from cellsmap.image_conversion.process_images.process_image import (
+    get_delayed_array_for_position,
+    custom_scene_list,
+)
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
     get_sldy_pixel_sizes,
@@ -31,7 +34,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20250131_pairedPreFixation 20250131
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20240328_T02_001 20240328
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -65,6 +68,11 @@ def convert_dataset(
     
     count = 0
     for scene_index in range(num_pos_in_S):
+        subset_scene_list = custom_scene_list(dataset)
+        if subset_scene_list is not None and img.scenes[scene_index] not in subset_scene_list:
+            continue
+        else: 
+            print(f"Processing scene {img.scenes[scene_index]}")
         for position in range(num_pos_in_T):
             output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
             print(f"Writing to {output}")
