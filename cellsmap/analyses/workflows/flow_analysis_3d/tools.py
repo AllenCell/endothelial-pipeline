@@ -7,7 +7,7 @@ from skimage import filters as skfilt
 from sklearn import cluster as skcluster
 from scipy import interpolate as spinterp
 from vtk.util import numpy_support as vtknp
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 
 def simple_linear_classifier(X, Y):
     Z = 3/2. * X - 0.6

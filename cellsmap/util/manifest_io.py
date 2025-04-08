@@ -4,29 +4,105 @@ from sklearn.pipeline import Pipeline
 import os
 from pathlib import Path
 import pickle
-
 from cellsmap.util import dataset_io
 from cellsmap.analyses.utils.manifest_pca import get_outliers
+import platform
 
-def load_df(file_path:str) -> pd.DataFrame:
-    '''
-    Load Pandas DataFrame from file_path, depending on file extension.
-    Supported file extensions: .csv, .tsv, .parquet.
+try:
+    # aicsfiles is an optional dependency for users on the AICS intranet
+    from aicsfiles import fms, FileLevelMetadataKeys
+except ImportError:
+    fms = None
 
-    Inputs:
-    - file_path: str, path to file to load
 
-    Outputs:
-    - df: pd.DataFrame, DataFrame loaded from file_path
-    '''
-    if file_path.endswith('.csv'):
-        return pd.read_csv(file_path)
-    elif file_path.endswith('.tsv'):
-        return pd.read_csv(file_path,sep='\t')
-    elif file_path.endswith('.parquet'):
-        return pd.read_parquet(file_path)
+def replace_base_url(file_path: str) -> str:
+    """
+    Replace the base URL 'production.files.allencell.org' with '/allen/programs/allencell/data/proj0/' in the given file path.
+    
+    Parameters:
+    file_path (str): The original file path.
+    
+    Returns:
+    str: The modified file path.
+    """
+    base_url = "production.files.allencell.org"
+    new_base_path = "/allen/programs/allencell/data/proj0/"
+    
+    if base_url in file_path:
+        modified_path = file_path.replace(base_url, new_base_path)
+        return modified_path
     else:
-        raise ValueError(f'File extension not supported: {file_path}')
+        raise ValueError(f"The base URL '{base_url}' was not found in the provided file path.")
+
+
+def get_valid_path(fpath) -> str:
+    """
+    Converts a FMS path to one that can be read cross-platform
+    """
+    if platform.system() == "Windows":
+        fpath = "/" + fpath
+    return fpath
+
+
+def read_file_to_dataframe(path: str) -> pd.DataFrame:
+    """
+    Reads a file into a pandas dataframe
+    """
+    if path.endswith("csv"):
+        return pd.read_csv(path)
+    elif path.endswith("parquet"):
+        return pd.read_parquet(path)
+    elif path.endswith("tsv"):
+        return pd.read_csv(path, sep="\t")
+    else:
+        raise ValueError(f"Unknown format {path.split('.')[-1]}")
+
+
+def get_dataframe_by_fmsid(fmsid: str) -> pd.DataFrame:
+    if fms is not None and os.path.exists("/allen/aics"):
+        annotations = {FileLevelMetadataKeys.FILE_ID.value: fmsid}
+        record = list(fms.find(annotations=annotations))[0]
+        file_path = replace_base_url(record.path)
+        path = get_valid_path(file_path)
+    else:
+        print("aicsfiles not installed or not on AICS intranet")
+        # in the future this else statement will load from S3
+
+    df = read_file_to_dataframe(path)
+    return df
+
+
+def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name)["nuclear_seg_manifest_fmsid"]
+    df = get_dataframe_by_fmsid(fmsid)
+    return df
+
+
+def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
+    df = get_dataframe_by_fmsid(fmsid)
+    return df
+
+def list_datasets_with_manifest(manifest_name: str) -> list:
+    """
+    List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
+    """
+    all_datasets = (
+        dataset_io.get_available_datasets(verbose = False)
+    ) 
+
+    dataset_list = []
+    for dataset_name in all_datasets:
+        dataset_info = dataset_io.get_dataset_info(dataset_name)
+        if manifest_name in dataset_info and dataset_info[manifest_name] != "":
+            dataset_list.append(dataset_name)
+    return dataset_list
+
+
+## Functions below load the manifest files from hard coded paths
+## This is a temporary solution until we standardize the data handoff process
+## In the future some of the functionality below will live in manifest_preprocessing
+
     
 def load_manifest_to_df(verbose:bool=True) -> pd.DataFrame:
     '''
@@ -55,9 +131,9 @@ def load_manifest_to_df(verbose:bool=True) -> pd.DataFrame:
     path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
     path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
 
-    df = load_df(path_to_data_multi)
-    df_1217 = load_df(path_to_20241217)
-    df_0224 = load_df(path_to_20250224)
+    df = read_file_to_dataframe(path_to_data_multi)
+    df_1217 = read_file_to_dataframe(path_to_20241217)
+    df_0224 = read_file_to_dataframe(path_to_20250224)
 
     df = pd.concat([df,df_1217,df_0224],ignore_index=True)
 
@@ -115,7 +191,7 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
     '''
     Get descriptive metadata for each dataset present in the DataFrame df.
 
-    Describes the experimental conditions for each dataset, e.g., "48H low flow (date)".
+    Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2".
     
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
@@ -138,11 +214,11 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
         flow_config = data_config['flow'] # get flow conditions for dataset
         num_flows = len(flow_config) # number of flow conditions in dataset
 
-        shear_rate = [flow_config[i][-1] for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
-        shear_rate_str = [str(i)+' dyn/cm^2' for i in shear_rate] # convert shear rates to strings
+        shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
+        shear_rate_str = [str(i)+'_dyncm2' for i in shear_rate] # convert shear rates to strings
 
-        time_str = [str(flow_config[i][1]-flow_config[i][0])+' hours' for i in range(num_flows)] # get time of each flow condition
-        description = ', '.join([time_str[i]+' at '+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
+        time_str = [str(int((flow_config[i][1]-flow_config[i][0])*5/60))+'_hours' for i in range(num_flows)] # get duration of each flow condition in hours
+        description = '_'.join([time_str[i]+'_at_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
         description_dic[mv_name] = description # add description to dictionary
 
     return description_dic
@@ -155,7 +231,7 @@ def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict|None=None) -> 
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
         - The string in the dataset_name column should match the dataset name in data_config.yaml
     - description_dic (optional): dict, dictionary of dataset names and their descriptive metadata
-        - Describes the experimental conditions for each dataset, e.g., "48H low flow (date)"
+        - Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2"
         - Keys should match dataset names in data_config.yaml
         - If not provided, will be generated using get_descriptive_metadata
     '''
@@ -246,26 +322,6 @@ def get_one_dataset(df:pd.DataFrame,ds_name:str) -> pd.DataFrame:
 
     df_one_dataset = df[df['dataset_name'] == ds_name].copy()
     return df_one_dataset
-
-def get_flow_change_frame(ds_name:str) -> int:
-    '''
-    Get frame number at which flow changes in dataset ds_name.
-    
-    Inputs:
-    - ds_name: str, name of dataset to get flow change frame for
-        - This string must match the dataset name in data_config.yaml
-    
-    Outputs:
-    - change_frame: int, frame number at which flow changes in dataset ds_name
-    '''
-    # load config for dataset from data_config.yaml
-    data_config = dataset_io.get_dataset_info(ds_name)
-
-    # get frame number at which flow changes
-    # change from time in hours (currently how it is reported in the data config) to frame number
-    change_frame = int(data_config['flow'][0][1]*60/5) # 5 minutes between each frame
-
-    return change_frame
 
 def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
     '''

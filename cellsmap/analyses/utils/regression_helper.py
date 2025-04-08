@@ -4,7 +4,6 @@ import pandas as pd
 from typing import Tuple
 
 import cellsmap.util.dataset_io as dio
-import cellsmap.analyses.utils.io.manifest_io as mio
 
 # suppress RuntimeWarnings that come up - happens when taking the mean of an empty array
 # occurs in KM_avg_ND function for bins with no data points
@@ -72,18 +71,18 @@ def get_X_by_flow(df_proj:pd.DataFrame,ds_name:str,verbose:bool=True) -> Tuple[l
     if 'outlier' in df_proj.columns:
         df_proj = df_proj[df_proj['outlier']==False] # remove outliers (bubble detection)
 
-    # load dataset information from data_config.yaml
-    data_config = dio.get_dataset_info(ds_name)
+    # load flow information from data_config.yaml
+    flow_info = dio.get_flow_info(ds_name)
 
     # split out data by flow condition, starting with first flow condition
-    first_shear = float(data_config['flow'][0][-1])
+    first_shear = float(flow_info[0][-1])
     # initialize list of shear stress conditions
     shear_list = [first_shear]
-    if len(data_config['flow']) > 1: # if there is a change in flow condition
+    if len(flow_info) > 1: # if there is a change in flow condition
         # get frame number where flow condition changes (reported in hours in data_config.yaml)
-        change_frame = mio.get_flow_change_frame(ds_name)
+        change_frame = dio.get_flow_change_frame(ds_name)
         # get second shear stress condition
-        second_shear = float(data_config['flow'][1][-1])
+        second_shear = float(flow_info[1][-1])
         shear_list.append(second_shear)
         if verbose: # option to print out shear stress conditions and frame number where flow condition changes
             print('Shear stress',first_shear,'dyn/cm^2 until frame',change_frame)

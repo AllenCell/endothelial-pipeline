@@ -740,7 +740,7 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
 def run_tracking(
     in_dir: Union[str, Path, List[Path], List[str]], 
     out_dir: Path, 
-    tracking_metrics: List[str] = ['region_overlap'], 
+    tracking_metrics: List[str] = ['region_overlap'], # for nuclei try 'centroids'
     sorting_key: Optional[Callable[[Any], int]] = None, 
     C: int = 0, 
     extra_in_dir: Optional[Union[Path, List[Path]]] = None, 
