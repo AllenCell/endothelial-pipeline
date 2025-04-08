@@ -13,18 +13,24 @@ from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.analyses.workflows.flow_analysis_3d import tools
 
 # Create output folder if does not exist yet
-workflow_fig_folder = "flow_analysis_3d/figs"
+workflow_csv_folder = "flow_analysis_3d/csvs"
 workflow_vtk_folder = "flow_analysis_3d/vtks"
-fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
+csv_savedir = get_output_path(workflow_csv_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # Load PCA model
-with open(Path(vtk_savedir).parent/"pca_model.pkl", "rb") as file:
+with open(Path(csv_savedir).parent/"pca_model.pkl", "rb") as file:
     reducer = pickle.load(file)
 
+# Save 8 dim features in CSV files for now.
+# TODO: Implement reconstruction once Benji has the code finalized
 for file_name in os.listdir(vtk_savedir):
     if "mean_trajectory" in file_name:
-        trajectory = tools.load_polydata(Path(vtk_savedir)/file_name)
-        coords = vtknp.vtk_to_numpy(trajectory.GetPoints())
         print(file_name)
-        print(coords.shape)
+        trajectory = tools.load_polydata(Path(vtk_savedir)/file_name)
+        coords = vtknp.vtk_to_numpy(trajectory.GetPoints().GetData())
+        latent = reducer.inverse_transform(coords)
+        print(latent.shape)
+        df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
+        df.to_csv(Path(csv_savedir)/file_name.replace(".vtk",".csv"))
+
