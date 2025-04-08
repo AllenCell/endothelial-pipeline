@@ -828,7 +828,10 @@ def run_tracking(
             # as the input (which are assumed to have the T positions in the
             # filenames already in that case).
             t = f"_T{crops_for_tracking[idx]['T'].start}" if crops_for_tracking[idx]['T'].start else ''
-            out_path = images_out_dir / (f'{input_image_filepath.name.split(".")[0]}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
+            if out_filename_prefix:
+                out_path = images_out_dir / (f'{out_filename_prefix}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
+            else:
+                out_path = images_out_dir / (f'{input_image_filepath.name.split(".")[0]}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
 
             print(f'- saving images to {out_path}') if verbose else None
             overlay_path = img_fps_for_overlay[idx]
