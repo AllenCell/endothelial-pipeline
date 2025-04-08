@@ -133,9 +133,8 @@ def get_stationary_probability(f:Callable,D:Callable,bins:list,u:float,tol:float
 
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    p_fit = p_fit/np.sum(p_fit) # normalize probability distribution
-
-    return p_fit
+    C = np.trapz(np.trapz(p_fit, dx=dx[0],axis=0), dx=dx[1]) # integrate over the probability distribution to normalize
+    return p_fit/C # return normalized probability distribution
 
 def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, tol:float=1e-10) -> np.ndarray:
     '''
@@ -205,8 +204,8 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, 
         if res < 1e-8: # if residual is small, stop solving, else, sweep again
             keep_solving = False
 
-    p_fit = p.value.reshape(Nbins[1],Nbins[0])
+    p_fit = p.value.reshape(Nbins[1],Nbins[0]).T
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    C = np.trapz(np.trapz(p_fit, dx=dx[0],axis=1), dx=dx[1]) # integrate over the probability distribution to normalize
-    return p_fit.T/C
+    C = np.trapz(np.trapz(p_fit, dx=dx[0],axis=0), dx=dx[1]) # integrate over the probability distribution to normalize
+    return p_fit/C
 

@@ -332,7 +332,7 @@ plt_args = {'pplane_xlim': pplane_xlim, 'pplane_ylim': pplane_ylim, 'pplane_N': 
 
 
 # %%
-u = 5.83
+u = 22
 f = model_eval.vector_field_function(driftModel)
 D = model_eval.vector_field_function(diffModel)
 myModel = [f,D]
@@ -413,7 +413,7 @@ while not stop_solve:
     sweep_count += 1
 
 
-p_fit = p.value.reshape(Nbins[1],Nbins[0])
+p_fit = p.value.reshape(Nbins[1],Nbins[0]).T
 C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=1),dx=dx[1])
 p_sol = p_fit/C
 # %%
@@ -423,9 +423,6 @@ y0 = 0
 Nx = Nbins[0]-0
 Ny = Nbins[1]-0
 p_sol_ = p_sol[x0:Ny,y0:Nx]
-C_ = np.trapz(np.trapz(p_sol_, dx=dx[0], axis=1),dx=dx[1])
-p_sol_ = p_sol_/C_
-p_sol_[p_sol_<1e-20] = 1e-20
 cax = ax.pcolormesh(p_sol_)
 # add colorbar
 cbar = plt.colorbar(cax);
