@@ -222,13 +222,13 @@ def run_fixed_point_analysis(drift_function:Callable,
         vb.save_plot(figs[i],fig_savedir+'fixed_points_by_shear_'+str(i))
 
 
-def get_epr_one_shear(mesh_model:list[Callable], bins:list, centers:list, shear:float, additive_noise:bool) -> float:
+def get_epr_one_shear(mesh_vals:list[np.ndarray], bins:list, centers:list, additive_noise:bool) -> float:
     '''
     Get entropy production rate for a given shear stress for a fit model object.
     
     Inputs:
-    - mesh_model: list of Callables, [drift, diffusion]
-        - specifically, functions that have been configured to be evaluated on a mesh grid (e.g. using model_eval.mesh_grid_function)
+    - mesh_vals: list of np.ndarrays, [drift, diffusion]
+        - specifically, drift and diffusion evaluated on a mesh grid for a given shear stress
     - bins: list of np.ndarrays, bin edges for each dimension of state space
     - centers: list of np.ndarrays, bin centers for each dimension of state space
     - shear: float, shear stress at which to evaluate entropy production rate
@@ -237,12 +237,9 @@ def get_epr_one_shear(mesh_model:list[Callable], bins:list, centers:list, shear:
     Outputs:
     - epr: float, entropy production rate at given shear stress
     '''
-    f_mesh = mesh_model[0]
-    D_mesh = mesh_model[1]
-
-    # evaluate drift and diffusion functions at grid points for given shear stress
-    f_vals = f_mesh(np.meshgrid(*centers),shear).T
-    D_vals = D_mesh(np.meshgrid(*centers),shear).T
+    # get evaluated drift and diffusion functions
+    f_vals = mesh_vals[0]
+    D_vals = mesh_vals[1]
 
     # get stationary probability distribution   
     P = model_eval.get_stationary_probability(f_vals,D_vals,bins)
@@ -274,14 +271,23 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
-    epr_func = partial(get_epr_one_shear, mesh_model=[f_mesh, D_mesh], bins=bins, centers=centers, additive_noise=additive_noise)
+    drift_diffusion_vary_shear = []
+    for shear in shear_range:
+        f_vals = f_mesh(np.meshgrid(*centers),shear).T
+        D_vals = D_mesh(np.meshgrid(*centers),shear).T
+        drift_diffusion_vary_shear.append([f_vals,D_vals])
+
+    epr_func = partial(get_epr_one_shear, bins=bins, centers=centers, additive_noise=additive_noise)
     # use multiprocessing to calculate entropy production rate at each shear stress
     tic = time()
     with Pool() as pool:
-        epr = pool.map(epr_func, shear_range)
+        epr = pool.map(epr_func, drift_diffusion_vary_shear)
     epr = np.array(epr)
     toc = time()
-    print('Time to calculate EPR: {:.2f} s'.format(toc-tic))
+    if toc - tic > 60:
+        print('Time to calculate EPR: {:.2f} min'.format(np.round((toc-tic)/60,5)))
+    else:
+        print('Time to calculate EPR: {:.2f} s'.format(toc-tic))
 
     return epr
 
