@@ -317,8 +317,8 @@ print('Coefficient of determination (R^2) for diffusion coefficient model on tes
 pplane_xlim = [-4,4]
 bin_xlim = [-5,5]
 
-pplane_ylim = [-3.5,3.5]
-bin_ylim = [-4,4]
+pplane_ylim = [-1.5,3.5]
+bin_ylim = [-2,4]
 
 
 # fix bins and centers for all datasets
