@@ -20,10 +20,14 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 # load manifest to DataFrame with metadata
 df = manifest_io.load_manifest_to_df()
 
+print("Manifest shape before and after outlier (bubbles) removal:")
+print(df.shape)
+
 # remove outliers (bubbles) from the dataset
 # note: this is for downstream analysis, 
 # outliers automatically removed for fitting PCA
 df = manifest_pca.remove_outliers(df)
+print(df.shape)
 
 # fit PCA to data
 scale = True # whether to scale the data before PCA

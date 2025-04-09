@@ -4,7 +4,6 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 from skimage import filters as skfilt
-from sklearn import cluster as skcluster
 from scipy import interpolate as spinterp
 from vtk.util import numpy_support as vtknp
 from cellsmap.analyses.utils.viz import viz_base as vb
