@@ -34,6 +34,17 @@ pdm lock
 pdm sync
 ```
 
+
+If you are on the Allen Institute for Cell Science local network, you can load the data by installing aicsfiles. Use the following steps:
+```
+pdm config --local pypi.artifactory.url https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple
+pdm config --local pypi.artifactory-snapshot.url https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-snapshot-local/simple
+pdm add -dG internal
+pdm sync
+```
+
+
+
 ## Datasets
 A catalog of the current datasets we have is [here](https://github.com/orgs/aics-int/projects/40).
 

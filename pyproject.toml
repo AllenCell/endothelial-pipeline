@@ -47,7 +47,7 @@ readme = "README.md"
 license = {text = "AISL"}
 
 [project.optional-dependencies]
-optional = [
+internal = [
     "aicsfiles>=7.10.0", # internal package
 ]
 ml_workflows = [
