@@ -7,11 +7,6 @@ from bioio import BioImage
 import dask.array
 from typing import List, Dict, Any, Union, Tuple, Optional
 
-# general methods
-def get_prj_dir(is_test=False) -> Path:
-    prj_dir = Path(__file__).parents[2] if not is_test else Path(__file__).parents[3] / 'tests/results'
-    return prj_dir
-
 # model methods
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
