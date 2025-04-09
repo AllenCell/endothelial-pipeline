@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from typing import Tuple, Callable
 
 from sklearn.pipeline import Pipeline
-from time import time
 
 from multiprocessing import Pool
 from functools import partial

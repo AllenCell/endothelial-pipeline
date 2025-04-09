@@ -123,7 +123,8 @@ def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
 
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    p_fit = p_fit/np.sum(p_fit) # normalize probability distribution
+    C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=0),dx=dx[1]) # integrate to get normalization constant
+    p_fit = p_fit/C # normalize probability distribution
 
     return p_fit
 
@@ -195,9 +196,10 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, 
         if res < 1e-6: # if residual is small, stop solving, else, sweep again
             keep_solving = False
 
-    p_fit = p.value.reshape(Nbins[1],Nbins[0])
+    p_fit = p.value.reshape(Nbins[1],Nbins[0]).T # transpose to get expected shape for downstream visualization
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    p_fit = p_fit.T/np.sum(p_fit) # transpose to get expected shape for downstream visualization, normalize probability distribution
+    C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=0),dx=dx[1]) # integrate to get normalization constant
+    p_fit = p_fit/C # normalize probability distribution
 
     return p_fit
 
