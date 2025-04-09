@@ -3,6 +3,7 @@ from bioio import BioImage
 import numpy as np
 from cellsmap.util import dataset_io, get_sldy_metadata as sldmd
 from cellsmap.util.cdh5_preprocessing import save_image_output
+from cellsmap.util.set_output import get_output_path
 from cellpose import models
 from tqdm import tqdm
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
@@ -10,12 +11,12 @@ from multiprocessing import Pool
 
 def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|None=None, t_step: int=1, save_output=True, overwrite_old_outputs=False, out_dir: str|Path|None=None, is_test=False, use_original_data=False) -> list:
     analysis_queue: list = []
-    out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=is_test)
+    out_dir = Path(get_output_path(Path(__file__).stem))
     for dataset_name in dataset_name_list:
         img_path = Path(dataset_io.get_zarr_path(dataset_name)) if not use_original_data else Path(dataset_io.get_original_path(dataset_name))
         img = BioImage(img_path)
 
-        num_positions = dataset_io.get_number_of_positions(dataset_name)
+        num_positions = dataset_io.get_total_number_of_positions(dataset_name)
 
         assert num_positions % len(img.scenes) == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}'
         num_pos_in_T = num_positions // len(img.scenes)
@@ -128,7 +129,7 @@ def generate_results(args: dict):
 
 def main(n_proc=1, save_output=True, overwrite=False, is_test=False):
     # Set the output directory
-    out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=is_test)
+    out_dir = Path(get_output_path(Path(__file__).stem))
 
     # Build a list of datasets to analyze
     print('All available datasets:')

@@ -5,6 +5,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 from cellsmap.util import cdh5_preprocessing as preproc, dataset_io
+from cellsmap.util.set_output import get_output_path
 
 def get_nuclei_count_from_image_filepath(filepath: Path, T=None, C=None) -> int:
     img = BioImage(filepath)
@@ -13,10 +14,11 @@ def get_nuclei_count_from_image_filepath(filepath: Path, T=None, C=None) -> int:
     return num_nuclei
 
 
-prj_dir = dataset_io.get_prj_dir(is_test=False)
-out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=False)
-img_dir = prj_dir / 'results' / 'generate_label_free_nuc_pred' / '20241120_20X'
-annotation_dir = prj_dir / 'results' / 'generate_label_free_nuc_pred' / '20241120_20X_missed_nuclei'
+# prj_dir = dataset_io.get_prj_dir(is_test=False)
+out_dir = Path(get_output_path(Path(__file__).stem))
+img_dir = Path(get_output_path('')) / 'generate_label_free_nuc_pred' / '20241120_20X'
+# img_dir = dataset_io.get_nuclear_prediction_path('20241120_20X', position=0)
+annotation_dir = Path(get_output_path('')) / 'generate_label_free_nuc_pred' / '20241120_20X_missed_nuclei'
 Path.mkdir(out_dir, exist_ok=True, parents=True)
 
 # Load the table of missed nuclei counts (manually annotated)

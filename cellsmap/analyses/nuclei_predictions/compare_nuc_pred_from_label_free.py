@@ -13,6 +13,7 @@ from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
 from cellsmap.util import dataset_io, get_sldy_metadata as sldmd
+from cellsmap.util.set_output import get_output_path
 from cellpose import models
 import re
 
@@ -101,7 +102,7 @@ scenes_to_use = {
 get_T_from_path = lambda x: int(re.findall('T_[0-9]+', x.stem)[-1].split('T_')[-1])
 get_S_from_path = lambda x: int(re.findall('S[0-9]+', x.stem)[-1].split('S')[-1])
 
-out_dir = dataset_io.get_results_dir(Path(__file__).stem, is_test=False)
+out_dir = Path(get_output_path(Path(__file__).stem))
 Path.mkdir(out_dir, exist_ok=True, parents=True)
 
 # CellPose label-free nuclear prediction model that Goutham trained:

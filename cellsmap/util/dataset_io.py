@@ -12,11 +12,6 @@ def get_prj_dir(is_test=False) -> Path:
     prj_dir = Path(__file__).parents[2] if not is_test else Path(__file__).parents[3] / 'tests/results'
     return prj_dir
 
-def get_results_dir(results_folder_name: str, is_test=False) -> Path:
-    prj_dir = get_prj_dir(is_test=is_test)
-    out_dir = prj_dir / f'results/{results_folder_name}'
-    return out_dir
-
 # model methods
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
