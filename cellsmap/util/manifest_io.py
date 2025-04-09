@@ -187,7 +187,7 @@ def add_metadata_from_path(df:pd.DataFrame,verbose:bool=True) -> pd.DataFrame:
 
     return df
 
-def get_descriptive_metadata(df:pd.DataFrame) -> dict:
+def get_descriptive_metadata(df:pd.DataFrame,simple:bool=False) -> dict:
     '''
     Get descriptive metadata for each dataset present in the DataFrame df.
 
@@ -196,6 +196,7 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
         - The string in the dataset_name column should match the dataset name in data_config.yaml
+    - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
 
     Outputs:
     - description_dic: dict, dictionary of dataset names and their descriptive metadata
@@ -215,10 +216,21 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
         num_flows = len(flow_config) # number of flow conditions in dataset
 
         shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
-        shear_rate_str = [str(i)+'_dyncm2' for i in shear_rate] # convert shear rates to strings
+        if simple: # if simple description, use qualitative description of shear stress level
+            shear_rate_str = []
+            for shear in shear_rate:
+                if shear >= 20:
+                    shear_rate_str.append('High')
+                elif shear > 0:
+                    shear_rate_str.append('Low')
+                else:
+                    shear_rate_str.append('No')
 
-        time_str = [str(int((flow_config[i][1]-flow_config[i][0])*5/60))+'_hours' for i in range(num_flows)] # get duration of each flow condition in hours
-        description = '_'.join([time_str[i]+'_at_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
+        else: # if not simple, use numerical description of shear stress level
+            shear_rate_str = [str(i)+'_dyncm2' for i in shear_rate] # convert shear rates to strings
+
+        time_str = [str(int((flow_config[i][1]-flow_config[i][0])*5/60))+'hr' for i in range(num_flows)] # get duration of each flow condition in hours
+        description = '_'.join([time_str[i]+'_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
         description_dic[mv_name] = description # add description to dictionary
 
     return description_dic

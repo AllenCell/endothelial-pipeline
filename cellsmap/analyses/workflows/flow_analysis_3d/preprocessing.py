@@ -13,9 +13,9 @@ from cellsmap.util import manifest_io
 
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_analysis_3d/figs"
-workflow_vtk_folder = "flow_analysis_3d/vtks"
-workflow_parent_folder = "flow_analysis_3d"
-parent_savedir = get_output_path(workflow_parent_folder, verbose=False)
+workflow_output_folder = "flow_analysis_3d/outputs"
+workflow_vtk_folder = "flow_analysis_3d/outputs/vtks"
+output_savedir = get_output_path(workflow_output_folder, verbose=False)
 fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
@@ -27,7 +27,7 @@ scale = True # whether to scale the data before PCA
 pca = manifest_pca.fit_pca(df, num_pcs=3, scale=scale)
 
 # save out PCA object (need later for analysis and summary of fit dynamical systems model)
-manifest_io.save_pca_model(pca, vtk_savedir)
+manifest_io.save_pca_model(pca, output_savedir)
 
 # Apply PCA
 X = df[[str(u) for u in range(8)]].values
@@ -41,17 +41,18 @@ for pc in range(3):
 datasets_to_use = ["20241120_20X", "20241203_20X", "20241217_20X"] # 48hr high flow, 48hr low flow, 48hr no flow
 df = df.loc[df["dataset_name"].str.contains("|".join(datasets_to_use))]
 
+# replace description of shear stress in dyncm2 to qualitative description (High, Low, No)
+descriptions = manifest_io.get_descriptive_metadata(df,simple=True)
+df = manifest_io.add_descriptive_metadata(df, descriptions)
+
 # Create unique ID for each crop
-# initialize crop index column
-df["crop_index"] = np.nan
 for ds_name in datasets_to_use:
     df_ = df.loc[df["dataset_name"] == ds_name] # get the dataframe restricted to the dataset
     df_ = manifest_io.add_crop_index(df_) # add crop index to the dataframe
-    df.loc[df["dataset_name"] == ds_name, "crop_index"] = df_["crop_index"] # add the crop index as column to the original dataframe
-# add dataset name to the crop index to make it unique
-df["crop_index"] = df["dataset_name"] + "_" + df["crop_index"].astype(str)
-df = df.sort_values(by=["crop_index", "T"])
+    df.loc[df["dataset_name"] == ds_name, "crop_index"] = ds_name + "_" + df["crop_index"].astype(str) # add the crop index as column to the original dataframe (append dataset name to make unique)
 
+# initialize the DataDrivenFlowField3D object
+df = df.sort_values(by=["crop_index", "T"])
 DDFF = tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
 DDFF.set_dataframe(df, identifier="crop_index")
@@ -83,4 +84,4 @@ plt.legend()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
 
 # Save final manifest for creating flow fields
-df.to_csv(parent_savedir/"manifest.csv")
+df.to_csv(output_savedir+"manifest.csv")

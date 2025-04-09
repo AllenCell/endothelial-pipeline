@@ -13,12 +13,16 @@ from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.analyses.utils.io import vtk_tools
 
 # Create output folder if does not exist yet
-workflow_csv_folder = "flow_analysis_3d/csvs"
-workflow_vtk_folder = "flow_analysis_3d/vtks"
+workflow_fig_folder = "flow_analysis_3d/figs"
+workflow_output_folder = "flow_analysis_3d/outputs"
+workflow_csv_folder = "flow_analysis_3d/outputs/csvs"
+workflow_vtk_folder = "flow_analysis_3d/outputs/vtks"
+output_savedir = get_output_path(workflow_output_folder, verbose=False)
 csv_savedir = get_output_path(workflow_csv_folder, verbose=False)
+fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
-df = pd.read_csv(Path(vtk_savedir).parent/"manifest.csv")
+df = pd.read_csv(output_savedir+"manifest.csv")
 
 DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_dataframe(df, identifier="CropId")
@@ -26,7 +30,7 @@ DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
 
 # Load PCA model
-with open(Path(csv_savedir).parent/"pca_model.pkl", "rb") as file:
+with open(output_savedir+"pca_model.pkl", "rb") as file:
     reducer = pickle.load(file)
 
 # Save 8 dim features in CSV files for now.

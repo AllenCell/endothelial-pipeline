@@ -13,17 +13,19 @@ from cellsmap.analyses.utils.io import vtk_tools
 
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_analysis_3d/figs"
-workflow_vtk_folder = "flow_analysis_3d/vtks"
+workflow_output_folder = "flow_analysis_3d/outputs"
+workflow_vtk_folder = "flow_analysis_3d/outputs/vtks"
+output_savedir = get_output_path(workflow_output_folder, verbose=False)
 fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # Load manifest created at preprocessing step
-df = pd.read_csv(Path(fig_savedir).parent/"manifest.csv")
+df = pd.read_csv(workflow_output_folder+"manifest.csv")
 
-# Create landscape
+# Create flow field dx/dt = f(x)
 DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
-DDFF.set_dataframe(df, identifier="CropId")
+DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
 for condition in df.description.unique():
