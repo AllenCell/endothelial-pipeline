@@ -49,7 +49,7 @@ print(f"Removed {shape_init[0]-shape_post[0]} outliers from the dataset")
 
 
 # fit PCA to data
-scale = True # whether to scale the data before PCA
+scale = False # whether to scale the data before PCA
 pca = manifest_pca.fit_pca(df, num_pcs=3, scale=scale)
 
 # save out PCA object (need later for analysis and summary of fit dynamical systems model)
