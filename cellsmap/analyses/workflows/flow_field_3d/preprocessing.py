@@ -1,6 +1,6 @@
 # Preprocess the pre-computed features generated in the endo project by the diffusion autoencoder.
 # This code generates the figures presented APS March Meeting 2025
-
+# %%
 import matplotlib.pyplot as plt
 
 from cellsmap.util.set_ouput import get_output_path
@@ -58,7 +58,7 @@ for ds_name in datasets_to_use:
     df_ = df.loc[df["dataset_name"] == ds_name] # get the dataframe restricted to the dataset
     df_ = manifest_io.add_crop_index(df_) # add crop index to the dataframe
     df.loc[df["dataset_name"] == ds_name, "crop_index"] = ds_name + "_" + df_["crop_index"].astype(str) # add the crop index as column to the original dataframe (append dataset name to make unique)
-
+# %%
 # initialize the DataDrivenFlowField3D object
 df = df.sort_values(by=["crop_index", "T"])
 DDFF = tools.DataDrivenFlowField3D(verbose=True)
@@ -67,6 +67,8 @@ DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
 
+# %%
+# plot the PCA components
 fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
 ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["T"])
 ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["T"])
@@ -79,6 +81,8 @@ for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
 
+# %%
+# plot with example single crop tracks
 fig, ax = vb.init_plot(figsize=(5, 5))
 ax.scatter(df.PC1, df.PC2, s=0.1, color="black", alpha=0.05)
 for ds_name, df_dataset in df.groupby("dataset_name"):
@@ -88,8 +92,9 @@ for ds_name, df_dataset in df.groupby("dataset_name"):
 ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
 ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
 ax.set_aspect("equal")
-plt.legend()
+plt.legend(loc = "lower left", fontsize=8)
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
 
+# %%
 # Save final manifest for creating flow fields
 df.to_csv(output_savedir+"manifest.csv")
