@@ -278,6 +278,8 @@ def get_dataset_name(ds_path:str,path_prefix:str|None=None,file_ext:str='.ome.za
         dataset_name = dataset_name.replace('_SLDY','')
     if '_timelapse' in dataset_name:
         dataset_name = dataset_name.replace('_timelapse','')
+    if '_Timelapsee' in dataset_name: # typo in manifest file
+        dataset_name = dataset_name.replace('_Timelapsee','')
     return dataset_name
 
 def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=False) -> list:
