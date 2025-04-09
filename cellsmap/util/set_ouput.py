@@ -7,7 +7,8 @@ def get_output_path(workflow_name: str, verbose:bool=True) -> str:
     """
     repo_top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-    output_dir = os.path.join(repo_top_dir, 'results', workflow_name) + os.sep
+    output_dir = os.path.join(repo_top_dir, 'results', workflow_name)
+    output_dir = check_path_ending(output_dir)
     
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -17,3 +18,10 @@ def get_output_path(workflow_name: str, verbose:bool=True) -> str:
     
     return output_dir
     
+def check_path_ending(path: str) -> str:
+    """
+    Check if the path ends with a separator and add one if not.
+    """
+    if not path.endswith(os.sep):
+        path += os.sep
+    return path

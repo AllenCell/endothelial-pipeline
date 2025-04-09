@@ -28,7 +28,6 @@ DDFF.build()
 # Load PCA model
 reducer = manifest_io.load_pca_model(output_savedir)
 
-
 # Save 8 dim features in CSV files for now.
 # TODO: Implement reconstruction once Benji has the code finalized
 for file_name in os.listdir(vtk_savedir):
