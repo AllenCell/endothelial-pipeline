@@ -1,8 +1,6 @@
 # Preprocess the pre-computed features generated in the endo project by the diffusion autoencoder.
 # This code generates the figures presented APS March Meeting 2025
 
-import numpy as np
-from pathlib import Path
 import matplotlib.pyplot as plt
 
 from cellsmap.util.set_ouput import get_output_path
@@ -12,15 +10,20 @@ from cellsmap.util import manifest_pca, manifest_io
 from cellsmap.util import manifest_io
 
 # Create output folder if does not exist yet
-workflow_fig_folder = "flow_analysis_3d/figs"
-workflow_output_folder = "flow_analysis_3d/outputs"
-workflow_vtk_folder = "flow_analysis_3d/outputs/vtks"
+workflow_fig_folder = "flow_field_3d/figs"
+workflow_output_folder = "flow_field_3d/outputs"
+workflow_vtk_folder = "flow_field_3d/outputs/vtks"
 output_savedir = get_output_path(workflow_output_folder, verbose=False)
 fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # load manifest to DataFrame with metadata
 df = manifest_io.load_manifest_to_df()
+
+# remove outliers (bubbles) from the dataset
+# note: this is for downstream analysis, 
+# outliers automatically removed for fitting PCA
+df = manifest_pca.remove_outliers(df)
 
 # fit PCA to data
 scale = True # whether to scale the data before PCA
@@ -46,10 +49,12 @@ descriptions = manifest_io.get_descriptive_metadata(df,simple=True)
 df = manifest_io.add_descriptive_metadata(df, descriptions)
 
 # Create unique ID for each crop
+# initialize crop index column
+df["crop_index"] = '1'
 for ds_name in datasets_to_use:
     df_ = df.loc[df["dataset_name"] == ds_name] # get the dataframe restricted to the dataset
     df_ = manifest_io.add_crop_index(df_) # add crop index to the dataframe
-    df.loc[df["dataset_name"] == ds_name, "crop_index"] = ds_name + "_" + df["crop_index"].astype(str) # add the crop index as column to the original dataframe (append dataset name to make unique)
+    df.loc[df["dataset_name"] == ds_name, "crop_index"] = ds_name + "_" + df_["crop_index"].astype(str) # add the crop index as column to the original dataframe (append dataset name to make unique)
 
 # initialize the DataDrivenFlowField3D object
 df = df.sort_values(by=["crop_index", "T"])
@@ -59,7 +64,7 @@ DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
 ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["T"])
 ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["T"])
 for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
@@ -71,7 +76,7 @@ for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
 
-fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+fig, ax = vb.init_plot(figsize=(5, 5))
 ax.scatter(df.PC1, df.PC2, s=0.1, color="black", alpha=0.05)
 for ds_name, df_dataset in df.groupby("dataset_name"):
     for track, df_track in df_dataset.groupby("crop_index"):
