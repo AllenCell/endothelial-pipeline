@@ -6,7 +6,7 @@ from cellsmap.util.dataset_io import get_model_info, get_dataset_info, get_zarr_
 from cyto_dl.api import CytoDLModel
 from pathlib import Path
 from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 import pandas as pd
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 

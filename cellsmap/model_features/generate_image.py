@@ -3,7 +3,7 @@ import torch
 from typing import List
 from pathlib import Path
 from cellsmap.model_features.utils.mlflow_utils import load_mlflow_model
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 import numpy as np
 
 def generate_from_coords(model_name: str, coords:List[List[float]], n_noise_samples:int=1, average:bool=False):
