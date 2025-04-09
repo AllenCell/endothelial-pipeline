@@ -9,6 +9,7 @@ from time import time
 
 from multiprocessing import Pool
 from functools import partial
+import os
 
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
@@ -278,16 +279,12 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
         drift_diffusion_vary_shear.append([f_vals,D_vals])
 
     epr_func = partial(get_epr_one_shear, bins=bins, centers=centers, additive_noise=additive_noise)
-    # use multiprocessing to calculate entropy production rate at each shear stress
-    tic = time()
-    with Pool() as pool:
+
+    # use multiprocessing to parallelize calculation of entropy production rate at each shear stress
+    n_proc = os.cpu_count() - 1 # leave one core free for other processes
+    with Pool(n_proc) as pool:
         epr = pool.map(epr_func, drift_diffusion_vary_shear)
-    epr = np.array(epr)
-    toc = time()
-    if toc - tic > 60:
-        print('Time to calculate EPR: {:.2f} min'.format(np.round((toc-tic)/60,5)))
-    else:
-        print('Time to calculate EPR: {:.2f} s'.format(toc-tic))
+    epr = np.array(epr) # convert to numpy array (map returns a list)
 
     return epr
 
