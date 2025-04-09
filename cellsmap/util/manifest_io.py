@@ -176,10 +176,11 @@ def add_metadata_from_path(df:pd.DataFrame,verbose:bool=True) -> pd.DataFrame:
     df['T'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])//6)
     df['FOV_ID'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])%6)
 
-    # filepath for this dataset in manifest includes barcode, so we need to change the 
+    # filepath for these dataset in manifest includes barcode, so we need to change the 
     # dataset_name value in df to match the name int data_config.yaml
     # this is a temporary fix until we standardize the data handoff process
     df.loc[df.dataset_name.str.contains('20250224'),'dataset_name'] = '20250224_20X'
+    df.loc[df.dataset_name.str.contains('20250319'),'dataset_name'] = '20250319_20X'
 
     # drop filename_or_obj column
     df.drop(columns=['filename_or_obj'],inplace=True)
