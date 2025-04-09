@@ -28,7 +28,7 @@ dependencies = [
     "numpy>=1.2.3",
     "pandas==2.2.2",
     "pathlib>=1.0.1",
-    "pyarrow<=19.0.1"
+    "pyarrow<=19.0.1",
     "pysindy>=1.7.5",
     "pytest>=8.2.2",
     "scikit-image==0.22.0",
