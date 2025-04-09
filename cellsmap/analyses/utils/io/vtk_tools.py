@@ -9,9 +9,6 @@ from scipy import interpolate as spinterp
 from vtk.util import numpy_support as vtknp
 from cellsmap.analyses.utils.viz import viz_base as vb
 
-def simple_linear_classifier(X, Y):
-    Z = 3/2. * X - 0.6
-    return Z > Y
 
 def save_image_data(img, output_path, workflow_name="3d_flow_analysis"):
     writer = vtk.vtkStructuredPointsWriter()

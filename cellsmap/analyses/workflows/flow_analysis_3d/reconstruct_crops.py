@@ -10,7 +10,7 @@ from vtk.util import numpy_support as vtknp
 from sklearn import decomposition as skdecomp
 from cellsmap.util.set_ouput import get_output_path
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.analyses.workflows.flow_analysis_3d import tools
+from cellsmap.analyses.utils.io import vtk_tools
 
 # Create output folder if does not exist yet
 workflow_csv_folder = "flow_analysis_3d/csvs"
@@ -20,7 +20,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 df = pd.read_csv(Path(vtk_savedir).parent/"manifest.csv")
 
-DDFF = tools.DataDrivenFlowField3D(verbose=True)
+DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_dataframe(df, identifier="CropId")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
@@ -34,7 +34,7 @@ with open(Path(csv_savedir).parent/"pca_model.pkl", "rb") as file:
 for file_name in os.listdir(vtk_savedir):
     if "mean_trajectory" in file_name:
         print(file_name)
-        trajectory = tools.load_polydata(Path(vtk_savedir)/file_name)
+        trajectory = vtk_tools.load_polydata(Path(vtk_savedir)/file_name)
         coords = vtknp.vtk_to_numpy(trajectory.GetPoints().GetData())
         for i, origin in enumerate([DDFF._bounds.xmin, DDFF._bounds.ymin, DDFF._bounds.zmin]):
             coords[:, i] = DDFF.convert_coordinates_from_volume_to_pc(xvol=coords[:, i], origin=origin)

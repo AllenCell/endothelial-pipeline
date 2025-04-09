@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn import decomposition as skdecomp
 from cellsmap.util.set_ouput import get_output_path
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.analyses.workflows.flow_analysis_3d import tools
+from cellsmap.analyses.utils.io import vtk_tools
 
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_analysis_3d/figs"
@@ -21,7 +21,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 df = pd.read_csv(Path(fig_savedir).parent/"manifest.csv")
 
 # Create landscape
-DDFF = tools.DataDrivenFlowField3D(verbose=True)
+DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
 DDFF.set_dataframe(df, identifier="CropId")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])

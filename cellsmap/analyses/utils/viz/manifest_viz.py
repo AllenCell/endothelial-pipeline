@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.pipeline import Pipeline
 
 import cellsmap.analyses.utils.viz.viz_base as vb
-import cellsmap.analyses.utils.io.manifest_io as mio
+import cellsmap.util.manifest_io as mio
 
 def plot_explained_variance(explained_variance_ratio:np.ndarray) -> tuple:
     '''Plot explained variance ratio of PCA components.'''
