@@ -119,7 +119,7 @@ def apply_model(model_name:str, dataset_name: str, resolution:int=0, overrides:U
     )
     commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
-    # save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
+    save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
 
 if __name__ == '__main__':
-    fire.Fire()
+    fire.Fire(apply_model)
