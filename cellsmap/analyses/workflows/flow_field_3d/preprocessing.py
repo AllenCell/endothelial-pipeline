@@ -19,6 +19,24 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # load manifest to DataFrame with metadata
 df = manifest_io.load_manifest_to_df()
+
+# only keep the reference datasets for this workflow
+datasets_to_use = ["20241120_20X", "20241203_20X", "20241217_20X"] # 48hr high flow, 48hr low flow, 48hr no flow
+df = df.loc[df["dataset_name"].str.contains("|".join(datasets_to_use))]
+
+# plot the data in latent space (features 1 and 4) before removing outliers
+fig, ax = vb.init_plot(figsize=(5,5))
+for (ds_name, dfs) in df.groupby("dataset_name"):
+    ax.scatter(dfs["1"], dfs["4"], s=0.1, label=ds_name)
+plt.legend()
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4", dpi=72)
+
+# plot latent dims 1 and 4 after with outliers labelled
+fig, ax = plt.subplots(1,1, figsize=(5,5))
+ax.scatter(df["1"], df["4"], c=df["outlier"], s=0.2)
+vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4_no_bubbles", dpi=72)
+
+# shape of the dataset before removing outliers
 shape_init = df.shape
 
 # remove outliers (bubbles) from the dataset
@@ -27,6 +45,8 @@ shape_init = df.shape
 df = manifest_pca.remove_outliers(df)
 shape_post = df.shape
 print(f"Removed {shape_init[0]-shape_post[0]} outliers from the dataset")
+
+
 
 # fit PCA to data
 scale = True # whether to scale the data before PCA
@@ -43,9 +63,6 @@ Xt = pca.transform(X)
 for pc in range(3):
     df[f"PC{pc+1}"] = Xt[:, pc]
 
-# only keep the reference datasets for this workflow
-datasets_to_use = ["20241120_20X", "20241203_20X", "20241217_20X"] # 48hr high flow, 48hr low flow, 48hr no flow
-df = df.loc[df["dataset_name"].str.contains("|".join(datasets_to_use))]
 
 # replace description of shear stress in dyncm2 to qualitative description (High, Low, No)
 descriptions = manifest_io.get_descriptive_metadata(df,simple=True)
