@@ -1,8 +1,15 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 from typing import Tuple, Callable
+
 from sklearn.pipeline import Pipeline
+from time import time
+
+from multiprocessing import Pool
+from functools import partial
+import os
 
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
@@ -59,7 +66,11 @@ def model_data_comparison_one_dataset(model:list[Callable],
         p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
     else:
         centers = [0.5*(bins[i][1:]+bins[i][:-1]) for i in range(len(bins))]
-        p_fit = model_eval.get_stationary_probability(f,D,bins,u)
+        f_mesh = model_eval.mesh_grid_function(f)
+        D_mesh = model_eval.mesh_grid_function(D)
+        f_vals = f_mesh(np.meshgrid(*centers),u).T
+        D_vals = D_mesh(np.meshgrid(*centers),u).T
+        p_fit = model_eval.get_stationary_probability(f_vals,D_vals,bins)
 
     # get "stationary" distribution from data
     feat_cols = [str(i) for i in PCs] # for extracting PC values from DataFrame
@@ -212,7 +223,34 @@ def run_fixed_point_analysis(drift_function:Callable,
         vb.save_plot(figs[i],fig_savedir+'fixed_points_by_shear_'+str(i))
 
 
-def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray) -> np.ndarray:
+def get_epr_one_shear(mesh_vals:list[np.ndarray], bins:list, centers:list, additive_noise:bool) -> float:
+    '''
+    Get entropy production rate for a given shear stress for a fit model object.
+    
+    Inputs:
+    - mesh_vals: list of np.ndarrays, [drift, diffusion]
+        - specifically, drift and diffusion evaluated on a mesh grid for a given shear stress
+    - bins: list of np.ndarrays, bin edges for each dimension of state space
+    - centers: list of np.ndarrays, bin centers for each dimension of state space
+    - shear: float, shear stress at which to evaluate entropy production rate
+    - additive_noise: bool, indicates whether model has additive noise (constant diffusion) or not
+
+    Outputs:
+    - epr: float, entropy production rate at given shear stress
+    '''
+    # get evaluated drift and diffusion functions
+    f_vals = mesh_vals[0]
+    D_vals = mesh_vals[1]
+
+    # get stationary probability distribution   
+    P = model_eval.get_stationary_probability(f_vals,D_vals,bins)
+
+    # get entropy production rate
+    epr = gp.entropy_production(P,f_vals,D_vals,centers,additive_noise)
+
+    return epr
+
+def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray, additive_noise:bool) -> np.ndarray:
     '''
     Get entropy production rate as a function of shear stress for a fit model object.
     
@@ -221,6 +259,7 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     - bins: list of np.ndarrays, bin edges for each dimension of state space
     - centers: list of np.ndarrays, bin centers for each dimension of state space
     - shear_range: np.ndarray, shear stresses at which to evaluate entropy production rate
+    - additive_noise: bool, indicates whether model has additive noise (constant diffusion) or not
 
     Outputs:
     - epr: np.ndarray, entropy production rate as a function of shear stress
@@ -229,30 +268,28 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     f = model[0]
     D = model[1]
 
-    # initialize array to store entropy production rate
-    epr = np.zeros(len(shear_range))
-    for i,u in enumerate(shear_range):
-        # get stationary probability distribution   
-        P = model_eval.get_stationary_probability(f,D,bins,u)
+    # get mesh grid functions for drift and diffusion
+    f_mesh = model_eval.mesh_grid_function(f)
+    D_mesh = model_eval.mesh_grid_function(D)
 
-        # evaluate drift and diffusion functions at grid points
-        f_mesh = model_eval.mesh_grid_function(f)
-        D_mesh = model_eval.mesh_grid_function(D)
+    drift_diffusion_vary_shear = []
+    for shear in shear_range:
+        f_vals = f_mesh(np.meshgrid(*centers),shear).T
+        D_vals = D_mesh(np.meshgrid(*centers),shear).T
+        drift_diffusion_vary_shear.append([f_vals,D_vals])
 
-        X1,X2 = np.meshgrid(centers[0],centers[1])
-        f_vals = f_mesh([X1,X2],u).T
-        D_vals = D_mesh([X1,X2],u).T
+    epr_func = partial(get_epr_one_shear, bins=bins, centers=centers, additive_noise=additive_noise)
 
-        # get probability flux: J(x) = f(x)P(x) - div(D(x) P(x))
-        J = gp.probability_flux(P,f_vals,D_vals,centers)
-        # expand D_vals to matrix (diagonal elements)
-        D_mat = gp.expand_to_matrix(D_vals)
-        # get entropy production rate (numerical integration)
-        # right now this is a huge bottleneck, need to optimize
-        epr[i] = gp.entropy_production(J,D_mat,P,centers)
+    # use multiprocessing to parallelize calculation of entropy production rate at each shear stress
+    n_proc = os.cpu_count() - 1 # leave one core free for other processes
+    with Pool(n_proc) as pool:
+        epr = pool.map(epr_func, drift_diffusion_vary_shear)
+    epr = np.array(epr) # convert to numpy array (map returns a list)
+
     return epr
 
-def run_epr_analysis(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray, fig_savedir:str) -> None:
+def run_epr_analysis(model:list[Callable], bins:list, centers:list, 
+                     shear_range:np.ndarray, fig_savedir:str, additive_noise:bool) -> None:
     '''
     Get and plot entropy production rate as a function of shear stress for a fit SDE model.
     Calls `get_epr` to get entropy production rate, then calls `viz.dynamics_viz.plot_entropy_production_rate` to plot it.
@@ -263,12 +300,13 @@ def run_epr_analysis(model:list[Callable], bins:list, centers:list, shear_range:
     - centers: list of np.ndarrays, bin centers for each dimension of state space
     - shear_range: np.ndarray, shear stresses at which to evaluate entropy production rate
     - fig_savedir: str, directory to save figures
+    - additive_noise: bool, indicates whether model has additive noise (constant diffusion) or not
 
     Outputs:
     - None, saves figures to fig_savedir
     '''
     print('*** Running entropy production rate analysis...\n')
-    epr = get_epr(model, bins, centers, shear_range)
+    epr = get_epr(model, bins, centers, shear_range, additive_noise)
     fig, _ = dviz.plot_entropy_production_rate(epr,shear_range)
     plt.show()
     vb.save_plot(fig,fig_savedir+'epr')
@@ -281,6 +319,7 @@ def run_gen_potential_analysis(model:list[Callable],
                                downsample_quiver:int,
                                normed:bool, 
                                fig_savedir:str,
+                               additive_noise:bool,
                                use_fipy:bool=False) -> None:
     '''
     Run generalized potential energy landscape analysis for a fit SDE model. This is a qualitative evaluation of the model
@@ -295,6 +334,8 @@ def run_gen_potential_analysis(model:list[Callable],
     - downsample_quiver: int, downsample factor for quiver plot of gradient/flux decomposition
     - normed: bool, whether to normalize quiver plot of gradient/flux decomposition
     - fig_savedir: str, directory to save figures 
+    - additive_noise: bool, indicates whether model has additive noise (constant diffusion) or not
+        - if True, D = const, if False, D = D(x)
     - use_fipy: bool, optional argument whether to use FiPy solver to calculate stationary distribution (default False)
 
     Outputs:
@@ -303,15 +344,21 @@ def run_gen_potential_analysis(model:list[Callable],
     print('*** Running generalized potential energy landscape analysis...\n')
     f = model[0]
     D = model[1]
+
+    # define mesh grid functions for drift and diffusion
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
     for ii, u in enumerate(shear_range):
+        # evaluate drift and diffusion functions at grid points for given shear stress
+        f_vals = f_mesh(np.meshgrid(*centers),u).T
+        D_vals = D_mesh(np.meshgrid(*centers),u).T
+        
         # get stationary probability distribution to get generalized potential energy landscape U
         if use_fipy:
             p_fit = model_eval.get_stationary_probability_fipy(f,D,bins,u)
         else:
-            p_fit = model_eval.get_stationary_probability(f,D,bins,u)
+            p_fit = model_eval.get_stationary_probability(f_vals,D_vals,bins)
         U= -np.log(p_fit)
 
         # plot generalized potential energy landscape
@@ -326,13 +373,9 @@ def run_gen_potential_analysis(model:list[Callable],
         vb.save_plot(fig,fig_savedir+'gp_shear_'+str(ii))
 
         ######## plot gradient/flux decomposition ########
-
-        # get f and D values at grid points
-        f_vals = f_mesh(np.meshgrid(*centers),u).T
-        D_vals = D_mesh(np.meshgrid(*centers),u).T
         
         # get gradient/flux decomposition
-        _, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers)
+        _, grad_term, _, flux_term = gp.grad_flux_decomposition(f_vals,D_vals,centers,additive_noise)
 
         # was having issues with flux_term being an AxesArray object (inherited from SINDy model)
         # should test this to see if no longer a problem (should be fixed in model_eval scripts now)
