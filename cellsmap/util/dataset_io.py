@@ -28,12 +28,13 @@ def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     return config_data
 
 # dataset methods
-def get_available_datasets() -> List[str]:
+def get_available_datasets(verbose: bool = True) -> List[str]:
     datasets = []
     config = load_config()
     for dataset in config:
         datasets.append(dataset['name'])
-        print(dataset['name'])
+        if verbose:
+            print(dataset['name'])
     return datasets
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
@@ -81,13 +82,19 @@ def get_channel_index(dataset_name: str, channel_names: List[str]) -> List[int]:
     return available_channels
 
 def get_specific_channel_order(dataset_name:str):
-    gfp_index = get_dataset_info(dataset_name)['egfp_channel_index']
-    bf_index = get_dataset_info(dataset_name)['brightfield_channel_index']
-    return gfp_index, bf_index
-
-def get_number_of_positions(dataset_name:str) -> int:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['n_positions']
+    gfp_index = dataset_info.get('egfp_channel_index')
+    bf_index = dataset_info.get('brightfield_channel_index')
+    index_405 = dataset_info.get('405_channel_index', None)
+    
+    return gfp_index, bf_index, index_405
+
+def get_total_number_of_positions(dataset_name:str) -> int:
+    """
+    n positions is the product of n_scenes x n_positions_per_scene
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['n_total_positions']
 
 def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
     data_dir = get_zarr_path(dataset_name)
@@ -146,6 +153,33 @@ def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['flow']
 
+def get_flow_change_frame(dataset_name:str) -> int:
+    '''
+    Get frame number at which flow changes in dataset ds_name.
+    
+    Inputs:
+    - dataset_name: str, name of dataset to get flow change frame for
+        - This string must match the dataset name in data_config.yaml
+    
+    Outputs:
+    - change_frame: int, frame number at which flow changes in dataset dataset_name
+    '''
+    # load config for dataset from data_config.yaml
+    flow_info = get_flow_info(dataset_name)
+
+    # get frame number at which flow changes
+    change_frame = flow_info[0][1]
+
+    return change_frame
+
+def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
+    flow_list = get_flow_info(dataset_name)
+    for t_start, t_stop, flow in flow_list:
+        if t_start <= frame <= t_stop:
+            return flow
+    print(f"Frame {frame} not found in flow list.")
+    return None
+
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
@@ -168,6 +202,29 @@ def get_barcode(dataset_name: str) -> str:
 def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['microscope']
+
+def get_fmsid(dataset_name: str) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info['fmsid']
+
+def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
+
+def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
+    # NOTE at some point the cdh5 classic segmentation paths
+    # will probably be added to the dataconfig.yaml file
+    # for the base_path, but until then I will hardcode the
+    # path here
+    base_path = Path('//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg')
+    base_path = base_path / dataset_name
+    # NOTE this is what the code is expected to be when the
+    # path is added to the dataconfig.yaml file:
+    # base_path = dataset_info['nuclear_label_free_seg_path']
+    position_path = f"{base_path}/P{position}/"
+    return position_path
 
 # model methods
 

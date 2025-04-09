@@ -41,6 +41,7 @@ venv/
 *.pkl
 
 # ignore locally generated results
+figs/
 results/
 analyses/results/
 
