@@ -56,13 +56,13 @@ def generate_overrides(save_path: str, data_path: str, ckpt_path: str, dataset_n
     }
     return overrides
 
-def generate_zarr_csv(dataset_name: str, save_path: str, resolution: int=0):
+def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0):
     # generate csv with paths to zarr files
     df = pd.DataFrame({
         'path': sorted(Path(get_zarr_path(dataset_name)).glob('*.zarr'))
     })
     df['channel'] = ZARR_BF_CHANNEL
-    df['resolution'] = resolution
+    df['resolution'] = resolution_level
     data_path = str(save_path / 'dataset.csv')
     df.to_csv(data_path, index=False)
     return data_path
@@ -78,7 +78,7 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, mlflow_id: s
     pred_df.to_parquet(prediction_path)
     return prediction_path
 
-def apply_model(model_name:str, dataset_name: str, resolution:int=0, overrides:Union[str, Dict]={}):
+def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, overrides:Union[str, Dict]={}):
     if not torch.cuda.is_available():
         raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
 
@@ -100,7 +100,7 @@ def apply_model(model_name:str, dataset_name: str, resolution:int=0, overrides:U
     model.load_config_from_file(path_dict['config_path'])
 
     # create zarr dataset
-    data_path = generate_zarr_csv(dataset_name, save_path, resolution)
+    data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
 
     # apply overrides
     overrides = generate_overrides(
