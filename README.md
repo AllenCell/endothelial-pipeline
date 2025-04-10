@@ -21,6 +21,7 @@ part1 & part2 & part4 & part5 --> part3
 
 ## Installation
 This project requires Python 3.10. Package dependencies can be found in the _pyproject.toml_ file. We use the Python package manager PDM in these instructions, but any virtual environment manager should do.
+
 0. If you don't have PDM and want to use it, install PDM (you can do this via `pip` if you want; for more details see: https://pdm-project.org/en/latest/#__tabbed_2_5). Note that PDM requires the Python version that you installed it with to work, but can create virtual environments that use other Python versions (e.g. you can install PDM with Python 3.12 and then use PDM to create the environment for this project, which will use Python 3.10).
 1. Change the directory to the location where you want to clone the cellsmap repo
 2. Clone the `cellsmap` repo from GitHub to your desired location.
