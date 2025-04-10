@@ -1,10 +1,11 @@
-from cellsmap.util.dataset_io import get_model_info
 import torch
 from typing import List
 from pathlib import Path
+import numpy as np
+
+from cellsmap.util.dataset_io import get_model_info
 from cellsmap.model_features.utils.mlflow_utils import load_mlflow_model
 from cellsmap.util.set_output import get_output_path
-import numpy as np
 
 def generate_from_coords(model_name: str, coords:List[List[float]], n_noise_samples:int=1, average:bool=False):
     coords = np.array(coords)
