@@ -59,7 +59,7 @@
   shear_stress_regime: no_flow-to-low,
   use_cases: [nuclear_label_free_predictions],
   pixel_size_xy_in_um: 0.382,
-  duration: 4, # number of frames
+  duration: 1, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, -1, 13]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 5, # from the original .sldy file
@@ -84,7 +84,7 @@
   shear_stress_regime: no_flow-to-low,
   use_cases: [nuclear_label_free_predictions],
   pixel_size_xy_in_um: 0.382,
-  duration: 5, # number of frames
+  duration: 1, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 5, # from the original .sldy file

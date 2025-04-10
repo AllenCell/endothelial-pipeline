@@ -6,6 +6,7 @@ from pathlib import Path
 from bioio import BioImage
 import dask.array
 from typing import List, Dict, Any, Union, Tuple, Optional
+import re
 
 # model methods
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
@@ -57,19 +58,41 @@ def get_flow_in_frames(dataset_name: str) -> List[Tuple[Any, Any, Any]]:
     flow_in_frames = [(round(t_start * 60 / dataset_info['time_interval_in_minutes']), round(t_stop * 60 / dataset_info['time_interval_in_minutes']), flow) for t_start, t_stop, flow in flow_info]
     return flow_in_frames
 
-def get_zarr_path(dataset_name: str) -> str:
+def get_zarr_dir(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info['zarr_path']
 
-def get_available_channels(dataset_name:str) -> list:
-    path = get_zarr_path(dataset_name)
-    reader = BioImage(path)
-    return reader.channel_names
+def get_zarr_path(dataset_name: str, zarr_name: Optional[str|None]=None) -> Dict[str, str]:
+    data_dir = get_zarr_dir(dataset_name)
+    zarr_paths = {}
+    if zarr_name:
+        filepath = Path(data_dir) / zarr_name
+        assert filepath.exists(), f'Zarr file {filepath} does not exist.'
+        filepath_list = [filepath]
+    else:
+        filepath_list = [fp for fp in Path(data_dir).glob('*.zarr')]
 
-def get_channel_index(dataset_name: str, channel_names: List[str]) -> List[int]:
-    available_channels = get_available_channels(dataset_name)
-    available_channels = [available_channels.index(channel) if channel in available_channels else None for channel in channel_names]
-    return available_channels
+    for filepath in filepath_list:
+        zarr_paths[filepath.name] = str(filepath)
+
+    return zarr_paths
+
+def get_available_channels(dataset_name:str, zarr_name: Optional[str|None]=None) -> Dict[str, List[str]]:
+    zarr_paths = get_zarr_path(dataset_name, zarr_name)
+    channel_names = {}
+    for filename, filepath in zarr_paths.items():
+        reader = BioImage(filepath)
+        channel_names[filename] = reader.channel_names
+    return channel_names
+
+def get_channel_index(dataset_name: str, channel_names: List[str], zarr_name: Optional[str|None]=None) -> Dict[str, List[int|None]]:
+    zarr_paths = get_zarr_path(dataset_name, zarr_name)
+    channel_indices = {}
+    for filename in zarr_paths.keys():
+        available_channels = get_available_channels(dataset_name, filename)
+        # available_channels[filename].update([available_channels.index(channel) if channel in available_channels else None for channel in channel_names])
+        channel_indices[filename] = [available_channels[filename].index(channel) if channel in available_channels[filename] else None for channel in channel_names]
+    return channel_indices
 
 def get_specific_channel_order(dataset_name:str):
     dataset_info = get_dataset_info(dataset_name)
@@ -87,17 +110,10 @@ def get_total_number_of_positions(dataset_name:str) -> int:
     return dataset_info['n_total_positions']
 
 def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
-    data_dir = get_zarr_path(dataset_name)
+    zarr_paths = get_zarr_path(dataset_name, zarr_name)
     dataset = {}
 
-    if zarr_name:
-        filepath = Path(data_dir) / zarr_name
-        assert filepath.exists(), f'Zarr file {filepath} does not exist.'
-        filepath_list = [filepath]
-    else:
-        filepath_list = [fp for fp in Path(data_dir).glob('*.zarr')]
-
-    for filepath in filepath_list:
+    for filename, filepath in zarr_paths.items():
         reader = BioImage(filepath)
         available_channels = reader.channel_names
         channels_index = [available_channels.index(c) for c in channels]
@@ -105,8 +121,8 @@ def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=
         reader.set_resolution_level(level)
         if time_end < 0:
             time_end = get_dataset_duration_in_frames(dataset_name)-1
-        img = reader.get_image_dask_data("TCYX", T=range(time_start, time_end+1), C=channels_index)
-        dataset[filepath.name] = img
+        img = reader.get_image_dask_data("TCZYX", T=range(time_start, time_end+1), C=channels_index)
+        dataset[filename] = img
     return dataset
 
 def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
@@ -117,13 +133,20 @@ def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, chan
     If it is an integer then it will be used as the index to
     get the zarr file name from the dataset.
     """
+    zarr_path_list = get_zarr_path(dataset_name)
     if isinstance(position, int):
-        data_dir = get_zarr_path(dataset_name)
-        filepath_list = sorted([fp for fp in Path(data_dir).glob('*.zarr')])
-        zarr_name = filepath_list[position].name
-    else:
+        if position >= len(zarr_path_list):
+            raise ValueError(f"Position {position} is out of range. There are only {len(zarr_path_list)} zarr files in the dataset.")
+        zarr_name = list(zarr_path_list.keys())[position]
+        for zarr_name in zarr_path_list.keys():
+            if position == extract_P(zarr_name):
+                break
+    elif isinstance(position, str):
+        if position not in zarr_path_list:
+            raise ValueError(f"Zarr file {position} not found in dataset {dataset_name}.")
         zarr_name = position
-    img_dict = load_dataset(dataset_name, channels, time_start, time_end, level, zarr_name)
+
+    img_dict = load_dataset(dataset_name, channels, time_start, time_end, level, zarr_name=zarr_name)
     img_dask_arr = img_dict[zarr_name]
     return img_dask_arr
 
@@ -239,3 +262,47 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
+
+def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
+    """
+    Extract the position value from a string or Path.name.
+    Searches for the pattern "P[0-9]+" to find the position.
+    If use_last_match is True then the last match will be used,
+    otherwise the first one will be used.
+
+    Parameters
+    ----------
+    fp_as_string: str or Path
+        A string or Path.name to get the position from.
+    int_only: bool
+        Whether to return just the position as an integer or
+        an entire string (i.e. 10 vs 'P10')
+        Default is True (i.e. just an integer).
+    use_last_match: bool
+        Whether to use the last match (in the event that multiple possible
+        position values were found in the string).
+        If False then the first match will be used.
+        E.g. image_name_P1_P3_etc_T57.tif can return either P1 or P3, but
+        will return 3 by default. Ideally the position in fp_as_string
+        would be unambiguous.
+        Default is True.
+
+    Returns
+    -------
+    P: int or str
+        The position represented as an integer if int_only is True, otherwise
+        the position represented as a string including the P before.
+    """
+
+    if isinstance(fp_as_string, Path):
+        fp_as_string = str(fp_as_string)
+
+    index = -1 if use_last_match else 0
+    p = re.findall('P[0-9]+', fp_as_string)
+    if p:
+        position_value = int(p[index].split('P')[-1])
+    else:
+        position_value = default_if_not_found
+        print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
+
+    return position_value if int_only else f'P{position_value}'

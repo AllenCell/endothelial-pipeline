@@ -61,13 +61,11 @@ def get_image_data_from_original(dataset_name, scenes_to_use):
         yield (img_dask_arr_nuc, img_dask_arr_bf_std)
 
 def get_image_data_from_zarr(dataset_name):
-    nuc_chan = int(*dataset_io.get_channel_index(dataset_name, ['DAPI']))
-    bf_chan = int(*dataset_io.get_channel_index(dataset_name, ['Brightfield']))
-    img_dict_nuc = dataset_io.load_dataset(dataset_name, channels=[nuc_chan,])
-    img_dict_bf = dataset_io.load_dataset(dataset_name, channels=[bf_chan,])
-    for filename in img_dict_nuc:
-        img_dask_arr_nuc = img_dict_nuc[filename].max(axis=dim_map['Z'], keepdims=True)
-        img_dask_arr_bf_std = img_dict_bf[filename].std(axis=dim_map['Z'], keepdims=True)
+    for zarr_name in dataset_io.get_zarr_path(dataset_name):
+        img_dict_nuc = dataset_io.load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
+        img_dict_bf = dataset_io.load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
+        img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
+        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
         yield (img_dask_arr_nuc, img_dask_arr_bf_std)
 
 # Generate ground truths from nuclei labeled with DAPI using
