@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from typing import Tuple, Callable
+from time import time
 
 from sklearn.pipeline import Pipeline
 
@@ -221,7 +222,6 @@ def run_fixed_point_analysis(drift_function:Callable,
     for i in range(len(figs)):
         vb.save_plot(figs[i],fig_savedir+'fixed_points_by_shear_'+str(i))
 
-
 def get_epr_one_shear(mesh_vals:list[np.ndarray], bins:list, centers:list, additive_noise:bool) -> float:
     '''
     Get entropy production rate for a given shear stress for a fit model object.
@@ -247,6 +247,9 @@ def get_epr_one_shear(mesh_vals:list[np.ndarray], bins:list, centers:list, addit
     # get entropy production rate
     epr = gp.entropy_production(P,f_vals,D_vals,centers,additive_noise)
 
+    # free up memory
+    del f_vals, D_vals, P
+
     return epr
 
 def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarray, additive_noise:bool) -> np.ndarray:
@@ -271,6 +274,8 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     f_mesh = model_eval.mesh_grid_function(f)
     D_mesh = model_eval.mesh_grid_function(D)
 
+    tic = time()
+
     drift_diffusion_vary_shear = []
     for shear in shear_range:
         f_vals = f_mesh(np.meshgrid(*centers),shear).T
@@ -283,7 +288,19 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
     n_proc = os.cpu_count() - 1 # leave one core free for other processes
     with Pool(n_proc) as pool:
         epr = pool.map(epr_func, drift_diffusion_vary_shear)
+    
+    # close the pool
+    pool.close()
+
+    # free up memory
+    del drift_diffusion_vary_shear
+    
     epr = np.array(epr) # convert to numpy array (map returns a list)
+    toc = time()
+    if toc-tic > 60:
+        print('Time to calculate entropy production rate: {:.2f} minutes'.format(np.round((toc-tic)/60,4)))
+    else:
+        print('Time to calculate entropy production rate: {:.2f} seconds'.format(toc-tic))
 
     return epr
 
