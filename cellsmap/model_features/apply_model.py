@@ -2,7 +2,7 @@ import json
 import fire
 import torch
 from typing import Dict, Union
-from cellsmap.util.dataset_io import get_model_info, get_dataset_info, get_zarr_path
+from cellsmap.util.dataset_io import get_model_info, get_zarr_path
 from cyto_dl.api import CytoDLModel
 from pathlib import Path
 from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
@@ -10,6 +10,8 @@ from cellsmap.util.set_output import get_output_path
 import pandas as pd
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 
+# the zarr creation workflow always has brightfield as channel index 1
+ZARR_BF_CHANNEL = 1
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     """
@@ -55,11 +57,10 @@ def generate_overrides(save_path: str, data_path: str, ckpt_path: str, dataset_n
 
 def generate_zarr_csv(dataset_name: str, save_path: str, resolution: int=0):
     # generate csv with paths to zarr files
-    channel = get_dataset_info(dataset_name)['brightfield_channel_index']
     df = pd.DataFrame({
         'path': sorted(Path(get_zarr_path(dataset_name)).glob('*.zarr'))
     })
-    df['channel'] = channel 
+    df['channel'] = ZARR_BF_CHANNEL
     df['resolution'] = resolution
     data_path = str(save_path / 'dataset.csv')
     df.to_csv(data_path, index=False)
