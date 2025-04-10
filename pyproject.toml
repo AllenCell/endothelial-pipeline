@@ -14,6 +14,8 @@ dependencies = [
     "bioio-ome-zarr>=1.1.1",
     "bioio-sldy>=1.0.3",
     "bioio-tifffile>=1.0.1",
+    "colorcet>=3.1.0",
+    "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",
     "ipykernel>=6.29.5",
@@ -26,6 +28,7 @@ dependencies = [
     "numpy>=1.2.3",
     "pandas==2.2.2",
     "pathlib>=1.0.1",
+    "pyarrow<=19.0.1",
     "pysindy>=1.7.5",
     "pytest>=8.2.2",
     "scikit-image==0.22.0",
@@ -43,7 +46,7 @@ readme = "README.md"
 license = {text = "AISL"}
 
 [project.optional-dependencies]
-optional = [
+internal = [
     "aicsfiles>=7.10.0", # internal package
 ]
 ml_workflows = [
