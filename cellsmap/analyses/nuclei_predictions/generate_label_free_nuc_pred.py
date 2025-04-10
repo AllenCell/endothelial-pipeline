@@ -13,8 +13,12 @@ def build_analysis_queue(dataset_name_list: list, t_start: int=0, t_final: int|N
     analysis_queue: list = []
     out_dir = Path(get_output_path(Path(__file__).stem))
     for dataset_name in dataset_name_list:
-        img_path = Path(dataset_io.get_zarr_path(dataset_name)) if not use_original_data else Path(dataset_io.get_original_path(dataset_name))
-        img = BioImage(img_path)
+        if use_original_data:
+            img_path = Path(dataset_io.get_original_path(dataset_name)) if not use_original_data else Path(dataset_io.get_original_path(dataset_name))
+            img = BioImage(img_path)
+        else:
+            assert use_original_data==True, 'This workflow has not yet been updated to work with .ome.zarr files.'
+            break
 
         num_positions = dataset_io.get_total_number_of_positions(dataset_name)
 
@@ -90,11 +94,10 @@ def generate_results(args: dict):
         img_arr = img.get_image_dask_data(dim_order)
 
         # Load the retrained CellPose label-free nuclear prediction model
-        dataset_io.load_config('model')
         model_config = dataset_io.load_config(config_type='model')
-        nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
+        nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree_retrained_20250327']
         assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
-        model_path = Path(nuclei_models[0]['model_path_retrained'])
+        model_path = Path(nuclei_models[0]['model_path'])
         model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast

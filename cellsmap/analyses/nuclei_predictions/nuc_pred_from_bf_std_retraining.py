@@ -10,17 +10,11 @@ from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
+from datetime import datetime
 
-# NOTE
-# because we don't have zarr files for the datasets in the
-# datasets_to_use list, the loading of fixed data used for
-# retraining the model would need to use the original data
-# which could be compplicated or inconsistent. Therefore I
-# will check this script after the zarrs are available.
-# Until then, this script is not functional.
 use_original_data = True
 show_watershed_segmentations = True
-train_from_base_cellpose_nuclei_model = True
+train_from_base_cellpose_nuclei_model = False
 if show_watershed_segmentations or train_from_base_cellpose_nuclei_model:
     import matplotlib.pyplot as plt
     from skimage.color import label2rgb
@@ -78,7 +72,6 @@ for dataset_name in datasets_to_use:
     else:
         imgs_to_eval = get_image_data_from_zarr(dataset_name)
 
-    # print(f'Processing dataset={dataset_name}, T={t}...')
     for img_dask_arr in imgs_to_eval:
         nuc_max, bf_std = img_dask_arr
         nuc_max = nuc_max.compute().squeeze()
@@ -101,14 +94,14 @@ model_config = dataset_io.load_config(config_type='model')
 nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
 assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
 model_path = Path(nuclei_models[0]['model_path'])
-model_dir = model_path.parent
+model_dir = model_path.parent / datetime.today().date().strftime('%Y%m%d')
+model_dir.mkdir(exist_ok=True, parents=True)
 
 model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
 model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
                             train_data=images, train_labels=labels,
                             channels=[0,0], normalize=True,
-                            # test_data=test_images, test_labels=test_labels,
                             weight_decay=1e-4, SGD=True, learning_rate=0.1,
                             n_epochs=100,
                             save_path=model_dir, model_name="bf_std_model_no_preprocess_retrained")
@@ -116,12 +109,11 @@ model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
 if train_from_base_cellpose_nuclei_model:
     # fine-tune the basic CellPose nuclei model
     model_dir_from_default = model_dir / 'from_cellpose_nuclei_model_default'
-    Path.mkdir(model_dir_from_default, exist_ok=True)
+    model_dir_from_default.mkdir(exist_ok=True)
     model_nuclei_original = models.CellposeModel(gpu=False, model_type='nuclei')
     model_path, train_losses, test_losses = train.train_seg(model_nuclei_original.net,
                                 train_data=images, train_labels=labels,
                                 channels=[0,0], normalize=True,
-                                # test_data=test_images, test_labels=test_labels,
                                 weight_decay=1e-4, SGD=True, learning_rate=0.1,
                                 n_epochs=100,
                                 save_path=model_dir_from_default, model_name="bf_std_model_no_preprocess_retrained")
@@ -133,7 +125,6 @@ if train_from_base_cellpose_nuclei_model:
     test_img = BioImage(test_img_path)
     test_img_dask_arr = test_img.get_image_dask_data(dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()
-    # test = model_nuclei_original_finetuned.eval(images[0])
     test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=-3.0)
 
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
@@ -167,4 +158,3 @@ if show_watershed_segmentations:
         [ax.set_axis_off() for ax in ax]
         plt.tight_layout()
         plt.show()
-
