@@ -21,22 +21,58 @@ part1 & part2 & part4 & part5 --> part3
 
 ## Installation
 This project requires Python 3.10. Package dependencies can be found in the _pyproject.toml_ file. We use the Python package manager PDM in these instructions, but any virtual environment manager should do.
+0. If you don't have PDM and want to use it, install PDM (you can do this via `pip` if you want; for more details see: https://pdm-project.org/en/latest/#__tabbed_2_5). Note that PDM requires the Python version that you installed it with to work, but can create virtual environments that use other Python versions (e.g. you can install PDM with Python 3.12 and then use PDM to create the environment for this project, which will use Python 3.10).
 1. Change the directory to the location where you want to clone the cellsmap repo
 2. Clone the `cellsmap` repo from GitHub to your desired location.
 3. Reconstruct the virtual environment. If no `pdm.lock` file exists in the cellsmap project folder (the same folder than this README is located in) then run `pdm lock` in your shell
 4. When/if you have a `pdm.lock` file then run `pdm sync` in your shell to install the dependencies for this project
 
-E.g.
+E.g. to install just the core dependencies under "dependencies" in pyproject.toml (if you are using Windows PowerShell you may need to start each `pdm` command with Python e.g. `py -m pdm lock --prod`; keep in mind that you will need to use the same Python version that you installed PDM with when doing this e.g. `py -V:3.12 -m pdm lock --prod`):
 ```bash
 cd /folder/where/you/want/to/clone/cellsmap
 git clone git@github.com:aics-int/cellsmap.git
-pdm lock
+pdm lock --prod # the --prod option makes it so that you only create a lock file from the "dependencies" group in the pyproject.toml
+pdm sync
+```
+If you want the dependencies from the group that were used for any ML work, then you can add `-G ml_workflows` to the `pdm lock` command.
+E.g.:
+```bash
+pdm lock --prod -G ml_workflows
 pdm sync
 ```
 
+You can check what dependencies are currently installed with
+```bash
+pdm list
+```
+
+If you install the ML-related dependencies I suggest you create a new virtual environment for:
+```bash
+# create the venv
+pdm venv create --name ml_venv 3.10 # specifying the python version is required when making a new venv
+# switch to that venv with either of the following
+pdm use -f /path/to/venv # option 1
+pdm use --venv ml_venv # option 2
+# do pdm lock and sync as usual
+```
+You can see what virtual environments you have with `pdm venv list` (the active one is marked with "*").
+
+NOTE: By default PDM only activates your venv when running a script with `pdm run`. It does not activate your venv in the terminal. If you want this behavior you can execute the virtual environments `Activate.ps1` file.
+For Windows:
+```powershell
+\path\to\venv\Scripts\Activate.ps1
+```
+For Linux/Mac
+```bash
+source /path/to/venv/bin/activate
+```
+You can deactivate the environment simply with
+```
+deactivate
+```
 
 If you are on the Allen Institute for Cell Science local network, you can load the data by installing aicsfiles. Use the following steps:
-```
+```bash
 pdm config --local pypi.artifactory.url https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple
 pdm config --local pypi.artifactory-snapshot.url https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-snapshot-local/simple
 pdm add -dG internal
@@ -54,7 +90,11 @@ A catalog of the current datasets we have is [here](https://github.com/orgs/aics
 <details open>
 <summary> Serge </summary>
 
-#### NOTE: THESE WORKFLOWS STILL NEED TO BE ADAPTED TO OUR NEW METHOD OF HANDLING DATASETS (WHICH STARTS FROM THE UNSTITCHED, FULL-DIMENSIONAL TIMELAPSES INSTEAD OF THE MIPS OF THE MONTAGES). THEY ARE NOT YET FUNCTIONAL.
+#### NOTE: WORKFLOWS ADAPTED TO NEW DATASET STRUCTURE (UNSTITCHED, FULL-DIMENSIONAL TIMELAPSES INSTEAD OF MONTAGE MIPS) AND ARE NOW FUNCTIONAL:
+- [x] cdh5_classic_seg.py
+- [x] cdh5_classic_seg_tracking.py
+- [ ] cdh5_nodes_and_edges.py
+- [ ] cdh5_nodes_and_edges_analysis.py
 
 ### Efforts
 - get classic segmentations for all datasets using "Cdh5 classic segmentation" workflow
