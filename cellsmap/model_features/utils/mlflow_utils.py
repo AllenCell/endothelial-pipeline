@@ -49,7 +49,7 @@ def download_model(
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> Dict:
     """
-    Download a model from MLflow given a run ID and artifact path.
+    Download a model from MLflow given a run ID and artifact path. Returns the paths to the downloaded checkpoint and config files in a dictionary.
     Parameters
     ----------
     run_id: str
