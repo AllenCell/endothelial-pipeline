@@ -66,16 +66,16 @@ def main(config_name:str='default') -> None:
 
     myModel = [f,D]
 
-    ################### Model-data comparison ###################
-    # run comparison of model and data for each dataset
-    pca = manifest_io.load_pca_model(savedir)
-    model_analysis.model_data_comparison(myModel,fig_savedir,pca,PCs,bins,ds_to_skip,pplane_xvec,pplane_yvec)
+    # ################### Model-data comparison ###################
+    # # run comparison of model and data for each dataset
+    # pca = manifest_io.load_pca_model(savedir)
+    # model_analysis.model_data_comparison(myModel,fig_savedir,pca,PCs,bins,ds_to_skip,pplane_xvec,pplane_yvec)
 
 
-    ################### Fixed point analysis ###################
-    # plot coordinates of fixed points as a function of shear stress
-    plt_lims = [pplane_xlim,pplane_ylim] # set limits for plotted/reported fixed points
-    model_analysis.run_fixed_point_analysis(f,shear_range_fpt,PCs,plt_lims,fig_savedir)
+    # ################### Fixed point analysis ###################
+    # # plot coordinates of fixed points as a function of shear stress
+    # plt_lims = [pplane_xlim,pplane_ylim] # set limits for plotted/reported fixed points
+    # model_analysis.run_fixed_point_analysis(f,shear_range_fpt,PCs,plt_lims,fig_savedir)
 
 
     ################### Entropy production rate as a function of shear stress ###################

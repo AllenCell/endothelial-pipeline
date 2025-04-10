@@ -276,26 +276,36 @@ def get_epr(model:list[Callable], bins:list, centers:list, shear_range:np.ndarra
 
     tic = time()
 
-    drift_diffusion_vary_shear = []
-    for shear in shear_range:
+    # drift_diffusion_vary_shear = []
+    epr = np.zeros(len(shear_range))
+    for i, shear in enumerate(shear_range):
         f_vals = f_mesh(np.meshgrid(*centers),shear).T
         D_vals = D_mesh(np.meshgrid(*centers),shear).T
-        drift_diffusion_vary_shear.append([f_vals,D_vals])
 
-    epr_func = partial(get_epr_one_shear, bins=bins, centers=centers, additive_noise=additive_noise)
+        # get stationary probability distribution
+        P = model_eval.get_stationary_probability(f_vals,D_vals,bins)
 
-    # use multiprocessing to parallelize calculation of entropy production rate at each shear stress
-    n_proc = os.cpu_count() - 1 # leave one core free for other processes
-    with Pool(n_proc) as pool:
-        epr = pool.map(epr_func, drift_diffusion_vary_shear)
+        # get entropy production rate
+        epr[i] = gp.entropy_production(P,f_vals,D_vals,centers,additive_noise)
+
+        # free up memory
+        del f_vals, D_vals, P
+        # drift_diffusion_vary_shear.append([f_vals,D_vals])
+
+    # epr_func = partial(get_epr_one_shear, bins=bins, centers=centers, additive_noise=additive_noise)
+
+    # # use multiprocessing to parallelize calculation of entropy production rate at each shear stress
+    # n_proc = os.cpu_count() - 1 # leave one core free for other processes
+    # with Pool(n_proc) as pool:
+    #     epr = pool.map(epr_func, drift_diffusion_vary_shear)
     
-    # close the pool
-    pool.close()
+    # # close the pool
+    # pool.close()
 
-    # free up memory
-    del drift_diffusion_vary_shear
+    # # free up memory
+    # del drift_diffusion_vary_shear
     
-    epr = np.array(epr) # convert to numpy array (map returns a list)
+    # epr = np.array(epr) # convert to numpy array (map returns a list)
     toc = time()
     if toc-tic > 60:
         print('Time to calculate entropy production rate: {:.2f} minutes'.format(np.round((toc-tic)/60,4)))
