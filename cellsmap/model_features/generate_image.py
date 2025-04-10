@@ -14,8 +14,10 @@ def generate_from_coords(model_name: str, coords:List[List[float]], n_noise_samp
 
     coords  = torch.from_numpy(coords).float()
 
+    # move model and inputs to gpu if available
     if torch.cuda.is_available():
         coords = coords.to("cuda")
         model = model.to("cuda")
+
     walk_img = model.generate_from_latent(coords, n_noise_samples=n_noise_samples, average=average, save=False)
     return walk_img
