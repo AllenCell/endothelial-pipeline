@@ -1,26 +1,11 @@
 [{
-  "name": "mae_cdh5",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/train_config.yaml",
-},
-{
-  "name": "vicreg_cdh5",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_cdh5/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_cdh5/train_config.yaml",
-},
-{
-  "name": "vicreg_no_rot_cdh5",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/train_config.yaml",
-},
-{
-  "name": "jepa_cdh5",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/jepa_cdh5/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/jepa_cdh5/train_config.yaml",
-},
-{
-  "name": "mae_std_bf",
-  "eval_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/eval_config.yaml",
-  "train_config_path": "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_std_bf/train_config.yaml",
-},
+  "name": "diffae_04_10",
+  "mlflow_run_id": "ae7f25b4109c47809d3e2ed1b7120e50"
+},{
+  "name": "nuc_pred_labelfree", # this is the original model that Goutham trained
+  "model_path": "//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess",
+},{
+  "name": "nuc_pred_labelfree_retrained_20250327",
+  "model_path": "//allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250327/bf_std_model_no_preprocess_retrained",
+}
 ]
