@@ -4,8 +4,8 @@ from cellsmap.util import dataset_io, cdh5_preprocessing as preproc
 import numpy as np
 from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.set_output import get_output_path
-from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute, get_cdh5_classic_segmentation_path
-from cellsmap.util.general_image_preprocessing import build_analysis_queue, extract_T
+from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute, get_cdh5_classic_segmentation_path, extract_T
+from cellsmap.util.general_image_preprocessing import build_analysis_queue
 from cellsmap.util.get_sldy_metadata import get_voxel_size
 from multiprocessing import Pool
 from tqdm import tqdm

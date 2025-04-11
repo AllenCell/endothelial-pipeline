@@ -1,104 +1,12 @@
-# import yaml
-# import dask
+
 import numpy as np
-# import pandas as pd
-import re
 from pathlib import Path
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
-import dask.array
 from cellsmap.util.dataset_io import get_zarr_path, get_original_path, get_total_number_of_positions
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.get_sldy_metadata import get_objective_info
-from typing import List, Dict, Any, Union, Tuple, Callable, Optional
-
-def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
-    """
-    Extract the timepoint value from a string or Path.name.
-    Searches for the pattern "T[0-9]+" to find the timepoint.
-    If use_last_match is True then the last match will be used,
-    otherwise the first one will be used.
-
-    Parameters
-    ----------
-    fp_as_string: str or Path
-        A string or Path.name to get the timepoint from.
-    int_only: bool
-        Whether to return just the timepoint as an integer or
-        an entire string (i.e. 10 vs 'T010')
-        Default is True.
-    use_last_match: bool
-        Whether to use the last match (in the event that multiple possible
-        timepoint values were found in the string).
-        If False then the first match will be used.
-        E.g. image_name_T1_etc_T57.tif can return either T1 or T57, but
-        will return 57 by default. Ideally the timepoint in fp_as_string
-        would be unambiguous.
-        Default is True.
-
-    Returns
-    -------
-    t: int or str
-        The timepoint represented as an integer if int_only is True, otherwise
-        the timepoint represented as a string including the T before.
-    """
-
-    if isinstance(fp_as_string, Path):
-        fp_as_string = str(fp_as_string)
-
-    index = -1 if use_last_match else 0
-    t = re.findall('T[0-9]+', fp_as_string)
-    if t:
-        t_value = int(t[index].split('T')[-1])
-    else:
-        t_value = default_if_not_found
-        print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
-
-    return t_value if int_only else f'T{t_value}'
-
-def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
-    """
-    Extract the position value from a string or Path.name.
-    Searches for the pattern "P[0-9]+" to find the position.
-    If use_last_match is True then the last match will be used,
-    otherwise the first one will be used.
-
-    Parameters
-    ----------
-    fp_as_string: str or Path
-        A string or Path.name to get the position from.
-    int_only: bool
-        Whether to return just the position as an integer or
-        an entire string (i.e. 10 vs 'P10')
-        Default is True (i.e. just an integer).
-    use_last_match: bool
-        Whether to use the last match (in the event that multiple possible
-        position values were found in the string).
-        If False then the first match will be used.
-        E.g. image_name_P1_P3_etc_T57.tif can return either P1 or P3, but
-        will return 3 by default. Ideally the position in fp_as_string
-        would be unambiguous.
-        Default is True.
-
-    Returns
-    -------
-    P: int or str
-        The position represented as an integer if int_only is True, otherwise
-        the position represented as a string including the P before.
-    """
-
-    if isinstance(fp_as_string, Path):
-        fp_as_string = str(fp_as_string)
-
-    index = -1 if use_last_match else 0
-    p = re.findall('P[0-9]+', fp_as_string)
-    if p:
-        position_value = int(p[index].split('P')[-1])
-    else:
-        position_value = default_if_not_found
-        print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
-
-    return position_value if int_only else f'P{position_value}'
+from typing import List, Any, Union, Optional
 
 def get_dim_map(dim_order: str) -> dict:
 

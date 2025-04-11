@@ -5,11 +5,10 @@ from pathlib import Path
 from skimage.segmentation import find_boundaries
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
-# from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation
-from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output, extract_T
+from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
+from cellsmap.util.dataset_io import extract_T
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
-# from cellsmap.util.cdh5_preprocessing import get_cdh5_classic_segmentation_paths
 from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
 
 
