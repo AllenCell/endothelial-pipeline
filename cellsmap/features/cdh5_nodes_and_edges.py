@@ -1,119 +1,52 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from multiprocessing import Pool
 from tqdm import tqdm
-import fire
-from cellsmap.util import cdh5_preprocessing as preproc, dataset_io, shape_features as feat
-try:
-    from IPython import get_ipython
-except ModuleNotFoundError:
-    pass
+from cellsmap.util import cdh5_preprocessing as preproc, shape_features as feat
+from cellsmap.util.dataset_io import ipython_cli_flexecute, load_config
+from cellsmap.util.general_image_preprocessing import build_analysis_queue
+from cellsmap.util.set_output import get_output_path
 
-
-def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
-    # NOTE: this function is unique to each script
-    SCT_NAME = Path(__file__).stem
-    PRJ_DIR = Path('../').resolve() if not IS_TEST else Path('../../tests').resolve()
-    assert PRJ_DIR.exists()
-    val_dir = Path(f'//allen/aics/assay-dev/users/Serge/cellsmap_out/{SCT_NAME}')
-    out_dir = PRJ_DIR / 'results/cdh5_nodes_and_edges_analysis'
-    images_out_dir = val_dir / dataset_name
-    tables_out_dir_alignments = out_dir / dataset_name / 'tables' / 'alignments'
-    tables_out_dir_segprops = out_dir / dataset_name / 'tables' / 'segmentation_properties'
-    out_dir_list = [images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir]
-    if SAVE_OUTPUT:
-        [Path.mkdir(out_subdir, exist_ok=True, parents=True) for out_subdir in out_dir_list]
-
-    img = BioImage(Path(dataset_io.get_zarr_path(dataset_name)))
-    px_res = img.physical_pixel_sizes
-    t_res = preproc.get_cdh5_classic_segmentation_time_resolution(dataset_name)
-    img_metadata = {'physical_pixel_sizes': px_res,
-                    't_res (min)': t_res,
-                    't_res (hr)': t_res / 60
-                    }
-
-    return out_dir_list, img_metadata
-
-def build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
-    """
-    Constructs a list of tuples of parameters to pass to generate_results. 
-    """
-    # done via single processing
-    analysis_args_queue = []
-    for dataset_name in DATASET_NAME_LIST:
-
-        img_bin_level = 0
-        DIM_MAP = dataset_io.get_dim_map('TCYX')
-        # get the name of the cadherin channel
-        chan_names = [chan_name for chan_name in dataset_io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
-        # load the raw image data of from the cadherin channel
-        raw = dataset_io.load_dataset(dataset_name, channels=chan_names, time_start=0, level=img_bin_level)
-
-        timeframe_eval_interval = 1
-
-        if IS_TEST:
-            T_list = range(0,5)
-            crop_c = slice(None, None)
-            crop_z = slice(None, None)
-            crop_y = slice(None, None)
-            crop_x = slice(None, None)
-            for T in T_list:
-                crop = {'T': T, 'C': crop_c,'Z': crop_z, 'Y': crop_y, 'X': crop_x}
-                analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
-        else:
-            # in the line below: replace 'raw.shape[DIM_MAP["T"]]' with an integer
-            # to analyze a subset of timepoints in the timelapse
-            T_list = range(0, raw.shape[DIM_MAP["T"]], timeframe_eval_interval)
-            crop_c = slice(None, None)
-            crop_z = slice(None, None)
-            crop_y = slice(None, None)
-            crop_x = slice(None, None)
-            for T in T_list:
-                crop = {'T': T, 'C': crop_c,'Z': crop_z, 'Y': crop_y, 'X': crop_x}
-                analysis_args_queue.append([dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE])
-
-    return analysis_args_queue
 
 def generate_results_multiproc_wrapper(args):
-    dataset_name, crop, img_bin_level, SAVE_OUTPUT, IS_TEST, VERBOSE = args
-    generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+    dataset_name, crop, img_bin_level, save_output, is_test, verbose = args
+    generate_results(dataset_name, crop, img_bin_level, save_output=save_output, is_test=is_test, verbose=verbose)
 
-def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=True):
+def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
 
     T = crop["T"]
 
     print(f'Working on {dataset_name} -- T={T}...')
-    print(f'T={T} -- initializing workflow') if VERBOSE else None
-    out_dir_list, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
+    print(f'T={T} -- initializing workflow') if verbose else None
+    out_dir_list, img_metadata = initialize_workflow(dataset_name, save_output, is_test)
     images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir = out_dir_list
 
-    print(f'T={T} -- loading dataset') if VERBOSE else None
+    print(f'T={T} -- loading dataset') if verbose else None
     # get the name of the cadherin channel
-    chan_names = [chan_name for chan_name in dataset_io.get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
+    chan_names = [chan_name for chan_name in get_available_channels(dataset_name) if chan_name in ['CDH5', 'CDH5_Tubulin']]
     # load the raw image data of from the cadherin channel
-    raw_arr = dataset_io.load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
+    raw_arr = load_dataset(dataset_name, channels=chan_names, time_start=T, time_end=T, level=img_bin_level).compute().squeeze()
     seg, = preproc.get_cdh5_classic_segmentation(dataset_name, T, channels=['segmentations_merged',])
     seg = seg.squeeze()
     seg_borders = find_boundaries(seg)
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
-    print(f'T={T} -- getting nodes and edges') if VERBOSE else None
+    print(f'T={T} -- getting nodes and edges') if verbose else None
     nodes, edges, skel, conn = feat.arr2graph(seg_borders, closing_step=False)
 
     ## get the node-to-node distances and the angle between a line connecting two nodes
     ## and a horizontal line
     ## NOTE there should also be a way to get the error in the measurement of the angles too...
-    print(f'T={T} -- calculating distances and angles between neighboring nodes') if VERBOSE else None
-    neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(seg_borders.astype(bool), raw_arr, seg, VERBOSE=VERBOSE)
+    print(f'T={T} -- calculating distances and angles between neighboring nodes') if verbose else None
+    neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(seg_borders.astype(bool), raw_arr, seg, verbose=verbose)
 
     ## save a table of the results
-    if SAVE_OUTPUT:
+    if save_output:
         ## save table output of edge alignments
-        print(f'T={T} -- saving table of edge angles and distances') if VERBOSE else None
-        table = pd.DataFrame({'filepath_raw_image':Path(dataset_io.get_zarr_path(dataset_name)),
+        print(f'T={T} -- saving table of edge angles and distances') if verbose else None
+        table = pd.DataFrame({'filepath_raw_image':Path(get_zarr_path(dataset_name)),
                               'dataset_name': dataset_name,
                               'T': T,
                               'node_pair_labels': neighbor_node_metrics['node_pair_labels'],
@@ -135,7 +68,7 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
 
         ## save images containing the nodes, edges, and node-node lines
         ## as different channels
-        print(f'T={T} -- saving multichannel images of results for validation') if VERBOSE else None
+        print(f'T={T} -- saving multichannel images of results for validation') if verbose else None
         ## create a rasterized image of the lines
         lines = np.zeros(nodes.shape, dtype=np.uint16)
         ## need to flatten the node_coord_pairs first before passing to rasterize_edge_between_nodes
@@ -155,8 +88,8 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
 
         ## save table output of cell properties (e.g. areas, etc.)
         if labeled_region_metrics:
-            print(f'T={T} -- saving table of cell properties') if VERBOSE else None
-            table = pd.DataFrame({'filepath_raw_image':Path(dataset_io.get_zarr_path(dataset_name)),
+            print(f'T={T} -- saving table of cell properties') if verbose else None
+            table = pd.DataFrame({'filepath_raw_image':Path(get_zarr_path(dataset_name)),
                                   'dataset_name': dataset_name,
                                   'T': T,
                                   'cell_label': labeled_region_metrics['cell_label'],
@@ -182,16 +115,31 @@ def generate_results(dataset_name, crop, img_bin_level, SAVE_OUTPUT=True, IS_TES
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_T{T}_segprops.csv', index=False)
 
 
-def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
+def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
 
-    DATASET_NAME_LIST = [config_data['name'] for config_data in dataset_io.load_config(config_type='data')]
+    if dataset_name == None:
+        dataset_name_list = [config_data['name']
+                            for config_data in load_config(config_type='data')
+                            if (config_data['microscope'] == '3i'
+                                and config_data['live_or_fixed_sample'] == 'live')
+                                and 'AICS-126' in config_data['cell_lines']]
+    else:
+        dataset_name_list = [dataset_name]
 
-    analysis_args_queue = build_node_edge_analysis_queue(DATASET_NAME_LIST, SAVE_OUTPUT=SAVE_OUTPUT, IS_TEST=IS_TEST, VERBOSE=VERBOSE)
+    print('Building analysis queue...')
+    analysis_queue = build_analysis_queue(dataset_name_list,
+                                          save_output=save_output,
+                                          out_dir=get_output_path(Path(__file__).stem, verbose=False),
+                                          overwrite=True,
+                                          verbose=verbose,
+                                          is_test=is_test,
+                                          image_validation_frequency=None,
+                                          use_original_data=True)
 
-    if N_PROC > 1:
+    if n_proc > 1:
             if __name__ == '__main__':
                 print('Starting multiprocessing...')
-                with Pool(processes=N_PROC) as pool:
+                with Pool(processes=n_proc) as pool:
                     list(tqdm(pool.imap(generate_results_multiproc_wrapper, analysis_args_queue, chunksize=2), total=len(analysis_args_queue)))
                     pool.close()
                     pool.join()
@@ -201,10 +149,10 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
             generate_results_multiproc_wrapper(dataset_name_and_args)
 
     ## lastly, concatenate the tables from each timepoint into a single output table
-    if SAVE_OUTPUT:
-        for dataset_name in DATASET_NAME_LIST:
+    if save_output:
+        for dataset_name in dataset_name_list:
             print('Concatenating individual timepoint tables together and saving...')
-            out_dir_list, _ = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
+            out_dir_list, _ = initialize_workflow(dataset_name, save_output, is_test)
             images_out_dir, tables_out_dir_alignments, tables_out_dir_segprops, out_dir = out_dir_list
 
             master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_out_dir_alignments.glob('*.csv')])
@@ -216,18 +164,4 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
     print('\N{microscope} Done analysis.')
 
 if __name__ == '__main__':
-    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
-    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
-    # some non-interactive shell like bash
-    try:
-        # the following line will return a string if an interactive shell is in use,
-        # otherwise raises NameError since get_ipython is not imported from IPython
-        # or returns None if get_ipython is present but script is being executed
-        # from a non-interactive shell
-        if get_ipython().__class__.__name__ != 'NoneType':
-            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
-            main()
-        else: raise NameError
-    except NameError:
-        print('Using non-interactive shell.')
-        fire.Fire(main)
+    ipython_cli_flexecute(main)
