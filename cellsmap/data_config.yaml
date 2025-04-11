@@ -27,7 +27,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20241022_20X_mito,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20241022/20241022_20X_timelapse_SLDY.sldy",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241022/20241022_GE00007380_20X_timelapse_SLDY.sldy",
   fmsid: "",
   zarr_path: None,
   barcode: GE00007380,
@@ -220,7 +220,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i1st,
-  original_path: "//allen/programs/allencell/data/proj0/639/444/c03/a4d/421/b28/54c/ff7/c32/493/dc/20250115_GE00006392_20X_NikonPaired_sldy/20250115_GE00006392_20X_NikonPaired_SLDY.sldy",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250115/20250115_GE00006392_20X_NikonPaired_SLDY.sldy",
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_dc493c32ff754cb28421a4dc03444639",
   fmsid: "dc493c32ff754cb28421a4dc03444639",
   barcode: GE00006392,
@@ -244,7 +244,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i2nd,
-  original_path: "//allen/programs/allencell/data/proj0/0b5/722/0ce/882/8b2/079/d4b/25d/cdc/cb9/8b/20250115_GE00006393_20X_NikonPaired_sldy/20250115_GE00006393_20X_NikonPaired_SLDY.sldy",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250115/20250115_GE00006393_20X_NikonPaired_SLDY.sldy",
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_8bcb9cdc25dd4b0798b28820ce7220b5",
   fmsid: "8bcb9cdc25dd4b0798b28820ce7220b5",
   barcode: GE00006393,
@@ -435,7 +435,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250214_pairedPreFixation,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250214/20250214_GE0000XXXX_20X_PRE_FIX_SLDY.sldy",
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250214/20250214_GE00006747_20X_PRE_FIX_SLDY.sldy",
   fmsid: "",
   zarr_path: None,
   barcode: GE00006747,
