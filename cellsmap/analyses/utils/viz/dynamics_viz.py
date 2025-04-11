@@ -126,6 +126,26 @@ def plot_histogram_2D(ax:plt.Axes, p_hist:np.ndarray, bins:list, cmap:str) -> pl
 
     return ax
 
+def kl_divergence(p, q, dx, tol=1e-8):
+    """
+    Approximate Kullback-Leibler divergence for arbitrary dimensionality
+    """
+    ndim = len(dx)
+
+    if tol==None:
+        tol = max( min(p_in.flatten()), min(q_in.flatten()))
+    # set small values to tol
+    p = p.copy()
+    p[p<tol] = tol
+    q = q.copy()
+    q[q<tol] = tol
+
+    kl_div = p*np.log(p/q) # initial KL divergence
+    for i in range(ndim):
+        kl_div = np.trapz(kl_div, dx=dx[i], axis=0) # integrate over each dimension
+
+    return kl_div
+
 def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins) -> Tuple[plt.Figure,plt.Axes]:
     '''
     Side-by-side plots of the histogram of the data at steady state ("empirical PDF") and the numerical solution 
@@ -152,9 +172,6 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
         ax[1] = plot_histogram_2D(ax[1],p_model,bins,cmap='inferno') # plot model PDF
         ax[1].set_title('Model PDF')
 
-        W_1 = emd(p_hist,p_model) # Wasserstein distance
-        fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
-
     elif ndim == 1: # call 1D histogram plot function
         fig,ax = vb.init_subplots(figsize=(12,4))
         ax[0].plot(bins[0][:-1],p_hist,'k',label='Empirical PDF')
@@ -162,8 +179,13 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
         ax[1].plot(bins[0][:-1],p_model,'k',label='Model PDF')
         ax[1].set_title('Model PDF')
 
-        W_1 = emd(p_hist,p_model) # Wasserstein distance
-        fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
+    dx = [bins[i][1]-bins[i][0] for i in range(ndim)] # bin widths
+    KL = kl_divergence(p_hist, p_model, dx)
+
+    fig.suptitle('$D_{KL}(p_{hist}||p_{model}) =$'+'{:0.4f}'.format(KL),fontsize=16,y=1.05)
+
+    # W_1 = emd(support, support, p_hist.flatten(),p_model.flatten()) # Wasserstein distance
+    # fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
 
     return fig, ax
 

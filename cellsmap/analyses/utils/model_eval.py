@@ -123,9 +123,12 @@ def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
 
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    p_fit = p_fit/np.sum(p_fit) # normalize probability distribution
+    # normalize probability distribution
+    C = p_fit.copy() # initialize normalization constant
+    for i in range(ndim):
+        C = np.trapz(C, dx=dx[i], axis=0) # integrate over each dimension
 
-    return p_fit
+    return p_fit/C
 
 def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, tol:float=1e-10) -> np.ndarray:
     '''
