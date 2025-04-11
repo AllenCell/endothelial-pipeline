@@ -11,12 +11,20 @@ from cellsmap.util.set_output import get_output_path
 
 
 def generate_results_multiproc_wrapper(args):
-    dataset_name, crop, img_bin_level, save_output, is_test, verbose = args
-    generate_results(dataset_name, crop, img_bin_level, save_output=save_output, is_test=is_test, verbose=verbose)
+    dataset_name = args['dataset_name']
+    scenes = (args['scene_index'],)
+    position = args['position']
+    T = args['T']
+    img_bin_level = args['image_bin_level']
+    save_output = args['save_output']
+    out_dir = args['output_dir']
+    verbose = args['verbose']
+    use_original_data = args['use_original_data']
+    create_validation_image = args['validation_image']
+    generate_results(dataset_name, T, scenes, position, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
 
-def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
-
-    T = crop["T"]
+# def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
+def generate_results(dataset_name, T, scene_list=None, position_name=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, create_validation_image=False, verbose=True):
 
     print(f'Working on {dataset_name} -- T={T}...')
     print(f'T={T} -- initializing workflow') if verbose else None
@@ -145,7 +153,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                     pool.join()
                 print('Done multiprocessing.')
     else:
-        for dataset_name_and_args in analysis_args_queue:
+        for dataset_name_and_args in analysis_queue:
             generate_results_multiproc_wrapper(dataset_name_and_args)
 
     ## lastly, concatenate the tables from each timepoint into a single output table
