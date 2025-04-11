@@ -3,8 +3,9 @@ import numpy as np
 import fire
 
 from cellsmap.util.set_output import get_output_path
+from cellsmap.util import manifest_io
 from cellsmap.analyses.utils import model_eval, model_analysis, regression_helper as rh
-from cellsmap.analyses.utils.io import dynamics_io, manifest_io
+from cellsmap.analyses.utils.io import dynamics_io
 
 def main(config_name:str='default') -> None:
     ################### Load configs from dynamics_config ###################
@@ -39,6 +40,13 @@ def main(config_name:str='default') -> None:
     shear_range = config['shear_range']
     shear_range_fpt = np.linspace(shear_range[0],shear_range[-1],config['N_shear_fpt'])
 
+    # for plotting entropy production rate by shear stress - check if additive noise or not
+    # additive noise: D = const, non-additive noise: D = D(x)
+    # this is set in dynamics_config.yaml by setting 'diffusion_feats' to 0 or >0
+    additive_noise = True
+    if config['polynomial_lib']['diffusion_feats'] > 0:
+        additive_noise = False
+
     # for plotting generalized potential energy landscape for various shear stresses
     bins_gp, centers_gp = rh.get_bins(config['N_bins_landscape'],bin_limits=[bin_xlim,bin_ylim])
     shear_range_gp = np.linspace(shear_range[0],shear_range[-1],config['N_shear_landscape'])
@@ -71,16 +79,14 @@ def main(config_name:str='default') -> None:
 
 
     ################### Entropy production rate as a function of shear stress ###################
-    model_analysis.run_epr_analysis(myModel,bins,centers,shear_range_fpt,fig_savedir)
+    model_analysis.run_epr_analysis(myModel,bins,centers,shear_range_fpt,fig_savedir,additive_noise)
 
 
     ################### Generalized potential energy landscape ###################
 
-    # get bins and centers for plotting generalized potential energy landscape (fixed across all values of shear stress)
-
     # plot generalized potential energy landscape for each shear stress specified in shear_range_gp
     model_analysis.run_gen_potential_analysis(myModel,bins_gp,centers_gp,shear_range_gp,
-                                            PCs,downsample_quiver,normed,fig_savedir)
+                                            PCs,downsample_quiver,normed,fig_savedir,additive_noise)
 
 if __name__ == "__main__":
     fire.Fire(main)

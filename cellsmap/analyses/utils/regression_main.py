@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 from typing import Tuple
 
-from cellsmap.analyses.utils.io import manifest_io as mio
+from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import regression_helper as rh
 
 

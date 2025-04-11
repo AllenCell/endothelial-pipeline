@@ -4,14 +4,22 @@ from cellsmap.util.dataset_io import (
     get_total_number_of_positions, 
     get_time_interval_in_minutes,
     get_microscope,
-    get_fmsid,)
-from cellsmap.image_conversion.process_images.process_sldy import get_delayed_array_for_position
+    get_fmsid,
+)
+from cellsmap.image_conversion.process_images.process_image import (
+    get_delayed_array_for_position,
+    custom_scene_list,
+)
 from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
     get_sldy_pixel_sizes,
 )
 from cellsmap.util.dataset_io import get_original_path
 from bioio import BioImage
+
+# Define the default output path
+DEFAULT_OUTPUT_PATH = "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs"
+
 # %%
 """
 This script processes images from a dataset and writes them to Zarr format.
@@ -26,7 +34,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20241217_20X 20241217 /allen/aics/endothelial/morphological_features/image_data/converted_zarrs
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20240328_T02_001 20240328
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -38,8 +46,8 @@ The resulting zarr contains images from one scene.
 
 def convert_dataset(
     dataset: str,
-    output_path: str,
     output_dataset_name: str,  # barcode_date
+    output_path: str = DEFAULT_OUTPUT_PATH,
     channel_names: list[str] = ["EGFP", "BF"],
 ):
     img = BioImage(get_original_path(dataset))
@@ -60,11 +68,16 @@ def convert_dataset(
     
     count = 0
     for scene_index in range(num_pos_in_S):
+        subset_scene_list = custom_scene_list(dataset)
+        if subset_scene_list is not None and img.scenes[scene_index] not in subset_scene_list:
+            continue
+        else: 
+            print(f"Processing scene {img.scenes[scene_index]}")
         for position in range(num_pos_in_T):
             output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
             print(f"Writing to {output}")
             scene = get_delayed_array_for_position(
-                position, dataset, num_pos_in_T, scene_index, img
+                position, dataset, channel_names, num_pos_in_T, scene_index, img
             )
             write_scene(
                 scene,
@@ -77,13 +90,9 @@ def convert_dataset(
             )
             count += 1
 
-def main(dataset: str, output_path: str, output_dataset_name: str, channel_names: list):
-    convert_dataset(dataset, output_path, output_dataset_name, channel_names)
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="Process sldy images and write to Zarr format."
+        description="Process sldy or nd2 images and write to Zarr format."
     )
     parser.add_argument(
         "dataset", type=str, help="The dataset name matching dataset_config.yaml"
@@ -91,11 +100,12 @@ def parse_arguments():
     parser.add_argument(
         "output_dataset_name",
         type=str,
-        help="The output datset name for the Zarr files",
+        help="The output dataset name for the Zarr files",
     )
     parser.add_argument(
-        "output_path", 
+        "--output_path", 
         type=str, 
+        default=DEFAULT_OUTPUT_PATH,
         help="The output path for the Zarr files"
     )
     parser.add_argument(
@@ -109,9 +119,8 @@ def parse_arguments():
     channel_names = args.channel_names.split(",")
     return args.dataset, args.output_dataset_name, args.output_path, channel_names
 
-
 # %%
 if __name__ == "__main__":
     dataset, output_dataset_name, output_path, channel_names = parse_arguments()
-    main(dataset, output_path, output_dataset_name, channel_names)
+    convert_dataset(dataset, output_dataset_name, output_path, channel_names)
 # %%

@@ -191,7 +191,7 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
     '''
     Get descriptive metadata for each dataset present in the DataFrame df.
 
-    Describes the experimental conditions for each dataset, e.g., "48H low flow (date)".
+    Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2".
     
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
@@ -214,11 +214,11 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
         flow_config = data_config['flow'] # get flow conditions for dataset
         num_flows = len(flow_config) # number of flow conditions in dataset
 
-        shear_rate = [flow_config[i][-1] for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
-        shear_rate_str = [str(i)+' dyn/cm^2' for i in shear_rate] # convert shear rates to strings
+        shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
+        shear_rate_str = [str(i)+'_dyncm2' for i in shear_rate] # convert shear rates to strings
 
-        time_str = [str(flow_config[i][1]-flow_config[i][0])+' hours' for i in range(num_flows)] # get time of each flow condition
-        description = ', '.join([time_str[i]+' at '+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
+        time_str = [str(int((flow_config[i][1]-flow_config[i][0])*5/60))+'_hours' for i in range(num_flows)] # get duration of each flow condition in hours
+        description = '_'.join([time_str[i]+'_at_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
         description_dic[mv_name] = description # add description to dictionary
 
     return description_dic
@@ -231,7 +231,7 @@ def add_descriptive_metadata(df:pd.DataFrame,description_dic:dict|None=None) -> 
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
         - The string in the dataset_name column should match the dataset name in data_config.yaml
     - description_dic (optional): dict, dictionary of dataset names and their descriptive metadata
-        - Describes the experimental conditions for each dataset, e.g., "48H low flow (date)"
+        - Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2"
         - Keys should match dataset names in data_config.yaml
         - If not provided, will be generated using get_descriptive_metadata
     '''

@@ -554,31 +554,6 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
 
     return filepaths
 
-# def get_cdh5_classic_segmentation_time_resolution(dataset_name: str) -> float:
-#     """
-#     Return the time_resolutions to the cdh5 classic segmentations.
-
-#     Parameters
-#     ----------
-#     dataset_name: str
-#         The dataset to get the time resolution from.
-
-#     Returns
-#     -------
-#     t_res: float
-#         Time resolutions for the selected dataset.
-#     """
-
-#     # dataset_name = '20240305_T01_001'
-
-#     config_file = Path('../').resolve() / 'cdh5_seg_config.yaml'
-#     assert config_file.exists(), print(config_file)
-#     with open(config_file, 'r') as file:
-#         config_data = yaml.safe_load(file)
-#     t_res = float(*[data['time_interval_in_minutes'] for data in config_data if data['name']==dataset_name])
-
-#     return t_res
-
 def get_cdh5_classic_segmentation(
     dataset_name: str,
     T: int,
