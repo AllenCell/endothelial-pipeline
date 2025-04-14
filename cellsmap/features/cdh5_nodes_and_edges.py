@@ -9,7 +9,7 @@ from cellsmap.util import shape_features as feat
 from cellsmap.util.dataset_io import ipython_cli_flexecute, load_config, get_dataset_info, get_zarr_path, get_original_path, load_dataset_position_as_dask_array, get_cdh5_classic_segmentation_path, extract_T
 from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_dim_map, save_image_output
 from cellsmap.util.set_output import get_output_path
-
+import subprocess
 
 def generate_results_multiproc_wrapper(args):
     dataset_name = args['dataset_name']
@@ -26,6 +26,18 @@ def generate_results_multiproc_wrapper(args):
 
 # def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
 def generate_results(dataset_name, T, scene=None, position=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, create_validation_image=False, verbose=True):
+
+    # get some versioning info about when this script was run and
+    # what version of the script was used to produce the output
+    # to save alongside the output
+    # the branch name:
+    git_branch_name = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('ascii').strip()
+    # the current commit hash:
+    git_commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    # if there were any uncommitted changes when this script was run:
+    git_uncommitted_changes = subprocess.check_output(['git', 'diff', 'HEAD', '--name-only']).decode('ascii').strip() or 'None'
+    # the timestamp that this script was run:
+    timestamp = pd.Timestamp.now().strftime('%Y-%m-%d %X')
 
     print(f'Working on {dataset_name} -- T={T}...')
 
@@ -82,6 +94,7 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
         print(f'T={T} -- saving table of edge angles and distances') if verbose else None
         table = pd.DataFrame({
             'filepath_raw_image':image_path,
+            'filepath_segmentation_image':seg_filepath,
             'dataset_name': dataset_name,
             'scene_index': scene,
             'position': position,
@@ -100,6 +113,10 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
             'edge_fluorescence_pct25 (a.u.)': neighbor_node_metrics['fluor_pct25 (au)'],
             'edge_fluorescence_pct75 (a.u.)': neighbor_node_metrics['fluor_pct75 (au)'],
             'edge_fluorescence_max (a.u.)': neighbor_node_metrics['fluor_max (au)'],
+            'measurement_timestamp': timestamp,
+            'git_branch_name': git_branch_name,
+            'git_commit_hash': git_commit_hash,
+            'git_uncommitted_changes': git_uncommitted_changes
             })
         table.to_csv(tables_out_dir_alignments /f'{dataset_name}_P{position}_T{T}_alignments.csv', index=False)
 
@@ -131,6 +148,7 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
             print(f'T={T} -- saving table of cell properties') if verbose else None
             table = pd.DataFrame({
                 'filepath_raw_image':image_path,
+                'filepath_segmentation_image':seg_filepath,
                 'dataset_name': dataset_name,
                 'scene_index': scene,
                 'position': position,
@@ -154,6 +172,10 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
                 'node_labels': labeled_region_metrics['node_labels'],
                 'node_pair_labels': labeled_region_metrics['node_pair_labels'],
                 'touches_image_border': labeled_region_metrics['touches_image_border'],
+                'measurement_timestamp': timestamp,
+                'git_branch_name': git_branch_name,
+                'git_commit_hash': git_commit_hash,
+                'git_uncommitted_changes': git_uncommitted_changes
                 })
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_P{position}_T{T}_segprops.csv', index=False)
 
