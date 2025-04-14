@@ -1,11 +1,11 @@
 # Exploring the pre-computed features generated in the endo project by the diffusion autoencoder.
 # This code generates the figures presented APS March Meeting 2025
-
+# %%
 import pandas as pd
 
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils.io import vtk_tools
-
+# %%
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_field_3d/figs"
 workflow_output_folder = "flow_field_3d/outputs"
@@ -28,3 +28,4 @@ for condition in df.description.unique():
     DDFF.simulate_particles_in_landscape(condition=condition)
 DDFF.simulate_particles_in_landscape(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
 DDFF.simulate_particles_in_landscape(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
+# %%
