@@ -13,5 +13,11 @@ print('Concatenating individual timepoint tables together and saving...')
 master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_alignments])
 master_table.to_csv(concatenated_table_out_dir / f'alignments.csv', index=False)
 
-master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
-master_table.to_csv(concatenated_table_out_dir / f'segmentation_properties.csv', index=False)
+try:
+    master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
+    master_table.to_csv(concatenated_table_out_dir / f'segmentation_properties.csv', index=False)
+except ValueError: # error that will be raised if there are no files found in tables_segprops
+    print('No segmentation properties tables found. Skipping concatenation of segmentation properties tables.')
+
+print('\N{fireworks} Done.')
+print(f'Concatenated tables saved to {concatenated_table_out_dir}.')
