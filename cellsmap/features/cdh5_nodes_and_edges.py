@@ -190,21 +190,9 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                 print('Done multiprocessing.')
     else:
         for dataset_name_and_args in analysis_queue:
+            print('Running workflow with single process...')
             generate_results_multiproc_wrapper(dataset_name_and_args)
-
-    ## lastly, concatenate the tables from each timepoint into a single output table
-    if save_output:
-        for dataset_name in dataset_name_list:
-            print('Concatenating individual timepoint tables together and saving...')
-
-            tables_alignments = Path(out_dir).glob(f'**/tables_alignments/*.csv')
-            tables_segprops = Path(out_dir).glob(f'**/tables_segmentation_properties/*.csv')
-
-            master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_alignments])
-            master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_alignments.csv', index=False)
-
-            master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
-            master_table.to_csv(out_dir / dataset_name / f'{dataset_name}_segprops.csv', index=False)
+            print('Done single-processing.')
 
     print('\N{microscope} Done analysis.')
 
