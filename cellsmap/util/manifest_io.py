@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import pickle
 from cellsmap.util import dataset_io
-from cellsmap.analyses.utils.manifest_pca import get_outliers
+from cellsmap.util.manifest_pca import get_outliers
 import platform
 
 try:
