@@ -2,8 +2,7 @@ from bioio import BioImage
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from cellsmap.util.dataset_io import get_available_datasets, get_dataset_info, get_original_path
-from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
+from cellsmap.util.dataset_io import get_available_datasets, get_dataset_info, get_original_path, ipython_cli_flexecute
 from typing import Literal, Optional
 from tqdm import tqdm
 
