@@ -3,7 +3,7 @@
 # %%
 import matplotlib.pyplot as plt
 
-from cellsmap.util.set_ouput import get_output_path
+from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils.io import vtk_tools as tools
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_pca, manifest_io
@@ -21,7 +21,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 df = manifest_io.load_manifest_to_df()
 
 # only keep the reference datasets for this workflow
-datasets_to_use = ["20241120_20X", "20241203_20X", "20241217_20X"] # 48hr high flow, 48hr low flow, 48hr no flow
+datasets_to_use = ["20241120_20X", "20241203_20X", "20241217_20X", "20240319_20X"] # 48hr high flow, 48hr low flow, 48hr no flow, 48hr medium flow
 df = df.loc[df["dataset_name"].str.contains("|".join(datasets_to_use))]
 
 # plot the data in latent space (features 1 and 4) before removing outliers
