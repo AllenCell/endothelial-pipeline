@@ -51,20 +51,26 @@
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T02_001.sldy", 
-  fmsid: "",
-  zarr_path: none,
+  fmsid: "02",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_02",
   barcode: GE00007383,
   live_or_fixed_sample: fixed,
   microscope: 3i,
   shear_stress_regime: no_flow-to-low,
   use_cases: [nuclear_label_free_predictions],
   pixel_size_xy_in_um: 0.382,
-  duration: 4, # number of frames
+  duration: 1, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, -1, 13]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   egfp_channel_index: 5, # from the original .sldy file
   brightfield_channel_index: 2, # from the original .sldy file
+<<<<<<< HEAD
   n_total_positions: 10,
+=======
+  405_channel_index: 1, # from the original .sldy file
+  n_total_positions: 10,
+  scene_list: ["20240328_T02_001-1711659785-  8", "20240328_T02_001-1711659785- 24", "20240328_T02_001-1711659785-990", "20240328_T02_001-1711659785- 39",],
+>>>>>>> main
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
           Each timepoint is a different position.",
@@ -74,20 +80,33 @@
 },{
   name: 20240328_T01_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/aics/assay-dev/computational/data/holistic/endos/JPBackup/20240328/20240328_T01_001.sldy",
+<<<<<<< HEAD
   fmsid: "",
   zarr_path: none,
+=======
+  fmsid: "01",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_01",
+>>>>>>> main
   barcode: GE00007384,
   live_or_fixed_sample: fixed,
   microscope: 3i,
   shear_stress_regime: no_flow-to-low,
   use_cases: [nuclear_label_free_predictions],
   pixel_size_xy_in_um: 0.382,
-  duration: 5, # number of frames
+  duration: 1, # number of frames
   time_interval_in_minutes: -1.0,
   flow: [[0, -1, 0]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+<<<<<<< HEAD
   egfp_channel_index: 1, # from the original .sldy file
   brightfield_channel_index: 4, # from the original .sldy file
   n_total_positions: 10,
+=======
+  egfp_channel_index: 5, # from the original .sldy file
+  brightfield_channel_index: 4, # from the original .sldy file
+  405_channel_index: 1, # from the original .sldy file
+  n_total_positions: 10,
+  scene_list: ["20240328_T01_001-1711663662-276", "20240328_T01_001-1711663662-293", "20240328_T01_001-1711663662-307", "20240328_T01_001-1711663662-322", "20240328_T01_001-1711663662-337",],
+>>>>>>> main
   notes: "It is unclear from the lab notes if the shear stress here is the set or measured one.
           It is also unclear how long the cells were kept under no flow or low flow.
           Each timepoint is a different position.",
@@ -97,7 +116,11 @@
 },
 {
   name: 20241120_20X,
+<<<<<<< HEAD
   original_path: "//allen/programs/allencell/data/proj0/223/29e/308/ce5/8a5/ca8/c44/7ed/88e/73b/15/20241120_GE00007382_20X_timelapse20241120/20241120_20X_timelapse_SLDY.sldy",
+=======
+  original_path: "//allen/programs/allencell/data/proj0/223/29e/308/ce5/8a5/ca8/c44/7ed/88e/73b/15/20241120_GE00007382_20X_timelapse/20241120_20X_timelapse_SLDY.sldy",
+>>>>>>> main
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241120_1573b88e7edc44ca88a5ce530829e223",
   fmsid: "1573b88e7edc44ca88a5ce530829e223",
   barcode: GE00007382,
@@ -207,9 +230,15 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i1st,
+<<<<<<< HEAD
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250115/20250115_GE00006392_20X_NikonPaired_SLDY.sldy",
   zarr_path: None,
   fmsid: "",
+=======
+  original_path: "//allen/programs/allencell/data/proj0/639/444/c03/a4d/421/b28/54c/ff7/c32/493/dc/20250115_GE00006392_20X_NikonPaired_sldy/20250115_GE00006392_20X_NikonPaired_SLDY.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_dc493c32ff754cb28421a4dc03444639",
+  fmsid: "dc493c32ff754cb28421a4dc03444639",
+>>>>>>> main
   barcode: GE00006392,
   live_or_fixed_sample: live,
   microscope: 3i,
@@ -230,9 +259,15 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i2nd,
+<<<<<<< HEAD
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250115/20250115_GE00006393_20X_NikonPaired_SLDY.sldy",
   zarr_path: None,
   fmsid: "",
+=======
+  original_path: "//allen/programs/allencell/data/proj0/0b5/722/0ce/882/8b2/079/d4b/25d/cdc/cb9/8b/20250115_GE00006393_20X_NikonPaired_sldy/20250115_GE00006393_20X_NikonPaired_SLDY.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_8bcb9cdc25dd4b0798b28820ce7220b5",
+  fmsid: "8bcb9cdc25dd4b0798b28820ce7220b5",
+>>>>>>> main
   barcode: GE00006393,
   live_or_fixed_sample: live,
   microscope: 3i,
@@ -325,9 +360,15 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250131_pairedPreFixation,
+<<<<<<< HEAD
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PreFix_sldy.sldy",
   zarr_path: None,
   fmsid: "",
+=======
+  original_path: "//allen/programs/allencell/data/proj0/2af/f39/d6d/550/023/278/641/1a8/5a5/83c/87/20250131_GE00006569_20X_PreFix_sldy/20250131_GE00006569_20X_PreFix_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_8783c5a51a8641278023550d6df392af",
+  fmsid: "8783c5a51a8641278023550d6df392af",
+>>>>>>> main
   barcode: GE00006569,
   live_or_fixed_sample: fixed-methanol,
   microscope: 3i,
@@ -347,9 +388,15 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250131_pairedPostFixation,
+<<<<<<< HEAD
   original_path: "//allen/aics/microscopy/Endo Timelapses/20250131/20250131_GE00006569_20X_PostFix_sldy.sldy",
   zarr_path: None,
   fmsid: "",
+=======
+  original_path: "//allen/programs/allencell/data/proj0/f29/cf2/6d9/fb5/b26/9fb/24e/c6e/419/d7a/39/20250131_GE00006569_20X_PostFix_sldy/20250131_GE00006569_20X_PostFix_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_39d7a419c6e24e9fbb26fb56d9cf2f29",
+  fmsid: "39d7a419c6e24e9fbb26fb56d9cf2f29",
+>>>>>>> main
   barcode: GE00006569,
   live_or_fixed_sample: fixed-methanol,
   microscope: 3i,
