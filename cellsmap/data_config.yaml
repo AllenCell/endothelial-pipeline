@@ -692,10 +692,30 @@
   # 12.20 dyn/cm^2 = 33.83 mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide) 
   egfp_channel_index: 0, 
   brightfield_channel_index: 1, 
-  n_  nuclear_seg_manifest_fmsid: "",
+  n_nuclear_seg_manifest_fmsid: "",
   n_total_positions: 6, # positions are represented as timeframes in the dataset
   notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress",
   nuclear_label_free_seg_path: "",
   diffae_manifest_fmsid: "", 
-}
+},{
+  name: 20250326_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250326",
+  zarr_path: none,
+  fmsid: "",
+  barcode: GE00007488,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: intermediate,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # double check
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 576, 15.74]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  egfp_channel_index: 0, # double check
+  brightfield_channel_index: 1, # double check
+  n_total_positions: 6,
+  notes: "",
+  nuclear_label_free_seg_path: "",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "",
 ]
