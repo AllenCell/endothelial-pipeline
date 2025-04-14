@@ -20,7 +20,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score
 # %%
-def plot_km(X_1,X_2,kmc,idx0=0,idx1=-1):
+def plot_km(X_1,X_2,kmc_scale):
     '''
     Plot Kramers-Moyal coefficients.
     '''
@@ -30,16 +30,16 @@ def plot_km(X_1,X_2,kmc,idx0=0,idx1=-1):
     # the Kramers−Moyal coefficients [1,0]
     ax_00 = fig.add_subplot(2, 2, 1, projection='3d')
 
-    # kmc[1,...] i.e, power [1,0] (transpose, python stores arrays transposed)
-    ax_00.contour3D(X_1, X_2, kmc[1,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens',alpha=0.5)
+    # kmc[1,...] i.e, power [1,0]
+    ax_00.contour3D(X_1, X_2, kmc_scale[1], 50, cmap='Greens',alpha=0.5)
     ax_00.set_title(r'K−M coefficient [1,0]');
 
 
     # the Kramers−Moyal coefficients [0,1]
     ax_01 = fig.add_subplot(2, 2, 2, projection='3d')
 
-    # kmc[2,...] i.e, power [0,1] (transpose, python stores arrays transposed)
-    ax_01.contour3D(X_1, X_2, kmc[2,idx0:idx1,idx0:idx1].T /5, 50, cmap='Greens',alpha=0.5)
+    # kmc[2,...] i.e, power [0,1]
+    ax_01.contour3D(X_1, X_2, kmc_scale[2], 50, cmap='Greens',alpha=0.5)
     ax_01.set_title(r'K−M coefficient [0,1]');
 
 
@@ -47,7 +47,7 @@ def plot_km(X_1,X_2,kmc,idx0=0,idx1=-1):
     ax_10 = fig.add_subplot(2, 2, 3, projection='3d')
 
     # kmc[4,...] i.e, power [2,0] (transpose, python stores arrays transposed)
-    ax_10.contour3D(X_1, X_2, kmc[4,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens',alpha=0.5)
+    ax_10.contour3D(X_1, X_2, kmc_scale[4], 50, cmap='Greens',alpha=0.5)
     ax_10.set_title(r'K−M coefficient [2,0]');
 
 
@@ -55,7 +55,7 @@ def plot_km(X_1,X_2,kmc,idx0=0,idx1=-1):
     ax_11 = fig.add_subplot(2, 2, 4, projection='3d')
 
     # kmc[5,...] i.e, power [0,2] (transpose, python stores arrays transposed)
-    ax_11.contour3D(X_1, X_2, kmc[5,idx0:idx1,idx0:idx1].T / 5, 50, cmap='Greens',alpha=0.5)
+    ax_11.contour3D(X_1, X_2, kmc_scale[5], 50, cmap='Greens',alpha=0.5)
 
     ax_11.set_title(r'K−M coefficient [0,2]');
     # Rotate views and add labels
@@ -108,11 +108,6 @@ def fit_polynomial_regression(X,Y,degree):
     return mdl
 
 def get_km_estimates(kmc_scale,X,degrees):
-    X_1, X_2 = np.meshgrid(edges[0][idx0:idx1],edges[1][idx0:idx1])
-    # get 2D array of (unique) points in the meshgrid X_1, X_2
-    X = np.array([X_1.flatten(),X_2.flatten()]).T
-
-
     # polynomial regression on Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
     kmc_idx = [1,2,4,5]
     kmc_names = ['f_1','f_2','D_1','D_2']
@@ -123,15 +118,43 @@ def get_km_estimates(kmc_scale,X,degrees):
         mdl = fit_polynomial_regression(X,Y,degrees[i])
         km_models.append(mdl)
 
+        # print polynomial expression
+        print_fit_polynomial(mdl,kmc_names[i])
 
         mdl_pred = mdl.predict(X)
         km_predictions.append(mdl_pred)
 
         r2 = r2_score(Y.flatten(),mdl_pred)
-        print(f'R^2 for polynomial regression on {kmc_names[i]}: {r2}')
+        print(f'R^2 for polynomial regression on {kmc_names[i]}: {r2} \n')
 
     return km_predictions, km_models
 
+def print_fit_polynomial(mdl,mdl_name):
+    '''
+    Print coefficients of polynomial regression model.
+    '''
+    print(f'{mdl_name}(x) = ', end='')
+    pwrs = mdl.named_steps['poly'].powers_
+    # build strings of polynomial terms
+    terms = []
+    for i in range(len(pwrs)):
+        term = ''
+        for j in range(len(pwrs[i])):
+            if pwrs[i][j] != 0:
+                term += f'x_{j+1}^{pwrs[i][j]}'
+        terms.append(term)
+    coefs = np.round(mdl.named_steps['linear'].coef_,4)
+    intercept = np.round(mdl.named_steps['linear'].intercept_,4)
+    # print coefficients times terms
+    for i in range(len(coefs)):
+        if i == 0:
+            print(f'{intercept} + ', end='')
+        if coefs[i] != 0:
+            if i == len(coefs)-1:
+                print(f'{coefs[i]} * {terms[i]}', end='')
+            else:
+                print(f'{coefs[i]} * {terms[i]} + ', end='')
+    print('\n')
 
 # %%
 # load manifest to DataFrame with metadata
@@ -166,11 +189,12 @@ powers = np.array([[0,0], [1,0], [0,1], [1,1], [2,0], [0,2], [2,2]])
 bw = 0.1
 
 # degrees for polynomial regression
-degrees = [3,3,2,2]
+degrees = [4,4,4,4]
 
 # datasets to skip in model comparison
 config = dynamics_io.load_dynamics_config()
 ds_to_skip = config['datasets_to_skip']
+ds_to_skip.append('20241203_20X')
 
 # set limits for phase plane and histogram plots
 pplane_xlim = [-1.0,1.0]
@@ -188,6 +212,9 @@ bins, centers = rh.get_bins(Nbins,bin_limits=bin_limits)
 pplane_xvec = np.linspace(*pplane_xlim,50)
 pplane_yvec = np.linspace(*pplane_ylim,50)
 # %%
+intercept_list = []
+coeff_list = []
+shear_values = []
 for ds_name in list_of_datasets:
     if ds_name in ds_to_skip:
         continue
@@ -203,14 +230,23 @@ for ds_name in list_of_datasets:
         kmc, edges = get_km(data_all[j],PCs,Nbins_km,bw,powers)
 
         if u_list[j] < 6:
-            idx0 = 8
-            idx1 = -6
+            idx00 = 12
+            idx01 = -5
+            idx10 = 7
+            idx11 = -5
+        elif u_list[j] >= 20:
+            idx00 = 5
+            idx01 = -12
+            idx10 = 8
+            idx11 = -5
         else:
-            idx0 = 6
-            idx1 = -7
+            idx00 = 7
+            idx01 = -5
+            idx10 = 8
+            idx11 = -5
 
-        kmc_scale = np.swapaxes(kmc[:,idx0:idx1,idx0:idx1],1,2) / 5
-        X_1, X_2 = np.meshgrid(edges[0][idx0:idx1],edges[1][idx0:idx1])
+        kmc_scale = np.swapaxes(kmc[:,idx00:idx01,idx10:idx11],1,2) / 5
+        X_1, X_2 = np.meshgrid(edges[0][idx00:idx01],edges[1][idx10:idx11])
 
         fig, ax = plt.subplots(1,2,figsize=(12,6))
         ax[0].quiver(X_1,X_2,kmc_scale[1],kmc_scale[2])
@@ -227,9 +263,14 @@ for ds_name in list_of_datasets:
         X = np.array([X_1.flatten(),X_2.flatten()]).T
         km_predictions, km_models = get_km_estimates(kmc_scale,X,degrees)
 
-        fig_ax = plot_km(X_1,X_2,kmc,idx0=idx0,idx1=idx1)
+        fig_ax = plot_km(X_1,X_2,kmc_scale)
         fig_ax = plot_km_estimates(fig_ax,X_1,X_2,km_predictions)
         plt.show()
+
+        # save intercept and coefficients for each model
+        intercept_list.append([mdl.named_steps['linear'].intercept_ for mdl in km_models])
+        coeff_list.append([mdl.named_steps['linear'].coef_ for mdl in km_models])
+        shear_values.append(shear)
 
         # define callable vector field functions for drift and diffusion coefficients
         def f(x,u):
@@ -275,7 +316,6 @@ for ds_name in list_of_datasets:
 # %%
 ######## SINDY BASED REGRESSION ########
 # now fit model using multiple datasets
-config = dynamics_io.load_dynamics_config()
 
 
 # list of training/test sets for each dataset
@@ -293,7 +333,7 @@ Nbins = 25*np.ones(ndim, dtype = int)
 dt = 5
 
 for ds_name  in list_of_datasets:
-    if ds_name in config['datasets_to_skip']:
+    if ds_name in ds_to_skip:
         continue 
     print('**** Generating train/test sets for ',ds_name,'**** \n')
     feats_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
@@ -312,23 +352,33 @@ for ds_name  in list_of_datasets:
         centers.append(edges)
 
         if u_list[j] < 6:
-            idx0 = 7
-            idx1 = -9
+            idx00 = 12
+            idx01 = -5
+            idx10 = 7
+            idx11 = -5
+        elif u_list[j] >= 20:
+            idx00 = 5
+            idx01 = -12
+            idx10 = 8
+            idx11 = -5
         else:
-            idx0 = 6
-            idx1 = -7
+            idx00 = 7
+            idx01 = -5
+            idx10 = 8
+            idx11 = -5
 
-        centers_ = [centers[j][i][idx0:idx1] for i in range(ndim)]
-        X_1, X_2 = np.meshgrid(*centers_)
+        X_1, X_2 = np.meshgrid(edges[0][idx00:idx01],edges[1][idx10:idx11])
 
-        f_KM_temp = np.array((kmc[1,idx0:idx1,idx0:idx1].T,
-                              kmc[2,idx0:idx1,idx0:idx1].T)).T/dt
+        kmc_scale = np.swapaxes(kmc[:,idx00:idx01,idx10:idx11],1,2) / dt
+
+
+        f_KM_temp = kmc_scale[1:3].T
+        print(f_KM_temp.shape)
         
-        fig_ax = plot_km(X_1,X_2,kmc,idx0=idx0,idx1=idx1)
+        fig_ax = plot_km(X_1,X_2,kmc_scale)
         plt.show()
 
-        D_KM_temp = np.array((kmc[4,idx0:idx1,idx0:idx1].T,
-                              kmc[5,idx0:idx1,idx0:idx1].T)).T/dt
+        D_KM_temp = kmc_scale[4:6].T
 
         f_KM_.append(f_KM_temp)
         D_KM_.append(D_KM_temp)
@@ -338,7 +388,8 @@ for ds_name  in list_of_datasets:
     X_pts = []
 
     for j in range(num_flow):
-        centers_ = [centers[j][i][idx0:idx1] for i in range(ndim)]
+        print(f_KM_[j].shape)
+        centers_ = [centers[j][0][idx00:idx01],centers[j][1][idx10:idx11]]
         f_KM_temp, X_pts_temp = rh.masked_vector_field(f_KM_[j],np.array(np.meshgrid(*centers_)).T)
         D_KM_temp, _ = rh.masked_vector_field(D_KM_[j], np.array(np.meshgrid(*centers_)).T)
         f_KM.append(f_KM_temp)
