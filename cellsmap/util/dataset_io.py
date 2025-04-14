@@ -378,3 +378,4 @@ def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f'P{position_value}'
+
