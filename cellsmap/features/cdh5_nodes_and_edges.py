@@ -179,6 +179,27 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
                 })
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_P{position}_T{T}_segprops.csv', index=False)
 
+def concatenate_tables(dataset_name, out_dir):
+        print(f'- {dataset_name}')
+        # get the alignment table paths and segmentation properties
+        # table paths for each dataset
+        tables_alignments = Path(out_dir).glob(f'**/{dataset_name}/*/tables_alignments/*.csv')
+        tables_segprops = Path(out_dir).glob(f'**/{dataset_name}/*/tables_segmentation_properties/*.csv')
+
+        # concatenate and save the tables for each dataset
+        concatenated_table_out_dir = out_dir / f'{dataset_name}'
+
+        master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_alignments])
+        master_table.to_csv(concatenated_table_out_dir / f'{dataset_name}_alignments.csv', index=False)
+
+        master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
+        master_table.to_csv(concatenated_table_out_dir / f'{dataset_name}_segmentation_properties.csv', index=False)
+
+def concatenate_tables_multiproc(queue_group):
+     dataset_name, queue_df = queue_group
+     out_dir = queue_group['output_dir'].iloc[0]
+     concatenate_tables(dataset_name, out_dir)
+
 
 def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
 
@@ -216,7 +237,27 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
             generate_results_multiproc_wrapper(dataset_name_and_args)
             print('Done single-processing.')
 
-    print('\N{microscope} Done analysis.')
+    # lastly, for each dataset concatenate the tables from each timepoint
+    # into a single output table for dataset
+    analysis_queue_df = pd.DataFrame(analysis_queue)
+    analysis_queue_per_dataset = analysis_queue_df.groupby('dataset_name')
+
+    print('Concatenating individual timepoint tables together and saving...')
+    if n_proc > 1:
+            if __name__ == '__main__':
+                print('Starting multiprocessing...')
+                with Pool(processes=n_proc) as pool:
+                    list(tqdm(pool.imap(concatenate_tables_multiproc, analysis_queue_per_dataset, chunksize=1), total=len(analysis_queue_per_dataset)))
+                    pool.close()
+                    pool.join()
+                print('Done multiprocessing.')
+    else:
+        for queue_group in analysis_queue_per_dataset:
+            print('Running workflow with single process...')
+            concatenate_tables_multiproc(queue_group)
+            print('Done single-processing.')
+
+print('\N{microscope} Done analysis.')
 
 if __name__ == '__main__':
     ipython_cli_flexecute(main)
