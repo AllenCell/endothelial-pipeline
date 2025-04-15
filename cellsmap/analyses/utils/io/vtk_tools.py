@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 from skimage import filters as skfilt
 from scipy import interpolate as spinterp
 from vtk.util import numpy_support as vtknp
+
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.analyses.utils import regression_helper as rh
 
 
 def save_image_data(img, output_path, workflow_name="3d_flow_analysis"):
@@ -43,8 +45,8 @@ class CuboidBounds():
 
 class DataDrivenFlowField3D():
     def __init__(self, verbose: bool=False) -> None:
-        self._time_step = 2
-        self._landscape = {}
+        self._time_step = 5
+        self._flow_field = {}
         self._verbose = verbose
         self._level_sparsity = 2
         self._grid_spacing = 0.05
@@ -69,11 +71,12 @@ class DataDrivenFlowField3D():
 
     def set_dataframe(self, df: pd.DataFrame, identifier: str) -> None:
         # identifier determines the building blocks of the dataframe. For 
-        # example, CellId or CropId. We assume that dataframe has been
+        # example, cell_index or crop_index. We assume that dataframe has been
         # sorted by identifier and time with:
-        #     df = df.sort_values(by=["CropId", "T"])
+        #     df = df.sort_values(by=["crop_index", "T"])
         self._df = df.copy()
         self._identifier = identifier
+
     def set_state_space_variables(self, vars: list) -> None:
         self._ss_vars = vars
     
@@ -88,7 +91,21 @@ class DataDrivenFlowField3D():
             print(self._bounds.xmin, self._bounds.ymin, self._bounds.zmin)
             print(self._bounds.xmax, self._bounds.ymax, self._bounds.zmax)
 
+    
     def compute_displacement_vectors(self) -> None:
+        df_list = []
+        for _, df_track in self._df.groupby(self._identifier):
+            _, dX, dT = rh.get_X_dX_and_dT(df_track, self._ss_vars) # use built in method to get displacement vectors            
+            df_diff = pd.DataFrame(dX[0], columns=[f"d{var}" for var in self._ss_vars])
+            df_timestep = pd.DataFrame(dT[0], columns=["dT"])
+            df_ = pd.concat([df_track, df_diff, df_timestep], axis=1)
+            assert "description" in df_.columns, "Description column is missing in the dataframe."
+            assert "crop_index" in df_.columns, "Crop index column is missing in the dataframe."
+            df_list.append(df_)
+        self._df_vecs = pd.concat(df_list)
+        self._ss_dvars = [f"d{var}" for var in self._ss_vars]
+    
+    def compute_displacement_vectors_OLD(self) -> None:
         df_list = []
         for _, df_track in self._df.groupby(self._identifier):
             diff = df_track[self._ss_vars].diff(periods=self._time_step)
@@ -116,6 +133,74 @@ class DataDrivenFlowField3D():
         # Computing this mean using all conditions. Should we
         # do per condition instead?
         self.compute_mean_speed_from_displacement_vectors()
+
+    def compute_flow_field(self, condition: str, save_imagedata=True) -> None:
+
+        xmin, xmax = self._bounds.xmin, self._bounds.xmax
+        ymin, ymax = self._bounds.ymin, self._bounds.ymax
+        zmin, zmax = self._bounds.zmin, self._bounds.zmax
+
+        # binning for smooth vector field
+        state_space_bins = [
+            np.linspace(vmin, vmax, int((vmax-vmin)/self._grid_spacing)+1)
+            for vmin, vmax in zip([xmin, ymin, zmin], [xmax, ymax, zmax])
+        ]
+
+        # bin centers
+        state_space_bin_centers = [
+            0.5*(bins[:-1]+bins[1:])
+            for bins in state_space_bins]
+
+        # meshgrid for plotting
+        xgrid, ygrid, zgrid = np.meshgrid(*state_space_bin_centers, indexing='ij')
+
+        if self._verbose:
+            print("Shape of grid:")
+            print(xgrid.shape, ygrid.shape, zgrid.shape)
+        
+        df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
+        tracks = df_vecs_cond[self._ss_vars]
+        dtracks = df_vecs_cond[self._ss_dvars]
+        dt_tracks = df_vecs_cond["dT"]
+        # KM average script takes in list of trajectories (one for each crop), trajectories are numpy arrays
+        # takes in corresponding dX and dT
+        X = []
+        dX = []
+        dT = []
+        for idx in df_vecs_cond[self._identifier].unique():
+            assert tracks.loc[tracks[self._identifier]==idx].values.shape[-1] == len(self._ss_vars), "Shape of trajectory does not match the number of state space variables."
+            X.append(tracks.loc[tracks[self._identifier]==idx].values)
+            dX.append(dtracks.loc[dtracks[self._identifier]==idx].values)
+            dT.append(dt_tracks.loc[dt_tracks[self._identifier]==idx].values)
+
+        dX_KM = rh.KM_avg_ND(X, dX, dT, state_space_bins, self._time_step)[0].T # array shape will be ndim x n_3 x n_2 x n_1
+
+        dU = dX_KM[0].T # shape is n_1 x n_2 x n_3, in accordance with meshgrid indexing = 'ij'
+        dV = dX_KM[1].T
+        dQ = dX_KM[2].T
+
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
+        ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
+        ax1.quiver(xgrid, ygrid, dU, dV, scale=50, color="red")
+        ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
+        ax2.quiver(xgrid, zgrid, dU, dQ, scale=50, color="red")
+        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)]):
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(qmin, qmax)
+            ax.set_aspect("equal")
+        plt.tight_layout()
+        vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
+
+        self._flow_field.update({
+            condition: {
+                "velocities": (dU, dV, dQ),
+                "grid": (xgrid, ygrid, zgrid)
+            }
+        })
+
+        if save_imagedata:
+            imgdata = self.get_imagedata_from_lasdscape(condition=condition)
+            save_imagedata(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
 
     def compute_landscape(self, condition: str, save_imagedata=True) -> None:
 
