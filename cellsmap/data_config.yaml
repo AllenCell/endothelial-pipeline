@@ -677,7 +677,7 @@
   nuclear_seg_manifest_fmsid: "",
   diffae_manifest_fmsid: "", 
 },{
-  name: 20250319_20X, # in progress
+  name: 20250319_20X,
   original_path: "//allen/programs/allencell/data/proj0/798/774/d92/07d/9af/8c9/e4e/054/8d3/94f/0d/20250319_GE00007419_20X_SLDY/20250319_GE00007419_20X_Timelapsee.sldy",
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/220250319_0d94f8d3054e4e8c99af07dd92774798", 
   fmsid: "0d94f8d3054e4e8c99af07dd92774798",
@@ -716,6 +716,28 @@
   brightfield_channel_index: 1, # double check
   n_total_positions: 6,
   notes: "",
+  nuclear_label_free_seg_path: "",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "",
+}, 
+{
+  name: 20250331_20X,
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20250331/20250331_GE00007559_20X_timelapse_sldy.sldy",
+  zarr_path: none,
+  fmsid: "",
+  barcode: GE00007488,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 24hr_high-to-24hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 577, # double check
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 277, 24.39], [278, 577, 5.83]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  egfp_channel_index: 0, # double check
+  brightfield_channel_index: 1, # double check
+  n_total_positions: 6,
+  notes: "changed between frames *** & **** (missing from OneNote?) put 277 and 278 as placeholders",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
   diffae_manifest_fmsid: "",
