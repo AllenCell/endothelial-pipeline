@@ -4,9 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.ndimage import gaussian_filter1d
-from cellsmap.analyses.cdh5_nodes_and_edges_analysis import stringified_floatlist_to_floatlist
+from cellsmap.util.set_output import get_output_path
 from matplotlib.colors import TwoSlopeNorm
-from cellsmap.util import io
+from cellsmap.util.dataset_io import get_available_datasets, get_tracking_data_paths
+from typing import List, Literal
 
 def get_pct_change(series: np.ndarray) -> np.ndarray:
     """
@@ -48,6 +49,10 @@ def restrict_orientation_to_positive(orientation: float):
     return abs(orientation)
 
 def make_orientation_relative_to_flow(orientation: float):
+    # you can visualize this process as folding a paper circle in half
+    # (the top half) and then rotating this half circle 90 degrees to
+    # the right, and then folding it in half again so you are only
+    # left with the top right quadrant of the circle.
     return restrict_orientation_to_positive(shift_orientation_phase(restrict_orientation_to_positive(orientation)))
 
 def get_centroid_velocity(tracking_results):
@@ -81,17 +86,59 @@ def filter_on_abs_vals(tracking_results, num_stdevs: float=2.0):
 
     return tracking_results
 
+def filter_tracking_dataframe(tracking_dataframe: pd.Dataframe,
+                              area_fold_change_allowed: float=0.1,
+                              minimum_track_duration: int=20
+                              ) -> pd.DataFrame:
 
+    return
 
-prj_dir = Path(__file__).parents[1]
-out_dir = prj_dir / f'results/{Path(__file__).stem}'
-data_dir = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg_tracking')
-assert data_dir.exists(), f'Data directory {data_dir} not found.'
+def get_tracking_data(dataset_name_list: List,
+                      position: int,
+                      kind: Literal['alignments', 'segmentation_properties']
+                      ) -> pd.DataFrame:
+    data_paths = []
+    # get all the filepaths and check that none of the requested
+    # datasets-position-kind combinations are missing data paths
+    # first before opening them
+    for dataset_name in dataset_name_list:
+        data_paths += get_tracking_data_paths(dataset_name, position, kind)
+        if not any(data_paths):
+            print(f'No {kind} tracking data found for {dataset_name} P{position}. Skipping...')
+        assert any(data_paths), f'No {kind} tracking data found for {dataset_name} P{position}.'
+
+    # open the files and concatenate them into a single dataframe
+    tracking_data = pd.concat([pd.read_csv(filepath, sep='\t') for filepath in data_paths])
+
+    return tracking_data
+
+out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+# data_dir = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg_tracking')
+# assert data_dir.exists(), f'Data directory {data_dir} not found.'
+
 
 tracking_table_paths = {dataset_path.name: list(dataset_path.glob('tracked_tables/*.tsv')) for dataset_path in data_dir.glob('*')}
 
 print('All available datasets:')
-dataset_names_all = io.get_available_datasets()
+dataset_names_all = get_available_datasets()
+if dataset_name == None:
+    dataset_name_list = [config_data['name']
+                        for config_data in load_config(config_type='data')
+                        if (config_data['microscope'] == '3i'
+                            and config_data['live_or_fixed_sample'] == 'live')
+                            and 'AICS-126' in config_data['cell_lines']]
+else:
+    dataset_name_list = [dataset_name]
+
+analysis_queue = build_analysis_queue(dataset_name_list,
+                                        save_output=save_output,
+                                        out_dir=get_output_path(Path(__file__).stem, verbose=False),
+                                        overwrite=True,
+                                        verbose=verbose,
+                                        is_test=is_test,
+                                        image_validation_frequency=1,
+                                        use_original_data=True)
+
 
 valid_datasets = ['20241016_20X', '20241105_20X', '20241120_20X']
 feasibility_datasets = ['20240305_T01_001', '20240917_20X_48hr', '20240227_T01_001', '20240213_T01_001', '20240215_T01_001', '20240220_T01_001', '20241016_20X',]
