@@ -104,19 +104,6 @@ class DataDrivenFlowField3D():
             df_list.append(df_)
         self._df_vecs = pd.concat(df_list)
         self._ss_dvars = [f"d{var}" for var in self._ss_vars]
-    
-    def compute_displacement_vectors_OLD(self) -> None:
-        df_list = []
-        for _, df_track in self._df.groupby(self._identifier):
-            diff = df_track[self._ss_vars].diff(periods=self._time_step)
-            diff.columns = [f"d{col}" for col in diff.columns]
-            df_list.append(pd.concat([df_track, diff], axis=1))
-        df_vecs = pd.concat(df_list).dropna()
-        # Correct for diff behavior of numpy vs. pandas
-        self._ss_dvars = [f"d{var}" for var in self._ss_vars]
-        for dvar in self._ss_dvars:
-            df_vecs[dvar] = -df_vecs[dvar]
-        self._df_vecs = df_vecs
 
     def compute_mean_speed_from_displacement_vectors(self) -> None:
         self._mean_speed = np.linalg.norm(self._df_vecs[self._ss_dvars].abs().mean())
@@ -199,103 +186,14 @@ class DataDrivenFlowField3D():
         })
 
         if save_imagedata:
-            imgdata = self.get_imagedata_from_lasdscape(condition=condition)
+            imgdata = self.get_imagedata_from_flow_field(condition=condition)
             save_imagedata(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
 
-    def compute_landscape(self, condition: str, save_imagedata=True) -> None:
+    def get_imagedata_from_flow_field(self, condition: str) -> None:
 
-        xmin, xmax = self._bounds.xmin, self._bounds.xmax
-        ymin, ymax = self._bounds.ymin, self._bounds.ymax
-        zmin, zmax = self._bounds.zmin, self._bounds.zmax
-
-        df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
-        if self._verbose:
-            print(f"Shape of dataframe for condition: {condition}")
-            print(df_vecs_cond.shape)
-
-        U, V, Q, dU, dV, dQ = [
-            df_vecs_cond[col].values[::self._level_sparsity]
-            for col in self._ss_vars + self._ss_dvars]
-        norm = np.sqrt(dU**2 + dV**2 + dQ**2)
-        dU = dU/norm
-        dV = dV/norm
-        dQ = dQ/norm
-        if self.get_fig_folder() is not None:
-            fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
-            ax1.quiver(U, V, dU, dV, df_vecs_cond.start_y.values[::self._level_sparsity])
-            ax2.quiver(U, Q, dU, dQ, df_vecs_cond.start_y.values[::self._level_sparsity])
-            for ax in [ax1, ax2]:
-                ax.set_xlim(xmin, xmax)
-                ax.set_ylim(ymin, ymax)
-                ax.set_aspect("equal")
-            vb.save_plot(fig, filename=self.get_fig_folder()+f"quiver_pc_{condition}", dpi=72)
-
-        xgrid, ygrid, zgrid = np.meshgrid(
-            np.linspace(xmin, xmax, int((xmax-xmin)/self._grid_spacing)),
-            np.linspace(ymin, ymax, int((ymax-ymin)/self._grid_spacing)),
-            np.linspace(zmin, zmax, int((zmax-zmin)/self._grid_spacing)), indexing='ij')
-        if self._verbose:
-            print("Shape of grid:")
-            print(xgrid.shape, ygrid.shape, zgrid.shape)
-
-        points = np.transpose(np.vstack((U, V, Q)))
-
-        dUi = spinterp.griddata(points, dU, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
-        dVi = spinterp.griddata(points, dV, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
-        dQi = spinterp.griddata(points, dQ, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
-
-        dUis = skfilt.gaussian(dUi, sigma=3, preserve_range=True)
-        dVis = skfilt.gaussian(dVi, sigma=3, preserve_range=True)
-        dQis = skfilt.gaussian(dQi, sigma=3, preserve_range=True)
-
-        epson = 1e-18
-        norm = np.sqrt(epson+dUis**2+dVis**2+dQis**2)
-        dUis /= norm
-        dVis /= norm
-        dQis /= norm
-
-        pc3val = 0.0
-        zgridmin = pc3val-0.8*self._grid_spacing
-        zgridmax = pc3val+1.2*self._grid_spacing
-        zvalids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax))
-        if self._verbose:
-            print("Number of points found withing the z-range of interest:")
-            print(len(zvalids[0]))
-        pc2val = 0.0
-        ygridmin = pc2val-0.8*self._grid_spacing
-        ygridmax = pc2val+1.2*self._grid_spacing
-        yvalids = np.where((ygrid.ravel()>ygridmin)&(ygrid.ravel()<ygridmax))
-        if self._verbose:
-            print("Number of points found withing the y-range of interest:")
-            print(len(yvalids[0]))
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
-        ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
-        ax1.quiver(xgrid.ravel()[zvalids], ygrid.ravel()[zvalids], dUis.ravel()[zvalids], dVis.ravel()[zvalids], scale=50, color="red")
-        ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
-        ax2.quiver(xgrid.ravel()[yvalids], zgrid.ravel()[yvalids], dUis.ravel()[yvalids], dQis.ravel()[yvalids], scale=50, color="red")
-        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)]):
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(qmin, qmax)
-            ax.set_aspect("equal")
-        plt.tight_layout()
-        vb.save_plot(fig, filename=self.get_fig_folder()+f"landscape_pc_{condition}", dpi=72)
-
-        self._landscape.update({
-            condition: {
-                "velocities": (dUis, dVis, dQis),
-                "grid": (xgrid, ygrid, zgrid)
-            }
-        })
-
-        if save_image_data:
-            imgdata = self.get_imagedata_from_lasdscape(condition=condition)
-            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"landscape_{condition}.vtk")
-
-    def get_imagedata_from_lasdscape(self, condition: str) -> None:
-
-        vx = self._landscape[condition]["velocities"][0]
-        vy = self._landscape[condition]["velocities"][1]
-        vz = self._landscape[condition]["velocities"][2]
+        vx = self._flow_field[condition]["velocities"][0]
+        vy = self._flow_field[condition]["velocities"][1]
+        vz = self._flow_field[condition]["velocities"][2]
 
         dims = vx.shape
 
@@ -384,7 +282,7 @@ class DataDrivenFlowField3D():
             print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
         return speed
 
-    def simulate_particles_in_landscape(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
+    def simulate_particles_in_flow_field(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
         # condition can be either a string or a list of string that serve
         # as a secheduler for changes between landspace.
 
