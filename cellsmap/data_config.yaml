@@ -141,8 +141,8 @@
   nuclear_seg_manifest_fmsid: "f17ac69d490b43d48492332c29e338ee",
   diffae_manifest_fmsid: "", 
 },{
-  name: 20241217_20X,
-  original_path: "//allen/programs/allencell/data/proj0/6da/873/6ea/0a5/caf/0d8/44d/1f1/204/e70/23/20241217_GE00006535_20X_timelapse_sldy/20241217_GE00006535_20X_timelapse_SLDY.sldy",
+  name: 20241217_20X, # will get new FMS id .. original data needs to be re-uploaded
+  original_path: "//allen/aics/microscopy/Endo Timelapses/20241217/20241217_20X_timelapse_SLDY.sldy",
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_23e702041f144d0d8caf0a56ea8736da", 
   fmsid: "23e702041f144d0d8caf0a56ea8736da",
   barcode: GE00006535,
