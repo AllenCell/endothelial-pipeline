@@ -38,10 +38,11 @@ def get_postion_zarr_path(zarr_path, position):
 for dataset_name in dataset_name_list:
     config_data = dataset_io.get_dataset_info(dataset_name)
     zarr_path = Path(config_data['zarr_path'])
-    number_of_positions = dataset_io.get_total_number_of_positions(dataset_name)
     
     if 'scene_list' in config_data and config_data['scene_list']:
-        number_of_positions = number_of_positions - len(config_data['scene_list'])
+        number_of_positions = len(config_data['scene_list'])
+    else:
+        number_of_positions = dataset_io.get_total_number_of_positions(dataset_name)
     
     try:
         # Check if zarr_path is 'none' and skip processing if true
