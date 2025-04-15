@@ -112,7 +112,7 @@
   flow: [[0, 576, 28.83]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 28.83 dyn/cm^2 = 39.34 mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
-  brightfield_channel_index: 1,
+  
   n_total_positions: 6,
   notes: "This is a nice 48hr high flow dataset.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X",
@@ -121,7 +121,7 @@
 },{
   name: 20241203_20X,
   original_path: "//allen/programs/allencell/data/proj0/a61/b0d/e86/6b6/175/2b9/745/3da/73b/b61/9d/20241203_GE00007661_20X_timelapse_sldy/20241203_GE00007661_20X_timelapse_SLDY.sldy",
-  zarr_path: None, # in progress
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241203_9db6173b3da7452b91756b6e86b0da61, # in progress
   fmsid: "9db6173b3da7452b91756b6e86b0da61",
   barcode: none,
   live_or_fixed_sample: live,
@@ -134,6 +134,7 @@
   flow: [[0, 576, 5.88]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # 5.88 dyn/cm^2 = 8.02mL/min measured flow rate * 0.007 viscosity of media * 104.7 (a constant for 0.4 Luer Glass Bottom micro-slide)
   egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_total_positions: 6,
   notes: "This timelapse has not yet been converted to ZARR.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241203_20X",
