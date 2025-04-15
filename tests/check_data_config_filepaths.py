@@ -12,7 +12,7 @@ filepaths_found = {}
 for dataset_name in dataset_name_list:
     config_data = dataset_io.get_dataset_info(dataset_name)
     original_path = Path(config_data['original_path'])
-    zarr_path = Path(config_data['original_path'])
+    zarr_path = Path(config_data['zarr_path'])
     print(f"{dataset_name}: original_path {original_path.exists()}, zarr_path {zarr_path.exists()}")
     filepaths_found[dataset_name] = {'original': original_path.exists(), 'zarr': zarr_path.exists()}
 print('\n')
