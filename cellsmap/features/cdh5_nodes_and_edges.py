@@ -198,8 +198,7 @@ def concatenate_tables(dataset_name, out_dir):
 def concatenate_tables_multiproc(queue_group):
      dataset_name, queue_df = queue_group
      out_dir = queue_df['output_dir'].iloc[0]
-     print(dataset_name, out_dir)
-    #  concatenate_tables(dataset_name, out_dir)
+     concatenate_tables(dataset_name, out_dir)
 
 
 def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
