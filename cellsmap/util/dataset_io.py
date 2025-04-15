@@ -10,7 +10,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-from typing import List, Dict, Any, Union, Tuple, Callable, Optional
+from typing import List, Dict, Any, Union, Tuple, Callable, Optional, Literal
 import re
 
 # model methods
@@ -243,6 +243,19 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     # base_path = dataset_info['cdh5_classic_seg_path']
     position_path = f"{base_path}/P{position}/"
     return position_path
+
+def get_tracking_data_paths(dataset_name: str,
+                            position: int,
+                            kind: Literal['alignments', 'segmentation_properties']
+                            ) -> List[Path]|List[str]:
+    # NOTE the tracking paths should probably be added to some
+    # sort of config file at some point, but in the interest of
+    # going fast they are hardcoded here for now
+    base_path = Path('//allen/aics/endothelial/morphological_features/tracking_data')
+    base_path = base_path / dataset_name
+    position_path = base_path / f"P{position}/tables_{kind}/"
+    tracking_paths = list(position_path.glob('*.csv'))
+    return tracking_paths
 
 # model methods
 def get_available_models():
