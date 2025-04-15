@@ -16,7 +16,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # Load manifest created at preprocessing step
 df = pd.read_csv(output_savedir+"manifest.csv")
-
+# %%
 # Create flow field dx/dt = f(x)
 DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
@@ -26,6 +26,6 @@ DDFF.build()
 for condition in df.description.unique():
     DDFF.compute_flow_field(condition=condition)
     DDFF.simulate_particles_in_flow_field(condition=condition)
-DDFF.simulate_particles_in_landscape(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
-DDFF.simulate_particles_in_landscape(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
+DDFF.simulate_particles_in_flow_field(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
+DDFF.simulate_particles_in_flow_field(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
 # %%

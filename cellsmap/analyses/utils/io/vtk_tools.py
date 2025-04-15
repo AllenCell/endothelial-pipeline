@@ -103,6 +103,7 @@ class DataDrivenFlowField3D():
             assert "crop_index" in df_.columns, "Crop index column is missing in the dataframe."
             df_list.append(df_)
         self._df_vecs = pd.concat(df_list)
+        assert "crop_index" in self._df_vecs.columns
         self._ss_dvars = [f"d{var}" for var in self._ss_vars]
 
     def compute_mean_speed_from_displacement_vectors(self) -> None:
@@ -154,11 +155,14 @@ class DataDrivenFlowField3D():
         X = []
         dX = []
         dT = []
-        for idx in df_vecs_cond[self._identifier].unique():
-            assert tracks.loc[tracks[self._identifier]==idx].values.shape[-1] == len(self._ss_vars), "Shape of trajectory does not match the number of state space variables."
-            X.append(tracks.loc[tracks[self._identifier]==idx].values)
-            dX.append(dtracks.loc[dtracks[self._identifier]==idx].values)
-            dT.append(dt_tracks.loc[dt_tracks[self._identifier]==idx].values)
+        for _, df_track in df_vecs_cond.groupby(self._identifier):
+            tracks = df_track[self._ss_vars].values
+            dtracks = df_track[self._ss_dvars].values
+            dt_tracks = df_track["dT"].values
+            assert tracks.shape[-1] == len(self._ss_vars), "Shape of trajectory does not match the number of state space variables."
+            X.append(tracks)
+            dX.append(dtracks)
+            dT.append(dt_tracks)
 
         dX_KM = rh.KM_avg_ND(X, dX, dT, state_space_bins, self._time_step)[0].T # array shape will be ndim x n_3 x n_2 x n_1
 
@@ -166,16 +170,29 @@ class DataDrivenFlowField3D():
         dV = dX_KM[1].T
         dQ = dX_KM[2].T
 
+        # for plotting (dPC1,dPC2) in (PC1,PC2) plane, get slice of the grid at PC3 ~= 0
+        pc3val = 0.0
+        zgridmin = pc3val-0.8*self._grid_spacing
+        zgridmax = pc3val+1.2*self._grid_spacing
+        zvalids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax))
+        if self._verbose:
+            print("Number of points found withing the z-range of interest:")
+            print(len(zvalids[0]))
+        # for plotting (dPC1,dPC3) in (PC1,PC3) plane, get slice of the grid at PC2 ~= 0
+        pc2val = 0.0
+        ygridmin = pc2val-0.8*self._grid_spacing
+        ygridmax = pc2val+1.2*self._grid_spacing
+        yvalids = np.where((ygrid.ravel()>ygridmin)&(ygrid.ravel()<ygridmax))
+        if self._verbose:
+            print("Number of points found withing the y-range of interest:")
+            print(len(yvalids[0]))
+
+        # 2D quiver plots
         fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
         ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
-        ax1.quiver(xgrid, ygrid, dU, dV, scale=50, color="red")
+        ax1.quiver(xgrid.ravel()[zvalids], ygrid.ravel()[zvalids], dU.ravel()[zvalids], dV.ravel()[zvalids], scale=50, color="red")
         ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
-        ax2.quiver(xgrid, zgrid, dU, dQ, scale=50, color="red")
-        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)]):
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(qmin, qmax)
-            ax.set_aspect("equal")
-        plt.tight_layout()
+        ax2.quiver(xgrid.ravel()[yvalids], zgrid.ravel()[yvalids], dU.ravel()[yvalids], dQ.ravel()[yvalids], scale=50, color="red")
         vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
 
         self._flow_field.update({
@@ -187,7 +204,7 @@ class DataDrivenFlowField3D():
 
         if save_imagedata:
             imgdata = self.get_imagedata_from_flow_field(condition=condition)
-            save_imagedata(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
+            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
 
     def get_imagedata_from_flow_field(self, condition: str) -> None:
 
