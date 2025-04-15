@@ -197,8 +197,9 @@ def concatenate_tables(dataset_name, out_dir):
 
 def concatenate_tables_multiproc(queue_group):
      dataset_name, queue_df = queue_group
-     out_dir = queue_group['output_dir'].iloc[0]
-     concatenate_tables(dataset_name, out_dir)
+     out_dir = queue_df['output_dir'].iloc[0]
+     print(dataset_name, out_dir)
+    #  concatenate_tables(dataset_name, out_dir)
 
 
 def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
@@ -232,10 +233,10 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                     pool.join()
                 print('Done multiprocessing.')
     else:
+        print('Running workflow with single process...')
         for dataset_name_and_args in analysis_queue:
-            print('Running workflow with single process...')
             generate_results_multiproc_wrapper(dataset_name_and_args)
-            print('Done single-processing.')
+        print('Done single-processing.')
 
     # lastly, for each dataset concatenate the tables from each timepoint
     # into a single output table for dataset
@@ -252,10 +253,10 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                     pool.join()
                 print('Done multiprocessing.')
     else:
+        print('Running workflow with single process...')
         for queue_group in analysis_queue_per_dataset:
-            print('Running workflow with single process...')
             concatenate_tables_multiproc(queue_group)
-            print('Done single-processing.')
+        print('Done single-processing.')
 
 print('\N{microscope} Done analysis.')
 
