@@ -1,16 +1,13 @@
 from pathlib import Path
 import pandas as pd
-import dask.dataframe as dd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.ndimage import gaussian_filter1d
 from cellsmap.util.set_output import get_output_path
-from matplotlib.colors import TwoSlopeNorm
-from cellsmap.util.dataset_io import load_config, get_original_path, get_tracking_data_raws, get_measurement_data_raws, get_time_interval_in_minutes
+from cellsmap.util.dataset_io import load_config, get_original_path, get_tracking_data_raws, get_measurement_data_raws, get_time_interval_in_minutes, get_flow_change_frame
 from cellsmap.util.get_sldy_metadata import get_objective_info, get_sldy_metadata
 from cellsmap.util.set_output import get_output_path
-from typing import List, Literal
 
 def get_pct_change(series: pd.Series) -> np.ndarray:
     """
@@ -91,6 +88,7 @@ def filter_tracking_dataframe(tracking_data: pd.DataFrame,
                               area_change_allowed: float=0.1,
                               minimum_track_duration: int=20,
                               fold_change: bool=True,
+                              smoothing_sigma=2.0,
                               ) -> pd.DataFrame:
     """
     If 'fold_change' is True, then the area change allowed is
@@ -107,8 +105,6 @@ def filter_tracking_dataframe(tracking_data: pd.DataFrame,
         -> keep any cells that change their area by less than 2.0
         standard deviations from the cells mean area for that track
     """
-    fold_change = True
-    smoothing_sigma = 2.0
 
     # NOTE: depsite the matching method being reciprocal_matches_only, thee are some instances of track
     # splitting. I will need to find out why this is, but for now I will filter out these tracks.
@@ -137,7 +133,10 @@ def enrich_tracking_dataframe(tracking_data: pd.DataFrame):
     This function processes the tracking data in the following ways:
     - converts the orientation to be relative to the flow (ranges from 0 to pi/2 representing parallel to perpendicular, respectively)
     - gets the velocity of the centroid of each labeled region
-    - calculates the duration of each track
+    - adds a column for the duration of each track
+    - adds a column for the time interval in minutes for each dataset
+    - adds a column for the time in minutes
+    - adds a column for the time of flow switch for each dataset
     """
     tracking_data['orientation'] = tracking_data['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
     tracking_data = get_centroid_velocity(tracking_data)
@@ -145,11 +144,12 @@ def enrich_tracking_dataframe(tracking_data: pd.DataFrame):
     t_res_map = {dataset_name: get_time_interval_in_minutes(dataset_name) for dataset_name in tracking_data['dataset_name'].unique()}
     tracking_data['T interval (minutes)'] = tracking_data['dataset_name'].transform(lambda x: t_res_map[x])
     tracking_data['T (minutes)'] = tracking_data['T'] * tracking_data['T interval (minutes)']
+    # TODO: the time at flow switch is not currently accurate, will fix later
+    # t_flow_switch = {dataset_name: get_flow_change_frame(dataset_name)}
+    # tracking_data['T at flow switch'] = tracking_data['dataset_name'].transform(lambda x: t_flow_switch[x])
     return tracking_data
 
 def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
-
-    out_dir = get_output_path(Path(__file__).stem, verbose=False)
 
     if dataset_name == None:
         dataset_name_list = [config_data['name']
@@ -170,363 +170,73 @@ def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
         elif objective_info['magnification'] == 40:
             dataset_name_list_40X.append(dataset_name)
 
+    dataset_group_dict = {'live_3i_20X': dataset_name_list_20X, 'live_3i_40X': dataset_name_list_40X}
 
-    raw_tracking_data = get_tracking_data_raws(dataset_name_list_40X,
-                                               as_dask=False)
-    raw_measurement_data = get_measurement_data_raws(dataset_name_list_40X,
-                                                     kind='segmentation_properties',
-                                                     as_dask=False)
+    for dataset_group_nm, dataset_group in dataset_group_dict.items():
 
-    # filter out data points where the area_difference changed too much (e.g. area either doubled or halved)
-    tracking_data = enrich_tracking_dataframe(raw_tracking_data)
-    tracking_data['num_tracks_before_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
-    # grab only the tracks that have more than n timeframes after filtering
-    n_timeframes = 20
-    # also omit data where a region changes its area by too much
-    # of the local average (e.g. doubles or halves)
-    tracking_data = filter_tracking_dataframe(tracking_data,
-                                              area_change_allowed=0.1,
-                                              minimum_track_duration=n_timeframes,
-                                              fold_change=True)
-    tracking_data['num_tracks_after_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
+        out_dir = get_output_path(Path(__file__).stem, verbose=False)
+        out_dir = out_dir / dataset_group_nm
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    # create another subset of the data that has very long tracks
-    very_long_track_threshold = 120
-    tracking_data_super_long_tracks = tracking_data[tracking_data['track_duration'] >= very_long_track_threshold].copy()
-    tracking_data_super_long_tracks['track_id'].nunique()
+        raw_tracking_data = get_tracking_data_raws(dataset_group, as_dask=False)
 
-    summary = tracking_data.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
+        # filter out data points where the area_difference changed too much (e.g. area either doubled or halved)
+        tracking_data = enrich_tracking_dataframe(raw_tracking_data)
+        tracking_data['num_tracks_before_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
+        # grab only the tracks that have more than n timeframes after filtering
+        n_timeframes = 20
+        area_change_allowed = 0.1
+        fold_change = True
+        sigma = 2.0
+        # also omit data where a region changes its area by too much
+        # of the local average (e.g. doubles or halves)
+        tracking_data = filter_tracking_dataframe(tracking_data,
+                                                area_change_allowed=area_change_allowed,
+                                                minimum_track_duration=n_timeframes,
+                                                fold_change=fold_change,
+                                                smoothing_sigma=sigma)
+        tracking_data['num_tracks_after_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
 
-    print(f'Number of rows before filtering: {len(tracking_data)}')
-    print(f'Number of rows after filtering: {len(tracking_results_long_tracks)}')
+        # save the filtered dataset
+        if save_output:
+            tracking_data.to_csv(out_dir / 'filtered_tracking_data.tsv', sep='\t', index=False, na_rep='nan')
 
-    print('Number of unique tracks before filtering:', tracking_data['num_tracks_before_filtering'].nunique())
-    print('Number of unique tracks after filtering:', tracking_data['num_tracks_after_filtering'].nunique())
+        num_rows_before_filtering = len(raw_tracking_data)
+        num_rows_after_filtering = len(tracking_data)
+        num_unique_tracks_before_filtering = raw_tracking_data['track_id'].nunique()
+        num_unique_tracks_after_filtering = tracking_data['track_id'].nunique()
 
+        # save a log file of the filtering that was done
+        with open(out_dir / f'filtered_tracking_results_run_log.txt', 'w') as f:
+            f.write(f'Date run: {str(pd.Timestamp.now())}\n')
+            f.write(f'Datasets analyzed: {dataset_name_list}\n')
+            f.write(f'Fold change used for filtering: {fold_change}\n')
+            f.write(f'Fold change of area difference for filtering? {area_change_allowed}\n')
+            f.write(f'Smoothing kernel used: gaussian with sigma={sigma}\n')
+            f.write(f'Number of rows before filtering: {num_rows_before_filtering}\n')
+            f.write(f'Number of rows after filtering: {num_rows_after_filtering}\n')
+            f.write(f'Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n')
+            f.write(f'Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n')
 
-    # fig, ax = plt.subplots()
-    # ax.set_title('Number of unique tracks over time')
-    # ax.set_xlabel('Timepoint')
-    # ax.set_ylabel('Number of unique tracks')
-    # sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
-    # sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
+        # create some validation plots
+        for dataset_nm, dataset_df in tracking_data.groupby('dataset_name'):
+            summary = dataset_df.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
 
-    sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, label='Before filtering')
-    sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, label='After filtering')
+            # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
+            out_dir_plots = out_dir / 'num_tracks_plots'
+            out_dir_plots.mkdir(parents=True, exist_ok=True)
 
-
-
-
-tracking_results_long_tracks_all = []
-for dataset_name in dataset_name_list:
-    print(f'\n\nWorking on: {dataset_name}')
-
-
-
-
-
-
-
-    # NOTE: question: are the number of cell labels after filtering roughly equally distributed over time?
-    tracking_results_long_tracks['num_tracks'] = tracking_results_long_tracks.groupby('T')['track_id'].transform('nunique')
-
-    print(f'Number of rows before filtering: {len(tracking_results)}')
-    print(f'Number of rows after filtering: {len(tracking_results_long_tracks)}')
-
-    print('Number of unique tracks before filtering:', tracking_results['track_id'].nunique())
-    print('Number of unique tracks after filtering:', tracking_results_long_tracks['track_id'].nunique())
-
-    # Make and save plots
-    make_and_save_plots = False
-    if make_and_save_plots:
-        out_dir_plots_areas = out_dir / f'{dataset_name}/areas_vs_time'
-        Path.mkdir(out_dir_plots_areas, parents=True, exist_ok=True)
-        # count = 0
-        for nm, grp in tracking_results_long_tracks.groupby('track_id'):
-            print(f'track_id: {nm}, first timepoint: {grp["T"].min()}, last timepoint: {grp["T"].max()}')
-            skipped_frames = [t for t in range(grp['T'].min(), grp['T'].max()) if t not in grp['T'].values]
             fig, ax = plt.subplots()
-            sns.lineplot(x='T', y='area_normd', data=grp, marker='o', c='k', ax=ax)
-            [ax.axvline(frame, c='lightgrey', ls='--', zorder=0) for frame in skipped_frames]
-            ax.set_ylim(0, round(grp['area_normd'].max() + 0.5))
-            ax.set_ylabel('Normalized area')
+            ax.set_title('Number of unique tracks over time')
             ax.set_xlabel('Timepoint')
-            ax.set_title(f'track_id {nm}')
-            fig.savefig(out_dir_plots_areas / f'track_id_{nm}_area_normd_vs_time.png', dpi=80)
-            plt.close(fig)
-
-            # count += 1
-            # if count > 20:
-            #     break
-
-    # Add the filtered tracking results to a master list:
-    tracking_results_long_tracks_all.append(tracking_results_long_tracks)
-
-# Save the results:
-tracking_results_long_tracks_all = pd.concat(tracking_results_long_tracks_all)
-tracking_results_long_tracks_all.to_csv(out_dir / 'filtered_tracking_results.tsv', sep='\t', index=False, na_rep='nan')
-
-with open(out_dir / f'filtered_tracking_results_run_log.txt', 'w') as f:
-    f.write(f'Date run: {str(pd.Timestamp.now())}\n')
-    f.write(f'Datasets analyzed: {dataset_name_list}\n')
-    f.write(f'Fold change used for filtering: {fold_change}\n')
-    f.write(f'Fold change of area difference for filtering? {fold_change_of_diff}\n')
-    f.write(f'Smoothing kernel used: gaussian with sigma={smoothing_sigma}\n')
-    f.write(f'Plots saved? {make_and_save_plots}\n')
-    f.write(f'Number of rows before filtering: {len(tracking_results)}\n')
-    f.write(f'Number of rows after filtering: {len(tracking_results_long_tracks)}\n')
-    f.write(f'Number of unique tracks before filtering: {tracking_results["track_id"].nunique()}\n')
-    f.write(f'Number of unique tracks after filtering: {tracking_results_long_tracks["track_id"].nunique()}\n')
-
-
-for dataset_name, grp in tracking_results_long_tracks_all.groupby('dataset_name'):
-    print(f"{dataset_name:<20} {grp['track_id'].nunique()}")
-
-
-# NOTE: below is some code to explore the filtered tracking results
-run_exploration_code = False
-if run_exploration_code:
-    # NOTE: the .groubpy code below needs to be changed to groupby dataset_name too
-    sns.lineplot(x='T', y='track_duration', data=tracking_results_long_tracks)
-
-    fig, ax = plt.subplots()
-    sns.scatterplot(x='T', y='num_tracks', data=tracking_results_long_tracks, marker='.', lw=0, ax=ax)
-    sns.scatterplot(x='T', y='num_tracks_before_filtering', data=tracking_results, marker='.', lw=0, ax=ax)
-
-    fig, ax = plt.subplots()
-    sns.histplot(tracking_results_long_tracks['track_duration'], binwidth=5, ax=ax)
-
-    plt.close(fig)
-
-    fig, ax = plt.subplots()
-    ax.set_xlim(-0.01,1.01)
-    ax.set_ylim(-np.pi, np.pi)
-    for nm, grp in tracking_results_long_tracks.groupby('track_id'):
-        sns.lineplot(x='eccentricity', y='orientation', hue='T', data=grp, palette='turbo', marker='.', lw=1, ls='-', ax=ax)
-        break
-
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='polar')
-    sns.scatterplot(x='orientation', y='eccentricity', hue='T', data=tracking_results_long_tracks.query('T > 500'),
-                    palette='viridis', marker='.', alpha=0.3, ax=ax)
-    ax.set_xlim(0, np.pi/2)
-    plt.show()
-    plt.close(fig)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='polar')
-    sns.scatterplot(x='orientation', y='eccentricity', hue='T', data=tracking_results_long_tracks.query('track_duration > 300'),
-                    palette='viridis', marker='.', alpha=0.3, ax=ax)
-    ax.set_xlim(0, np.pi/2)
-    plt.show()
-    plt.close(fig)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='polar')
-    sns.scatterplot(x='orientation', y='eccentricity', hue='track_id', data=tracking_results_long_tracks,
-                    palette='viridis', marker='.', ax=ax)
-    ax.set_xlim(0, np.pi/2)
-    plt.show()
-    plt.close(fig)
-
-    groups = tracking_results_long_tracks.groupby('track_id')
-    # for nm, grp in groups:
-    unique_track_ids = tracking_results_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids)):
-        grp = tracking_results_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='polar')
-        # ax = fig.add_subplot()
-        # sns.lineplot(x='orientation', y='eccentricity', color='k', lw=1, data=grp, ax=ax, zorder=1)
-        sns.scatterplot(x='orientation', y='eccentricity', hue='T', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
-        ax.set_xlim(0, np.pi/2)
-        plt.show()
-        plt.close(fig)
-
-        if i > 10: break
-
-    # groups.plot(x='eccentricity', y='orientation', hue='T', palette='turbo', marker='.', lw=0, ls='-', legend=False)
-
-    tracking_results_long_tracks.keys()
-
-
-    groups = tracking_results_super_long_tracks.groupby('track_id')
-    # for nm, grp in groups:
-    unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids)):
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='polar')
-        # ax = fig.add_subplot()
-        # sns.lineplot(x='orientation', y='eccentricity', color='k', lw=1, data=grp, ax=ax, zorder=1)
-        sns.scatterplot(x='orientation', y='eccentricity', hue='T', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
-        ax.set_xlim(0, np.pi/2)
-        plt.show()
-        plt.close(fig)
-
-        if i > 10: break
-
-
-    for i in range(len(unique_track_ids))[10:20]:
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-        flow_switch_T = 245
-
-        fig = plt.figure()
-        ax = fig.add_subplot()
-        # ax = fig.add_subplot()
-        sns.lineplot(x='T', y='orientation', color='k', lw=1, data=grp, ax=ax, zorder=1)
-        sns.scatterplot(x='T', y='orientation', hue='eccentricity', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
-        ax.axvline(flow_switch_T, c='lightgrey', ls='--')
-        ax.set_ylim(0, np.pi/2 + 0.05)
-        ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
-        plt.show()
-        plt.close(fig)
-
-
-
-    # below will create 3d plots of the orientation and eccentricity of the tracks over time
-    unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids))[:20]:
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-        flow_switch_T = 245
-        # flow_switch_x, flow_switch_y, flow_switch_z 
-        flow_switch_pt = list(zip(*grp.query('T == @flow_switch_T')[['T', 'orientation', 'eccentricity']].values.tolist()))
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        # ax = fig.add_subplot()
-        ax.plot(xs=grp['T'], ys=grp['orientation'], zs=grp['eccentricity'], color='k', lw=1, zorder=1)
-        ax.scatter(xs=grp['T'], ys=grp['orientation'], zs=grp['eccentricity'], color='tab:blue', marker='.', zorder=5)
-        if flow_switch_pt: ax.scatter(*flow_switch_pt, c='tab:red', ls='--')
-        ax.set_ylim(0, np.pi/2 + 0.05)
-        ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
-        ax.set_xlabel('Timepoint')
-        ax.set_ylabel('Orientation')
-        ax.set_zlabel('Eccentricity')
-        plt.tight_layout()
-        plt.show()
-        # plt.close(fig)
-
-        if i > 5: break
-
-    # NOTE: QUESTIONS:
-    # - do single tracks have less variation in either orientation or eccentricity
-        # during low flow than they do during high flow?
-        # - what about right after the transition vs. late after the transition?
-    # - how accurate are the long tracks?
-    # - are the edges of cells as mobile under high flow as they are under low Flow?
-    # - how does the migration velocity of each cell according to the centroid change?
-    # TODO:
-    # - is there a correlation between the standard deviation in the velocity of the
-        # centroid (or the optical flow velocities) and time? I would expect yes.
-        # - should try splitting up the data into 3 bins:
-            # 1. T < flow switch,
-            # 2. flow switch < T < flow switch + 12hrs,
-            # 3. T > flow switch + 12hrs
-
-    flow_switch_T = 245
-    tracking_results_long_tracks['flow_state'] = tracking_results_long_tracks['T'].transform(lambda t: 'before' if t < flow_switch_T else 'after')
-    tracking_results_long_tracks.groupby('flow_state')['centroid_displacement'].std()
-    tracking_results_long_tracks.groupby('flow_state')['centroid_displacement'].median()
-    tracking_results_long_tracks.groupby('flow_state')['eccentricity'].std()
-    tracking_results_long_tracks.groupby('flow_state')['eccentricity'].median()
-
-
-
-    unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids))[:20]:
-        # break
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-        flow_switch_T = 245
-        # set up diverging colormap such that the midpoint of the colormap is at flow_switch_T
-        palette_offset = TwoSlopeNorm(vcenter=flow_switch_T)
-        # flow_switch_x, flow_switch_y, flow_switch_z 
-        flow_switch_pt = list(zip(*grp.query('T == @flow_switch_T')[['T', 'centroid_displacement']].values.tolist()))
-
-        fig = plt.figure()
-        # ax = fig.add_subplot()#(projection='3d')
-        # # ax = fig.add_subplot()
-        # ax.plot(grp['T'], grp['centroid_displacement'], color='k', lw=1, zorder=1)
-        # ax.scatter(grp['T'], grp['centroid_displacement'], color='tab:blue', marker='.', zorder=5)
-        # if flow_switch_pt: ax.scatter(*flow_switch_pt, c='tab:red', marker='.', zorder=10)
-        # # ax.set_ylim(0, np.pi/2 + 0.05)
-        # ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
-        # ax.set_xlabel('Timepoint')
-        # ax.set_ylabel('Centroid Displacement')
-
-        ax2 = fig.add_subplot(projection='polar')
-        sns.scatterplot(x='centroid_velocity_angle_rel_to_horizontal', y='centroid_displacement', hue='T', palette='vanimo', hue_norm=palette_offset, data=grp, marker='.', alpha=0.7, ax=ax2)
-        ax2.set_ylabel('')
-        ax2.set_xlabel('')
-        # ax2.semilogy()
-
-        # ax3 = fig.add_subplot()
-        # # ax3.plot(grp['T'], np.rad2deg(grp['centroid_velocity_angle_rel_to_horizontal']), color='k', lw=1, zorder=1)
-        # ax3.scatter(grp['T'], np.rad2deg(grp['centroid_velocity_angle_rel_to_horizontal']), marker='.')
-        # if flow_switch_T: ax3.axvline(flow_switch_T, c='lightgrey', ls='--')
-
-        plt.tight_layout()
-        plt.show()
-        # plt.close(fig)
-
-        if i >= 5: break
-
-    # NOTE: the above plots show that the centroid velocity angles are quite spiky sometimes
-        # which makes me concerned that there are problems with the tracking, however it is
-        # also possible that the apparent spikiness is due to changes in the segmented region
-        # which confounds using the motion of the centroid as a proxy for cell migration
-
-
-    # TODO: will probably need a way to show the overlay of the region of interest on the
-    # raw imaging data -- not sure how to handle skipped / masked frames yet...
-    # regardless, will need space on Vast to save these validation files
-
-    # NOTE SUSPICIOUS TRACK_IDS THAT MIGHT HAVE MULTIPLE AREAS (LINEPLOT HAS ERRORBARS):
-    # suspcious_track_ids = [
-    #     47, 106, 223, 269, 411,
-    #     # I haven't checked anything after track_id 411...
-    #     ]
-
-    # NOTE: Some test plots are below (to be removed if making PR):
-    # test = tracking_results_long_tracks[tracking_results_long_tracks['track_id'] == 411]
-    # test.query('T == 31')
-    # test.query('T == 32')
-
-
-    # test = tracking_results_long_tracks.query('track_id == 15')
-
-    # test['area_normd1'] = test['area'] / test.groupby('track_id')['area'].transform('median')
-    # test['area_smoothed'] = test.groupby('track_id')['area'].transform(gaussian_filter1d, sigma=2)
-    # test['area_normd2'] = test['area'] / test['area_smoothed']
-
-    # fig, ax = plt.subplots()
-    # ax.plot(test['T'], test['area_normd1'], marker='.')
-    # ax.plot(test['T'], test['area_normd2'], marker='.', ls='--', c='tab:orange')
-    # ax.axhline(1, c='grey', ls='--')
-    # ax.axvline(0, c='k', ls='--')
-    # ax.axvline(1, c='k', ls='--')
-
-    # fig, ax = plt.subplots()
-    # ax.plot(test['T'], test['area'], marker='.')
-    # ax.plot(test['T'], test['area_smoothed'], marker='.', ls='--', c='tab:orange')
-    # ax.axvline(0, c='k', ls='--')
-    # ax.axvline(1, c='k', ls='--')
-
-
-    # test['area_normd_diff'] = test['area_normd'].transform(lambda x: np.diff(x, prepend=np.nan))
-    # test['area_normd_diff'] = test['area_normd'].transform('diff')
-    # test['area_normd_diff'] = np.diff(test['area_normd'], prepend=np.nan)
-    # # test = test[(test['area_normd_diff'] < fold_change) + test['area_normd_diff'].transform(np.isnan)]
-    # test = test[(test['area_normd_diff'] > (-1 * fold_change)) + test['area_normd_diff'].transform(np.isnan)].copy()
-    # test = test[(test['area_normd_diff'] < fold_change) + test['area_normd_diff'].transform(np.isnan)].copy()
-
-    # fig, ax = plt.subplots()
-    # ax.plot(test['T'], test['area_normd'], marker='.')
-    # ax2 = ax.twinx()
-    # ax2.plot(test['T'], test['area_normd_diff'], marker='.', ls='--', c='tab:orange')
-    # ax.axvline(0, c='k', ls='--')
-    # ax.axvline(1, c='k', ls='--')
-    # ax2.axhline(0, c='tab:orange', ls=':', alpha=0.3)
+            ax.set_ylabel('Number of unique tracks')
+            sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
+            sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
+            ax.set_ylim(0)
+            left_of_boxes = [(ax.get_xlim()[0], ax.get_xlim()[0]), (summary['T'].max()-n_timeframes, summary['T'].max()-n_timeframes)]
+            right_of_boxes = [(n_timeframes, n_timeframes), (ax.get_xlim()[1], ax.get_xlim()[1])]
+            top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
+            boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
+            ax.set_xlim(ax.get_xlim())
+            [ax.fill_betweenx(y=y, x1=x1, x2=x2, color='lightgrey') for y, x1, x2 in boxes]
+            fig.savefig(out_dir_plots / f'{dataset_nm}_num_tracks_over_time.png', dpi=80)
