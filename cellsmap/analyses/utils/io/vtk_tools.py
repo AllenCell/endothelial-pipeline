@@ -161,14 +161,9 @@ class DataDrivenFlowField3D():
 
         # get bins for histogramming to get Kramers-Moyal coefficients (drift)
         KM_bins, KM_centers = rh.get_bins(Nbins_,data=X)
-        xgrid, ygrid, zgrid = np.meshgrid(*KM_centers,indexing='ij')
         dX_KM = rh.KM_avg_ND(X, dX, dT, KM_bins, self._time_step)[0] 
 
-        dU = dX_KM[:,:,:,0]
-        dV = dX_KM[:,:,:,1]
-        dQ = dX_KM[:,:,:,2]
-
-        Xgrid = np.moveaxis(np.array([xgrid, ygrid, zgrid]),0,-1)
+        Xgrid = np.moveaxis(np.array(np.meshgrid(*KM_centers,indexing='ij')),0,-1)
         dX_KM_, X_ = rh.masked_vector_field(dX_KM, Xgrid) # remove nans from dX_KM
         del X, dX, dT, dX_KM, KM_bins, KM_centers, Xgrid # free up memory
 
