@@ -2,8 +2,6 @@
 from pathlib import Path
 from cellsmap.util import dataset_io
 from bioio import BioImage
-from pathlib import PosixPath
-
 #%%
 print('Available datasets:')
 dataset_name_list = dataset_io.get_available_datasets()
