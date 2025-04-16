@@ -2,6 +2,7 @@ import yaml
 import dask
 import numpy as np
 import pandas as pd
+import dask.dataframe as dd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
@@ -246,7 +247,7 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
 
 def get_tracking_data_paths(dataset_name: str,
                             position: int,
-                            ) -> Path|str:
+                            ) -> Path:
     # NOTE the tracking paths should probably be added to some
     # sort of config file at some point, but in the interest of
     # going fast they are hardcoded here for now
@@ -255,9 +256,39 @@ def get_tracking_data_paths(dataset_name: str,
     data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
     return data_path
 
+def get_tracking_data_raws(dataset_name_list: List,
+                           position: int|None=None,
+                           as_dask: bool=True,
+                           ) -> pd.DataFrame:
+    # get all the filepaths and check that none of the requested
+    # datasets-position-kind combinations are missing data paths
+    # first before opening them
+    tracking_data_list = []
+    for dataset_name in dataset_name_list:
+        position_list = range(get_total_number_of_positions(dataset_name)) if position==None else [position]
+        for pos in position_list:
+            data_path = Path(get_tracking_data_paths(dataset_name, pos))
+            if not data_path.exists():
+                print(f'No tracking data found for {dataset_name} P{pos}. Skipping...')
+                continue
+            else:
+                # open the data tables
+                tracking_data = dd.read_csv(data_path, sep='\t')
+                # the tracking data by default does not have the
+                # dataset name or the position, so add those in
+                tracking_data['dataset_name'] = dataset_name
+                tracking_data['position'] = pos
+                # also include the path to the table that this
+                # part of the dataframe was loaded from
+                tracking_data['source_tracking_table_path'] = data_path.as_posix()
+                tracking_data_list.append(tracking_data)
+    # concatenate the dataframes into a single dataframe and return it
+    tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    return tracking_dataframe if as_dask else tracking_dataframe.compute()
+
 def get_measurement_data_paths(dataset_name: str,
                                kind: Literal['alignments', 'segmentation_properties']
-                               ) -> Path|str:
+                               ) -> Path:
     # NOTE the tracking paths should probably be added to some
     # sort of config file at some point, but in the interest of
     # going fast they are hardcoded here for now
@@ -266,6 +297,26 @@ def get_measurement_data_paths(dataset_name: str,
     data_path = base_path / f"{dataset_name}_{kind}.csv"
     return data_path
 
+def get_measurement_data_raws(dataset_name_list: List,
+                              kind: Literal['alignments', 'segmentation_properties'],
+                              as_dask: bool=True,
+                              ) -> pd.DataFrame:
+    measurement_data_list = []
+    # get all the filepaths and check that none of the requested
+    # datasets-position-kind combinations are missing data paths
+    # first before opening them
+    for dataset_name in dataset_name_list:
+        data_path = Path(get_measurement_data_paths(dataset_name, kind))
+        if not data_path.exists():
+            print(f'No {kind} tracking data found for {dataset_name}. Skipping...')
+            continue
+        else:
+            measurement_data = dd.read_csv(data_path)
+            measurement_data['source_measurement_table_path'] = data_path.as_posix()
+            measurement_data_list.append(measurement_data)
+    # open the files and concatenate them into a single dataframe
+    measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
+    return measurement_dataframe if as_dask else measurement_dataframe.compute()
 
 # model methods
 def get_available_models():

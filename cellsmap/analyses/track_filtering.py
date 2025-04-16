@@ -1,12 +1,15 @@
 from pathlib import Path
 import pandas as pd
+import dask.dataframe as dd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.ndimage import gaussian_filter1d
 from cellsmap.util.set_output import get_output_path
 from matplotlib.colors import TwoSlopeNorm
-from cellsmap.util.dataset_io import load_config, get_tracking_data_paths, get_measurement_data_paths
+from cellsmap.util.dataset_io import load_config, get_original_path, get_tracking_data_raws, get_measurement_data_raws, get_time_interval_in_minutes
+from cellsmap.util.get_sldy_metadata import get_objective_info, get_sldy_metadata
+from cellsmap.util.set_output import get_output_path
 from typing import List, Literal
 
 def get_pct_change(series: pd.Series) -> np.ndarray:
@@ -62,10 +65,9 @@ def get_centroid_velocity(tracking_results):
     tracking_results['centroid_velocity_angle_rel_to_horizontal'] = np.arctan2(tracking_results['centroid_dy'], tracking_results['centroid_dx'])
     return tracking_results
 
-# NOTE: this method filters based on fold change:
 def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_of_diff=False, smoothing_sigma: float=2.0):
+    # NOTE: this method filters based on fold change of a smoothed version of the data:
     tracking_results['area_normd'] = tracking_results['area'] / tracking_results.groupby('track_id')['area'].transform(gaussian_filter1d, sigma=smoothing_sigma)
-    # tracking_results['area_normd'] = tracking_results['area'] / tracking_results.groupby('track_id')['area'].transform('median')
     tracking_results['area_normd_diff'] = tracking_results.groupby('track_id')['area_normd'].transform(lambda x: np.diff(x, prepend=np.nan))
 
     if fold_change_of_diff:
@@ -77,69 +79,78 @@ def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_
 
     return tracking_results
 
-# NOTE: this method filters based on absolute values:
 def filter_on_abs_vals(tracking_results, num_stdevs: float=2.0):
+    # NOTE: this method filters based on absolute values using the st. dev.:
     track_means = tracking_results.groupby('track_id')['area'].transform('mean')
     track_stdevs = tracking_results.groupby('track_id')['area'].transform('std')
-    num_stdevs = 2
     tracking_results = tracking_results[(tracking_results['area'] >= track_means - num_stdevs * track_stdevs) * (tracking_results['area'] <= track_means + num_stdevs * track_stdevs)].copy()
 
     return tracking_results
 
-def filter_tracking_dataframe(tracking_dataframe: pd.Dataframe,
-                              area_fold_change_allowed: float=0.1,
-                              minimum_track_duration: int=20
+def filter_tracking_dataframe(tracking_data: pd.DataFrame,
+                              area_change_allowed: float=0.1,
+                              minimum_track_duration: int=20,
+                              fold_change: bool=True,
                               ) -> pd.DataFrame:
+    """
+    If 'fold_change' is True, then the area change allowed is
+    interpreted as a fold change of a labeled cells area over
+    time (after applying a gaussian smoothing to the area over
+    time), otherwise it is interpreted as the number of standard
+    deviations from the mean area to allow before removing a
+    labeled cell (this is the mean area for all timepoints in
+    the track, not a local average).
+    E.g. area_change_allowed = 0.1, fold_change = True
+        -> keep any cells that change their area by less than 10%
+        of the smoothed area over time
+    E.g. area_change_allowed = 2.0, fold_change = False
+        -> keep any cells that change their area by less than 2.0
+        standard deviations from the cells mean area for that track
+    """
+    fold_change = True
+    smoothing_sigma = 2.0
 
-    return
+    # NOTE: depsite the matching method being reciprocal_matches_only, thee are some instances of track
+    # splitting. I will need to find out why this is, but for now I will filter out these tracks.
+    # UPDATE: I looked in to it and this occurs when 2 regions from a
+    # query frame (e.g. a future timeframe) are both completely
+    # overlapped by the reference frame (e.g. the current timeframe),
+    # in which case they both have equal metric values and are both
+    # included. Fixing this will take some time.
+    tracking_data_filtered = tracking_data[tracking_data.groupby(['track_id'])['T'].transform(lambda t: t.nunique() == t.size)]
 
-def get_tracking_data(dataset_name_list: List,
-                      position: int,
-                      is_test=False,
-                      ) -> pd.DataFrame:
-    data_paths = []
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    for dataset_name in dataset_name_list:
-        data_paths.append(get_tracking_data_paths(dataset_name, position))
-        if not any(data_paths):
-            print(f'No {kind} tracking data found for {dataset_name} P{position}. Skipping...')
-        assert any(data_paths), f'No {kind} tracking data found for {dataset_name} P{position}.'
+    # filter out tracks that are shorter than the set minimum duration
+    tracking_data_filtered = tracking_data_filtered[tracking_data_filtered.groupby(['track_id'])['T'].transform('count') >= minimum_track_duration].copy()
 
-    # open the files and concatenate them into a single dataframe
-    tracking_data = pd.concat([pd.read_csv(filepath, sep='\t') for filepath in data_paths])
+    if fold_change:
+        tracking_data_filtered = filter_on_fold_change(tracking_data_filtered,
+                                                       fold_change=area_change_allowed,
+                                                       fold_change_of_diff=fold_change,
+                                                       smoothing_sigma=smoothing_sigma)
+    else:
+        tracking_data_filtered = filter_on_abs_vals(tracking_data_filtered,
+                                                    num_stdevs=area_change_allowed)
+    return tracking_data_filtered
 
+def enrich_tracking_dataframe(tracking_data: pd.DataFrame):
+    """
+    This function processes the tracking data in the following ways:
+    - converts the orientation to be relative to the flow (ranges from 0 to pi/2 representing parallel to perpendicular, respectively)
+    - gets the velocity of the centroid of each labeled region
+    - calculates the duration of each track
+    """
+    tracking_data['orientation'] = tracking_data['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
+    tracking_data = get_centroid_velocity(tracking_data)
+    tracking_data['track_duration'] = tracking_data.groupby('track_id')['track_id'].transform('count')
+    t_res_map = {dataset_name: get_time_interval_in_minutes(dataset_name) for dataset_name in tracking_data['dataset_name'].unique()}
+    tracking_data['T interval (minutes)'] = tracking_data['dataset_name'].transform(lambda x: t_res_map[x])
+    tracking_data['T (minutes)'] = tracking_data['T'] * tracking_data['T interval (minutes)']
     return tracking_data
 
-def get_measurement_data(dataset_name_list: List,
-                         kind: Literal['alignments', 'segmentation_properties'],
-                         is_test=False,
-                         ) -> pd.DataFrame:
-    data_paths = []
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    for dataset_name in dataset_name_list:
-        data_paths += get_tracking_data_paths(dataset_name, position, kind)
-        if not any(data_paths):
-            print(f'No {kind} tracking data found for {dataset_name} P{position}. Skipping...')
-        assert any(data_paths), f'No {kind} tracking data found for {dataset_name} P{position}.'
-
-    # open the files and concatenate them into a single dataframe
-    tracking_data = pd.concat([pd.read_csv(filepath, sep='\t') for filepath in data_paths])
-
-    return tracking_data
-out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
-# data_dir = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg_tracking')
-# assert data_dir.exists(), f'Data directory {data_dir} not found.'
-
-
-tracking_table_paths = {dataset_path.name: list(dataset_path.glob('tracked_tables/*.tsv')) for dataset_path in data_dir.glob('*')}
-
-# print('All available datasets:')
-# dataset_names_all = get_available_datasets()
 def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
+
+    out_dir = get_output_path(Path(__file__).stem, verbose=False)
+
     if dataset_name == None:
         dataset_name_list = [config_data['name']
                             for config_data in load_config(config_type='data')
@@ -150,62 +161,71 @@ def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
     else:
         dataset_name_list = [dataset_name]
 
-analysis_queue = build_analysis_queue(dataset_name_list,
-                                        save_output=save_output,
-                                        out_dir=get_output_path(Path(__file__).stem, verbose=False),
-                                        overwrite=True,
-                                        verbose=verbose,
-                                        is_test=is_test,
-                                        image_validation_frequency=1,
-                                        use_original_data=True)
+    dataset_name_list_20X = []
+    dataset_name_list_40X = []
+    for dataset_name in dataset_name_list:
+        objective_info = get_objective_info(get_sldy_metadata(get_original_path(dataset_name)))
+        if objective_info['magnification'] == 20:
+            dataset_name_list_20X.append(dataset_name)
+        elif objective_info['magnification'] == 40:
+            dataset_name_list_40X.append(dataset_name)
 
 
-valid_datasets = ['20241016_20X', '20241105_20X', '20241120_20X']
-feasibility_datasets = ['20240305_T01_001', '20240917_20X_48hr', '20240227_T01_001', '20240213_T01_001', '20240215_T01_001', '20240220_T01_001', '20241016_20X',]
-use_feasibility_datasets = True
-if use_feasibility_datasets:
-    valid_datasets = feasibility_datasets
-dataset_name_list = [name for name in dataset_names_all if name in valid_datasets]
-print('\nValid datasets for tracking:')
-for name in dataset_name_list: print(name)
+    raw_tracking_data = get_tracking_data_raws(dataset_name_list_40X,
+                                               as_dask=False)
+    raw_measurement_data = get_measurement_data_raws(dataset_name_list_40X,
+                                                     kind='segmentation_properties',
+                                                     as_dask=False)
+
+    # filter out data points where the area_difference changed too much (e.g. area either doubled or halved)
+    tracking_data = enrich_tracking_dataframe(raw_tracking_data)
+    tracking_data['num_tracks_before_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
+    # grab only the tracks that have more than n timeframes after filtering
+    n_timeframes = 20
+    # also omit data where a region changes its area by too much
+    # of the local average (e.g. doubles or halves)
+    tracking_data = filter_tracking_dataframe(tracking_data,
+                                              area_change_allowed=0.1,
+                                              minimum_track_duration=n_timeframes,
+                                              fold_change=True)
+    tracking_data['num_tracks_after_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
+
+    # create another subset of the data that has very long tracks
+    very_long_track_threshold = 120
+    tracking_data_super_long_tracks = tracking_data[tracking_data['track_duration'] >= very_long_track_threshold].copy()
+    tracking_data_super_long_tracks['track_id'].nunique()
+
+    summary = tracking_data.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
+
+    print(f'Number of rows before filtering: {len(tracking_data)}')
+    print(f'Number of rows after filtering: {len(tracking_results_long_tracks)}')
+
+    print('Number of unique tracks before filtering:', tracking_data['num_tracks_before_filtering'].nunique())
+    print('Number of unique tracks after filtering:', tracking_data['num_tracks_after_filtering'].nunique())
+
+
+    # fig, ax = plt.subplots()
+    # ax.set_title('Number of unique tracks over time')
+    # ax.set_xlabel('Timepoint')
+    # ax.set_ylabel('Number of unique tracks')
+    # sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
+    # sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
+
+    sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, label='Before filtering')
+    sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, label='After filtering')
+
+
+
 
 tracking_results_long_tracks_all = []
 for dataset_name in dataset_name_list:
     print(f'\n\nWorking on: {dataset_name}')
 
-    # Load the tracking results
-    assert len(tracking_table_paths[dataset_name]) == 1, f'Expected 1 tracking table for {dataset_name}, found {len(tracking_table_paths[dataset_name])}.'
-    data_path = Path(*tracking_table_paths[dataset_name])
-    tracking_results = pd.read_csv(data_path, sep='\t')
 
-    tracking_results['dataset_name'] = dataset_name
-    tracking_results['tracking_table_original_path'] = data_path
 
-    tracking_results['orientation'] = tracking_results['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
-    tracking_results = get_centroid_velocity(tracking_results)
 
-    tracking_results['track_duration'] = tracking_results.groupby('track_id')['track_id'].transform('count')
-    tracking_results['num_tracks_before_filtering'] = tracking_results.groupby('T')['track_id'].transform('nunique')
 
-    # filter out data points where the area_difference changed too much (e.g. area either doubled or halved)
 
-    fold_change_of_diff = True
-    fold_change = 0.1
-    smoothing_sigma = 2.0
-    tracking_results_long_tracks = filter_on_fold_change(tracking_results, fold_change=fold_change, fold_change_of_diff=fold_change_of_diff, smoothing_sigma=smoothing_sigma)
-    # tracking_results_long_tracks = filter_on_abs_vals(tracking_results)
-
-    # NOTE: depsite the matching method being reciprocal_matches_only, thee are some instances of track
-    # splitting. I will need to find out why this is, but for now I will filter out these tracks.
-    tracking_results_long_tracks = tracking_results_long_tracks[tracking_results_long_tracks.groupby(['track_id'])['T'].transform(lambda t: t.nunique() == t.size)]
-
-    # grab only the tracks that have more than n timeframes after filtering
-    n_timeframes = 20
-    tracking_results_long_tracks = tracking_results_long_tracks[tracking_results_long_tracks.groupby(['track_id'])['T'].transform('count') >= n_timeframes].copy()
-
-    # create another subset of the data that has very long tracks
-    tracking_results_super_long_tracks = tracking_results_long_tracks[tracking_results_long_tracks['track_duration'] >= 168].copy()
-    tracking_results_super_long_tracks['track_id'].nunique()
 
     # NOTE: question: are the number of cell labels after filtering roughly equally distributed over time?
     tracking_results_long_tracks['num_tracks'] = tracking_results_long_tracks.groupby('T')['track_id'].transform('nunique')
