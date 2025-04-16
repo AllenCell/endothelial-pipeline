@@ -175,12 +175,20 @@ class DataDrivenFlowField3D():
         dQ_ = dX_KM_[:,2]
 
         # interpolate to get the velocity field
-        dU = spinterp.griddata(X_, dU_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dU = spinterp.griddata(X_, dU_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
         dU.reshape(xgrid.shape)
-        dV = spinterp.griddata(X_, dV_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dV = spinterp.griddata(X_, dV_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
         dV.reshape(xgrid.shape)
-        dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
         dQ.reshape(xgrid.shape)
+
+        # replace nans with nearest neighbors
+        nan_mask_U = np.isnan(dU)
+        nan_mask_V = np.isnan(dV)
+        nan_mask_Q = np.isnan(dQ)
+        dU[nan_mask_U] = spinterp.griddata(X_, dU_, (xgrid[nan_mask_U],ygrid[nan_mask_U],zgrid[nan_mask_U]), method='nearest')
+        dV[nan_mask_V] = spinterp.griddata(X_, dV_, (xgrid[nan_mask_V],ygrid[nan_mask_V],zgrid[nan_mask_V]), method='nearest')
+        dQ[nan_mask_Q] = spinterp.griddata(X_, dQ_, (xgrid[nan_mask_Q],ygrid[nan_mask_Q],zgrid[nan_mask_Q]), method='nearest')
 
         dU = skfilt.gaussian(dU, sigma=3, preserve_range=True)
         dV = skfilt.gaussian(dV, sigma=3, preserve_range=True)
@@ -342,7 +350,7 @@ class DataDrivenFlowField3D():
 
         start_condition = condition[0]
 
-        assert start_condition in self._flow_field.keys(), f"Landscape for condition {start_condition} has not been yet computed."
+        assert start_condition in self._flow_field.keys(), f"FLow field for condition {start_condition} has not been yet computed."
 
         tp = 0
         if filename_prefix is None:
