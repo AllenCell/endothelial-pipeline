@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.ndimage import gaussian_filter1d
 from cellsmap.util.set_output import get_output_path
-from cellsmap.util.dataset_io import load_config, get_original_path, get_tracking_data_raws, get_measurement_data_raws, get_time_interval_in_minutes, get_flow_change_frame
+from cellsmap.util.dataset_io import load_config, get_original_path, get_tracking_data_raws, get_time_interval_in_minutes
 from cellsmap.util.get_sldy_metadata import get_objective_info, get_sldy_metadata
 from cellsmap.util.set_output import get_output_path
 
@@ -113,7 +113,7 @@ def filter_tracking_dataframe(tracking_data: pd.DataFrame,
     # overlapped by the reference frame (e.g. the current timeframe),
     # in which case they both have equal metric values and are both
     # included. Fixing this will take some time.
-    tracking_data_filtered = tracking_data[tracking_data.groupby(['track_id'])['T'].transform(lambda t: t.nunique() == t.size)]
+    tracking_data_filtered = tracking_data[tracking_data.groupby(['dataset_name', 'position', 'track_id'])['T'].transform(lambda t: t.nunique() == t.size)]
 
     # filter out tracks that are shorter than the set minimum duration
     tracking_data_filtered = tracking_data_filtered[tracking_data_filtered.groupby(['track_id'])['T'].transform('count') >= minimum_track_duration].copy()
@@ -150,7 +150,7 @@ def enrich_tracking_dataframe(tracking_data: pd.DataFrame):
     # tracking_data['T at flow switch'] = tracking_data['dataset_name'].transform(lambda x: t_flow_switch[x])
     return tracking_data
 
-def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
+def main(dataset_name=None, save_output=True, verbose=False):
 
     if dataset_name == None:
         dataset_name_list = [config_data['name']
@@ -162,6 +162,7 @@ def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
     else:
         dataset_name_list = [dataset_name]
 
+    print('Splitting datasets according to objective magnification...')
     dataset_name_list_20X = []
     dataset_name_list_40X = []
     for dataset_name in dataset_name_list:
@@ -172,76 +173,81 @@ def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
             dataset_name_list_40X.append(dataset_name)
 
     dataset_group_dict = {'live_3i_20X': dataset_name_list_20X, 'live_3i_40X': dataset_name_list_40X}
+    dataset_group_nm, dataset_group = 'live_3i_20X', dataset_name_list_20X
 
     for dataset_group_nm, dataset_group in dataset_group_dict.items():
 
         print(f'Working on the {dataset_group_nm} dataset group ({len(dataset_group)} datasets)...')
-        out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
-        out_dir = out_dir / dataset_group_nm
-        out_dir.mkdir(parents=True, exist_ok=True)
+        for dataset_name in dataset_group:
+            print(f'- {dataset_name}')
+            out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+            out_dir.mkdir(parents=True, exist_ok=True)
 
-        raw_tracking_data = get_tracking_data_raws(dataset_group, as_dask=False)
+            raw_tracking_data = get_tracking_data_raws([dataset_name], as_dask=False)
 
-        # filter out data points where the area_difference changed too much (e.g. area either doubled or halved)
-        tracking_data = enrich_tracking_dataframe(raw_tracking_data)
-        tracking_data['num_tracks_before_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
-        # grab only the tracks that have more than n timeframes after filtering
-        n_timeframes = 20
-        area_change_allowed = 0.1
-        fold_change = True
-        sigma = 2.0
-        # also omit data where a region changes its area by too much
-        # of the local average (e.g. doubles or halves)
-        tracking_data = filter_tracking_dataframe(tracking_data,
-                                                area_change_allowed=area_change_allowed,
-                                                minimum_track_duration=n_timeframes,
-                                                fold_change=fold_change,
-                                                smoothing_sigma=sigma)
-        tracking_data['num_tracks_after_filtering'] = tracking_data.groupby('T')['track_id'].transform('nunique')
+            # filter out data points where the area_difference changed too much (e.g. area either doubled or halved)
+            tracking_data = enrich_tracking_dataframe(raw_tracking_data)
+            tracking_data['num_tracks_before_filtering'] = tracking_data.groupby(['dataset_name', 'position', 'T'])['track_id'].transform('nunique')
+            # grab only the tracks that have more than n timeframes after filtering
+            n_timeframes = 20
+            area_change_allowed = 0.1
+            fold_change = True
+            sigma = 2.0
+            # also omit data where a region changes its area by too much
+            # of the local average (e.g. doubles or halves)
+            tracking_data = filter_tracking_dataframe(tracking_data,
+                                                    area_change_allowed=area_change_allowed,
+                                                    minimum_track_duration=n_timeframes,
+                                                    fold_change=fold_change,
+                                                    smoothing_sigma=sigma)
+            tracking_data['num_tracks_after_filtering'] = tracking_data.groupby(['dataset_name', 'position', 'T'])['track_id'].transform('nunique')
 
-        # save the filtered dataset
-        if save_output:
-            tracking_data.to_csv(out_dir / 'filtered_tracking_data.tsv', sep='\t', index=False, na_rep='nan')
+            # save the filtered dataset
+            if save_output:
+                tracking_data.to_csv(out_dir / f'{dataset_name}_filtered_tracking_data.tsv', sep='\t', index=False, na_rep='nan')
 
-        num_rows_before_filtering = len(raw_tracking_data)
-        num_rows_after_filtering = len(tracking_data)
-        num_unique_tracks_before_filtering = raw_tracking_data['track_id'].nunique()
-        num_unique_tracks_after_filtering = tracking_data['track_id'].nunique()
+            num_rows_before_filtering = len(raw_tracking_data)
+            num_rows_after_filtering = len(tracking_data)
+            num_unique_tracks_before_filtering = raw_tracking_data['track_id'].nunique()
+            num_unique_tracks_after_filtering = tracking_data['track_id'].nunique()
 
-        # save a log file of the filtering that was done
-        with open(out_dir / f'filtered_tracking_results_run_log.txt', 'w') as f:
-            f.write(f'Date run: {str(pd.Timestamp.now())}\n')
-            f.write(f'Datasets analyzed: {dataset_name_list}\n')
-            f.write(f'Fold change used for filtering: {fold_change}\n')
-            f.write(f'Fold change of area difference for filtering? {area_change_allowed}\n')
-            f.write(f'Smoothing kernel used: gaussian with sigma={sigma}\n')
-            f.write(f'Number of rows before filtering: {num_rows_before_filtering}\n')
-            f.write(f'Number of rows after filtering: {num_rows_after_filtering}\n')
-            f.write(f'Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n')
-            f.write(f'Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n')
+            # save a log file of the filtering that was done
+            out_dir_logs = out_dir / 'filter_run_logs'
+            out_dir_logs.mkdir(parents=True, exist_ok=True)
+            with open(out_dir_logs / f'{dataset_name}_filtered_tracking_results_run_log.txt', 'w') as f:
+                f.write(f'Date run: {str(pd.Timestamp.now())}\n')
+                f.write(f'Dataset analyzed: {dataset_name}\n')
+                f.write(f'Fold change used for filtering: {fold_change}\n')
+                f.write(f'Fold change of area difference for filtering? {area_change_allowed}\n')
+                f.write(f'Smoothing kernel used: gaussian with sigma={sigma}\n')
+                f.write(f'Number of rows before filtering: {num_rows_before_filtering}\n')
+                f.write(f'Number of rows after filtering: {num_rows_after_filtering}\n')
+                f.write(f'Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n')
+                f.write(f'Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n')
 
-        # create some validation plots
-        for dataset_nm, dataset_df in tracking_data.groupby('dataset_name'):
-            summary = dataset_df.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
+            # create some validation plots
+            for (dataset_nm, position), dataset_df in tracking_data.groupby(['dataset_name', 'position']):
+                summary = dataset_df.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
 
-            # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
-            out_dir_plots = out_dir / 'num_tracks_plots'
-            out_dir_plots.mkdir(parents=True, exist_ok=True)
+                # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
+                out_dir_plots = out_dir / 'num_tracks_plots' / dataset_name
+                out_dir_plots.mkdir(parents=True, exist_ok=True)
 
-            fig, ax = plt.subplots()
-            ax.set_title('Number of unique tracks over time')
-            ax.set_xlabel('Timepoint')
-            ax.set_ylabel('Number of unique tracks')
-            sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
-            sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
-            ax.set_ylim(0)
-            left_of_boxes = [(ax.get_xlim()[0], ax.get_xlim()[0]), (summary['T'].max()-n_timeframes, summary['T'].max()-n_timeframes)]
-            right_of_boxes = [(n_timeframes, n_timeframes), (ax.get_xlim()[1], ax.get_xlim()[1])]
-            top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-            boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
-            ax.set_xlim(ax.get_xlim())
-            [ax.fill_betweenx(y=y, x1=x1, x2=x2, color='lightgrey') for y, x1, x2 in boxes]
-            fig.savefig(out_dir_plots / f'{dataset_nm}_num_tracks_over_time.png', dpi=80)
+                fig, ax = plt.subplots()
+                ax.set_title(f'Dataset {dataset_name} P{position}')
+                ax.set_xlabel('Timepoint')
+                ax.set_ylabel('Number of unique tracks')
+                sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
+                sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
+                ax.set_ylim(0)
+                left_of_boxes = [(ax.get_xlim()[0], ax.get_xlim()[0]), (summary['T'].max()-n_timeframes, summary['T'].max()-n_timeframes)]
+                right_of_boxes = [(n_timeframes, n_timeframes), (ax.get_xlim()[1], ax.get_xlim()[1])]
+                top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
+                boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
+                ax.set_xlim(ax.get_xlim())
+                [ax.fill_betweenx(y=y, x1=x1, x2=x2, color='lightgrey') for y, x1, x2 in boxes]
+                fig.savefig(out_dir_plots / f'{dataset_nm}_P{position}_num_tracks_over_time.png', dpi=80)
+                plt.close(fig)
 
 if __name__ == '__main__':
     main()

@@ -286,6 +286,24 @@ def get_tracking_data_raws(dataset_name_list: List,
     tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe if as_dask else tracking_dataframe.compute()
 
+def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> pd.DataFrame:
+    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/track_filtering')
+    tracking_data_list = []
+    for dataset_name in dataset_name_list:
+        data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
+        if data_path.exists():
+            # open the data tables
+            tracking_data = dd.read_csv(data_path, sep='\t')
+            # include path to file that this data was loaded from
+            tracking_data['source_filtered_tracking_table_path'] = data_path.as_posix()
+            tracking_data_list.append(tracking_data)
+        else:
+            print(f'No filtered tracking data found for {dataset_name}. Skipping...')
+            continue
+    # concatenate the dataframes into a single dataframe and return it
+    tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    return tracking_dataframe if as_dask else tracking_dataframe.compute()
+
 def get_measurement_data_paths(dataset_name: str,
                                kind: Literal['alignments', 'segmentation_properties']
                                ) -> Path:

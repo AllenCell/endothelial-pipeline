@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # from scipy.ndimage import gaussian_filter1d
 # from cellsmap.analyses.cdh5_nodes_and_edges_analysis import stringified_floatlist_to_floatlist
 # from matplotlib.colors import TwoSlopeNorm
-# from cellsmap.util import io
-from cellsmap.util.cdh5_preprocessing import extract_T
+from cellsmap.util.dataset_io import extract_T, get_tracking_data_filtered, load_config
+from cellsmap.util.set_output import get_output_path
 from bioio import BioImage
 from skimage import measure
 from skimage.color import label2rgb
@@ -90,21 +90,36 @@ def generate_and_save_validation_images(dframe, dataset_name, T, out_dir):
     return
 
 
-prj_dir = Path(__file__).parents[1]
-out_dir = prj_dir / f'results/{Path(__file__).stem}'
-data_dir = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic\cellsmap\cellsmap\results\test_tracking_output_exploration')
-assert data_dir.exists(), f'Data directory {data_dir} not found.'
+# filtered_track_data_dir = Path('//allen/aics/endothelial/morphological_features/analysis/track_filtering')
+# assert filtered_track_data_dir.exists(), f'Data directory {filtered_track_data_dir} not found.'
 
 tracking_img_dir = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg_tracking')
 assert tracking_img_dir.exists(), f'Data directory {tracking_img_dir} not found.'
 
-tracking_img_paths = {dataset_path.name: {extract_T(fp): fp for fp in sorted(dataset_path.glob('tracked_images/*.tif*'), key=extract_T)} for dataset_path in tracking_img_dir.glob('*')}
-tracking_df = pd.read_csv(data_dir / 'filtered_tracking_results.tsv', sep='\t')
+# tracking_img_paths = {dataset_path.name: {extract_T(fp): fp for fp in sorted(dataset_path.glob('tracked_images/*.tif*'), key=extract_T)} for dataset_path in tracking_img_dir.glob('*')}
+# tracking_df = pd.read_csv(filtered_track_data_dir / 'filtered_tracking_results.tsv', sep='\t')
+def main(dataset_name=None):
+
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+
+    if dataset_name == None:
+        dataset_name_list = [config_data['name']
+                            for config_data in load_config(config_type='data')
+                            if (config_data['microscope'] == '3i'
+                                and config_data['live_or_fixed_sample'] == 'live')
+                                and 'AICS-126' in config_data['cell_lines']
+                                and config_data['duration'] > 1]
+    else:
+        dataset_name_list = [dataset_name]
+
+    for dataset_name in dataset_name_list:
+        tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
+        break
 
 tracking_df = tracking_df.query('track_duration >= 168')
 
 # track_id 65 from 20241016_20X is pretty long and might be good to check
-dataset_name = '20241016_20X'
+# dataset_name = '20241016_20X'
 # track_id = 65
 df_sub = tracking_df.query('dataset_name==@dataset_name')
 
