@@ -35,8 +35,8 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
             return commit_hash
     raise ValueError('No commit hash found in requirements.txt')
 
-def generate_overrides(save_path: str, data_path: str, ckpt_path: str, dataset_name: str, model_name: str) -> Dict:
-    overrides = {
+def generate_overrides(user_overrides, save_path: str, data_path: str, ckpt_path: str, dataset_name: str, model_name: str) -> Dict:
+    overrides ={
         # train and val dataloaders are unnecessary for prediction and might be slow to instantiate (e.g. if they cache data)
         'data.train_dataloaders': None,
         'data.val_dataloaders': None,
@@ -51,18 +51,21 @@ def generate_overrides(save_path: str, data_path: str, ckpt_path: str, dataset_n
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
             "save_dir": str(save_path),
             "meta_keys": ["T", 'start_y', 'start_x', 'filename_or_obj'],
-            "suffix": f"{dataset_name}_{model_name}_features"
+            "save_suffix": f"{dataset_name}_{model_name}_features"
         },
     }
-    return overrides
+    user_overrides.update(overrides)
+    return user_overrides
 
 def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0):
     # generate csv with paths to zarr files
     df = pd.DataFrame({
-        'path': sorted(Path(get_zarr_path(dataset_name)).glob('*.zarr'))
+        'path': sorted(get_zarr_path(dataset_name).values())
     })
     df['channel'] = ZARR_BF_CHANNEL
     df['resolution'] = resolution_level
+    df['start']  = 0
+    df['stop'] = 10
     data_path = str(save_path / 'dataset.csv')
     df.to_csv(data_path, index=False)
     return data_path
@@ -76,13 +79,15 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: S
     pred_df['mlflow_id'] = mlflow_id
 
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
+
+    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms
     pred_df['resolution_level'] = 1
 
     pred_df['end_y'] = pred_df['start_y'] + crop_size[0]
     pred_df['end_x'] = pred_df['start_x'] + crop_size[1]
     pred_df['crop_size_y']= crop_size[0]
     pred_df['crop_size_x']= crop_size[1]
-    pred_df['position'] = extract_P(pred_df['filename_or_obj'], int_only=False)
+    pred_df['position'] = pred_df['filename_or_obj'].apply(lambda s: extract_P(s, int_only=False))
     pred_df.rename(columns={'filename_or_obj': 'zarr_path', 'T': 'frame_number'}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path
@@ -113,6 +118,7 @@ def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, uploa
 
     # apply overrides
     overrides = generate_overrides(
+        overrides,
         save_path=save_path,
         data_path=data_path,
         ckpt_path=path_dict['checkpoint_path'],
@@ -121,8 +127,7 @@ def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, uploa
     )
     model.override_config(overrides)
     model.predict()
-
-    crop_size = model.spatial_inferer.splitter.patch_size
+    crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
     prediction_path = update_prediction_with_meta(
         dataset_name=dataset_name,
