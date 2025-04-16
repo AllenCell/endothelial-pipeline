@@ -144,7 +144,8 @@ def enrich_tracking_dataframe(tracking_data: pd.DataFrame):
     t_res_map = {dataset_name: get_time_interval_in_minutes(dataset_name) for dataset_name in tracking_data['dataset_name'].unique()}
     tracking_data['T interval (minutes)'] = tracking_data['dataset_name'].transform(lambda x: t_res_map[x])
     tracking_data['T (minutes)'] = tracking_data['T'] * tracking_data['T interval (minutes)']
-    # TODO: the time at flow switch is not currently accurate, will fix later
+    # TODO: the time at flow switch is not currently accurate / complete
+    # will fix later
     # t_flow_switch = {dataset_name: get_flow_change_frame(dataset_name)}
     # tracking_data['T at flow switch'] = tracking_data['dataset_name'].transform(lambda x: t_flow_switch[x])
     return tracking_data
@@ -174,7 +175,8 @@ def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
 
     for dataset_group_nm, dataset_group in dataset_group_dict.items():
 
-        out_dir = get_output_path(Path(__file__).stem, verbose=False)
+        print(f'Working on the {dataset_group_nm} dataset group ({len(dataset_group)} datasets)...')
+        out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
         out_dir = out_dir / dataset_group_nm
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -240,3 +242,6 @@ def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
             ax.set_xlim(ax.get_xlim())
             [ax.fill_betweenx(y=y, x1=x1, x2=x2, color='lightgrey') for y, x1, x2 in boxes]
             fig.savefig(out_dir_plots / f'{dataset_nm}_num_tracks_over_time.png', dpi=80)
+
+if __name__ == '__main__':
+    main()
