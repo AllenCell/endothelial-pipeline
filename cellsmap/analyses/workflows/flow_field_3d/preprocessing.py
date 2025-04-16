@@ -118,6 +118,6 @@ vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=
 
 # %%
 # Save final manifest for creating flow fields
-df.to_csv(output_savedir+"manifest.csv")
+df.to_csv(output_savedir+"manifest.csv",index=False)
 
 # %%

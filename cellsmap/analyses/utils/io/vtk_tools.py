@@ -95,12 +95,13 @@ class DataDrivenFlowField3D():
     def compute_displacement_vectors(self) -> None:
         df_list = []
         for _, df_track in self._df.groupby(self._identifier):
+            df_track = df_track.sort_values(by=["T"])
             _, dX, dT = rh.get_X_dX_and_dT(df_track, self._ss_vars) # use built in method to get displacement vectors            
             df_diff = pd.DataFrame(dX[0], columns=[f"d{var}" for var in self._ss_vars])
             df_timestep = pd.DataFrame(dT[0], columns=["dT"])
-            df_ = pd.concat([df_track, df_diff, df_timestep], axis=1)
-            assert "description" in df_.columns, "Description column is missing in the dataframe."
-            assert "crop_index" in df_.columns, "Crop index column is missing in the dataframe."
+            df_ = pd.concat([df_track.reset_index(drop=True),
+                              df_diff.reset_index(drop=True), 
+                              df_timestep.reset_index(drop=True)], axis=1)
             df_list.append(df_)
         self._df_vecs = pd.concat(df_list)
         assert "crop_index" in self._df_vecs.columns
@@ -163,6 +164,10 @@ class DataDrivenFlowField3D():
         xgrid, ygrid, zgrid = np.meshgrid(*KM_centers,indexing='ij')
         dX_KM = rh.KM_avg_ND(X, dX, dT, KM_bins, self._time_step)[0] 
 
+        dU = dX_KM[:,:,:,0]
+        dV = dX_KM[:,:,:,1]
+        dQ = dX_KM[:,:,:,2]
+
         Xgrid = np.moveaxis(np.array([xgrid, ygrid, zgrid]),0,-1)
         dX_KM_, X_ = rh.masked_vector_field(dX_KM, Xgrid) # remove nans from dX_KM
         del X, dX, dT, dX_KM, KM_bins, KM_centers, Xgrid # free up memory
@@ -182,9 +187,14 @@ class DataDrivenFlowField3D():
         dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
         dQ.reshape(xgrid.shape)
 
+        dU = skfilt.gaussian(dU, sigma=3, preserve_range=True)
+        dV = skfilt.gaussian(dV, sigma=3, preserve_range=True)
+        dQ = skfilt.gaussian(dQ, sigma=3, preserve_range=True)
+
         # # for plotting (dPC1,dPC2) in (PC1,PC2) plane, get slice of the grid at PC3 ~= 0
         pc3val = 0.0
-        print(f"PC3 value for condition {condition}: {pc3val}")
+        z_idx = np.where(np.abs(zgrid[0,0,:]-pc3val)<0.1)[-1]
+        print(f"PC3 slices closest to {pc3val}: indices = {z_idx}, PC3 = {zgrid[0,0,z_idx]}")
         zgridmin = pc3val-0.8*self._grid_spacing
         zgridmax = pc3val+1.2*self._grid_spacing
         zvalids = np.where((zgrid>zgridmin)&(zgrid<zgridmax))
@@ -192,9 +202,10 @@ class DataDrivenFlowField3D():
         if self._verbose:
             print("Number of points found withing the z-range of interest:")
             print(len(list(zip(*zvalids))))
-            print(xgrid[zvalids].shape)
         # for plotting (dPC1,dPC3) in (PC1,PC3) plane, get slice of the grid at PC2 ~= 0
         pc2val = 0.0
+        y_idx = np.where(np.abs(ygrid[0,:,0]-pc2val)<0.1)[-1]
+        print(f"PC2 slices closest to {pc2val}: indices = {y_idx}, PC2 = {ygrid[0,y_idx,0]}")
         ygridmin = pc2val-0.8*self._grid_spacing
         ygridmax = pc2val+1.2*self._grid_spacing
         yvalids = np.where((ygrid>ygridmin)&(ygrid<ygridmax))
