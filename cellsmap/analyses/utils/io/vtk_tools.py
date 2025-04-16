@@ -128,71 +128,94 @@ class DataDrivenFlowField3D():
         ymin, ymax = self._bounds.ymin, self._bounds.ymax
         zmin, zmax = self._bounds.zmin, self._bounds.zmax
 
-        # binning for smooth vector field
-        state_space_bins = [
-            np.linspace(vmin, vmax, int((vmax-vmin)/self._grid_spacing)+1)
-            for vmin, vmax in zip([xmin, ymin, zmin], [xmax, ymax, zmax])
-        ]
-
-        # bin centers
-        state_space_bin_centers = [
-            0.5*(bins[:-1]+bins[1:])
-            for bins in state_space_bins]
+        # binning for plotting smooth vector field on common grid
+        Nbins = [int((vmax-vmin)/self._grid_spacing) for vmin, vmax in zip([xmin, ymin, zmin], [xmax, ymax, zmax])]
+        state_space_grid = rh.get_bins(Nbins,bin_limits=[[xmin, xmax], [ymin, ymax], [zmin, zmax]])[1]
 
         # meshgrid for plotting
-        xgrid, ygrid, zgrid = np.meshgrid(*state_space_bin_centers, indexing='ij')
+        xgrid, ygrid, zgrid = np.meshgrid(*state_space_grid)
+        del state_space_grid # free up memory
 
         if self._verbose:
             print("Shape of grid:")
-            print(xgrid.shape, ygrid.shape, zgrid.shape)
+            print([grid.shape for grid in [xgrid, ygrid, zgrid]])
         
         df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
-        tracks = df_vecs_cond[self._ss_vars]
-        dtracks = df_vecs_cond[self._ss_dvars]
-        dt_tracks = df_vecs_cond["dT"]
+
+        # binning for computing the data driven flow field (Kramers-Moyal averages)
+        Nbins_ = [30,35,25]
+
         # KM average script takes in list of trajectories (one for each crop), trajectories are numpy arrays
         # takes in corresponding dX and dT
         X = []
         dX = []
         dT = []
         for _, df_track in df_vecs_cond.groupby(self._identifier):
-            tracks = df_track[self._ss_vars].values
-            dtracks = df_track[self._ss_dvars].values
-            dt_tracks = df_track["dT"].values
-            assert tracks.shape[-1] == len(self._ss_vars), "Shape of trajectory does not match the number of state space variables."
-            X.append(tracks)
-            dX.append(dtracks)
-            dT.append(dt_tracks)
+            track = df_track[self._ss_vars].values
+            dtrack = df_track[self._ss_dvars].values
+            dt_track = df_track["dT"].values
+            X.append(track)
+            dX.append(dtrack)
+            dT.append(dt_track)
 
-        dX_KM = rh.KM_avg_ND(X, dX, dT, state_space_bins, self._time_step)[0].T # array shape will be ndim x n_3 x n_2 x n_1
+        # get bins for histogramming to get Kramers-Moyal coefficients (drift)
+        KM_bins, KM_centers = rh.get_bins(Nbins_,data=X)
+        xgrid, ygrid, zgrid = np.meshgrid(*KM_centers,indexing='ij')
+        dX_KM = rh.KM_avg_ND(X, dX, dT, KM_bins, self._time_step)[0] 
 
-        dU = dX_KM[0].T # shape is n_1 x n_2 x n_3, in accordance with meshgrid indexing = 'ij'
-        dV = dX_KM[1].T
-        dQ = dX_KM[2].T
+        Xgrid = np.moveaxis(np.array([xgrid, ygrid, zgrid]),0,-1)
+        dX_KM_, X_ = rh.masked_vector_field(dX_KM, Xgrid) # remove nans from dX_KM
+        del X, dX, dT, dX_KM, KM_bins, KM_centers, Xgrid # free up memory
 
-        # for plotting (dPC1,dPC2) in (PC1,PC2) plane, get slice of the grid at PC3 ~= 0
+        if dX_KM_.shape[0] == 0:
+            raise Exception(f"Flow field for condition {condition} is empty. Check the input data and bounds.")
+        # extract components of dX_KM_
+        dU_ = dX_KM_[:,0]
+        dV_ = dX_KM_[:,1]
+        dQ_ = dX_KM_[:,2]
+
+        # interpolate to get the velocity field
+        dU = spinterp.griddata(X_, dU_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dU.reshape(xgrid.shape)
+        dV = spinterp.griddata(X_, dV_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dV.reshape(xgrid.shape)
+        dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dQ.reshape(xgrid.shape)
+
+        # # for plotting (dPC1,dPC2) in (PC1,PC2) plane, get slice of the grid at PC3 ~= 0
         pc3val = 0.0
+        print(f"PC3 value for condition {condition}: {pc3val}")
         zgridmin = pc3val-0.8*self._grid_spacing
         zgridmax = pc3val+1.2*self._grid_spacing
-        zvalids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax))
+        zvalids = np.where((zgrid>zgridmin)&(zgrid<zgridmax))
+        print(zvalids)
         if self._verbose:
             print("Number of points found withing the z-range of interest:")
-            print(len(zvalids[0]))
+            print(len(list(zip(*zvalids))))
+            print(xgrid[zvalids].shape)
         # for plotting (dPC1,dPC3) in (PC1,PC3) plane, get slice of the grid at PC2 ~= 0
         pc2val = 0.0
         ygridmin = pc2val-0.8*self._grid_spacing
         ygridmax = pc2val+1.2*self._grid_spacing
-        yvalids = np.where((ygrid.ravel()>ygridmin)&(ygrid.ravel()<ygridmax))
+        yvalids = np.where((ygrid>ygridmin)&(ygrid<ygridmax))
         if self._verbose:
             print("Number of points found withing the y-range of interest:")
-            print(len(yvalids[0]))
+            print(len(list(zip(*yvalids))))
 
         # 2D quiver plots
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
+        fig, (ax1, ax2) = vb.init_subplots(figsize=(12,6))
         ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
-        ax1.quiver(xgrid.ravel()[zvalids], ygrid.ravel()[zvalids], dU.ravel()[zvalids], dV.ravel()[zvalids], scale=50, color="red")
+        ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], scale=0.5, color="red")
+        ax1.set_xlabel(self._ss_vars[0])
+        ax1.set_ylabel(self._ss_vars[1])
+
         ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
-        ax2.quiver(xgrid.ravel()[yvalids], zgrid.ravel()[yvalids], dU.ravel()[yvalids], dQ.ravel()[yvalids], scale=50, color="red")
+        ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], scale=0.5, color="red")
+        ax2.set_xlabel(self._ss_vars[0])
+        ax2.set_ylabel(self._ss_vars[2])
+
+        plt.show()
+        
         vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
 
         self._flow_field.update({
@@ -213,6 +236,7 @@ class DataDrivenFlowField3D():
         vz = self._flow_field[condition]["velocities"][2]
 
         dims = vx.shape
+        print(dims)
 
         imageData = vtk.vtkImageData()
         imageData.SetDimensions(dims)
@@ -312,7 +336,7 @@ class DataDrivenFlowField3D():
 
         start_condition = condition[0]
 
-        assert start_condition in self._landscape.keys(), f"Landscape for condition {start_condition} has not been yet computed."
+        assert start_condition in self._flow_field.keys(), f"Landscape for condition {start_condition} has not been yet computed."
 
         tp = 0
         if filename_prefix is None:
@@ -331,9 +355,9 @@ class DataDrivenFlowField3D():
             coords_new = []
             for r in coords:
                 x, y, z = r
-                vx = self._landscape[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
-                vy = self._landscape[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
-                vz = self._landscape[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
+                vx = self._flow_field[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
+                vy = self._flow_field[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
+                vz = self._flow_field[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
                 x_new = x + sim_speed * vx
                 y_new = y + sim_speed * vy
                 z_new = z + sim_speed * vz
