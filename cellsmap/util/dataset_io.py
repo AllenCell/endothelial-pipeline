@@ -246,16 +246,26 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
 
 def get_tracking_data_paths(dataset_name: str,
                             position: int,
-                            kind: Literal['alignments', 'segmentation_properties']
-                            ) -> List[Path]|List[str]:
+                            ) -> Path|str:
     # NOTE the tracking paths should probably be added to some
     # sort of config file at some point, but in the interest of
     # going fast they are hardcoded here for now
-    base_path = Path('//allen/aics/endothelial/morphological_features/tracking_data')
+    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking')
+    base_path = base_path / f'{dataset_name}/P{position}'
+    data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
+    return data_path
+
+def get_measurement_data_paths(dataset_name: str,
+                               kind: Literal['alignments', 'segmentation_properties']
+                               ) -> Path|str:
+    # NOTE the tracking paths should probably be added to some
+    # sort of config file at some point, but in the interest of
+    # going fast they are hardcoded here for now
+    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/cdh5_nodes_and_edges')
     base_path = base_path / dataset_name
-    position_path = base_path / f"P{position}/tables_{kind}/"
-    tracking_paths = list(position_path.glob('*.csv'))
-    return tracking_paths
+    data_path = base_path / f"{dataset_name}_{kind}.csv"
+    return data_path
+
 
 # model methods
 def get_available_models():

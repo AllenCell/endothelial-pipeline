@@ -6,10 +6,10 @@ import seaborn as sns
 from scipy.ndimage import gaussian_filter1d
 from cellsmap.util.set_output import get_output_path
 from matplotlib.colors import TwoSlopeNorm
-from cellsmap.util.dataset_io import get_available_datasets, get_tracking_data_paths
+from cellsmap.util.dataset_io import load_config, get_tracking_data_paths, get_measurement_data_paths
 from typing import List, Literal
 
-def get_pct_change(series: np.ndarray) -> np.ndarray:
+def get_pct_change(series: pd.Series) -> np.ndarray:
     """
     Returns the fold change from the previous element in the array.
     'arr' must be a 1D numpy array.
@@ -95,8 +95,27 @@ def filter_tracking_dataframe(tracking_dataframe: pd.Dataframe,
 
 def get_tracking_data(dataset_name_list: List,
                       position: int,
-                      kind: Literal['alignments', 'segmentation_properties']
+                      is_test=False,
                       ) -> pd.DataFrame:
+    data_paths = []
+    # get all the filepaths and check that none of the requested
+    # datasets-position-kind combinations are missing data paths
+    # first before opening them
+    for dataset_name in dataset_name_list:
+        data_paths.append(get_tracking_data_paths(dataset_name, position))
+        if not any(data_paths):
+            print(f'No {kind} tracking data found for {dataset_name} P{position}. Skipping...')
+        assert any(data_paths), f'No {kind} tracking data found for {dataset_name} P{position}.'
+
+    # open the files and concatenate them into a single dataframe
+    tracking_data = pd.concat([pd.read_csv(filepath, sep='\t') for filepath in data_paths])
+
+    return tracking_data
+
+def get_measurement_data(dataset_name_list: List,
+                         kind: Literal['alignments', 'segmentation_properties'],
+                         is_test=False,
+                         ) -> pd.DataFrame:
     data_paths = []
     # get all the filepaths and check that none of the requested
     # datasets-position-kind combinations are missing data paths
@@ -111,7 +130,6 @@ def get_tracking_data(dataset_name_list: List,
     tracking_data = pd.concat([pd.read_csv(filepath, sep='\t') for filepath in data_paths])
 
     return tracking_data
-
 out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 # data_dir = Path('//allen/aics/assay-dev/users/Serge/cellsmap_out/cdh5_classic_seg_tracking')
 # assert data_dir.exists(), f'Data directory {data_dir} not found.'
@@ -119,16 +137,18 @@ out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
 tracking_table_paths = {dataset_path.name: list(dataset_path.glob('tracked_tables/*.tsv')) for dataset_path in data_dir.glob('*')}
 
-print('All available datasets:')
-dataset_names_all = get_available_datasets()
-if dataset_name == None:
-    dataset_name_list = [config_data['name']
-                        for config_data in load_config(config_type='data')
-                        if (config_data['microscope'] == '3i'
-                            and config_data['live_or_fixed_sample'] == 'live')
-                            and 'AICS-126' in config_data['cell_lines']]
-else:
-    dataset_name_list = [dataset_name]
+# print('All available datasets:')
+# dataset_names_all = get_available_datasets()
+def main(dataset_name=None, save_output=True, is_test=False, verbose=False):
+    if dataset_name == None:
+        dataset_name_list = [config_data['name']
+                            for config_data in load_config(config_type='data')
+                            if (config_data['microscope'] == '3i'
+                                and config_data['live_or_fixed_sample'] == 'live')
+                                and 'AICS-126' in config_data['cell_lines']
+                                and config_data['duration'] > 1]
+    else:
+        dataset_name_list = [dataset_name]
 
 analysis_queue = build_analysis_queue(dataset_name_list,
                                         save_output=save_output,
