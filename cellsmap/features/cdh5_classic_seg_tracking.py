@@ -95,7 +95,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
         if __name__ == '__main__':
             print('Starting multiprocessing...')
             with Pool(processes=n_proc) as pool:
-                list(tqdm(pool.imap(run_workflow, analysis_queue_per_position, chunksize=1), total=len(analysis_queue_per_position)))
+                list(tqdm(pool.imap(run_workflow, analysis_queue_per_position, chunksize=1), total=len(analysis_queue_per_position), desc='Positions completed'))
                 pool.close()
                 pool.join()
             print('Done multiprocessing.')

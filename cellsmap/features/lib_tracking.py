@@ -10,7 +10,7 @@ from cellsmap.util.dataset_io import extract_T
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
-
+from tqdm import tqdm
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension='*', sorting_function: Optional[Callable] = None):
@@ -816,12 +816,10 @@ def run_tracking(
     results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, timeframes_for_table=timeframes, image_buffer_prior=0, image_buffer_next=track_tolerance+1, verbose=verbose)
 
     # create output directories if they don't exist and get image metadata from the input image
-    if image_validation_frequency > 0:
-        for idx, input_image_filepath, track_labeled_image, track_table in results:
+    for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}'):
+        if image_validation_frequency > 0:
             if idx in range(0, len(timeframes), image_validation_frequency):
                 images_out_dir = out_dir / 'tracked_images'
-                # tables_out_dir = out_dir / 'tracked_tables'
-                # for out in (images_out_dir, tables_out_dir):
                 for out in (images_out_dir, out_dir):
                     out.mkdir(parents=True, exist_ok=True)
                 # try to extract the T position from the filename, and if
@@ -869,12 +867,12 @@ def run_tracking(
 
                 save_track_labeled_images(out_path, track_labeled_image=track_labeled_image, image_metadata=img_metadata, extra_channel=raw_channel)
 
-            out_filename_prefix = out_filename_prefix or out_dir.stem
-            table_out_name = f'{out_filename_prefix}_tracking.tsv'
-            out_path = out_dir / table_out_name
-            print(f'Saving tracking table to {out_path}') if verbose else None
+        out_filename_prefix = out_filename_prefix or out_dir.stem
+        table_out_name = f'{out_filename_prefix}_tracking.tsv'
+        out_path = out_dir / table_out_name
+        print(f'Saving tracking table to {out_path}') if verbose else None
 
-    track_table.to_csv(out_path, index=False, sep='\t')
+        track_table.to_csv(out_path, index=False, sep='\t')
 
 
 def update_track_table(labeled_images, existing_track_ids, current_T, tracking_metrics=['centroid'], image_buffer_prior=0, image_buffer_next=1, reference_index=0, verbose=False):
