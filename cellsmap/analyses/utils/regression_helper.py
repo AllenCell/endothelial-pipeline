@@ -157,7 +157,7 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     - dT_list: list of numpy arrays, each array is the time differences along that trajectory
     - bins: list of numpy arrays, each array contains the bin edges for a dimension (used for computing conditional averages)
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
-    - method: method to use for estimating Kramers-Moyal coefficients (default is 'kernel')
+    - method: method to use for computing Kramers-Moyal coefficients from data (default is 'kernel')
 
     Outputs:
     - f_KM: numpy array, drift estimates for each bin in feature space
