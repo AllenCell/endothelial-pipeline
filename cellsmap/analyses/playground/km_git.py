@@ -11,74 +11,21 @@ from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import manifest_pca, regression_helper as rh, model_analysis, model_eval
 from cellsmap.analyses.utils.viz import viz_base as vb, dynamics_viz, manifest_viz, pplane
+from cellsmap.analyses.utils.numerics import kramers_moyal as eakm 
+from cellsmap.analyses.utils.numerics.kramersmoyal import kmc as kmc_ea
 
-import sys
-sys.path.append('//allen/aics/users/erin.angelini/git-repos/KramersMoyal')
-import kramersmoyal as km
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score
+
+import sys
+sys.path.append('//allen/aics/users/erin.angelini/git-repos/KramersMoyal')
+import kramersmoyal as kmc_git
 # %%
-def plot_km(X_1,X_2,kmc_scale):
-    '''
-    Plot Kramers-Moyal coefficients.
-    '''
-    fig = plt.figure(figsize = (12,8))
-
-
-    # the Kramers−Moyal coefficients [1,0]
-    ax_00 = fig.add_subplot(2, 2, 1, projection='3d')
-
-    # kmc[1,...] i.e, power [1,0]
-    ax_00.contour3D(X_1, X_2, kmc_scale[1], 50, cmap='Greens',alpha=0.5)
-    ax_00.set_title(r'K−M coefficient [1,0]');
-
-
-    # the Kramers−Moyal coefficients [0,1]
-    ax_01 = fig.add_subplot(2, 2, 2, projection='3d')
-
-    # kmc[2,...] i.e, power [0,1]
-    ax_01.contour3D(X_1, X_2, kmc_scale[2], 50, cmap='Greens',alpha=0.5)
-    ax_01.set_title(r'K−M coefficient [0,1]');
-
-
-    # the Kramers−Moyal coefficients [2,0]
-    ax_10 = fig.add_subplot(2, 2, 3, projection='3d')
-
-    # kmc[4,...] i.e, power [2,0] (transpose, python stores arrays transposed)
-    ax_10.contour3D(X_1, X_2, kmc_scale[4], 50, cmap='Greens',alpha=0.5)
-    ax_10.set_title(r'K−M coefficient [2,0]');
-
-
-    # the Kramers−Moyal coefficients [0,2]
-    ax_11 = fig.add_subplot(2, 2, 4, projection='3d')
-
-    # kmc[5,...] i.e, power [0,2] (transpose, python stores arrays transposed)
-    ax_11.contour3D(X_1, X_2, kmc_scale[5], 50, cmap='Greens',alpha=0.5)
-
-    ax_11.set_title(r'K−M coefficient [0,2]');
-    # Rotate views and add labels
-    ax_00.view_init(30, 20); ax_01.view_init(30, 20); ax_10.view_init(30, 20); ax_11.view_init(30, 20)
-    ax_00.set_xlabel(r'$x_1$'); ax_01.set_xlabel(r'$x_1$'); ax_10.set_xlabel(r'$x_1$'); ax_11.set_xlabel(r'$x_1$')
-    ax_00.set_ylabel(r'$x_2$'); ax_01.set_ylabel(r'$x_2$'); ax_10.set_ylabel(r'$x_2$'); ax_11.set_ylabel(r'$x_2$')
-
-    return fig, ax_00, ax_01, ax_10, ax_11
-
-def plot_km_estimates(fig_ax, X_1,X_2,km_predictions):
-    fig, ax_00, ax_01, ax_10, ax_11 = fig_ax
-    Y_1_pred, Y_2_pred, V_1_pred, V_2_pred = km_predictions
-
-    ax_00.contour3D(X_1, X_2, Y_1_pred.reshape(X_1.shape), 50, cmap='Blues')
-    ax_01.contour3D(X_1, X_2, Y_2_pred.reshape(X_1.shape), 50, cmap='Blues')
-    ax_10.contour3D(X_1, X_2, V_1_pred.reshape(X_1.shape), 50, cmap='Blues')
-    ax_11.contour3D(X_1, X_2, V_2_pred.reshape(X_1.shape), 50, cmap='Blues')
-
-    return fig, ax_00, ax_01, ax_10, ax_11
-
-def get_km(data,PCs,bins,bw,powers):
-    X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data,feat_cols=[str(i) for i in PCs])
-
+def get_km(X_list, dX_list, dT_list, bins):
+    ndim = len(bins)
+    powers = eakm.get_km_powers(ndim)
     for i, dT in enumerate(dT_list):
         mask = np.where(dT==1)[0] # where outlier points were removed, time difference was greater than 1, mask out these points
         # mask_ for trajectories: should be mask but with additional point
@@ -87,10 +34,10 @@ def get_km(data,PCs,bins,bw,powers):
         X_list[i] = X_list[i][mask_]
         dX_list[i] = dX_list[i][mask]
 
-    kmc, edges = km.km(X_list, dX_list, bw = bw, bins = bins,
+    kmc = kmc_ea.km(X_list, grads = dX_list, bw = 0.1, bins = bins,
                         powers = powers, multi_traj=True)
     
-    return kmc, edges
+    return kmc
 
 def fit_polynomial_regression(X,Y,degree):
     '''
@@ -107,14 +54,14 @@ def fit_polynomial_regression(X,Y,degree):
     
     return mdl
 
-def get_km_estimates(kmc_scale,X,degrees):
+def get_km_estimates(kmc,X,degrees):
     # polynomial regression on Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
     kmc_idx = [1,2,4,5]
     kmc_names = ['f_1','f_2','D_1','D_2']
     km_predictions = []
     km_models = []
     for i in range(len(degrees)):
-        Y = kmc_scale[kmc_idx[i]].flatten()
+        Y = kmc[kmc_idx[i]].flatten()
         mdl = fit_polynomial_regression(X,Y,degrees[i])
         km_models.append(mdl)
 
@@ -174,19 +121,9 @@ fig, _ = manifest_viz.plot_top_3_PCs_alldata(df,pca)
 # %%
 PCs = [0,1]
 ndim = len(PCs)
-# Choose the size of your target space in two dimensions 
-Nbins_km = 25*np.ones(ndim, dtype = int)
+dt=5
 
-# Introduce the desired orders to calculate, but in 2 dimensions
-# Please keep the [0,0] term. It is the normalisation. 
-powers = np.array([[0,0], [1,0], [0,1], [1,1], [2,0], [0,2], [2,2]])
-# insert into kmc:   0      1      2      3      4      5      6
-
-# Notice that the first entry in [,] is for the first dimension, the 
-# second for the second dimension...
-
-# Choose a desired bandwidth bw
-bw = 0.1
+Nbins_KM = [26,25]
 
 # degrees for polynomial regression
 degrees = [4,4,4,4]
@@ -204,7 +141,7 @@ pplane_ylim = [-0.5,0.75]
 bin_ylim = [-0.15,0.75]
 
 # for histogram/stationary pdf plots, fix bins and centers for all datasets
-Nbins = [50 for i in range(ndim)]
+Nbins = [50,50]
 bin_limits = [bin_xlim,bin_ylim]
 bins, centers = rh.get_bins(Nbins,bin_limits=bin_limits)
 
@@ -227,33 +164,48 @@ for ds_name in list_of_datasets:
     # Calculate the Kramers−Moyal coefficients
     for j,shear in enumerate(u_list):
         print("Flow condition ",shear)
-        kmc, edges = get_km(data_all[j],PCs,Nbins_km,bw,powers)
+        X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data_all[j],feat_cols=[str(i) for i in PCs])
 
+        for i, dT in enumerate(dT_list):
+            mask = np.where(dT==1)[0] # where outlier points were removed, time difference was greater than 1, mask out these points
+            # mask_ for trajectories: should be mask but with additional point
+            # include frame after last frame in mask
+            mask_ = np.concatenate((mask, [mask[-1]+1]))
+            X_list[i] = X_list[i][mask_]
+            dX_list[i] = dX_list[i][mask]
+
+        bins_, centers_ = rh.get_bins(Nbins_KM,data=X_list)
+        
+        #f_KM, D_KM = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method='kernel')
+        #print(f_KM.shape)
+        kmc = get_km(X_list, dX_list, dT_list, bins_)
         if u_list[j] < 6:
             idx00 = 12
             idx01 = -5
-            idx10 = 7
+            idx10 = 8
             idx11 = -5
         elif u_list[j] >= 20:
             idx00 = 5
-            idx01 = -12
+            idx01 = -7
             idx10 = 8
-            idx11 = -5
+            idx11 = -7
         else:
             idx00 = 7
             idx01 = -5
-            idx10 = 8
+            idx10 = 9
             idx11 = -5
 
-        kmc_scale = np.swapaxes(kmc[:,idx00:idx01,idx10:idx11],1,2) / 5
-        X_1, X_2 = np.meshgrid(edges[0][idx00:idx01],edges[1][idx10:idx11])
+        kmc_slice = np.swapaxes(kmc[:,idx00:idx01,idx10:idx11],1,2) / dt
+        X_1, X_2 = np.meshgrid(centers_[0][idx00:idx01],centers_[1][idx10:idx11])
+        #kmc_slice = np.concatenate([f_KM[idx00:idx01,idx10:idx11,:].T,D_KM[idx00:idx01,idx10:idx11,:].T],axis=0)
+        
 
         fig, ax = plt.subplots(1,2,figsize=(12,6))
-        ax[0].quiver(X_1,X_2,kmc_scale[1],kmc_scale[2])
+        ax[0].quiver(X_1,X_2,kmc_slice[1],kmc_slice[2],color='k', linewidth=0.5)
         ax[0].set_xlabel(f'PC{PCs[0]+1}')
         ax[0].set_ylabel(f'PC{PCs[1]+1}')
 
-        ax[1].streamplot(X_1,X_2,kmc_scale[1],kmc_scale[2],color='k', linewidth=0.5)
+        ax[1].streamplot(X_1,X_2,kmc_slice[1],kmc_slice[2],color='k', linewidth=0.5)
         ax[1].set_xlabel(f'PC{PCs[0]+1}')
         ax[1].set_ylabel(f'PC{PCs[1]+1}')
         fig.suptitle('Kramers-Moyal drift coefficients')
@@ -261,15 +213,16 @@ for ds_name in list_of_datasets:
 
         # polynomial regression on km coefficients
         X = np.array([X_1.flatten(),X_2.flatten()]).T
-        km_predictions, km_models = get_km_estimates(kmc_scale,X,degrees)
 
-        fig_ax = plot_km(X_1,X_2,kmc_scale)
-        fig_ax = plot_km_estimates(fig_ax,X_1,X_2,km_predictions)
+        kmc_predictions, kmc_models = get_km_estimates(kmc_slice,X,degrees)
+
+        fig_ax = eakm.plot_km(X_1,X_2,kmc_slice)
+        fig_ax = eakm.plot_km_estimates(fig_ax,X_1,X_2,kmc_predictions)
         plt.show()
 
         # save intercept and coefficients for each model
-        intercept_list.append([mdl.named_steps['linear'].intercept_ for mdl in km_models])
-        coeff_list.append([mdl.named_steps['linear'].coef_ for mdl in km_models])
+        intercept_list.append([mdl.named_steps['linear'].intercept_ for mdl in kmc_models])
+        coeff_list.append([mdl.named_steps['linear'].coef_ for mdl in kmc_models])
         shear_values.append(shear)
 
         # define callable vector field functions for drift and diffusion coefficients
@@ -278,8 +231,8 @@ for ds_name in list_of_datasets:
                 X = np.array(x).reshape(-1,2)
             else:
                 X = x.reshape(-1,2)
-            f_1 = km_models[0].predict(X)
-            f_2 = km_models[1].predict(X)
+            f_1 = kmc_models[0].predict(X)
+            f_2 = kmc_models[1].predict(X)
             f_out = np.array([f_1,f_2])
             # shape must be (n_points, 2) for model_eval
             if f_out.shape[1] != 2:
@@ -293,8 +246,8 @@ for ds_name in list_of_datasets:
                 X = np.array(x).reshape(-1,2)
             else:
                 X = x.reshape(-1,2)
-            D_1 = km_models[2].predict(X)
-            D_2 = km_models[3].predict(X)
+            D_1 = kmc_models[2].predict(X)
+            D_2 = kmc_models[3].predict(X)
             D_out = np.array([D_1,D_2])
             # shape must be (n_points, 2) for model_eval
             if D_out.shape[1] != 2:

@@ -56,7 +56,7 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
         bins, centers = rh.get_bins(Nbins,data=X_list)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
-        f_KM_, D_KM_, _, _ = rh.KM_avg_ND(X_list,dX_list,dT_list,bins,dt)
+        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt)
 
         # remove NaNs from drift and diffusion estimates (bins with no data), get corresponding bin centers as well
         f_KM_noNAN, X_pts_, = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)
