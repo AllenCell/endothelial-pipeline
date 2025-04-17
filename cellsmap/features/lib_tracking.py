@@ -2,7 +2,7 @@ import numpy as np
 import dask as da
 import pandas as pd
 from pathlib import Path
-from skimage.segmentation import find_boundaries
+from skimage.segmentation import find_boundaries, clear_border
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
 from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
@@ -885,7 +885,12 @@ def update_track_table(labeled_images, existing_track_ids, current_T, tracking_m
     matched_labels = match_labels_from_images(labeled_images, reference_index=reference_index, metrics=tracking_metrics, matching_method='reciprocal_matches_only', verbose=verbose)
 
     matched_labels_props_list = [matched_labels[lab]['regionprops'] for lab in matched_labels]
-    props_to_include = ['label', 'reference_index', 'matched_query_label', 'optimized_metric_value', 'centroid', 'area', 'perimeter', 'orientation', 'eccentricity', 'matching_method']
+    border_labels = np.unique(~clear_border(labeled_images[reference_index]).astype(bool) * labeled_images[reference_index])
+    border_labels = border_labels[np.nonzero(border_labels)].tolist()
+    for prop in matched_labels_props_list:
+        prop.touches_border = True if prop.label in border_labels else False
+
+    props_to_include = ['label', 'reference_index', 'matched_query_label', 'optimized_metric_value', 'centroid', 'area', 'perimeter', 'orientation', 'eccentricity', 'matching_method', 'touches_border']
 
     # initialize track ids
     track_tolerance = image_buffer_next - image_buffer_prior - 1
