@@ -236,6 +236,7 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
     # Get weighted histogram
     hist, edges = histogramdd(timeseries_, bins=bins,
                               weights=weights, bw=bw)
+    
 
     # Generate centred kernel on larger grid (fft'ed convolutions are circular)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in edges]
@@ -249,5 +250,8 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
     kmc[0:, mask] = 0.0
     taylors = np.prod(factorial(powers[1:]), axis=1)
     kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask]
+
+    # set points where mask to nan
+    kmc[0:, mask] = np.nan
 
     return kmc

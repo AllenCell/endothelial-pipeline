@@ -296,32 +296,27 @@ for ds_name  in list_of_datasets:
         
         f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method='kernel')
 
-        idx00 = 0
-        idx01 = -1
-        idx10 = 0
-        idx11 = -1
-        # if u_list[j] < 6:
-        #     idx00 = 12
-        #     idx01 = -5
-        #     idx10 = 8
-        #     idx11 = -5
-        # elif u_list[j] >= 20:
-        #     idx00 = 5
-        #     idx01 = -7
-        #     idx10 = 8
-        #     idx11 = -7
-        # else:
-        #     idx00 = 7
-        #     idx01 = -5
-        #     idx10 = 9
-        #     idx11 = -5
-
-        f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
-        D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
-        X_1, X_2 = np.meshgrid(centers_[0][idx00:idx01],centers_[1][idx10:idx11])
+        f_KM_slice = f_KM_
+        D_KM_slice = D_KM_
+        X_1, X_2 = np.meshgrid(*centers_)
         kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1).T
 
-        centers_slice = [centers_[0][idx00:idx01],centers_[1][idx10:idx11]]
+        fig, ax = plt.subplots(1,2,figsize=(12,6))
+        ax[0].quiver(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
+        ax[0].set_xlabel(f'PC{PCs[0]+1}')
+        ax[0].set_ylabel(f'PC{PCs[1]+1}')
+
+        ax[1].streamplot(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
+        ax[1].set_xlabel(f'PC{PCs[0]+1}')
+        ax[1].set_ylabel(f'PC{PCs[1]+1}')
+        fig.suptitle('Kramers-Moyal drift coefficients')
+        plt.show()
+
+        fig_ax = eakm.plot_km(X_1,X_2,kmc_slice)
+        plt.show()
+
+
+        centers_slice = centers_
         f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_slice,np.array(np.meshgrid(*centers_slice)).T)
         D_KM_mask, _ = rh.masked_vector_field(D_KM_slice, np.array(np.meshgrid(*centers_slice)).T)
         f_KM.append(f_KM_mask)

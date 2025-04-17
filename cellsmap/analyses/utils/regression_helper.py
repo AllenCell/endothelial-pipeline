@@ -32,7 +32,7 @@ def get_bins(Nbins:list,data:pd.DataFrame|None=None,bin_limits:list|None=None) -
         for i in range(ndim):
             traj_min = min([traj[:,i].min() for traj in data])
             traj_max = max([traj[:,i].max() for traj in data])
-            bin_min, bin_max = traj_min - 0.1, traj_min + 0.1
+            bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
             my_bins = np.linspace(bin_min, bin_max, Nbins[i]+1)
             bins.append(my_bins)
             centers.append(0.5*(my_bins[1:]+my_bins[:-1]))
