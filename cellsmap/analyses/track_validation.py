@@ -36,7 +36,6 @@ def save_validation_images(roi, img_arr, seg_arr, out_dir, dataset_name, T, padd
 
     return
 
-
 def generate_and_save_validation_images(dframe):
 
     # unpack needed variables
@@ -132,4 +131,3 @@ def main(n_proc=1, dataset_name=None):
 
 if __name__ == '__main__':
     ipython_cli_flexecute(main)
-
