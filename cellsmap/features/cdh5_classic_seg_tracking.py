@@ -17,7 +17,7 @@ def run_workflow(queue):
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df['T'].tolist()
     scene_index, position = int(queue_df['scene_index'].unique()[0]), queue_df['position'].unique()[0]
-    save_output = queue_df['save_output'].unique()[0]
+    image_validation_frequency = queue_df['image_validation_frequency'].unique()[0]
     verbose = queue_df['verbose'].unique()[0]
     out_dir = queue_df['output_dir'].unique()[0] / f'{dataset_name}/P{position}'
     out_filename_prefix = f'{dataset_name}_P{position}'
@@ -58,8 +58,9 @@ def run_workflow(queue):
                      extra_scene=scene_index,
                      extra_T=T_to_eval,
                      Z_projection=np.max,
+                     track_tolerance=3,
                      img_metadata=img_metadata,
-                     save_output=save_output,
+                     image_validation_frequency=image_validation_frequency,
                      verbose=verbose)
 
     else:
