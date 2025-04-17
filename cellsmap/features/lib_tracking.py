@@ -818,7 +818,7 @@ def run_tracking(
     # create output directories if they don't exist and get image metadata from the input image
     if image_validation_frequency > 0:
         for idx, input_image_filepath, track_labeled_image, track_table in results:
-            if idx in range(0, len(results), image_validation_frequency):
+            if idx in range(0, len(timeframes), image_validation_frequency):
                 images_out_dir = out_dir / 'tracked_images'
                 # tables_out_dir = out_dir / 'tracked_tables'
                 # for out in (images_out_dir, tables_out_dir):
