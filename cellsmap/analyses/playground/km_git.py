@@ -12,7 +12,6 @@ from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils import manifest_pca, regression_helper as rh, model_analysis, model_eval
 from cellsmap.analyses.utils.viz import viz_base as vb, dynamics_viz, manifest_viz, pplane
 from cellsmap.analyses.utils.numerics import kramers_moyal as eakm 
-from cellsmap.analyses.utils.numerics.kramersmoyal import kmc as kmc_ea
 
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
@@ -177,7 +176,7 @@ for ds_name in list_of_datasets:
         f_KM_slice = f_KM[idx00:idx01,idx10:idx11,:]
         D_KM_slice = D_KM[idx00:idx01,idx10:idx11,:]
         X_1, X_2 = np.meshgrid(centers_[0][idx00:idx01],centers_[1][idx10:idx11])
-        kmc_slice = np.concatenate([f_KM[idx00:idx01,idx10:idx11,:],D_KM[idx00:idx01,idx10:idx11,:]],axis=-1)
+        kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1).T
         
 
         fig, ax = plt.subplots(1,2,figsize=(12,6))
@@ -316,7 +315,7 @@ for ds_name  in list_of_datasets:
         f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
         D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
         X_1, X_2 = np.meshgrid(centers_[0][idx00:idx01],centers_[1][idx10:idx11])
-        kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1)
+        kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1).T
 
         centers_slice = [centers_[0][idx00:idx01],centers_[1][idx10:idx11]]
         f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_[j],np.array(np.meshgrid(*centers_slice)).T)
