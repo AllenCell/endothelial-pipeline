@@ -281,7 +281,7 @@ for ds_name  in list_of_datasets:
     X_pts = []
 
     for j in range(num_flow): # get bins and centers for data at high and low flow
-        print("Flow condition ",shear)
+        print("Flow condition ",u_list[j])
         X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data_all[j],feat_cols=[str(i) for i in PCs])
 
         for i, dT in enumerate(dT_list):
@@ -296,21 +296,25 @@ for ds_name  in list_of_datasets:
         
         f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method='kernel')
 
-        if u_list[j] < 6:
-            idx00 = 12
-            idx01 = -5
-            idx10 = 8
-            idx11 = -5
-        elif u_list[j] >= 20:
-            idx00 = 5
-            idx01 = -7
-            idx10 = 8
-            idx11 = -7
-        else:
-            idx00 = 7
-            idx01 = -5
-            idx10 = 9
-            idx11 = -5
+        idx00 = 0
+        idx01 = -1
+        idx10 = 0
+        idx11 = -1
+        # if u_list[j] < 6:
+        #     idx00 = 12
+        #     idx01 = -5
+        #     idx10 = 8
+        #     idx11 = -5
+        # elif u_list[j] >= 20:
+        #     idx00 = 5
+        #     idx01 = -7
+        #     idx10 = 8
+        #     idx11 = -7
+        # else:
+        #     idx00 = 7
+        #     idx01 = -5
+        #     idx10 = 9
+        #     idx11 = -5
 
         f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
         D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
@@ -318,8 +322,8 @@ for ds_name  in list_of_datasets:
         kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1).T
 
         centers_slice = [centers_[0][idx00:idx01],centers_[1][idx10:idx11]]
-        f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_[j],np.array(np.meshgrid(*centers_slice)).T)
-        D_KM_mask, _ = rh.masked_vector_field(D_KM_[j], np.array(np.meshgrid(*centers_slice)).T)
+        f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_slice,np.array(np.meshgrid(*centers_slice)).T)
+        D_KM_mask, _ = rh.masked_vector_field(D_KM_slice, np.array(np.meshgrid(*centers_slice)).T)
         f_KM.append(f_KM_mask)
         D_KM.append(D_KM_mask)
         X_pts.append(X_pts_mask)
