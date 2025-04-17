@@ -74,7 +74,8 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                             for config_data in load_config(config_type='data')
                             if (config_data['microscope'] == '3i'
                                 and config_data['live_or_fixed_sample'] == 'live')
-                                and 'AICS-126' in config_data['cell_lines']]
+                                and 'AICS-126' in config_data['cell_lines']
+                                and config_data['duration'] > 1]
     else:
         dataset_name_list = [dataset_name]
 
