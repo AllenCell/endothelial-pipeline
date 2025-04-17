@@ -19,26 +19,6 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score
 
-import sys
-sys.path.append('//allen/aics/users/erin.angelini/git-repos/KramersMoyal')
-import kramersmoyal as kmc_git
-# %%
-def get_km(X_list, dX_list, dT_list, bins):
-    ndim = len(bins)
-    powers = eakm.get_km_powers(ndim)
-    for i, dT in enumerate(dT_list):
-        mask = np.where(dT==1)[0] # where outlier points were removed, time difference was greater than 1, mask out these points
-        # mask_ for trajectories: should be mask but with additional point
-        # include frame after last frame in mask
-        mask_ = np.concatenate((mask, [mask[-1]+1]))
-        X_list[i] = X_list[i][mask_]
-        dX_list[i] = dX_list[i][mask]
-
-    kmc = kmc_ea.km(X_list, grads = dX_list, bw = 0.1, bins = bins,
-                        powers = powers, multi_traj=True)
-    
-    return kmc
-
 def fit_polynomial_regression(X,Y,degree):
     '''
     Fit polynomial regression to data.
@@ -56,7 +36,7 @@ def fit_polynomial_regression(X,Y,degree):
 
 def get_km_estimates(kmc,X,degrees):
     # polynomial regression on Y_1 = kmc[1,idx0:idx1,idx0:idx1].T/5
-    kmc_idx = [1,2,4,5]
+    kmc_idx = [0,1,2,3]
     kmc_names = ['f_1','f_2','D_1','D_2']
     km_predictions = []
     km_models = []
@@ -176,9 +156,8 @@ for ds_name in list_of_datasets:
 
         bins_, centers_ = rh.get_bins(Nbins_KM,data=X_list)
         
-        #f_KM, D_KM = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method='kernel')
-        #print(f_KM.shape)
-        kmc = get_km(X_list, dX_list, dT_list, bins_)
+        f_KM, D_KM = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method='kernel')
+
         if u_list[j] < 6:
             idx00 = 12
             idx01 = -5
@@ -195,17 +174,18 @@ for ds_name in list_of_datasets:
             idx10 = 9
             idx11 = -5
 
-        kmc_slice = np.swapaxes(kmc[:,idx00:idx01,idx10:idx11],1,2) / dt
+        f_KM_slice = f_KM[idx00:idx01,idx10:idx11,:]
+        D_KM_slice = D_KM[idx00:idx01,idx10:idx11,:]
         X_1, X_2 = np.meshgrid(centers_[0][idx00:idx01],centers_[1][idx10:idx11])
-        #kmc_slice = np.concatenate([f_KM[idx00:idx01,idx10:idx11,:].T,D_KM[idx00:idx01,idx10:idx11,:].T],axis=0)
+        kmc_slice = np.concatenate([f_KM[idx00:idx01,idx10:idx11,:],D_KM[idx00:idx01,idx10:idx11,:]],axis=-1)
         
 
         fig, ax = plt.subplots(1,2,figsize=(12,6))
-        ax[0].quiver(X_1,X_2,kmc_slice[1],kmc_slice[2],color='k', linewidth=0.5)
+        ax[0].quiver(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
         ax[0].set_xlabel(f'PC{PCs[0]+1}')
         ax[0].set_ylabel(f'PC{PCs[1]+1}')
 
-        ax[1].streamplot(X_1,X_2,kmc_slice[1],kmc_slice[2],color='k', linewidth=0.5)
+        ax[1].streamplot(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
         ax[1].set_xlabel(f'PC{PCs[0]+1}')
         ax[1].set_ylabel(f'PC{PCs[1]+1}')
         fig.suptitle('Kramers-Moyal drift coefficients')
@@ -297,57 +277,53 @@ for ds_name  in list_of_datasets:
 
     centers = []
 
-    f_KM_ = []
-    D_KM_ = []
-
-    for j in range(num_flow): # get bins and centers for data at high and low flow
-        kmc, edges = get_km(data_all[j],PCs,Nbins,bw,powers)
-        centers.append(edges)
-
-        if u_list[j] < 6:
-            idx00 = 12
-            idx01 = -5
-            idx10 = 7
-            idx11 = -5
-        elif u_list[j] >= 20:
-            idx00 = 5
-            idx01 = -12
-            idx10 = 8
-            idx11 = -5
-        else:
-            idx00 = 7
-            idx01 = -5
-            idx10 = 8
-            idx11 = -5
-
-        X_1, X_2 = np.meshgrid(edges[0][idx00:idx01],edges[1][idx10:idx11])
-
-        kmc_scale = np.swapaxes(kmc[:,idx00:idx01,idx10:idx11],1,2) / dt
-
-
-        f_KM_temp = kmc_scale[1:3].T
-        print(f_KM_temp.shape)
-        
-        fig_ax = plot_km(X_1,X_2,kmc_scale)
-        plt.show()
-
-        D_KM_temp = kmc_scale[4:6].T
-
-        f_KM_.append(f_KM_temp)
-        D_KM_.append(D_KM_temp)
-
     f_KM = []
     D_KM = []
     X_pts = []
 
-    for j in range(num_flow):
-        print(f_KM_[j].shape)
-        centers_ = [centers[j][0][idx00:idx01],centers[j][1][idx10:idx11]]
-        f_KM_temp, X_pts_temp = rh.masked_vector_field(f_KM_[j],np.array(np.meshgrid(*centers_)).T)
-        D_KM_temp, _ = rh.masked_vector_field(D_KM_[j], np.array(np.meshgrid(*centers_)).T)
-        f_KM.append(f_KM_temp)
-        D_KM.append(D_KM_temp)
-        X_pts.append(X_pts_temp)
+    for j in range(num_flow): # get bins and centers for data at high and low flow
+        print("Flow condition ",shear)
+        X_list, dX_list, dT_list = rh.get_X_dX_and_dT(data_all[j],feat_cols=[str(i) for i in PCs])
+
+        for i, dT in enumerate(dT_list):
+            mask = np.where(dT==1)[0] # where outlier points were removed, time difference was greater than 1, mask out these points
+            # mask_ for trajectories: should be mask but with additional point
+            # include frame after last frame in mask
+            mask_ = np.concatenate((mask, [mask[-1]+1]))
+            X_list[i] = X_list[i][mask_]
+            dX_list[i] = dX_list[i][mask]
+
+        bins_, centers_ = rh.get_bins(Nbins_KM,data=X_list)
+        
+        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method='kernel')
+
+        if u_list[j] < 6:
+            idx00 = 12
+            idx01 = -5
+            idx10 = 8
+            idx11 = -5
+        elif u_list[j] >= 20:
+            idx00 = 5
+            idx01 = -7
+            idx10 = 8
+            idx11 = -7
+        else:
+            idx00 = 7
+            idx01 = -5
+            idx10 = 9
+            idx11 = -5
+
+        f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
+        D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
+        X_1, X_2 = np.meshgrid(centers_[0][idx00:idx01],centers_[1][idx10:idx11])
+        kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1)
+
+        centers_slice = [centers_[0][idx00:idx01],centers_[1][idx10:idx11]]
+        f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_[j],np.array(np.meshgrid(*centers_slice)).T)
+        D_KM_mask, _ = rh.masked_vector_field(D_KM_[j], np.array(np.meshgrid(*centers_slice)).T)
+        f_KM.append(f_KM_mask)
+        D_KM.append(D_KM_mask)
+        X_pts.append(X_pts_mask)
 
     del f_KM_, D_KM_, centers, centers_ # free up memory
 

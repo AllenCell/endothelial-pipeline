@@ -49,7 +49,6 @@ def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> T
         
     ndim = len(bins)
     powers = get_km_powers(ndim)
-    print(powers)
 
     kmc = km.km(X_list, grads=dX_list, bins=bins, bw = 0.1,
                         powers = powers, multi_traj=True) / dt
@@ -60,14 +59,11 @@ def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> T
         f_KM = kmc[1]
         D_KM = kmc[2]
     elif ndim == 2:
-        f_KM = np.swapaxes(kmc[1:3],1,2)
-        D_KM = np.swapaxes(kmc[4:6],1,2)
+        kmc = np.swapaxes(kmc,1,2)
+        f_KM = kmc[1:3].T
+        D_KM = kmc[4:6].T
     else:
         raise ValueError('Only 1D and 2D data is supported for Kramers-Moyal coefficients.')
-
-    # output: f_KM and D_KM have shape (Nbins[0], Nbins[1], ..., Nbins[ndim], ndim)
-    f_KM = f_KM.T
-    D_KM = D_KM.T
 
     return f_KM, D_KM
 
@@ -133,21 +129,21 @@ def plot_km(X_1,X_2,kmc):
     ax_00 = fig.add_subplot(2, 2, 1, projection='3d')
 
     # the Kramers−Moyal coefficients [1,0]
-    ax_00.contour3D(X_1, X_2, kmc[1], 50, cmap='Greens',alpha=0.5)
+    ax_00.contour3D(X_1, X_2, kmc[0], 50, cmap='Greens',alpha=0.5)
     ax_00.set_title(r'K−M coefficient [1,0]');
 
 
     # the Kramers−Moyal coefficients [0,1]
     ax_01 = fig.add_subplot(2, 2, 2, projection='3d')
 
-    ax_01.contour3D(X_1, X_2, kmc[2], 50, cmap='Greens',alpha=0.5)
+    ax_01.contour3D(X_1, X_2, kmc[1], 50, cmap='Greens',alpha=0.5)
     ax_01.set_title(r'K−M coefficient [0,1]');
 
 
     # the Kramers−Moyal coefficients [2,0]
     ax_10 = fig.add_subplot(2, 2, 3, projection='3d')
 
-    ax_10.contour3D(X_1, X_2, kmc[4], 50, cmap='Greens',alpha=0.5)
+    ax_10.contour3D(X_1, X_2, kmc[2], 50, cmap='Greens',alpha=0.5)
     ax_10.set_title(r'K−M coefficient [2,0]');
 
 
@@ -155,7 +151,7 @@ def plot_km(X_1,X_2,kmc):
     ax_11 = fig.add_subplot(2, 2, 4, projection='3d')
 
     # power [0,2] (transpose, python stores arrays transposed)
-    ax_11.contour3D(X_1, X_2, kmc[5], 50, cmap='Greens',alpha=0.5)
+    ax_11.contour3D(X_1, X_2, kmc[3], 50, cmap='Greens',alpha=0.5)
 
     ax_11.set_title(r'K−M coefficient [0,2]');
     # Rotate views and add labels
