@@ -2,15 +2,16 @@ import fire
 import numpy as np
 import pandas as pd
 
+from typing import Dict, Any
 from bioio.writers import OmeTiffWriter
 from pathlib import Path
 
 from cellsmap.util.manifest_io import load_pca_model
-from cellsmap.model_features.apply_model import apply_model
+from cellsmap.model_features.apply_model import apply_model, load_overrides
 from cellsmap.util.set_output import get_output_path
 
 
-def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0):
+def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0, overrides: Dict[str, Any] = {}):
     """
     Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` tiff file for each position in the dataset.
     The movie is saved in the `models/{model_name}/spatial_pcs` directory.
@@ -28,10 +29,11 @@ def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, ov
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     """
+    overrides = load_overrides(overrides)
     # apply model with specified overlap
-    overrides = {
+    overrides.update({
         "model.spatial_inferer.splitter.overlap": overlap
-    }
+    })
     feats_path = apply_model(model_name, dataset_name, resolution_level=resolution_level, overrides=overrides, upload_to_fms=False)
     
     # load model predictions and apply PCA
