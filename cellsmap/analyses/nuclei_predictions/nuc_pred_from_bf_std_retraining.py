@@ -152,6 +152,11 @@ for dataset_name in datasets_to_use:
         nuc_max = nuc_max.compute().squeeze()
         bf_std = bf_std.compute().squeeze()
         normd_nuc = rescale_intensity(nuc_max, out_range=(0,1))
+        # the thresholding below is too generous for the new data
+        thresh = apply_hysteresis_threshold(normd_nuc, np.percentile(normd_nuc, 80), np.percentile(normd_nuc, 85))
+        # the threshold below is appropriate for at least 1 image
+        # of the new data but not sure about all new data or any
+        # of the old data.
         thresh = apply_hysteresis_threshold(normd_nuc, np.percentile(normd_nuc, 80), np.percentile(normd_nuc, 85))
         dist = distance_transform_edt(thresh)
         peaks_img = np.zeros(dist.shape, dtype=bool)
