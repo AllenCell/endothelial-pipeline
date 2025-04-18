@@ -1,7 +1,10 @@
 from pathlib import Path
 from bioio import BioImage
 from cellpose import io as cellpose_io, models, train
-from cellsmap.util import dataset_io, get_sldy_metadata as sldmd
+from cellsmap.util import get_sldy_metadata as sldmd
+from cellsmap.util.dataset_io import get_dataset_info, get_original_path, get_zarr_path, load_dataset, load_config
+from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue
+from cellsmap.util.set_output import get_output_path
 import numpy as np
 from skimage.exposure import rescale_intensity
 from skimage.filters import apply_hysteresis_threshold
@@ -11,16 +14,20 @@ from skimage.segmentation import watershed
 from skimage.measure import label
 from skimage.morphology import dilation, disk
 from datetime import datetime
+import shutil
+import re
 
 use_original_data = True
 show_watershed_segmentations = True
+retrain_Gouthams_model = True
 train_from_base_cellpose_nuclei_model = False
 if show_watershed_segmentations or train_from_base_cellpose_nuclei_model:
     import matplotlib.pyplot as plt
     from skimage.color import label2rgb
 
 
-datasets_to_use = ['20240328_T02_001', '20240328_T01_001',]
+datasets_to_use = ['20240328_T02_001', '20240328_T01_001',
+                   '20250415_SlideA_20X', '20250415_SlideE_20X', '20250415_SlideH_20X']
 scenes_to_use = {
     '20240328_T02_001': ['20240328_T02_001-1711659785-  8',
                          '20240328_T02_001-1711659785- 24',
@@ -32,15 +39,77 @@ scenes_to_use = {
                          '20240328_T01_001-1711663662-307',
                          '20240328_T01_001-1711663662-322',
                          '20240328_T01_001-1711663662-337',
-                         ]
+                         ],
+    '20250415_SlideA_20X': ['20250415_GE0000XXXX_slideA_20X - Position 1 [50]-1744838244-103'],
+    '20250415_SlideE_20X': ['20250416_GE0000XXXX_slideE_20X - Position 1 [50]-1744838492-691'],
+    '20250415_SlideH_20X': ['20250415_GE0000XXXX_slideH_20X - Position 1 [50]-1744838353-891'],
 }
 
 dim_order = 'TCZYX'
-dim_map = dataset_io.get_dim_map(dim_order)
+dim_map = get_dim_map(dim_order)
+
+# def get_old_cellpose_train_test_losses(model_name_cyto, model_name_live):
+def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
+    """
+    This function extracts the training and test losses from the run.log file
+    produced during the training of a Cellpose model.
+    It is only useful for cellpose < 3.1 as newer versions of cellpose
+    return the train and test losses along with the model path when
+    using the cellpose.train.train_seg function.
+    """
+    # copy the log file to the model directory and rename it according to model_name
+    # print(f'extracting training and test losses from run.log for {model_name}...')
+    print(f'extracting training and test losses from run.log...')
+    # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
+    # run_log_filepath_new = Path(cell_cellpose_model_dir)/f'{model_name}_run.log'
+    # shutil.move(run_log_filepath, run_log_filepath_new)
+
+    run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
+    assert cellpose_model_dir.exists(), f"Cellpose model directory {cellpose_model_dir} does not exist"
+    run_log_filepath_new = Path(cellpose_model_dir) / 'run.log'
+    shutil.move(run_log_filepath, run_log_filepath_new)
+
+    pages = {}
+    with open(run_log_filepath_new) as run_log:
+        pg = {}
+        for line in run_log:
+            for model_name in model_name_list:
+                if model_name in line:
+                    if model_name and pg:
+                        pages[model_name] = pg
+                    model_name = model_name
+                    pg = {'train_losses': [], 'test_losses': [], 'time_list': []}
+                else:
+                    pass
+
+                if 'train_loss' in line:
+                    if pg:
+                        train_loss = re.findall('train_loss=\d+\.\d+', line)
+                        test_loss = re.findall('test_loss=\d+\.\d+', line)
+                        time = re.findall('time \d+\.\d+', line)
+                        if train_loss:
+                            pg['train_losses'].append([float(loss.split('train_loss=')[1]) for loss in train_loss][0])
+                        if test_loss:
+                            pg['test_losses'].append([float(loss.split('test_loss=')[1]) for loss in test_loss][0])
+                        if time:
+                            pg['time_list'].append([float(t.split('time ')[1]) for t in time][0])
+            if model_name and pg:
+                pages[model_name] = pg
+
+    train_losses = {}
+    test_losses = {}
+    time_list = {}
+    for model_name in model_name_list:
+        train_losses[model_name] = pages[model_name]['train_losses']
+        test_losses[model_name] = pages[model_name]['test_losses']
+        time_list[model_name] = pages[model_name]['time_list']
+
+    return train_losses, test_losses, time_list
+
 
 
 def get_image_data_from_original(dataset_name, scenes_to_use):
-    img_path = Path(dataset_io.get_original_path(dataset_name))
+    img_path = Path(get_original_path(dataset_name))
     img = BioImage(img_path)
     for scene in scenes_to_use:
         img.set_scene(scene)
@@ -48,19 +117,25 @@ def get_image_data_from_original(dataset_name, scenes_to_use):
 
         channel_names = sldmd.get_channel_name(img.metadata)
         channel_names = [chan.split('/')[0] for chan in channel_names]
-        nuc_chan = channel_names.index('405')
-        bf_chan = channel_names.index('TL')
+        nuc_chan = get_dataset_info(dataset_name)['405_channel_index']
+        bf_chan = get_dataset_info(dataset_name)['brightfield_channel_index']
         img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan]).max(axis=dim_map['Z'], keepdims=True)
         img_dask_arr_bf_std = img.get_image_dask_data(dim_order, C=[bf_chan]).std(axis=dim_map['Z'], keepdims=True)
         yield (img_dask_arr_nuc, img_dask_arr_bf_std)
 
 def get_image_data_from_zarr(dataset_name):
-    for zarr_name in dataset_io.get_zarr_path(dataset_name):
-        img_dict_nuc = dataset_io.load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
-        img_dict_bf = dataset_io.load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
+    for zarr_name in get_zarr_path(dataset_name):
+        img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
+        img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
         img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
         img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
         yield (img_dask_arr_nuc, img_dask_arr_bf_std)
+
+
+analysis_queue = build_analysis_queue(datasets_to_use,
+                                      use_original_data=use_original_data,
+                                      overwrite=True,
+                                      out_dir=get_output_path(Path(__file__).stem, verbose=False),)
 
 # Generate ground truths from nuclei labeled with DAPI using
 # a classic segmentation approach (watershed)
@@ -90,21 +165,22 @@ for dataset_name in datasets_to_use:
 
 cellpose_io.logger_setup()
 # retrain Goutham's Cellpose model
-model_config = dataset_io.load_config(config_type='model')
-nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
-assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
-model_path = Path(nuclei_models[0]['model_path'])
-model_dir = model_path.parent / datetime.today().date().strftime('%Y%m%d')
-model_dir.mkdir(exist_ok=True, parents=True)
+if retrain_Gouthams_model:
+    model_config = load_config(config_type='model')
+    nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
+    assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
+    model_path = Path(nuclei_models[0]['model_path'])
+    model_dir = model_path.parent / datetime.today().date().strftime('%Y%m%d')
+    model_dir.mkdir(exist_ok=True, parents=True)
 
-model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+    model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
-model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
-                            train_data=images, train_labels=labels,
-                            channels=[0,0], normalize=True,
-                            weight_decay=1e-4, SGD=True, learning_rate=0.1,
-                            n_epochs=100,
-                            save_path=model_dir, model_name="bf_std_model_no_preprocess_retrained")
+    model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
+                                train_data=images, train_labels=labels,
+                                channels=[0,0], normalize=True,
+                                weight_decay=1e-4, SGD=True, learning_rate=0.1,
+                                n_epochs=100,
+                                save_path=model_dir, model_name="bf_std_model_no_preprocess_retrained")
 
 if train_from_base_cellpose_nuclei_model:
     # fine-tune the basic CellPose nuclei model
@@ -120,8 +196,8 @@ if train_from_base_cellpose_nuclei_model:
 
     model_nuclei_original_finetuned = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
-    test_img_path = Path(dataset_io.get_original_path('20241120_20X'))
-    test_img_bf_chan = dataset_io.get_dataset_info('20241120_20X')['brightfield_channel_index']
+    test_img_path = Path(get_original_path('20241120_20X'))
+    test_img_bf_chan = get_dataset_info('20241120_20X')['brightfield_channel_index']
     test_img = BioImage(test_img_path)
     test_img_dask_arr = test_img.get_image_dask_data(dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()

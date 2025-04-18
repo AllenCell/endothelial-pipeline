@@ -57,12 +57,24 @@ ml_workflows = [
     # pytorch is an optional dependency because it does not install on non-linux machines
     "torch @ https://download.pytorch.org/whl/cu116/torch-1.13.1%2Bcu116-cp310-cp310-linux_x86_64.whl",
 ]
-cellpose = [
-    "cellpose>=3.1",
+cellpose_a100 = [
+    "cellpose==3.0.11",
     "torch==1.13.1+cu116",
     "torchvision==0.14.1+cu116",
     "torchaudio==0.13.1",
 ]
+cellpose = [
+    "cellpose==3.0.11",
+    "torch==1.13.1",
+    "torchvision==0.14.1",
+    "torchaudio==0.13.1",
+]
+
+[[tool.pdm.source]]
+name = "cellpose_a100"
+url = "https://download.pytorch.org/whl/cu116"
+verify_ssl = true
+include_packages = ["torch", "torchvision", "torchaudio"]
 
 [build-system]
 requires = ["pdm-pep517>=1.0"]
