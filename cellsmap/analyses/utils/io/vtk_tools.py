@@ -2,7 +2,6 @@ import vtk
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import matplotlib
 import matplotlib.pyplot as plt
 from skimage import filters as skfilt
 from scipy import interpolate as spinterp
@@ -132,10 +131,11 @@ class DataDrivenFlowField3D():
 
         # binning for plotting smooth vector field on common grid
         Nbins = [int((vmax-vmin)/self._grid_spacing) for vmin, vmax in zip([xmin, ymin, zmin], [xmax, ymax, zmax])]
-        KM_bins, KM_centers = rh.get_bins(Nbins,bin_limits=[[xmin, xmax], [ymin, ymax], [zmin, zmax]])
+        state_space_grid = rh.get_bins(Nbins,bin_limits=[[xmin, xmax], [ymin, ymax], [zmin, zmax]])[1]
 
         # meshgrid for plotting
-        xgrid, ygrid, zgrid = np.meshgrid(*KM_centers)
+        xgrid, ygrid, zgrid = np.meshgrid(*state_space_grid)
+        del state_space_grid # free up memory
 
         if self._verbose:
             print("Shape of grid:")
@@ -144,7 +144,7 @@ class DataDrivenFlowField3D():
         df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
 
         # binning for computing the data driven flow field (Kramers-Moyal averages)
-        # Nbins_ = [30,35,25]
+        Nbins_ = [30,35,25]
 
         # KM average script takes in list of trajectories (one for each crop), trajectories are numpy arrays
         # takes in corresponding dX and dT
@@ -160,7 +160,7 @@ class DataDrivenFlowField3D():
             dT.append(dt_track)
 
         # get bins for histogramming to get Kramers-Moyal coefficients (drift)
-        # KM_bins, KM_centers = rh.get_bins(Nbins_,data=X)
+        KM_bins, KM_centers = rh.get_bins(Nbins_,data=X)
         dX_KM = rh.KM_avg_ND(X, dX, dT, KM_bins, self._time_step)[0] 
 
         Xgrid = np.moveaxis(np.array(np.meshgrid(*KM_centers,indexing='ij')),0,-1)
@@ -175,16 +175,24 @@ class DataDrivenFlowField3D():
         dQ_ = dX_KM_[:,2]
 
         # interpolate to get the velocity field
-        dU = spinterp.griddata(X_, dU_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dU = spinterp.griddata(X_, dU_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
         dU.reshape(xgrid.shape)
-        dV = spinterp.griddata(X_, dV_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dV = spinterp.griddata(X_, dV_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
         dV.reshape(xgrid.shape)
-        dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=0)
+        dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
         dQ.reshape(xgrid.shape)
 
-        dU = skfilt.gaussian(dU, sigma=1, preserve_range=True)
-        dV = skfilt.gaussian(dV, sigma=1, preserve_range=True)
-        dQ = skfilt.gaussian(dQ, sigma=1, preserve_range=True)
+        # replace nans with nearest neighbors
+        nan_mask_U = np.isnan(dU)
+        nan_mask_V = np.isnan(dV)
+        nan_mask_Q = np.isnan(dQ)
+        dU[nan_mask_U] = spinterp.griddata(X_, dU_, (xgrid[nan_mask_U],ygrid[nan_mask_U],zgrid[nan_mask_U]), method='nearest')
+        dV[nan_mask_V] = spinterp.griddata(X_, dV_, (xgrid[nan_mask_V],ygrid[nan_mask_V],zgrid[nan_mask_V]), method='nearest')
+        dQ[nan_mask_Q] = spinterp.griddata(X_, dQ_, (xgrid[nan_mask_Q],ygrid[nan_mask_Q],zgrid[nan_mask_Q]), method='nearest')
+
+        dU = skfilt.gaussian(dU, sigma=3, preserve_range=True)
+        dV = skfilt.gaussian(dV, sigma=3, preserve_range=True)
+        dQ = skfilt.gaussian(dQ, sigma=3, preserve_range=True)
 
         # # for plotting (dPC1,dPC2) in (PC1,PC2) plane, get slice of the grid at PC3 ~= 0
         pc3val = 0.0
@@ -208,25 +216,15 @@ class DataDrivenFlowField3D():
             print("Number of points found withing the y-range of interest:")
             print(len(list(zip(*yvalids))))
 
-        # 2D quiver plots - color by in/out of plane magnitude
+        # 2D quiver plots
         fig, (ax1, ax2) = vb.init_subplots(figsize=(12,6))
         ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
-        # color by dQ[zvalids]
-        dQ_ = dQ[zvalids]
-        norm = matplotlib.colors.Normalize()
-        norm.autoscale(dQ_)
-        cm = matplotlib.cm.seismic
-        ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], scale=0.5, color=cm(norm(dQ_)))
+        ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], scale=0.5, color="red")
         ax1.set_xlabel(self._ss_vars[0])
         ax1.set_ylabel(self._ss_vars[1])
 
         ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
-        # color by dV[yvalids]
-        dV_ = dV[yvalids]
-        norm = matplotlib.colors.Normalize()
-        norm.autoscale(dV_)
-        cm = matplotlib.cm.seismic
-        ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], scale=0.5, color=cm(norm(dV_)))
+        ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], scale=0.5, color="red")
         ax2.set_xlabel(self._ss_vars[0])
         ax2.set_ylabel(self._ss_vars[2])
 
