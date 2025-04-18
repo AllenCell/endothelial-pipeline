@@ -46,13 +46,14 @@ def build_analysis_queue(dataset_name_list: list,
 
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
             img.set_scene(pos_in_S)
+            scene_name = img.scenes[pos_in_S]
             if magnification !=None and get_objective_info(img.metadata)['magnification'] != magnification:
                 print(f'Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping...') if verbose else None
             else:
                 print(f'Position {pos} (scene {img.current_scene}) -- processing...') if verbose else None
                 assert img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
                 # calculate the duration of the positions in frames (they must all have the same duration)
-                duration_in_frames = t_final if isinstance(t_final, int) else img.dims.T // num_pos_in_T
+                duration_in_frames = min(t_final, img.dims.T // num_pos_in_T) if isinstance(t_final, int) else img.dims.T // num_pos_in_T
                 # correct the t_start, t_final, and t_step values to account for the intercalation of positions with timeframes
                 t_start_adjusted = t_start or pos_in_T
                 t_step_adjusted = t_step * num_pos_in_T
@@ -76,6 +77,7 @@ def build_analysis_queue(dataset_name_list: list,
                             'dataset_name': dataset_name,
                             'image_bin_level': img_bin_level,
                             'scene_index': pos_in_S,
+                            'scene_name': scene_name,
                             'position': pos,
                             'T': t,
                             'input_path': img_path,

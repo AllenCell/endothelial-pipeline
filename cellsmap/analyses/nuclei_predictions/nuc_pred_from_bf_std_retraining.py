@@ -1,18 +1,19 @@
 from pathlib import Path
 from bioio import BioImage
+from bioio_base.types import PhysicalPixelSizes
 from cellpose import io as cellpose_io, models, train
 from cellsmap.util import get_sldy_metadata as sldmd
 from cellsmap.util.dataset_io import get_dataset_info, get_original_path, get_zarr_path, load_dataset, load_config
-from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue
+from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue, save_image_output
 from cellsmap.util.set_output import get_output_path
 import numpy as np
 from skimage.exposure import rescale_intensity
-from skimage.filters import apply_hysteresis_threshold
-from scipy.ndimage import distance_transform_edt
-from skimage.feature import peak_local_max
-from skimage.segmentation import watershed
-from skimage.measure import label
-from skimage.morphology import dilation, disk
+# from skimage.filters import apply_hysteresis_threshold, gaussian, sobel, rank
+# from scipy.ndimage import distance_transform_edt
+# from skimage.feature import peak_local_max, canny
+from skimage.segmentation import watershed, find_boundaries
+# from skimage.measure import label, regionprops
+# from skimage.morphology import dilation, disk, remove_small_holes, remove_small_objects, binary_closing
 from datetime import datetime
 import shutil
 import re
@@ -27,7 +28,8 @@ if show_watershed_segmentations or train_from_base_cellpose_nuclei_model:
 
 
 datasets_to_use = ['20240328_T02_001', '20240328_T01_001',
-                   '20250415_SlideA_20X', '20250415_SlideE_20X', '20250415_SlideH_20X']
+                   '20250415_SlideA_20X',
+                   '20250415_SlideE_20X', '20250415_SlideH_20X']
 scenes_to_use = {
     '20240328_T02_001': ['20240328_T02_001-1711659785-  8',
                          '20240328_T02_001-1711659785- 24',
@@ -108,20 +110,21 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
 
 
 
-def get_image_data_from_original(dataset_name, scenes_to_use):
+def get_image_data_from_original(dataset_name, scene, T, verbose=False):
     img_path = Path(get_original_path(dataset_name))
     img = BioImage(img_path)
-    for scene in scenes_to_use:
-        img.set_scene(scene)
-        print(dataset_name, img.current_scene)
+    # for scene in scenes_to_use:
+    img.set_scene(scene)
+    img_metadata = img.metadata
+    print(dataset_name, img.current_scene) if verbose else None
 
-        channel_names = sldmd.get_channel_name(img.metadata)
-        channel_names = [chan.split('/')[0] for chan in channel_names]
-        nuc_chan = get_dataset_info(dataset_name)['405_channel_index']
-        bf_chan = get_dataset_info(dataset_name)['brightfield_channel_index']
-        img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan]).max(axis=dim_map['Z'], keepdims=True)
-        img_dask_arr_bf_std = img.get_image_dask_data(dim_order, C=[bf_chan]).std(axis=dim_map['Z'], keepdims=True)
-        yield (img_dask_arr_nuc, img_dask_arr_bf_std)
+    channel_names = sldmd.get_channel_name(img.metadata)
+    channel_names = [chan.split('/')[0] for chan in channel_names]
+    nuc_chan = get_dataset_info(dataset_name)['405_channel_index']
+    bf_chan = get_dataset_info(dataset_name)['brightfield_channel_index']
+    img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan], T=T).max(axis=dim_map['Z'], keepdims=True)
+    img_dask_arr_bf_std = img.get_image_dask_data(dim_order, C=[bf_chan], T=T).std(axis=dim_map['Z'], keepdims=True)
+    return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 def get_image_data_from_zarr(dataset_name):
     for zarr_name in get_zarr_path(dataset_name):
@@ -129,43 +132,131 @@ def get_image_data_from_zarr(dataset_name):
         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
         img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
         img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
-        yield (img_dask_arr_nuc, img_dask_arr_bf_std)
+        yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
+
+# def get_segmentation(normd_nuc, thresh_low=None, thresh_high=None):
+
+#     # detect nuclei in the foreground by adding a hysteresis
+#     # threshold on a local leveling of the image and canny edges
+#     # on the non-leveled image and then filling in holes
+#     normd_nuc_al = rank.autolevel(normd_nuc, footprint=disk(100))
+#     # normd_nuc_al = normd_nuc
+#     low, high = np.percentile(normd_nuc, (thresh_low, thresh_high))
+#     edges_canny = canny(normd_nuc, low_threshold=low, high_threshold=high)
+#     normd_nuc_al[edges_canny] = 0
+#     low_al, high_al = np.percentile(normd_nuc_al, (thresh_low, thresh_high))
+#     thresh = apply_hysteresis_threshold(normd_nuc_al, low_al, high_al)
+#     # thresh = binary_closing(thresh, disk(3))
+#     thresh = remove_small_holes(thresh+edges_canny, area_threshold=2000)
+
+#     # catch missed nuclei by doing a watershed on the background too
+#     # this can happen if a nuclei is too dim and has a fuzzy edge
+#     bg_thresh = ~thresh
+#     bg_dist = distance_transform_edt(bg_thresh)
+#     bg_peaks = np.zeros(bg_dist.shape, dtype=bool)
+#     bg_peaks[tuple(zip(*peak_local_max(bg_dist, min_distance=15)))] = True
+#     bg_peaks = label(dilation(bg_peaks, footprint=disk(5)))
+#     bg_ws = watershed(rescale_intensity(bg_dist, out_range=(1,0)), markers=bg_peaks, mask=bg_thresh)
+#     props = regionprops(bg_ws, intensity_image=normd_nuc)
+#     missed_labels = [prop.label for prop in props if prop.intensity_mean > low]
+#     missed_nuclei = np.isin(bg_ws, missed_labels)
+#     thresh = thresh + missed_nuclei
+
+#     # label the nuclei by segmenting themseg
+#     # get the seeds for watershed
+#     dist = distance_transform_edt(thresh)
+#     peaks_img = np.zeros(dist.shape, dtype=bool)
+#     peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15)))] = True
+#     peaks_img = label(dilation(peaks_img, footprint=disk(5)))
+#     # get the basins for watershed
+#     edges_sobel = sobel(normd_nuc_al)
+#     basins = rescale_intensity(dist, out_range=(1,0)) * rescale_intensity(edges_sobel, out_range=(0,1))
+#     # do the watershed
+#     ws = watershed(basins, markers=peaks_img, mask=thresh)
+
+#     return ws
+
+
+def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
+    seg_outlines = find_boundaries(labels)
+    if outlines and face:
+        labels[seg_outlines] = 0
+    elif outlines and not face:
+        labels = seg_outlines
+    else:
+        pass
+    overlay = label2rgb(label=labels, image=bg_img, bg_label=0)
+
+    fig, ax = plt.subplots()
+    ax.imshow(overlay)
+    ax.axis('off')
+    plt.tight_layout()
+    fig.savefig(out_name, bbox_inches='tight', pad_inches=0, dpi=180)
 
 
 analysis_queue = build_analysis_queue(datasets_to_use,
                                       use_original_data=use_original_data,
                                       overwrite=True,
                                       out_dir=get_output_path(Path(__file__).stem, verbose=False),)
+# analysis_queue = analysis_queue[:1]
+# Generate ground truths from nuclei labeled with DAPI
+# using the Cellpose base nuclei model
+nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
+# images = []
+# labels = []
 
-# Generate ground truths from nuclei labeled with DAPI using
-# a classic segmentation approach (watershed)
-images = []
-labels = []
-for dataset_name in datasets_to_use:
-    if use_original_data:
-        imgs_to_eval = get_image_data_from_original(dataset_name, scenes_to_use[dataset_name])
+for analysis_args in analysis_queue:
+    dataset_name = analysis_args['dataset_name']
+    scene_name = analysis_args['scene_name']
+    position = analysis_args['position']
+    T = analysis_args['T']
+    out_dir_val = analysis_args['output_dir'] / f'validation_overlays/{dataset_name}/'
+    out_dir = analysis_args['output_dir'] / f'cellpose_base_nuclei_model_segmentations/{dataset_name}/'
+
+    if scene_name in scenes_to_use[dataset_name]:
+        print(f'Working on {dataset_name} P{position} {scene_name}...')
+        pass
     else:
-        imgs_to_eval = get_image_data_from_zarr(dataset_name)
+        print(f'{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.')
+        continue
 
-    for img_dask_arr in imgs_to_eval:
-        nuc_max, bf_std = img_dask_arr
-        nuc_max = nuc_max.compute().squeeze()
-        bf_std = bf_std.compute().squeeze()
-        normd_nuc = rescale_intensity(nuc_max, out_range=(0,1))
-        # the thresholding below is too generous for the new data
-        thresh = apply_hysteresis_threshold(normd_nuc, np.percentile(normd_nuc, 80), np.percentile(normd_nuc, 85))
-        # the threshold below is appropriate for at least 1 image
-        # of the new data but not sure about all new data or any
-        # of the old data.
-        thresh = apply_hysteresis_threshold(normd_nuc, np.percentile(normd_nuc, 80), np.percentile(normd_nuc, 85))
-        dist = distance_transform_edt(thresh)
-        peaks_img = np.zeros(dist.shape, dtype=bool)
-        peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15)))] = True
-        peaks_img = label(dilation(peaks_img, footprint=disk(5)))
-        ws = watershed(rescale_intensity(dist, out_range=(1,0)), markers=peaks_img, mask=thresh)
+    if use_original_data:
+        img_dask_arrs, image_metadata = get_image_data_from_original(dataset_name, scene_name, T)
+        voxel_size = sldmd.get_voxel_size(image_metadata)
+    else:
+        print(f'Zarrs not yet implemented. Skipping {dataset_name} P{position}.')
+        continue # zarrs not yet implemented
+        # img_dask_arrs = get_image_data_from_zarr(dataset_name)
 
-        images.append(bf_std)
-        labels.append(ws)
+    nuc_max, bf_std = img_dask_arrs
+    nuc_max = nuc_max.compute().squeeze()
+    bf_std = bf_std.compute().squeeze()
+    normd_nuc = rescale_intensity(nuc_max, out_range=np.uint16)
+    # normd_nuc = rescale_intensity(np.clip(normd_nuc, 0, np.percentile(normd_nuc,99)), out_range=(0,1))
+    # thresh_low, thresh_high = threshold_vals[dataset_name]
+    # seg = get_segmentation(normd_nuc, thresh_low, thresh_high)
+    normd_nuc_clipped = rescale_intensity(np.clip(normd_nuc, 0, np.percentile(normd_nuc,99)), out_range=(0,1))
+    seg, flows, styles = nuc_model.eval(normd_nuc_clipped, channels=[0,0], min_size=500, flow_threshold=0.6, cellprob_threshold=-3.0)
+
+    out_dir_val.mkdir(exist_ok=True, parents=True)
+    out_name_val = out_dir_val / f'{dataset_name}_P{position}_classic_seg.png'
+    save_overlay(seg, normd_nuc_clipped, out_name_val, outlines=True, face=True)
+    # save_overlay(seg, normd_nuc, out_name, outlines=True, face=True)
+    out_name = out_dir / f'{dataset_name}_P{position}_classic_seg.png'
+    images_out = [seg]
+    images_out_metadata = {
+        'image_name': dataset_name,
+        'channel_names': ['cellpose_nuclei_prediction'], 
+        'channel_colors': [(255,255,255)],
+        'physical_pixel_sizes': PhysicalPixelSizes(**voxel_size),
+        'dim_order': 'YX',
+        'dtype': None,
+        }
+    save_image_output(out_path=out_name,
+                      images=images_out,
+                      images_metadata=images_out_metadata)
+    # images.append(bf_std)
+    # labels.append(ws)
 
 
 cellpose_io.logger_setup()
@@ -180,7 +271,7 @@ if retrain_Gouthams_model:
 
     model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
 
-    model_path, train_losses, test_losses = train.train_seg(model_bf_stdproject.net,
+    model_path = train.train_seg(model_bf_stdproject.net,
                                 train_data=images, train_labels=labels,
                                 channels=[0,0], normalize=True,
                                 weight_decay=1e-4, SGD=True, learning_rate=0.1,
@@ -192,7 +283,7 @@ if train_from_base_cellpose_nuclei_model:
     model_dir_from_default = model_dir / 'from_cellpose_nuclei_model_default'
     model_dir_from_default.mkdir(exist_ok=True)
     model_nuclei_original = models.CellposeModel(gpu=False, model_type='nuclei')
-    model_path, train_losses, test_losses = train.train_seg(model_nuclei_original.net,
+    model_path = train.train_seg(model_nuclei_original.net,
                                 train_data=images, train_labels=labels,
                                 channels=[0,0], normalize=True,
                                 weight_decay=1e-4, SGD=True, learning_rate=0.1,
