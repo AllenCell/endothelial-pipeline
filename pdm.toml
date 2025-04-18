@@ -1,5 +1,0 @@
-[pypi.artifactory]
-url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple"
-
-[pypi.artifactory-snapshot]
-url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-snapshot-local/simple"
