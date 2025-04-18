@@ -112,7 +112,10 @@ def main(n_proc=1, dataset_name=None, t_final=None):
     analysis_queue_df = pd.DataFrame(analysis_queue)
     for dataset_name in dataset_name_list:
         tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
+        if t_final is not None:
+            tracking_df = tracking_df.query('T < @t_final')
 
+        tracking_df = tracking_df[tracking_df['dataset_name'] == dataset_name]
         analysis_queue_sub = analysis_queue_df[analysis_queue_df['dataset_name'] == dataset_name]
         position_scene_map = dict(zip(analysis_queue_sub['position'], analysis_queue_sub['scene_index']))
         tracking_df['scene_index'] = tracking_df['position'].transform(lambda x: position_scene_map[x])
