@@ -24,8 +24,8 @@ DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
 for condition in df.description.unique():
-    DDFF.compute_landscape(condition=condition)
-    DDFF.simulate_particles_in_landscape(condition=condition)
-DDFF.simulate_particles_in_landscape(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
-DDFF.simulate_particles_in_landscape(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
+    DDFF.compute_flow_field(condition=condition)
+    DDFF.simulate_particles_in_flow_field(condition=condition)
+DDFF.simulate_particles_in_flow_field(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
+DDFF.simulate_particles_in_flow_field(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
 # %%

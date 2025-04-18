@@ -44,7 +44,7 @@ class CuboidBounds():
 class DataDrivenFlowField3D():
     def __init__(self, verbose: bool=False) -> None:
         self._time_step = 2
-        self._landscape = {}
+        self._flow_field = {}
         self._verbose = verbose
         self._level_sparsity = 2
         self._grid_spacing = 0.05
@@ -117,7 +117,7 @@ class DataDrivenFlowField3D():
         # do per condition instead?
         self.compute_mean_speed_from_displacement_vectors()
 
-    def compute_landscape(self, condition: str, save_imagedata=True) -> None:
+    def compute_flow_field(self, condition: str, save_imagedata=True) -> None:
 
         xmin, xmax = self._bounds.xmin, self._bounds.xmax
         ymin, ymax = self._bounds.ymin, self._bounds.ymax
@@ -193,9 +193,9 @@ class DataDrivenFlowField3D():
             ax.set_ylim(qmin, qmax)
             ax.set_aspect("equal")
         plt.tight_layout()
-        vb.save_plot(fig, filename=self.get_fig_folder()+f"landscape_pc_{condition}", dpi=72)
+        vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
 
-        self._landscape.update({
+        self._flow_field.update({
             condition: {
                 "velocities": (dUis, dVis, dQis),
                 "grid": (xgrid, ygrid, zgrid)
@@ -203,14 +203,14 @@ class DataDrivenFlowField3D():
         })
 
         if save_image_data:
-            imgdata = self.get_imagedata_from_lasdscape(condition=condition)
-            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"landscape_{condition}.vtk")
+            imgdata = self.get_imagedata_from_flow_field(condition=condition)
+            save_image_data(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
 
-    def get_imagedata_from_lasdscape(self, condition: str) -> None:
+    def get_imagedata_from_flow_field(self, condition: str) -> None:
 
-        vx = self._landscape[condition]["velocities"][0]
-        vy = self._landscape[condition]["velocities"][1]
-        vz = self._landscape[condition]["velocities"][2]
+        vx = self._flow_field[condition]["velocities"][0]
+        vy = self._flow_field[condition]["velocities"][1]
+        vz = self._flow_field[condition]["velocities"][2]
 
         dims = vx.shape
 
@@ -299,7 +299,7 @@ class DataDrivenFlowField3D():
             print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
         return speed
 
-    def simulate_particles_in_landscape(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
+    def simulate_particles_in_flow_field(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
         # condition can be either a string or a list of string that serve
         # as a secheduler for changes between landspace.
 
@@ -312,7 +312,7 @@ class DataDrivenFlowField3D():
 
         start_condition = condition[0]
 
-        assert start_condition in self._landscape.keys(), f"Landscape for condition {start_condition} has not been yet computed."
+        assert start_condition in self._flow_field.keys(), f"Flow field for condition {start_condition} has not been yet computed."
 
         tp = 0
         if filename_prefix is None:
@@ -331,9 +331,9 @@ class DataDrivenFlowField3D():
             coords_new = []
             for r in coords:
                 x, y, z = r
-                vx = self._landscape[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
-                vy = self._landscape[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
-                vz = self._landscape[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
+                vx = self._flow_field[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
+                vy = self._flow_field[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
+                vz = self._flow_field[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
                 x_new = x + sim_speed * vx
                 y_new = y + sim_speed * vy
                 z_new = z + sim_speed * vz
