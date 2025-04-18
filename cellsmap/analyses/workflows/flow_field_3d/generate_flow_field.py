@@ -23,6 +23,8 @@ DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_sav
 DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
+
+# %%
 for condition in df.description.unique():
     DDFF.compute_flow_field(condition=condition)
     DDFF.simulate_particles_in_flow_field(condition=condition)

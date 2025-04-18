@@ -5,7 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from skimage import filters as skfilt
 from scipy import interpolate as spinterp
-from vtk.util import numpy_support as vtknp
+from vtkmodules.util import numpy_support as vtknp
 from cellsmap.analyses.utils.viz import viz_base as vb
 
 
@@ -69,9 +69,9 @@ class DataDrivenFlowField3D():
 
     def set_dataframe(self, df: pd.DataFrame, identifier: str) -> None:
         # identifier determines the building blocks of the dataframe. For 
-        # example, CellId or CropId. We assume that dataframe has been
+        # example, cell_index or crop_index. We assume that dataframe has been
         # sorted by identifier and time with:
-        #     df = df.sort_values(by=["CropId", "T"])
+        #     df = df.sort_values(by=["crop_index", "T"])
         self._df = df.copy()
         self._identifier = identifier
     def set_state_space_variables(self, vars: list) -> None:

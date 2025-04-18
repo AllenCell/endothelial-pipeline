@@ -234,8 +234,8 @@ def get_descriptive_metadata(df:pd.DataFrame,simple:bool=False) -> dict:
         else:
             shear_rate_str = [f'{int(i)}_dyncm2' for i in shear_rate] # convert shear rates to strings
 
-        time_str = [f'{int((flow_config[i][1]-flow_config[i][0])*5/60)}_hours' for i in range(num_flows)] # get duration of each flow condition in hours
-        description = '_'.join([time_str[i]+'_at_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
+        time_str = [f'{int((flow_config[i][1]-flow_config[i][0])*5/60)}hr' for i in range(num_flows)] # get duration of each flow condition in hours
+        description = '_'.join([time_str[i]+'_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
         description_dic[mv_name] = description # add description to dictionary
 
     return description_dic
