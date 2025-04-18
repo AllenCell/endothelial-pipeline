@@ -71,6 +71,7 @@ for pc in range(3):
 descriptions = manifest_io.get_descriptive_metadata(df,simple=True)
 df = manifest_io.add_descriptive_metadata(df, descriptions)
 
+# %%
 # Create unique ID for each crop
 # initialize crop index column
 df["crop_index"] = '1'
