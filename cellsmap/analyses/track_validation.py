@@ -81,7 +81,8 @@ def generate_and_save_validation_images(dframe):
 
         props = measure.regionprops(seg_arr)
         rois = [reg for reg in props if reg.label in dframe[dframe['T']==T]['label'].unique()]
-        rois = [reg.update({'track_id': cell_id_to_track_id_map[reg.label]}) for reg in rois]
+        for roi in rois:
+            roi.track_id = cell_id_to_track_id_map[roi.label]
         padding = 50
 
         for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
