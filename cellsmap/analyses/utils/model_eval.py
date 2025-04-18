@@ -85,6 +85,28 @@ def vector_field_component(f:Callable,i:int) -> Callable:
         return f_out[i].T # get the i-th component of the vector field, transpose to get correct shape (n_samples,1)
     return f_i # return the the callable function f_i
 
+def get_normalization_constant(p_fit:np.ndarray,dx:list) -> float:
+    '''
+    Get normalization constant for stationary probability distribution p_fit.
+    The normalization constant is the integral of the probability distribution over the state space.
+
+    Inputs:
+    - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
+        - shape N[1] x N[2] x ... x N[ndim]
+    - dx: list, bin width in each dimension
+    
+    Outputs:
+    - C: float, normalization constant
+    '''
+    ndim = len(dx) # number of dimensions
+
+    C = p_fit.copy() # copy p_fit to avoid modifying the original array
+    for i in range(ndim):
+        # integrate over each dimension
+        C = np.trapz(C, dx=dx[i], axis=0) # integrate over the i-th dimension, axis=0 as we marginalize over each dimension
+    
+    return C
+
 def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol:float=1e-10) -> np.ndarray:
     '''
     Get stationary probability distribution of fit SDE (Langevin) model with drift function f and diffusion D by solving the
@@ -123,7 +145,7 @@ def get_stationary_probability(f_vals:np.ndarray,D_vals:np.ndarray,bins:list,tol
     p_fit = fp.solve(f_vals,D_vals) # solve stationary Fokker-Planck equation
 
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=0),dx=dx[1]) # integrate to get normalization constant
+    C = get_normalization_constant(p_fit,dx) # integrate to get normalization constant
     p_fit = p_fit/C # normalize probability distribution
 
     return p_fit
@@ -198,7 +220,7 @@ def get_stationary_probability_fipy(f:Callable, D:Callable, bins:list, u:float, 
 
     p_fit = p.value.reshape(Nbins[1],Nbins[0]).T # transpose to get expected shape for downstream visualization
     p_fit[p_fit<tol] = tol # set small values to a small number to avoid numerical issues
-    C = np.trapz(np.trapz(p_fit, dx=dx[0], axis=0),dx=dx[1]) # integrate to get normalization constant
+    C = get_normalization_constant(p_fit,dx) # integrate to get normalization constant
     p_fit = p_fit/C # normalize probability distribution
 
     return p_fit
