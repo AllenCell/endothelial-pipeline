@@ -10,7 +10,8 @@ from .kernels import silvermans_rule, epanechnikov
 def km(timeseries: list[np.ndarray]|np.ndarray, 
         grads:list[np.ndarray]|np.ndarray|None = None,
         bins: str='default', powers: int=4,
-        kernel: callable=epanechnikov, bw: float=None, tol: float=1e-10,
+        kernel: callable=epanechnikov, bw: float=None, 
+        tol: float=1e-3,
         multi_traj: bool=False,
         conv_method: str='auto') -> np.ndarray:
     """
@@ -193,7 +194,6 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
                       bw, tol, conv_method, multi_traj)
 
     return kmc
-
 
 
 def _km(timeseries: list[np.ndarray]|np.ndarray,

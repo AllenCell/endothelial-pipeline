@@ -53,14 +53,14 @@ def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> T
     kmc = km.km(X_list, grads=dX_list, bins=bins, bw = 0.1,
                         powers = powers, multi_traj=True) / dt
 
-    # initialize with (ndim, Nbins[ndim], ... , Nbins[1], Nbins[0]) arrays
     if ndim == 1:
         f_KM = kmc[1]
-        D_KM = kmc[2]
+        D_KM = kmc[2]/2
     elif ndim == 2:
         kmc = np.swapaxes(kmc,1,2)
         f_KM = kmc[1:3].T
-        D_KM = kmc[4:6].T
+        D_KM = kmc[4:6].T/2
+    
     else:
         raise ValueError('Only 1D and 2D data is supported for Kramers-Moyal coefficients.')
 
