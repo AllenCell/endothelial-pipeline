@@ -242,6 +242,7 @@ for analysis_args in analysis_queue:
     out_name_val = out_dir_val / f'{dataset_name}_P{position}_classic_seg.png'
     save_overlay(seg, normd_nuc_clipped, out_name_val, outlines=True, face=True)
     # save_overlay(seg, normd_nuc, out_name, outlines=True, face=True)
+    out_dir.mkdir(exist_ok=True, parents=True)
     out_name = out_dir / f'{dataset_name}_P{position}_classic_seg.png'
     images_out = [seg]
     images_out_metadata = {
