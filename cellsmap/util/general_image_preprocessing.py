@@ -8,6 +8,9 @@ from cellsmap.util.set_output import get_output_path
 from cellsmap.util.get_sldy_metadata import get_objective_info
 from typing import List, Any, Union, Optional
 
+def get_default_dim_order() -> str:
+    return 'TCZYX'
+
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]

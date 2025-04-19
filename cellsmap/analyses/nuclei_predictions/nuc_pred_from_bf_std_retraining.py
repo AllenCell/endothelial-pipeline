@@ -1,56 +1,69 @@
 from pathlib import Path
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
-from cellpose import io as cellpose_io, models, train
+from cellpose import core, models, train
+from cellpose.io import logger_setup
 from cellsmap.util import get_sldy_metadata as sldmd
 from cellsmap.util.dataset_io import get_dataset_info, get_original_path, get_zarr_path, load_dataset, load_config
-from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue, save_image_output
+from cellsmap.util.general_image_preprocessing import get_default_dim_order, get_dim_map, build_analysis_queue, save_image_output
 from cellsmap.util.set_output import get_output_path
 import numpy as np
 from skimage.exposure import rescale_intensity
-# from skimage.filters import apply_hysteresis_threshold, gaussian, sobel, rank
-# from scipy.ndimage import distance_transform_edt
-# from skimage.feature import peak_local_max, canny
-from skimage.segmentation import watershed, find_boundaries
-# from skimage.measure import label, regionprops
-# from skimage.morphology import dilation, disk, remove_small_holes, remove_small_objects, binary_closing
+from skimage.segmentation import find_boundaries
+from skimage.color import label2rgb
+import matplotlib.pyplot as plt
+from multiprocessing import Pool
+from tqdm import tqdm
 from datetime import datetime
 import shutil
 import re
-
-use_original_data = True
-show_watershed_segmentations = True
-retrain_Gouthams_model = True
-train_from_base_cellpose_nuclei_model = False
-if show_watershed_segmentations or train_from_base_cellpose_nuclei_model:
-    import matplotlib.pyplot as plt
-    from skimage.color import label2rgb
+from typing import List, Dict, Literal
 
 
-datasets_to_use = ['20240328_T02_001', '20240328_T01_001',
-                   '20250415_SlideA_20X',
-                   '20250415_SlideE_20X', '20250415_SlideH_20X']
-scenes_to_use = {
-    '20240328_T02_001': ['20240328_T02_001-1711659785-  8',
-                         '20240328_T02_001-1711659785- 24',
-                         '20240328_T02_001-1711659785- 39',
-                         '20240328_T02_001-1711659785-990',
-                         ],
-    '20240328_T01_001': ['20240328_T01_001-1711663662-276',
-                         '20240328_T01_001-1711663662-293',
-                         '20240328_T01_001-1711663662-307',
-                         '20240328_T01_001-1711663662-322',
-                         '20240328_T01_001-1711663662-337',
-                         ],
-    '20250415_SlideA_20X': ['20250415_GE0000XXXX_slideA_20X - Position 1 [50]-1744838244-103'],
-    '20250415_SlideE_20X': ['20250416_GE0000XXXX_slideE_20X - Position 1 [50]-1744838492-691'],
-    '20250415_SlideH_20X': ['20250415_GE0000XXXX_slideH_20X - Position 1 [50]-1744838353-891'],
-}
+def get_scenes_to_use(dataset_name: str|None = None) -> Dict:
+    """
+    This function returns the scenes to use for a given dataset.
+    It is used to filter the analysis queue to only include the
+    scenes that are needed for the analysis.
+    This is needed because a couple of the older datasets have
+    scenes at different magnifications or scenes that are corrupted.
+    You can use dataset_name to return a single set of scenes.
+    """
+    scenes_to_use = {
+        '20240328_T02_001': ['20240328_T02_001-1711659785-  8',
+                            '20240328_T02_001-1711659785- 24',
+                            '20240328_T02_001-1711659785- 39',
+                            '20240328_T02_001-1711659785-990',
+                            ],
+        '20240328_T01_001': ['20240328_T01_001-1711663662-276',
+                            '20240328_T01_001-1711663662-293',
+                            '20240328_T01_001-1711663662-307',
+                            '20240328_T01_001-1711663662-322',
+                            '20240328_T01_001-1711663662-337',
+                            ],
+        '20250415_SlideA_20X': ['20250415_GE0000XXXX_slideA_20X - Position 1 [50]-1744838244-103'],
+        '20250415_SlideE_20X': ['20250416_GE0000XXXX_slideE_20X - Position 1 [50]-1744838492-691'],
+        '20250415_SlideH_20X': ['20250415_GE0000XXXX_slideH_20X - Position 1 [50]-1744838353-891'],
+    }
+    if dataset_name == None:
+        return scenes_to_use
+    if dataset_name in scenes_to_use:
+        return {dataset_name: scenes_to_use[dataset_name]}
+    else:
+        return {}
 
-dim_order = 'TCZYX'
-dim_map = get_dim_map(dim_order)
 
-# def get_old_cellpose_train_test_losses(model_name_cyto, model_name_live):
+def get_training_data_output_dirs(kind: List[Literal['images','labels']]|None=None) -> List:
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir_labels = out_dir / f'training_data/cellpose_base_nuclei_model_nuclei_segmentations/'
+    out_dir_images = out_dir / f'training_data/cellpose_base_nuclei_model_brightfield_std/'
+    out_dirs = {'images': out_dir_images, 'labels': out_dir_labels}
+    if kind == None:
+        return list(out_dirs.values())
+    else:
+        return [out_dirs[training_data_kind] for training_data_kind in kind]
+
+
 def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
     """
     This function extracts the training and test losses from the run.log file
@@ -109,11 +122,13 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
     return train_losses, test_losses, time_list
 
 
-
 def get_image_data_from_original(dataset_name, scene, T, verbose=False):
+
+    dim_order = get_default_dim_order()
+    dim_map = get_dim_map(dim_order)
+
     img_path = Path(get_original_path(dataset_name))
     img = BioImage(img_path)
-    # for scene in scenes_to_use:
     img.set_scene(scene)
     img_metadata = img.metadata
     print(dataset_name, img.current_scene) if verbose else None
@@ -126,55 +141,17 @@ def get_image_data_from_original(dataset_name, scene, T, verbose=False):
     img_dask_arr_bf_std = img.get_image_dask_data(dim_order, C=[bf_chan], T=T).std(axis=dim_map['Z'], keepdims=True)
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
+
 def get_image_data_from_zarr(dataset_name):
+    # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
+    print(f'Zarrs not yet implemented. Skipping {dataset_name}.')
+    return
     for zarr_name in get_zarr_path(dataset_name):
         img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
         img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
         img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
-
-# def get_segmentation(normd_nuc, thresh_low=None, thresh_high=None):
-
-#     # detect nuclei in the foreground by adding a hysteresis
-#     # threshold on a local leveling of the image and canny edges
-#     # on the non-leveled image and then filling in holes
-#     normd_nuc_al = rank.autolevel(normd_nuc, footprint=disk(100))
-#     # normd_nuc_al = normd_nuc
-#     low, high = np.percentile(normd_nuc, (thresh_low, thresh_high))
-#     edges_canny = canny(normd_nuc, low_threshold=low, high_threshold=high)
-#     normd_nuc_al[edges_canny] = 0
-#     low_al, high_al = np.percentile(normd_nuc_al, (thresh_low, thresh_high))
-#     thresh = apply_hysteresis_threshold(normd_nuc_al, low_al, high_al)
-#     # thresh = binary_closing(thresh, disk(3))
-#     thresh = remove_small_holes(thresh+edges_canny, area_threshold=2000)
-
-#     # catch missed nuclei by doing a watershed on the background too
-#     # this can happen if a nuclei is too dim and has a fuzzy edge
-#     bg_thresh = ~thresh
-#     bg_dist = distance_transform_edt(bg_thresh)
-#     bg_peaks = np.zeros(bg_dist.shape, dtype=bool)
-#     bg_peaks[tuple(zip(*peak_local_max(bg_dist, min_distance=15)))] = True
-#     bg_peaks = label(dilation(bg_peaks, footprint=disk(5)))
-#     bg_ws = watershed(rescale_intensity(bg_dist, out_range=(1,0)), markers=bg_peaks, mask=bg_thresh)
-#     props = regionprops(bg_ws, intensity_image=normd_nuc)
-#     missed_labels = [prop.label for prop in props if prop.intensity_mean > low]
-#     missed_nuclei = np.isin(bg_ws, missed_labels)
-#     thresh = thresh + missed_nuclei
-
-#     # label the nuclei by segmenting themseg
-#     # get the seeds for watershed
-#     dist = distance_transform_edt(thresh)
-#     peaks_img = np.zeros(dist.shape, dtype=bool)
-#     peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15)))] = True
-#     peaks_img = label(dilation(peaks_img, footprint=disk(5)))
-#     # get the basins for watershed
-#     edges_sobel = sobel(normd_nuc_al)
-#     basins = rescale_intensity(dist, out_range=(1,0)) * rescale_intensity(edges_sobel, out_range=(0,1))
-#     # do the watershed
-#     ws = watershed(basins, markers=peaks_img, mask=thresh)
-
-#     return ws
 
 
 def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
@@ -192,142 +169,291 @@ def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
     ax.axis('off')
     plt.tight_layout()
     fig.savefig(out_name, bbox_inches='tight', pad_inches=0, dpi=180)
+    plt.close(fig)
 
 
-analysis_queue = build_analysis_queue(datasets_to_use,
-                                      use_original_data=use_original_data,
-                                      overwrite=True,
-                                      out_dir=get_output_path(Path(__file__).stem, verbose=False),)
-# analysis_queue = analysis_queue[:1]
-# Generate ground truths from nuclei labeled with DAPI
-# using the Cellpose base nuclei model
-nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
-# images = []
-# labels = []
-
-for analysis_args in analysis_queue:
+def generate_training_data(analysis_args):
+    use_original_data = analysis_args['use_original_data']
     dataset_name = analysis_args['dataset_name']
     scene_name = analysis_args['scene_name']
     position = analysis_args['position']
     T = analysis_args['T']
-    out_dir_val = analysis_args['output_dir'] / f'validation_overlays/{dataset_name}/'
-    out_dir = analysis_args['output_dir'] / f'cellpose_base_nuclei_model_segmentations/{dataset_name}/'
+    out_dir_val = analysis_args['output_dir'] / f'training_data/validation_overlays/{dataset_name}/'
+    out_dir_nuclei = analysis_args['output_dir'] / f'training_data/cellpose_base_nuclei_model_nuclei_max/{dataset_name}/'
+    out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=['images','labels'])
+    save_training_data = analysis_args['save_output']
+    save_validation_images = analysis_args['create_validation_image']
 
-    if scene_name in scenes_to_use[dataset_name]:
+    nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
+
+    if scene_name in get_scenes_to_use(dataset_name):
         print(f'Working on {dataset_name} P{position} {scene_name}...')
         pass
     else:
         print(f'{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.')
-        continue
+        return
 
     if use_original_data:
         img_dask_arrs, image_metadata = get_image_data_from_original(dataset_name, scene_name, T)
         voxel_size = sldmd.get_voxel_size(image_metadata)
     else:
         print(f'Zarrs not yet implemented. Skipping {dataset_name} P{position}.')
-        continue # zarrs not yet implemented
+        return # zarrs not yet implemented
         # img_dask_arrs = get_image_data_from_zarr(dataset_name)
 
     nuc_max, bf_std = img_dask_arrs
     nuc_max = nuc_max.compute().squeeze()
     bf_std = bf_std.compute().squeeze()
     normd_nuc = rescale_intensity(nuc_max, out_range=np.uint16)
-    # normd_nuc = rescale_intensity(np.clip(normd_nuc, 0, np.percentile(normd_nuc,99)), out_range=(0,1))
-    # thresh_low, thresh_high = threshold_vals[dataset_name]
-    # seg = get_segmentation(normd_nuc, thresh_low, thresh_high)
     normd_nuc_clipped = rescale_intensity(np.clip(normd_nuc, 0, np.percentile(normd_nuc,99)), out_range=(0,1))
     seg, flows, styles = nuc_model.eval(normd_nuc_clipped, channels=[0,0], min_size=500, flow_threshold=0.6, cellprob_threshold=-3.0)
 
-    out_dir_val.mkdir(exist_ok=True, parents=True)
-    out_name_val = out_dir_val / f'{dataset_name}_P{position}_classic_seg.png'
-    save_overlay(seg, normd_nuc_clipped, out_name_val, outlines=True, face=True)
-    # save_overlay(seg, normd_nuc, out_name, outlines=True, face=True)
-    out_dir.mkdir(exist_ok=True, parents=True)
-    out_name = out_dir / f'{dataset_name}_P{position}_classic_seg.png'
-    images_out = [seg]
-    images_out_metadata = {
-        'image_name': dataset_name,
-        'channel_names': ['cellpose_nuclei_prediction'], 
-        'channel_colors': [(255,255,255)],
-        'physical_pixel_sizes': PhysicalPixelSizes(**voxel_size),
-        'dim_order': 'YX',
-        'dtype': None,
-        }
-    save_image_output(out_path=out_name,
-                      images=images_out,
-                      images_metadata=images_out_metadata)
-    # images.append(bf_std)
-    # labels.append(ws)
+    if save_validation_images:
+        # create an overlay to quickly check the accuracy of the Cellpose predictions
+        # from NucViolet
+        out_dir_val.mkdir(exist_ok=True, parents=True)
+        out_name_val = out_dir_val / f'{dataset_name}_P{position}_classic_seg.png'
+        save_overlay(seg, normd_nuc_clipped, out_name_val, outlines=True, face=True)
+
+    if save_training_data:
+        # save the labels used as ground truths for training
+        # the label-free nuclei model
+        out_dir_labels.mkdir(exist_ok=True, parents=True)
+        out_name_label = out_dir_labels / f'{dataset_name}_P{position}_T{T}_nuclei_seg.ome.tiff'
+        images_out = [seg]
+        images_out_metadata = {
+            'image_name': dataset_name,
+            'channel_names': ['cellpose_nuclei_prediction'], 
+            'channel_colors': [(255,255,255)],
+            'physical_pixel_sizes': PhysicalPixelSizes(**voxel_size),
+            'dim_order': 'YX',
+            'dtype': None,
+            }
+        save_image_output(out_path=out_name_label,
+                        images=images_out,
+                        images_metadata=images_out_metadata)
+
+        out_dir_nuclei.mkdir(exist_ok=True, parents=True)
+        out_name_dapi = out_dir_nuclei / f'{dataset_name}_P{position}_T{T}_nuclei_raw.ome.tiff'
+        images_out = [nuc_max]
+        images_out_metadata = {
+            'image_name': dataset_name,
+            'channel_names': ['cellpose_nuclei_max_projects'], 
+            'channel_colors': [(255,255,255)],
+            'physical_pixel_sizes': PhysicalPixelSizes(**voxel_size),
+            'dim_order': 'YX',
+            'dtype': None,
+            }
+        save_image_output(out_path=out_name_dapi,
+                        images=images_out,
+                        images_metadata=images_out_metadata)
+
+        out_dir_images.mkdir(exist_ok=True, parents=True)
+        out_name_images = out_dir_images / f'{dataset_name}_P{position}_T{T}_bf_std.ome.tiff'
+        images_out = [bf_std]
+        images_out_metadata = {
+            'image_name': dataset_name,
+            'channel_names': ['cellpose_brightfield_standard_deviation_projection'], 
+            'channel_colors': [(255,255,255)],
+            'physical_pixel_sizes': PhysicalPixelSizes(**voxel_size),
+            'dim_order': 'YX',
+            'dtype': None,
+            }
+        save_image_output(out_path=out_name_images,
+                        images=images_out,
+                        images_metadata=images_out_metadata)
+    return
 
 
-cellpose_io.logger_setup()
-# retrain Goutham's Cellpose model
-if retrain_Gouthams_model:
-    model_config = load_config(config_type='model')
-    nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
-    assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
-    model_path = Path(nuclei_models[0]['model_path'])
-    model_dir = model_path.parent / datetime.today().date().strftime('%Y%m%d')
+def get_training_data(analysis_queue, generate_training_data=False, n_proc=1):
+
+    if generate_training_data:
+        if __name__ == '__main__':
+            if n_proc > 1:
+                with Pool(n_proc) as pool:
+                    print('Starting multiprocessing...')
+                    tqdm(pool.imap(generate_training_data, analysis_queue, total=len(analysis_queue), desc='Training data images created'))
+                    pool.close()
+                    pool.join()
+                    print('Done multiprocessing.')
+            else:
+                print('Starting single processing...')
+                for analysis_args in tqdm(analysis_queue, total=len(analysis_queue), desc='Training data images created'):
+                    generate_training_data(analysis_args)
+                print('Done single processing.')
+    else:
+        pass
+
+    # Open the training data images and labels
+    # that were created in the previous step
+    images_dir, = get_training_data_output_dirs(kind=['images'])
+    labels_dir, = get_training_data_output_dirs(kind=['labels'])
+    images_paths = [BioImage(filepath) for filepath in images_dir.glob('**/*.ome.tiff')]
+    labels_paths = [BioImage(filepath) for filepath in labels_dir.glob('**/*.ome.tiff')]
+
+    assert len(images_paths) == len(labels_paths), f'Number of images ({len(images_paths)}) must equal number of labels ({len(labels_paths)})'
+
+    return (images_paths, labels_paths)
+
+
+def main(n_proc=1, generate_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=False, use_original_data=True):
+
+    datasets_to_use = list(get_scenes_to_use().keys())
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+
+    analysis_queue = build_analysis_queue(datasets_to_use,
+                                        use_original_data=use_original_data,
+                                        save_output = True,
+                                        image_validation_frequency = 1,
+                                        overwrite=True,
+                                        out_dir=out_dir,
+                                        )
+
+    # Generate ground truths from nuclei labeled with DAPI
+    # using the Cellpose base nuclei model
+    images_paths, labels_paths = get_training_data(analysis_queue,
+                                                   generate_training_data=generate_training_data,
+                                                   n_proc=n_proc)
+
+    # split the images and labels into training and testing sets
+    testing_indices = list(range(0, len(images_paths), 5))
+    training_indices = [i for i in range(len(images_paths)) if i not in testing_indices]
+
+    # load the brightfield standard deviation projections as
+    # the images and the  nuclei segmentations as the labels
+    # from the testing and training data
+    dim_order = 'CYX'
+    images_training = []
+    images_testing = []
+    labels_training = []
+    labels_testing = []
+    for i in training_indices:
+        images_training.append(BioImage(images_paths[i]).get_image_data(dim_order))
+        labels_training.append(BioImage(labels_paths[i]).get_image_data(dim_order))
+    for i in testing_indices:
+        images_testing.append(BioImage(images_paths[i]).get_image_data(dim_order))
+        labels_testing.append(BioImage(labels_paths[i]).get_image_data(dim_order))
+
+
+    sgd = True
+    learning_rate = 0.1
+    weight_decay = 1e-4
+    n_epochs = 300#100#300
+    gpu = core.use_gpu()
+
+    # initiate the cellpose logger so that we
+    # can extract the training and test losses
+    logger_setup()
+
+    timestamp = datetime.today().strftime('%Y%m%d-%H_%M')
+    model_dir = model_path.parent / timestamp
     model_dir.mkdir(exist_ok=True, parents=True)
 
-    model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+    model_name_list = [] # will populate this as we go
 
-    model_path = train.train_seg(model_bf_stdproject.net,
-                                train_data=images, train_labels=labels,
-                                channels=[0,0], normalize=True,
-                                weight_decay=1e-4, SGD=True, learning_rate=0.1,
-                                n_epochs=100,
-                                save_path=model_dir, model_name="bf_std_model_no_preprocess_retrained")
+    if retrain_Gouthams_model:
+        # retrain Goutham's Cellpose model
+        model_dir_Goutham_retrain = model_dir / 'Goutham_model_finetuning'
+        model_config = load_config(config_type='model')
+        nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
+        assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
+        model_path = Path(nuclei_models[0]['model_path'])
+        Goutham_finetuned_model_name = f"bf_std_model_no_preprocess_retrained_{timestamp}"
+        model_name_list.append(Goutham_finetuned_model_name)
 
-if train_from_base_cellpose_nuclei_model:
-    # fine-tune the basic CellPose nuclei model
-    model_dir_from_default = model_dir / 'from_cellpose_nuclei_model_default'
-    model_dir_from_default.mkdir(exist_ok=True)
-    model_nuclei_original = models.CellposeModel(gpu=False, model_type='nuclei')
-    model_path = train.train_seg(model_nuclei_original.net,
-                                train_data=images, train_labels=labels,
-                                channels=[0,0], normalize=True,
-                                weight_decay=1e-4, SGD=True, learning_rate=0.1,
-                                n_epochs=100,
-                                save_path=model_dir_from_default, model_name="bf_std_model_no_preprocess_retrained")
+        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
+        model_path = train.train_seg(model_bf_stdproject.net,
+                                    train_data=images_training,
+                                    train_labels=labels_training,
+                                    test_data=images_testing,
+                                    test_labels=labels_testing,
+                                    channels=[0,0],
+                                    normalize=True,
+                                    weight_decay=weight_decay,
+                                    SGD=sgd,
+                                    learning_rate=learning_rate,
+                                    n_epochs=n_epochs,
+                                    save_path=model_dir_Goutham_retrain,
+                                    model_name=Goutham_finetuned_model_name)
 
-    model_nuclei_original_finetuned = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+    if train_from_base_cellpose_nuclei_model:
+        # fine-tune the basic CellPose nuclei model
+        model_dir_from_default = model_dir / 'CellPose_default_nuclei_model_finetuning'
+        model_dir_from_default.mkdir(exist_ok=True)
+        labelfree_nuc_pred_from_default_model_name = f"labelfree_nuc_pred_{timestamp}"
+        model_name_list.append(labelfree_nuc_pred_from_default_model_name)
 
-    test_img_path = Path(get_original_path('20241120_20X'))
-    test_img_bf_chan = get_dataset_info('20241120_20X')['brightfield_channel_index']
-    test_img = BioImage(test_img_path)
-    test_img_dask_arr = test_img.get_image_dask_data(dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
-    test_img_arr = test_img_dask_arr.compute().squeeze()
-    test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=-3.0)
+        model_nuclei_original = models.CellposeModel(gpu=gpu, model_type='nuclei')
 
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-    image_rescaled = rescale_intensity(np.clip(test_img_arr,
-                                            a_min=np.percentile(test_img_arr, 1),
-                                            a_max=np.percentile(test_img_arr, 99)),
-                                    out_range=(0,1))
-    ax[0].imshow(image_rescaled, cmap='gray')
-    ax[0].set_title('BF STD')
-    ax[1].imshow(label2rgb(test_prediction))
-    ax[1].set_title('Watershed')
-    overlay = label2rgb(label=test_prediction, image=image_rescaled, bg_label=0)
-    ax[2].imshow(overlay)
-    [ax.set_axis_off() for ax in ax]
-    plt.tight_layout()
-    plt.show()
+        model_path = train.train_seg(model_nuclei_original.net,
+                                    train_data=images_training,
+                                    train_labels=labels_training,
+                                    test_data=images_testing,
+                                    test_labels=labels_testing,
+                                    channels=[0,0],
+                                    normalize=True,
+                                    weight_decay=weight_decay,
+                                    SGD=sgd,
+                                    learning_rate=learning_rate,
+                                    n_epochs=n_epochs,
+                                    save_path=model_dir_from_default,
+                                    model_name=labelfree_nuc_pred_from_default_model_name)
 
-if show_watershed_segmentations:
-    for i in range(len(images)):
-        fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-        image_rescaled = rescale_intensity(np.clip(images[i],
-                                                a_min=np.percentile(images[i], 1),
-                                                a_max=np.percentile(images[i], 99)),
-                                        out_range=(0,1))
-        ax[0].imshow(image_rescaled, cmap='gray')
-        ax[0].set_title('BF STD')
-        ax[1].imshow(label2rgb(labels[i]))
-        ax[1].set_title('Watershed')
-        overlay = label2rgb(label=labels[i], image=image_rescaled, bg_label=0)
-        ax[2].imshow(overlay)
-        [ax.set_axis_off() for ax in ax]
-        plt.tight_layout()
-        plt.show()
+    # generate plots of the training and test losses
+    if any(model_name_list):
+        train_losses, test_losses, time_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
+        for model_name in model_name_list:
+            fig, ax = plt.subplots(nrows=1, ncols=1)
+            ax.plot(time_list[model_name], train_losses[model_name], label='train_loss')
+            ax.plot(time_list[model_name], test_losses[model_name], label='test_loss')
+            ax.set_title(f'{model_name} training and test losses')
+            ax.set_xlabel('epochs')
+            ax.set_ylabel('loss')
+            ax.legend()
+            plt.tight_layout()
+            fig.savefig(model_dir / f'{model_name}_training_test_losses.png', bbox_inches='tight', pad_inches=0, dpi=180)
+            plt.close(fig)
+
+
+# MIGHT DELETE THESE 2 BLOCKS LATER
+
+# model_nuclei_original_finetuned = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+
+# test_img_path = Path(get_original_path('20241120_20X'))
+# test_img_bf_chan = get_dataset_info('20241120_20X')['brightfield_channel_index']
+# test_img = BioImage(test_img_path)
+# test_img_dask_arr = test_img.get_image_dask_data(dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
+# test_img_arr = test_img_dask_arr.compute().squeeze()
+# test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=-3.0)
+
+# fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+# image_rescaled = rescale_intensity(np.clip(test_img_arr,
+#                                         a_min=np.percentile(test_img_arr, 1),
+#                                         a_max=np.percentile(test_img_arr, 99)),
+#                                 out_range=(0,1))
+# ax[0].imshow(image_rescaled, cmap='gray')
+# ax[0].set_title('BF STD')
+# ax[1].imshow(label2rgb(test_prediction))
+# ax[1].set_title('Watershed')
+# overlay = label2rgb(label=test_prediction, image=image_rescaled, bg_label=0)
+# ax[2].imshow(overlay)
+# [ax.set_axis_off() for ax in ax]
+# plt.tight_layout()
+# plt.show()
+
+# if show_watershed_segmentations:
+#     for i in range(len(images)):
+#         fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+#         image_rescaled = rescale_intensity(np.clip(images[i],
+#                                                 a_min=np.percentile(images[i], 1),
+#                                                 a_max=np.percentile(images[i], 99)),
+#                                         out_range=(0,1))
+#         ax[0].imshow(image_rescaled, cmap='gray')
+#         ax[0].set_title('BF STD')
+#         ax[1].imshow(label2rgb(labels[i]))
+#         ax[1].set_title('Watershed')
+#         overlay = label2rgb(label=labels[i], image=image_rescaled, bg_label=0)
+#         ax[2].imshow(overlay)
+#         [ax.set_axis_off() for ax in ax]
+#         plt.tight_layout()
+#         plt.show()
