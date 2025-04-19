@@ -4,7 +4,7 @@ from bioio_base.types import PhysicalPixelSizes
 from cellpose import core, models, train
 from cellpose.io import logger_setup
 from cellsmap.util import get_sldy_metadata as sldmd
-from cellsmap.util.dataset_io import get_dataset_info, get_original_path, get_zarr_path, load_dataset, load_config
+from cellsmap.util.dataset_io import get_dataset_info, get_original_path, get_zarr_path, load_dataset, load_config, ipython_cli_flexecute
 from cellsmap.util.general_image_preprocessing import get_default_dim_order, get_dim_map, build_analysis_queue, save_image_output
 from cellsmap.util.set_output import get_output_path
 import numpy as np
@@ -179,7 +179,7 @@ def generate_training_data(analysis_args):
     position = analysis_args['position']
     T = analysis_args['T']
     out_dir_val = analysis_args['output_dir'] / f'training_data/validation_overlays/{dataset_name}/'
-    out_dir_nuclei = analysis_args['output_dir'] / f'training_data/cellpose_base_nuclei_model_nuclei_max/{dataset_name}/'
+    out_dir_nuclei = analysis_args['output_dir'] / f'training_data/cellpose_base_nuclei_model_nuclei_max/'
     out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=['images','labels'])
     save_training_data = analysis_args['save_output']
     save_validation_images = analysis_args['validation_image']
@@ -415,7 +415,7 @@ def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, trai
             plt.close(fig)
 
 if __name__ == '__main__':
-    main()
+    ipython_cli_flexecute(main)
 
 # MIGHT DELETE THESE 2 BLOCKS LATER
 
