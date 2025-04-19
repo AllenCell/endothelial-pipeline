@@ -186,7 +186,7 @@ def generate_training_data(analysis_args):
 
     nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
 
-    if scene_name in get_scenes_to_use(dataset_name):
+    if scene_name in get_scenes_to_use()[dataset_name]:
         print(f'Working on {dataset_name} P{position} {scene_name}...')
         pass
     else:
