@@ -185,6 +185,7 @@ def generate_training_data(analysis_args):
     save_validation_images = analysis_args['validation_image']
     verbose = analysis_args['verbose']
 
+    print ('loading CellPose model...') if verbose else None
     nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
 
     if scene_name in get_scenes_to_use()[dataset_name]:
@@ -194,6 +195,7 @@ def generate_training_data(analysis_args):
         print(f'{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.') if verbose else None
         return
 
+    print ('loading image data...') if verbose else None
     if use_original_data:
         img_dask_arrs, image_metadata = get_image_data_from_original(dataset_name, scene_name, T)
         voxel_size = sldmd.get_voxel_size(image_metadata)
@@ -202,13 +204,16 @@ def generate_training_data(analysis_args):
         return # zarrs not yet implemented
         # img_dask_arrs = get_image_data_from_zarr(dataset_name)
 
+    print('processing image data...') if verbose else None
     nuc_max, bf_std = img_dask_arrs
     nuc_max = nuc_max.compute().squeeze()
     bf_std = bf_std.compute().squeeze()
     normd_nuc = rescale_intensity(nuc_max, out_range=np.uint16)
     normd_nuc_clipped = rescale_intensity(np.clip(normd_nuc, 0, np.percentile(normd_nuc,99)), out_range=(0,1))
+    print('generating segmentations with CellPose model...') if verbose else None
     seg, flows, styles = nuc_model.eval(normd_nuc_clipped, channels=[0,0], min_size=500, flow_threshold=0.6, cellprob_threshold=-3.0)
 
+    print ('saving images...') if verbose else None
     if save_validation_images:
         # create an overlay to quickly check the accuracy of the Cellpose predictions
         # from NucViolet
@@ -296,7 +301,7 @@ def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
     return (images_paths, labels_paths)
 
 
-def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True):
+def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True, verbose=False):
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
