@@ -182,7 +182,7 @@ def generate_training_data(analysis_args):
     out_dir_nuclei = analysis_args['output_dir'] / f'training_data/cellpose_base_nuclei_model_nuclei_max/{dataset_name}/'
     out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=['images','labels'])
     save_training_data = analysis_args['save_output']
-    save_validation_images = analysis_args['create_validation_image']
+    save_validation_images = analysis_args['validation_image']
 
     nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
 
