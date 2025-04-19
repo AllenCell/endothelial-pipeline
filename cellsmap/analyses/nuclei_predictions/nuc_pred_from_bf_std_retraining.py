@@ -183,14 +183,15 @@ def generate_training_data(analysis_args):
     out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=['images','labels'])
     save_training_data = analysis_args['save_output']
     save_validation_images = analysis_args['validation_image']
+    verbose = analysis_args['verbose']
 
     nuc_model = models.CellposeModel(gpu=False, model_type='nuclei')
 
     if scene_name in get_scenes_to_use()[dataset_name]:
-        print(f'Working on {dataset_name} P{position} {scene_name}...')
+        print(f'Working on {dataset_name} P{position} {scene_name}...') if verbose else None
         pass
     else:
-        print(f'{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.')
+        print(f'{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.') if verbose else None
         return
 
     if use_original_data:
