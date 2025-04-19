@@ -265,9 +265,9 @@ def generate_training_data(analysis_args):
     return
 
 
-def get_training_data(analysis_queue, generate_training_data=False, n_proc=1):
+def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
 
-    if generate_training_data:
+    if create_training_data:
         if __name__ == '__main__':
             if n_proc > 1:
                 with Pool(n_proc) as pool:
@@ -296,7 +296,7 @@ def get_training_data(analysis_queue, generate_training_data=False, n_proc=1):
     return (images_paths, labels_paths)
 
 
-def main(n_proc=1, generate_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True):
+def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True):
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
@@ -312,7 +312,7 @@ def main(n_proc=1, generate_training_data=True, retrain_Gouthams_model=False, tr
     # Generate ground truths from nuclei labeled with DAPI
     # using the Cellpose base nuclei model
     images_paths, labels_paths = get_training_data(analysis_queue,
-                                                   generate_training_data=generate_training_data,
+                                                   create_training_data=create_training_data,
                                                    n_proc=n_proc)
 
     # split the images and labels into training and testing sets
