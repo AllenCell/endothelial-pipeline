@@ -296,7 +296,7 @@ def get_training_data(analysis_queue, generate_training_data=False, n_proc=1):
     return (images_paths, labels_paths)
 
 
-def main(n_proc=1, generate_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=False, use_original_data=True):
+def main(n_proc=1, generate_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True):
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
@@ -414,6 +414,8 @@ def main(n_proc=1, generate_training_data=True, retrain_Gouthams_model=False, tr
             fig.savefig(model_dir / f'{model_name}_training_test_losses.png', bbox_inches='tight', pad_inches=0, dpi=180)
             plt.close(fig)
 
+if __name__ == '__main__':
+    main()
 
 # MIGHT DELETE THESE 2 BLOCKS LATER
 

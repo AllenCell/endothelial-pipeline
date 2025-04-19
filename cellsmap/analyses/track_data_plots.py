@@ -1,4 +1,57 @@
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from cellsmap.util.dataset_io import get_tracking_data_filtered, get_measurement_data_raws, load_config, get_cdh5_classic_segmentation_path, get_dataset_info, ipython_cli_flexecute
+from cellsmap.util.set_output import get_output_path
+from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue
+from bioio import BioImage
+from skimage import measure
+from skimage.color import label2rgb
+from skimage.exposure import rescale_intensity
+from skimage.segmentation import find_boundaries
+from multiprocessing import Pool
+from tqdm import tqdm
 
+
+
+
+dataset_name = '20250227_40X'
+
+out_dir = Path(get_output_path(Path(__file__).stem))
+out_dir.mkdir(parents=True, exist_ok=True)
+
+tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
+segprops_df = get_measurement_data_raws([dataset_name],
+                                        kind='segmentation_properties',
+                                        as_dask=False)
+alignments_df = get_measurement_data_raws([dataset_name],
+                                           kind='alignments',
+                                           as_dask=False)
+
+# NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
+out_path_tracks = out_dir / f'tracking_data.tsv'
+out_path_segprops = out_dir / f'segmentation_properties.tsv'
+out_path_alignments = out_dir / f'alignments.tsv'
+
+tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
+segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
+alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
+
+tracking_df = pd.read_csv(out_path_tracks, sep='\t')
+segprops_df = pd.read_csv(out_path_segprops, sep='\t')
+alignments_df = pd.read_csv(out_path_alignments, sep='\t')
+# END OF TEST CODE
+
+
+
+
+
+
+
+# IMPORTANT NOTE:
+# ALL CODE BELOW IS FROM THE OLD TRACKING VALIDATION SCRIPT
+# AND SHOULD BE REVIEWED AND RE-IMPLEMENTED HERE AS DESIRED
 
     # # create another subset of the data that has very long tracks
     # very_long_track_threshold = 120
@@ -23,288 +76,288 @@
 
 
 
-# tracking_results_long_tracks_all = []
-# for dataset_name in dataset_name_list:
-#     print(f'\n\nWorking on: {dataset_name}')
+# # tracking_results_long_tracks_all = []
+# # for dataset_name in dataset_name_list:
+# #     print(f'\n\nWorking on: {dataset_name}')
 
-    # tracking_results_long_tracks['num_tracks'] = tracking_results_long_tracks.groupby('T')['track_id'].transform('nunique')
+#     # tracking_results_long_tracks['num_tracks'] = tracking_results_long_tracks.groupby('T')['track_id'].transform('nunique')
 
-    # Make and save plots
-    make_and_save_plots = False
-    if make_and_save_plots:
-        out_dir_plots_areas = out_dir / f'{dataset_name}/areas_vs_time'
-        Path.mkdir(out_dir_plots_areas, parents=True, exist_ok=True)
-        # count = 0
-        for nm, grp in tracking_results_long_tracks.groupby('track_id'):
-            print(f'track_id: {nm}, first timepoint: {grp["T"].min()}, last timepoint: {grp["T"].max()}')
-            skipped_frames = [t for t in range(grp['T'].min(), grp['T'].max()) if t not in grp['T'].values]
-            fig, ax = plt.subplots()
-            sns.lineplot(x='T', y='area_normd', data=grp, marker='o', c='k', ax=ax)
-            [ax.axvline(frame, c='lightgrey', ls='--', zorder=0) for frame in skipped_frames]
-            ax.set_ylim(0, round(grp['area_normd'].max() + 0.5))
-            ax.set_ylabel('Normalized area')
-            ax.set_xlabel('Timepoint')
-            ax.set_title(f'track_id {nm}')
-            fig.savefig(out_dir_plots_areas / f'track_id_{nm}_area_normd_vs_time.png', dpi=80)
-            plt.close(fig)
+#     # Make and save plots
+#     make_and_save_plots = False
+#     if make_and_save_plots:
+#         out_dir_plots_areas = out_dir / f'{dataset_name}/areas_vs_time'
+#         Path.mkdir(out_dir_plots_areas, parents=True, exist_ok=True)
+#         # count = 0
+#         for nm, grp in tracking_results_long_tracks.groupby('track_id'):
+#             print(f'track_id: {nm}, first timepoint: {grp["T"].min()}, last timepoint: {grp["T"].max()}')
+#             skipped_frames = [t for t in range(grp['T'].min(), grp['T'].max()) if t not in grp['T'].values]
+#             fig, ax = plt.subplots()
+#             sns.lineplot(x='T', y='area_normd', data=grp, marker='o', c='k', ax=ax)
+#             [ax.axvline(frame, c='lightgrey', ls='--', zorder=0) for frame in skipped_frames]
+#             ax.set_ylim(0, round(grp['area_normd'].max() + 0.5))
+#             ax.set_ylabel('Normalized area')
+#             ax.set_xlabel('Timepoint')
+#             ax.set_title(f'track_id {nm}')
+#             fig.savefig(out_dir_plots_areas / f'track_id_{nm}_area_normd_vs_time.png', dpi=80)
+#             plt.close(fig)
 
-            # count += 1
-            # if count > 20:
-            #     break
+#             # count += 1
+#             # if count > 20:
+#             #     break
 
-    # Add the filtered tracking results to a master list:
-    tracking_results_long_tracks_all.append(tracking_results_long_tracks)
-
-
-
-for dataset_name, grp in tracking_results_long_tracks_all.groupby('dataset_name'):
-    print(f"{dataset_name:<20} {grp['track_id'].nunique()}")
-
-
-# NOTE: below is some code to explore the filtered tracking results
-run_exploration_code = False
-if run_exploration_code:
-    # NOTE: the .groubpy code below needs to be changed to groupby dataset_name too
-    sns.lineplot(x='T', y='track_duration', data=tracking_results_long_tracks)
-
-    fig, ax = plt.subplots()
-    sns.scatterplot(x='T', y='num_tracks', data=tracking_results_long_tracks, marker='.', lw=0, ax=ax)
-    sns.scatterplot(x='T', y='num_tracks_before_filtering', data=tracking_results, marker='.', lw=0, ax=ax)
-
-    fig, ax = plt.subplots()
-    sns.histplot(tracking_results_long_tracks['track_duration'], binwidth=5, ax=ax)
-
-    plt.close(fig)
-
-    fig, ax = plt.subplots()
-    ax.set_xlim(-0.01,1.01)
-    ax.set_ylim(-np.pi, np.pi)
-    for nm, grp in tracking_results_long_tracks.groupby('track_id'):
-        sns.lineplot(x='eccentricity', y='orientation', hue='T', data=grp, palette='turbo', marker='.', lw=1, ls='-', ax=ax)
-        break
-
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='polar')
-    sns.scatterplot(x='orientation', y='eccentricity', hue='T', data=tracking_results_long_tracks.query('T > 500'),
-                    palette='viridis', marker='.', alpha=0.3, ax=ax)
-    ax.set_xlim(0, np.pi/2)
-    plt.show()
-    plt.close(fig)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='polar')
-    sns.scatterplot(x='orientation', y='eccentricity', hue='T', data=tracking_results_long_tracks.query('track_duration > 300'),
-                    palette='viridis', marker='.', alpha=0.3, ax=ax)
-    ax.set_xlim(0, np.pi/2)
-    plt.show()
-    plt.close(fig)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='polar')
-    sns.scatterplot(x='orientation', y='eccentricity', hue='track_id', data=tracking_results_long_tracks,
-                    palette='viridis', marker='.', ax=ax)
-    ax.set_xlim(0, np.pi/2)
-    plt.show()
-    plt.close(fig)
-
-    groups = tracking_results_long_tracks.groupby('track_id')
-    # for nm, grp in groups:
-    unique_track_ids = tracking_results_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids)):
-        grp = tracking_results_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='polar')
-        # ax = fig.add_subplot()
-        # sns.lineplot(x='orientation', y='eccentricity', color='k', lw=1, data=grp, ax=ax, zorder=1)
-        sns.scatterplot(x='orientation', y='eccentricity', hue='T', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
-        ax.set_xlim(0, np.pi/2)
-        plt.show()
-        plt.close(fig)
-
-        if i > 10: break
-
-    # groups.plot(x='eccentricity', y='orientation', hue='T', palette='turbo', marker='.', lw=0, ls='-', legend=False)
-
-    tracking_results_long_tracks.keys()
-
-
-    groups = tracking_results_super_long_tracks.groupby('track_id')
-    # for nm, grp in groups:
-    unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids)):
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='polar')
-        # ax = fig.add_subplot()
-        # sns.lineplot(x='orientation', y='eccentricity', color='k', lw=1, data=grp, ax=ax, zorder=1)
-        sns.scatterplot(x='orientation', y='eccentricity', hue='T', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
-        ax.set_xlim(0, np.pi/2)
-        plt.show()
-        plt.close(fig)
-
-        if i > 10: break
-
-
-    for i in range(len(unique_track_ids))[10:20]:
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-        flow_switch_T = 245
-
-        fig = plt.figure()
-        ax = fig.add_subplot()
-        # ax = fig.add_subplot()
-        sns.lineplot(x='T', y='orientation', color='k', lw=1, data=grp, ax=ax, zorder=1)
-        sns.scatterplot(x='T', y='orientation', hue='eccentricity', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
-        ax.axvline(flow_switch_T, c='lightgrey', ls='--')
-        ax.set_ylim(0, np.pi/2 + 0.05)
-        ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
-        plt.show()
-        plt.close(fig)
+#     # Add the filtered tracking results to a master list:
+#     tracking_results_long_tracks_all.append(tracking_results_long_tracks)
 
 
 
-    # below will create 3d plots of the orientation and eccentricity of the tracks over time
-    unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids))[:20]:
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-        flow_switch_T = 245
-        # flow_switch_x, flow_switch_y, flow_switch_z 
-        flow_switch_pt = list(zip(*grp.query('T == @flow_switch_T')[['T', 'orientation', 'eccentricity']].values.tolist()))
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        # ax = fig.add_subplot()
-        ax.plot(xs=grp['T'], ys=grp['orientation'], zs=grp['eccentricity'], color='k', lw=1, zorder=1)
-        ax.scatter(xs=grp['T'], ys=grp['orientation'], zs=grp['eccentricity'], color='tab:blue', marker='.', zorder=5)
-        if flow_switch_pt: ax.scatter(*flow_switch_pt, c='tab:red', ls='--')
-        ax.set_ylim(0, np.pi/2 + 0.05)
-        ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
-        ax.set_xlabel('Timepoint')
-        ax.set_ylabel('Orientation')
-        ax.set_zlabel('Eccentricity')
-        plt.tight_layout()
-        plt.show()
-        # plt.close(fig)
-
-        if i > 5: break
-
-    # NOTE: QUESTIONS:
-    # - do single tracks have less variation in either orientation or eccentricity
-        # during low flow than they do during high flow?
-        # - what about right after the transition vs. late after the transition?
-    # - how accurate are the long tracks?
-    # - are the edges of cells as mobile under high flow as they are under low Flow?
-    # - how does the migration velocity of each cell according to the centroid change?
-    # TODO:
-    # - is there a correlation between the standard deviation in the velocity of the
-        # centroid (or the optical flow velocities) and time? I would expect yes.
-        # - should try splitting up the data into 3 bins:
-            # 1. T < flow switch,
-            # 2. flow switch < T < flow switch + 12hrs,
-            # 3. T > flow switch + 12hrs
-
-    flow_switch_T = 245
-    tracking_results_long_tracks['flow_state'] = tracking_results_long_tracks['T'].transform(lambda t: 'before' if t < flow_switch_T else 'after')
-    tracking_results_long_tracks.groupby('flow_state')['centroid_displacement'].std()
-    tracking_results_long_tracks.groupby('flow_state')['centroid_displacement'].median()
-    tracking_results_long_tracks.groupby('flow_state')['eccentricity'].std()
-    tracking_results_long_tracks.groupby('flow_state')['eccentricity'].median()
+# for dataset_name, grp in tracking_results_long_tracks_all.groupby('dataset_name'):
+#     print(f"{dataset_name:<20} {grp['track_id'].nunique()}")
 
 
+# # NOTE: below is some code to explore the filtered tracking results
+# run_exploration_code = False
+# if run_exploration_code:
+#     # NOTE: the .groubpy code below needs to be changed to groupby dataset_name too
+#     sns.lineplot(x='T', y='track_duration', data=tracking_results_long_tracks)
 
-    unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
-    for i in range(len(unique_track_ids))[:20]:
-        # break
-        grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
-        flow_switch_T = 245
-        # set up diverging colormap such that the midpoint of the colormap is at flow_switch_T
-        palette_offset = TwoSlopeNorm(vcenter=flow_switch_T)
-        # flow_switch_x, flow_switch_y, flow_switch_z 
-        flow_switch_pt = list(zip(*grp.query('T == @flow_switch_T')[['T', 'centroid_displacement']].values.tolist()))
+#     fig, ax = plt.subplots()
+#     sns.scatterplot(x='T', y='num_tracks', data=tracking_results_long_tracks, marker='.', lw=0, ax=ax)
+#     sns.scatterplot(x='T', y='num_tracks_before_filtering', data=tracking_results, marker='.', lw=0, ax=ax)
 
-        fig = plt.figure()
-        # ax = fig.add_subplot()#(projection='3d')
-        # # ax = fig.add_subplot()
-        # ax.plot(grp['T'], grp['centroid_displacement'], color='k', lw=1, zorder=1)
-        # ax.scatter(grp['T'], grp['centroid_displacement'], color='tab:blue', marker='.', zorder=5)
-        # if flow_switch_pt: ax.scatter(*flow_switch_pt, c='tab:red', marker='.', zorder=10)
-        # # ax.set_ylim(0, np.pi/2 + 0.05)
-        # ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
-        # ax.set_xlabel('Timepoint')
-        # ax.set_ylabel('Centroid Displacement')
+#     fig, ax = plt.subplots()
+#     sns.histplot(tracking_results_long_tracks['track_duration'], binwidth=5, ax=ax)
 
-        ax2 = fig.add_subplot(projection='polar')
-        sns.scatterplot(x='centroid_velocity_angle_rel_to_horizontal', y='centroid_displacement', hue='T', palette='vanimo', hue_norm=palette_offset, data=grp, marker='.', alpha=0.7, ax=ax2)
-        ax2.set_ylabel('')
-        ax2.set_xlabel('')
-        # ax2.semilogy()
+#     plt.close(fig)
 
-        # ax3 = fig.add_subplot()
-        # # ax3.plot(grp['T'], np.rad2deg(grp['centroid_velocity_angle_rel_to_horizontal']), color='k', lw=1, zorder=1)
-        # ax3.scatter(grp['T'], np.rad2deg(grp['centroid_velocity_angle_rel_to_horizontal']), marker='.')
-        # if flow_switch_T: ax3.axvline(flow_switch_T, c='lightgrey', ls='--')
-
-        plt.tight_layout()
-        plt.show()
-        # plt.close(fig)
-
-        if i >= 5: break
-
-    # NOTE: the above plots show that the centroid velocity angles are quite spiky sometimes
-        # which makes me concerned that there are problems with the tracking, however it is
-        # also possible that the apparent spikiness is due to changes in the segmented region
-        # which confounds using the motion of the centroid as a proxy for cell migration
+#     fig, ax = plt.subplots()
+#     ax.set_xlim(-0.01,1.01)
+#     ax.set_ylim(-np.pi, np.pi)
+#     for nm, grp in tracking_results_long_tracks.groupby('track_id'):
+#         sns.lineplot(x='eccentricity', y='orientation', hue='T', data=grp, palette='turbo', marker='.', lw=1, ls='-', ax=ax)
+#         break
 
 
-    # TODO: will probably need a way to show the overlay of the region of interest on the
-    # raw imaging data -- not sure how to handle skipped / masked frames yet...
-    # regardless, will need space on Vast to save these validation files
+#     fig = plt.figure()
+#     ax = fig.add_subplot(projection='polar')
+#     sns.scatterplot(x='orientation', y='eccentricity', hue='T', data=tracking_results_long_tracks.query('T > 500'),
+#                     palette='viridis', marker='.', alpha=0.3, ax=ax)
+#     ax.set_xlim(0, np.pi/2)
+#     plt.show()
+#     plt.close(fig)
 
-    # NOTE SUSPICIOUS TRACK_IDS THAT MIGHT HAVE MULTIPLE AREAS (LINEPLOT HAS ERRORBARS):
-    # suspcious_track_ids = [
-    #     47, 106, 223, 269, 411,
-    #     # I haven't checked anything after track_id 411...
-    #     ]
+#     fig = plt.figure()
+#     ax = fig.add_subplot(projection='polar')
+#     sns.scatterplot(x='orientation', y='eccentricity', hue='T', data=tracking_results_long_tracks.query('track_duration > 300'),
+#                     palette='viridis', marker='.', alpha=0.3, ax=ax)
+#     ax.set_xlim(0, np.pi/2)
+#     plt.show()
+#     plt.close(fig)
 
-    # NOTE: Some test plots are below (to be removed if making PR):
-    # test = tracking_results_long_tracks[tracking_results_long_tracks['track_id'] == 411]
-    # test.query('T == 31')
-    # test.query('T == 32')
+#     fig = plt.figure()
+#     ax = fig.add_subplot(projection='polar')
+#     sns.scatterplot(x='orientation', y='eccentricity', hue='track_id', data=tracking_results_long_tracks,
+#                     palette='viridis', marker='.', ax=ax)
+#     ax.set_xlim(0, np.pi/2)
+#     plt.show()
+#     plt.close(fig)
+
+#     groups = tracking_results_long_tracks.groupby('track_id')
+#     # for nm, grp in groups:
+#     unique_track_ids = tracking_results_long_tracks['track_id'].unique()
+#     for i in range(len(unique_track_ids)):
+#         grp = tracking_results_long_tracks.query(f'track_id=={unique_track_ids[i]}')
+
+#         fig = plt.figure()
+#         ax = fig.add_subplot(projection='polar')
+#         # ax = fig.add_subplot()
+#         # sns.lineplot(x='orientation', y='eccentricity', color='k', lw=1, data=grp, ax=ax, zorder=1)
+#         sns.scatterplot(x='orientation', y='eccentricity', hue='T', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
+#         ax.set_xlim(0, np.pi/2)
+#         plt.show()
+#         plt.close(fig)
+
+#         if i > 10: break
+
+#     # groups.plot(x='eccentricity', y='orientation', hue='T', palette='turbo', marker='.', lw=0, ls='-', legend=False)
+
+#     tracking_results_long_tracks.keys()
 
 
-    # test = tracking_results_long_tracks.query('track_id == 15')
+#     groups = tracking_results_super_long_tracks.groupby('track_id')
+#     # for nm, grp in groups:
+#     unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
+#     for i in range(len(unique_track_ids)):
+#         grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
 
-    # test['area_normd1'] = test['area'] / test.groupby('track_id')['area'].transform('median')
-    # test['area_smoothed'] = test.groupby('track_id')['area'].transform(gaussian_filter1d, sigma=2)
-    # test['area_normd2'] = test['area'] / test['area_smoothed']
+#         fig = plt.figure()
+#         ax = fig.add_subplot(projection='polar')
+#         # ax = fig.add_subplot()
+#         # sns.lineplot(x='orientation', y='eccentricity', color='k', lw=1, data=grp, ax=ax, zorder=1)
+#         sns.scatterplot(x='orientation', y='eccentricity', hue='T', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
+#         ax.set_xlim(0, np.pi/2)
+#         plt.show()
+#         plt.close(fig)
 
-    # fig, ax = plt.subplots()
-    # ax.plot(test['T'], test['area_normd1'], marker='.')
-    # ax.plot(test['T'], test['area_normd2'], marker='.', ls='--', c='tab:orange')
-    # ax.axhline(1, c='grey', ls='--')
-    # ax.axvline(0, c='k', ls='--')
-    # ax.axvline(1, c='k', ls='--')
-
-    # fig, ax = plt.subplots()
-    # ax.plot(test['T'], test['area'], marker='.')
-    # ax.plot(test['T'], test['area_smoothed'], marker='.', ls='--', c='tab:orange')
-    # ax.axvline(0, c='k', ls='--')
-    # ax.axvline(1, c='k', ls='--')
+#         if i > 10: break
 
 
-    # test['area_normd_diff'] = test['area_normd'].transform(lambda x: np.diff(x, prepend=np.nan))
-    # test['area_normd_diff'] = test['area_normd'].transform('diff')
-    # test['area_normd_diff'] = np.diff(test['area_normd'], prepend=np.nan)
-    # # test = test[(test['area_normd_diff'] < fold_change) + test['area_normd_diff'].transform(np.isnan)]
-    # test = test[(test['area_normd_diff'] > (-1 * fold_change)) + test['area_normd_diff'].transform(np.isnan)].copy()
-    # test = test[(test['area_normd_diff'] < fold_change) + test['area_normd_diff'].transform(np.isnan)].copy()
+#     for i in range(len(unique_track_ids))[10:20]:
+#         grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
+#         flow_switch_T = 245
 
-    # fig, ax = plt.subplots()
-    # ax.plot(test['T'], test['area_normd'], marker='.')
-    # ax2 = ax.twinx()
-    # ax2.plot(test['T'], test['area_normd_diff'], marker='.', ls='--', c='tab:orange')
-    # ax.axvline(0, c='k', ls='--')
-    # ax.axvline(1, c='k', ls='--')
-    # ax2.axhline(0, c='tab:orange', ls=':', alpha=0.3)
+#         fig = plt.figure()
+#         ax = fig.add_subplot()
+#         # ax = fig.add_subplot()
+#         sns.lineplot(x='T', y='orientation', color='k', lw=1, data=grp, ax=ax, zorder=1)
+#         sns.scatterplot(x='T', y='orientation', hue='eccentricity', palette='Spectral', marker='.', data=grp, ax=ax, zorder=5)
+#         ax.axvline(flow_switch_T, c='lightgrey', ls='--')
+#         ax.set_ylim(0, np.pi/2 + 0.05)
+#         ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
+#         plt.show()
+#         plt.close(fig)
+
+
+
+#     # below will create 3d plots of the orientation and eccentricity of the tracks over time
+#     unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
+#     for i in range(len(unique_track_ids))[:20]:
+#         grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
+#         flow_switch_T = 245
+#         # flow_switch_x, flow_switch_y, flow_switch_z 
+#         flow_switch_pt = list(zip(*grp.query('T == @flow_switch_T')[['T', 'orientation', 'eccentricity']].values.tolist()))
+
+#         fig = plt.figure()
+#         ax = fig.add_subplot(projection='3d')
+#         # ax = fig.add_subplot()
+#         ax.plot(xs=grp['T'], ys=grp['orientation'], zs=grp['eccentricity'], color='k', lw=1, zorder=1)
+#         ax.scatter(xs=grp['T'], ys=grp['orientation'], zs=grp['eccentricity'], color='tab:blue', marker='.', zorder=5)
+#         if flow_switch_pt: ax.scatter(*flow_switch_pt, c='tab:red', ls='--')
+#         ax.set_ylim(0, np.pi/2 + 0.05)
+#         ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
+#         ax.set_xlabel('Timepoint')
+#         ax.set_ylabel('Orientation')
+#         ax.set_zlabel('Eccentricity')
+#         plt.tight_layout()
+#         plt.show()
+#         # plt.close(fig)
+
+#         if i > 5: break
+
+#     # NOTE: QUESTIONS:
+#     # - do single tracks have less variation in either orientation or eccentricity
+#         # during low flow than they do during high flow?
+#         # - what about right after the transition vs. late after the transition?
+#     # - how accurate are the long tracks?
+#     # - are the edges of cells as mobile under high flow as they are under low Flow?
+#     # - how does the migration velocity of each cell according to the centroid change?
+#     # TODO:
+#     # - is there a correlation between the standard deviation in the velocity of the
+#         # centroid (or the optical flow velocities) and time? I would expect yes.
+#         # - should try splitting up the data into 3 bins:
+#             # 1. T < flow switch,
+#             # 2. flow switch < T < flow switch + 12hrs,
+#             # 3. T > flow switch + 12hrs
+
+#     flow_switch_T = 245
+#     tracking_results_long_tracks['flow_state'] = tracking_results_long_tracks['T'].transform(lambda t: 'before' if t < flow_switch_T else 'after')
+#     tracking_results_long_tracks.groupby('flow_state')['centroid_displacement'].std()
+#     tracking_results_long_tracks.groupby('flow_state')['centroid_displacement'].median()
+#     tracking_results_long_tracks.groupby('flow_state')['eccentricity'].std()
+#     tracking_results_long_tracks.groupby('flow_state')['eccentricity'].median()
+
+
+
+#     unique_track_ids = tracking_results_super_long_tracks['track_id'].unique()
+#     for i in range(len(unique_track_ids))[:20]:
+#         # break
+#         grp = tracking_results_super_long_tracks.query(f'track_id=={unique_track_ids[i]}')
+#         flow_switch_T = 245
+#         # set up diverging colormap such that the midpoint of the colormap is at flow_switch_T
+#         palette_offset = TwoSlopeNorm(vcenter=flow_switch_T)
+#         # flow_switch_x, flow_switch_y, flow_switch_z 
+#         flow_switch_pt = list(zip(*grp.query('T == @flow_switch_T')[['T', 'centroid_displacement']].values.tolist()))
+
+#         fig = plt.figure()
+#         # ax = fig.add_subplot()#(projection='3d')
+#         # # ax = fig.add_subplot()
+#         # ax.plot(grp['T'], grp['centroid_displacement'], color='k', lw=1, zorder=1)
+#         # ax.scatter(grp['T'], grp['centroid_displacement'], color='tab:blue', marker='.', zorder=5)
+#         # if flow_switch_pt: ax.scatter(*flow_switch_pt, c='tab:red', marker='.', zorder=10)
+#         # # ax.set_ylim(0, np.pi/2 + 0.05)
+#         # ax.set_xlim(grp['T'].min()-3, grp['T'].max()+3)
+#         # ax.set_xlabel('Timepoint')
+#         # ax.set_ylabel('Centroid Displacement')
+
+#         ax2 = fig.add_subplot(projection='polar')
+#         sns.scatterplot(x='centroid_velocity_angle_rel_to_horizontal', y='centroid_displacement', hue='T', palette='vanimo', hue_norm=palette_offset, data=grp, marker='.', alpha=0.7, ax=ax2)
+#         ax2.set_ylabel('')
+#         ax2.set_xlabel('')
+#         # ax2.semilogy()
+
+#         # ax3 = fig.add_subplot()
+#         # # ax3.plot(grp['T'], np.rad2deg(grp['centroid_velocity_angle_rel_to_horizontal']), color='k', lw=1, zorder=1)
+#         # ax3.scatter(grp['T'], np.rad2deg(grp['centroid_velocity_angle_rel_to_horizontal']), marker='.')
+#         # if flow_switch_T: ax3.axvline(flow_switch_T, c='lightgrey', ls='--')
+
+#         plt.tight_layout()
+#         plt.show()
+#         # plt.close(fig)
+
+#         if i >= 5: break
+
+#     # NOTE: the above plots show that the centroid velocity angles are quite spiky sometimes
+#         # which makes me concerned that there are problems with the tracking, however it is
+#         # also possible that the apparent spikiness is due to changes in the segmented region
+#         # which confounds using the motion of the centroid as a proxy for cell migration
+
+
+#     # TODO: will probably need a way to show the overlay of the region of interest on the
+#     # raw imaging data -- not sure how to handle skipped / masked frames yet...
+#     # regardless, will need space on Vast to save these validation files
+
+#     # NOTE SUSPICIOUS TRACK_IDS THAT MIGHT HAVE MULTIPLE AREAS (LINEPLOT HAS ERRORBARS):
+#     # suspcious_track_ids = [
+#     #     47, 106, 223, 269, 411,
+#     #     # I haven't checked anything after track_id 411...
+#     #     ]
+
+#     # NOTE: Some test plots are below (to be removed if making PR):
+#     # test = tracking_results_long_tracks[tracking_results_long_tracks['track_id'] == 411]
+#     # test.query('T == 31')
+#     # test.query('T == 32')
+
+
+#     # test = tracking_results_long_tracks.query('track_id == 15')
+
+#     # test['area_normd1'] = test['area'] / test.groupby('track_id')['area'].transform('median')
+#     # test['area_smoothed'] = test.groupby('track_id')['area'].transform(gaussian_filter1d, sigma=2)
+#     # test['area_normd2'] = test['area'] / test['area_smoothed']
+
+#     # fig, ax = plt.subplots()
+#     # ax.plot(test['T'], test['area_normd1'], marker='.')
+#     # ax.plot(test['T'], test['area_normd2'], marker='.', ls='--', c='tab:orange')
+#     # ax.axhline(1, c='grey', ls='--')
+#     # ax.axvline(0, c='k', ls='--')
+#     # ax.axvline(1, c='k', ls='--')
+
+#     # fig, ax = plt.subplots()
+#     # ax.plot(test['T'], test['area'], marker='.')
+#     # ax.plot(test['T'], test['area_smoothed'], marker='.', ls='--', c='tab:orange')
+#     # ax.axvline(0, c='k', ls='--')
+#     # ax.axvline(1, c='k', ls='--')
+
+
+#     # test['area_normd_diff'] = test['area_normd'].transform(lambda x: np.diff(x, prepend=np.nan))
+#     # test['area_normd_diff'] = test['area_normd'].transform('diff')
+#     # test['area_normd_diff'] = np.diff(test['area_normd'], prepend=np.nan)
+#     # # test = test[(test['area_normd_diff'] < fold_change) + test['area_normd_diff'].transform(np.isnan)]
+#     # test = test[(test['area_normd_diff'] > (-1 * fold_change)) + test['area_normd_diff'].transform(np.isnan)].copy()
+#     # test = test[(test['area_normd_diff'] < fold_change) + test['area_normd_diff'].transform(np.isnan)].copy()
+
+#     # fig, ax = plt.subplots()
+#     # ax.plot(test['T'], test['area_normd'], marker='.')
+#     # ax2 = ax.twinx()
+#     # ax2.plot(test['T'], test['area_normd_diff'], marker='.', ls='--', c='tab:orange')
+#     # ax.axvline(0, c='k', ls='--')
+#     # ax.axvline(1, c='k', ls='--')
+#     # ax2.axhline(0, c='tab:orange', ls=':', alpha=0.3)
