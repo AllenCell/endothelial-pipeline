@@ -268,19 +268,18 @@ def generate_training_data(analysis_args):
 def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
 
     if create_training_data:
-        if __name__ == '__main__':
-            if n_proc > 1:
-                with Pool(n_proc) as pool:
-                    print('Starting multiprocessing...')
-                    tqdm(pool.imap(generate_training_data, analysis_queue, total=len(analysis_queue), desc='Training data images created'))
-                    pool.close()
-                    pool.join()
-                    print('Done multiprocessing.')
-            else:
-                print('Starting single processing...')
-                for analysis_args in tqdm(analysis_queue, total=len(analysis_queue), desc='Training data images created'):
-                    generate_training_data(analysis_args)
-                print('Done single processing.')
+        if n_proc > 1:
+            with Pool(n_proc) as pool:
+                print('Starting multiprocessing...')
+                tqdm(pool.imap(generate_training_data, analysis_queue, total=len(analysis_queue), desc='Training data images created'))
+                pool.close()
+                pool.join()
+                print('Done multiprocessing.')
+        else:
+            print('Starting single processing...')
+            for analysis_args in tqdm(analysis_queue, total=len(analysis_queue), desc='Training data images created'):
+                generate_training_data(analysis_args)
+            print('Done single processing.')
     else:
         pass
 
