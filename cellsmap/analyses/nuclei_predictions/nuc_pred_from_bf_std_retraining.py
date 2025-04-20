@@ -211,7 +211,11 @@ def generate_training_data(analysis_args):
     normd_nuc = rescale_intensity(nuc_max, out_range=np.uint16)
     normd_nuc_clipped = rescale_intensity(np.clip(normd_nuc, 0, np.percentile(normd_nuc,99)), out_range=(0,1))
     print('generating segmentations with CellPose model...') if verbose else None
-    seg, flows, styles = nuc_model.eval(normd_nuc_clipped, channels=[0,0], min_size=500, flow_threshold=0.6, cellprob_threshold=-3.0)
+    seg, flows, styles = nuc_model.eval(normd_nuc_clipped,
+                                        channels=[0,0],
+                                        min_size=500,
+                                        flow_threshold=0.6,
+                                        cellprob_threshold=-3.0)
 
     print ('saving images...') if verbose else None
     if save_validation_images:
