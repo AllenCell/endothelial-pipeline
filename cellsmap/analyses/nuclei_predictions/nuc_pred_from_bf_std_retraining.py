@@ -425,34 +425,41 @@ def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, trai
             fig.savefig(model_dir / f'{model_name}_training_test_losses.png', bbox_inches='tight', pad_inches=0, dpi=180)
             plt.close(fig)
 
+    # generate a test image to see how the model performs
+    # on a live example that it has never seen
+    model_nuclei_original_finetuned = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
+
+    default_dim_order = get_default_dim_order()
+    dim_map = get_dim_map(default_dim_order)
+
+    test_img_path = Path(get_original_path('20241120_20X'))
+    test_img_bf_chan = get_dataset_info('20241120_20X')['brightfield_channel_index']
+    test_img = BioImage(test_img_path)
+    test_img_dask_arr = test_img.get_image_dask_data(default_dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
+    test_img_arr = test_img_dask_arr.compute().squeeze()
+    test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=-3.0)
+
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+    image_rescaled = rescale_intensity(np.clip(test_img_arr,
+                                            a_min=np.percentile(test_img_arr, 1),
+                                            a_max=np.percentile(test_img_arr, 99)),
+                                    out_range=(0,1))
+    ax[0].imshow(image_rescaled, cmap='gray')
+    ax[0].set_title('BF STD')
+    ax[1].imshow(label2rgb(test_prediction))
+    ax[1].set_title('Nuclei Predictions')
+    overlay = label2rgb(label=test_prediction, image=image_rescaled, bg_label=0)
+    ax[2].imshow(overlay)
+    [ax.set_axis_off() for ax in ax]
+    plt.tight_layout()
+    fig.savefig(model_dir / f'{model_name}_test_image.png', bbox_inches='tight', pad_inches=0, dpi=180)
+    plt.close(fig)
+
 if __name__ == '__main__':
     ipython_cli_flexecute(main)
 
-# MIGHT DELETE THESE 2 BLOCKS LATER
 
-# model_nuclei_original_finetuned = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
-
-# test_img_path = Path(get_original_path('20241120_20X'))
-# test_img_bf_chan = get_dataset_info('20241120_20X')['brightfield_channel_index']
-# test_img = BioImage(test_img_path)
-# test_img_dask_arr = test_img.get_image_dask_data(dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
-# test_img_arr = test_img_dask_arr.compute().squeeze()
-# test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=-3.0)
-
-# fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-# image_rescaled = rescale_intensity(np.clip(test_img_arr,
-#                                         a_min=np.percentile(test_img_arr, 1),
-#                                         a_max=np.percentile(test_img_arr, 99)),
-#                                 out_range=(0,1))
-# ax[0].imshow(image_rescaled, cmap='gray')
-# ax[0].set_title('BF STD')
-# ax[1].imshow(label2rgb(test_prediction))
-# ax[1].set_title('Watershed')
-# overlay = label2rgb(label=test_prediction, image=image_rescaled, bg_label=0)
-# ax[2].imshow(overlay)
-# [ax.set_axis_off() for ax in ax]
-# plt.tight_layout()
-# plt.show()
+# MIGHT DELETE THIS BLOCK LATER
 
 # if show_watershed_segmentations:
 #     for i in range(len(images)):
