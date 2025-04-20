@@ -313,6 +313,7 @@ def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, trai
                                         image_validation_frequency = 1,
                                         overwrite=True,
                                         out_dir=out_dir,
+                                        verbose=verbose,
                                         )
 
     # Generate ground truths from nuclei labeled with DAPI
