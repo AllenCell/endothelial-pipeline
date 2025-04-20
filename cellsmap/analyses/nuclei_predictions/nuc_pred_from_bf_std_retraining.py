@@ -333,6 +333,7 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     # load the brightfield standard deviation projections as
     # the images and the  nuclei segmentations as the labels
     # from the testing and training data
+    print('Loading training and testing data...') if verbose else None
     dim_order = 'CYX'
     images_training = []
     images_testing = []
@@ -346,6 +347,7 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
         labels_testing.append(BioImage(labels_paths[i]).get_image_data(dim_order))
 
 
+    print('Beginning training...') if verbose else None
     sgd = True
     learning_rate = 0.1
     weight_decay = 1e-4
@@ -355,8 +357,16 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     # initiate the cellpose logger so that we
     # can extract the training and test losses
     logger_setup()
-
     timestamp = datetime.today().strftime('%Y%m%d-%H_%M')
+
+    # get the nuclei model path from the config file
+    model_config = load_config(config_type='model')
+    nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
+    assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
+    model_path = Path(nuclei_models[0]['model_path'])
+
+    # create a directory to save the models
+    # and their losses and a test image
     model_dir = model_path.parent / timestamp
     model_dir.mkdir(exist_ok=True, parents=True)
 
@@ -365,10 +375,6 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     if retrain_Gouthams_model:
         # retrain Goutham's Cellpose model
         model_dir_Goutham_retrain = model_dir / 'Goutham_model_finetuning'
-        model_config = load_config(config_type='model')
-        nuclei_models = [model for model in model_config if model['name'] == 'nuc_pred_labelfree']
-        assert len(nuclei_models) == 1, f'Expected 1 model path, found {len(nuclei_models)}'
-        model_path = Path(nuclei_models[0]['model_path'])
         Goutham_finetuned_model_name = f"bf_std_model_no_preprocess_retrained_{timestamp}"
         model_name_list.append(Goutham_finetuned_model_name)
 
