@@ -79,13 +79,10 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
     # run_log_filepath_new = Path(cell_cellpose_model_dir)/f'{model_name}_run.log'
     # shutil.move(run_log_filepath, run_log_filepath_new)
 
-    run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-    assert cellpose_model_dir.exists(), f"Cellpose model directory {cellpose_model_dir} does not exist"
-    run_log_filepath_new = Path(cellpose_model_dir) / 'run.log'
-    shutil.move(run_log_filepath, run_log_filepath_new)
+    run_log_filepath = Path(cellpose_model_dir) / 'run.log'
 
     pages = {}
-    with open(run_log_filepath_new) as run_log:
+    with open(run_log_filepath) as run_log:
         pg = {}
         for line in run_log:
             for model_name in model_name_list:
@@ -93,7 +90,7 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
                     if model_name and pg:
                         pages[model_name] = pg
                     model_name = model_name
-                    pg = {'train_losses': [], 'test_losses': [], 'time_list': []}
+                    pg = {'train_losses': [], 'test_losses': [], 'time_list': [], 'epochs': []}
                 else:
                     pass
 
@@ -102,24 +99,29 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
                         train_loss = re.findall('train_loss=\d+\.\d+', line)
                         test_loss = re.findall('test_loss=\d+\.\d+', line)
                         time = re.findall('time \d+\.\d+', line)
+                        epochs = re.findall('\[INFO\] \d+', line)
                         if train_loss:
                             pg['train_losses'].append([float(loss.split('train_loss=')[1]) for loss in train_loss][0])
                         if test_loss:
                             pg['test_losses'].append([float(loss.split('test_loss=')[1]) for loss in test_loss][0])
                         if time:
                             pg['time_list'].append([float(t.split('time ')[1]) for t in time][0])
+                        if epochs:
+                            pg['epochs'].append([int(epoch.split(' ')[-1]) for epoch in epochs][0])
             if model_name and pg:
                 pages[model_name] = pg
 
     train_losses = {}
     test_losses = {}
     time_list = {}
+    epoch_list = {}
     for model_name in model_name_list:
         train_losses[model_name] = pages[model_name]['train_losses']
         test_losses[model_name] = pages[model_name]['test_losses']
         time_list[model_name] = pages[model_name]['time_list']
+        epoch_list[model_name] = pages[model_name]['epochs']
 
-    return train_losses, test_losses, time_list
+    return train_losses, test_losses, time_list, epoch_list
 
 
 def get_image_data_from_original(dataset_name, scene, T, verbose=False):
@@ -416,19 +418,28 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
                                     save_path=model_dir_from_default,
                                     model_name=labelfree_nuc_pred_from_default_model_name)
 
+    # move the run.log file to the model directory for record keeping purposes
+    run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
+    assert model_dir.exists(), f"Cellpose model directory {model_dir} does not exist"
+    run_log_filepath_new = Path(model_dir) / 'run.log'
+    shutil.move(run_log_filepath, run_log_filepath_new)
+
     # generate plots of the training and test losses
     if any(model_name_list):
-        train_losses, test_losses, time_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
+        # load the training and test losses from the run.log file
+        train_losses, test_losses, time_list, epoch_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
+
+        # save the training and test losses to a file
         for model_name in model_name_list:
             fig, ax = plt.subplots(nrows=1, ncols=1)
-            ax.plot(time_list[model_name], train_losses[model_name], label='train_loss')
-            ax.plot(time_list[model_name], test_losses[model_name], label='test_loss')
+            ax.plot(epoch_list[model_name], train_losses[model_name], label='train_loss')
+            ax.plot(epoch_list[model_name], test_losses[model_name], label='test_loss')
             ax.set_title(f'{model_name} training and test losses')
-            ax.set_xlabel('epochs')
+            ax.set_xlabel('epoch')
             ax.set_ylabel('loss')
             ax.legend()
             plt.tight_layout()
-            fig.savefig(model_dir / f'{model_name}_training_test_losses.png', bbox_inches='tight', pad_inches=0, dpi=180)
+            fig.savefig(model_dir / f'{model_name}_training_test_losses.png', bbox_inches='tight', dpi=180)
             plt.close(fig)
 
     # generate a test image to see how the model performs
@@ -438,13 +449,19 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     default_dim_order = get_default_dim_order()
     dim_map = get_dim_map(default_dim_order)
 
+    # load the test image
     test_img_path = Path(get_original_path('20241120_20X'))
     test_img_bf_chan = get_dataset_info('20241120_20X')['brightfield_channel_index']
     test_img = BioImage(test_img_path)
     test_img_dask_arr = test_img.get_image_dask_data(default_dim_order, T=[0], C=test_img_bf_chan).std(axis=dim_map['Z'], keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()
-    test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=50, flow_threshold=0.6, cellprob_threshold=-3.0)
 
+    # run the model on the test image, we're going to be pretty
+    # generous with the flow and cellprob threshold settings
+    # just to see what is picked up
+    test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=500, flow_threshold=0, cellprob_threshold=-6.0)
+
+    # plot and save the resulting nuclei prediction
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     image_rescaled = rescale_intensity(np.clip(test_img_arr,
                                             a_min=np.percentile(test_img_arr, 1),
@@ -458,7 +475,7 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     ax[2].imshow(overlay)
     [ax.set_axis_off() for ax in ax]
     plt.tight_layout()
-    fig.savefig(model_dir / f'{model_name}_test_image.png', bbox_inches='tight', pad_inches=0, dpi=180)
+    fig.savefig(model_dir / f'{model_name}_test_image.png', bbox_inches='tight', dpi=180)
     plt.close(fig)
 
 if __name__ == '__main__':
