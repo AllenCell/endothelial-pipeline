@@ -43,6 +43,11 @@ segprops_df = pd.read_csv(out_path_segprops, sep='\t')
 alignments_df = pd.read_csv(out_path_alignments, sep='\t')
 # END OF TEST CODE
 
+# combine the tracking data with the segmentation properties data
+## first filter the segprops data to only include
+## what is also found in the tracking data
+
+
 
 
 

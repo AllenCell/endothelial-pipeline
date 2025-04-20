@@ -298,15 +298,15 @@ def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
     # that were created in the previous step
     images_dir, = get_training_data_output_dirs(kind=['images'])
     labels_dir, = get_training_data_output_dirs(kind=['labels'])
-    images_paths = [BioImage(filepath) for filepath in images_dir.glob('**/*.ome.tiff')]
-    labels_paths = [BioImage(filepath) for filepath in labels_dir.glob('**/*.ome.tiff')]
+    images_paths = [filepath for filepath in images_dir.glob('**/*.ome.tiff')]
+    labels_paths = [filepath for filepath in labels_dir.glob('**/*.ome.tiff')]
 
     assert len(images_paths) == len(labels_paths), f'Number of images ({len(images_paths)}) must equal number of labels ({len(labels_paths)})'
 
     return (images_paths, labels_paths)
 
 
-def main(n_proc=1, create_training_data=True, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True, verbose=False):
+def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True, verbose=False):
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
