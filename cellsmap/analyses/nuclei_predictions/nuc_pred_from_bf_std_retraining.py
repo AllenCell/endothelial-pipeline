@@ -276,9 +276,9 @@ def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
     if create_training_data:
         if __name__ == '__main__':
             if n_proc > 1:
-                with Pool(n_proc) as pool:
+                with Pool(processes=n_proc) as pool:
                     print('Starting multiprocessing...')
-                    tqdm(pool.imap(generate_training_data, analysis_queue), total=len(analysis_queue), desc='Training data images created')
+                    list(tqdm(pool.imap(generate_training_data, analysis_queue), total=len(analysis_queue), desc='Training data images created'))
                     pool.close()
                     pool.join()
                     print('Done multiprocessing.')
