@@ -70,8 +70,8 @@ def generate_and_save_validation_images(group):
         dim_order = 'TCZYX'
         dim_map = get_dim_map(dim_order)
 
-        print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
         seg = BioImage(seg_path)
+        print(f'- loading segmentation image {dataset_name} P{position} T{T} (shape {seg.shape})...')
         seg_arr = seg.get_image_dask_data(dim_order).squeeze().compute()
 
         print(f'- loading raw image {dataset_name} P{position} T{T}...')
