@@ -68,6 +68,7 @@ Nbins_KM = config['kramers_moyal']['Nbins']
 method = config['kramers_moyal']['method']
 kernel_params = config['kramers_moyal']['kernel_params']
 clip = kernel_params['clip']
+
 # %%
 ######## SINDY BASED REGRESSION ########
 # now fit model using multiple datasets
@@ -115,23 +116,18 @@ for ds_name in list_of_datasets:
             dX_list[i] = dX_list[i][mask]
 
         bins_, centers_ = rh.get_bins(Nbins_KM,data=X_list)
-        
+        if clip:
+            print("Clipping data to remove outliers")
+            kernel_params = rh.add_clip_bounds_to_dict(kernel_params,u_list[j])
+            idx0, idx1 = kernel_params['clip_bounds']
+            idx00, idx01 = idx0
+            idx10, idx11 = idx1
+
         f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method=method, kernel_params=kernel_params)
 
         if clip:
-            if u_list[j] < 6:
-                idx00, idx01, idx10, idx11 = config['clip_bound_dict']["low"]
-            elif u_list[j] >= 20:
-                idx00, idx01, idx10, idx11 = config['clip_bound_dict']["high"]
-            else:
-                idx00, idx01, idx10, idx11 = config['clip_bound_dict']["medium"]
-
-            # f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
-            # D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
             centers_slice = [centers_[0][idx00:idx01],centers_[1][idx10:idx11]]
         else:
-            # f_KM_slice = f_KM_
-            # D_KM_slice = D_KM_
             centers_slice = centers_
 
         X_1, X_2 = np.meshgrid(*centers_slice)

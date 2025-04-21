@@ -64,16 +64,11 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
         # via the dictionary 'clip_bound_dict'
         if kernel_params is not None:
             if kernel_params['clip']:
-                if 'clip_bound_dict' not in kernel_params:
-                    raise ValueError('Clip set to true but clipping bounds not specified in kernel_params.')
-                else:
-                    clip_dict = kernel_params['clip_bound_dict']
-                if shear_list[j] < 6:
-                    kernel_params['clip_bounds'] = clip_dict["low"]
-                elif shear_list[j] >= 20:
-                    kernel_params['clip_bounds'] = clip_dict["high"]
-                else:
-                    kernel_params['clip_bounds'] = clip_dict["intermediate"]
+                # add clip bounds to kernel_params based on shear rate
+                kernel_params = rh.add_clip_bounds_to_dict(kernel_params, shear_list[j])
+                # clip centers to the bounds (get_kramers_moyal will clip the estimates to the bounds)
+                clip_bounds = kernel_params['clip_bounds']
+                centers = [centers[i][clip_bounds[i][0]:clip_bounds[i][1]] for i in range(len(centers))]
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
         f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt,method=method,kernel_params=kernel_params)
 

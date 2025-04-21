@@ -145,6 +145,31 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
 
     return X_list, dX_list, dT_list
 
+def add_clip_bounds_to_dict(kernel_params:dict, shear_stress:float) -> dict:
+    '''
+    Add the state space clipping bounds to the kernel_params dictionary based on the shear stress condition.
+
+    Inputs:
+    - kernel_params: dictionary containing the kernel parameters for Kramers-Moyal coefficients
+    - shear_stress: float, shear stress condition for the dataset (used to determine the clipping bounds)
+    
+    Outputs:
+    - kernel_params: dictionary containing the kernel parameters for Kramers-Moyal coefficients
+        - this gets passed into the get_kramers_moyal function, used if method='kernel'
+        - the clipping bounds are added to the kernel_params dictionary
+    '''
+    if 'clip_bound_dict' not in kernel_params:
+        raise ValueError('Clip set to true but clipping bounds not specified in kernel_params.')
+    else:
+        clip_dict = kernel_params['clip_bound_dict']
+    if shear_stress < 6: # low flow
+        kernel_params['clip_bounds'] = clip_dict["low"]
+    elif shear_stress >= 20: # high flow
+        kernel_params['clip_bounds'] = clip_dict["high"]
+    else: # intermediate flow
+        kernel_params['clip_bounds'] = clip_dict["intermediate"]
+    return kernel_params
+
 def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list:list[np.ndarray], 
                       bins:list[np.ndarray], dt:float, method:str='kernel',kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray]:
     ''' 
@@ -166,7 +191,9 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     '''
     if method == 'kernel':
         if kernel_params is None:
+            print('No kernel parameters provided, using default parameters: ')
             kernel_params = {'bw':0.1, 'clip': False, 'kernel': 'epanechnikov'}
+            print(f"bw = {kernel_params['bw']}, clip = {kernel_params['clip']}, kernel = {kernel_params['kernel']}")
         f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
     elif method == 'histogram':
         f_KM, D_KM = km.get_km_histogram(X_list, dX_list, dT_list, bins, dt)
