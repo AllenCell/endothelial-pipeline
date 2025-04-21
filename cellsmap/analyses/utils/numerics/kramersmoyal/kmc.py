@@ -2,10 +2,9 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 from itertools import product
-from typing import Tuple
 
-from .binning import histogramdd
-from .kernels import silvermans_rule, epanechnikov
+from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
+from cellsmap.analyses.utils.numerics.kramersmoyal.kernels import silvermans_rule, epanechnikov
 
 def km(timeseries: list[np.ndarray]|np.ndarray, 
         grads:list[np.ndarray]|np.ndarray|None = None,
@@ -66,7 +65,7 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
             powers = np.array([[0, 0, 1, 1, 0, 1, 2, 2, 2],
                                [0, 1, 0, 1, 2, 2, 0, 1, 2]]).T
 
-        Set `full=True` to output `powers`. The order that they appear dictactes
+        The order that they appear dictactes
         the order in the output `kmc`.
 
     kernel: callable (default `epanechnikov`)
@@ -77,8 +76,7 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
 
     bw: float (default `None`)
         Desired bandwidth of the kernel. A value of 1 occupies the full space of
-        the bin space. Recommended are values `0.005 < bw < 0.5`. Set
-        `full=True` to output `bw`.
+        the bin space. Recommended are values `0.005 < bw < 0.5`. 
 
     tol: float (default `1e-10`)
         Round to zero absolute values smaller than `tol`, after the
@@ -87,13 +85,6 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
     conv_method: str (default `auto`)
         A string indicating which method to use to calculate the convolution.
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.convolve.html
-
-    center_edges: bool (default `True`)
-        Whether to return the bin centers or the bin edges (since for `n` bins
-        there are `n + 1` edges).
-
-    full: bool (default `False`)
-        Outputs bandwidth `bw` and powers `powers`.
 
     Returns
     -------
@@ -119,6 +110,7 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
     drift and diffusion coefficients of stochastic processes." Physics Letters A
     373(39), 3507─3512, 2009. DOI: 10.1016/j.physleta.2009.07.073
     """
+    # check inputs (case of multi_traj and single traj)
     if multi_traj:
         assert len(timeseries) == len(grads), \
             "Must have gradients for each timeseries"
@@ -133,7 +125,6 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
             if len(ts.shape) == 1:
                 timeseries[j] = ts.reshape(-1, 1)
 
-        m = len(timeseries)
         dims = timeseries[0].shape[1]
     else:
         # Check finiteness, dimensions, and existence of the time series
@@ -180,9 +171,9 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
         assert all(isinstance(ele, (int, np.ndarray)) for ele in bins), \
             "list or tuples of bins must either be ints or arrays"
 
-    # bins = np.asarray_chkfinite(bins, dtype=int)
     assert dims == len(bins), "bins not matching timeseries' dimension"
 
+    # check bandwidth input
     if bw is None:
         bw = silvermans_rule(timeseries)
     elif callable(bw):
@@ -205,6 +196,7 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
     Helper function for `km` that does the heavy lifting and actually estimates
     the Kramers─Moyal coefficients from the timeseries.
     """
+    # Internal function to get the Cartesian product of the bin edges
     def cartesian_product(arrays: np.ndarray):
         # Taken from https://stackoverflow.com/questions/11144513
         la = len(arrays)
@@ -213,45 +205,83 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
             arr[..., i] = a
         return arr
 
-    # Calculate derivative and the product of its powers
-    dims = len(bins)
+    ##### Calculate derivative (if not provided)
     if grads is None:
         # Calculate the gradients if not provided
         if multi_traj:
             grads = [np.diff(ts, axis=0) for ts in timeseries]
         else:
             grads = np.diff(timeseries, axis=0)
-
+    # Check if the gradients are in the right shape, trim timeseries to the same length
     if multi_traj:
         # Concatenate all gradients, need to get weights for weighted histogram
         grads = np.concatenate(grads, axis=0)
         # Get trajectories for weighted histogram (timepoints corresponding to the gradients)
         timeseries_ = np.concatenate([ts[:-1] for ts in timeseries], axis=0)
-        assert grads.shape[1] == dims
     else:
         timeseries_ = timeseries[:-1]
 
+    ##### Weights: for each displacement vector, get the coresponding powers/products
+    #               of the gradients for the Kramers─Moyal coefficients.
+        
+    # Raises each component of the gradient array to the corresponding 
+    #    element of the powers and then multiplies them together.
+    # e.g., for 2D, powers = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]], we have:
+    # > np.power(grads.T, powers[..., None]) = [[1, 1], 
+    #                                           [x_0(t+1)-x_0(t), 1] 
+    #                                           [1 , x_1(t+1)-x_1(t)], 
+    #                                           [x_0(t+1)-x_0(t), (x_1(t+1)-x_1(t))],
+    #                                           [(x_0(t+1)-x_0(t))^2, 1], 
+    #                                           [1, (x_1(t+1)-x_1(t))^2]]
+    # > np.prod(..., axis=1) = [1, 
+    #                           (x_0(t+1)-x_0(t)), 
+    #                           (x_1(t+1)-x_1(t)),
+    #                           (x_0(t+1)-x_0(t))(x_1(t+1)-x_1(t)),
+    #                           (x_0(t+1)-x_0(t))^2, 
+    #                           (x_1(t+1)-x_1(t))^2]
+    # If there are L powers and M observations, the result is an L x M array.
     weights = np.prod(np.power(grads.T, powers[..., None]), axis=1)
 
-    # Get weighted histogram
+    ##### Get weighted histogram for convolution
+
+    # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
+    # where N[i] is the number of bins in dimension i.
     hist, edges = histogramdd(timeseries_, bins=bins,
                               weights=weights, bw=bw)
     
 
-    # Generate centred kernel on larger grid (fft'ed convolutions are circular)
+    ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
+
+    # Map edges to interval [0, L_i] in each dimension, where L_i is the number of bins
+    # times the bin width in dimension i. Then edges_k is the bin edges
+    # for the interval [-L_i, L_i] with the same bin width. This grid is twice the size
+    # of the histogram in each dimension and centered around the origin.
+
+    # The kernel is then evaluated at all points in this extended grid (obtained 
+    # via the cartesian product of the entries of edges_k).
+    # The purpose of this is to artifically construct a periodic kernel
+    # that is centered around the origin, so that the input into the convolution
+    # is compatible with the circular nature of the convolution obtained via fft.
+    # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in edges]
     kernel_ = kernel(cartesian_product(edges_k), bw=bw)
 
-    # Convolve weighted histogram with kernel and trim it
+
+    ##### KMC computation: convolve the histogram with the kernel
+
+    # Convolve weighted histogram of kmc observations (displacements ^ powers) 
+    # with augmented periodic kernel and trim it back to the original size.
+    # Note that the first entry of the output is the normalization factor
+    # of the kernel estimator, which is the same for all dimensions.
+    # The normalization factor is the KDE of the empirical density function.
     kmc = convolve(hist, kernel_[None, ...], mode='same', method=conv_method)
 
-    # Normalise
-    mask = np.abs(kmc[0]) < tol
-    kmc[0:, mask] = 0.0
-    taylors = np.prod(factorial(powers[1:]), axis=1)
-    kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask]
+    # Normalise with correct factorial coefficients * histogram
+    mask = np.abs(kmc[0]) < tol # where probability density is small... (i.e., little to no data)
+    kmc[0:, mask] = np.nan # ...set kmc coeffs to nan
 
-    # set points where mask to nan
-    kmc[0:, mask] = np.nan
+    # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
+    taylors = np.prod(factorial(powers[1:]), axis=1)
+    kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask] # divide by Taylor coeff * 0th order coeffs (probability density)
 
     return kmc

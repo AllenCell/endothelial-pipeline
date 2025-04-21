@@ -38,7 +38,7 @@ PCs = [0,1]
 ndim = len(PCs)
 dt=5
 
-Nbins_KM = [26,25]
+Nbins_KM = [36,25]
 
 # datasets to skip in model comparison
 config = dynamics_io.load_dynamics_config()
@@ -78,10 +78,9 @@ V_test_list = []
 u_train_list = []
 u_test_list = []
 
-Nbins = 25*np.ones(ndim, dtype = int)
 dt = 5
 
-clip = True
+clip = False
 method = 'kernel'
 
 for ds_name in list_of_datasets:
@@ -118,20 +117,20 @@ for ds_name in list_of_datasets:
 
         if clip:
             if u_list[j] < 6:
-                idx00 = 12
-                idx01 = -5
-                idx10 = 8
-                idx11 = -5
+                idx00 = 10
+                idx01 = -8
+                idx10 = 10
+                idx11 = -6
             elif u_list[j] >= 20:
                 idx00 = 5
-                idx01 = -7
+                idx01 = -10
                 idx10 = 8
                 idx11 = -7
             else:
-                idx00 = 7
-                idx01 = -5
-                idx10 = 9
-                idx11 = -5
+                idx00 = 5
+                idx01 = -8
+                idx10 = 10
+                idx11 = -7
 
             f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
             D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
