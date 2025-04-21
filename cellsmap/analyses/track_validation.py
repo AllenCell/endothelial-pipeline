@@ -37,9 +37,10 @@ def save_validation_images(roi, img_arr, seg_arr, out_dir, dataset_name, T, padd
 
     return
 
-def generate_and_save_validation_images(dframe):
+def generate_and_save_validation_images(group):
 
     # unpack needed variables
+    nm, dframe = group
     dataset_name = dframe['dataset_name'].unique()[0]
     scene_index = int(dframe['scene_index'].unique()[0])
     position = dframe['position'].unique()[0]
@@ -62,8 +63,8 @@ def generate_and_save_validation_images(dframe):
     #     return
     # else:
     #     seg_path = Path(seg_path_list[0])
-    seg_path_list = seg_path / f'{dataset_name}_P{position}_T{T}.ome.tiff'
-    if not seg_path_list.exists():
+    seg_path = seg_path / f'{dataset_name}_P{position}_T{T}.ome.tiff'
+    if not seg_path.exists():
         print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
     else:
