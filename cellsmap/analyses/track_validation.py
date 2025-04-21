@@ -86,6 +86,7 @@ def generate_and_save_validation_images(group):
 
         print(f'- getting region properties {dataset_name} P{position} T{T}...')
         props = measure.regionprops(seg_arr)
+        print(len(props), 'regions found.')
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
         # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
         # for roi in rois:
