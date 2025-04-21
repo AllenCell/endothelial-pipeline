@@ -53,16 +53,20 @@ def generate_and_save_validation_images(dframe):
     # NOTE: THE LINE OF CODE BELOW SEEMS TO WORK WITH SINGLE PROCESSING
     #     BUT NOT WITH MULTIPROCESSING. NOT SURE WHY GLOB WOULD DO THIS
     #     MULTIPROCESSING IS ABLE TO GET SEG_PATH CORRECTLY THOUGH
-    seg_path_list = list(seg_path.glob(f'*_T{T}.ome.tiff'))
-    if len(seg_path_list) == 0:
+    # seg_path_list = list(seg_path.glob(f'*_T{T}.ome.tiff'))
+    # if len(seg_path_list) == 0:
+    #     print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
+    #     return
+    # elif len(seg_path_list) > 1:
+    #     print(f'Multiple segmentation files found for {dataset_name} P{position} at T{T}. Files are: {seg_path}. Skipping.')
+    #     return
+    # else:
+    #     seg_path = Path(seg_path_list[0])
+    seg_path_list = seg_path / f'{dataset_name}_P{position}_T{T}.ome.tiff'
+    if not seg_path_list.exists():
         print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
-    elif len(seg_path_list) > 1:
-        print(f'Multiple segmentation files found for {dataset_name} P{position} at T{T}. Files are: {seg_path}. Skipping.')
-        return
     else:
-        seg_path = Path(seg_path_list[0])
-
         dim_order = 'TCZYX'
         dim_map = get_dim_map(dim_order)
 
