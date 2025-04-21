@@ -2,14 +2,39 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 from itertools import product
+import inspect
+from typing import Callable
 
 from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
-from cellsmap.analyses.utils.numerics.kramersmoyal.kernels import silvermans_rule, epanechnikov
+from cellsmap.analyses.utils.numerics.kramersmoyal import kernels
+
+def string_to_kernel(kernel: str) -> Callable:
+    '''
+    Function to convert a string to the corresponding kernel function.
+
+    Input:
+    - kernel: string, name of the kernel function
+
+    Output:
+    - kernel_func: callable, the kernel function with the given name
+    as defined in cellsmap.analyses.utils.numerics.kramersmoyal.kernels
+    '''
+    # get dictionary of all callable functions in the kernels module
+    not_kernel = {'factorial2','kernel','wraps','silvermans_rule'} # functions that are not kernels
+    kernel_dict = {
+        name: func for name, func in inspect.getmembers(kernels, inspect.isfunction) if name not in not_kernel
+    }
+    if kernel in kernel_dict:
+        return kernel_dict[kernel]
+    else:
+        raise ValueError(f"Kernel '{kernel}' not recognized. Available kernels: {list(kernel_dict.keys())}")
 
 def km(timeseries: list[np.ndarray]|np.ndarray, 
         grads:list[np.ndarray]|np.ndarray|None = None,
-        bins: str='default', powers: int=4,
-        kernel: callable=epanechnikov, bw: float=None, 
+        bins: str='default', 
+        powers: int=4,
+        kernel: str='epanechnikov', 
+        bw: float|None=None, 
         tol: float=1e-3,
         multi_traj: bool=False,
         conv_method: str='auto') -> np.ndarray:
@@ -68,11 +93,11 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
         The order that they appear dictactes
         the order in the output `kmc`.
 
-    kernel: callable (default `epanechnikov`)
+    kernel: string (default `epanechnikov`)
         Kernel used to convolute with the Kramers-Moyal coefficients. To select
         for example a Gaussian kernel use
-
-            `kernel = kernels.gaussian`
+            `kernel = `gaussian`
+        Has to be a kernel implemented in `cellsmap.analyses.utils.numerics.kramersmoyal.kernels`.
 
     bw: float (default `None`)
         Desired bandwidth of the kernel. A value of 1 occupies the full space of
@@ -173,15 +198,20 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
 
     assert dims == len(bins), "bins not matching timeseries' dimension"
 
+    # convert specified kernel to callable
+    kernel_func = string_to_kernel(kernel)
+
     # check bandwidth input
     if bw is None:
-        bw = silvermans_rule(timeseries)
+        bw = kernels.silvermans_rule(timeseries,multi_traj=multi_traj)
     elif callable(bw):
         bw = bw(timeseries)
     assert bw > 0.0, "Bandwidth must be > 0"
 
+    print(f"Using bandwidth {bw} for kernel {kernel}.")
+
     # This is where the calculations take place
-    kmc = _km(timeseries, grads, bins, powers, kernel, 
+    kmc = _km(timeseries, grads, bins, powers, kernel_func, 
                       bw, tol, conv_method, multi_traj)
 
     return kmc
@@ -190,7 +220,7 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
 def _km(timeseries: list[np.ndarray]|np.ndarray,
         grads: list[np.ndarray]|np.ndarray|None, 
         bins: np.ndarray, powers: np.ndarray,
-        kernel: callable, bw: float, tol: float,
+        kernel_func: callable, bw: float, tol: float,
         conv_method: str, multi_traj:bool) -> np.ndarray:
     """
     Helper function for `km` that does the heavy lifting and actually estimates
@@ -264,7 +294,7 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
     # is compatible with the circular nature of the convolution obtained via fft.
     # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in edges]
-    kernel_ = kernel(cartesian_product(edges_k), bw=bw)
+    kernel_ = kernel_func(cartesian_product(edges_k), bw=bw)
 
 
     ##### KMC computation: convolve the histogram with the kernel

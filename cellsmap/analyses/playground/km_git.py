@@ -38,8 +38,6 @@ PCs = [0,1]
 ndim = len(PCs)
 dt=5
 
-Nbins_KM = [36,25]
-
 # datasets to skip in model comparison
 config = dynamics_io.load_dynamics_config()
 ds_to_skip = config['datasets_to_skip']
@@ -62,6 +60,14 @@ bins, centers = rh.get_bins(Nbins,bin_limits=bin_limits)
 # for phase plane plots, fix grid across all datasets
 pplane_xvec = np.linspace(*pplane_xlim,50)
 pplane_yvec = np.linspace(*pplane_ylim,50)
+
+
+dt = 5
+
+Nbins_KM = config['kramers_moyal']['Nbins']
+method = config['kramers_moyal']['method']
+kernel_params = config['kramers_moyal']['kernel_params']
+clip = kernel_params['clip']
 # %%
 ######## SINDY BASED REGRESSION ########
 # now fit model using multiple datasets
@@ -78,10 +84,7 @@ V_test_list = []
 u_train_list = []
 u_test_list = []
 
-dt = 5
 
-clip = False
-method = 'kernel'
 
 for ds_name in list_of_datasets:
     if ds_name in ds_to_skip:
@@ -113,35 +116,26 @@ for ds_name in list_of_datasets:
 
         bins_, centers_ = rh.get_bins(Nbins_KM,data=X_list)
         
-        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method=method)
+        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins_,dt=5,method=method, kernel_params=kernel_params)
 
         if clip:
             if u_list[j] < 6:
-                idx00 = 10
-                idx01 = -8
-                idx10 = 10
-                idx11 = -6
+                idx00, idx01, idx10, idx11 = config['clip_bound_dict']["low"]
             elif u_list[j] >= 20:
-                idx00 = 5
-                idx01 = -10
-                idx10 = 8
-                idx11 = -7
+                idx00, idx01, idx10, idx11 = config['clip_bound_dict']["high"]
             else:
-                idx00 = 5
-                idx01 = -8
-                idx10 = 10
-                idx11 = -7
+                idx00, idx01, idx10, idx11 = config['clip_bound_dict']["medium"]
 
-            f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
-            D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
+            # f_KM_slice = f_KM_[idx00:idx01,idx10:idx11,:]
+            # D_KM_slice = D_KM_[idx00:idx01,idx10:idx11,:]
             centers_slice = [centers_[0][idx00:idx01],centers_[1][idx10:idx11]]
         else:
-            f_KM_slice = f_KM_
-            D_KM_slice = D_KM_
+            # f_KM_slice = f_KM_
+            # D_KM_slice = D_KM_
             centers_slice = centers_
 
         X_1, X_2 = np.meshgrid(*centers_slice)
-        kmc_slice = np.concatenate([f_KM_slice,D_KM_slice],axis=-1).T
+        kmc_slice = np.concatenate([f_KM_,D_KM_],axis=-1).T
 
         fig, ax = plt.subplots(1,2,figsize=(12,6))
         ax[0].quiver(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
@@ -157,8 +151,8 @@ for ds_name in list_of_datasets:
         fig_ax = eakm.plot_km(X_1,X_2,kmc_slice)
         plt.show()
 
-        f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_slice,np.array(np.meshgrid(*centers_slice)).T)
-        D_KM_mask, _ = rh.masked_vector_field(D_KM_slice, np.array(np.meshgrid(*centers_slice)).T)
+        f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_,np.array(np.meshgrid(*centers_slice)).T)
+        D_KM_mask, _ = rh.masked_vector_field(D_KM_, np.array(np.meshgrid(*centers_slice)).T)
         f_KM.append(f_KM_mask)
         D_KM.append(D_KM_mask)
         X_pts.append(X_pts_mask)

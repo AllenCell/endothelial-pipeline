@@ -13,7 +13,8 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
                                          Nbins:list,
                                          dt:float, 
                                          train_frac:float,
-                                         method:str='kernel') -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
+                                         method:str='kernel',
+                                         kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     '''
     Generate train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for one dataset. 
     This function is called by build_kramers_moyal_train_test in a loop over all datasets in the dataframe.
@@ -57,8 +58,24 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
         # get bins for histogramming (for drift and diffusion estimates)
         bins, centers = rh.get_bins(Nbins,data=X_list)
 
+        # add correct clip bounds to kernel_params based on shear rate 
+        # hack-y workaround to set clip bounds based on shear rate manually
+        # These bounds are set in the kernel_params dictionary in the config file
+        # via the dictionary 'clip_bound_dict'
+        if kernel_params is not None:
+            if kernel_params['clip']:
+                if 'clip_bound_dict' not in kernel_params:
+                    raise ValueError('Clip set to true but clipping bounds not specified in kernel_params.')
+                else:
+                    clip_dict = kernel_params['clip_bound_dict']
+                if shear_list[j] < 6:
+                    kernel_params['clip_bounds'] = clip_dict["low"]
+                elif shear_list[j] >= 20:
+                    kernel_params['clip_bounds'] = clip_dict["high"]
+                else:
+                    kernel_params['clip_bounds'] = clip_dict["intermediate"]
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
-        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt,method=method)
+        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt,method=method,kernel_params=kernel_params)
 
         # remove NaNs from drift and diffusion estimates (bins with no data), get corresponding bin centers as well
         f_KM_noNAN, X_pts_, = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)
@@ -92,7 +109,8 @@ def build_kramers_moyal_train_test(df:pd.DataFrame,
                                    dt:float, 
                                    ds_to_skip:list[str], 
                                    train_frac:float=0.8,
-                                   method:str='kernel') -> dict:
+                                   method:str='kernel',
+                                   kernel_params:dict|None=None) -> dict:
     '''
     Build train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for all datasets in the dataframe df.
 
@@ -146,7 +164,8 @@ def build_kramers_moyal_train_test(df:pd.DataFrame,
         
         # get train test split for this dataset
         X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = \
-            kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac=train_frac, method=method)
+            kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, 
+                                                 train_frac=train_frac, method=method, kernel_params=kernel_params)
 
         # add train test for this dataset to list
         X_train_list.append(X_train)

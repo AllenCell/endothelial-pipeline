@@ -146,7 +146,7 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
     return X_list, dX_list, dT_list
 
 def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list:list[np.ndarray], 
-                      bins:list[np.ndarray], dt:float, method:str='kernel') -> Tuple[np.ndarray,np.ndarray]:
+                      bins:list[np.ndarray], dt:float, method:str='kernel',kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray]:
     ''' 
     Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
     Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
@@ -165,7 +165,9 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     - D_KM: numpy array, diffusion estimates for each bin in feature space
     '''
     if method == 'kernel':
-        f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt)
+        if kernel_params is None:
+            kernel_params = {'bw':0.1, 'clip': False, 'kernel': 'epanechnikov'}
+        f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
     elif method == 'histogram':
         f_KM, D_KM = km.get_km_histogram(X_list, dX_list, dT_list, bins, dt)
     else:

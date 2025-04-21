@@ -69,9 +69,9 @@ def uniform(x: np.ndarray, dims: int) -> np.ndarray:
     return kernel
 
 @kernel
-def triagular(x: np.ndarray, dims: int) -> np.ndarray:
+def triangular(x: np.ndarray, dims: int) -> np.ndarray:
     """
-    Triagular kernel in dimensions dims.
+    Triangular kernel in dimensions dims.
     """
     normalisation = 1.0 / 2.0
     mask = x < 1.0
@@ -91,8 +91,18 @@ def quartic(x: np.ndarray, dims: int) -> np.ndarray:
     kernel[mask] = ((1.0 - x2[mask]) ** 2) / normalisation
     return kernel
 
-def silvermans_rule(timeseries: np.ndarray) -> float:
-    n, dims = timeseries.shape
-    sigma = np.std(timeseries, axis=0)
-    sigma = sigma.max()
+def silvermans_rule(timeseries: np.ndarray, multi_traj:bool=False) -> float:
+    if multi_traj: # take average of std of each trajectory along each dimension
+        n = 0
+        dim = timeseries[0].shape[1]
+        sigma = np.zeros(dim)
+        for traj in timeseries:
+            n += len(traj)
+            sigma = sigma + traj.std(axis=0)
+        sigma = sigma / len(timeseries)
+    else: # take std of all data points along each dimension
+        n = timeseries.shape[0]
+        sigma = timeseries.std(axis=0)
+
+    sigma = sigma.max() # take max std across dimensions
     return  ((4.0 * sigma ** 5) / (3 * n)) ** (1 / 5)
