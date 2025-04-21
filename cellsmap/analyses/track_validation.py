@@ -20,8 +20,8 @@ def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, d
 
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
-    crop_img = img_arr[(..., *expanded_bbox)].squeeze().compute()
-    crop_seg = seg_arr[(..., *expanded_bbox)].squeeze().compute()
+    crop_img = img_arr[expanded_bbox].squeeze().compute()
+    crop_seg = seg_arr[expanded_bbox].squeeze().compute()
     crop_seg_outline = find_boundaries(crop_seg)
     track_of_interest = (crop_seg == cell_id * 1) + (crop_seg_outline > 0) * 2
     raw_img_crop = rescale_intensity(np.clip(crop_img, 0, np.percentile(crop_img, 98)), out_range=(0, 1))
@@ -93,7 +93,7 @@ def generate_and_save_validation_images(record_list):
         # print(seg_arr.shape, f'segmentation image shape {dataset_name} P{position} T{T}...')
         print(f'- getting region properties {dataset_name} P{position} T{T}...')
         props = measure.regionprops(label_image=seg_arr)
-        print(len(props), 'regions found.')
+        # print(len(props), 'regions found.')
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
         # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
         # for roi in rois:
@@ -112,13 +112,15 @@ def generate_and_save_validation_images(record_list):
         for record in tqdm(record_list, total=len(record_list), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
         # for cell_id in cell_ids_with_tracks:
             # print(f'-- saving validation images for cell {cell_id}...')
-            cell_id = record['label']
-            track_id = record['track_id']
-            save_validation_images(cell_id,
-                                   track_id,
-                                   cell_id_to_crop_map[cell_id],
-                                   img_arr, seg_arr, out_dir, dataset_name, T, padding=padding)
-
+            save_validation_images(cell_id = record['label'],
+                                   track_id = record['track_id'],
+                                   crop = cell_id_to_crop_map[record['label']],
+                                   img_arr=img_arr,
+                                   seg_arr=seg_arr,
+                                   out_dir=out_dir,
+                                   dataset_name=dataset_name,
+                                   T=T,
+                                   padding=padding)
         return
 
 
@@ -158,18 +160,18 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
         tracking_df = tracking_df[tracking_df['track_duration'] >= min_track_duration]
 
         nm, df_subset_list = zip(*tracking_df.groupby(['dataset_name', 'position', 'T']))
-        record_list = [df.to_dict('records') for df in df_subset_list]
+        record_list_all = [df.to_dict('records') for df in df_subset_list]
         if n_proc > 1:
             if __name__ == '__main__':
                 print('Using multiprocessing...')
                 with Pool(processes=n_proc) as pool:
-                    list(tqdm(pool.imap(generate_and_save_validation_images, record_list, chunksize=1), total=len(record_list), desc='Timepoints complete (MP)'))
+                    list(tqdm(pool.imap(generate_and_save_validation_images, record_list_all, chunksize=1), total=len(record_list_all), desc='Timepoints complete (MP)'))
                     pool.close()
                     pool.join()
                 print('Finished multiprocessing.')
         else:
             print('Using single processing...')
-            for record in tqdm(record_list, total=len(record_list), desc='Timepoints complete (1P)'):
+            for record in tqdm(record_list_all, total=len(record_list_all), desc='Timepoints complete (1P)'):
                 generate_and_save_validation_images(record)
             print('Finished single processing.')
     
