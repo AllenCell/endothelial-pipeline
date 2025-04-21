@@ -72,20 +72,22 @@ def generate_and_save_validation_images(group):
 
         print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
         seg = BioImage(seg_path)
-        seg_arr = seg.get_image_dask_data(dim_order).squeeze()
+        seg_arr = seg.get_image_dask_data(dim_order).squeeze().compute()
 
         print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = get_dataset_info(dataset_name)['egfp_channel_index']
         img_arr = img.get_image_dask_data(dim_order).max(axis=dim_map['Z'], keepdims=True)
-        img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze()
+        img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze().compute()
 
         cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
+        print(img_arr.shape, f'raw image shape {dataset_name} P{position} T{T}...')
+        print(seg_arr.shape, f'segmentation image shape {dataset_name} P{position} T{T}...')
         print(f'- getting region properties {dataset_name} P{position} T{T}...')
-        props = measure.regionprops(seg_arr)
+        props = measure.regionprops(label_image=seg_arr)
         print(len(props), 'regions found.')
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
         # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
