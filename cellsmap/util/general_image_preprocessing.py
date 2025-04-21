@@ -7,6 +7,7 @@ from cellsmap.util.dataset_io import get_zarr_path, get_original_path, get_total
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.get_sldy_metadata import get_objective_info
 from typing import List, Any, Union, Optional
+from tqdm import tqdm
 
 def get_default_dim_order() -> str:
     return 'TCZYX'
@@ -30,9 +31,10 @@ def build_analysis_queue(dataset_name_list: list,
                          magnification: int|None=None,
                          image_validation_frequency: int|None=None,
                          verbose=None, is_test=False, use_original_data=False) -> list:
+    print(f'Building analysis queue for the following datasets: {dataset_name_list}')
     analysis_queue: list = []
     out_dir = Path(out_dir) if out_dir != None else Path(get_output_path('analysis_queue_output_temp', verbose=False))
-    for dataset_name in dataset_name_list:
+    for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='Building analysis queue', unit='dataset'):
         img_path = Path(get_zarr_path(dataset_name)) if not use_original_data else Path(get_original_path(dataset_name))
         img = BioImage(img_path)
 
@@ -47,13 +49,13 @@ def build_analysis_queue(dataset_name_list: list,
             positions_in_T += list(range(num_pos_in_T))
             positions_in_S += [scene_index] * num_pos_in_T
 
-        for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
+        for pos, (pos_in_T, pos_in_S) in tqdm(enumerate(zip(positions_in_T, positions_in_S)), total=len(positions_in_T), desc=f'{dataset_name}'):
             img.set_scene(pos_in_S)
             scene_name = img.scenes[pos_in_S]
             if magnification !=None and get_objective_info(img.metadata)['magnification'] != magnification:
                 print(f'Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping...') if verbose else None
             else:
-                print(f'Position {pos} (scene {img.current_scene}) -- processing...') if verbose else None
+                print(f'Adding Position {pos} (scene {img.current_scene})...') if verbose else None
                 assert img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
                 # calculate the duration of the positions in frames (they must all have the same duration)
                 duration_in_frames = min(t_final, img.dims.T // num_pos_in_T) if isinstance(t_final, int) else img.dims.T // num_pos_in_T
