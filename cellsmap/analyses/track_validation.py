@@ -85,6 +85,7 @@ def generate_and_save_validation_images(group):
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
         # print('- getting region properties{dataset_name} P{position} T{T}...')
+        print(f'- getting region properties {dataset_name} P{position} T{T}...')
         props = measure.regionprops(seg_arr)
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
         # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
@@ -94,15 +95,16 @@ def generate_and_save_validation_images(group):
 
         # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
         for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+            print(f'-- saving validation images for cell {cell_id}...')
             save_validation_images(cell_id,
                                    cell_id_to_track_id_map[cell_id],
                                    cell_id_to_crop_map[cell_id],
-                                   img_arr,seg_arr, out_dir, dataset_name, T, padding=padding)
+                                   img_arr, seg_arr, out_dir, dataset_name, T, padding=padding)
         return
 
 
-def main(n_proc=1, dataset_name=None, t_final=None):
-
+def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
+    """t_final is really only used for testing purposes."""
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
     if dataset_name == None:
@@ -119,7 +121,7 @@ def main(n_proc=1, dataset_name=None, t_final=None):
                                           t_final=t_final,
                                           use_original_data=True,
                                           out_dir=out_dir,
-                                          verbose=True)
+                                          verbose=verbose)
     analysis_queue_df = pd.DataFrame(analysis_queue)
     for dataset_name in dataset_name_list:
         tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
@@ -141,7 +143,7 @@ def main(n_proc=1, dataset_name=None, t_final=None):
             if __name__ == '__main__':
                 print('Using multiprocessing...')
                 with Pool(processes=n_proc) as pool:
-                    list(tqdm(pool.imap(generate_and_save_validation_images, df_subset_list), total=len(df_subset_list), desc='Timepoints complete (MP)'))
+                    list(tqdm(pool.imap(generate_and_save_validation_images, df_subset_list, chunnksize=1), total=len(df_subset_list), desc='Timepoints complete (MP)'))
                     pool.close()
                     pool.join()
                 print('Finished multiprocessing.')
