@@ -49,7 +49,7 @@ def build_analysis_queue(dataset_name_list: list,
             positions_in_T += list(range(num_pos_in_T))
             positions_in_S += [scene_index] * num_pos_in_T
 
-        for pos, (pos_in_T, pos_in_S) in tqdm(enumerate(zip(positions_in_T, positions_in_S)), total=len(positions_in_T), desc=f'{dataset_name}'):
+        for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
             img.set_scene(pos_in_S)
             scene_name = img.scenes[pos_in_S]
             if magnification !=None and get_objective_info(img.metadata)['magnification'] != magnification:
