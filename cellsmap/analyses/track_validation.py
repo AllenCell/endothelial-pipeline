@@ -20,8 +20,8 @@ def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, d
 
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
-    crop_img = img_arr[(..., *expanded_bbox)].squeeze().compute()
-    crop_seg = seg_arr[(..., *expanded_bbox)].squeeze().compute()
+    crop_img = img_arr[(..., *expanded_bbox)]#.squeeze().compute()
+    crop_seg = seg_arr[(..., *expanded_bbox)]#.squeeze().compute()
     crop_seg_outline = find_boundaries(crop_seg)
     track_of_interest = (crop_seg == cell_id * 1) + (crop_seg_outline > 0) * 2
     raw_img_crop = rescale_intensity(np.clip(crop_img, 0, np.percentile(crop_img, 98)), out_range=(0, 1))
