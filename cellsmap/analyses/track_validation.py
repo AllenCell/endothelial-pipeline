@@ -84,7 +84,6 @@ def generate_and_save_validation_images(group):
         cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
-        # print('- getting region properties{dataset_name} P{position} T{T}...')
         print(f'- getting region properties {dataset_name} P{position} T{T}...')
         props = measure.regionprops(seg_arr)
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
@@ -94,7 +93,8 @@ def generate_and_save_validation_images(group):
         padding = 50
 
         # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        # for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        for cell_id in cell_ids_with_tracks:
             print(f'-- saving validation images for cell {cell_id}...')
             save_validation_images(cell_id,
                                    cell_id_to_track_id_map[cell_id],
