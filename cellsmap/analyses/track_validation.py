@@ -143,7 +143,7 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
             if __name__ == '__main__':
                 print('Using multiprocessing...')
                 with Pool(processes=n_proc) as pool:
-                    list(tqdm(pool.imap(generate_and_save_validation_images, df_subset_list, chunnksize=1), total=len(df_subset_list), desc='Timepoints complete (MP)'))
+                    list(tqdm(pool.imap(generate_and_save_validation_images, df_subset_list, chunksize=1), total=len(df_subset_list), desc='Timepoints complete (MP)'))
                     pool.close()
                     pool.join()
                 print('Finished multiprocessing.')
