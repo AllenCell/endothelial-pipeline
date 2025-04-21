@@ -84,6 +84,7 @@ def generate_and_save_validation_images(group):
 
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
+        print('- getting region properties...')
         props = measure.regionprops(seg_arr)
         rois = [reg for reg in props if reg.label in dframe[dframe['T']==T]['label'].unique()]
         for roi in rois:

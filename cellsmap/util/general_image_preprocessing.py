@@ -55,7 +55,7 @@ def build_analysis_queue(dataset_name_list: list,
             if magnification !=None and get_objective_info(img.metadata)['magnification'] != magnification:
                 print(f'Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping...') if verbose else None
             else:
-                print(f'Adding Position {pos} (scene {img.current_scene})...') if verbose else None
+                print(f'- adding Position {pos} (scene {img.current_scene})...') if verbose else None
                 assert img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
                 # calculate the duration of the positions in frames (they must all have the same duration)
                 duration_in_frames = min(t_final, img.dims.T // num_pos_in_T) if isinstance(t_final, int) else img.dims.T // num_pos_in_T

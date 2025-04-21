@@ -17,18 +17,33 @@ from tqdm import tqdm
 
 
 
-dataset_name = '20250227_40X'
-
-out_dir = Path(get_output_path(Path(__file__).stem))
+out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_dir.mkdir(parents=True, exist_ok=True)
 
-# tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
-# segprops_df = get_measurement_data_raws([dataset_name],
-#                                         kind='segmentation_properties',
-#                                         as_dask=False)
-# alignments_df = get_measurement_data_raws([dataset_name],
-#                                            kind='alignments',
-#                                            as_dask=False)
+# dataset_name = '20250227_40X'
+dataset_name = None
+if dataset_name == None:
+    dataset_name_list = [config_data['name']
+                        for config_data in load_config(config_type='data')
+                        if (config_data['microscope'] == '3i'
+                            and config_data['live_or_fixed_sample'] == 'live')
+                            and 'AICS-126' in config_data['cell_lines']
+                            and config_data['duration'] > 1]
+else:
+    dataset_name_list = [dataset_name]
+
+
+tracking_df = []
+segprops_df = []
+alignments_df = []
+for dataset_name in dataset_name_list:
+    tracking_df.append(get_tracking_data_filtered([dataset_name], as_dask=False))
+    segprops_df.append(get_measurement_data_raws([dataset_name],
+                                                 kind='segmentation_properties',
+                                                 as_dask=False))
+    alignments_df.append(get_measurement_data_raws([dataset_name],
+                                                   kind='alignments',
+                                                   as_dask=False))
 
 # NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
 out_path_tracks = out_dir / f'tracking_data.tsv'
