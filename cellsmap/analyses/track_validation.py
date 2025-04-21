@@ -70,16 +70,16 @@ def generate_and_save_validation_images(group):
         dim_order = 'TCZYX'
         dim_map = get_dim_map(dim_order)
 
-        seg = BioImage(seg_path)
-        print(f'- loading segmentation image {dataset_name} P{position} T{T} (shape {seg.shape})...')
-        seg_arr = seg.get_image_dask_data(dim_order).squeeze().compute()
-
         print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = get_dataset_info(dataset_name)['egfp_channel_index']
         img_arr = img.get_image_dask_data(dim_order).max(axis=dim_map['Z'], keepdims=True)
         img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze().compute()
+
+        seg = BioImage(seg_path)
+        print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
+        seg_arr = seg.get_image_dask_data(dim_order).squeeze().compute()
 
         cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
@@ -96,8 +96,8 @@ def generate_and_save_validation_images(group):
         padding = 50
 
         # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        # for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        for cell_id in cell_ids_with_tracks:
+        for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        # for cell_id in cell_ids_with_tracks:
             print(f'-- saving validation images for cell {cell_id}...')
             save_validation_images(cell_id,
                                    cell_id_to_track_id_map[cell_id],
