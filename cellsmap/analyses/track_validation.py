@@ -20,8 +20,8 @@ def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, d
 
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
-    crop_img = img_arr[(..., *expanded_bbox)]#.squeeze().compute()
-    crop_seg = seg_arr[(..., *expanded_bbox)]#.squeeze().compute()
+    crop_img = img_arr[(..., *expanded_bbox)].squeeze().compute()
+    crop_seg = seg_arr[(..., *expanded_bbox)].squeeze().compute()
     crop_seg_outline = find_boundaries(crop_seg)
     track_of_interest = (crop_seg == cell_id * 1) + (crop_seg_outline > 0) * 2
     raw_img_crop = rescale_intensity(np.clip(crop_img, 0, np.percentile(crop_img, 98)), out_range=(0, 1))
@@ -36,15 +36,20 @@ def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, d
 
     return
 
-def generate_and_save_validation_images(group):
+def generate_and_save_validation_images(record_list):
 
     # unpack needed variables
-    nm, dframe = group
-    dataset_name = dframe['dataset_name'].unique()[0]
-    scene_index = int(dframe['scene_index'].unique()[0])
-    position = dframe['position'].unique()[0]
-    T = dframe['T'].unique()[0]
-    out_dir = dframe['out_dir'].unique()[0] / f'{dataset_name}/P{position}'
+    # dataset_name = dframe['dataset_name'].unique()[0]
+    # scene_index = int(dframe['scene_index'].unique()[0])
+    # position = dframe['position'].unique()[0]
+    # T = dframe['T'].unique()[0]
+    # out_dir = dframe['out_dir'].unique()[0] / f'{dataset_name}/P{position}'
+
+    dataset_name = record_list[0]['dataset_name']
+    scene_index = int(record_list[0]['scene_index'])
+    position = record_list[0]['position']
+    T = record_list[0]['T']
+    out_dir = record_list[0]['out_dir'] / f'{dataset_name}/P{position}'
 
     print(f'Working on dataset {dataset_name}, P{position} T{T}...')
 
@@ -70,19 +75,19 @@ def generate_and_save_validation_images(group):
         dim_order = 'TCZYX'
         dim_map = get_dim_map(dim_order)
 
+        seg = BioImage(seg_path)
+        print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
+        seg_arr = seg.get_image_dask_data(dim_order).squeeze()#.compute()
+
         print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = get_dataset_info(dataset_name)['egfp_channel_index']
         img_arr = img.get_image_dask_data(dim_order).max(axis=dim_map['Z'], keepdims=True)
-        img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze().compute()
+        img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze()#.compute()
 
-        seg = BioImage(seg_path)
-        print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg_arr = seg.get_image_dask_data(dim_order).squeeze().compute()
-
-        cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
-        cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
+        # cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
+        # cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
         # print(img_arr.shape, f'raw image shape {dataset_name} P{position} T{T}...')
         # print(seg_arr.shape, f'segmentation image shape {dataset_name} P{position} T{T}...')
@@ -95,14 +100,25 @@ def generate_and_save_validation_images(group):
         #     roi.track_id = cell_id_to_track_id_map[roi.label]
         padding = 50
 
-        # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        # # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        # for cell_id in tqdm(dframe, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        # # for cell_id in cell_ids_with_tracks:
+        #     # print(f'-- saving validation images for cell {cell_id}...')
+        #     save_validation_images(cell_id,
+        #                            cell_id_to_track_id_map[cell_id],
+        #                            cell_id_to_crop_map[cell_id],
+        #                            img_arr, seg_arr, out_dir, dataset_name, T, padding=padding)
+
+        for record in tqdm(record_list, total=len(record_list), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
         # for cell_id in cell_ids_with_tracks:
             # print(f'-- saving validation images for cell {cell_id}...')
+            cell_id = record['label']
+            track_id = record['track_id']
             save_validation_images(cell_id,
-                                   cell_id_to_track_id_map[cell_id],
+                                   track_id,
                                    cell_id_to_crop_map[cell_id],
                                    img_arr, seg_arr, out_dir, dataset_name, T, padding=padding)
+
         return
 
 
@@ -141,19 +157,20 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
         min_track_duration = 120
         tracking_df = tracking_df[tracking_df['track_duration'] >= min_track_duration]
 
-        df_subset_list = list(tracking_df.groupby(['dataset_name', 'position', 'T']))
+        nm, df_subset_list = zip(*tracking_df.groupby(['dataset_name', 'position', 'T']))
+        record_list = [df.to_dict('records') for df in df_subset_list]
         if n_proc > 1:
             if __name__ == '__main__':
                 print('Using multiprocessing...')
                 with Pool(processes=n_proc) as pool:
-                    list(tqdm(pool.imap(generate_and_save_validation_images, df_subset_list, chunksize=1), total=len(df_subset_list), desc='Timepoints complete (MP)'))
+                    list(tqdm(pool.imap(generate_and_save_validation_images, record_list, chunksize=1), total=len(record_list), desc='Timepoints complete (MP)'))
                     pool.close()
                     pool.join()
                 print('Finished multiprocessing.')
         else:
             print('Using single processing...')
-            for df_subset in tqdm(df_subset_list, total=len(df_subset_list), desc='Timepoints complete (1P)'):
-                generate_and_save_validation_images(df_subset)
+            for record in tqdm(record_list, total=len(record_list), desc='Timepoints complete (1P)'):
+                generate_and_save_validation_images(record)
             print('Finished single processing.')
     
     print(f'\N{microscope} Done.')
