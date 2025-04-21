@@ -19,7 +19,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score
 
 # %%
-# %%
 # load manifest to DataFrame with metadata
 df = mio.load_manifest_to_df()
 
@@ -44,6 +43,8 @@ Nbins_KM = [26,25]
 # datasets to skip in model comparison
 config = dynamics_io.load_dynamics_config()
 ds_to_skip = config['datasets_to_skip']
+
+# uncomment to add 48hr low flow with bubbles
 ds_to_skip.append('20241203_20X')
 
 # set limits for phase plane and histogram plots
@@ -81,7 +82,7 @@ Nbins = 25*np.ones(ndim, dtype = int)
 dt = 5
 
 clip = True
-method = 'histogram'
+method = 'kernel'
 
 for ds_name in list_of_datasets:
     if ds_name in ds_to_skip:
