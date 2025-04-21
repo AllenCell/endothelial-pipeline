@@ -129,7 +129,7 @@ def main(n_proc=1, dataset_name=None, t_final=None):
         min_track_duration = 120
         tracking_df = tracking_df[tracking_df['track_duration'] >= min_track_duration]
 
-        grp_nm_list, df_subset_list = zip(*tracking_df.groupby(['dataset_name', 'position', 'T']))
+        df_subset_list = list(tracking_df.groupby(['dataset_name', 'position', 'T']))
         if n_proc > 1:
             if __name__ == '__main__':
                 print('Using multiprocessing...')
