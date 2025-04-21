@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from cellsmap.util.dataset_io import get_tracking_data_filtered, get_measurement_data_raws, load_config, get_cdh5_classic_segmentation_path, get_dataset_info, ipython_cli_flexecute
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue
@@ -21,22 +22,22 @@ dataset_name = '20250227_40X'
 out_dir = Path(get_output_path(Path(__file__).stem))
 out_dir.mkdir(parents=True, exist_ok=True)
 
-tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
-segprops_df = get_measurement_data_raws([dataset_name],
-                                        kind='segmentation_properties',
-                                        as_dask=False)
-alignments_df = get_measurement_data_raws([dataset_name],
-                                           kind='alignments',
-                                           as_dask=False)
+# tracking_df = get_tracking_data_filtered([dataset_name], as_dask=False)
+# segprops_df = get_measurement_data_raws([dataset_name],
+#                                         kind='segmentation_properties',
+#                                         as_dask=False)
+# alignments_df = get_measurement_data_raws([dataset_name],
+#                                            kind='alignments',
+#                                            as_dask=False)
 
 # NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
 out_path_tracks = out_dir / f'tracking_data.tsv'
 out_path_segprops = out_dir / f'segmentation_properties.tsv'
 out_path_alignments = out_dir / f'alignments.tsv'
 
-tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
-segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
-alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
+# tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
+# segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
+# alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
 
 tracking_df = pd.read_csv(out_path_tracks, sep='\t')
 segprops_df = pd.read_csv(out_path_segprops, sep='\t')
@@ -47,11 +48,146 @@ alignments_df = pd.read_csv(out_path_alignments, sep='\t')
 ## first filter the segprops data to only include
 ## what is also found in the tracking data
 
+tracking_df.keys(), tracking_df.shape
+segprops_df.keys(), segprops_df.shape
+sorted(tracking_df['T'].unique())
+sorted(segprops_df['T'].unique())
+
+toti_table = pd.merge(left=tracking_df,
+                      right=segprops_df,
+                      left_on=['dataset_name', 'position', 'T', 'label'],
+                      right_on=['dataset_name', 'position', 'T', 'cell_label'],
+                      )
+
+toti_table_cleared_borders = toti_table[~toti_table['touches_image_border']]
+# NOTE that we are only dropping the segmentation that
+# touch the border from this table, not the whole track
+# this also explains why some of the centroid speeds
+# are still so bizarre (because those measurements are
+# recorded prior to filtering out these segmentations)
+# THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
+# BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
+# THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
+
+# add column for the number of tracks at a given timepoint
+toti_table_cleared_borders['num_tracks_at_T'] = toti_table_cleared_borders.groupby(['T'])['track_id'].transform(lambda x: x.nunique())
+
+toti_table_cleared_borders['orientation_in_deg'] = toti_table_cleared_borders['orientation'].transform(lambda x: np.rad2deg(x))
+
+toti_table_cleared_borders['cell_speed'] = toti_table_cleared_borders.apply(lambda df: np.linalg.norm([df['centroid_dx'], df['centroid_dy']]), axis=1)
+
+
+toti_table_cleared_borders[toti_table_cleared_borders['track_duration']>20]['track_id'].nunique()
+# there are 435 tracks longer than 20 frames that are
+# not touching the image borders
+
+toti_table_long_tracks = toti_table_cleared_borders[toti_table_cleared_borders['track_duration']>120]
+toti_table_long_tracks['track_id'].nunique()
+# there are 36 tracks longer than 120 frames that are
+# not touching the image borders
+
+
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='num_tracks_at_T',
+                data=toti_table_cleared_borders,
+                ax=ax, marker='.')
+ax.axvline(toti_table_cleared_borders['track_duration'].min(), c='lightgrey', ls='--')
+ax.axvline(toti_table_cleared_borders['T'].max() - toti_table_cleared_borders['track_duration'].min(), c='lightgrey', ls='--')
+ax.set_ylim(0)
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='orientation_in_deg',
+                hue='track_id', palette='Spectral',
+                data=toti_table_cleared_borders,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+ax.set_ylim(0,95)
 
 
 
 
 
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='orientation_in_deg',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+ax.set_ylim(0,95)
+fig.savefig(out_dir / f'orientation_long_tracks.png', dpi=200)
+
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='eccentricity',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+ax.set_ylim(0,1.05)
+# NOTE: 0 = circle, 1 = very elliptical
+fig.savefig(out_dir / f'eccentricity_long_tracks.png', dpi=200)
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='cell_area (px**2)',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+# ax.set_ylim(0,1.05)
+
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='centroid_displacement',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+# this looks weird - there are a some really large
+# centroid displacements
+weird_tracks = toti_table_long_tracks[toti_table_long_tracks['centroid_displacement'] > 2000]['track_id'].unique()
+# apparently they are tracks 1, 192, 1565, 1844, and 2987
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='cell_speed',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks, 
+                ax=ax, marker='.', alpha=0.5, lw=0)
+# there are also a couple of very fast tracks
+# NOTE WORTH LOOKING IN TO weird_tracks
+
+
+# try making plots excluding these weird tracks
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='centroid_displacement',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks.query('track_id not in @weird_tracks'),
+                ax=ax, marker='.', alpha=0.5, lw=0)
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='cell_speed',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks.query('track_id not in @weird_tracks'), 
+                ax=ax, marker='.', alpha=0.5, lw=0)
+# ax.set_ylim(0,10)
+
+
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='eccentricity', y='orientation_in_deg',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks.query('track_id not in @weird_tracks'),
+                ax=ax, marker='.', alpha=0.5, lw=0)
+# ax.set_xlim(0,1.05)
+ax.set_ylim(0,95)
+# NOTE: eccentricity: 0 = circle, 1 = very elliptical
+fig.savefig(out_dir / f'orientation_vs_eccentricity_long_tracks.png', dpi=200)
+
+
+# what if we plot the "shorter" tracks too?
+fig, ax = plt.subplots()
+sns.scatterplot(x='eccentricity', y='orientation_in_deg',
+                hue='track_id', palette='Spectral',
+                data=toti_table_cleared_borders,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+# ax.set_xlim(0,1.05)
+ax.set_ylim(0,95)
+fig.savefig(out_dir / f'orientation_vs_eccentricity.png', dpi=200)
 
 
 # IMPORTANT NOTE:
