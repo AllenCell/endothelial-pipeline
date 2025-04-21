@@ -13,13 +13,12 @@ from skimage.segmentation import find_boundaries
 from multiprocessing import Pool
 from tqdm import tqdm
 
-def save_validation_images(roi, img_arr, seg_arr, out_dir, dataset_name, T, padding=50):
-    cell_id = roi.label
-    track_id = roi.track_id
+def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, dataset_name, T, padding=50):
+
     validation_subfolder = out_dir / str(track_id)
     Path.mkdir(validation_subfolder, exist_ok=True, parents=True)
 
-    expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in roi.slice])
+    expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
     crop_img = img_arr[(..., *expanded_bbox)].squeeze().compute()
     crop_seg = seg_arr[(..., *expanded_bbox)].squeeze().compute()
@@ -82,17 +81,23 @@ def generate_and_save_validation_images(group):
         img_arr = img.get_image_dask_data(dim_order).max(axis=dim_map['Z'], keepdims=True)
         img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze()
 
+        cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
-        print('- getting region properties...')
+        # print('- getting region properties{dataset_name} P{position} T{T}...')
         props = measure.regionprops(seg_arr)
-        rois = [reg for reg in props if reg.label in dframe[dframe['T']==T]['label'].unique()]
-        for roi in rois:
-            roi.track_id = cell_id_to_track_id_map[roi.label]
+        cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
+        # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
+        # for roi in rois:
+        #     roi.track_id = cell_id_to_track_id_map[roi.label]
         padding = 50
 
-        for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-            save_validation_images(roi, img_arr, seg_arr, out_dir, dataset_name, T, padding=padding)
+        # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+            save_validation_images(cell_id,
+                                   cell_id_to_track_id_map[cell_id],
+                                   cell_id_to_crop_map[cell_id],
+                                   img_arr,seg_arr, out_dir, dataset_name, T, padding=padding)
         return
 
 
