@@ -287,13 +287,25 @@ def get_tracking_data_raws(dataset_name_list: List,
     return tracking_dataframe if as_dask else tracking_dataframe.compute()
 
 def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> pd.DataFrame:
+    """
+    NOTE: Cannot use only dask here because if it is called in the
+    same script that a multiprocessing workflow that later uses
+    dask delayed reading (such as opening files with bioio) then
+    the script will hang when trying to execute the later dask
+    delayed .compute() function. This is the case even if this
+    function get_tracking_data_filtered is called outside of
+    multiprocessing.
+    """
     base_path = Path('//allen/aics/endothelial/morphological_features/analysis/track_filtering')
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
         if data_path.exists():
             # open the data tables
-            tracking_data = dd.read_csv(data_path, sep='\t')
+            if as_dask:
+                tracking_data = dd.read_csv(data_path, sep='\t')
+            else:
+                tracking_data = pd.read_csv(data_path, sep='\t')
             # include path to file that this data was loaded from
             tracking_data['source_filtered_tracking_table_path'] = data_path.as_posix()
             tracking_data_list.append(tracking_data)
@@ -301,8 +313,11 @@ def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> 
             print(f'No filtered tracking data found for {dataset_name}. Skipping...')
             continue
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
-    return tracking_dataframe if as_dask else tracking_dataframe.compute()
+    if as_dask:
+        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    else:
+        tracking_dataframe = pd.concat(tracking_data_list, axis=0, ignore_index=True)
+    return tracking_dataframe
 
 def get_measurement_data_paths(dataset_name: str,
                                kind: Literal['alignments', 'segmentation_properties']

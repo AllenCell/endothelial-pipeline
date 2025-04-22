@@ -38,7 +38,7 @@ def generate_and_save_validation_images(dframe):
     # unpack needed variables
     dataset_name = dframe['dataset_name'].unique()[0]
     scene_index = int(dframe['scene_index'].unique()[0])
-    position = dframe['position'].unique()[0]
+    position = int(dframe['position'].unique()[0])
     T = int(dframe['T'].unique()[0])
     out_dir = dframe['out_dir'].unique()[0] / f'{dataset_name}/P{position}'
 
@@ -54,7 +54,7 @@ def generate_and_save_validation_images(dframe):
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     seg_path = seg_dir / f'{dataset_name}_P{position}_T{T}.ome.tiff'
     print(f'{raw_path.exists()}: {raw_path.name()}, {seg_path.exists()}: {seg_path.name()}')
-    return
+    # return
 
     # NOTE: THE LINE OF CODE BELOW SEEMS TO WORK WITH SINGLE PROCESSING
     #     BUT NOT WITH MULTIPROCESSING. NOT SURE WHY GLOB WOULD DO THIS
@@ -69,7 +69,7 @@ def generate_and_save_validation_images(dframe):
     # else:
     #     seg_path = Path(seg_path_list[0])
     if not seg_path.exists():
-        print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
+        assert f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
     else:
         dim_order = 'TCZYX'
@@ -173,7 +173,7 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
         min_track_duration = 120
         tracking_df = tracking_df[tracking_df['track_duration'] >= min_track_duration]
 
-        nm, df_subset_list = list(zip(*tracking_df.groupby(['dataset_name', 'position', 'T'])))
+        nm, df_subset_list = list(zip(*tracking_df.groupby(['dataset_name', 'position', 'T'])[['dataset_name', 'position', 'scene_index', 'T', 'track_id', 'label', 'out_dir']]))
         # record_list_all = [df.to_dict('records') for df in df_subset_list]
         if n_proc > 1:
             if __name__ == '__main__':
@@ -185,8 +185,8 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
                 print('Finished multiprocessing.')
         else:
             print('Using single processing...')
-            for record in tqdm(df_subset_list, total=len(df_subset_list), desc='Timepoints complete (1P)'):
-                generate_and_save_validation_images(record)
+            for df_group in tqdm(df_subset_list, total=len(df_subset_list), desc='Timepoints complete (1P)'):
+                generate_and_save_validation_images(df_group)
             print('Finished single processing.')
     
     print(f'\N{microscope} Done.')
