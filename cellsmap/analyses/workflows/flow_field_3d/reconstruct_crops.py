@@ -25,7 +25,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 df = pd.read_csv(output_savedir+"manifest.csv")
 
 DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
-DDFF.set_dataframe(df, identifier="CropId")
+DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
 
