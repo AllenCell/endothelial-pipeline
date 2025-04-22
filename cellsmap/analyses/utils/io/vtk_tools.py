@@ -358,24 +358,22 @@ class DataDrivenFlowField3D():
                 zc = self._bounds.zmin+self._grid_spacing*zc
             mean_evolution.append([xc, yc, zc])
         mean_evolution = np.array(mean_evolution)
-        save_points_as_polydata(coordinates=interpolated_points, file_name=f"{output_path}_mean_trajectory.vtk")
+        save_points_as_polydata(coordinates=mean_evolution, file_name=f"{output_path}_mean_trajectory.vtk")
 
-        print(mean_evolution.shape)
         # we want to get evenly spaced points along the trajectory (use self._grid_spacing as step size)
-
+        # this is for visualization purposes (reconstruction of crops along mean traj)
         # first compute distance between points
         distances = np.linalg.norm(np.diff(mean_evolution, axis=0), axis=1)
 
-        # compute cumulative distance along curve
-        arc_length = np.concatenate(([0], np.cumsum(distances)))
+        # compute cumulative distance from the first point along the trajectory
+        arc_length = np.cumsum(np.concatenate(([0],distances)))
 
         # interpolate to get evenly spaced points at self._grid_spacing
         n_points = int(np.ceil(arc_length[-1] / self._grid_spacing))
-        arc_length_new = np.linspace(0, arc_length[-1], n_points)
+        arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
         interpolated_points = np.zeros((n_points, 3))
         for i in range(3):
-            interpolator = spinterp.interp1d(arc_length, mean_evolution[:, i], kind='linear')
-            interpolated_points[:, i] = interpolator(arc_length_new)
+            interpolated_points[:, i] = np.interp(arc_length_new, arc_length, mean_evolution[:, i])
 
         save_points_as_polydata(coordinates=interpolated_points, file_name=f"{output_path}_interpolated_mean_trajectory.vtk")
 
