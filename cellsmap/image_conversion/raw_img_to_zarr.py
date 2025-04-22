@@ -34,7 +34,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20240328_T02_001 20240328
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20241022_20X_mito 20241022
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -123,4 +123,4 @@ def parse_arguments():
 if __name__ == "__main__":
     dataset, output_dataset_name, output_path, channel_names = parse_arguments()
     convert_dataset(dataset, output_dataset_name, output_path, channel_names)
-# %%
+#%%

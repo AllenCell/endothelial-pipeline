@@ -10,6 +10,7 @@ config_data_fields = [
   'original_path',
   'zarr_path',
   'barcode',
+  'cell_lines',
   'live_or_fixed_sample',
   'microscope',
   'shear_stress_regime',
