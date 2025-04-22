@@ -61,17 +61,6 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
         # get bins for histogramming (for drift and diffusion estimates)
         bins, centers = rh.get_bins(Nbins,data=X_list)
 
-        # add correct clip bounds to kernel_params based on shear rate 
-        # hack-y workaround to set clip bounds based on shear rate manually
-        # These bounds are set in the kernel_params dictionary in the config file
-        # via the dictionary 'clip_bound_dict'
-        if kernel_params is not None:
-            if kernel_params['clip']:
-                # add clip bounds to kernel_params based on shear rate
-                kernel_params = rh.add_clip_bounds_to_dict(kernel_params, shear_list[j])
-                # clip centers to the bounds (get_kramers_moyal will clip the estimates to the bounds)
-                clip_bounds = kernel_params['clip_bounds']
-                centers = [centers[i][clip_bounds[i][0]:clip_bounds[i][1]] for i in range(ndim)]
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
         f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt,method=method,kernel_params=kernel_params)
 

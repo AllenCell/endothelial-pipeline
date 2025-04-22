@@ -57,23 +57,11 @@ def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float,kerne
 
     if ndim == 1:
         f_KM = kmc[1]
-        D_KM = kmc[2]/2
-        if kernel_params['clip']:
-            if 'clip_bounds' not in kernel_params:
-                raise ValueError('Clip set to true but clipping bounds not specified in kernel_params.')
-            idxs = kernel_params['clip_bounds']
-            f_KM = f_KM[idxs[0]:idxs[1]]
-            D_KM = D_KM[idxs[0]:idxs[1]]
+        D_KM = kmc[2]
     elif ndim == 2:
         kmc = np.swapaxes(kmc,1,2)
         f_KM = kmc[1:3].T
-        D_KM = kmc[4:6].T/2
-        if kernel_params['clip']:
-            if 'clip_bounds' not in kernel_params:
-                raise ValueError('Clip set to true but clipping bounds not specified in kernel_params.')
-            idxs = kernel_params['clip_bounds']
-            f_KM = f_KM[idxs[0][0]:idxs[0][1], idxs[1][0]:idxs[1][1]]
-            D_KM = D_KM[idxs[0][0]:idxs[0][1], idxs[1][0]:idxs[1][1]]
+        D_KM = kmc[4:6].T
     else:
         raise ValueError('Only 1D and 2D data is supported for Kramers-Moyal coefficients.')
 
