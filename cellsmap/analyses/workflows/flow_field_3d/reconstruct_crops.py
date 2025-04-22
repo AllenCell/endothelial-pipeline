@@ -7,6 +7,7 @@ from vtkmodules.util import numpy_support as vtknp
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util import manifest_io
 from cellsmap.analyses.utils.io import vtk_tools
+from cellsmap.model_features.generate_image import generate_from_coords
 
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_field_3d/figs"
@@ -28,17 +29,28 @@ DDFF.build()
 # Load PCA model
 reducer = manifest_io.load_pca_model(output_savedir)
 
-# Save 8 dim features in CSV files for now.
-# TODO: Implement reconstruction once Benji has the code finalized
+# Model we want to use to generate reconstructed crops
+model_name = "diffae_04_10"
+
+# Reconstruction of crops from latent space coordinates via DiffAE model
 for file_name in os.listdir(vtk_savedir):
     if "interpolated_mean_trajectory" in file_name:
         print(file_name)
+        # load trajectory vtk file
         trajectory = vtk_tools.load_polydata(vtk_savedir+file_name)
+        # get coordinates of trajectory points
         coords = vtknp.vtk_to_numpy(trajectory.GetPoints().GetData())
+        # convert from volume to pc coordinates
         for i, origin in enumerate([DDFF._bounds.xmin, DDFF._bounds.ymin, DDFF._bounds.zmin]):
             coords[:, i] = DDFF.convert_coordinates_from_volume_to_pc(xvol=coords[:, i], origin=origin)
+        # reconstruct latent space coordinates from PC coordinates
         latent = reducer.inverse_transform(coords)
         print(latent.shape)
-        df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
-        df.to_csv(csv_savedir+file_name.replace(".vtk",".csv"))
+        # turn into list of lists
+        latent_coords = []
+        for i in range(latent.shape[0]):
+            latent_coords.append(latent[i].tolist())
+        walk_img = generate_from_coords(model_name,latent_coords)
+        # df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
+        # df.to_csv(csv_savedir+file_name.replace(".vtk",".csv"))
 
