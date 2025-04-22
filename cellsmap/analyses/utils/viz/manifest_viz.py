@@ -103,12 +103,21 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
     fig = plt.figure(figsize=(15,5*n_),constrained_layout=True)
     subfigs = fig.subfigures(nrows=n_, ncols=1) # create n_ subfigures, one for each dataset (will add columns in the loop)
 
+    # for setting plot limits, initialize to 0 (will be updated in the loop)
+    y_lims = [[0,0],[0,0],[0,0]] # y-limits for each PC
     # loop over datasets, project feature data onto top 3 PCs, and plot
     for row, subfig in enumerate(subfigs):
         ds_name = list_of_datasets[row] # get the dataset name
         df_proj = mio.project_PCA_one_dataset(df,pca,ds_name) # project the dataset onto the PCA space
         PCs = [str(i) for i in range(3)] # top 3 PCs
         feats_proj = mio.df_to_array(df_proj,PCs) # get the feature data projected onto the top 3 PCs
+
+        for j in range(3):
+            if ds_name == '20241203_20X': # dataset with bubbles, outliers will skew the y-limits
+                continue
+            # get y-limits for each PC
+            y_lims[j][0] = min(y_lims[j][0],np.min(feats_proj[...,j]))
+            y_lims[j][1] = max(y_lims[j][1],np.max(feats_proj[...,j]))
 
         subfig.suptitle(title_dict[ds_name],fontsize=26) # title of subfig: description of dataset by flow conditions
 
@@ -118,6 +127,12 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
         # plot top 3 PCs for the dataset
         fig, axs = plot_top_3_PCs(feats_proj,fig_ax=(fig,axs))
     
+    # set y-limits for each PC across all datasets
+    for j in range(3):
+        for row, subfig in enumerate(subfigs):
+            axs = subfig.axes[j]
+            axs.set_ylim(y_lims[j][0],y_lims[j][1]) # set y-limits for each PC
+
     return fig, axs
 
 def plot_PCA_projection_2D(feats_proj:np.ndarray,fig_title:str|None=None,fig_ax:Tuple|None=None) -> Tuple:
