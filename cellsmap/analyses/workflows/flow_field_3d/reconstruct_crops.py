@@ -33,6 +33,9 @@ reducer = manifest_io.load_pca_model(output_savedir)
 model_name = "diffae_04_10"
 
 # Reconstruction of crops from latent space coordinates via DiffAE model
+# To note: you should run this script on a machine with a GPU, and you must
+# have the ML dependencies installed (e.g. pytorch, diffae, etc.).
+# See the README.md for more details on creating an environment with the ML dependencies.
 for file_name in os.listdir(vtk_savedir):
     if "interpolated_mean_trajectory" in file_name:
         print(file_name)
@@ -50,7 +53,7 @@ for file_name in os.listdir(vtk_savedir):
         latent_coords = []
         for i in range(latent.shape[0]):
             latent_coords.append(latent[i].tolist())
-        walk_img = generate_from_coords(model_name,latent_coords)
+        walk_img = generate_from_coords(model_name,latent_coords) # output is a numpy array
         # df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
         # df.to_csv(csv_savedir+file_name.replace(".vtk",".csv"))
 
