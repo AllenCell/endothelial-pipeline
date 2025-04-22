@@ -31,7 +31,7 @@ reducer = manifest_io.load_pca_model(output_savedir)
 # Save 8 dim features in CSV files for now.
 # TODO: Implement reconstruction once Benji has the code finalized
 for file_name in os.listdir(vtk_savedir):
-    if "mean_trajectory" in file_name:
+    if "interpolated_mean_trajectory" in file_name:
         print(file_name)
         trajectory = vtk_tools.load_polydata(vtk_savedir+file_name)
         coords = vtknp.vtk_to_numpy(trajectory.GetPoints().GetData())
