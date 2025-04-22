@@ -7,6 +7,10 @@ from time import time
 
 from sklearn.pipeline import Pipeline
 
+from multiprocessing import Pool
+from functools import partial
+import os
+
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
 from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
