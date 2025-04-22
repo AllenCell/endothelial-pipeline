@@ -76,7 +76,7 @@ for file_name in os.listdir(vtk_savedir):
             # plot and save image
             crop_viz.plot_crop_image(im=img,
                                      title=f"({latent_coords[i][0]:.2f}, {latent_coords[i][1]:.2f}, {latent_coords[i][2]:.2f})",
-                                     savepath=crop_savedir+file_name, 
+                                     savepath=crop_savedir+crop_name, 
                                      dpi=300,
                                      cmap="gray",
                                      show=False)
