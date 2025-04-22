@@ -48,7 +48,7 @@ def generate_and_save_validation_images(record_list):
     dataset_name = record_list[0]['dataset_name']
     scene_index = int(record_list[0]['scene_index'])
     position = record_list[0]['position']
-    T = record_list[0]['T']
+    T = int(record_list[0]['T'])
     out_dir = record_list[0]['out_dir'] / f'{dataset_name}/P{position}'
 
     print(f'Working on dataset {dataset_name}, P{position} T{T}...')
@@ -77,14 +77,14 @@ def generate_and_save_validation_images(record_list):
 
         seg = BioImage(seg_path)
         print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg_arr = seg.get_image_dask_data(dim_order).squeeze()#.compute()
+        seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze()#.compute()
 
         print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = get_dataset_info(dataset_name)['egfp_channel_index']
-        img_arr = img.get_image_dask_data(dim_order).max(axis=dim_map['Z'], keepdims=True)
-        img_arr = img_arr[T, cdh5_channel, :, :, :].squeeze()#.compute()
+        img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
+        img_arr = img_dask.max(axis=dim_map['Z'], keepdims=True).squeeze()#.compute()
 
         # cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         # cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
