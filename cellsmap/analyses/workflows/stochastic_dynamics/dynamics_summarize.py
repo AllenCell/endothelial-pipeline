@@ -30,15 +30,24 @@ def main(config_name:str='default') -> None:
     bin_ylim = config['plt_ylim']['hist']
     N_pts_pplane = config['N_pts_pplane']
     N_bins_hist = config['N_bins_hist']
+
     # for phase plane plots, fix grid across all datasets
     pplane_xvec = np.linspace(pplane_xlim[0],pplane_xlim[1],N_pts_pplane+1)
     pplane_yvec = np.linspace(pplane_ylim[0],pplane_ylim[1],N_pts_pplane+1)
+
     # for histogram plots, fix bins across all datasets
     bins, centers = rh.get_bins(N_bins_hist,bin_limits=[bin_xlim,bin_ylim])
 
     # for plotting fixed points by shear stress
     shear_range = config['shear_range']
     shear_range_fpt = np.linspace(shear_range[0],shear_range[-1],config['N_shear_fpt'])
+
+    # for plotting entropy production rate by shear stress - check if additive noise or not
+    # additive noise: D = const, non-additive noise: D = D(x)
+    # this is set in dynamics_config.yaml by setting 'diffusion_feats' to 0 or >0
+    additive_noise = True
+    if config['polynomial_lib']['diffusion_feats'] > 0:
+        additive_noise = False
 
     # for plotting generalized potential energy landscape for various shear stresses
     bins_gp, centers_gp = rh.get_bins(config['N_bins_landscape'],bin_limits=[bin_xlim,bin_ylim])
@@ -72,7 +81,7 @@ def main(config_name:str='default') -> None:
 
 
     ################### Entropy production rate as a function of shear stress ###################
-    model_analysis.run_epr_analysis(myModel,bins,centers,shear_range_fpt,fig_savedir)
+    model_analysis.run_epr_analysis(myModel,bins,centers,shear_range_fpt,fig_savedir,additive_noise)
 
 
     ################### Generalized potential energy landscape ###################
@@ -81,7 +90,7 @@ def main(config_name:str='default') -> None:
 
     # plot generalized potential energy landscape for each shear stress specified in shear_range_gp
     model_analysis.run_gen_potential_analysis(myModel,bins_gp,centers_gp,shear_range_gp,
-                                            PCs,downsample_quiver,normed,fig_savedir)
+                                            PCs,downsample_quiver,normed,fig_savedir,additive_noise)
 
 if __name__ == "__main__":
     fire.Fire(main)

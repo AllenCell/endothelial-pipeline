@@ -192,7 +192,7 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     if method == 'kernel':
         if kernel_params is None:
             print('No kernel parameters provided, using default parameters: ')
-            kernel_params = {'bw':0.1, 'clip': False, 'kernel': 'epanechnikov'}
+            kernel_params = {'bandwidth':0.1, 'clip': False, 'kernel': 'gaussian'}
             print(f"bw = {kernel_params['bw']}, clip = {kernel_params['clip']}, kernel = {kernel_params['kernel']}")
         f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
     elif method == 'histogram':

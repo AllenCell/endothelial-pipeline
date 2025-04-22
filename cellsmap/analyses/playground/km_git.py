@@ -130,21 +130,12 @@ for ds_name in list_of_datasets:
         else:
             centers_slice = centers_
 
-        X_1, X_2 = np.meshgrid(*centers_slice)
         kmc_slice = np.concatenate([f_KM_,D_KM_],axis=-1).T
 
-        fig, ax = plt.subplots(1,2,figsize=(12,6))
-        ax[0].quiver(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
-        ax[0].set_xlabel(f'PC{PCs[0]+1}')
-        ax[0].set_ylabel(f'PC{PCs[1]+1}')
-
-        ax[1].streamplot(X_1,X_2,kmc_slice[0],kmc_slice[1],color='k', linewidth=0.5)
-        ax[1].set_xlabel(f'PC{PCs[0]+1}')
-        ax[1].set_ylabel(f'PC{PCs[1]+1}')
-        fig.suptitle('Kramers-Moyal drift coefficients')
+        fig_ax = manifest_viz.plot_km_drift_2D(centers_slice,kmc_slice,PCs=PCs)
         plt.show()
 
-        fig_ax = eakm.plot_km(X_1,X_2,kmc_slice)
+        fig_ax = manifest_viz.plot_km(centers_slice,kmc_slice,PCs=PCs)
         plt.show()
 
         f_KM_mask, X_pts_mask = rh.masked_vector_field(f_KM_,np.array(np.meshgrid(*centers_slice)).T)

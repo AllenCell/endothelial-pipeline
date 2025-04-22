@@ -131,48 +131,6 @@ def get_km_histogram(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -
 
     return f_KM, D_KM
 
-def plot_km(X_1,X_2,kmc):
-    '''
-    Plot Kramers-Moyal coefficients.
-    '''
-    fig = plt.figure(figsize = (12,8))
-
-
-    ax_00 = fig.add_subplot(2, 2, 1, projection='3d')
-
-    # the Kramers−Moyal coefficients [1,0]
-    ax_00.contour3D(X_1, X_2, kmc[0], 50, cmap='Greens',alpha=0.5)
-    ax_00.set_title(r'K−M coefficient [1,0]');
-
-
-    # the Kramers−Moyal coefficients [0,1]
-    ax_01 = fig.add_subplot(2, 2, 2, projection='3d')
-
-    ax_01.contour3D(X_1, X_2, kmc[1], 50, cmap='Greens',alpha=0.5)
-    ax_01.set_title(r'K−M coefficient [0,1]');
-
-
-    # the Kramers−Moyal coefficients [2,0]
-    ax_10 = fig.add_subplot(2, 2, 3, projection='3d')
-
-    ax_10.contour3D(X_1, X_2, kmc[2], 50, cmap='Greens',alpha=0.5)
-    ax_10.set_title(r'K−M coefficient [2,0]');
-
-
-    # the Kramers−Moyal coefficients [0,2]
-    ax_11 = fig.add_subplot(2, 2, 4, projection='3d')
-
-    # power [0,2] (transpose, python stores arrays transposed)
-    ax_11.contour3D(X_1, X_2, kmc[3], 50, cmap='Greens',alpha=0.5)
-
-    ax_11.set_title(r'K−M coefficient [0,2]');
-    # Rotate views and add labels
-    ax_00.view_init(30, 20); ax_01.view_init(30, 20); ax_10.view_init(30, 20); ax_11.view_init(30, 20)
-    ax_00.set_xlabel(r'$x_1$'); ax_01.set_xlabel(r'$x_1$'); ax_10.set_xlabel(r'$x_1$'); ax_11.set_xlabel(r'$x_1$')
-    ax_00.set_ylabel(r'$x_2$'); ax_01.set_ylabel(r'$x_2$'); ax_10.set_ylabel(r'$x_2$'); ax_11.set_ylabel(r'$x_2$')
-
-    return fig, ax_00, ax_01, ax_10, ax_11
-
 def plot_km_estimates(fig_ax, X_1,X_2,km_predictions):
     fig, ax_00, ax_01, ax_10, ax_11 = fig_ax
     Y_1_pred, Y_2_pred, V_1_pred, V_2_pred = km_predictions
