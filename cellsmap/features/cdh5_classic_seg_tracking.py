@@ -53,10 +53,10 @@ def run_workflow(queue):
                      sorting_key=preproc.extract_T,
                      C=segmentation_channel,
                      T=T_to_eval,
-                     extra_in_dir=raw_filepath,
-                     extra_C=raw_channel,
-                     extra_scene=scene_index,
-                     extra_T=T_to_eval,
+                    #  extra_in_dir=raw_filepath,
+                    #  extra_C=raw_channel,
+                    #  extra_scene=scene_index,
+                    #  extra_T=T_to_eval,
                      Z_projection=np.max,
                      track_tolerance=3,
                      img_metadata=img_metadata,
@@ -85,7 +85,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                                           overwrite=True,
                                           verbose=verbose,
                                           is_test=is_test,
-                                          image_validation_frequency=1,
+                                          image_validation_frequency=0,
                                           use_original_data=True)
 
     analysis_queue_df = pd.DataFrame(analysis_queue)

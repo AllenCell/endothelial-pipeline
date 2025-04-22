@@ -51,7 +51,7 @@ def generate_and_save_validation_images(dframe):
     # print(f'Working on dataset {dataset_name}, P{position} T{T}...')
 
     raw_path = Path(get_dataset_info(dataset_name)['original_path'])
-    seg_path = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
+    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     # NOTE: THE LINE OF CODE BELOW SEEMS TO WORK WITH SINGLE PROCESSING
     #     BUT NOT WITH MULTIPROCESSING. NOT SURE WHY GLOB WOULD DO THIS
     #     MULTIPROCESSING IS ABLE TO GET SEG_PATH CORRECTLY THOUGH
@@ -64,7 +64,7 @@ def generate_and_save_validation_images(dframe):
     #     return
     # else:
     #     seg_path = Path(seg_path_list[0])
-    seg_path = seg_path / f'{dataset_name}_P{position}_T{T}.ome.tiff'
+    seg_path = seg_dir / f'{dataset_name}_P{position}_T{T}.ome.tiff'
     if not seg_path.exists():
         print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
