@@ -69,7 +69,7 @@ def generate_and_save_validation_images(dframe):
     # else:
     #     seg_path = Path(seg_path_list[0])
     if not seg_path.exists():
-        assert f'No segmentation file found for {dataset_name} P{position} at T{T}.')
+        print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
     else:
         dim_order = 'TCZYX'
