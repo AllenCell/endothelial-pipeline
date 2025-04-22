@@ -325,19 +325,21 @@ class DataDrivenFlowField3D():
 
         evolution = []
         
-        eps = 2
+        eps = 2 # small displacement in volume
         for tp in range(1, target_nframes):
             
             coords_new = []
             for r in coords:
                 x, y, z = r
+                # euler method using mean velocity as magnitude for vectors
                 vx = self._flow_field[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
                 vy = self._flow_field[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
                 vz = self._flow_field[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
                 x_new = x + sim_speed * vx
                 y_new = y + sim_speed * vy
                 z_new = z + sim_speed * vz
-        
+
+                # periodic - if trajectory goes out of bounds, wrap around
                 x_new = (x_new + eps) % ((self._bounds.xmax-self._bounds.xmin)/self._grid_spacing) - eps
                 y_new = (y_new + eps) % ((self._bounds.ymax-self._bounds.ymin)/self._grid_spacing) - eps
                 z_new = (z_new + eps) % ((self._bounds.zmax-self._bounds.zmin)/self._grid_spacing) - eps
@@ -348,11 +350,11 @@ class DataDrivenFlowField3D():
             coords = np.array(coords_new).copy()
             save_points_as_polydata(coordinates=coords, file_name=f"{output_path}_{tp:05}.vtk")
 
-
+        # save out the mean trajectory
         mean_evolution = []
         for coords in evolution:
             xc, yc, zc = coords.mean(axis=0)
-            if use_pc_units:
+            if use_pc_units: # convert to pc units instead of volume units
                 xc = self._bounds.xmin+self._grid_spacing*xc
                 yc = self._bounds.ymin+self._grid_spacing*yc
                 zc = self._bounds.zmin+self._grid_spacing*zc
