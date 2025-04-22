@@ -15,13 +15,10 @@ from tqdm import tqdm
 
 def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, dataset_name, T, padding=50):
 
-    validation_subfolder = out_dir / str(track_id)
-    Path.mkdir(validation_subfolder, exist_ok=True, parents=True)
-
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
-    crop_img = img_arr[expanded_bbox].squeeze().compute()
-    crop_seg = seg_arr[expanded_bbox].squeeze().compute()
+    crop_img = img_arr[expanded_bbox].squeeze()#.compute()
+    crop_seg = seg_arr[expanded_bbox].squeeze()#.compute()
     crop_seg_outline = find_boundaries(crop_seg)
     track_of_interest = (crop_seg == cell_id * 1) + (crop_seg_outline > 0) * 2
     raw_img_crop = rescale_intensity(np.clip(crop_img, 0, np.percentile(crop_img, 98)), out_range=(0, 1))
@@ -31,7 +28,7 @@ def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, d
     ax.imshow(overlay)
     ax.axis('off')
     plt.tight_layout()
-    fig.savefig(validation_subfolder / f'{dataset_name}_track{track_id}_T{T}.png', bbox_inches='tight', pad_inches=0, dpi=180)
+    fig.savefig(out_dir / f'{dataset_name}_track{track_id}_T{T}.png', bbox_inches='tight', pad_inches=0, dpi=180)
     plt.close(fig)
 
     return
@@ -77,14 +74,14 @@ def generate_and_save_validation_images(record_list):
 
         seg = BioImage(seg_path)
         print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze()#.compute()
+        seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze().compute()
 
         print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = get_dataset_info(dataset_name)['egfp_channel_index']
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
-        img_arr = img_dask.max(axis=dim_map['Z'], keepdims=True).squeeze()#.compute()
+        img_arr = img_dask.max(axis=dim_map['Z'], keepdims=True).squeeze().compute()
 
         # cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         # cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
@@ -109,15 +106,19 @@ def generate_and_save_validation_images(record_list):
         #                            cell_id_to_crop_map[cell_id],
         #                            img_arr, seg_arr, out_dir, dataset_name, T, padding=padding)
 
-        for record in tqdm(record_list, total=len(record_list), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        # for cell_id in cell_ids_with_tracks:
-            # print(f'-- saving validation images for cell {cell_id}...')
-            save_validation_images(cell_id = record['label'],
-                                   track_id = record['track_id'],
-                                   crop = cell_id_to_crop_map[record['label']],
+        # for record in tqdm(record_list, total=len(record_list), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        for record in record_list:
+            cell_id = record['label'],
+            track_id = record['track_id']
+            validation_subfolder = out_dir / str(track_id)
+            Path.mkdir(validation_subfolder, exist_ok=True, parents=True)
+            print(f'-- saving validation images for cell {cell_id}...')
+            save_validation_images(cell_id,
+                                   track_id,
+                                   crop = cell_id_to_crop_map[cell_id],
                                    img_arr=img_arr,
                                    seg_arr=seg_arr,
-                                   out_dir=out_dir,
+                                   out_dir=validation_subfolder,
                                    dataset_name=dataset_name,
                                    T=T,
                                    padding=padding)
