@@ -18,6 +18,9 @@ pdm.lock
 .pdm-python
 .python-version
 
+# PDM config file
+.pdm.toml
+
 # Environment variables
 venv/
 .venv

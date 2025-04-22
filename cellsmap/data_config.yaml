@@ -607,7 +607,7 @@
   pixel_size_xy_in_um: 0.191,
   duration: 481, # number of frames
   time_interval_in_minutes: 1.0,
-  flow: [[0, 6, 6.16], [6, 96, 21.7]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
+  flow: [[0, 30, 6.16], [31, 480, 21.7]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
   # flow changed between timeframes 30-31
   # 6.16 dyn/cm^2 = 17.1mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
   # 21.63 dyn/cm^2 = 60.0mL/min measured flow rate * 0.007 viscosity of media * 51.5 (a constant for 0.6 Luer Glass Bottom micro-slide)
