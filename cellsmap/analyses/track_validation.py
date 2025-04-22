@@ -53,7 +53,7 @@ def generate_and_save_validation_images(dframe):
     raw_path = Path(get_dataset_info(dataset_name)['original_path'])
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     seg_path = seg_dir / f'{dataset_name}_P{position}_T{T}.ome.tiff'
-    print(f'{raw_path.exists()}: {raw_path.name()}, {seg_path.exists()}: {seg_path.name()}')
+    # print(f'{raw_path.exists()}: {raw_path.name()}, {seg_path.exists()}: {seg_path.name()}')
     # return
 
     # NOTE: THE LINE OF CODE BELOW SEEMS TO WORK WITH SINGLE PROCESSING
