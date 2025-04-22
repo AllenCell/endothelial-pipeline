@@ -218,15 +218,9 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250115_paired3iNikon_3i1st,
-<<<<<<< HEAD
-  original_path: "//allen/programs/allencell/data/proj0/639/444/c03/a4d/421/b28/54c/ff7/c32/493/dc/20250115_GE00006392_20X_NikonPaired_sldy/20250115_GE00006392_20X_NikonPaired_SLDY.sldy",
-  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_dc493c32ff754cb28421a4dc03444639",
-  fmsid: "dc493c32ff754cb28421a4dc03444639",
-=======
   original_path: "//allen/programs/allencell/data/proj0/61a/26d/0a1/572/3e8/f08/14d/4b7/926/e36/51/20250115_GE00006392_20X_pairedNikon_sldy/20250115_GE00006392_20X_paired_sldy.sldy",
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_51e369264b714df083e85720a126d61a",
   fmsid: "51e369264b714df083e85720a126d61a",
->>>>>>> main
   barcode: GE00006392,
   cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
