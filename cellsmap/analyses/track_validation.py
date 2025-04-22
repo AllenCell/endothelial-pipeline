@@ -14,7 +14,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 
 def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, dataset_name, T, padding=50):
-    print(f'-- {cell_id}')
+    # print(f'-- {cell_id}')
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
     crop_img = img_arr[expanded_bbox].squeeze()#.compute()
@@ -39,7 +39,7 @@ def generate_and_save_validation_images(dframe):
     dataset_name = dframe['dataset_name'].unique()[0]
     scene_index = int(dframe['scene_index'].unique()[0])
     position = dframe['position'].unique()[0]
-    T = dframe['T'].unique()[0]
+    T = int(dframe['T'].unique()[0])
     out_dir = dframe['out_dir'].unique()[0] / f'{dataset_name}/P{position}'
 
     # dataset_name = record_list[0]['dataset_name']
@@ -79,7 +79,7 @@ def generate_and_save_validation_images(dframe):
         # print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
-        cdh5_channel = get_dataset_info(dataset_name)['egfp_channel_index']
+        cdh5_channel = int(get_dataset_info(dataset_name)['egfp_channel_index'])
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
         img_arr = img_dask.max(axis=dim_map['Z'], keepdims=True).squeeze().compute()
 
@@ -105,7 +105,7 @@ def generate_and_save_validation_images(dframe):
             crop = cell_id_to_crop_map[cell_id]
             validation_subfolder = out_dir / str(track_id)
             Path.mkdir(validation_subfolder, exist_ok=True, parents=True)
-            print(f'-- saving validation images for cell {cell_id}...')
+            # print(f'-- saving validation images for cell {cell_id}...')
             save_validation_images(cell_id,
                                    track_id,
                                    crop,
@@ -135,7 +135,7 @@ def generate_and_save_validation_images(dframe):
         return
 
 
-def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
+def main(n_proc=1, dataset_name='20241016_20X', t_final=3, verbose=False):
     """t_final is really only used for testing purposes."""
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
