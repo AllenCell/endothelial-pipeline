@@ -81,7 +81,7 @@ for file_name in os.listdir(vtk_savedir):
             crop_name = crop_name.replace(".vtk", f"_{i}")
             # plot and save each image as png
             crop_viz.plot_crop_image(im=img,
-                                     title=f"({latent_coords[i][0]:.2f}, {latent_coords[i][1]:.2f}, {latent_coords[i][2]:.2f})",
+                                     title=f"({latent_coords[i][0]:.4f}, {latent_coords[i][1]:.4f}, {latent_coords[i][2]:.4f})",
                                      savepath=crop_savedir+crop_name, 
                                      dpi=300,
                                      cmap="gray",
