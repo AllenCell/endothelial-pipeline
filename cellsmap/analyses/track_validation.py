@@ -135,7 +135,7 @@ def generate_and_save_validation_images(dframe):
         return
 
 
-def main(n_proc=1, dataset_name='20241016_20X', t_final=3, verbose=False):
+def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
     """t_final is really only used for testing purposes."""
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
