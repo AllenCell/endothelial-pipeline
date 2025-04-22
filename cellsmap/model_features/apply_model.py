@@ -1,41 +1,146 @@
 import json
 import fire
-from typing import Dict
-from cellsmap.util import dataset_io
-from cyto_dl.api import CytoDLModel
-from cellsmap.util import get_model_config_path, load_config
-import json
+import torch
+from typing import Dict, Union, Sequence
 from pathlib import Path
+import pandas as pd
 
+from cyto_dl.api import CytoDLModel
+from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P
+from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
+from cellsmap.util.set_output import get_output_path
+from cellsmap.util.manifest_preprocessing import save_file_to_fms
 
-def apply_model(model_name:str, dataset_name, save_dir='results', channel:str='CDH5_Tubulin', overrides:Dict={}):
+# the zarr creation workflow always has brightfield as channel index 1
+ZARR_BF_CHANNEL = 1
+
+def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
+    """
+    Extract commit hash from the requirements file uploaded to mlflow
+    
+    Parameters
+    ----------
+    run_id: str
+        The run ID of the MLflow run.
+    model_path: Path
+        The path where the downloaded model artifacts are saved.
+    """
+    artifact_path  = 'requirements/eval-requirements.txt'
+    download_mlflow_artifact(run_id, artifact_path, model_path)
+    with open(model_path/artifact_path, 'r') as f:
+        lines = f.readlines()
+    for line in lines:
+        if 'git+' in line and 'cyto-dl' in line:
+            commit_hash = line.split('git+')[1].split('#egg')[0].split('/')[-1]
+            return commit_hash
+    raise ValueError('No commit hash found in requirements.txt')
+
+def generate_overrides(user_overrides, save_path: str, data_path: str, ckpt_path: str, dataset_name: str, model_name: str) -> Dict:
+    overrides ={
+        # train and val dataloaders are unnecessary for prediction and might be slow to instantiate (e.g. if they cache data)
+        'data.train_dataloaders': None,
+        'data.val_dataloaders': None,
+        'data.predict_dataloaders.num_workers': 128,
+        'data.predict_dataloaders.dataset.csv_path': data_path,
+        'paths.output_dir': save_path,
+        # change checkpoint path to the one downloaded from mlflow
+        'checkpoint.ckpt_path': ckpt_path,
+        'checkpoint.strict': True,
+        'callbacks': None,
+        'callbacks.prediction_saver': {
+            "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
+            "save_dir": str(save_path),
+            "meta_keys": ["T", 'start_y', 'start_x', 'filename_or_obj'],
+            "save_suffix": f"{dataset_name}_{model_name}_features"
+        },
+    }
+    user_overrides.update(overrides)
+    return user_overrides
+
+def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0):
+    # generate csv with paths to zarr files
+    df = pd.DataFrame({
+        'path': sorted(get_zarr_path(dataset_name).values())
+    })
+    df['channel'] = ZARR_BF_CHANNEL
+    df['resolution'] = resolution_level
+    df['start']  = 0
+    df['stop'] = 10
+    data_path = str(save_path / 'dataset.csv')
+    df.to_csv(data_path, index=False)
+    return data_path
+
+def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: Sequence[int], mlflow_id: str, save_path: Path):
+    # add model and dataset information to prediction file
+    prediction_path = save_path/f"predict_{dataset_name}_{model_name}_features.parquet"
+    pred_df = pd.read_parquet(prediction_path)
+    pred_df['dataset'] = dataset_name
+    pred_df['model_name'] = model_name
+    pred_df['mlflow_id'] = mlflow_id
+
+    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
+
+    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms
+    pred_df['resolution_level'] = 1
+
+    pred_df['end_y'] = pred_df['start_y'] + crop_size[0]
+    pred_df['end_x'] = pred_df['start_x'] + crop_size[1]
+    pred_df['crop_size_y']= crop_size[0]
+    pred_df['crop_size_x']= crop_size[1]
+    pred_df['position'] = pred_df['filename_or_obj'].apply(lambda s: extract_P(s, int_only=False))
+    pred_df.rename(columns={'filename_or_obj': 'zarr_path', 'T': 'frame_number'}, inplace=True)
+    pred_df.to_parquet(prediction_path)
+    return prediction_path
+
+def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, overrides:Union[str, Dict]={}):
+    if not torch.cuda.is_available():
+        raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
+
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):
         raise ValueError('Overrides must be a dictionary or a string')
+    
+    # download model from mlflow
+    mlflow_id = get_model_info(model_name)['mlflow_run_id']
+    model_path = Path(get_output_path(f'models/{model_name}'))
+    path_dict = download_model(mlflow_id, model_path)
+
+    save_path = model_path/dataset_name
+    save_path.mkdir(parents=True, exist_ok=True)
+
     # load model
     model = CytoDLModel()
-    cfg_path = get_model_config_path(model_name)
-    model.load_config_from_file(cfg_path)
+    model.load_config_from_file(path_dict['config_path'])
+
+    # create zarr dataset
+    data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
+
     # apply overrides
-    movie_path = dataset_io.get_zarr_path(dataset_name)
-    overrides['data.dict_meta.path'] = movie_path
-    overrides['paths.output_dir'] = save_dir
-
+    overrides = generate_overrides(
+        overrides,
+        save_path=save_path,
+        data_path=data_path,
+        ckpt_path=path_dict['checkpoint_path'],
+        dataset_name=dataset_name,
+        model_name=model_name
+    )
     model.override_config(overrides)
-    model.print_config()
-
-    Path(save_dir).mkdir(parents=True, exist_ok=True)
-    # apply model
     model.predict()
+    crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
+    prediction_path = update_prediction_with_meta(
+        dataset_name=dataset_name,
+        model_name=model_name,
+        crop_size=crop_size,
+        mlflow_id=mlflow_id,
+        save_path=save_path
+    )
+    commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
-def apply_all(dataset_name):
-    config = load_config('model')
-    for model_config in config:
-        name = model_config['name']
-        apply_model(name, dataset_name, save_dir=f'results/{name}')
-
+    if upload_to_fms:
+        save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
+    return prediction_path
 
 if __name__ == '__main__':
-    fire.Fire()
+    fire.Fire(apply_model)

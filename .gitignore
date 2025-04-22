@@ -16,6 +16,10 @@ pdm.lock
 
 # PDM virtual environment directory
 .pdm-python
+.python-version
+
+# PDM config file
+.pdm.toml
 
 # Environment variables
 venv/
@@ -43,6 +47,9 @@ venv/
 figs/
 results/
 analyses/results/
+
+# ignore CellPose models which can be quite large
+cellsmap/analyses/nuclei_predictions/models/
 
 # ignore files that might not be included
 cdh5_classic_seg_old.py

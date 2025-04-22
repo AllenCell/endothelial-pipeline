@@ -86,8 +86,6 @@ def main(config_name:str='default') -> None:
 
     ################### Generalized potential energy landscape ###################
 
-    # get bins and centers for plotting generalized potential energy landscape (fixed across all values of shear stress)
-
     # plot generalized potential energy landscape for each shear stress specified in shear_range_gp
     model_analysis.run_gen_potential_analysis(myModel,bins_gp,centers_gp,shear_range_gp,
                                             PCs,downsample_quiver,normed,fig_savedir,additive_noise)

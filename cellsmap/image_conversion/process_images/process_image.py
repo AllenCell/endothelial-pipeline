@@ -1,16 +1,21 @@
-from typing import Any, Tuple
 from bioio import BioImage
 from cellsmap.util.dataset_io import (
+    get_dataset_info,
     get_original_path,
     get_specific_channel_order,
     get_total_number_of_positions,
 )
 import dask.array as da
-
+from typing import Any
 
 
 def get_delayed_array_for_position(
-    pos: int, dataset_name: str, number_positions: int = 6, scene_index: int = 0, img = None,
+    pos: int,
+    dataset_name: str,
+    channel_names: list,
+    number_positions: int = 6,
+    scene_index: int = 0,
+    img: Any | None = None,
 ) -> da.Array:
     """
     Loads all timepoints for a given position in the datase as a Dask array.
@@ -30,16 +35,38 @@ def get_delayed_array_for_position(
     # Set the scene of the image
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position
-    t_final = img.dims.T #  the total number of timepoints in "img"; if testing set t_final to some smaller number (recommended: 18)
+    t_final = (
+        img.dims.T
+    )  #  the total number of timepoints in "img"; if testing set t_final to some smaller number (recommended: 18)
     number_positions = get_total_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
-    gfp_index, bf_index = get_specific_channel_order(dataset_name)
+    gfp_index, bf_index, index_405 = get_specific_channel_order(dataset_name)
+    
+    channels = [gfp_index, bf_index]
+    if index_405 is not None:
+        channels.append(index_405)
+    
+    assert len(channels) == len(channel_names), \
+        f"Number of channels ({len(channels)}) does not match number of channel names ({len(channel_names)})"    
+        
     # Get the delayed arrays for each timepoint at the specified position
     # with the channels in the following order: (GFP, brightfield)
-    results = [img.get_image_dask_data('CZYX', T=tp, C=[gfp_index, bf_index]) for tp in timepoints]
+    results = [
+        img.get_image_dask_data("CZYX", T=tp, C=channels)
+        for tp in timepoints
+    ]
     # Concatenate the delayed arrays into a single large delayed array
     # along the time axis
     scene = da.stack(results, axis=0)  # TCZYX
     print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
+
+def custom_scene_list(dataset_name: str) -> list | None:
+    dataset_info = get_dataset_info(dataset_name)
+    if 'scene_list' in dataset_info:
+        return dataset_info['scene_list']
+    else:
+        return None 
+        
+    

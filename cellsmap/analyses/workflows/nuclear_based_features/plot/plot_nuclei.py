@@ -32,7 +32,6 @@ def plot_number_of_nuclei_per_fov(df: pd.DataFrame, dataset: str, fig_savedir: s
     added_labels = set()
 
     for frame, dft in df.groupby("frame"):
-        assert isinstance(frame, np.int64)
         x = frame
         for idx, (position, dfp) in enumerate(dft.groupby("position")):
             y = dfp["nuclear_label"].nunique()
@@ -67,7 +66,6 @@ def plot_number_of_nuclei_per_dataset(df_list: List[pd.DataFrame], fig_savedir: 
         print(f"Processing dataset {i+1}/{len(df_list)}: {dataset}")
 
         for frame, dft in df.groupby("frame"):
-            assert isinstance(frame, np.int64)
             x = frame
             for position, dfp in dft.groupby("position"):
                 y = dfp["nuclear_label"].nunique()
