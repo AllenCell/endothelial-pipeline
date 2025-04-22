@@ -52,6 +52,9 @@ def generate_and_save_validation_images(dframe):
 
     raw_path = Path(get_dataset_info(dataset_name)['original_path'])
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
+    seg_path = seg_dir / f'{dataset_name}_P{position}_T{T}.ome.tiff'
+    return (f'{raw_path.exists()}: {raw_path.name()}, {seg_path.exists()}: {seg_path.name()}')
+
     # NOTE: THE LINE OF CODE BELOW SEEMS TO WORK WITH SINGLE PROCESSING
     #     BUT NOT WITH MULTIPROCESSING. NOT SURE WHY GLOB WOULD DO THIS
     #     MULTIPROCESSING IS ABLE TO GET SEG_PATH CORRECTLY THOUGH
@@ -64,7 +67,6 @@ def generate_and_save_validation_images(dframe):
     #     return
     # else:
     #     seg_path = Path(seg_path_list[0])
-    seg_path = seg_dir / f'{dataset_name}_P{position}_T{T}.ome.tiff'
     if not seg_path.exists():
         print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
@@ -72,26 +74,26 @@ def generate_and_save_validation_images(dframe):
         dim_order = 'TCZYX'
         dim_map = get_dim_map(dim_order)
 
-        seg = BioImage(seg_path)
-        # print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze().compute()
-
-        # print(f'- loading raw image {dataset_name} P{position} T{T}...')
+        print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = int(get_dataset_info(dataset_name)['egfp_channel_index'])
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
         img_arr = img_dask.max(axis=dim_map['Z'], keepdims=True).squeeze().compute()
 
-        cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
-        cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
-
+        print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
+        seg = BioImage(seg_path)
+        seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze().compute()
         # print(img_arr.shape, f'raw image shape {dataset_name} P{position} T{T}...')
         # print(seg_arr.shape, f'segmentation image shape {dataset_name} P{position} T{T}...')
         # print(f'- getting region properties {dataset_name} P{position} T{T}...')
         props = measure.regionprops(label_image=seg_arr)
         # print(len(props), 'regions found.')
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
+
+        cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
+        cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
+
         # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
         # for roi in rois:
         #     roi.track_id = cell_id_to_track_id_map[roi.label]
