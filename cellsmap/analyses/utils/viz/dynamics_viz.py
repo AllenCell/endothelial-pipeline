@@ -133,14 +133,14 @@ def kl_divergence(p, q, dx, tol=1e-8):
     ndim = len(dx)
 
     if tol==None:
-        tol = max( min(p_in.flatten()), min(q_in.flatten()))
+        tol = max( min(p.flatten()), min(q.flatten()))
     # set small values to tol
-    p = p.copy()
-    p[p<tol] = tol
-    q = q.copy()
-    q[q<tol] = tol
+    p_ = p.copy()
+    p_[p_<tol] = tol
+    q_ = q_.copy()
+    q_[q_<tol] = tol
 
-    kl_div = p*np.log(p/q) # initial KL divergence
+    kl_div = p_*np.log(p_/q_) # initial KL divergence
     for i in range(ndim):
         kl_div = np.trapz(kl_div, dx=dx[i], axis=0) # integrate over each dimension
 
@@ -183,9 +183,6 @@ def compare_stationary_distributions(p_model:np.ndarray, p_hist:np.ndarray, bins
     KL = kl_divergence(p_hist, p_model, dx)
 
     fig.suptitle('$D_{KL}(p_{hist}||p_{model}) =$'+'{:0.4f}'.format(KL),fontsize=16,y=1.05)
-
-    # W_1 = emd(support, support, p_hist.flatten(),p_model.flatten()) # Wasserstein distance
-    # fig.suptitle('$W_1(p_{hist},p_{model}) =$'+'{:0.4f}'.format(W_1),fontsize=16,y=1.05)
 
     return fig, ax
 
