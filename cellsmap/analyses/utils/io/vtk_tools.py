@@ -5,10 +5,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from skimage import filters as skfilt
 from scipy import interpolate as spinterp
-from vtk.util import numpy_support as vtknp
-
+from vtkmodules.util import numpy_support as vtknp
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.analyses.utils import regression_helper as rh
 
 
 def save_image_data(img, output_path, workflow_name="3d_flow_analysis"):
@@ -45,7 +43,7 @@ class CuboidBounds():
 
 class DataDrivenFlowField3D():
     def __init__(self, verbose: bool=False) -> None:
-        self._time_step = 5
+        self._time_step = 2
         self._flow_field = {}
         self._verbose = verbose
         self._level_sparsity = 2
@@ -76,7 +74,6 @@ class DataDrivenFlowField3D():
         #     df = df.sort_values(by=["crop_index", "T"])
         self._df = df.copy()
         self._identifier = identifier
-
     def set_state_space_variables(self, vars: list) -> None:
         self._ss_vars = vars
     
@@ -91,21 +88,18 @@ class DataDrivenFlowField3D():
             print(self._bounds.xmin, self._bounds.ymin, self._bounds.zmin)
             print(self._bounds.xmax, self._bounds.ymax, self._bounds.zmax)
 
-    
     def compute_displacement_vectors(self) -> None:
         df_list = []
         for _, df_track in self._df.groupby(self._identifier):
-            df_track = df_track.sort_values(by=["T"])
-            _, dX, dT = rh.get_X_dX_and_dT(df_track, self._ss_vars) # use built in method to get displacement vectors            
-            df_diff = pd.DataFrame(dX[0], columns=[f"d{var}" for var in self._ss_vars])
-            df_timestep = pd.DataFrame(dT[0], columns=["dT"])
-            df_ = pd.concat([df_track.reset_index(drop=True),
-                              df_diff.reset_index(drop=True), 
-                              df_timestep.reset_index(drop=True)], axis=1)
-            df_list.append(df_)
-        self._df_vecs = pd.concat(df_list)
-        assert "crop_index" in self._df_vecs.columns
+            diff = df_track[self._ss_vars].diff(periods=self._time_step)
+            diff.columns = [f"d{col}" for col in diff.columns]
+            df_list.append(pd.concat([df_track, diff], axis=1))
+        df_vecs = pd.concat(df_list).dropna()
+        # Correct for diff behavior of numpy vs. pandas
         self._ss_dvars = [f"d{var}" for var in self._ss_vars]
+        for dvar in self._ss_dvars:
+            df_vecs[dvar] = -df_vecs[dvar]
+        self._df_vecs = df_vecs
 
     def compute_mean_speed_from_displacement_vectors(self) -> None:
         self._mean_speed = np.linalg.norm(self._df_vecs[self._ss_dvars].abs().mean())
@@ -129,117 +123,86 @@ class DataDrivenFlowField3D():
         ymin, ymax = self._bounds.ymin, self._bounds.ymax
         zmin, zmax = self._bounds.zmin, self._bounds.zmax
 
-        # binning for plotting smooth vector field on common grid
-        Nbins = [int((vmax-vmin)/self._grid_spacing) for vmin, vmax in zip([xmin, ymin, zmin], [xmax, ymax, zmax])]
-        state_space_grid = rh.get_bins(Nbins,bin_limits=[[xmin, xmax], [ymin, ymax], [zmin, zmax]])[1]
+        df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
+        if self._verbose:
+            print(f"Shape of dataframe for condition: {condition}")
+            print(df_vecs_cond.shape)
 
-        # meshgrid for plotting
-        xgrid, ygrid, zgrid = np.meshgrid(*state_space_grid)
-        del state_space_grid # free up memory
+        U, V, Q, dU, dV, dQ = [
+            df_vecs_cond[col].values[::self._level_sparsity]
+            for col in self._ss_vars + self._ss_dvars]
+        norm = np.sqrt(dU**2 + dV**2 + dQ**2)
+        dU = dU/norm
+        dV = dV/norm
+        dQ = dQ/norm
+        if self.get_fig_folder() is not None:
+            fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
+            ax1.quiver(U, V, dU, dV, df_vecs_cond.start_y.values[::self._level_sparsity])
+            ax2.quiver(U, Q, dU, dQ, df_vecs_cond.start_y.values[::self._level_sparsity])
+            for ax in [ax1, ax2]:
+                ax.set_xlim(xmin, xmax)
+                ax.set_ylim(ymin, ymax)
+                ax.set_aspect("equal")
+            vb.save_plot(fig, filename=self.get_fig_folder()+f"quiver_pc_{condition}", dpi=72)
 
+        xgrid, ygrid, zgrid = np.meshgrid(
+            np.linspace(xmin, xmax, int((xmax-xmin)/self._grid_spacing)),
+            np.linspace(ymin, ymax, int((ymax-ymin)/self._grid_spacing)),
+            np.linspace(zmin, zmax, int((zmax-zmin)/self._grid_spacing)), indexing='ij')
         if self._verbose:
             print("Shape of grid:")
-            print([grid.shape for grid in [xgrid, ygrid, zgrid]])
-        
-        df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
+            print(xgrid.shape, ygrid.shape, zgrid.shape)
 
-        # binning for computing the data driven flow field (Kramers-Moyal averages)
-        Nbins_ = [30,35,25]
+        points = np.transpose(np.vstack((U, V, Q)))
 
-        # KM average script takes in list of trajectories (one for each crop), trajectories are numpy arrays
-        # takes in corresponding dX and dT
-        X = []
-        dX = []
-        dT = []
-        for _, df_track in df_vecs_cond.groupby(self._identifier):
-            track = df_track[self._ss_vars].values
-            dtrack = df_track[self._ss_dvars].values
-            dt_track = df_track["dT"].values
-            X.append(track)
-            dX.append(dtrack)
-            dT.append(dt_track)
+        dUi = spinterp.griddata(points, dU, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
+        dVi = spinterp.griddata(points, dV, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
+        dQi = spinterp.griddata(points, dQ, (xgrid, ygrid, zgrid), method='linear', fill_value=0)
 
-        # get bins for histogramming to get Kramers-Moyal coefficients (drift)
-        KM_bins, KM_centers = rh.get_bins(Nbins_,data=X)
-        dX_KM = rh.KM_avg_ND(X, dX, dT, KM_bins, self._time_step)[0] 
+        dUis = skfilt.gaussian(dUi, sigma=3, preserve_range=True)
+        dVis = skfilt.gaussian(dVi, sigma=3, preserve_range=True)
+        dQis = skfilt.gaussian(dQi, sigma=3, preserve_range=True)
 
-        Xgrid = np.moveaxis(np.array(np.meshgrid(*KM_centers,indexing='ij')),0,-1)
-        dX_KM_, X_ = rh.masked_vector_field(dX_KM, Xgrid) # remove nans from dX_KM
-        del X, dX, dT, dX_KM, KM_bins, KM_centers, Xgrid # free up memory
+        epson = 1e-18
+        norm = np.sqrt(epson+dUis**2+dVis**2+dQis**2)
+        dUis /= norm
+        dVis /= norm
+        dQis /= norm
 
-        if dX_KM_.shape[0] == 0:
-            raise Exception(f"Flow field for condition {condition} is empty. Check the input data and bounds.")
-        # extract components of dX_KM_
-        dU_ = dX_KM_[:,0]
-        dV_ = dX_KM_[:,1]
-        dQ_ = dX_KM_[:,2]
-
-        # interpolate to get the velocity field
-        dU = spinterp.griddata(X_, dU_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
-        dU.reshape(xgrid.shape)
-        dV = spinterp.griddata(X_, dV_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
-        dV.reshape(xgrid.shape)
-        dQ = spinterp.griddata(X_, dQ_, (xgrid,ygrid,zgrid), method='linear', fill_value=np.nan)
-        dQ.reshape(xgrid.shape)
-
-        # replace nans with nearest neighbors
-        nan_mask_U = np.isnan(dU)
-        nan_mask_V = np.isnan(dV)
-        nan_mask_Q = np.isnan(dQ)
-        dU[nan_mask_U] = spinterp.griddata(X_, dU_, (xgrid[nan_mask_U],ygrid[nan_mask_U],zgrid[nan_mask_U]), method='nearest')
-        dV[nan_mask_V] = spinterp.griddata(X_, dV_, (xgrid[nan_mask_V],ygrid[nan_mask_V],zgrid[nan_mask_V]), method='nearest')
-        dQ[nan_mask_Q] = spinterp.griddata(X_, dQ_, (xgrid[nan_mask_Q],ygrid[nan_mask_Q],zgrid[nan_mask_Q]), method='nearest')
-
-        dU = skfilt.gaussian(dU, sigma=3, preserve_range=True)
-        dV = skfilt.gaussian(dV, sigma=3, preserve_range=True)
-        dQ = skfilt.gaussian(dQ, sigma=3, preserve_range=True)
-
-        # # for plotting (dPC1,dPC2) in (PC1,PC2) plane, get slice of the grid at PC3 ~= 0
         pc3val = 0.0
-        z_idx = np.where(np.abs(zgrid[0,0,:]-pc3val)<0.1)[-1]
-        print(f"PC3 slices closest to {pc3val}: indices = {z_idx}, PC3 = {zgrid[0,0,z_idx]}")
         zgridmin = pc3val-0.8*self._grid_spacing
         zgridmax = pc3val+1.2*self._grid_spacing
-        zvalids = np.where((zgrid>zgridmin)&(zgrid<zgridmax))
-        print(zvalids)
+        zvalids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax))
         if self._verbose:
             print("Number of points found withing the z-range of interest:")
-            print(len(list(zip(*zvalids))))
-        # for plotting (dPC1,dPC3) in (PC1,PC3) plane, get slice of the grid at PC2 ~= 0
+            print(len(zvalids[0]))
         pc2val = 0.0
-        y_idx = np.where(np.abs(ygrid[0,:,0]-pc2val)<0.1)[-1]
-        print(f"PC2 slices closest to {pc2val}: indices = {y_idx}, PC2 = {ygrid[0,y_idx,0]}")
         ygridmin = pc2val-0.8*self._grid_spacing
         ygridmax = pc2val+1.2*self._grid_spacing
-        yvalids = np.where((ygrid>ygridmin)&(ygrid<ygridmax))
+        yvalids = np.where((ygrid.ravel()>ygridmin)&(ygrid.ravel()<ygridmax))
         if self._verbose:
             print("Number of points found withing the y-range of interest:")
-            print(len(list(zip(*yvalids))))
-
-        # 2D quiver plots
-        fig, (ax1, ax2) = vb.init_subplots(figsize=(12,6))
+            print(len(yvalids[0]))
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
         ax1.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
-        ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], scale=0.5, color="red")
-        ax1.set_xlabel(self._ss_vars[0])
-        ax1.set_ylabel(self._ss_vars[1])
-
+        ax1.quiver(xgrid.ravel()[zvalids], ygrid.ravel()[zvalids], dUis.ravel()[zvalids], dVis.ravel()[zvalids], scale=50, color="red")
         ax2.scatter(df_vecs_cond[self._ss_vars[0]], df_vecs_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
-        ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], scale=0.5, color="red")
-        ax2.set_xlabel(self._ss_vars[0])
-        ax2.set_ylabel(self._ss_vars[2])
-
-        plt.show()
-        
+        ax2.quiver(xgrid.ravel()[yvalids], zgrid.ravel()[yvalids], dUis.ravel()[yvalids], dQis.ravel()[yvalids], scale=50, color="red")
+        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)]):
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(qmin, qmax)
+            ax.set_aspect("equal")
+        plt.tight_layout()
         vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
 
         self._flow_field.update({
             condition: {
-                "velocities": (dU, dV, dQ),
+                "velocities": (dUis, dVis, dQis),
                 "grid": (xgrid, ygrid, zgrid)
             }
         })
 
-        if save_imagedata:
+        if save_image_data:
             imgdata = self.get_imagedata_from_flow_field(condition=condition)
             save_image_data(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
 
@@ -250,7 +213,6 @@ class DataDrivenFlowField3D():
         vz = self._flow_field[condition]["velocities"][2]
 
         dims = vx.shape
-        print(dims)
 
         imageData = vtk.vtkImageData()
         imageData.SetDimensions(dims)
@@ -350,7 +312,7 @@ class DataDrivenFlowField3D():
 
         start_condition = condition[0]
 
-        assert start_condition in self._flow_field.keys(), f"FLow field for condition {start_condition} has not been yet computed."
+        assert start_condition in self._flow_field.keys(), f"Flow field for condition {start_condition} has not been yet computed."
 
         tp = 0
         if filename_prefix is None:
@@ -363,19 +325,21 @@ class DataDrivenFlowField3D():
 
         evolution = []
         
-        eps = 2
+        eps = 2 # small displacement in volume
         for tp in range(1, target_nframes):
             
             coords_new = []
             for r in coords:
                 x, y, z = r
+                # euler method using mean velocity as magnitude for vectors
                 vx = self._flow_field[condition[tp]]["velocities"][0][int(x), int(y), int(z)]
                 vy = self._flow_field[condition[tp]]["velocities"][1][int(x), int(y), int(z)]
                 vz = self._flow_field[condition[tp]]["velocities"][2][int(x), int(y), int(z)]
                 x_new = x + sim_speed * vx
                 y_new = y + sim_speed * vy
                 z_new = z + sim_speed * vz
-        
+
+                # periodic - if trajectory goes out of bounds, wrap around
                 x_new = (x_new + eps) % ((self._bounds.xmax-self._bounds.xmin)/self._grid_spacing) - eps
                 y_new = (y_new + eps) % ((self._bounds.ymax-self._bounds.ymin)/self._grid_spacing) - eps
                 z_new = (z_new + eps) % ((self._bounds.zmax-self._bounds.zmin)/self._grid_spacing) - eps
@@ -386,16 +350,33 @@ class DataDrivenFlowField3D():
             coords = np.array(coords_new).copy()
             save_points_as_polydata(coordinates=coords, file_name=f"{output_path}_{tp:05}.vtk")
 
-
+        # save out the mean trajectory
         mean_evolution = []
         for coords in evolution:
             xc, yc, zc = coords.mean(axis=0)
-            if use_pc_units:
+            if use_pc_units: # convert to pc units instead of volume units
                 xc = self._bounds.xmin+self._grid_spacing*xc
                 yc = self._bounds.ymin+self._grid_spacing*yc
                 zc = self._bounds.zmin+self._grid_spacing*zc
             mean_evolution.append([xc, yc, zc])
         mean_evolution = np.array(mean_evolution)
         save_points_as_polydata(coordinates=mean_evolution, file_name=f"{output_path}_mean_trajectory.vtk")
+
+        # we want to get evenly spaced points along the trajectory (use self._grid_spacing as step size)
+        # this is for visualization purposes (reconstruction of crops along mean traj)
+        # first compute distance between points
+        distances = np.linalg.norm(np.diff(mean_evolution, axis=0), axis=1)
+
+        # compute cumulative distance from the first point along the trajectory
+        arc_length = np.cumsum(np.concatenate(([0],distances)))
+
+        # interpolate to get evenly spaced points at self._grid_spacing
+        n_points = int(np.ceil(arc_length[-1] / self._grid_spacing))
+        arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
+        interpolated_points = np.zeros((n_points, 3))
+        for i in range(3):
+            interpolated_points[:, i] = np.interp(arc_length_new, arc_length, mean_evolution[:, i])
+
+        save_points_as_polydata(coordinates=interpolated_points, file_name=f"{output_path}_interpolated_mean_trajectory.vtk")
 
         return mean_evolution

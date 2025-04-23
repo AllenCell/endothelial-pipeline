@@ -11,7 +11,7 @@ import cellsmap.util.dataset_io as dio
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
-def get_bins(Nbins:list,data:list[np.ndarray]|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
+def get_bins(Nbins:list,data:pd.DataFrame|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
     '''
     Generate histogram bins for computing Kramers-Moyal estimates from trajectories, either automatically based on data or user-defined.
 
@@ -195,8 +195,6 @@ def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple
             for i in range(ndim):
                 my_cond = my_cond*(id_list[i]==uid[i])
             bin_mask = np.where(my_cond)[0]
-            if len(bin_mask) == 0: # if no data points in this bin, skip
-                continue
             # At each histogram bin, find time series points where the state falls into this bin
             slices = [uid[i]-1 for i in range(ndim)]
             f_KM[tuple(slices)][:,j] = np.mean(dXdt[bin_mask],axis=0) # Conditional average  ~ drift
@@ -242,8 +240,10 @@ def masked_vector_field(F:np.ndarray, X:np.ndarray) -> Tuple[np.ndarray,np.ndarr
     mask = np.where(np.isfinite(F))
     ndim = F.shape[-1]
 
+    # mask and flatten F and X over grid
     X_mask = X[mask].reshape((-1,ndim))
     F_mask = F[mask].reshape((-1,ndim))
+
     return F_mask, X_mask
 
 def train_test_all(X:list[np.ndarray], 

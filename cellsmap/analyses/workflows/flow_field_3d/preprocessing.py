@@ -71,6 +71,7 @@ for pc in range(3):
 descriptions = manifest_io.get_descriptive_metadata(df,simple=True)
 df = manifest_io.add_descriptive_metadata(df, descriptions)
 
+# %%
 # Create unique ID for each crop
 # initialize crop index column
 df["crop_index"] = '1'
@@ -118,6 +119,6 @@ vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=
 
 # %%
 # Save final manifest for creating flow fields
-df.to_csv(output_savedir+"manifest.csv",index=False)
+df.to_csv(output_savedir+"manifest.csv")
 
 # %%

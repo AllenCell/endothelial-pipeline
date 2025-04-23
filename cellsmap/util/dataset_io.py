@@ -5,7 +5,12 @@ import pandas as pd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
-from typing import List, Dict, Any, Union, Tuple, Optional
+try:
+    from IPython import get_ipython
+except ModuleNotFoundError:
+    pass
+import fire
+from typing import List, Dict, Any, Union, Tuple, Callable, Optional
 import re
 
 # model methods
@@ -235,12 +240,11 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     base_path = base_path / dataset_name
     # NOTE this is what the code is expected to be when the
     # path is added to the dataconfig.yaml file:
-    # base_path = dataset_info['nuclear_label_free_seg_path']
+    # base_path = dataset_info['cdh5_classic_seg_path']
     position_path = f"{base_path}/P{position}/"
     return position_path
 
 # model methods
-
 def get_available_models():
     model_info = load_config('model')
     model_names = [model['name'] for model in model_info]
@@ -262,6 +266,74 @@ def get_model_config_path(model_name: str, task: str = 'eval') -> str:
     assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
     model_info = get_model_info(model_name)
     return model_info[f'{task}_config_path']
+
+
+# Other miscellaneous methods
+def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = False, *args: Any, **kwargs: Any) -> Any:
+    """
+    Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
+    """
+    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # some non-interactive shell like bash
+    try:
+        # the following line will return a string if an interactive shell is in use,
+        # otherwise raises NameError since get_ipython is not imported from IPython
+        # or returns None if get_ipython is present but script is being executed
+        # from a non-interactive shell
+        if get_ipython().__class__.__name__ != 'NoneType':
+            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+            results = function(*args, **kwargs)
+        else: raise NameError
+    except NameError:
+        print('Using non-interactive shell.')
+        results = fire.Fire(function)
+
+    return results if return_results else None
+
+def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
+    """
+    Extract the timepoint value from a string or Path.name.
+    Searches for the pattern "T[0-9]+" to find the timepoint.
+    If use_last_match is True then the last match will be used,
+    otherwise the first one will be used.
+
+    Parameters
+    ----------
+    fp_as_string: str or Path
+        A string or Path.name to get the timepoint from.
+    int_only: bool
+        Whether to return just the timepoint as an integer or
+        an entire string (i.e. 10 vs 'T010')
+        Default is True.
+    use_last_match: bool
+        Whether to use the last match (in the event that multiple possible
+        timepoint values were found in the string).
+        If False then the first match will be used.
+        E.g. image_name_T1_etc_T57.tif can return either T1 or T57, but
+        will return 57 by default. Ideally the timepoint in fp_as_string
+        would be unambiguous.
+        Default is True.
+
+    Returns
+    -------
+    t: int or str
+        The timepoint represented as an integer if int_only is True, otherwise
+        the timepoint represented as a string including the T before.
+    """
+
+    if isinstance(fp_as_string, Path):
+        fp_as_string = str(fp_as_string)
+
+    index = -1 if use_last_match else 0
+    t = re.findall('T[0-9]+', fp_as_string)
+    if t:
+        t_value = int(t[index].split('T')[-1])
+    else:
+        t_value = default_if_not_found
+        print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
+
+    return t_value if int_only else f'T{t_value}'
 
 def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
     """
