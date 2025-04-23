@@ -27,7 +27,7 @@ def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, d
     ax.imshow(overlay)
     ax.axis('off')
     plt.tight_layout()
-    fig.savefig(out_dir / f'{dataset_name}_track{track_id}_T{T}.png', bbox_inches='tight', pad_inches=0, dpi=180)
+    fig.savefig(out_dir / f'{dataset_name}_track{track_id}_T{T}.png', bbox_inches='tight', pad_inches=0, dpi=120)
     plt.close(fig)
 
     return
