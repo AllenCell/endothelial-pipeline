@@ -9,7 +9,6 @@ from itertools import product
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
-from cellsmap.analyses.utils import regression_helper as rh
 import cellsmap.analyses.utils.numerics.kramersmoyal.kmc as km
 
 def get_km_powers(ndim:int) -> np.ndarray:
@@ -21,20 +20,34 @@ def get_km_powers(ndim:int) -> np.ndarray:
 
     Outputs:
     - powers: numpy array of powers for Kramers-Moyal coefficients
+
+    For example, for 1D data, the powers are:
+    [[0],  # normalization for kernel convolution (density)
+     [1],  # f
+     [2]]  # D
+
+    For 2D data, the powers are:
+    [[0,0],  # normalization for kernel convolution (density)
+     [1,0],  # f_1
+     [0,1],  # f_2
+     [2,0],  # D_1
+     [0,2]]  # D_2
     '''
 
-    if ndim == 1:
+    if ndim == 1: # straightforward case for 1D data
         powers = np.array([[0], [1], [2]])
         #                   /    f    D
         #          index:   0    1    2
-    elif ndim == 2:
-        powers = np.array([[0,0], [1,0], [0,1], [1,1], [2,0], [0,2]])
-        #                    /     f_1    f_2     _     D_1    D_2
-        #          index:    0      1      2      3      4      5
-    else:
-        # For higher dimensions, generate all combinations of powers
-        powers = np.array(sorted(product(*(range(ndim+1),) * ndim),
-                                  key=lambda x: (max(x), x)))
+    else: # if ndim > 1, utilize identity matrix to generate powers
+        n_powers = 2*ndim + 1
+        powers = np.zeros((n_powers, ndim), dtype=int) # row 0 is all zeros
+        # drift powers: row 1 to ndim
+        powers[1:ndim+1] = np.eye(ndim, dtype=int)
+        # diffusion powers: row ndim+1 to end (no interaction terms)
+        powers[ndim+1:] = 2*np.eye(ndim, dtype=int)
+        # # For higher dimensions, generate all combinations of powers
+        # powers = np.array(sorted(product(*(range(ndim+1),) * ndim),
+        #                           key=lambda x: (max(x), x)))
     return powers
 
 def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float,kernel_params:dict) -> Tuple[np.ndarray,np.ndarray]:
@@ -55,15 +68,14 @@ def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float,kerne
                 kernel = kernel_params['kernel'],
                 powers = powers, multi_traj=True) / dt
 
-    if ndim == 1:
+    if ndim == 1: # just need to take the first two rows
         f_KM = kmc[1]
         D_KM = kmc[2]
-    elif ndim == 2:
-        kmc = np.swapaxes(kmc,1,2)
-        f_KM = kmc[1:3].T
-        D_KM = kmc[4:6].T
-    else:
-        raise ValueError('Only 1D and 2D data is supported for Kramers-Moyal coefficients.')
+    else: # if ndim > 1, need to make sure arrays are in the right shape
+        axes_permute = [0] + list(reversed(range(1, ndim+1))) # permuted axes (0, ndim, ndim-1, ..., 1)
+        kmc = np.transpose(kmc,axes_permute) # swap last ndim axes to get correct shape: n_powers x N[ndim] x N[ndim-1] x ... x N[1]
+        f_KM = kmc[1:ndim+1].T # take drift terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
+        D_KM = kmc[ndim+1:].T # take diffusion terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
 
     return f_KM, D_KM
 
