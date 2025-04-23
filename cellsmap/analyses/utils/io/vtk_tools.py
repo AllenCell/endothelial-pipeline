@@ -118,10 +118,18 @@ class DataDrivenFlowField3D():
         self.compute_mean_speed_from_displacement_vectors()
 
     def compute_flow_field(self, condition: str, save_imagedata=True) -> None:
-
+        
+        # generate a grid of points in the state space
         xmin, xmax = self._bounds.xmin, self._bounds.xmax
         ymin, ymax = self._bounds.ymin, self._bounds.ymax
         zmin, zmax = self._bounds.zmin, self._bounds.zmax
+
+        Nbins = [int((xmax-xmin)/self._grid_spacing)+1,
+                 int((ymax-ymin)/self._grid_spacing)+1,
+                 int((zmax-zmin)/self._grid_spacing)+1]
+        bins = [np.linspace(vmin, vmax, nbin) for (vmin, vmax, nbin) in zip([xmin, ymin, zmin], [xmax, ymax, zmax], Nbins)]
+        centers = [0.5*(bins[i][:-1]+bins[i][1:]) for i in range(3)]
+        xgrid, ygrid, zgrid = np.meshgrid(*centers, indexing='ij')
 
         df_vecs_cond = self._df_vecs.loc[self._df_vecs.description==condition].copy()
         if self._verbose:
@@ -202,7 +210,7 @@ class DataDrivenFlowField3D():
             }
         })
 
-        if save_image_data:
+        if save_imagedata:
             imgdata = self.get_imagedata_from_flow_field(condition=condition)
             save_image_data(imgdata, output_path=self.get_vtk_folder()+f"flow_field_{condition}.vtk")
 
