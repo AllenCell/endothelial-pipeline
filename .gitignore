@@ -10,10 +10,6 @@ __pycache__/
 *.mypy_cache/
 *.ipynb_checkpoints/
 
-# PDM lock file
-pdm.lock
-.pdm-python
-
 # PDM virtual environment directory
 .pdm-python
 .python-version
