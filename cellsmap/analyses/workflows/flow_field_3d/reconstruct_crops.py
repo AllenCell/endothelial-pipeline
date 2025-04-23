@@ -58,16 +58,14 @@ for file_name in os.listdir(vtk_savedir):
         df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
         df.to_csv(csv_savedir+file_name.replace(".vtk",".csv"))
 
-        # turn into list of lists
+        num_coords = latent.shape[0]
+        # turn coordinate array into list of lists
         latent_coords = []
-        for i in range(latent.shape[0]):
+        for i in range(num_coords):
             latent_coords.append(latent[i].tolist())
 
         # pass into DiffAE model to generate reconstructed crops
         walk_img = generate_from_coords(model_name,latent_coords) # output is a numpy array: (# coords x 128 x 128), greyscale image
-
-        num_coords = len(latent_coords)
-        assert num_coords == walk_img.shape[0], f"Number of coordinates {num_coords} does not match number of images {walk_img.shape[0]}"
 
         # save out stack of images as tif
         tif_name = file_name.replace("interpolated_mean_trajectory", "interpolated_mean_trajectory_reconstructed_crops")
