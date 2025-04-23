@@ -134,6 +134,9 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
     .. [Lamouroux2009] D. Lamouroux and K. Lehnertz, "Kernel-based regression of
     drift and diffusion coefficients of stochastic processes." Physics Letters A
     373(39), 3507─3512, 2009. DOI: 10.1016/j.physleta.2009.07.073
+    .. [Gorjão2019] L. R. Gorjão and F. Meirinhos, "kramersmoyal: Kramers-Moyal
+    coefficients for stochastic processes." Journal of Open Source Software 4(44), 
+    1693, 2019. DOI: 10.21105/joss.01693
     """
     # check inputs (case of multi_traj and single traj)
     if multi_traj:
