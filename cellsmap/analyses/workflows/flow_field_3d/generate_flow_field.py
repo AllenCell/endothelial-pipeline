@@ -17,6 +17,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 # Load manifest created at preprocessing step
 df = pd.read_csv(output_savedir+"manifest.csv")
 
+# %%
 # Create flow field dx/dt = f(x)
 DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
