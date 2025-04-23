@@ -14,11 +14,10 @@ from multiprocessing import Pool
 from tqdm import tqdm
 
 def save_validation_images(cell_id, track_id, crop, img_arr, seg_arr, out_dir, dataset_name, T, padding=50):
-    # print(f'-- {cell_id}')
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
-    crop_img = img_arr[expanded_bbox].squeeze()#.compute()
-    crop_seg = seg_arr[expanded_bbox].squeeze()#.compute()
+    crop_img = img_arr[expanded_bbox].squeeze()
+    crop_seg = seg_arr[expanded_bbox].squeeze()
     crop_seg_outline = find_boundaries(crop_seg)
     track_of_interest = (crop_seg == cell_id * 1) + (crop_seg_outline > 0) * 2
     raw_img_crop = rescale_intensity(np.clip(crop_img, 0, np.percentile(crop_img, 98)), out_range=(0, 1))
@@ -42,32 +41,11 @@ def generate_and_save_validation_images(dframe):
     T = int(dframe['T'].unique()[0])
     out_dir = dframe['out_dir'].unique()[0] / f'{dataset_name}/P{position}'
 
-    # dataset_name = record_list[0]['dataset_name']
-    # scene_index = int(record_list[0]['scene_index'])
-    # position = record_list[0]['position']
-    # T = int(record_list[0]['T'])
-    # out_dir = record_list[0]['out_dir'] / f'{dataset_name}/P{position}'
-
-    # print(f'Working on dataset {dataset_name}, P{position} T{T}...')
-
+    # get the raw image and segmentation image filepaths
     raw_path = Path(get_dataset_info(dataset_name)['original_path'])
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     seg_path = seg_dir / f'{dataset_name}_P{position}_T{T}.ome.tiff'
-    # print(f'{raw_path.exists()}: {raw_path.name()}, {seg_path.exists()}: {seg_path.name()}')
-    # return
 
-    # NOTE: THE LINE OF CODE BELOW SEEMS TO WORK WITH SINGLE PROCESSING
-    #     BUT NOT WITH MULTIPROCESSING. NOT SURE WHY GLOB WOULD DO THIS
-    #     MULTIPROCESSING IS ABLE TO GET SEG_PATH CORRECTLY THOUGH
-    # seg_path_list = list(seg_path.glob(f'*_T{T}.ome.tiff'))
-    # if len(seg_path_list) == 0:
-    #     print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
-    #     return
-    # elif len(seg_path_list) > 1:
-    #     print(f'Multiple segmentation files found for {dataset_name} P{position} at T{T}. Files are: {seg_path}. Skipping.')
-    #     return
-    # else:
-    #     seg_path = Path(seg_path_list[0])
     if not seg_path.exists():
         print(f'No segmentation file found for {dataset_name} P{position} at T{T}.')
         return
@@ -75,40 +53,35 @@ def generate_and_save_validation_images(dframe):
         dim_order = 'TCZYX'
         dim_map = get_dim_map(dim_order)
 
-        print(f'- loading raw image {dataset_name} P{position} T{T}...')
+        # print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
         cdh5_channel = int(get_dataset_info(dataset_name)['egfp_channel_index'])
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
         img_arr = img_dask.max(axis=dim_map['Z'], keepdims=True).squeeze().compute()
 
-        print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
+        # print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
         seg = BioImage(seg_path)
         seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze().compute()
-        # print(img_arr.shape, f'raw image shape {dataset_name} P{position} T{T}...')
-        # print(seg_arr.shape, f'segmentation image shape {dataset_name} P{position} T{T}...')
-        # print(f'- getting region properties {dataset_name} P{position} T{T}...')
+
+        # get the labels and crops around each segmented region
         props = measure.regionprops(label_image=seg_arr)
-        # print(len(props), 'regions found.')
         cell_id_to_crop_map = dict([(region.label, region.slice) for region in props])
 
+        # associate the cell ids with their track ids
         cell_ids_with_tracks = dframe[dframe['T']==T]['label'].unique().tolist()
         cell_id_to_track_id_map = dict(zip(dframe['label'], dframe['track_id']))
 
-        # rois = [reg for reg in props if reg.label in cell_ids_with_tracks]
-        # for roi in rois:
-        #     roi.track_id = cell_id_to_track_id_map[roi.label]
-        padding = 50
-
-        # # for roi in tqdm(rois, total=len(rois), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        # for cell_id in cell_ids_with_tracks:
+        # iterate through each cell id in the timepoint and create
+        # an overlay of the raw image and the segmentation
+        # corresponding to that cell id
+        # for cell_id in tqdm(cell_ids_with_tracks, total=len(cell_ids_with_tracks), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
+        for cell_id in cell_ids_with_tracks:
             # print(f'-- saving validation images for cell {cell_id}...')
             track_id = cell_id_to_track_id_map[cell_id]
             crop = cell_id_to_crop_map[cell_id]
             validation_subfolder = out_dir / str(track_id)
             Path.mkdir(validation_subfolder, exist_ok=True, parents=True)
-            # print(f'-- saving validation images for cell {cell_id}...')
             save_validation_images(cell_id,
                                    track_id,
                                    crop,
@@ -117,24 +90,7 @@ def generate_and_save_validation_images(dframe):
                                    out_dir=validation_subfolder,
                                    dataset_name=dataset_name,
                                    T=T,
-                                   padding=padding)
-
-        # # for record in tqdm(record_list, total=len(record_list), desc=f'{dataset_name} P{position} T{T} saving track overlays'):
-        # for record in record_list:
-        #     cell_id = record['label'],
-        #     track_id = record['track_id']
-        #     validation_subfolder = out_dir / str(track_id)
-        #     Path.mkdir(validation_subfolder, exist_ok=True, parents=True)
-        #     print(f'-- saving validation images for cell {cell_id}...')
-        #     save_validation_images(cell_id,
-        #                            track_id,
-        #                            crop = cell_id_to_crop_map[cell_id],
-        #                            img_arr=img_arr,
-        #                            seg_arr=seg_arr,
-        #                            out_dir=validation_subfolder,
-        #                            dataset_name=dataset_name,
-        #                            T=T,
-        #                            padding=padding)
+                                   padding=50)
         return
 
 
@@ -174,7 +130,6 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
         tracking_df = tracking_df[tracking_df['track_duration'] >= min_track_duration]
 
         nm, df_subset_list = list(zip(*tracking_df.groupby(['dataset_name', 'position', 'T'])[['dataset_name', 'position', 'scene_index', 'T', 'track_id', 'label', 'out_dir']]))
-        # record_list_all = [df.to_dict('records') for df in df_subset_list]
         if n_proc > 1:
             if __name__ == '__main__':
                 print('Using multiprocessing...')
