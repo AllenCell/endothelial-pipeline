@@ -45,9 +45,6 @@ def get_km_powers(ndim:int) -> np.ndarray:
         powers[1:ndim+1] = np.eye(ndim, dtype=int)
         # diffusion powers: row ndim+1 to end (no interaction terms)
         powers[ndim+1:] = 2*np.eye(ndim, dtype=int)
-        # # For higher dimensions, generate all combinations of powers
-        # powers = np.array(sorted(product(*(range(ndim+1),) * ndim),
-        #                           key=lambda x: (max(x), x)))
     return powers
 
 def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float,kernel_params:dict) -> Tuple[np.ndarray,np.ndarray]:
@@ -79,7 +76,7 @@ def get_km_kernel(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float,kerne
 
     return f_KM, D_KM
 
-def get_km_histogram(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
+def get_km_histogram(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple[np.ndarray,np.ndarray]:
     '''
     Kramers-Moyal average drift and diffusion estimates for trajectories in N-dimensional space.
 
@@ -98,9 +95,9 @@ def get_km_histogram(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -
     '''
     ndim = len(bins)
     n = len(X_list) # number of trajectories from which dX was computed
-    my_list = [len(bins[i])-1 for i in range(ndim)]
-    my_list = my_list + [ndim,n]
-    f_KM = np.nan*np.ones(my_list)
+    array_shape_list = [len(bins[i])-1 for i in range(ndim)]
+    array_shape_list = array_shape_list + [ndim,n] # array shape for f_KM and D_KM: N[1] x N[2] x ... x N[ndim] x ndim x n
+    f_KM = np.nan*np.ones(array_shape_list)
     D_KM = np.nan*np.ones(f_KM.shape)
     for (j,X) in enumerate(X_list):
         dX = dX_list[j]
@@ -125,19 +122,8 @@ def get_km_histogram(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -
             f_KM[tuple(slices)][:,j] = np.mean(dXdt[bin_mask],axis=0) # Conditional average  ~ drift
             D_KM[tuple(slices)][:,j] = 0.5*np.mean(dX2dt[bin_mask],axis=0) # Conditional variance  ~ diffusion
 
-    # take average over all trajectories to get Kramers-Moyal drift and diffusion estimates
+    # take average over all trajectories (last axis) to get Kramers-Moyal drift and diffusion estimates
     f_KM = np.nanmean(f_KM,axis=-1)
     D_KM = np.nanmean(D_KM,axis=-1)
 
     return f_KM, D_KM
-
-def plot_km_estimates(fig_ax, X_1,X_2,km_predictions):
-    fig, ax_00, ax_01, ax_10, ax_11 = fig_ax
-    Y_1_pred, Y_2_pred, V_1_pred, V_2_pred = km_predictions
-
-    ax_00.contour3D(X_1, X_2, Y_1_pred.reshape(X_1.shape), 50, cmap='Blues')
-    ax_01.contour3D(X_1, X_2, Y_2_pred.reshape(X_1.shape), 50, cmap='Blues')
-    ax_10.contour3D(X_1, X_2, V_1_pred.reshape(X_1.shape), 50, cmap='Blues')
-    ax_11.contour3D(X_1, X_2, V_2_pred.reshape(X_1.shape), 50, cmap='Blues')
-
-    return fig, ax_00, ax_01, ax_10, ax_11
