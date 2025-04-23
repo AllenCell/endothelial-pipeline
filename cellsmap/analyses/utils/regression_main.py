@@ -64,15 +64,16 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
         f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt,method=method,kernel_params=kernel_params)
 
-        # plot drift and diffusion estimates
-        kmc = np.concatenate([f_KM_,D_KM_],axis=-1).T
-        fig = mv.plot_km(centers,kmc,PCs,shear_list[j])[0]
-        vb.save_plot(fig,filename=fig_savedir+f"kmcs_all_{ds_name}_flow_{j}",format='.png',dpi=500)
+        # for dim < 3, plot drift and diffusion estimates
+        if ndim < 3:
+            kmc = np.concatenate([f_KM_,D_KM_],axis=-1).T
+            fig = mv.plot_km(centers,kmc,PCs,shear_list[j])[0]
+            vb.save_plot(fig,filename=fig_savedir+f"kmcs_all_{ds_name}_flow_{j}",format='.png',dpi=500)
 
-        # quiver and streamplot of drift vector field
-        if ndim == 2:
-            fig = mv.plot_km_drift_2D(centers,kmc,PCs,shear_list[j])[0]
-            vb.save_plot(fig,filename=fig_savedir+f"kmcs_drift_{ds_name}_flow_{j}",format='.png',dpi=500)
+            # quiver and streamplot of drift vector field if ndim == 2
+            if ndim == 2:
+                fig = mv.plot_km_drift_2D(centers,kmc,PCs,shear_list[j])[0]
+                vb.save_plot(fig,filename=fig_savedir+f"kmcs_drift_{ds_name}_flow_{j}",format='.png',dpi=500)
 
         # remove NaNs from drift and diffusion estimates (bins with no data), get corresponding bin centers as well
         f_KM_noNAN, X_pts_, = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)

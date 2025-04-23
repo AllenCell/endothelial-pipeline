@@ -37,6 +37,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "sympy==1.13.1",
     "tqdm>=4.66.5",
+    "torch~=2.0.0",
     # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
     "vtk>=9.4.1", 
     "wasmtime<22.0",
