@@ -19,9 +19,11 @@ from tqdm import tqdm
 
 out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_dir.mkdir(parents=True, exist_ok=True)
+save_figs = False
 
-# dataset_name = '20250227_40X'
-dataset_name = None
+dataset_name = '20250227_40X'
+# dataset_name = '20241016_20X'
+# dataset_name = None
 if dataset_name == None:
     dataset_name_list = [config_data['name']
                         for config_data in load_config(config_type='data')
@@ -41,22 +43,25 @@ for dataset_name in dataset_name_list:
     segprops_df.append(get_measurement_data_raws([dataset_name],
                                                  kind='segmentation_properties',
                                                  as_dask=False))
-    alignments_df.append(get_measurement_data_raws([dataset_name],
-                                                   kind='alignments',
-                                                   as_dask=False))
+    # alignments_df.append(get_measurement_data_raws([dataset_name],
+    #                                                kind='alignments',
+    #                                                as_dask=False))
+tracking_df = pd.concat(tracking_df)
+segprops_df = pd.concat(segprops_df)
+# alignments_df = pd.concat(alignments_df)
 
 # NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
 out_path_tracks = out_dir / f'tracking_data.tsv'
 out_path_segprops = out_dir / f'segmentation_properties.tsv'
-out_path_alignments = out_dir / f'alignments.tsv'
+# out_path_alignments = out_dir / f'alignments.tsv'
 
-# tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
-# segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
+tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
+segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
 # alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
 
 tracking_df = pd.read_csv(out_path_tracks, sep='\t')
 segprops_df = pd.read_csv(out_path_segprops, sep='\t')
-alignments_df = pd.read_csv(out_path_alignments, sep='\t')
+# alignments_df = pd.read_csv(out_path_alignments, sep='\t')
 # END OF TEST CODE
 
 # combine the tracking data with the segmentation properties data
@@ -84,6 +89,10 @@ toti_table_cleared_borders = toti_table[~toti_table['touches_image_border']]
 # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
 # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
 
+# take just the first position to reduce the amount of tracks
+# we are looking at
+toti_table_cleared_borders = toti_table_cleared_borders.query('position == 0')
+
 # add column for the number of tracks at a given timepoint
 toti_table_cleared_borders['num_tracks_at_T'] = toti_table_cleared_borders.groupby(['T'])['track_id'].transform(lambda x: x.nunique())
 
@@ -92,19 +101,22 @@ toti_table_cleared_borders['orientation_in_deg'] = toti_table_cleared_borders['o
 toti_table_cleared_borders['cell_speed'] = toti_table_cleared_borders.apply(lambda df: np.linalg.norm([df['centroid_dx'], df['centroid_dy']]), axis=1)
 
 
-toti_table_cleared_borders[toti_table_cleared_borders['track_duration']>20]['track_id'].nunique()
-# there are 435 tracks longer than 20 frames that are
-# not touching the image borders
+toti_table_med_tracks = toti_table_cleared_borders[toti_table_cleared_borders.groupby('track_id')['track_id'].transform(lambda x: x.count() > 20)]
+toti_table_med_tracks['track_id'].nunique()
+# there are 291 tracks with more than 20 frames that are
+# not touching the image borders for dataset 20250227_40X
 
-toti_table_long_tracks = toti_table_cleared_borders[toti_table_cleared_borders['track_duration']>120]
+toti_table_long_tracks = toti_table_cleared_borders[toti_table_cleared_borders.groupby('track_id')['track_id'].transform(lambda x: x.count() > 120)]
 toti_table_long_tracks['track_id'].nunique()
-# there are 36 tracks longer than 120 frames that are
-# not touching the image borders
+# there are 23 tracks with more than 120 frames that are
+# not touching the image borders for dataset 20250227_40X
+# list(toti_table_long_tracks['track_id'].unique())
 
 
 
 fig, ax = plt.subplots()
 sns.scatterplot(x='T', y='num_tracks_at_T',
+                hue='position', palette='tab10',
                 data=toti_table_cleared_borders,
                 ax=ax, marker='.')
 ax.axvline(toti_table_cleared_borders['track_duration'].min(), c='lightgrey', ls='--')
@@ -128,7 +140,8 @@ sns.scatterplot(x='T', y='orientation_in_deg',
                 data=toti_table_long_tracks,
                 ax=ax, marker='.', alpha=0.5, lw=0)
 ax.set_ylim(0,95)
-fig.savefig(out_dir / f'orientation_long_tracks.png', dpi=200)
+if save_figs:
+    fig.savefig(out_dir / f'orientation_long_tracks.png', dpi=200)
 
 
 fig, ax = plt.subplots()
@@ -138,7 +151,8 @@ sns.scatterplot(x='T', y='eccentricity',
                 ax=ax, marker='.', alpha=0.5, lw=0)
 ax.set_ylim(0,1.05)
 # NOTE: 0 = circle, 1 = very elliptical
-fig.savefig(out_dir / f'eccentricity_long_tracks.png', dpi=200)
+if save_figs:
+    fig.savefig(out_dir / f'eccentricity_long_tracks.png', dpi=200)
 
 fig, ax = plt.subplots()
 sns.scatterplot(x='T', y='cell_area (px**2)',
@@ -191,19 +205,58 @@ sns.scatterplot(x='eccentricity', y='orientation_in_deg',
 # ax.set_xlim(0,1.05)
 ax.set_ylim(0,95)
 # NOTE: eccentricity: 0 = circle, 1 = very elliptical
-fig.savefig(out_dir / f'orientation_vs_eccentricity_long_tracks.png', dpi=200)
+if save_figs:
+    fig.savefig(out_dir / f'orientation_vs_eccentricity_long_tracks.png', dpi=200)
 
 
 # what if we plot the "shorter" tracks too?
 fig, ax = plt.subplots()
 sns.scatterplot(x='eccentricity', y='orientation_in_deg',
                 hue='track_id', palette='Spectral',
-                data=toti_table_cleared_borders,
+                data=toti_table_med_tracks,
                 ax=ax, marker='.', alpha=0.5, lw=0)
 # ax.set_xlim(0,1.05)
 ax.set_ylim(0,95)
-fig.savefig(out_dir / f'orientation_vs_eccentricity.png', dpi=200)
+if save_figs:
+    fig.savefig(out_dir / f'orientation_vs_eccentricity.png', dpi=200)
 
+
+for nm, df in toti_table_long_tracks.groupby('track_id'):
+    fig, ax = plt.subplots()
+    sns.scatterplot(x='eccentricity', y='orientation_in_deg',
+                    hue='image_index', palette='Spectral',
+                    data=df.query('track_id not in @weird_tracks'),
+                    ax=ax, marker='.', alpha=0.5, lw=0)
+    ax.set_xlim(toti_table_long_tracks['eccentricity'].min(), 1.05)
+    ax.set_ylim(0,95)
+    plt.show()
+
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='eccentricity', y='orientation_in_deg',
+                hue='image_index', palette='Spectral',
+                data=toti_table_long_tracks.query('track_id not in @weird_tracks'),
+                ax=ax, marker='.', alpha=0.5, lw=0)
+ax.set_xlim(0.5,1.05)
+ax.set_ylim(0,95)
+# NOTE: eccentricity: 0 = circle, 1 = very elliptical
+if save_figs:
+    fig.savefig(out_dir / f'orientation_vs_eccentricity_long_tracks_hueT.png', dpi=200)
+
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='orientation_in_deg',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks.query('track_id not in @weird_tracks'),
+                ax=ax, marker='.', s=15, alpha=0.5, lw=0)
+ax.set_ylim(0,95)
+
+fig, ax = plt.subplots()
+sns.scatterplot(x='T', y='eccentricity',
+                hue='track_id', palette='Spectral',
+                data=toti_table_long_tracks.query('track_id not in @weird_tracks'),
+                ax=ax, marker='.', s=15, alpha=0.5, lw=0)
+# ax.set_ylim(0,95)
 
 # IMPORTANT NOTE:
 # ALL CODE BELOW IS FROM THE OLD TRACKING VALIDATION SCRIPT
