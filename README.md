@@ -108,6 +108,10 @@ deactivate
 
 This project also includes a `requirements.txt` generated from the `pdm.lock` file, which can be used to install requirements using `pip`.
 
+> [!NOTE]
+> This installation method will only install core dependencies.
+> We recommend using PDM to handle more complex installations of development and optional dependencies.
+
 **1. Navigate to where you want to clone this repository**
 
 ```bash

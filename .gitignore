@@ -27,7 +27,6 @@ venv/
 
 # Log files
 *.log
-*.txt
 
 # Image files
 *.png
