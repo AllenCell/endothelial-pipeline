@@ -74,7 +74,8 @@ class DataDrivenFlowField3D_EA():
                  int((zmax-zmin)/self._grid_spacing)+1]
         
         bin_limits = [[vmin, vmax] for (vmin, vmax) in zip([xmin, ymin, zmin], [xmax, ymax, zmax])]
-        self._bins = rh.get_bins(Nbins,bin_limits=bin_limits)
+        assert len(bin_limits)
+        self._bins, self._bin_centers = rh.get_bins(Nbins,bin_limits=bin_limits)
 
     def set_dataframe(self, df: pd.DataFrame) -> None:
         # identifier determines the building blocks of the dataframe. For 
@@ -82,6 +83,7 @@ class DataDrivenFlowField3D_EA():
         # sorted by identifier and time with:
         #     df = df.sort_values(by=["crop_index", "T"])
         self._df = df.copy()
+
     def set_state_space_variables(self, vars: list) -> None:
         self._ss_vars = vars
     
@@ -101,7 +103,7 @@ class DataDrivenFlowField3D_EA():
         f_KM_arrays = {}
         D_KM_arrays = {}
         for _, df_ in self._df.groupby("dataset_name"):
-            ds_name = df_proj["dataset_name"].values[0]
+            ds_name = df_["dataset_name"].values[0]
             if self._verbose:
                 print(f"Computing Kramers-Moyal coefficients for dataset {ds_name}")
             df_proj = df_.copy()
@@ -112,19 +114,12 @@ class DataDrivenFlowField3D_EA():
             # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
             X_list, dX_list, dT_list = rh.get_X_dX_and_dT(df_by_flow[0],feat_cols=self._ss_vars)
             # get drift and diffusion estimates (Kramers-Moyal coefficients)
-            f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins= self._bins,dt=self._time_step,method="kernel",kernel_params=self._kernel_params)
+            f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins=self._bins,dt=self._time_step,method="kernel",kernel_params=self._kernel_params)
             # store results in dictionary
             f_KM_arrays[ds_description] = f_KM_
             D_KM_arrays[ds_description] = D_KM_
         self._drift_kmcs = f_KM_arrays
         self._diff_kmcs = D_KM_arrays
-        
-
-    def compute_mean_speed_from_displacement_vectors(self) -> None:
-        self._mean_speed = np.linalg.norm(self._df_vecs[self._ss_dvars].abs().mean())
-        if self._verbose:
-            print("Mean speed in PC space:")
-            print(self._mean_speed)
 
     def build(self) -> None:
         self.compute_state_space_bounds()
@@ -136,13 +131,13 @@ class DataDrivenFlowField3D_EA():
         Plot flow field dx/dt = f(x) (drift, first Kramers-Moyal coefficient)
         for a given condition.
         '''
+        if self._verbose:
+            print(f"Getting flow field for condition {condition}")
         # Get dataframe for given condition
         df_cond = self._df.loc[self._df.description==condition].copy()
         
         # generate a grid of points in the state space
-        bins = self._bins # grid already initialized when class is built
-        centers = [0.5*(bins[i][:-1]+bins[i][1:]) for i in range(3)] # bin centers
-        xgrid, ygrid, zgrid = np.meshgrid(*centers, indexing='ij') # make meshgrid
+        xgrid, ygrid, zgrid = np.meshgrid(*self._bin_centers, indexing='ij') # make meshgrid
 
         if self._verbose:
             print("Shape of grid:")
@@ -153,13 +148,35 @@ class DataDrivenFlowField3D_EA():
         dV = self._drift_kmcs[condition][...,1]
         dQ = self._drift_kmcs[condition][...,2]
 
+        # where KMCs have been masked to nan, extrapolate 
+        # via nearest neighbors.
+        # use spinterp.interpn with method='nearest'
+        # Find the indices of valid (non-NaN) points
+        valid_mask = ~np.isnan(dU)
+        valid_points = np.array(np.nonzero(valid_mask)).T  # Get the coordinates of valid points
+        valid_values_U = dU[valid_mask]  # Get the corresponding values for dU
+        valid_values_V = dV[valid_mask]  # Get the corresponding values for dV
+        valid_values_Q = dQ[valid_mask]  # Get the corresponding values for dQ
+
+        # Create nearest neighbor interpolators for dU, dV, and dQ
+        interpolator_U = spinterp.NearestNDInterpolator(valid_points, valid_values_U)
+        interpolator_V = spinterp.NearestNDInterpolator(valid_points, valid_values_V)
+        interpolator_Q = spinterp.NearestNDInterpolator(valid_points, valid_values_Q)
+
+        # Find the indices of all points (including NaN points)
+        all_points = np.array(np.indices(dU.shape)).reshape(len(dU.shape), -1).T
+
+        # Interpolate the NaN points
+        dU = interpolator_U(all_points).reshape(dU.shape)
+        dV = interpolator_V(all_points).reshape(dV.shape)
+        dQ = interpolator_Q(all_points).reshape(dQ.shape)
         # get points within 20% of self._grid_spacing of PC3 = 0
         pc3val = 0.0
         zgridmin = pc3val-0.8*self._grid_spacing
         zgridmax = pc3val+1.2*self._grid_spacing
         zvalids = np.where((zgrid.ravel()>zgridmin)&(zgrid.ravel()<zgridmax))[0]
         if self._verbose:
-            print(f"Number of points found within ± {(0.2*self._grid_spacing):.4f} of PC3 = {pc3val}:")
+            print(f"Number of points found within ± {(0.2*self._grid_spacing):.3f} of PC3 = {pc3val}:")
             print(len(zvalids))
         # unravel the grid to get the indices of the points in the grid
         # that are within the z-range of interest
@@ -171,23 +188,23 @@ class DataDrivenFlowField3D_EA():
         ygridmax = pc2val+1.2*self._grid_spacing
         yvalids = np.where((ygrid.ravel()>ygridmin)&(ygrid.ravel()<ygridmax))[0]
         if self._verbose:
-            print(f"Number of points found within ± {(0.2*self._grid_spacing):.4f} of PC2 = {pc2val}:")
+            print(f"Number of points found within ± {(0.2*self._grid_spacing):.3f} of PC2 = {pc2val}:")
             print(len(yvalids))
         # unravel the grid to get the indices of the points in the grid
         # that are within the y-range of interest
         yvalids = np.unravel_index(yvalids, ygrid.shape)
 
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(6,6))
+        fig, (ax1, ax2) = vb.init_subplots()
         ax1.scatter(df_cond[self._ss_vars[0]], df_cond[self._ss_vars[1]], s=0.25, color="black", alpha=0.1)
-        ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], scale=50, color="red")
+        ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], color="red")
         ax2.scatter(df_cond[self._ss_vars[0]], df_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
-        ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], scale=50, color="red")
+        ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], color="red")
         plt.tight_layout()
+        plt.show()
         vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
 
         self._flow_field.update({
-            condition: {
-                "velocities": (dU, dV, dQ),
+            condition: {"velocities": (dU, dV, dQ),
                 "grid": (xgrid, ygrid, zgrid)
             }
         })
@@ -281,13 +298,6 @@ class DataDrivenFlowField3D_EA():
             print("Shape of sampled coordinated:")
             print(coords.shape)
         return coords
-
-    def calculate_simulation_speed(self, target_nframes: int=100) -> float:
-        TOTAL_DURATION_IN_HOURS = 48
-        speed = (TOTAL_DURATION_IN_HOURS*60/5)/target_nframes * self._mean_speed
-        if self._verbose:
-            print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
-        return speed
 
     def simulate_particles_in_flow_field(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
         # condition can be either a string or a list of string that serve
