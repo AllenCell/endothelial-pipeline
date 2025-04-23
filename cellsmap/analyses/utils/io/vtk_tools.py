@@ -87,12 +87,12 @@ class DataDrivenFlowField3D_EA():
     def set_state_space_variables(self, vars: list) -> None:
         self._ss_vars = vars
     
-    def compute_state_space_bounds(self) -> None:
+    def compute_state_space_bounds(self,excluded_fraction=0.05) -> None:
         self._bounds = CuboidBounds(
             x=self._df[self._ss_vars[0]],
             y=self._df[self._ss_vars[1]],
             z=self._df[self._ss_vars[2]],
-            excluded_fraction = 0.0)
+            excluded_fraction = excluded_fraction)
         if self._verbose:
             print("Domain bounds:")
             print(self._bounds.xmin, self._bounds.ymin, self._bounds.zmin)
@@ -139,6 +139,11 @@ class DataDrivenFlowField3D_EA():
         # generate a grid of points in the state space
         xgrid, ygrid, zgrid = np.meshgrid(*self._bin_centers, indexing='ij') # make meshgrid
 
+        # get grid limits
+        xmin, xmax = self._bounds.xmin, self._bounds.xmax
+        ymin, ymax = self._bounds.ymin, self._bounds.ymax
+        zmin, zmax = self._bounds.zmin, self._bounds.zmax
+        
         if self._verbose:
             print("Shape of grid:")
             print(xgrid.shape, ygrid.shape, zgrid.shape)
@@ -199,6 +204,12 @@ class DataDrivenFlowField3D_EA():
         ax1.quiver(xgrid[zvalids], ygrid[zvalids], dU[zvalids], dV[zvalids], color="red")
         ax2.scatter(df_cond[self._ss_vars[0]], df_cond[self._ss_vars[2]], s=0.25, color="black", alpha=0.1)
         ax2.quiver(xgrid[yvalids], zgrid[yvalids], dU[yvalids], dQ[yvalids], color="red")
+        
+        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)]):
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(qmin, qmax)
+            ax.set_aspect("equal")
+        
         plt.tight_layout()
         plt.show()
         vb.save_plot(fig, filename=self.get_fig_folder()+f"flow_field_pc_{condition}", dpi=72)
