@@ -8,7 +8,6 @@ from bioio.writers import OmeTiffWriter
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils.io import vtk_tools
-from cellsmap.analyses.utils.viz import crop_viz
 from cellsmap.model_features.generate_image import generate_from_coords
 
 # Create output folder if does not exist yet
@@ -71,19 +70,6 @@ for file_name in os.listdir(vtk_savedir):
         tif_name = file_name.replace("interpolated_mean_trajectory", "interpolated_mean_trajectory_reconstructed_crops")
         tif_name = tif_name.replace(".vtk", ".tif")
         OmeTiffWriter.save(walk_img, crop_savedir+tif_name, overwrite=True)
-
-        for i in range(num_coords): # loop over rows of numpy array, plot and save each image
-            img = walk_img[i] # get image
-            # set file name
-            crop_name = file_name.replace("interpolated_mean_trajectory", "reconstructed_crop")
-            crop_name = crop_name.replace(".vtk", f"_{i}")
-            # plot and save each image as png
-            crop_viz.plot_crop_image(im=img,
-                                     title=f"({latent_coords[i][0]:.4f}, {latent_coords[i][1]:.4f}, {latent_coords[i][2]:.4f})",
-                                     savepath=crop_savedir+crop_name, 
-                                     dpi=300,
-                                     cmap="gray",
-                                     show=False)
 
 
 
