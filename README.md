@@ -20,67 +20,125 @@ part1 & part2 & part4 & part5 --> part3
 
 
 ## Installation
-This project requires Python 3.10. Package dependencies can be found in the _pyproject.toml_ file. We use the Python package manager PDM in these instructions, but any virtual environment manager should do.
 
-0. If you don't have PDM and want to use it, install PDM (you can do this via `pip` if you want; for more details see: https://pdm-project.org/en/latest/#__tabbed_2_5). Note that PDM requires the Python version that you installed it with to work, but can create virtual environments that use other Python versions (e.g. you can install PDM with Python 3.12 and then use PDM to create the environment for this project, which will use Python 3.10).
-1. Change the directory to the location where you want to clone the cellsmap repo
-2. Clone the `cellsmap` repo from GitHub to your desired location.
-3. Reconstruct the virtual environment. If no `pdm.lock` file exists in the cellsmap project folder (the same folder than this README is located in) then run `pdm lock` in your shell
-4. When/if you have a `pdm.lock` file then run `pdm sync` in your shell to install the dependencies for this project
+This project requires Python 3.10.
+Package dependencies can be found in the `pyproject.toml` file.
 
-E.g. to install just the core dependencies under "dependencies" in pyproject.toml (if you are using Windows PowerShell you may need to start each `pdm` command with Python e.g. `py -m pdm lock --prod`; keep in mind that you will need to use the same Python version that you installed PDM with when doing this e.g. `py -V:3.12 -m pdm lock --prod`):
+### Installation using PDM
+
+We recommend using the Python package manager [PDM](https://pdm-project.org) to manage dependencies and virtual environments.
+Install PDM following their [installation instructions](https://pdm-project.org/en/latest/#installation).
+
+> [!NOTE]
+> PDM requires the Python version that you installed it with to work, but can create virtual environments that use other Python versions (e.g. you can install PDM with Python 3.12 and then use PDM to create the environment for this project, which will use Python 3.10).
+> If you are using Windows PowerShell you may need to start each `pdm` command with Python, e.g. `py -m pdm <command>`.
+> Keep in mind that you will need to use the same Python version that you installed PDM with when doing this, e.g. `py -V:3.12 -m pdm <command>`.
+
+**1. Navigate to where you want to clone this repository**
+
 ```bash
-cd /folder/where/you/want/to/clone/cellsmap
+cd /path/to/directory/
+```
+
+**2. Clone the repo from GitHub**
+
+```bash
 git clone git@github.com:aics-int/cellsmap.git
-pdm lock --prod # the --prod option makes it so that you only create a lock file from the "dependencies" group in the pyproject.toml
-pdm sync
-```
-If you want the dependencies from the group that were used for any ML work, then you can add `-G ml_workflows` to the `pdm lock` command.
-E.g.:
-```bash
-pdm lock --prod -G ml_workflows
-pdm sync
+cd cellsmap
 ```
 
-You can check what dependencies are currently installed with
+**3. Install the dependencies using PDM**
+
+For basic installation with just the core dependencies:
+
 ```bash
-pdm list
+pdm sync --prod --clean-unselected
 ```
 
-If you install the ML-related dependencies I suggest you create a new virtual environment for:
-```bash
-# create the venv
-pdm venv create --name ml_venv 3.10 # specifying the python version is required when making a new venv
-# switch to that venv with either of the following
-pdm use -f /path/to/venv # option 1
-pdm use --venv ml_venv # option 2
-# do pdm lock and sync as usual
-```
-You can see what virtual environments you have with `pdm venv list` (the active one is marked with "*").
+If you plan to develop code, you should also install the development dependencies:
 
-NOTE: By default PDM only activates your venv when running a script with `pdm run`. It does not activate your venv in the terminal. If you want this behavior you can execute the virtual environments `Activate.ps1` file.
+```bash
+pdm sync --dev --clean-unselected
+```
+
+If you are on the Allen Institute for Cell Science local network, you can load on-prem data by installing `aicsfiles` (which is included in the optional `internal` dependency group):
+
+```bash
+pdm sync --dev -G internal --clean-unselected
+```
+
+If you want to run any of the ML workflows, we recommend created a separate virtual environment:
+
+```bash
+pdm venv create --name ml_venv 3.10
+pdm use --venv ml_venv
+pdm sync --dev -G ml_workflows --clean-unselected
+```
+
+> [!TIP]
+> PDM provides some useful commands that can help track your dependencies and virtual environments.
+>
+> - _Check the dependencies that are currently installed:_ `pdm list`
+> - _List the available virtual environments (the active one is marked with *):_ `pdm venv list`
+
+**4. Activate the virtual environment**
+
+By default, PDM only activates the virtual environment when running a script with `pdm run`.
+You can instead activate the virtual environment in the terminal.
+
 For Windows:
+
 ```powershell
 \path\to\venv\Scripts\Activate.ps1
 ```
-For Linux/Mac
+
+For Linux/Mac:
+
 ```bash
 source /path/to/venv/bin/activate
 ```
-You can deactivate the environment simply with
+
+You can deactivate the virtual environment using:
+
 ```
 deactivate
 ```
 
-If you are on the Allen Institute for Cell Science local network, you can load the data by installing aicsfiles. Use the following steps:
+### Alternative installation using `pip`
+
+This project also includes a `requirements.txt` generated from the `pdm.lock` file, which can be used to install requirements using `pip`.
+
+**1. Navigate to where you want to clone this repository**
+
 ```bash
-pdm config --local pypi.artifactory.url https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple
-pdm config --local pypi.artifactory-snapshot.url https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-snapshot-local/simple
-pdm add -dG internal
-pdm sync
+cd /path/to/directory/
 ```
 
+**2. Clone the repo from GitHub**
 
+```bash
+git clone git@github.com:aics-int/cellsmap.git
+cd cellsmap
+```
+
+**3. Create and activate a new virtual environment**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+**4. Install the dependencies using pip**
+
+```bash
+pip install -r requirements.txt
+```
+
+**5. Install the package**
+
+```bash
+pip install -e .
+```
 
 ## Datasets
 A catalog of the current datasets we have is [here](https://github.com/orgs/aics-int/projects/40).
@@ -106,7 +164,7 @@ A catalog of the current datasets we have is [here](https://github.com/orgs/aics
 - test effectiveness of using nuclei as seed points in "Cdh5 classic segmentation" workflow
 - try and improve segmentation consistency by using segmentations from multiple contiguous timepoints
 - run "optical flow" workflow on more (all?) live datasets
-    - requires building of an analysis queue function and multiprocessing 
+    - requires building of an analysis queue function and multiprocessing
 - test feasibility of label-free prediction of cells using a mode trained on the classic segmentations of cells
 
 ```mermaid
@@ -203,8 +261,8 @@ Tracks segmentations through time. Relabels segmentations such that their labels
 1. The outputs of `cellsmap/analyses/workflows/cdh5_classic_seg.py` (instance segmentations).
 
 #### Outputs
-1. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_images/`: 
-2. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_tables/`: 
+1. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_images/`:
+2. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_tables/`:
 </details>
 
 <details>
@@ -241,7 +299,7 @@ Outputs tables of measured features from the segmentation borders produced from 
 3. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/segmentation_properties/` : Tables from individual timepoints saved as .csv files of features measured from the Cdh5 segmentations.
 
 4. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_segprops.csv` : Table of features measured from the Cdh5 segmentations. A concatenation of the individual timepoint tables from "**3.**" into a single single .csv. Each row has a unique label of a segmented region. The columns are summarized below:
-    
+
     | Column Name | Description | Units |
     |-------------|-------------|-------|
     | cell_label | The labels of the segmented regions. | N/A |
@@ -357,4 +415,3 @@ pdm run cellsmap/analyses/flow/flow_features.py
 </details>
 &nbsp;
 </details>
-
