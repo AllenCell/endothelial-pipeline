@@ -137,7 +137,7 @@ def kl_divergence(p, q, dx, tol=1e-8):
     # set small values to tol
     p_ = p.copy()
     p_[p_<tol] = tol
-    q_ = q_.copy()
+    q_ = q.copy()
     q_[q_<tol] = tol
 
     kl_div = p_*np.log(p_/q_) # initial KL divergence
