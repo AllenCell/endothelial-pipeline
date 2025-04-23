@@ -93,8 +93,7 @@ def generate_and_save_validation_images(dframe):
                                    padding=50)
         return
 
-
-def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
+def main(n_proc=1, dataset_name=None, t_final=None, min_track_duration=120, verbose=False):
     """t_final is really only used for testing purposes."""
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
@@ -126,23 +125,22 @@ def main(n_proc=1, dataset_name=None, t_final=None, verbose=False):
         
         tracking_df['out_dir'] = out_dir
 
-        min_track_duration = 120
         tracking_df = tracking_df[tracking_df['track_duration'] >= min_track_duration]
 
         nm, df_subset_list = list(zip(*tracking_df.groupby(['dataset_name', 'position', 'T'])[['dataset_name', 'position', 'scene_index', 'T', 'track_id', 'label', 'out_dir']]))
         if n_proc > 1:
             if __name__ == '__main__':
-                print('Using multiprocessing...')
+                print(f'Multiprocessing {dataset_name}...')
                 with Pool(processes=n_proc) as pool:
                     list(tqdm(pool.imap(generate_and_save_validation_images, df_subset_list, chunksize=1), total=len(df_subset_list), desc='Timepoints complete (MP)'))
                     pool.close()
                     pool.join()
-                print('Finished multiprocessing.')
+                print(f'Finished multiprocessing {dataset_name}.')
         else:
-            print('Using single processing...')
+            print(f'Single processing {dataset_name}...')
             for df_group in tqdm(df_subset_list, total=len(df_subset_list), desc='Timepoints complete (1P)'):
                 generate_and_save_validation_images(df_group)
-            print('Finished single processing.')
+            print(f'Finished single processing {dataset_name}.')
     
     print(f'\N{microscope} Done.')
 
