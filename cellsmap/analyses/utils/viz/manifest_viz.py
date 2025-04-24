@@ -92,13 +92,12 @@ def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     # loop over latent components, plot histogram of feature data projected onto each PC
     for col, ax_ in enumerate(ax.flatten()):
         # plot histogram values - time on x-axis, histogram values on y-axis
-        ax_.imshow(hist_array[col], aspect='auto', cmap='inferno', interpolation='nearest')
+        ax_.imshow(hist_array[col], aspect='auto', cmap='inferno', interpolation='nearest', origin='lower')
         ax_.set_title(f'Latent dimension {col+1}')
         ax_.set_xlabel('Frame number')
-        ax_.set_ylabel('Histogram value')
         ax_.set_xticks(np.arange(0, num_T, step=100))
         ax_.set_xticklabels(np.arange(0, num_T, step=100))
-        ax_.set_yticks(np.arange(0, Nbins, step=5))
+        ax_.set_yticks(np.arange(0, Nbins+1, step=5))
         ax_.set_yticklabels(np.round(bin_edges[col],2)[::5])
     
     fig.subplots_adjust(hspace=0.5)

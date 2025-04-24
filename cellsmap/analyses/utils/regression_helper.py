@@ -168,7 +168,7 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
         if kernel_params is None:
             print('No kernel parameters provided, using default parameters: ')
             kernel_params = {'bandwidth':0.1,'kernel': 'gaussian'}
-            print(f"bw = {kernel_params['bw']}, kernel = {kernel_params['kernel']}")
+            print(f"bandwidth = {kernel_params['bandwidth']}, kernel = {kernel_params['kernel']}")
         f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
     elif method == 'histogram':
         f_KM, D_KM = km.get_km_histogram(X_list, dX_list, dT_list, bins, dt)
