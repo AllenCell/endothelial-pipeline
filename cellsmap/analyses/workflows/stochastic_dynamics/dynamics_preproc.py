@@ -1,8 +1,8 @@
 import fire
 
+from cellsmap.util import manifest_io, manifest_pca
 from cellsmap.util.set_output import get_output_path
-from cellsmap.util import manifest_io
-from cellsmap.analyses.utils import manifest_pca, regression_main
+from cellsmap.analyses.utils import regression_main
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.viz import manifest_viz, viz_base as vb
 
