@@ -73,12 +73,11 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
         raise ValueError('Data must have a column for dataset_name')
     df['pca_ref'] = df.dataset_name.str.contains('20241120') | df.dataset_name.str.contains('20241203')
     # select no flow timepoints right after feeding
-    df.loc[df.dataset_name.str.contains('20241210') & (df['T'] > 300) & (df['T'] < 450), 'pca_ref'] = True
     df.loc[df.dataset_name.str.contains('20241217') & (df['T'] < 100), 'pca_ref'] = True
     df.loc[df.dataset_name.str.contains('20241217') & (df['T'] >300) & (df['T'] < 420), 'pca_ref'] = True
     return df[df.pca_ref]
 
-def fit_pca(data: pd.DataFrame, num_pcs: int, scale:bool = True, verbose:bool=True) -> Pipeline:
+def fit_pca(data: pd.DataFrame, num_pcs: int, scale:bool = False, verbose:bool=True) -> Pipeline:
     """
     Helper function for fitting PCA pipeline. Note that this is 
         - based off of the current format of processing the movies (i.e. based on lots of .npy arrays) and must be updated when we move to zarrs
@@ -88,6 +87,8 @@ def fit_pca(data: pd.DataFrame, num_pcs: int, scale:bool = True, verbose:bool=Tr
     Args:
         data (pd.DataFrame): DataFrame containing the data to fit PCA on
         num_pcs (int): Number of principal components to keep
+        scale (bool): Whether to scale the data before fitting PCA (default: False)
+        verbose (bool): Whether to print the explained variance ratios (default: True)
 
     Returns:
         pipe (Pipeline): Fitted PCA pipeline (may include scaling)

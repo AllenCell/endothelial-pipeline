@@ -30,9 +30,11 @@ def main(config_name:str='default') -> None:
     bin_ylim = config['plt_ylim']['hist']
     N_pts_pplane = config['N_pts_pplane']
     N_bins_hist = config['N_bins_hist']
+
     # for phase plane plots, fix grid across all datasets
     pplane_xvec = np.linspace(pplane_xlim[0],pplane_xlim[1],N_pts_pplane+1)
     pplane_yvec = np.linspace(pplane_ylim[0],pplane_ylim[1],N_pts_pplane+1)
+
     # for histogram plots, fix bins across all datasets
     bins, centers = rh.get_bins(N_bins_hist,bin_limits=[bin_xlim,bin_ylim])
 
