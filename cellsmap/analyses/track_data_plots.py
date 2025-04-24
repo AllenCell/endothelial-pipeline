@@ -21,8 +21,8 @@ out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_dir.mkdir(parents=True, exist_ok=True)
 save_figs = False
 
-dataset_name = '20250227_40X'
-# dataset_name = '20241016_20X'
+# dataset_name = '20250227_40X'
+dataset_name = '20241016_20X'
 # dataset_name = None
 if dataset_name == None:
     dataset_name_list = [config_data['name']
@@ -103,14 +103,16 @@ toti_table_cleared_borders['cell_speed'] = toti_table_cleared_borders.apply(lamb
 
 toti_table_med_tracks = toti_table_cleared_borders[toti_table_cleared_borders.groupby('track_id')['track_id'].transform(lambda x: x.count() > 20)]
 toti_table_med_tracks['track_id'].nunique()
+toti_table_med_tracks.groupby('image_index')['track_id'].nunique().plot(marker='.', lw=0)
 # there are 291 tracks with more than 20 frames that are
 # not touching the image borders for dataset 20250227_40X
 
 toti_table_long_tracks = toti_table_cleared_borders[toti_table_cleared_borders.groupby('track_id')['track_id'].transform(lambda x: x.count() > 120)]
 toti_table_long_tracks['track_id'].nunique()
+toti_table_long_tracks.groupby('image_index')['track_id'].nunique().plot(marker='.', lw=0)
 # there are 23 tracks with more than 120 frames that are
 # not touching the image borders for dataset 20250227_40X
-# list(toti_table_long_tracks['track_id'].unique())
+list(toti_table_long_tracks['track_id'].unique())
 
 
 
@@ -130,6 +132,11 @@ sns.scatterplot(x='T', y='orientation_in_deg',
                 ax=ax, marker='.', alpha=0.5, lw=0)
 ax.set_ylim(0,95)
 
+fig, ax = plt.subplots()
+sns.lineplot(x='T', y='orientation_in_deg',
+                data=toti_table_cleared_borders,
+                ax=ax, marker='.', alpha=0.5, lw=0)
+ax.set_ylim(0,95)
 
 
 
