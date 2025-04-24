@@ -212,7 +212,7 @@ def plot_flow(ax,myFlow,x,numGrid = 15,ndim=2):
         ax.quiver(X1,X2,f[0],f[1],width=0.003,alpha=0.5)
     return ax
 
-def phase_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,params=None,nullclines=True):
+def phase_portrait(f1,f2,x1,x2,fig_ax=None,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,params=None,nullclines=True):
     # define function x' = [f1(x),f2(x)] for rest of code (does not need t as variable)
     def myFlow(x):
         if params is None:
@@ -220,7 +220,10 @@ def phase_portrait(f1,f2,x1,x2,ICs=None,tVec=None,N1_coarse=10,N2_coarse=None,pa
         else:
             return np.array([f1(x[0],x[1],**params),f2(x[0],x[1],**params)])
 
-    fig,ax = plt.subplots(figsize=(6.5,6))
+    if fig_ax is None:
+        fig,ax = plt.subplots(figsize=(6.5,6))
+    else:
+        fig,ax = fig_ax
     
     if nullclines: # plot nullclines
         ax = plot_null(ax,f1,f2,x1,x2,params)
