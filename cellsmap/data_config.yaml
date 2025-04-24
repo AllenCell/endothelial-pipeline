@@ -776,7 +776,7 @@
 {
   name: 20250402_20X,
   original_path: "//allen/programs/allencell/data/proj0/269/7fb/469/95b/849/efa/440/8f1/b7d/e37/90/20250402_GE00007594_20X_timelapse_sldy/20250402_GE00007594_20X_timelapse_sldy.sldy",
-  zarr_path: "",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250402_90e37b7d8f1440efa84995b4697fb269",
   fmsid: "90e37b7d8f1440efa84995b4697fb269",
   barcode: GE00007594,
   live_or_fixed_sample: live,
@@ -798,7 +798,7 @@
 {
   name: 20250409_20X,
   original_path: "//allen/programs/allencell/data/proj0/ac1/24e/dd5/23a/579/6f9/94c/bbc/a02/6b2/df/20250409_GE00007696_20X_timelapse_sldy/20250409_GE00007696_20X_timelapse_sldy.sldy",
-  zarr_path: "",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250409_df6b2a02bbc94c6f957923add524eac1",
   fmsid: "df6b2a02bbc94c6f957923add524eac1",
   barcode: GE00007696,
   live_or_fixed_sample: live,
