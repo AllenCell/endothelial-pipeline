@@ -4,6 +4,7 @@ from typing import Tuple
 
 import cellsmap.analyses.utils.viz.viz_base as vb
 from cellsmap.analyses.utils.viz.pca_viz import * # pca_viz gets loaded as a submodule of manifest_viz
+from cellsmap.analyses.utils import regression_helper as rh
 
 def plot_latent_component_mean(feats:np.ndarray) -> Tuple:
     '''
@@ -50,7 +51,7 @@ def plot_latent_component_mean(feats:np.ndarray) -> Tuple:
     fig.subplots_adjust(hspace=0.5)
     return fig, ax
 
-def plot_latent_component_histogram(feats:np.ndarray) -> Tuple:
+def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     '''
     Plot histogram of latent components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -60,6 +61,8 @@ def plot_latent_component_histogram(feats:np.ndarray) -> Tuple:
     Input:
     - feats: np.ndarray, feature data for a single dataset
         - shape (num_crops, num_frames, num_features)
+    - Nbins: int, number of bins for histogram
+        - default: 40
 
     Output:
     - fig: plt.Figure
@@ -68,8 +71,38 @@ def plot_latent_component_histogram(feats:np.ndarray) -> Tuple:
     # right now, this function is only used for 8D latent space
     assert feats.shape[-1] == 8, 'Number of latent components must be 8'
 
+    # initialize figure and axes
     fig, ax = vb.init_subplots(4,2,figsize=(15,20))
 
+    # loop over time points, compute histogram of feature data along each component
+    num_traj = feats.shape[0]
+    num_T = feats.shape[1]
+    num_feats = feats.shape[-1]
+    hist_array = np.zeros((num_feats,Nbins,num_T)) # histogram values for each component as a function of time
+
+    # get bin edges for histogram
+    bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
+    for t in range(num_T):
+        # loop over latent components
+        for dim in range(num_feats):
+            # compute histogram of feature data along each component
+            hist = np.histogram(feats[:,t,dim], bins=bin_edges[dim], density=True)[0]
+            hist_array[dim,:,t] = hist
+
+    # loop over latent components, plot histogram of feature data projected onto each PC
+    for col, ax_ in enumerate(ax.flatten()):
+        # plot histogram values - time on x-axis, histogram values on y-axis
+        ax_.imshow(hist_array[col], aspect='auto', cmap='inferno', interpolation='nearest')
+        ax_.set_title(f'Latent dimension {col+1}')
+        ax_.set_xlabel('Frame number')
+        ax_.set_ylabel('Histogram value')
+        ax_.set_xticks(np.arange(0, num_T, step=100))
+        ax_.set_xticklabels(np.arange(0, num_T, step=100))
+        ax_.set_yticks(np.arange(0, Nbins, step=5))
+        ax_.set_yticklabels(np.round(bin_edges[col],2)[::5])
+    
+    fig.subplots_adjust(hspace=0.5)
+    return fig, ax
 
 def plot_km(centers:list[np.ndarray],kmc:np.ndarray,PCs:list[int],shear_stress:float) -> Tuple:
     '''

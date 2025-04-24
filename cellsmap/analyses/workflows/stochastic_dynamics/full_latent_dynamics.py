@@ -33,4 +33,8 @@ for ds_name in list_of_datasets:
     fig, ax = manifest_viz.plot_latent_component_mean(feats)
     fig.suptitle(f"Dataset: {ds_name}")
     vb.save_plot(fig,f"{fig_savedir}/{ds_name}_latent_mean")
+
+    fig, ax = manifest_viz.plot_latent_component_histogram(feats)
+    fig.suptitle(f"Dataset: {ds_name}")
+    vb.save_plot(fig,f"{fig_savedir}/{ds_name}_latent_histogram")
 # %%

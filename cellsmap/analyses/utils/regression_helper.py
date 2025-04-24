@@ -6,7 +6,7 @@ from typing import Tuple
 import cellsmap.util.dataset_io as dio
 import cellsmap.analyses.utils.numerics.kramers_moyal as km
 
-def get_bins(Nbins:list,data:pd.DataFrame|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
+def get_bins(Nbins:list,data:list[np.ndarray]|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
     '''
     Generate histogram bins for computing Kramers-Moyal estimates from trajectories, either automatically based on data or user-defined.
 
