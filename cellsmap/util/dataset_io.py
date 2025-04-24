@@ -100,6 +100,18 @@ def get_channel_index(dataset_name: str, channel_names: List[str], zarr_name: Op
         channel_indices[filename] = [available_channels[filename].index(channel) if channel in available_channels[filename] else None for channel in channel_names]
     return channel_indices
 
+def get_zarr_name(dataset_name: str, position: int) -> str:
+    """
+    Get the zarr name for a given dataset and position.
+    """
+    zarr_paths = get_zarr_path(dataset_name)
+    zarr_found_for_position = position in [extract_P(zarr_name) for zarr_name in zarr_paths.keys()]
+    assert zarr_found_for_position, f'Zarr file for position {position} not found in dataset {dataset_name}.'
+    for zarr_name in zarr_paths.keys():
+        if position == extract_P(zarr_name):
+            break
+    return zarr_name
+
 def get_specific_channel_order(dataset_name:str):
     dataset_info = get_dataset_info(dataset_name)
     gfp_index = dataset_info.get('egfp_channel_index')
