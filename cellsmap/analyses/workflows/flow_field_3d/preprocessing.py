@@ -7,7 +7,7 @@ from cellsmap.util.set_output import get_output_path
 from cellsmap.util import manifest_pca, manifest_io
 
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as DDFF
+from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
 
 
 # %%
@@ -88,7 +88,7 @@ df.to_csv(output_savedir+"manifest.csv")
 # %%
 # get state space bounds from data between the 0.1 and 0.9 percentiles in each dimension
 # used for plotting in this file, analysis in generate_flow_field.py
-bounds = DDFF.set_3D_bounds_from_data(df.PC1, df.PC2, df.PC3) 
+bounds = ddff.set_3D_bounds_from_data(df.PC1, df.PC2, df.PC3) 
 
 # plot the PCA components
 # turn these into viz functions?
@@ -123,3 +123,5 @@ ax.set_aspect("equal")
 plt.legend(loc = "lower left", fontsize=8)
 vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
 
+
+# %%
