@@ -7,7 +7,7 @@ from bioio.writers import OmeTiffWriter
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils.io import vtk_tools
+from cellsmap.analyses.utils.io import vtk_io
 from cellsmap.model_features.generate_image import generate_from_coords
 
 # Create output folder if does not exist yet
@@ -24,7 +24,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 df = pd.read_csv(output_savedir+"manifest.csv")
 
-DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
+DDFF = vtk_io.DataDrivenFlowField3D(verbose=True)
 DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
 DDFF.build()
@@ -43,7 +43,7 @@ for file_name in os.listdir(vtk_savedir):
     if "interpolated_mean_trajectory" in file_name:
         print(file_name)
         # load trajectory vtk file
-        trajectory = vtk_tools.load_polydata(vtk_savedir+file_name)
+        trajectory = vtk_io.load_polydata(vtk_savedir+file_name)
         # get coordinates of trajectory points
         coords = vtknp.vtk_to_numpy(trajectory.GetPoints().GetData())
         # convert from volume to pc coordinates

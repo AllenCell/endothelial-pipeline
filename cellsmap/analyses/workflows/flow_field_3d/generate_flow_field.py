@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util import manifest_io
-from cellsmap.analyses.utils.io import vtk_tools
+from cellsmap.analyses.utils.io import vtk_io
 from cellsmap.analyses.utils.viz import viz_base as vb
 # %%
 # Create output folder if does not exist yet
@@ -29,7 +29,7 @@ pca = manifest_io.load_pca_model(output_savedir)
 df = pd.read_csv(output_savedir+"manifest.csv")
 # %%
 # Create flow field dx/dt = f(x)
-DDFF = vtk_tools.DataDrivenFlowField3D_EA(verbose=True)
+DDFF = vtk_io.DataDrivenFlowField3D_EA(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
 DDFF.set_dataframe(df)
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])

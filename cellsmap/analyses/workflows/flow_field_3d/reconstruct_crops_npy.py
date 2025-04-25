@@ -8,7 +8,7 @@ from bioio.writers import OmeTiffWriter
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils.io import vtk_tools
+from cellsmap.analyses.utils.io import vtk_io
 from cellsmap.model_features.generate_image import generate_from_coords
 
 # Create output folder if does not exist yet
