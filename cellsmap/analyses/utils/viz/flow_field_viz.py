@@ -18,20 +18,14 @@ def set_slice_plot_bounds_and_labels(axs:Tuple[plt.Axes],bounds:list[Tuple[float
         ax.set_aspect("equal")
     return axs
 
-def get_slice_indexes(grid_spacing:float,
-                        sliced_variable_name:str,
-                        sliced_variable_grid:np.ndarray,
-                        sliced_variable_val:float=0.0,
-                        verbose:bool=True) -> np.ndarray:
+def get_slice_indexes(sliced_variable_grid:np.ndarray,
+                        sliced_variable_val:float=0.0) -> np.ndarray:
     
-    slice_min = sliced_variable_val - 0.8*grid_spacing
-    slice_max = sliced_variable_val + 1.2*grid_spacing
-
-    # get indexes of points where the sliced variable is within 20% of grid_spacing of the prescribed value
-    slice_indexes = np.where((sliced_variable_grid.ravel()>slice_min)&(sliced_variable_grid.ravel()<slice_max))[0]
-    if verbose:
-        print(f"Number of points found within ± {(0.2*grid_spacing):.3f} of {sliced_variable_name} = {sliced_variable_val}:")
-        print(len(slice_indexes))
+    # get slice closest to the prescribed value
+    # first, get the absolute distance to the prescribed value
+    dist_to_point = np.abs(sliced_variable_grid - sliced_variable_val)
+    # get indexes of points where this distance is minimized
+    slice_indexes = np.where(dist_to_point.ravel()==dist_to_point.min())[0]
     # unravel the grid to get the indices of the points in the grid
     # that are within the z-range of interest
     slice_indexes = np.unravel_index(slice_indexes, sliced_variable_grid.shape)
@@ -59,9 +53,24 @@ def plot_one_slice_streamplot(velocities:Tuple,
                               ax:plt.Axes|None=None) -> Tuple[plt.Figure, plt.Axes]:
     if ax is None:
         _, ax = vb.init_subplots()
-    
-    ax.streamplot(grid[0][slice_indexes],grid[1][slice_indexes],
-                    velocities[0][slice_indexes],velocities[1][slice_indexes],
+
+    my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
+    # slice the grid to get the points in the slice, reshape for plotting
+    x1_grid = grid[0][slice_indexes].reshape(my_shape)
+    x2_grid = grid[1][slice_indexes].reshape(my_shape)
+    # flatten down to 2D depending on which axis has shape == 1
+    which_idx = np.where(np.array(my_shape)==1)[0][0]
+    # get xi_grid[... 0 ...] where 0 is taken from the axis with shape == 1
+    x1_grid = np.take(x1_grid, 0, axis=which_idx)
+    x2_grid = np.take(x2_grid, 0, axis=which_idx)
+
+    # get the velocities at these points (again, the correct slices)
+    dx1 = velocities[0][slice_indexes].reshape(x1_grid.shape)
+    dx2 = velocities[1][slice_indexes].reshape(x2_grid.shape)
+
+    # transpose the grid and velocities for streamplot (meshgrid generated via indexing ij)
+    ax.streamplot(x1_grid.T, x2_grid.T,
+                    dx1.T, dx2.T,
                     color="black", linewidth=1, density=2)
     return ax
 
@@ -75,22 +84,9 @@ def plot_flow_field_slices(flow_field_dict:dict,
     dU, dV, dQ = flow_field_dict["velocities"]
     # normalize the flow field (for visualization)
     if norm:
-        try:
-            dU = dU/np.sqrt(dU**2 + dV**2 + dQ**2)
-            dV = dV/np.sqrt(dU**2 + dV**2 + dQ**2)
-            dQ = dQ/np.sqrt(dU**2 + dV**2 + dQ**2)
-        except ZeroDivisionError:
-            # set zero magnitude to epsilon (small float)
-            zero_mag_mask = np.sqrt(dU**2 + dV**2 + dQ**2) == 0
-            epsilon = 1e-10
-            dU[zero_mag_mask] = epsilon
-            dV[zero_mag_mask] = epsilon
-            dQ[zero_mag_mask] = epsilon
-
-            # now normalize
-            dU = dU/np.sqrt(dU**2 + dV**2 + dQ**2)
-            dV = dV/np.sqrt(dU**2 + dV**2 + dQ**2)
-            dQ = dQ/np.sqrt(dU**2 + dV**2 + dQ**2)
+        dU = dU/np.sqrt(dU**2 + dV**2 + dQ**2)
+        dV = dV/np.sqrt(dU**2 + dV**2 + dQ**2)
+        dQ = dQ/np.sqrt(dU**2 + dV**2 + dQ**2)
 
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
