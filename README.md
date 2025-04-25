@@ -24,15 +24,10 @@ part1 & part2 & part4 & part5 --> part3
 This project requires Python 3.10.
 Package dependencies can be found in the `pyproject.toml` file.
 
-### Installation using PDM
+### Installation using UV
 
-We recommend using the Python package manager [PDM](https://pdm-project.org) to manage dependencies and virtual environments.
-Install PDM following their [installation instructions](https://pdm-project.org/en/latest/#installation).
-
-> [!NOTE]
-> PDM requires the Python version that you installed it with to work, but can create virtual environments that use other Python versions (e.g. you can install PDM with Python 3.12 and then use PDM to create the environment for this project, which will use Python 3.10).
-> If you are using Windows PowerShell you may need to start each `pdm` command with Python, e.g. `py -m pdm <command>`.
-> Keep in mind that you will need to use the same Python version that you installed PDM with when doing this, e.g. `py -V:3.12 -m pdm <command>`.
+We recommend using the Python package manager [uv](https://docs.astral.sh/uv) to manage dependencies and virtual environments.
+Install uv following their [installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
 **1. Navigate to where you want to clone this repository**
 
@@ -47,49 +42,48 @@ git clone git@github.com:aics-int/cellsmap.git
 cd cellsmap
 ```
 
-**3. Install the dependencies using PDM**
+**3. Install the dependencies using uv**
 
 For basic installation with just the core dependencies:
 
 ```bash
-pdm sync --prod --clean-unselected
+uv sync --no-dev
 ```
 
 If you plan to develop code, you should also install the development dependencies:
 
 ```bash
-pdm sync --dev --clean-unselected
+uv sync
 ```
 
 If you are on the Allen Institute for Cell Science local network, you can load on-prem data by installing `aicsfiles` (which is included in the optional `internal` dependency group):
 
 ```bash
-pdm sync --dev -G internal --clean-unselected
+uv sync --extra internal
 ```
 
-If you want to run any of the ML workflows, we recommend creating a separate virtual environment:
+If you want to run ML workflows, install the optional `ml_workflows` dependency group.
+Note that the `workflows` dependency group is incompatible with the `cellpose` dependency group; you cannot install both.
 
 ```bash
-pdm venv create --name ml_venv 3.10
-pdm use --venv ml_venv
-pdm sync --dev -G ml_workflows --clean-unselected
+uv sync --extra ml_workflows
 ```
 
-> [!TIP]
-> PDM provides some useful commands that can help track your dependencies and virtual environments.
->
-> - _Check the dependencies that are currently installed:_ `pdm list`
-> - _List the available virtual environments (the active one is marked with *):_ `pdm venv list`
+If you want to run Cellpose workflows, install the optional `cellpose` dependency group.
+Note that the `cellpose` dependency group is incompatible with the `ml_worfklows` dependency group; you cannot install both.
+
+```bash
+uv sync --extra cellpose
+```
 
 **4. Activate the virtual environment**
 
-By default, PDM only activates the virtual environment when running a script with `pdm run`.
-You can instead activate the virtual environment in the terminal.
+Activate the virtual environment in the terminal:
 
 For Windows:
 
 ```powershell
-\path\to\venv\Scripts\Activate.ps1
+\path\to\venv\Scripts\activate
 ```
 
 For Linux/Mac:
@@ -106,11 +100,11 @@ deactivate
 
 ### Alternative installation using `pip`
 
-This project also includes a `requirements.txt` generated from the `pdm.lock` file, which can be used to install requirements using `pip`.
+This project also includes a `requirements.txt` generated from the `uv.lock` file, which can be used to install requirements using `pip`.
 
 > [!NOTE]
 > This installation method will only install core dependencies.
-> We recommend using PDM to handle more complex installations of development and optional dependencies.
+> We recommend using uv to handle more complex installations of development and optional dependencies.
 
 **1. Navigate to where you want to clone this repository**
 
