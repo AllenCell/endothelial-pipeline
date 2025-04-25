@@ -37,8 +37,14 @@ dependencies = [
     "sympy==1.13.1",
     "tqdm>=4.66.5",
     "vtk>=9.4.1",
-    "wasmtime<22.0", # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
+    "wasmtime<22.0",
 ]
+
+# TODO: Project currently requires Python 3.10 for compatibility with cyto-dl.
+# For Python 3.10, bioio uses ngff-zarr, which depends on itkwasm, which depends
+# on wasmtime. Because our cluster uses Ubuntu 18.04, we need to pin the
+# ngff-zarr, itkwasm, and wasmtime dependency versions.
+
 requires-python = ">=3.10,<3.11"
 readme = "README.md"
 license = { text = "AISL" }
