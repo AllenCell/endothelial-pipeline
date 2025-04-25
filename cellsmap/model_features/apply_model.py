@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from cyto_dl.api import CytoDLModel
-from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P
+from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P, load_config, write_config
 from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
@@ -92,15 +92,37 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: S
     pred_df.to_parquet(prediction_path)
     return prediction_path
 
-def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, overrides:Union[str, Dict]={}):
-    if not torch.cuda.is_available():
-        raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
-
+def load_overrides(overrides: Union[str, Dict]) -> Dict:
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):
         raise ValueError('Overrides must be a dictionary or a string')
-    
+    return overrides
+
+def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, update_data_config: bool= True, save_path: Union[str, Path] = None, overrides:Union[str, Dict]={}):
+    """
+    Apply a model to a single dataset.
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model from `model_config.yaml` to apply.
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    update_data_config: bool
+        Whether to update the data config with the FMS ID of the prediction file. Default is True. For the data config to be updated, `upload_to_fms` must also be True.
+    save_path: str
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
+    overrides = load_overrides(overrides)
     # download model from mlflow
     mlflow_id = get_model_info(model_name)['mlflow_run_id']
     model_path = Path(get_output_path(f'models/{model_name}'))
@@ -139,8 +161,48 @@ def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, uploa
     commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
     if upload_to_fms:
-        save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
-    return prediction_path
+        file_id = save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
+
+        if update_data_config:
+            feat_config = load_config('feature')
+            for dataset in feat_config:
+                if dataset['dataset_name'] == dataset_name and dataset['model_name'] == model_name:
+                    dataset['features_fmsid'] = file_id
+                    break
+            else:
+                feat_config.append({
+                    'dataset_name': dataset_name,
+                    'model_name': model_name,
+                    'features_fmsid': file_id
+                })
+            write_config(feat_config, 'feature')
+    return prediction_path  
+
+def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level: int = 0, upload_to_fms: bool = True, update_data_config: bool = True, save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
+    """
+    Apply a model to a multiple datasets.
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model from `model_config.yaml` to apply.
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    update_data_config: bool
+        Whether to update the data config with the FMS ID of the prediction file. Default is True. For the data config to be updated, `upload_to_fms` must also be True.
+    save_path: str
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
+    for name in dataset_names:
+        apply_model_single(model_name=model_name, dataset_name=name, resolution_level=resolution_level, upload_to_fms=upload_to_fms, update_data_config=update_data_config, save_path=save_path, overrides=overrides)
 
 if __name__ == '__main__':
     fire.Fire(apply_model)

@@ -15,13 +15,21 @@ import re
 
 # model methods
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
-    if config_type not in ['data', 'model','dynamics']:
+    if config_type not in ['data', 'model','dynamics', 'feature']:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f'{config_type}_config.yaml'
     with open(config_file, 'r') as file:
         config_data = yaml.safe_load(file)
     return config_data
+
+def write_config(config: List[Dict[str, Any]], config_type: str = 'data') -> None:
+    if config_type not in ['data', 'model', 'dynamics', 'feature']:
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
+    parent_folder = Path(__file__).resolve().parent
+    config_file = parent_folder.parent / f'{config_type}_config.yaml'
+    with open(config_file, 'w') as file:
+        yaml.dump(config, file, default_flow_style=True)
 
 # dataset methods
 def get_available_datasets(verbose: bool = True) -> List[str]:
