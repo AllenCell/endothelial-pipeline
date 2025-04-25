@@ -19,7 +19,7 @@ def set_slice_plot_bounds_and_labels(axs:Tuple[plt.Axes],bounds:list[Tuple[float
     return axs
 
 def get_slice_indexes(sliced_variable_grid:np.ndarray,
-                        sliced_variable_val:float=0.0) -> np.ndarray:
+                        sliced_variable_val:float) -> np.ndarray:
     
     # get slice closest to the prescribed value
     # first, get the absolute distance to the prescribed value
@@ -98,21 +98,28 @@ def plot_flow_field_slices(flow_field_dict:dict,
     zmin, zmax = zgrid[0,0,0], zgrid[0,0,-1]
     bounds = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
+    # get mean at all time points over crops
+    mean_over_crops = df_cond.groupby("T").mean(numeric_only=True)
+    mean_over_crops = mean_over_crops.loc[mean_over_crops["T"] == df_cond["T"].max()] # get last time point
     # plotting 2D slices of the 3D flow field
-    # get points within 20% of grid_spacing of PC3 = 0
-    zvalids = get_slice_indexes(grid_spacing, "PC3", zgrid, verbose=verbose)
+    # get z-slice closest to PC3 = PC3_val
+    # where PC3_val = mean of PC3 at last time point in the data
+    PC3_val = mean_over_crops["PC3"].mean()
+    zvalids = get_slice_indexes(zgrid, PC3_val)
 
-    # get points within 20% of self._grid_spacing of PC2 = 0
-    yvalids = get_slice_indexes(grid_spacing, "PC2", ygrid, verbose=verbose)
+    # get y-slice closest to PC2 = PC2_val
+    # where PC2_val = mean of PC2 at last time point in the data
+    PC2_val = mean_over_crops["PC2"].mean()
+    yvalids = get_slice_indexes(ygrid, PC2_val)
 
     # plot quiver plots of these PC2 and PC3 slices overlaid on scatter plot of data
     fig, (ax1, ax2) = vb.init_subplots()
     ax1.scatter(df_cond.PC1, df_cond.PC2, s=0.25, color="black", alpha=0.1)
     ax1 = plot_one_slice_quiver((dU, dV), (xgrid, ygrid), zvalids, ax=ax1)
-    ax1.set_title("PC3 = 0")
+    ax1.set_title(f"PC3 = {PC3_val:.2f}")
     ax2.scatter(df_cond.PC1, df_cond.PC3, s=0.25, color="black", alpha=0.1)    
     ax2 = plot_one_slice_quiver((dU, dQ), (xgrid, zgrid), yvalids, ax=ax2)
-    ax2.set_title("PC2 = 0")
+    ax2.set_title(f"PC2 = {PC2_val:.2f}")
     
     (ax1,ax2) = set_slice_plot_bounds_and_labels((ax1,ax2), bounds)
     
