@@ -740,11 +740,11 @@
   shear_stress_regime: intermediate,
   use_cases: [],
   pixel_size_xy_in_um: 0.382,
-  duration: 577, # double check
+  duration: 577, 
   time_interval_in_minutes: 5.0,
   flow: [[0, 576, 15.74]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
-  egfp_channel_index: 0, # double check
-  brightfield_channel_index: 1, # double check
+  egfp_channel_index: 0, 
+  brightfield_channel_index: 1, 
   n_total_positions: 6,
   notes: "",
   nuclear_label_free_seg_path: "",
@@ -762,11 +762,11 @@
   shear_stress_regime: 24hr_high-to-24hr_low,
   use_cases: [],
   pixel_size_xy_in_um: 0.382,
-  duration: 577, # double check
+  duration: 577,
   time_interval_in_minutes: 5.0,
   flow: [[0, 275, 24.39], [276, 577, 5.83]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
-  egfp_channel_index: 0, # double check
-  brightfield_channel_index: 1, # double check
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_total_positions: 6,
   notes: "Frame of flow switch was ~275.",
   nuclear_label_free_seg_path: "",
@@ -787,8 +787,8 @@
   duration: 571,
   time_interval_in_minutes: 5.0,
   flow: [[0, 570, 5.85]],
-  egfp_channel_index: 0, # double check
-  brightfield_channel_index: 1, # double check
+  egfp_channel_index: 0, 
+  brightfield_channel_index: 1,
   n_total_positions: 6,
   notes: "cells become extremely crowded at end of video",
   nuclear_label_free_seg_path: "",
@@ -809,8 +809,8 @@
   duration: 544,
   time_interval_in_minutes: 5.0,
   flow: [[0, 543, 5.24]],
-  egfp_channel_index: 0, # double check
-  brightfield_channel_index: 1, # double check
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_total_positions: 6,
   notes: "cells become very crowded near end of timelapse",
   nuclear_label_free_seg_path: "",
