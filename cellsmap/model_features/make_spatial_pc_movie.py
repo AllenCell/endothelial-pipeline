@@ -2,16 +2,37 @@ import fire
 import numpy as np
 import pandas as pd
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from bioio.writers import OmeTiffWriter
+from bioio import BioImage
 from pathlib import Path
+from tqdm import trange
 
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.model_features.apply_model import apply_model, load_overrides
 from cellsmap.util.set_output import get_output_path
 
+FLUOR_CHANNEL = 0
+BF_CHANNEL = 1
 
-def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0, overrides: Dict[str, Any] = {}):
+def make_overlay(filename, pc_movie, end_y, end_x):
+    img =BioImage(filename)
+    img.set_resolution_level(1)
+    n_t = range(pc_movie.shape[0])
+    fluor_img = img.get_image_dask_data('TZYX', C=FLUOR_CHANNEL, T = n_t).max(1)
+    bf_img = img.get_image_dask_data('TZYX', C=BF_CHANNEL, T = n_t).std(1)
+
+    # crop movie to only include data used for feature extraction
+    fluor_img = fluor_img[:, :end_y, :end_x]
+    bf_img = bf_img[:, :end_y, :end_x]
+
+    pc_movie = np.concatenate((fluor_img[:, None], bf_img[:, None], pc_movie), axis=1)
+    # for ometiff saving, add dummy Z dimension
+    pc_movie = np.expand_dims(pc_movie, 2)
+    return pc_movie
+
+
+def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0, overlay: bool = False, n_pcs: Optional[int] = None, overrides: Dict[str, Any] = {}):
     """
     Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` tiff file for each position in the dataset.
     The movie is saved in the `models/{model_name}/spatial_pcs` directory.
@@ -29,13 +50,13 @@ def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, ov
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     """
+    save_dir = Path(get_output_path(f'models/{model_name}/spatial_pcs'))
     overrides = load_overrides(overrides)
     # apply model with specified overlap
     overrides.update({
         "model.spatial_inferer.splitter.overlap": overlap
     })
-    feats_path = apply_model(model_name, dataset_name, resolution_level=resolution_level, overrides=overrides, upload_to_fms=False)
-    
+    feats_path = apply_model(model_name, dataset_name, resolution_level=resolution_level, overrides=overrides, save_path=save_dir, upload_to_fms=False)
     # load model predictions and apply PCA
     data = pd.read_parquet(feats_path)
     feat_cols = [c for c in data.columns if c.startswith('feat_')]
@@ -43,28 +64,36 @@ def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, ov
 
     pca = load_pca_model(pca_dir)
     pca_feats = pca.transform(data[feat_cols].values)
-    pc_columns = [f'pc{i}' for i in range(pca_feats.shape[1])]
-    data[pc_columns] = pca_feats
 
-    # how much crop moves in each direction during sliding window inference is the second smallest value of start_x and start_y (first value is 0)
-    step_x = sorted(data.start_x.unique())[1]
-    step_y = sorted(data.start_y.unique())[1]
+    n_pcs = n_pcs or pca_feats.shape[1]
+    if n_pcs > pca_feats.shape[1]:
+        raise ValueError(f"n_pcs {n_pcs} is greater than the number of PCA components {pca_feats.shape[1]}")
+    
+    pc_columns = [f'pc{i}' for i in range(n_pcs)]
+    data[pc_columns] = pca_feats[:, :n_pcs]
 
-    # convert start_x and start_y to indices
-    data.start_x = data.start_x // step_x
-    data.start_y = data.start_y // step_y
-
+    movie_shape_y, movie_shape_x = data.end_y.max(), data.end_x.max()
     n_timepoints = data.frame_number.max() + 1
-    n_pcs = pca_feats.shape[1]
 
-    save_dir = Path(get_output_path(f'models/{model_name}/spatial_pcs'))
     for position_name, position_data in data.groupby('position'):
-        # fill in movie with pc values in location of (start_y, start_x)
-        movie = np.zeros((n_timepoints, n_pcs, data.start_y.max()+1, data.start_x.max()+1))
-        for T in range(n_timepoints):
+        movie = np.zeros((n_timepoints, n_pcs, movie_shape_y, movie_shape_x))
+        for T in trange(n_timepoints):
+            timepoint_movie = np.zeros((n_pcs, movie_shape_y, movie_shape_x))
+            count_movie= np.zeros((n_pcs, movie_shape_y, movie_shape_x))
+
             sub = position_data[(position_data.frame_number == T)]
-            movie[T, :, sub.start_y, sub.start_x] = sub[pc_columns].values
+            for row in sub.itertuples():
+                # fill in movie with pc values in crop location
+                timepoint_movie[:, row.start_y:row.end_y, row.start_x:row.end_x] += np.array([getattr(row, col) for col in pc_columns])[:, None, None]
+                count_movie[:, row.start_y:row.end_y, row.start_x:row.end_x] += 1
+            movie[T] = timepoint_movie / count_movie
+        movie = make_overlay(data.zarr_path.iloc[0], movie, end_y=data.end_y.max(), end_x=data.end_x.max())
         OmeTiffWriter.save(uri = save_dir/f'{dataset_name}_{position_name}.tiff', data = movie)
 
 if __name__ == '__main__':
-    fire.Fire(generate_spatial_pc_movie)
+    # fire.Fire(generate_spatial_pc_movie)
+    model_name = "diffae_04_10"
+    pca_dir = "//allen/aics/users/erin.angelini/git-repos/cellsmap/results/stochastic_dynamics/default/outputs/"
+    overlap = 0.95
+    for dataset_name in ["20250224_20X"]:
+        generate_spatial_pc_movie(model_name=model_name, dataset_name=dataset_name, pca_dir=pca_dir, overlap=overlap, n_pcs=3)
