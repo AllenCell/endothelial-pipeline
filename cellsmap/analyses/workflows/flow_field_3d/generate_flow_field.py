@@ -3,10 +3,8 @@
 # %%
 import pandas as pd
 import numpy as np
-import pysindy as ps
 import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
 from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 
@@ -14,7 +12,6 @@ from cellsmap.util.set_output import get_output_path
 from cellsmap.util import manifest_io
 from cellsmap.analyses.utils.io import vtk_tools
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.analyses.utils import regression_helper as rh, model_eval
 # %%
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_field_3d/figs"
@@ -43,8 +40,8 @@ DDFF.build()
 centers = DDFF._bin_centers
 num_T = DDFF._df['T'].nunique()
 num_crops = DDFF._df['crop_index'].nunique()
-t_span = [0,1500] # 48 hours in frames (5 min/frame)
-t_eval = np.linspace(0, 1500,1000)
+t_span = [0,num_T] # 48 hours in frames (5 min/frame)
+t_eval = np.linspace(0,num_T,500)
 num_conditions = len(df.description.unique())
 mean_traj = {}
 
