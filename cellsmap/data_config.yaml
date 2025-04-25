@@ -726,7 +726,7 @@
   brightfield_channel_index: 1, 
   n_nuclear_seg_manifest_fmsid: "",
   n_total_positions: 6, # positions are represented as timeframes in the dataset
-  notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress",
+  notes: "Stopped imaging prior to 48 hours because cells were very packed",
   nuclear_label_free_seg_path: "",
   diffae_manifest_fmsid: "", 
 },{
