@@ -40,13 +40,28 @@ mean_traj = np.load(output_savedir+"mean_traj.npy",allow_pickle=True).item()
 for condition in df.description.unique():
     print("Reconstructing crops for condition: ", condition)
 
+    # get full mean trajectory
     coords = mean_traj[condition]
+    distances = np.linalg.norm(np.diff(coords, axis=0), axis=1)
+
+    # compute cumulative distance from the first point along the trajectory
+    arc_length = np.cumsum(np.concatenate(([0],distances)))
+
+    # interpolate to get evenly spaced points at intervals of length 0.05
+    # n_points = int(np.ceil(arc_length[-1] / 0.05))
+    n_points = 10 # number of points to interpolate
+    arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
+    interpolated_points = np.zeros((n_points, 3))
+    for i in range(3):
+        interpolated_points[:, i] = np.interp(arc_length_new, arc_length, coords[:, i])
+    
+    # save interpolated points
     # reconstruct latent space coordinates from PC coordinates
-    latent = reducer.inverse_transform(coords)
+    latent = reducer.inverse_transform(interpolated_points)
 
     # save out latent coordinates of mean trajectory
     df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
-    df.to_csv(csv_savedir+f"interpolated_mean_trajectory_npy_{condition}.csv")
+    df.to_csv(csv_savedir+f"{condition}_npy_interpolated_mean_trajectory.csv")
 
     num_coords = latent.shape[0]
     # turn coordinate array into list of lists
@@ -58,7 +73,7 @@ for condition in df.description.unique():
     walk_img = generate_from_coords(model_name,latent_coords) # output is a numpy array: (# coords x 128 x 128), greyscale image
 
     # save out stack of images as tif
-    tif_name = f"interpolated_mean_trajectory_reconstructed_crops_npy_{condition}.tif"
+    tif_name = f"{condition}_npy_interpolated_mean_trajectory_reconstructed_crops.tif"
     OmeTiffWriter.save(walk_img, crop_savedir+tif_name, overwrite=True)
 
 

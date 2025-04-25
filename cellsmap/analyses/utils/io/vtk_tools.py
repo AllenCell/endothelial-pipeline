@@ -86,6 +86,9 @@ class DataDrivenFlowField3D_EA():
 
     def set_state_space_variables(self, vars: list) -> None:
         self._ss_vars = vars
+
+    def set_kernel_params(self, bandwidth=0.1,kernel='gaussian') -> None:
+        self._kernel_params = {"bandwidth": bandwidth, "kernel": kernel}
     
     def compute_state_space_bounds(self,excluded_fraction=0.05) -> None:
         self._bounds = CuboidBounds(

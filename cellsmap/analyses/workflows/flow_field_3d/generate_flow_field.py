@@ -7,12 +7,13 @@ import pysindy as ps
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-
+from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 
-from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
+from cellsmap.util import manifest_io
 from cellsmap.analyses.utils.io import vtk_tools
+from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.analyses.utils import regression_helper as rh, model_eval
 # %%
 # Create output folder if does not exist yet
@@ -23,70 +24,90 @@ output_savedir = get_output_path(workflow_output_folder, verbose=False)
 fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
-# Load manifest created at preprocessing step
+# Load original manifest to DataFrame with metadata
+df_full = manifest_io.load_manifest_to_df()
+# load pca model
+pca = manifest_io.load_pca_model(output_savedir)
+# load manifest created at preprocessing step
 df = pd.read_csv(output_savedir+"manifest.csv")
-
 # %%
 # Create flow field dx/dt = f(x)
 DDFF = vtk_tools.DataDrivenFlowField3D_EA(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
 DDFF.set_dataframe(df)
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
+DDFF.set_kernel_params(bandwidth=0.1)
 DDFF.build()
 
 # %%
 centers = DDFF._bin_centers
-
-t_span = [0,48*60/5] # 48 hours in frames (5 min/frame)
-t_eval = np.arange(t_span[0], t_span[1]+1)
+num_T = DDFF._df['T'].nunique()
+num_crops = DDFF._df['crop_index'].nunique()
+t_span = [0,1500] # 48 hours in frames (5 min/frame)
+t_eval = np.linspace(0, 1500,1000)
 num_conditions = len(df.description.unique())
 mean_traj = {}
+
 
 for condition in df.description.unique():
     DDFF.compute_flow_field(condition=condition)
 
     # points and velocities
-    f_KM = DDFF._drift_kmcs[condition]
-    X = np.moveaxis(np.array(np.meshgrid(*centers,indexing='ij')),0,-1)
+    flow_field = DDFF._flow_field[condition]["velocities"]
+    f_grid = np.stack(flow_field, axis=-1) # shape (num_bins_x, num_bins_y, num_bins_z, 3)
 
-    f_KM_, X_, = rh.masked_vector_field(f_KM, X)
+    # callable flow field: linear interpolation on computed values of f on the grid
+    X = np.moveaxis(np.array(np.meshgrid(*centers,indexing='ij')),0,-1).reshape((-1,3))
+    f_interp = spinterp.LinearNDInterpolator(X, f_grid.reshape((-1,3))) # interpolator for f_KM
     
-    # train test split of data
-    X_train, X_test, Y_train, Y_test = train_test_split(X_, f_KM_, train_size=0.8, random_state=42)
-
-    feature_lib = ps.PolynomialLibrary(degree=4, include_bias=True)
-    driftModel = ps.SINDy(feature_library = feature_lib, optimizer = ps.SSR())
-    driftModel.fit(X_train,t=DDFF._time_step,x_dot=Y_train)
-
-    drift_R2 = driftModel.score(X_test,x_dot=Y_test)
-    driftModel.print()
-
-    print('Coefficient of determination (R^2) for drift coefficient model on test set: %f' %drift_R2)
-
-    f = model_eval.vector_field_function(driftModel)
     def my_flow(t,x):
-        return f(x)
-    
-    # get dataframe for the condition
-    df_ = DDFF._df[DDFF._df.description==condition]
-    # get only points with T==0
-    df_init = df_[df['T']==0]
-    # get actual variables
-    inits_mean = df_init[DDFF._ss_vars].values.mean(axis=0)
+        # get interpolated value
+        f_interp_val = f_interp(x)
+        # return dx/dt = f(x)
+        return f_interp_val
+        
+    # get dataset name
+    ds_name = df.loc[df["description"] == condition, "dataset_name"].values[0]
+    df_ = df_full.loc[df_full["dataset_name"] == ds_name] # get the dataframe restricted to the dataset
+    df_ = manifest_io.add_crop_index(df_) # add crop index to the dataframe
+    df_.sort_values(by=["crop_index", "T"],inplace=True)  # sort by crop index and time
+    num_T = df_["T"].nunique()
+    num_crops = df_["crop_index"].nunique()
+    # project to PCA space
+    feat_cols = [str(i) for i in range(8)]
+    feats_proj = pca.transform(df_[feat_cols].values).reshape((num_crops,num_T,3))
+    # get mean trajectory
+    data_mean_traj = feats_proj.mean(axis=0)
+    # get initial point
+    inits_mean = data_mean_traj[0]
     
     # free up memory
-    del df_, df_init, X_train, X_test, Y_train, Y_test
+    del df_, feats_proj
 
     sol = solve_ivp(my_flow, t_span, inits_mean, t_eval=t_eval)
-    mean_traj[condition] = sol.y.T
+    traj = sol.y.T
 
+    fig, ax = vb.init_subplots()
+    fig.suptitle(condition)
+    ax[0].scatter(data_mean_traj[:,0], data_mean_traj[:,1], alpha=0.5)
+    ax[0].scatter(traj[:,0], traj[:,1], c='k',s=8)
+    ax[0].set_xlabel('PC1')
+    ax[0].set_ylabel('PC2')
+    ax[0].set_xlim(centers[0][0], centers[0][-1])
+    ax[0].set_ylim(centers[1][0], centers[1][-1])
+
+    ax[1].scatter(data_mean_traj[:,0], data_mean_traj[:,2], alpha=0.5)
+    ax[1].scatter(traj[:,0], traj[:,2], c='k',s=8)
+    ax[1].set_xlabel('PC1')
+    ax[1].set_ylabel('PC3')
+    ax[1].set_xlim(centers[0][0], centers[0][-1])
+    ax[1].set_ylim(centers[2][0], centers[2][-1])
+    plt.show()
+
+    vb.save_plot(fig, fig_savedir+f"{condition}_mean_traj.png", dpi=300)
+
+    mean_traj[condition] = traj
 # %%
 np.save(output_savedir+"mean_traj", mean_traj, allow_pickle=True)
-# %%
-# plot sol as 3D trajectory
 
-fig,ax = plt.figure().add_subplot(projection='3d')
-for condition in df.description.unique():
-    traj = mean_traj[condition]
-    ax.plot(traj[0], traj[1], traj[2], label=condition)
 # %%
