@@ -67,7 +67,7 @@ If you are on the Allen Institute for Cell Science local network, you can load o
 pdm sync --dev -G internal --clean-unselected
 ```
 
-If you want to run any of the ML workflows, we recommend created a separate virtual environment:
+If you want to run any of the ML workflows, we recommend creating a separate virtual environment:
 
 ```bash
 pdm venv create --name ml_venv 3.10
