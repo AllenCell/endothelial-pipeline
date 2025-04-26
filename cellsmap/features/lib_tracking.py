@@ -2,7 +2,7 @@ import numpy as np
 import dask as da
 import pandas as pd
 from pathlib import Path
-from skimage.segmentation import find_boundaries
+from skimage.segmentation import find_boundaries, clear_border
 from skimage.measure import regionprops
 from cellsmap.util.shape_features import numpy_mesh_coords
 from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
@@ -10,7 +10,7 @@ from cellsmap.util.dataset_io import extract_T
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
-
+from tqdm import tqdm
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension='*', sorting_function: Optional[Callable] = None):
@@ -37,7 +37,7 @@ def load_images_sequentially(
     image_buffer_prior: int = 0, 
     image_buffer_next: int = 0, 
     axis: Optional[str] = None, 
-    VERBOSE: bool = False
+    verbose: bool = False
 ):
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
@@ -142,7 +142,7 @@ def load_images_sequentially(
         dim_order_string = ''.join(dim_order)
         loaded_images = loaded_images + [BioImage(image_list[j]).get_image_data(dim_order_string, **crop_list[j]) for j in new_image_relative_indices] 
 
-        print(f'[new images being loaded: {tuple([fp.name for fp in new_image_list])}]') if VERBOSE else None
+        print(f'[new images being loaded: {tuple([fp.name for fp in new_image_list])}]') if verbose else None
 
         yield filepath_list[i], crops[i], loaded_images
 
@@ -157,7 +157,7 @@ def match_labels_from_images(
     metrics_thresholds: Optional[List[float]] = None, 
     matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
     exclude_if_any_thresholded: bool = False, 
-    VERBOSE: bool = False
+    verbose: bool = False
 ) -> Dict:
     """
     Match labels between frames based on a list of metrics.
@@ -263,7 +263,7 @@ def match_labels_from_images(
     # call the matching functions based on which metrics are used
     if 'region_overlap' in metric_names:
         # if metrics = 'region_overlap' then a different matching function is needed
-        print('-- using region_overlap for matching labels') if VERBOSE else None
+        print('-- using region_overlap for matching labels') if verbose else None
         matched_labels_dict = match_labels_from_overlaps(labeled_images, reference_index, matching_method)
     else:
         # used a for-loop instead of a nested list comprehension for readability
@@ -273,7 +273,7 @@ def match_labels_from_images(
             labeled_metric_vals = {prop.label: tuple([prop[metric] for metric in metric_names]) for prop in img_props}
             list_of_labeled_metric_vals.append(labeled_metric_vals)
         # both metrics = 'centroids' and metrics = a list of metrics are handled the same way
-        print(f'-- using {metric_names} for matching labels') if VERBOSE else None
+        print(f'-- using {metric_names} for matching labels') if verbose else None
         matched_labels_dict = match_labels_from_metrics(list_of_labeled_metric_vals, reference_index, metrics_thresholds, matching_method, exclude_if_any_thresholded)
 
     # add the skimage regionprops to the matched_labels_dict with the
@@ -540,14 +540,14 @@ def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarr
     return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
 
 
-def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.DataFrame:
+def initialize_track_ids(list_of_region_props: list, image_index:int=0, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.DataFrame:
     """list_of_region_props_list = list(list(measure.regionprops))
     list_of_region_props_list at index_to_initialize_on will be used to start a dataframe.
     Each label in the region_props_list will get a row in the dataframe with its own track_id
     as well as the associated centroid."""
 
-    tracking_data = list(zip(*[(T, id + 1 + track_id_offset, *(list_of_region_props[id][prop] for prop in props_to_include)) for id in range(len(list_of_region_props))]))
-    column_names = [column_name for column_name in ('T', 'track_id', *props_to_include)]
+    tracking_data = list(zip(*[(image_index, T, id + 1 + track_id_offset, *(list_of_region_props[id][prop] for prop in props_to_include)) for id in range(len(list_of_region_props))]))
+    column_names = [column_name for column_name in ('image_index', 'T', 'track_id', *props_to_include)]
     track_ids = dict(zip(column_names, tracking_data))
 
     df_track_ids = pd.DataFrame(track_ids)
@@ -556,26 +556,26 @@ def initialize_track_ids(list_of_region_props: list, T: int=0, track_id_offset: 
 
 def reassign_track_ids_from_matches(recent_track_ids: pd.DataFrame, new_track_ids: pd.DataFrame, track_id_offset: int=0, reference_index: int=0) -> pd.DataFrame:
 
-    current_T = new_track_ids['T'].max()
-    recent_track_ids['T_relative'] = recent_track_ids['T'].copy() - current_T
+    current_image_index = new_track_ids['image_index'].max()
+    recent_track_ids['image_index_relative'] = recent_track_ids['image_index'].copy() - current_image_index
     # print('reassign_track_ids_from_matches:', f'current_T={current_T}')
-    recent_track_ids['match_at_current_T'] = recent_track_ids.apply(lambda row: row['matched_query_label'][reference_index - row['T_relative']], axis=1).copy()
+    recent_track_ids['match_at_current_image_index'] = recent_track_ids.apply(lambda row: row['matched_query_label'][reference_index - row['image_index_relative']], axis=1).copy()
     
     # possible complications:
-    # 1. multiple matched labels from recent_track_ids at the same T point to the same label in new_track_ids (track merging event)
+    # 1. multiple matched labels from recent_track_ids at the same image_index point to the same label in new_track_ids (track merging event)
     # 2. a single matched label from recent_track_ids points to multiple labels in new_track_ids (track splitting event)
     # 3. no match in recent_track_ids was found (i.e. new track was born)
     # in all 3 scenarios we should start new track_ids for affected labels
-    filtered_recent_track_ids = recent_track_ids[recent_track_ids['match_at_current_T'].transform(lambda x: not np.ma.is_masked(x))].reset_index(drop=False)
-    merged_tracks = filtered_recent_track_ids.groupby(['index', 'T', 'label']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
-    split_tracks = filtered_recent_track_ids.groupby(['index', 'T', 'match_at_current_T']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
-    new_tracks = new_track_ids[~new_track_ids['label'].isin(filtered_recent_track_ids['match_at_current_T'])]['label']
+    filtered_recent_track_ids = recent_track_ids[recent_track_ids['match_at_current_image_index'].transform(lambda x: not np.ma.is_masked(x))].reset_index(drop=False)
+    merged_tracks = filtered_recent_track_ids.groupby(['index', 'image_index', 'label']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
+    split_tracks = filtered_recent_track_ids.groupby(['index', 'image_index', 'match_at_current_image_index']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
+    new_tracks = new_track_ids[~new_track_ids['label'].isin(filtered_recent_track_ids['match_at_current_image_index'])]['label']
 
     # reassign track_ids for existing tracks and give new track_ids to new tracks
-    tracks_needing_new_ids = new_tracks.to_list() + filtered_recent_track_ids[merged_tracks]['match_at_current_T'].to_list() + filtered_recent_track_ids[split_tracks]['match_at_current_T'].to_list()
-    existing_tracks_to_reassign = filtered_recent_track_ids.query('match_at_current_T not in @tracks_needing_new_ids', inplace=False)
+    tracks_needing_new_ids = new_tracks.to_list() + filtered_recent_track_ids[merged_tracks]['match_at_current_image_index'].to_list() + filtered_recent_track_ids[split_tracks]['match_at_current_image_index'].to_list()
+    existing_tracks_to_reassign = filtered_recent_track_ids.query('match_at_current_image_index not in @tracks_needing_new_ids', inplace=False)
 
-    existing_track_reassignments = dict(zip(existing_tracks_to_reassign['match_at_current_T'], existing_tracks_to_reassign['track_id']))
+    existing_track_reassignments = dict(zip(existing_tracks_to_reassign['match_at_current_image_index'], existing_tracks_to_reassign['track_id']))
     new_tracks_reassignments = dict(zip(sorted(set(tracks_needing_new_ids)), range(track_id_offset, track_id_offset + len(set(new_tracks)) + 1)))
 
     # check that we are not overwriting any existing track ids
@@ -726,8 +726,9 @@ def run_tracking(
     extra_bin_level: Optional[int] = None,
     extra_T: Optional[List[int]] = None,
     Z_projection: Optional[Callable] = None,
+    track_tolerance: int = 0,
     img_metadata: Optional[Any] = None,
-    save_output: bool = True,
+    image_validation_frequency: int = 0,
     verbose: bool = False
 ):
     """
@@ -745,6 +746,9 @@ def run_tracking(
         If a single filepath is provided for extra_in_dir then the sorting_key will be used to match timepoints
         from this filepath to the timepoints in in_dir.
         Default is None.
+    track_tolerance: int
+        the number of timepoints to let a track skip when looking for
+        a match before it is considered lost and a new track is created.
     TODO: consider adding img_crops as an argument to this function to allow for cropping of the images
     NOTE: OME-ZARR files are directories of sub-directories and not files by pathlib.Path, but the
             function parse_paths has been created to handle these files.
@@ -809,113 +813,108 @@ def run_tracking(
     timeframes, img_fps_for_tracking, crops_for_tracking, img_fps_for_overlay, crops_for_overlay = zip(*img_queue_list)
 
     print(f'Generating tracks...') if verbose else None
-    results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, initial_T_offset=timeframes[0], image_buffer_prior=0, image_buffer_next=2, VERBOSE=verbose)
+    results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, timeframes_for_table=timeframes, image_buffer_prior=0, image_buffer_next=track_tolerance+1, verbose=verbose)
 
     # create output directories if they don't exist and get image metadata from the input image
-    if save_output:
-        output_T_last_resort = 0
-        for idx, input_image_filepath, track_labeled_image, track_table in results:
-            images_out_dir = out_dir / 'tracked_images'
-            # tables_out_dir = out_dir / 'tracked_tables'
-            # for out in (images_out_dir, tables_out_dir):
-            for out in (images_out_dir, out_dir):
-                out.mkdir(parents=True, exist_ok=True)
-            # the line below uses the T position from the crop if it exists (i.e. if a
-            # timelapse was provided), otherwise it uses the name of the input file, which
-            # is restricted above to be a single file from a folder of images.
-            # This way the T will be appended to the output filename without
-            # being written twice in the event a folder of files is provided
-            # as the input (which are assumed to have the T positions in the
-            # filenames already in that case).
-            t = f"_T{crops_for_tracking[idx]['T'].start}" if crops_for_tracking[idx]['T'].start else ''
-            # if an out_filename_prefix was provided and a T position was found then
-            # use those to create the output filename
-            if out_filename_prefix:
-                # if no T position is specified in crop then try and extract T from the filename
-                t = extract_T(input_image_filepath.name, default_if_not_found="") if t=='' else t
+    for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}'):
+        if image_validation_frequency > 0:
+            if idx in range(0, len(timeframes), image_validation_frequency):
+                images_out_dir = out_dir / 'tracked_images'
+                for out in (images_out_dir, out_dir):
+                    out.mkdir(parents=True, exist_ok=True)
+                # try to extract the T position from the filename, and if
+                # unsucessful then use the T position from the img_queue
+                t = extract_T(input_image_filepath.name, default_if_not_found="")
                 t = f'_T{t}' if t else ''
-                # if there is still no T position found then use an increasing counter
-                # as a last resort for the T value
-                if t=='':
-                    t = f'_T{output_T_last_resort}'
-                    output_T_last_resort += 1
-                out_path = images_out_dir / (f'{out_filename_prefix}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
-            # otherwise use the input image filename to create the output filename
-            # along with any T position if it was found
-            else:
-                # there is no risk of to the same filename over and over again because
-                # if a single BioImage is provided then T will be present in the crops
-                out_path = images_out_dir / (f'{input_image_filepath.name.split(".")[0]}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
-
-            print(f'- saving images to {out_path}') if verbose else None
-            overlay_path = img_fps_for_overlay[idx]
-            overlay_crop = crops_for_overlay[idx]
-            if extra_in_dir:
-                if overlay_path and overlay_crop:
-                    dim_order = 'TCZYX'
-                    dim_map = get_dim_map(dim_order)
-                    raw_image = BioImage(overlay_path)
-                    if extra_scene:
-                        raw_image.set_scene(extra_scene)
-                    if extra_bin_level:
-                        raw_image.set_resolution_level(extra_bin_level)
-                    raw_image_daskarr = raw_image.get_image_dask_data(dim_order,
-                                                                      T=range(raw_image.dims.T)[overlay_crop['T']],
-                                                                      C=range(raw_image.dims.C)[overlay_crop['C']])
-                    if Z_projection:
-                        raw_image_daskarr = Z_projection(raw_image_daskarr, axis=dim_map['Z'], keepdims=True)
-                    raw_image_arr = raw_image_daskarr.compute().squeeze()
-                    raw_channel = {'image': raw_image_arr, 'name': 'raw_image', 'color': (255,255,255)}
+                if not t:
+                    t = f'_T{timeframes[idx]}'
+                # if an out_filename_prefix was provided
+                # create the output filename using that
+                if out_filename_prefix:
+                    out_path = images_out_dir / (f'{out_filename_prefix}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
+                # otherwise use the input image filename to create the output
+                # filename along with any T position if it was found
                 else:
-                    blank_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
-                    raw_channel = {'image': blank_image, 'name': 'raw_image', 'color': (255,255,255)}
-            else:
-                raw_channel = None
+                    # there is no risk of to the same filename over and over again because
+                    # even if a single BioImage is provided the img_queue is a dictionary
+                    # with unique timeframes for each image to analyse
+                    out_path = images_out_dir / (f'{input_image_filepath.name.split(".")[0]}' + t + '_track_labeled' + ''.join(input_image_filepath.suffixes))
 
-            save_track_labeled_images(out_path, track_labeled_image=track_labeled_image, image_metadata=img_metadata, extra_channel=raw_channel)
+                print(f'- saving images to {out_path}') if verbose else None
+                overlay_path = img_fps_for_overlay[idx]
+                overlay_crop = crops_for_overlay[idx]
+                if extra_in_dir:
+                    if overlay_path and overlay_crop:
+                        dim_order = 'TCZYX'
+                        dim_map = get_dim_map(dim_order)
+                        raw_image = BioImage(overlay_path)
+                        if extra_scene:
+                            raw_image.set_scene(extra_scene)
+                        if extra_bin_level:
+                            raw_image.set_resolution_level(extra_bin_level)
+                        raw_image_daskarr = raw_image.get_image_dask_data(dim_order,
+                                                                        T=range(raw_image.dims.T)[overlay_crop['T']],
+                                                                        C=range(raw_image.dims.C)[overlay_crop['C']])
+                        if Z_projection:
+                            raw_image_daskarr = Z_projection(raw_image_daskarr, axis=dim_map['Z'], keepdims=True)
+                        raw_image_arr = raw_image_daskarr.compute().squeeze()
+                        raw_channel = {'image': raw_image_arr, 'name': 'raw_image', 'color': (255,255,255)}
+                    else:
+                        blank_image = np.zeros(shape=track_labeled_image.shape, dtype=track_labeled_image.dtype)
+                        raw_channel = {'image': blank_image, 'name': 'raw_image', 'color': (255,255,255)}
+                else:
+                    raw_channel = None
+
+                save_track_labeled_images(out_path, track_labeled_image=track_labeled_image, image_metadata=img_metadata, extra_channel=raw_channel)
 
         out_filename_prefix = out_filename_prefix or out_dir.stem
         table_out_name = f'{out_filename_prefix}_tracking.tsv'
         out_path = out_dir / table_out_name
         print(f'Saving tracking table to {out_path}') if verbose else None
-        track_table.to_csv(out_path, index=False, sep='\t')# if SAVE_OUTPUT else None
+
+        track_table.to_csv(out_path, index=False, sep='\t')
 
 
-def update_track_table(labeled_images, existing_track_ids, tracking_metrics=['centroid'], image_buffer_prior=0, image_buffer_next=1, reference_index=0, initial_T_offset: int=0, VERBOSE=False):
+def update_track_table(labeled_images, existing_track_ids, current_T, tracking_metrics=['centroid'], image_buffer_prior=0, image_buffer_next=1, reference_index=0, verbose=False):
 
-    print(f'- updating tracks...') if VERBOSE else None
+    print(f'- updating tracks...') if verbose else None
 
-    current_T = int(existing_track_ids['T'].max()) + 1 if isinstance(existing_track_ids, pd.DataFrame) else initial_T_offset
+    current_image_index = int(existing_track_ids['image_index'].max()) + 1 if isinstance(existing_track_ids, pd.DataFrame) else 0
 
-    print(f'- matching labels...') if VERBOSE else None
-    matched_labels = match_labels_from_images(labeled_images, reference_index=reference_index, metrics=tracking_metrics, matching_method='reciprocal_matches_only', VERBOSE=VERBOSE)
+    print(f'- matching labels...') if verbose else None
+    matched_labels = match_labels_from_images(labeled_images, reference_index=reference_index, metrics=tracking_metrics, matching_method='reciprocal_matches_only', verbose=verbose)
 
     matched_labels_props_list = [matched_labels[lab]['regionprops'] for lab in matched_labels]
-    props_to_include = ['label', 'reference_index', 'matched_query_label', 'optimized_metric_value', 'centroid', 'area', 'perimeter', 'orientation', 'eccentricity', 'matching_method']
+    border_labels = np.unique(~clear_border(labeled_images[reference_index]).astype(bool) * labeled_images[reference_index])
+    border_labels = border_labels[np.nonzero(border_labels)].tolist()
+    for prop in matched_labels_props_list:
+        prop.touches_border = True if prop.label in border_labels else False
+
+    props_to_include = ['label', 'reference_index', 'matched_query_label', 'optimized_metric_value', 'centroid', 'area', 'perimeter', 'orientation', 'eccentricity', 'matching_method', 'touches_border']
 
     # initialize track ids
-    track_T_tolerance = image_buffer_next - image_buffer_prior - 1
+    track_tolerance = image_buffer_next - image_buffer_prior - 1
     newest_track_id_label = existing_track_ids['track_id'].max() if isinstance(existing_track_ids, pd.DataFrame) else 0
 
-    print(f'- initializing track ids...') if VERBOSE else None
-    new_track_ids = initialize_track_ids(matched_labels_props_list, T=current_T, track_id_offset=newest_track_id_label, props_to_include=props_to_include)
+    print(f'- initializing track ids...') if verbose else None
+    new_track_ids = initialize_track_ids(matched_labels_props_list, image_index=current_image_index, T=current_T, track_id_offset=newest_track_id_label, props_to_include=props_to_include)
 
     if isinstance(existing_track_ids, pd.DataFrame):
-        recent_T_range = range(max(0, current_T - track_T_tolerance - 1), current_T)
-        recent_track_ids = existing_track_ids[existing_track_ids['T'].isin(recent_T_range)].copy()
+        recent_tracks_range = range(max(0, current_image_index - track_tolerance - 1), current_image_index)
+        recent_track_ids = existing_track_ids[existing_track_ids['image_index'].isin(recent_tracks_range)].copy()
 
         # update track ids
-        print(f'- reassigning track ids...') if VERBOSE else None
+        print(f'- reassigning track ids...') if verbose else None
         new_track_ids = update_new_track_ids(recent_track_ids, new_track_ids, newest_track_id_label, reference_index=reference_index)
     else:
         pass
     # concatenate reassigned track ids to existing track ids
-    print(f'- concatenating existing track table and new track table...') if VERBOSE else None
+    print(f'- concatenating existing track table and new track table...') if verbose else None
     existing_track_ids = pd.concat([existing_track_ids, new_track_ids]) if isinstance(existing_track_ids, pd.DataFrame) else new_track_ids
 
     # relabel images
     # NOTE I adopted this reassignment methodology from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
-    print(f'- relabeling images...') if VERBOSE else None
+    print(f'- relabeling images...') if verbose else None
     label_map_arr = np.zeros(shape=new_track_ids['label'].max() + 1, dtype=np.uint32)
     label_map_arr[new_track_ids['label']] = new_track_ids['track_id']
     track_labeled_image = label_map_arr[labeled_images[reference_index]]
@@ -923,7 +922,7 @@ def update_track_table(labeled_images, existing_track_ids, tracking_metrics=['ce
     return track_labeled_image, new_track_ids, existing_track_ids
 
 
-def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid'], initial_T_offset=0, image_buffer_prior=0, image_buffer_next=1, VERBOSE=False):
+def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid'], timeframes_for_table=None, image_buffer_prior=0, image_buffer_next=1, verbose=False):
     """
     Will build tracks from images and save a version of the images relabeled according to
     track_id as well as a table of the results to out_dir.
@@ -934,14 +933,19 @@ def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid
 
     # run analysis on each timepoint of each dataset
     # NOTE load_images_sequentially is a generator
-    paths_crops_labeled_images_all = load_images_sequentially(image_filepaths, img_crops, image_buffer_prior, image_buffer_next, VERBOSE=VERBOSE)
+    paths_crops_labeled_images_all = load_images_sequentially(image_filepaths, img_crops, image_buffer_prior, image_buffer_next, verbose=verbose)
 
     track_table = []
     for i, (fp, crop, labeled_images) in enumerate(paths_crops_labeled_images_all):
+        if timeframes_for_table == None:
+            current_T = i
+        else:
+            current_T = timeframes_for_table[i]
+
         print(f'Working on {fp.name}...')
         labeled_images = [img_arr.squeeze() for img_arr in labeled_images]
 
-        track_labeled_image, current_tracks, track_table = update_track_table(labeled_images, track_table, tracking_metrics, image_buffer_prior, image_buffer_next, reference_index=0, initial_T_offset=initial_T_offset, VERBOSE=VERBOSE)
+        track_labeled_image, current_tracks, track_table = update_track_table(labeled_images, track_table, current_T, tracking_metrics, image_buffer_prior, image_buffer_next, reference_index=0, verbose=verbose)
 
         yield i, fp, track_labeled_image, track_table
 

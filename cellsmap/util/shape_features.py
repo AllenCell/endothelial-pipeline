@@ -447,7 +447,7 @@ def calculate_region_border_metrics(
     binary_image: np.ndarray, 
     intensity_image: Optional[np.ndarray] = None, 
     labeled_image: Optional[np.ndarray] = None, 
-    VERBOSE: bool = True
+    verbose: bool = True
 ) -> List:
     """
     Takes a binary image representation of one or more structures that look
@@ -521,11 +521,11 @@ def calculate_region_border_metrics(
     del skel, conn # remove unused images to save on memory
 
     ## calculate neighbor node angles and distances
-    neighbor_node_metrics = calculate_neighbor_node_metrics(binary_image, nodes, edges, intensity_image, VERBOSE) # -> list of dictionaries(?)
+    neighbor_node_metrics = calculate_neighbor_node_metrics(binary_image, nodes, edges, intensity_image, verbose) # -> list of dictionaries(?)
 
     ## associate edges with the labeled_image
     if isinstance(labeled_image, np.ndarray):
-        labeled_image_metrics = calculate_labeled_image_metrics(binary_image, labeled_image, nodes, edges, intensity_image, VERBOSE)
+        labeled_image_metrics = calculate_labeled_image_metrics(binary_image, labeled_image, nodes, edges, intensity_image, verbose)
     else:
         labeled_image_metrics = None
 
@@ -537,7 +537,7 @@ def calculate_labeled_image_metrics(
     nodes: Optional[np.ndarray] = None,
     edges: Optional[np.ndarray] = None,
     intensity_image: Optional[np.ndarray] = None,
-    VERBOSE: bool = True
+    verbose: bool = True
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -608,7 +608,7 @@ def calculate_labeled_image_metrics(
     seeds *= ~binary_image
 
     # create the nodes and edges arrays if they were not provided
-    print(f'    -- getting node and edge labels') if VERBOSE else None
+    print(f'    -- getting node and edge labels') if verbose else None
     nodes, edges, skel, conn = (nodes, edges, None, None) if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray)) else arr2graph(binary_image, closing_step=False)
     del skel, conn # remove unused images to save on memory
 
@@ -618,18 +618,18 @@ def calculate_labeled_image_metrics(
     intensity_image = intensity_image if isinstance(intensity_image, np.ndarray) else np.full(binary_image.shape, np.nan)
 
     # get the node labels that define each edge
-    print(f'    -- getting neighboring node information') if VERBOSE else None
+    print(f'    -- getting neighboring node information') if verbose else None
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
 
     # run a watershed using the labeled (minus any regions that overlap with binary_image)
     # image as seeds to find which parts of labels touch which edges
-    print(f'    -- expanding labels in labeled_image to be adjacent to edges') if VERBOSE else None
+    print(f'    -- expanding labels in labeled_image to be adjacent to edges') if verbose else None
     regions = segmentation.watershed(np.logical_or(nodes, edges),
                                      markers=seeds,
                                      connectivity=1,#labeled_image.ndim,
                                      mask=~np.logical_or(nodes, edges)).astype(np.int32)
     # make the labeling of regions start after the biggest edge label
-    print(f'    -- relabeling labeled_image') if VERBOSE else None
+    print(f'    -- relabeling labeled_image') if verbose else None
     regions_offset = regions.copy()
     regions_offset[regions.astype(bool)] += edges.max()
     # combine the edges labels and the offset regions labels
@@ -637,14 +637,14 @@ def calculate_labeled_image_metrics(
 
     # create a RAG from the regions and find out which edge labels and connected to which
     # region labels
-    print(f'    -- finding which edge labels touch which labeled_image regions') if VERBOSE else None
+    print(f'    -- finding which edge labels touch which labeled_image regions') if verbose else None
     # rag = graph.RAG(regions_offset)
     rag = graph.rag_boundary(regions_offset, np.zeros(labeled_image.shape, dtype=float), connectivity=1)
     # remove any connections to background (the background in this case would be any nodes
     # or unreachable areas)
     rag.remove_node(0) if 0 in rag.nodes else None
 
-    print(f'    -- finding which region labels are neighbors') if VERBOSE else None
+    print(f'    -- finding which region labels are neighbors') if verbose else None
     rag_of_labeled_image = graph.rag_boundary(labeled_image, np.zeros(labeled_image.shape, dtype=float), connectivity=1)
     # rag_of_labeled_image = graph.RAG(labeled_image)
     # remove any connections to background (the background in this case would be any nodes
@@ -655,13 +655,13 @@ def calculate_labeled_image_metrics(
     region_map = dict(zip(regions[regions.astype(bool)], regions_offset[regions.astype(bool)]))
 
     # get the region properties of the labels in regions
-    print(f'    -- getting labeled_image region properties') if VERBOSE else None
+    print(f'    -- getting labeled_image region properties') if verbose else None
     extra_region_props = (intensity_std, intensity_median, intensity_pct25, intensity_pct75)
     region_props = measure.regionprops(regions, intensity_image=intensity_image, extra_properties=extra_region_props)
 
     # add the neighbors of each region in regions
-    print(f'    -- adding node label and edge label information to region labeled_image properties') if VERBOSE else None
-    print(f'    -- adding neighboring region information to labeled_image properties') if VERBOSE else None
+    print(f'    -- adding node label and edge label information to region labeled_image properties') if verbose else None
+    print(f'    -- adding neighboring region information to labeled_image properties') if verbose else None
     for region in region_props:
         # include the neighbor labels if the label is an edge label (but not if it happens to
         # a label originating from labeled_image)
@@ -675,7 +675,7 @@ def calculate_labeled_image_metrics(
     border_labels = np.unique(~segmentation.clear_border(labeled_image).astype(bool) * labeled_image)
 
     # create the output lists
-    print(f'    -- generating dictionary of lists output') if VERBOSE else None
+    print(f'    -- generating dictionary of lists output') if verbose else None
     region_label = []
     region_centroid = []
     region_area = []
@@ -747,7 +747,7 @@ def calculate_neighbor_node_metrics(
     nodes: Optional[np.ndarray] = None, 
     edges: Optional[np.ndarray] = None, 
     intensity_image: Optional[np.ndarray] = None, 
-    VERBOSE: bool = True
+    verbose: bool = True
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -806,17 +806,17 @@ def calculate_neighbor_node_metrics(
     node_props = measure.regionprops(nodes)
     node_labels, node_centroids = zip(*[(n.label, n.centroid) for n in node_props])
 
-    print(f'    -- getting home node and neighboring node centroids') if VERBOSE else None
+    print(f'    -- getting home node and neighboring node centroids') if verbose else None
     node_label_grid1, node_label_grid2 = np.meshgrid(node_labels, node_labels, indexing='ij')
     ## construct vectors from the node centroids
     vec_nodes = build_vector(*numpy_mesh_coords(node_centroids, node_centroids, indexing='ij'))
     node_labels_index_dict = dict(zip(node_labels, range(len(node_labels))))
-    print(f'    -- array shape = {vec_nodes.shape}') if VERBOSE else None
+    print(f'    -- array shape = {vec_nodes.shape}') if verbose else None
 
-    print(f'    -- calculating distances of lines between neighboring nodes') if VERBOSE else None
+    print(f'    -- calculating distances of lines between neighboring nodes') if verbose else None
     dists = np.linalg.norm(vec_nodes, axis=2)
 
-    print(f'    -- calculating angles of lines between neighboring nodes') if VERBOSE else None
+    print(f'    -- calculating angles of lines between neighboring nodes') if verbose else None
     ## determine angle of these lines relative to the horizontal
     ## (fluid flow direction is horizontal)
     ## construct a horizontal vector for reference
@@ -831,13 +831,13 @@ def calculate_neighbor_node_metrics(
     ## 90-180 to be between 0-90
     angles[angles > np.pi/2] = abs(angles[angles > np.pi/2] - np.pi)
 
-    print(f'    -- getting node neighbors') if VERBOSE else None
+    print(f'    -- getting node neighbors') if verbose else None
     ## get the node neighbors
     node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges)
     del node_neighbors_edgelabs # remove unused images to save on memory
 
     ## create a connectivity matrix mask
-    print(f'    -- creating node connectivity mask') if VERBOSE else None
+    print(f'    -- creating node connectivity mask') if verbose else None
     neighbors_mask = np.zeros(dists.shape, dtype=bool)
     ## node == i, neighbor == j
     node_neighbors_labels_list = [(node, neigh) for node, neighbors in node_neighbors_nodelabs for neigh in neighbors]
@@ -849,7 +849,7 @@ def calculate_neighbor_node_metrics(
     neighbors_mask_oneway = np.tril(neighbors_mask)
 
     ## filter the node-node distance and angle arrays so that only connected nodes are finite
-    print(f'    -- filtering out unconnected node pairs') if VERBOSE else None
+    print(f'    -- filtering out unconnected node pairs') if verbose else None
     home_nodes_filtered = node_label_grid1[neighbors_mask_oneway]
     neighbor_nodes_filtered = node_label_grid2[neighbors_mask_oneway]
     dists_filtered = dists[neighbors_mask_oneway]
