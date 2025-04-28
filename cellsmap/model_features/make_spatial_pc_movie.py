@@ -32,7 +32,7 @@ def make_overlay(filename, pc_movie, end_y, end_x):
     return pc_movie
 
 
-def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0, overlay: bool = False, n_pcs: Optional[int] = None, overrides: Dict[str, Any] = {}):
+def generate_spatial_pc_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0, n_pcs: Optional[int] = None, overrides: Dict[str, Any] = {}):
     """
     Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` tiff file for each position in the dataset.
     The movie is saved in the `models/{model_name}/spatial_pcs` directory.
