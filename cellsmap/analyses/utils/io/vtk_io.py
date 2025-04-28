@@ -66,6 +66,19 @@ def load_polydata(file_name) -> vtk.vtkPolyData:
     return polydata
 
 def convert_coordinates_from_pc_to_volume(pc_coord:np.ndarray, origin:float, grid_spacing:float) -> np.ndarray:
+    """
+    Convert coordinates from 3D PC space to 3D volume space (for saving as .vtk to view in ParaView)
+
+    Inputs:
+    - xpc: numpy array of 1 component of 3D coordinates in PC space
+        - i.e., this function is called for each of the 3 components of the coordinates
+    - grid_spacing: spacing between grid points in PC space
+    - origin: point in PC space that corresponds to the origin in volume space
+        (e.g., the minimum bound for the bins over that dimension in PC space)
+
+    Outputs:
+    - xvol: numpy array of coordinates in volume space
+    """
     vol_coord = (pc_coord - origin) / grid_spacing
     return vol_coord
 

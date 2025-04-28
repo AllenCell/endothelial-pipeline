@@ -49,7 +49,7 @@ bins, centers = rh.get_bins(Nbins, bin_limits=bounds)
 # time stepping for the flow field and later for the ODE solver
 dt = 5
 t_span = [0,1750] # 48 hours in frames (5 min/frame)
-mean_traj = {}
+traj_dict = {}
 
 # %% 
 # compute flow field via first Kramers-Moyal coefficient (drift)
@@ -79,7 +79,14 @@ for _, df_ in df.groupby("dataset_name"):
 
     traj = ddff.solve_ddff_ode(flow_field_dict, inits_mean, t_span) # solve IVP, get back trajectory
 
-    mean_traj[condition] = traj # trajectory to dictionary - saved out and used later to reconstruct crops
+    traj_dict[condition] = traj # trajectory to dictionary - saved out and used later to reconstruct crops
+
+    # convert trajectory to volume coordinates and save out for vtk viz
+    traj_vol = np.zeros_like(traj)
+    for j in range(3):
+        traj_vol[:,j] = vtk_io.convert_coordinates_from_pc_to_volume(traj[:,j], grid_spacing, bounds[j][0])
+    # save out trajectory as vtk file
+    vtk_io.save_points_as_polydata(coordinates=traj_vol, file_name=f"{vtk_savedir}{condition}_trajectory.vtk")
 
     # call main flow field viz function (makes and saves plots)
     ffv.flow_field_viz_main(flow_field_dict,df_,traj,fig_savedir)
@@ -89,6 +96,6 @@ for _, df_ in df.groupby("dataset_name"):
 
 # %%
 # save out dictionary of mean trajectories as npy file
-np.save(output_savedir+"mean_traj", mean_traj, allow_pickle=True)
+np.save(output_savedir+"traj_dict",traj_dict, allow_pickle=True)
 
 # %%

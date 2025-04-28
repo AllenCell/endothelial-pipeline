@@ -41,7 +41,9 @@ def compute_extrapolated_flow_field(drift_kmcs:np.ndarray,
     - verbose: (optional, default True): if true, print statements
 
     Outputs:
-    - 
+    - flow_field_dict: dictionary with the following keys:
+        - "velocities": tuple of 3D arrays (dU, dV, dQ) with the velocities in each dimension
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
     '''
 
     # generate a mesh grid of points in the state space
@@ -96,6 +98,16 @@ def compute_extrapolated_flow_field(drift_kmcs:np.ndarray,
 def get_callable_flow_field(flow_field_dict:dict) -> Callable:
     """
     Get a callable flow field via linear interpolation on computed values of f on the grid.
+
+    Inputs:
+    - flow_field_dict: dictionary with the following keys:
+        - "velocities": tuple of 3D arrays (dU, dV, dQ) with the velocities in each dimension
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    
+    Outputs:
+    - my_flow: callable function that takes in a time and a point in state space and returns the flow field at that point
+        - value of the flow field at the given point is interpolated from the given values of dU, dV, dQ on the fixed input grid
+            (on which the flow field was numerically estimated from the data)
     """
 
     # get the interpolator for f_KM
@@ -114,13 +126,39 @@ def get_callable_flow_field(flow_field_dict:dict) -> Callable:
     
     return my_flow
 
-def solve_ddff_ode(flow_field_dict:dict,inits:np.ndarray,t_span:list[float],num_T:int=1750) -> np.ndarray:
+def solve_ddff_ode(flow_field_dict:dict,init:np.ndarray,t_span:list[float],num_T:int=1750) -> np.ndarray:
+    """
+    Solve the ODE dx/dt = f(x) using scipy.integrate.solve_ivp.
+
+    Inputs:
+    - flow_field_dict: dictionary with the following keys:
+        - "velocities": tuple of 3D arrays (dU, dV, dQ) with the velocities in each dimension
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - init: initial condition for the trajectory (shape (3,))
+    - t_span: time span for the ODE solver (list of two floats)
+    - num_T: number of time points to evaluate the solution (default is 1750)
+
+    Outputs:
+    - sol: solution of the ODE with the given initial condition (shape (num_T, 3))
+
+    """
     my_flow = get_callable_flow_field(flow_field_dict) # turn flow field into callable function (works via interpolation)
     t_eval = np.linspace(t_span[0],t_span[1],num_T) # timepoints at which to evaluate the solution
-    sol = solve_ivp(my_flow, t_span, inits, t_eval=t_eval) # solve the IVP
+    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval) # solve the IVP
     return sol.y.T # get trajectory, shape (num_T, 3) (3D trajectory in state space)
 
 def interpolate_on_curve(traj:np.ndarray,n_points:int=5) -> np.ndarray:
+    '''
+    Function to interpolate a trajectory in ND space to get n_points evenly spaced points along the trajectory.
+
+    Inputs:
+    - traj: trajectory in ND space (shape (num_points, num_dimensions))
+    - n_points: number of points to interpolate to (default is 5)
+
+    Outputs:
+    - interpolated_points: interpolated points along the trajectory (shape (n_points, num_dimensions)),
+        equally spaced by arc length
+    '''
     ndim = traj.shape[1] # number of dimensions
 
     # compute cumulative distance from the first point along the trajectory
@@ -137,12 +175,11 @@ def interpolate_on_curve(traj:np.ndarray,n_points:int=5) -> np.ndarray:
     
     return interpolated_points 
 
-def convert_coordinates_from_pc_to_volume(self, xpc:np.array, origin:float) -> np.array:
-    xvol = (xpc - origin) / self._grid_spacing
-    return xvol
-
-def convert_coordinates_from_volume_to_pc(self, xvol:np.array, origin:float) -> np.array:
-    xpc = origin + xvol*self._grid_spacing
+def convert_coordinates_from_volume_to_pc(xvol:np.array, grid_spacing:float, origin:float) -> np.array:
+    '''
+    Convert coordinates from 3D volume space to 3D PC space (for saving as .vtk to view in ParaView)
+    '''
+    xpc = origin + xvol*grid_spacing
     return xpc
 
 

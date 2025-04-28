@@ -8,7 +8,9 @@ from bioio.writers import OmeTiffWriter
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from cellsmap.model_features.generate_image import generate_from_coords
+from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
 
+# %%
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_field_3d/figs"
 workflow_crop_folder = "flow_field_3d/figs/crops"
@@ -29,7 +31,7 @@ reducer = manifest_io.load_pca_model(output_savedir)
 # Model we want to use to generate reconstructed crops
 model_name = "diffae_04_10"
 
-mean_traj = np.load(output_savedir+"mean_traj.npy",allow_pickle=True).item()
+mean_traj = np.load(output_savedir+"traj_dict.npy",allow_pickle=True).item()
 # %%
 # Reconstruction of crops from latent space coordinates via DiffAE model
 # To note: you should run this script on a machine with a GPU, and you must
@@ -40,26 +42,17 @@ for condition in df.description.unique():
 
     # get full mean trajectory
     coords = mean_traj[condition]
-    distances = np.linalg.norm(np.diff(coords, axis=0), axis=1)
-
-    # compute cumulative distance from the first point along the trajectory
-    arc_length = np.cumsum(np.concatenate(([0],distances)))
-
-    # interpolate to get evenly spaced points at intervals of length 0.05
-    # n_points = int(np.ceil(arc_length[-1] / 0.05))
-    n_points = 5 # number of points to interpolate
-    arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
-    interpolated_points = np.zeros((n_points, 3))
-    for i in range(3):
-        interpolated_points[:, i] = np.interp(arc_length_new, arc_length, coords[:, i])
     
+    # interpolate points evenly spaced along the trajectory
+    interpolated_points = ddff.interpolate_on_curve(coords)
+
     # save interpolated points
     # reconstruct latent space coordinates from PC coordinates
     latent = reducer.inverse_transform(interpolated_points)
 
     # save out latent coordinates of mean trajectory
     df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
-    df.to_csv(csv_savedir+f"{condition}_interpolated_mean_trajectory.csv")
+    df.to_csv(csv_savedir+f"{condition}_interpolated_trajectory.csv")
 
     num_coords = latent.shape[0]
     # turn coordinate array into list of lists
@@ -71,7 +64,7 @@ for condition in df.description.unique():
     walk_img = generate_from_coords(model_name,latent_coords) # output is a numpy array: (# coords x 128 x 128), greyscale image
 
     # save out stack of images as tif
-    tif_name = f"{condition}_interpolated_mean_trajectory_reconstructed_crops.tif"
+    tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
     OmeTiffWriter.save(walk_img, crop_savedir+tif_name, overwrite=True)
 
 
