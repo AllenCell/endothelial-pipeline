@@ -8,7 +8,8 @@ from cellsmap.analyses.utils.io import vtk_io
 
 def set_3D_bounds_from_data(x: np.array, y: np.array, z: np.array, excluded_fraction: float=0.1) -> list[np.ndarray]:
     """
-    Set the bounds for the 3D flow field based on the data.
+    Set the bounds for the 3D flow field based on the data (leaving out a fraction of the data 
+    based on the excluded_fraction parameter).
     """
     bounds = []
     for var in [x, y, z]:
@@ -17,6 +18,7 @@ def set_3D_bounds_from_data(x: np.array, y: np.array, z: np.array, excluded_frac
 
 def compute_extrapolated_flow_field(drift_kmcs:np.ndarray, 
                                     grid_centers:list[np.ndarray], 
+                                    interpolator:str="nearest",
                                     verbose:bool=True) -> dict:
     '''
     Get flow field dx/dt = f(x) via estimates of drift (first Kramers-Moyal coefficient)
@@ -48,10 +50,17 @@ def compute_extrapolated_flow_field(drift_kmcs:np.ndarray,
     valid_values_V = dV[valid_mask]  # Get the corresponding values for dV
     valid_values_Q = dQ[valid_mask]  # Get the corresponding values for dQ
 
-    # Create nearest neighbor interpolators for dU, dV, and dQ
-    interpolator_U = spinterp.NearestNDInterpolator(valid_points, valid_values_U)
-    interpolator_V = spinterp.NearestNDInterpolator(valid_points, valid_values_V)
-    interpolator_Q = spinterp.NearestNDInterpolator(valid_points, valid_values_Q)
+    # Create interpolators for dU, dV, and dQ
+    if interpolator == "nearest": # nearest neighbor
+        interpolator_U = spinterp.NearestNDInterpolator(valid_points, valid_values_U)
+        interpolator_V = spinterp.NearestNDInterpolator(valid_points, valid_values_V)
+        interpolator_Q = spinterp.NearestNDInterpolator(valid_points, valid_values_Q)
+    elif interpolator == "linear": # linear interpolation
+        interpolator_U = spinterp.LinearNDInterpolator(valid_points, valid_values_U)
+        interpolator_V = spinterp.LinearNDInterpolator(valid_points, valid_values_V)
+        interpolator_Q = spinterp.LinearNDInterpolator(valid_points, valid_values_Q)
+    else:
+        raise ValueError(f"Interpolator {interpolator} not recognized. Use 'nearest' or 'linear'.")
 
     # Find the indices of all points (including NaN points)
     all_points = np.array(np.indices(dU.shape)).reshape(len(dU.shape), -1).T

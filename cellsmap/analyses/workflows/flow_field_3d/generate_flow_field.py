@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 
 from cellsmap.util import manifest_io
@@ -37,7 +36,7 @@ kernel_params = {"bandwidth":0.1,"kernel":"gaussian"}
 feat_cols = [f"PC{i+1}" for i in range(3)]
 
 # get state space bounds and grid resolution for estimating flow field
-excluded_fraction = 0.05
+excluded_fraction = 0.00
 bounds = ddff.set_3D_bounds_from_data(df.PC1, df.PC2, df.PC3,
                                       excluded_fraction=excluded_fraction) 
 grid_spacing = 0.05
@@ -57,6 +56,8 @@ mean_traj = {}
 # compute flow field via first Kramers-Moyal coefficient (drift)
 
 for _, df_ in df.groupby("dataset_name"):
+    if df_["description"].values[0] == "48hr_No":
+        continue
     # get dataset name and condition
     ds_name = df_["dataset_name"].values[0]
     condition = df_["description"].values[0]
@@ -68,11 +69,10 @@ for _, df_ in df.groupby("dataset_name"):
     f_KM, _ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins=bins,dt=dt,method="kernel",kernel_params=kernel_params)
     
     # compute interpolated flow field
-    flow_field_dict = ddff.compute_extrapolated_flow_field(f_KM, centers)
+    flow_field_dict = ddff.compute_extrapolated_flow_field(f_KM, centers,interpolator="nearest")
 
     # plot 2D slices
-    fig_ax = flow_field_viz.plot_flow_field_slices(flow_field_dict,df_,fig_savedir,norm=False)
-
+    _ = flow_field_viz.plot_flow_field_slices(flow_field_dict,df_,fig_savedir)
     # get and save vtk image data
     imgdata = vtk_io.get_vtk_image_data_from_flow_field(flow_field_dict)
     vtk_io.save_vtk_image_data(imgdata, output_path=output_savedir+f"flow_field_{condition}.vtk")
@@ -86,9 +86,6 @@ for _, df_ in df.groupby("dataset_name"):
 
     # take mean at time 0 as initial condition for ODE solver
     inits_mean = data_mean_traj[0]
-    
-    # free up memory
-    del df_
 
     # solve ODE dx/dt = f(x) using scipy's solve_ivp
     # using inits_mean as initial condition
@@ -96,13 +93,35 @@ for _, df_ in df.groupby("dataset_name"):
     traj = sol.y.T
     mean_traj[condition] = traj # add to dictionary
 
-    fig, ax = flow_field_viz.compare_mean_to_traj(data_mean_traj,traj)
-    fig.suptitle(condition)
+    # plot last point of trajectory over flow field
+    fig, ax = flow_field_viz.plot_flow_field_slices(flow_field_dict,df_,fig_savedir,
+                                                    scatter=False,save=False,stream=False)
     for j, ax_ in enumerate(ax): # PC1 v s PC2, PC1 vs PC3
-        ax_.set_xlim(centers[0][0], centers[0][-1])
-        ax_.set_ylim(centers[j+1][0], centers[j+1][-1])
+        ax_.scatter(traj[-1,0], traj[-1,j+1], s=200, color="black")
     plt.show()
-    vb.save_plot(fig, fig_savedir+f"{condition}_mean_traj.png", dpi=300)
+    vb.save_plot(fig, fig_savedir+f"flow_field_{condition}_fp.png", dpi=300)
+
+    # plot trajectory over flow field
+    fig, ax = flow_field_viz.plot_flow_field_slices(flow_field_dict,df_,fig_savedir,
+                                                    scatter=False,save=False,stream=False)
+    for j, ax_ in enumerate(ax): # PC1 v s PC2, PC1 vs PC3
+        ax_.scatter(traj[:,0], traj[:,j+1], s=30, color="navy")
+    plt.show()
+    vb.save_plot(fig, fig_savedir+f"flow_field_{condition}_traj.png", dpi=300)
+
+    # fig, ax = flow_field_viz.compare_mean_to_traj(data_mean_traj,traj)
+    # fig.suptitle(f"Mean trajectory comparison ({condition})")
+    # tight_bounds = ddff.set_3D_bounds_from_data(df.PC1, df.PC2, df.PC3,
+    #                                             excluded_fraction=0.25) 
+    # for j, ax_ in enumerate(ax): # PC1 v s PC2, PC1 vs PC3
+    #     ax_.set_xlim(tight_bounds[0][0], tight_bounds[0][-1])
+    #     ax_.set_ylim(tight_bounds[j+1][0], tight_bounds[j+1][-1])
+    # plt.tight_layout()
+    # plt.show()
+    # vb.save_plot(fig, fig_savedir+f"{condition}_mean_traj.png", dpi=300)
+
+    # free up memory
+    del df_
 
 # %%
 # save out dictionary of mean trajectories as npy file
