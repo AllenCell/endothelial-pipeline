@@ -41,6 +41,9 @@ def get_available_datasets(verbose: bool = True) -> List[str]:
             print(dataset['name'])
     return datasets
 
+def get_reference_datasets() -> List[str]:
+    return [name for name in get_available_datasets(verbose=False) if get_dataset_info(name).get('is_reference', False)]
+
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     config = load_config()
     for dataset in config:
