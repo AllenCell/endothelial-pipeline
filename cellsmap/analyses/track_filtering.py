@@ -132,22 +132,14 @@ def enrich_tracking_dataframe(tracking_data: pd.DataFrame):
     """
     This function processes the tracking data in the following ways:
     - converts the orientation to be relative to the flow (ranges from 0 to pi/2 representing parallel to perpendicular, respectively)
-    - gets the velocity of the centroid of each labeled region
     - adds a column for the duration of each track
-    - adds a column for the time interval in minutes for each dataset
-    - adds a column for the time in minutes
-    - adds a column for the time of flow switch for each dataset
     """
-    tracking_data['orientation'] = tracking_data['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
-    tracking_data = get_centroid_velocity(tracking_data)
+    tracking_data['orientation_rel_to_horizontal'] = tracking_data['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
+    # tracking_data = get_centroid_velocity(tracking_data)
     tracking_data['track_duration'] = tracking_data.groupby('track_id')['track_id'].transform('count')
-    t_res_map = {dataset_name: get_time_interval_in_minutes(dataset_name) for dataset_name in tracking_data['dataset_name'].unique()}
-    tracking_data['T interval (minutes)'] = tracking_data['dataset_name'].transform(lambda x: t_res_map[x])
-    tracking_data['T (minutes)'] = tracking_data['T'] * tracking_data['T interval (minutes)']
-    # TODO: the time at flow switch is not currently accurate / complete
-    # will fix later
-    # t_flow_switch = {dataset_name: get_flow_change_frame(dataset_name)}
-    # tracking_data['T at flow switch'] = tracking_data['dataset_name'].transform(lambda x: t_flow_switch[x])
+    # t_res_map = {dataset_name: get_time_interval_in_minutes(dataset_name) for dataset_name in tracking_data['dataset_name'].unique()}
+    # tracking_data['T interval (minutes)'] = tracking_data['dataset_name'].transform(lambda x: t_res_map[x])
+    # tracking_data['T (minutes)'] = tracking_data['T'] * tracking_data['T interval (minutes)']
     return tracking_data
 
 def main(dataset_name=None, save_output=True, verbose=False):
