@@ -57,41 +57,11 @@ def calculate_derived_data(big_table: pd.DataFrame
                            ) -> pd.DataFrame:
     """
     """
-    # add column for the number of tracks at a given
-    # timepoint per dataset per position
-    print('Adding number of tracks for each timepoint...')
-    big_table['num_tracks_at_T'] = big_table.groupby(
-        ['dataset_name',
-         'position',
-         'T'])['track_id'].transform(lambda x: x.nunique())
-
-    # add column for orientation in degrees of the 
-    # ellipse fitted to each segmentation in degrees
-    print('Converting orientation to degrees...')
-    big_table['orientation_deg'] = np.rad2deg(big_table['orientation'])
-
-    # add column for nematic order and aspect ratio
-    # to compare to Saurabhs modeling results
-    print('Calculating nematic order and aspect ratio...')
-    big_table['nematic_order'] = get_nematic_order(big_table['orientation'])
-    big_table['aspect_ratio'] = get_aspect_ratio(big_table['eccentricity'])
-
-    # recalculate the centroid speeds of each track
-    # after filtering
-    print('Calculating centroid velocities...')
-    big_table[['centroid_y', 'centroid_x']] = big_table['centroid'].transform(lambda c: stringified_floatlist_to_floatlist(c)).tolist()
-    big_table[['centroid_dx_dt', 'centroid_dy_dt']] = big_table.groupby(['dataset_name', 'position', 'track_id'], as_index=True)[['centroid_x', 'centroid_y', 'image_index']].apply(lambda df: pd.DataFrame(columns=['centroid_dx_dt', 'centroid_dy_dt'], data=zip(*get_centroid_velocity(df['centroid_x'].values, df['centroid_y'].values, df['image_index'].values)), index=df.index)).droplevel([0,1,2])
-
-    print('Calculating centroid velocity magnitude and angle...')
-    big_table['centroid_velocity_magnitude'] = np.linalg.norm([big_table['centroid_dx_dt'], big_table['centroid_dy_dt']], axis=0)
-    big_table['centroid_velocity_angle'] = np.arctan2(big_table['centroid_dy_dt'], big_table['centroid_dx_dt'])
-    big_table['centroid_velocity_angle_deg'] = np.rad2deg(big_table['centroid_velocity_angle'])
-    big_table['centroid_velocity_angle_rel_to_horizontal'] = big_table['centroid_velocity_angle'].transform(lambda x: make_orientation_relative_to_flow(x))
-    big_table['centroid_velocity_angle_deg_rel_to_horizontal'] = np.rad2deg(big_table['centroid_velocity_angle_rel_to_horizontal'])
+    um_per_px_map = {dataset_name: get_dataset_info(dataset_name)['pixel_size_xy_in_um'] for dataset_name in big_table['dataset_name'].unique()}
+    time_res_map = {dataset_name: get_dataset_info(dataset_name)['time_interval_in_minutes'] for dataset_name in big_table['dataset_name'].unique()}
 
     # dimensionalize the time column
     print('Adding time intervals per timepoint...')
-    time_res_map = {dataset_name: get_dataset_info(dataset_name)['time_interval_in_minutes'] for dataset_name in big_table['dataset_name'].unique()}
     big_table['time_resolution_minutes'] = big_table['dataset_name'].transform(lambda dataset_name: time_res_map[dataset_name])
     print('Calculating time in minutes and hours...')
     big_table['time_minutes'] = big_table['image_index'] * big_table['time_resolution_minutes']
@@ -108,6 +78,42 @@ def calculate_derived_data(big_table: pd.DataFrame
     # will not have this problem, and therefore using
     # the image index will be consistent across both
     # versions of the data)
+
+    # add column for the number of tracks at a given
+    # timepoint per dataset per position
+    print('Adding number of tracks for each timepoint...')
+    big_table['num_tracks_at_T'] = big_table.groupby(
+        ['dataset_name',
+         'position',
+         'T'])['track_id'].transform(lambda x: x.nunique())
+
+    # add column for orientation in degrees of the 
+    # ellipse fitted to each segmentation in degrees
+    print('Converting orientation to degrees...')
+    big_table['orientation_deg'] = np.rad2deg(big_table['orientation'])
+    big_table['dorientation_deg_dt'] = big_table['orientation_deg'].diff() / big_table['time_minutes'].diff()
+
+    # add column for nematic order and aspect ratio
+    # to compare to Saurabhs modeling results
+    print('Calculating nematic order and aspect ratio...')
+    big_table['nematic_order'] = get_nematic_order(big_table['orientation'])
+    big_table['aspect_ratio'] = get_aspect_ratio(big_table['eccentricity'])
+
+    # recalculate the centroid speeds of each track
+    # after filtering
+    print('Calculating centroid velocities...')
+    big_table['pixel_size_xy_in_um'] = big_table['dataset_name'].transform(lambda dataset_name: um_per_px_map[dataset_name])
+    big_table[['centroid_y', 'centroid_x']] = big_table['centroid'].transform(lambda c: stringified_floatlist_to_floatlist(c)).tolist()
+    big_table['centroid_x_um'] = big_table['centroid_x'] * big_table['pixel_size_xy_in_um']
+    big_table['centroid_y_um'] = big_table['centroid_y'] * big_table['pixel_size_xy_in_um']
+    big_table[['centroid_dx_dt', 'centroid_dy_dt']] = big_table.groupby(['dataset_name', 'position', 'track_id'], as_index=True)[['centroid_x_um', 'centroid_y_um', 'time_minutes']].apply(lambda df: pd.DataFrame(columns=['centroid_dx_dt', 'centroid_dy_dt'], data=zip(*get_centroid_velocity(df['centroid_x_um'].values, df['centroid_y_um'].values, df['time_minutes'].values)), index=df.index)).droplevel([0,1,2])
+
+    print('Calculating centroid velocity magnitude and angle...')
+    big_table['centroid_velocity_magnitude'] = np.linalg.norm([big_table['centroid_dx_dt'], big_table['centroid_dy_dt']], axis=0)
+    big_table['centroid_velocity_angle'] = np.arctan2(big_table['centroid_dy_dt'], big_table['centroid_dx_dt'])
+    big_table['centroid_velocity_angle_deg'] = np.rad2deg(big_table['centroid_velocity_angle'])
+    big_table['centroid_velocity_angle_rel_to_horizontal'] = big_table['centroid_velocity_angle'].transform(lambda x: make_orientation_relative_to_flow(x))
+    big_table['centroid_velocity_angle_deg_rel_to_horizontal'] = np.rad2deg(big_table['centroid_velocity_angle_rel_to_horizontal'])
 
     # add a column for the number of neighbors
     # touching each region that is being tracked
@@ -130,11 +136,12 @@ def get_aspect_ratio(eccentricity):
     # 1**2 / aspect_ratio**2 = 1 - eccentricity**2
     # 1 / (1 - eccentricity**2) = aspect_ratio**2
     # aspect_ratio = sqrt(1 / (1 - eccentricity**2))
+    aspect_ratio = np.sqrt(1 / (1 - eccentricity**2))
 
     # Saurabh: Using the length of the major
     # axis (a) + the aspect ratio (r) you
     # can get the eccentricity as sqrt(1 - r^2)
-    aspect_ratio = np.sqrt(1 - eccentricity**2)
+    # aspect_ratio = np.sqrt(1 - eccentricity**2)
     # NOTE: my derivation differs from what Saurabh
     # told me - double check with him if the aspect
     # ratio that he is using is defined as the
@@ -208,7 +215,6 @@ def plot_per_position(df_group, x_key, y_key, filepath_out, x_label=None, y_labe
 
 out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_dir.mkdir(parents=True, exist_ok=True)
-# save_figs = True
 
 # dataset_name = '20250227_40X'
 # dataset_name = '20241016_20X'
@@ -279,29 +285,90 @@ big_table = filter_big_table(big_table, min_num_points_per_track=20)
 print('Calculating metrics from existing measurements...')
 big_table = calculate_derived_data(big_table)
 
+# big_table.dropna(inplace=True)
 
 # TODO parallelize the graph generation here
 # make basic plots for each dataset
 for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
-    out_dir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/{dataset_name}/P{position}'
-    out_dir_plots.mkdir(parents=True, exist_ok=True)
+    out_dir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/'
+    vel_mag_mean = df_group['centroid_velocity_magnitude'].mean()
+    vel_mag_std = df_group['centroid_velocity_magnitude'].std()
     # things_to_plot are tuples of (x_key, y_key, x_label, y_label, y_lim, filename_out)
     things_to_plot = [('time_hours', 'orientation_deg', 'Time (hours)', 'Orientation (deg)', (0, 90), f'{dataset_name}_P{position}_orientations.png'),
                       ('time_hours', 'eccentricity', 'Time (hours)', 'Eccentricity', (0, 1), f'{dataset_name}_P{position}_eccentricities.png'),
                       ('time_hours', 'nematic_order', 'Time (hours)', 'Nematic Order', (None, None), f'{dataset_name}_P{position}_nematic_order.png'),
                       ('time_hours', 'aspect_ratio', 'Time (hours)', 'Aspect Ratio', (None, None), f'{dataset_name}_P{position}_aspect_ratio.png'),
-                      ('time_hours', 'area', 'Time (hours)', 'Area (px**2)', (None, None), f'{dataset_name}_P{position}_region_areas.png'),
-                      ('time_hours', 'number_of_neighbors', 'Time (hours)', 'Number of Neighbors', (None, None), f'{dataset_name}_P{position}_num_neighbors.png'),
-                      ('time_hours', 'num_tracks_at_T', 'Time (hours)', 'Number of Cell Tracks', (None, None), f'{dataset_name}_P{position}_num_tracks.png'),
+                      ('time_hours', 'area', 'Time (hours)', 'Area (px**2)', (0, None), f'{dataset_name}_P{position}_region_areas.png'),
+                      ('time_hours', 'number_of_neighbors', 'Time (hours)', 'Number of Neighbors', (0, None), f'{dataset_name}_P{position}_num_neighbors.png'),
+                      ('time_hours', 'num_tracks_at_T', 'Time (hours)', 'Number of Cell Tracks', (0, None), f'{dataset_name}_P{position}_num_tracks.png'),
                       ('time_hours', 'centroid_velocity_angle_deg_rel_to_horizontal', 'Time (hours)', 'Centroid Velocity Orientation (deg)', (0, 90), f'{dataset_name}_P{position}_centroid_velocity_angles.png'),
-                      ('time_hours', 'centroid_velocity_magnitude', 'Time (hours)', 'Centroid Velocity Magnitude (px)', (None, None), f'{dataset_name}_P{position}_centroid_velocity_magnitudes.png'),
+                      ('time_hours', 'centroid_velocity_magnitude', 'Time (hours)', 'Centroid Velocity Magnitude (px/frame)', (0, vel_mag_mean + 2*vel_mag_std), f'{dataset_name}_P{position}_centroid_velocity_magnitudes.png'),
                       ]
     for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
+        out_subdir_plots = out_dir_plots / f'{y_key}/{dataset_name}'
+        out_subdir_plots.mkdir(parents=True, exist_ok=True)
         plot_per_position(df_group,
                           x_key=x_key,
                           y_key=y_key,
-                          filepath_out=out_dir_plots / filename_out,
+                          filepath_out=out_subdir_plots / filename_out,
                           x_label=x_label,
                           y_label=y_label,
                           y_lims=y_lims,
                           )
+
+t_range = range(0, 1000, 36)
+for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+    out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/violin/{dataset_name}'
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(18, 12))
+    sns.violinplot(data=df_group.query('image_index in @t_range'),
+                   x='time_hours',
+                   y='orientation_deg',
+                   ax=ax)
+    ax.set_title(f'{dataset_name} P{position}')
+    ax.set_xlabel('Time (hours)')
+    ax.set_ylabel('Orientation (deg)')
+    plt.tight_layout()
+    fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_violin.png', bbox_inches='tight')
+    plt.close(fig)
+
+
+# plot orientation vs change in orientation over time
+for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+    out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/orientation_phase/{dataset_name}'
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=df_group,
+                   x='orientation_deg',
+                   y='dorientation_deg_dt',
+                   hue='track_id',
+                   alpha=0.5,
+                   legend=False,
+                   ax=ax)
+    ax.set_title(f'{dataset_name} P{position}')
+    ax.set_xlabel('Orientation (deg)')
+    ax.set_ylabel('Orientation Change (deg/min)')
+    plt.tight_layout()
+    fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_phase.png', bbox_inches='tight')
+    plt.close(fig)
+
+# plot orientation vs time with track_id as hue
+for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+    out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/orientations_by_track/{dataset_name}'
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=df_group,
+                   x='time_hours',
+                   y='orientation_deg',
+                   hue='track_id',
+                   alpha=0.5,
+                   marker='.',
+                   lw=0,
+                   legend=False,
+                   ax=ax)
+    ax.set_title(f'{dataset_name} P{position}')
+    ax.set_xlabel('Time (hours)')
+    ax.set_ylabel('Orientation (deg)')
+    plt.tight_layout()
+    fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_by_track.png', bbox_inches='tight')
+    plt.close(fig)
