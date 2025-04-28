@@ -15,7 +15,7 @@ import re
 
 # model methods
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
-    if config_type not in ['data', 'model','dynamics', 'feature']:
+    if config_type not in ['data', 'model','dynamics']:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f'{config_type}_config.yaml'
@@ -24,7 +24,7 @@ def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     return config_data
 
 def write_config(config: List[Dict[str, Any]], config_type: str = 'data') -> None:
-    if config_type not in ['data', 'model', 'dynamics', 'feature']:
+    if config_type not in ['data', 'model', 'dynamics']:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f'{config_type}_config.yaml'
