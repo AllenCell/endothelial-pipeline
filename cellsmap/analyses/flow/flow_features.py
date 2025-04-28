@@ -1,17 +1,26 @@
 # %% Import libraries
 from pathlib import Path
 from cellsmap.analyses.flow import flow_calculator
+from cellsmap.util.dataset_io import load_config, load_dataset_position_as_dask_array
+from cellsmap.util.set_output import get_output_path
+from cellsmap.util.general_image_preprocessing import get_dim_map
 import concurrent
 from pandas import DataFrame
 from matplotlib.gridspec import GridSpec
 from matplotlib.projections.polar import PolarAxes
 
 # %% Make list of datasets to analzye
-dataset_list = ['20240305_T01_001', '20240917_20X_48hr', '20241016_20X']
+dataset_name_list = [config_data['name']
+                     for config_data in load_config(config_type='data')
+                     if (config_data['microscope'] == '3i')]
+position = 0 # NOTE PLACEHOLDER. WORKFLOW SHOULD BECOME MAIN() WITH position AS AN ARGUMENT
+dataset_name_list = [dataset_name_list[0]] # this is just a test
+
 debug = True
 ncores = 1#30
 delta_t = 1
-out_dir = Path('../../').resolve() / 'results' / Path(__file__).stem
+level = 1
+out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_path_list = []
 
 # %%
@@ -19,27 +28,28 @@ if __name__ == '__main__':
     # run using multiple cores
     if ncores > 1:
         with concurrent.futures.ProcessPoolExecutor(ncores) as executor:
-            for dataset_name in dataset_list:
-                out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t, executor, ncores, debug)
+            for dataset_name in dataset_name_list:
+                out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t, level, executor, ncores, debug)
                 out_path_list.append(out_path)
 
     else:
-        for dataset_name in dataset_list:
+        for dataset_name in dataset_name_list:
             no_executor = None
-            out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, delta_t, no_executor, ncores, debug)
+            out_path = flow_calculator.compute_and_save_flow_field(out_dir, dataset_name, position, delta_t, level, no_executor, ncores, debug)
             out_path_list.append(out_path)
 
 # %% Save the locations of the outputs
-DataFrame({'dataset_name':dataset_list, 'vector_field_image_paths': out_path_list}).to_csv(out_dir / 'vector_field_image_paths.csv', index=False)
+DataFrame({'dataset_name':dataset_name_list, 'vector_field_image_paths': out_path_list}).to_csv(out_dir / 'vector_field_image_paths.csv', index=False)
 
 
 # %% Example of usage:
 from bioio import BioImage
-from cellsmap.util.dataset_io import load_dataset
 import numpy as np
 from skimage.exposure import rescale_intensity
 import matplotlib.pyplot as plt
 
+dim_order = 'TCZYX'
+dim_map = get_dim_map(dim_order)
 # %%
 # Get the paths to the vector field images
 dataset_list = ['20241016_20X']
@@ -93,9 +103,10 @@ for dataset_name in dataset_list:
 
     # Show the image crops from the random roi regions vs the same
     # image at the next timepoint too
-    img = load_dataset(dataset_name, channels=['CDH5'], level=2)
+    img = load_dataset_position_as_dask_array(dataset_name, position, channels=['EGFP'], level=level)
+    img = img.max(axis=dim_map['Z'], keepdims=False)
     rois_future = [(slice(r[0].start+delta_t, r[0].stop+delta_t), *r[1:]) for r in rois]
-    crops = [np.stack([img[rois[i]], img[rois_future[i]], np.zeros(img[rois[i]].shape)], axis=-1) for i in range(len(rois))]
+    crops = [np.stack([img[rois[i]], img[rois_future[i]], np.zeros_like(img[rois[i]])], axis=-1) for i in range(len(rois))]
     crops_in_memory = [c.compute() for c in crops]
     crops_in_memory = [rescale_intensity(c, out_range=np.uint8) for c in crops_in_memory]
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
@@ -111,7 +122,8 @@ for dataset_name in dataset_list:
     vfield_crops = [c.compute() for c in vfield_crops]
     vx_crops, vy_crops = zip(*[(c[0, chan_map['vx'], ...].squeeze(), c[0, chan_map['vy'], ...].squeeze()) for c in vfield_crops])
 
-    img = load_dataset(dataset_name, channels=['CDH5'], level=2)
+    img = load_dataset_position_as_dask_array(dataset_name, position, channels=['EGFP'], level=level)
+    img = img.max(axis=dim_map['Z'], keepdims=False)
     img_crops = [img[r] for r in rois]
     img_crops = [c.compute().squeeze() for c in img_crops]
 
@@ -206,7 +218,8 @@ for i, quad_mean in enumerate(quadrant_means):
 
 # %% 5. Plot two PCs and the example crops from each of the 4 quadrants
 # load the cdh5 channel of the dataset in the crop region
-img = load_dataset(dataset_name, channels=['CDH5'], level=2)
+img = load_dataset_position_as_dask_array(dataset_name, position, channels=['EGFP'], level=level)
+img = img.max(axis=dim_map['Z'], keepdims=False)
 
 # Use the loaded raw image and vector information and the features and pcs dataframe to create
 # the validation plots
@@ -236,7 +249,7 @@ synth_img = flow_calculator.generate_synthetic_data()
 flow_graphs, vx, vy, mean_angle_deg, mean_mag = flow_calculator.compute_synthetic_image_flow_vectors_and_summarize(synth_img, delta_t=1)
 
 # %% Get flow fields from first timepoint of synthetic data
-flow_graphs = flow_calculator.get_trimmed_vector_field_map(synth_img[0], vx, vy, resolution=10, display=True, return_map=True)
+flow_graphs = flow_calculator.get_trimmed_vector_field_map(synth_img[0], vx, vy, resolution=10, display=False, return_map=True)
 
 
 # %% Plot the synthetic data and the flow field
