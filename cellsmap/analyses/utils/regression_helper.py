@@ -4,12 +4,7 @@ import pandas as pd
 from typing import Tuple
 
 import cellsmap.util.dataset_io as dio
-
-# suppress RuntimeWarnings that come up - happens when taking the mean of an empty array
-# occurs in KM_avg_ND function for bins with no data points
-# probably a better way to handle this, but for now, suppress warnings
-import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning) 
+import cellsmap.analyses.utils.numerics.kramers_moyal as km
 
 def get_bins(Nbins:list,data:pd.DataFrame|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
     '''
@@ -35,10 +30,9 @@ def get_bins(Nbins:list,data:pd.DataFrame|None=None,bin_limits:list|None=None) -
         bins = []
         centers = []
         for i in range(ndim):
-            my_min = min([min(traj[:,i]) for traj in data])
-            my_max = max([max(traj[:,i]) for traj in data])
-            bin_min = 0.5*(np.floor(my_min)+np.round(my_min,1))
-            bin_max = 0.5*(np.ceil(my_max)+np.round(my_max,1))
+            traj_min = min([traj[:,i].min() for traj in data])
+            traj_max = max([traj[:,i].max() for traj in data])
+            bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
             my_bins = np.linspace(bin_min, bin_max, Nbins[i]+1)
             bins.append(my_bins)
             centers.append(0.5*(my_bins[1:]+my_bins[:-1]))
@@ -151,10 +145,12 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
 
     return X_list, dX_list, dT_list
 
-
-def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
-    '''
-    Kramers-Moyal average drift and diffusion estimates for trajectories in N-dimensional space.
+def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list:list[np.ndarray], 
+                      bins:list[np.ndarray], dt:float, method:str='kernel',kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray]:
+    ''' 
+    Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
+    Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
+    These functions are defined in cellsmap.analyses.utils.numerics.kramers_moyal.py.
 
     Inputs:
     - X_list: list of numpy arrays, each array is a single trajectory in feature space
@@ -162,67 +158,23 @@ def KM_avg_ND(X_list:list,dX_list:list,dT_list:list,bins:list,dt:float) -> Tuple
     - dT_list: list of numpy arrays, each array is the time differences along that trajectory
     - bins: list of numpy arrays, each array contains the bin edges for a dimension (used for computing conditional averages)
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
+    - method: method to use for computing Kramers-Moyal coefficients from data (default is 'kernel')
 
     Outputs:
-    - f_KM_avg: numpy array, average drift estimate for each bin in feature space (average taken over all trajectories)
-    - D_KM_avg: numpy array, average diffusion estimate for each bin in feature space (average taken over all trajectories)
-    - f_err: numpy array, error estimate for drift (standard deviation of samples in each bin)
-    - D_err: numpy array, error estimate for diffusion (standard deviation of samples in each bin)
+    - f_KM: numpy array, drift estimates for each bin in feature space
+    - D_KM: numpy array, diffusion estimates for each bin in feature space
     '''
-    ndim = len(bins)
-    n = len(X_list) # number of trajectories from which dX was computed
-    my_list = [len(bins[i])-1 for i in range(ndim)]
-    my_list = my_list + [ndim,n]
-    f_KM = np.nan*np.ones(my_list)
-    D_KM = np.nan*np.ones(f_KM.shape)
-    f_err = np.nan*np.ones(f_KM.shape)
-    a_err = np.nan*np.ones(f_KM.shape)
-    for (j,X) in enumerate(X_list):
-        dX = dX_list[j]
-        dT = dT_list[j]
-        mask = np.where(dT==1)[0] # where outlier points were removed, time difference was greater than 1, mask out these points
-        X = X[mask]
-        dXdt = dX[mask]/dt # displacement divided by time step to get velocity (for fitting drift)
-        dX2dt = dX**2/dt # squared displacement divided by time step (for fitting diffusion)
-
-        id_list = [np.digitize(X[:-1,i],bins[i]) for i in range(ndim)] # which bin each data point falls into (by each dimension)
-        uids = list(set(zip(*id_list))) # unique bin ids (zipped tuple of bin ids by dimension)
-        if any([len(bins[i]) in id_list[i] for i in range(ndim)]):
-            raise ValueError('Data point outside of histogram bins. Please update bounds.')
-
-        for uid in uids:
-            my_cond = 1
-            for i in range(ndim):
-                my_cond = my_cond*(id_list[i]==uid[i])
-            bin_mask = np.where(my_cond)[0]
-            # At each histogram bin, find time series points where the state falls into this bin
-            slices = [uid[i]-1 for i in range(ndim)]
-            f_KM[tuple(slices)][:,j] = np.mean(dXdt[bin_mask],axis=0) # Conditional average  ~ drift
-            D_KM[tuple(slices)][:,j] = 0.5*np.mean(dX2dt[bin_mask],axis=0) # Conditional variance  ~ diffusion
-
-            # Estimate error by variance of samples in the bin
-            if len(bin_mask) > 1: # if trajectory passes through bin more than once
-                f_err[tuple(slices)][:,j] = np.nanstd(dXdt[bin_mask],axis=0)/np.sqrt(len(mask))
-                a_err[tuple(slices)][:,j] = np.nanstd(dX2dt[bin_mask],axis=0)/np.sqrt(len(mask))
-
-    # take average over all trajectories to get Kramers-Moyal drift and diffusion estimates
-    f_KM_avg = np.nanmean(f_KM,axis=-1)
-    D_KM_avg = np.nanmean(D_KM,axis=-1)
-
-    # think about how to generalize standard deviation computation to short traj vs. long traj
-    f_err_mean = np.nanmean(f_err,axis=-1)
-    f_err_mean = np.nan_to_num(f_err_mean,nan=1e10)
-    f_KM_std = np.nanstd(f_KM,axis=-1)
-    f_KM_std = np.nan_to_num(f_KM_std,nan=1e10)
-    f_err = f_err_mean + f_KM_std
-
-    D_err_mean = np.nanmean(a_err,axis=-1)
-    D_err_mean = np.nan_to_num(D_err_mean,nan=1e10)
-    D_KM_std = np.nanstd(D_KM,axis=-1)
-    D_KM_std = np.nan_to_num(D_KM_std,nan=1e10)
-    D_err = D_err_mean + D_KM_std
-
-    return f_KM_avg, D_KM_avg, f_err, D_err
+    if method == 'kernel':
+        if kernel_params is None:
+            print('No kernel parameters provided, using default parameters: ')
+            kernel_params = {'bandwidth':0.1,'kernel': 'gaussian'}
+            print(f"bw = {kernel_params['bw']}, kernel = {kernel_params['kernel']}")
+        f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
+    elif method == 'histogram':
+        f_KM, D_KM = km.get_km_histogram(X_list, dX_list, dT_list, bins, dt)
+    else:
+        raise ValueError('Method must be either kernel or histogram.')
+    return f_KM, D_KM
 
 def masked_vector_field(F:np.ndarray, X:np.ndarray) -> Tuple[np.ndarray,np.ndarray]:
     '''
