@@ -64,8 +64,6 @@ def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0
     })
     df['channel'] = ZARR_BF_CHANNEL
     df['resolution'] = resolution_level
-    df['start']  = 0
-    df['stop'] = 10
     data_path = str(save_path / 'dataset.csv')
     df.to_csv(data_path, index=False)
     return data_path
@@ -77,8 +75,6 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: S
     pred_df['dataset'] = dataset_name
     pred_df['model_name'] = model_name
     pred_df['mlflow_id'] = mlflow_id
-
-    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
 
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms
     pred_df['resolution_level'] = 1
@@ -163,19 +159,6 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
     if upload_to_fms:
         file_id = save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
 
-        if update_data_config:
-            feat_config = load_config('feature')
-            for dataset in feat_config:
-                if dataset['dataset_name'] == dataset_name and dataset['model_name'] == model_name:
-                    dataset['features_fmsid'] = file_id
-                    break
-            else:
-                feat_config.append({
-                    'dataset_name': dataset_name,
-                    'model_name': model_name,
-                    'features_fmsid': file_id
-                })
-            write_config(feat_config, 'feature')
     return prediction_path  
 
 def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level: int = 0, upload_to_fms: bool = True, update_data_config: bool = True, save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
