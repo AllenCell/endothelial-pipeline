@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from typing import Tuple
 
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
 
 def set_slice_plot_bounds_and_labels(axs:Tuple[plt.Axes],bounds:list[Tuple[float]]) -> plt.Axes:
     xmin, xmax = bounds[0]
@@ -197,26 +198,62 @@ def plot_flow_field_slices(flow_field_dict:dict,
     return fig, ax
                            
 
-def compare_mean_to_traj(data_mean_traj,traj,fig_ax:Tuple[plt.Figure, plt.Axes]|None=None):
-    if fig_ax is None:
-        fig, ax = vb.init_subplots()
-    else:
-        fig, ax = fig_ax
+def flow_field_viz_main(flow_field_dict:dict,df_cond:pd.DataFrame,traj:np.ndarray,fig_savedir:str) -> None:
 
+    # dataset flow condition for saving the figures
+    condition = df_cond["description"].values[0] 
+
+    # plot 2D slices at PC2 and PC3 values given by the last point of the trajectory
+    PC_vals = (traj[-1,2],traj[-1,1]) # get last point of trajectory
+
+    # baseline visualization: plot flow field slices (quiver plot with scatter of data, streamplot)
+    plot_flow_field_slices(flow_field_dict,df_cond,fig_savedir,PC_vals=PC_vals)
     
-    ax[0].quiver
-    ax[0].scatter(data_mean_traj[:,0], data_mean_traj[:,1], alpha=0.25, label="Mean (data)")
-    ax[0].scatter(traj[:,0], traj[:,1], c='k',s=8, label="Mean (ODE)")
-    ax[0].set_xlabel('PC1')
-    ax[0].set_ylabel('PC2')
-    ax[0].legend(loc='upper right')
+    ###### additional plots for visualization of flow field #######
+    # 1) last point of trajectory over flow field 
+    # 2) entire trajectory over flow field
+    # 3) trajectory with equally spaced interpolated points
 
+    # get z-slice and y-slice closest to PC2 and PC3 values
+    zvalids = get_slice_indexes(flow_field_dict["grid"][-1], PC_vals[0]) # get z-slice closest to PC3 = PC3_val
+    yvalids = get_slice_indexes(flow_field_dict["grid"][-2], PC_vals[1]) # get y-slice closest to PC2 = PC2_val
 
-    ax[1].scatter(data_mean_traj[:,0], data_mean_traj[:,2], alpha=0.25, label="Mean (data)")
-    ax[1].scatter(traj[:,0], traj[:,2], c='k',s=8, label="Mean (ODE)")
-    ax[1].set_xlabel('PC1')
-    ax[1].set_ylabel('PC3')
-    ax[1].legend(loc='upper right')
+    # get bounds of the grid
+    xmin, xmax = flow_field_dict["grid"][0][0,0,0], flow_field_dict["grid"][0][-1,0,0]
+    ymin, ymax = flow_field_dict["grid"][1][0,0,0], flow_field_dict["grid"][1][0,-1,0]
+    zmin, zmax = flow_field_dict["grid"][2][0,0,0], flow_field_dict["grid"][2][0,0,-1]
+    bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
-    return fig, ax
+    # 1) plot last point of trajectory over flow field
+    fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids)) 
+    # plot last point of trajectory
+    for j, ax_ in enumerate(ax): # PC1 v s PC2, PC1 vs PC3
+        ax_.scatter(traj[-1,0], traj[-1,j+1], s=200, color="black")
+    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
+    ax[0].set_title(f"PC3 = {PC_vals[0]:.2f}") # title for PC3 slice
+    ax[1].set_title(f"PC2 = {PC_vals[1]:.2f}") # title for PC2 slice
+    plt.tight_layout()
+    plt.show()
+    
+    vb.save_plot(fig, fig_savedir+f"flow_field_{condition}_fp", dpi=300) # save the figure
+
+    # 2) plot entire trajectory over flow field
+    fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids)) 
+    for j, ax_ in enumerate(ax): # PC1 v s PC2, PC1 vs PC3
+        ax_.scatter(traj[:,0], traj[:,j+1], s=30, color="navy")
+    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
+    plt.tight_layout()
+    plt.show()
+    vb.save_plot(fig, fig_savedir+f"flow_field_{condition}_traj", dpi=300) # save the figure
+
+    # 3) trajectory with equally spaced interpolated points
+    interpolated_points = ddff.interpolate_on_curve(traj)
+    for j, ax_ in enumerate(ax):
+        ax_.scatter(interpolated_points[:,0], interpolated_points[:,j+1], 
+                    s=10, color="springgreen")
+    plt.tight_layout()
+    plt.show()
+    vb.save_plot(fig, fig_savedir+f"flow_field_{condition}_traj_interpolated", dpi=300) # save the figure
+
+    return
 

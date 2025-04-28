@@ -1,8 +1,8 @@
 import numpy as np
 from scipy import interpolate as spinterp
+from scipy.integrate import solve_ivp
 from typing import Callable
 
-from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.analyses.utils.io import vtk_io
 
 
@@ -10,6 +10,13 @@ def set_3D_bounds_from_data(x: np.array, y: np.array, z: np.array, excluded_frac
     """
     Set the bounds for the 3D flow field based on the data (leaving out a fraction of the data 
     based on the excluded_fraction parameter).
+
+    Inputs:
+    - x, y, z: 1D arrays of the data points in the three dimensions
+    - excluded_fraction: fraction of data to exclude from the bounds (default is 0.1)
+
+    Outputs:
+    - bounds: list of 3D arrays with the upper and lower bounds for each dimension
     """
     bounds = []
     for var in [x, y, z]:
@@ -23,6 +30,18 @@ def compute_extrapolated_flow_field(drift_kmcs:np.ndarray,
     '''
     Get flow field dx/dt = f(x) via estimates of drift (first Kramers-Moyal coefficient)
     for a given condition.
+
+    Inputs:
+    - drift_kmcs: 3D array of drift estimates (shape: (num_bins_x, num_bins_y, num_bins_z, 3))
+        - Computed via the cellsmap.analyses.utils.regression_helper.get_kramers_moyal using the kernel-based method
+    - grid_centers: 1D numpy arrays with the grid points in each dimension (centers of bins of x,y,z space)
+    - interpolator (optional, default="nearest"): interpolation method by which to infer flow field at 
+        points where data is scarce (drift_kmcs = np.nan)
+        - options are "nearest" (nearest neighbors) and "linear" (linear interpolation)
+    - verbose: (optional, default True): if true, print statements
+
+    Outputs:
+    - 
     '''
 
     # generate a mesh grid of points in the state space
@@ -94,6 +113,29 @@ def get_callable_flow_field(flow_field_dict:dict) -> Callable:
         return f_interp_val
     
     return my_flow
+
+def solve_ddff_ode(flow_field_dict:dict,inits:np.ndarray,t_span:list[float],num_T:int=1750) -> np.ndarray:
+    my_flow = get_callable_flow_field(flow_field_dict) # turn flow field into callable function (works via interpolation)
+    t_eval = np.linspace(t_span[0],t_span[1],num_T) # timepoints at which to evaluate the solution
+    sol = solve_ivp(my_flow, t_span, inits, t_eval=t_eval) # solve the IVP
+    return sol.y.T # get trajectory, shape (num_T, 3) (3D trajectory in state space)
+
+def interpolate_on_curve(traj:np.ndarray,n_points:int=5) -> np.ndarray:
+    ndim = traj.shape[1] # number of dimensions
+
+    # compute cumulative distance from the first point along the trajectory
+    distances = np.linalg.norm(np.diff(traj, axis=0), axis=1) # get distances between points
+    arc_length = np.cumsum(np.concatenate(([0],distances))) # cumulative distance from the first point
+
+    # interpolate to get n_points evenly spaced points
+    arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
+
+    # initialize array interpolated points
+    interpolated_points = np.zeros((n_points, 3)) 
+    for i in range(ndim): # loop over dimensions
+        interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
+    
+    return interpolated_points 
 
 def convert_coordinates_from_pc_to_volume(self, xpc:np.array, origin:float) -> np.array:
     xvol = (xpc - origin) / self._grid_spacing
