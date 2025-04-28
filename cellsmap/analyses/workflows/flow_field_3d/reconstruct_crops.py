@@ -1,14 +1,12 @@
 # Reconstruct crops along mean trajectories
 # %%
-import os
 import pandas as pd
 import numpy as np
-from vtkmodules.util import numpy_support as vtknp
+
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils.io import vtk_io
 from cellsmap.model_features.generate_image import generate_from_coords
 
 # Create output folder if does not exist yet
@@ -49,7 +47,7 @@ for condition in df.description.unique():
 
     # interpolate to get evenly spaced points at intervals of length 0.05
     # n_points = int(np.ceil(arc_length[-1] / 0.05))
-    n_points = 10 # number of points to interpolate
+    n_points = 5 # number of points to interpolate
     arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
     interpolated_points = np.zeros((n_points, 3))
     for i in range(3):
