@@ -735,6 +735,7 @@
   zarr_path: none,
   fmsid: "",
   barcode: GE00007488,
+  cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
   microscope: 3i,
   shear_stress_regime: intermediate,
@@ -757,6 +758,7 @@
   zarr_path: none,
   fmsid: "",
   barcode: GE00007559,
+  cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
   microscope: 3i,
   shear_stress_regime: 24hr_high-to-24hr_low,
@@ -774,7 +776,7 @@
   diffae_manifest_fmsid: "",
 },{
   name: 20250415_SlideA_20X,
-  original_path: //allen/aics/endothelial/morphological_features/image_data/original_data/20250415/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy,
+  original_path: //allen/programs/allencell/data/proj0/af5/a86/27d/d28/ffd/319/b4d/ee9/0b6/9a4/80/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy,
   zarr_path: None,
   fmsid: "",
   barcode: GE00007488,
@@ -818,7 +820,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250415_SlideH_20X,
-  original_path: //allen/aics/endothelial/morphological_features/image_data/original_data/20250415/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy,
+  original_path: //allen/programs/allencell/data/proj0/655/ee7/c58/80c/e02/60a/c44/308/307/a3c/eb/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy,
   zarr_path: None,
   fmsid: "",
   barcode: GE00006885,
