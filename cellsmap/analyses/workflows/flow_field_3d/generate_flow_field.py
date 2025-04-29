@@ -3,9 +3,6 @@
 # %%
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-
-from scipy.integrate import solve_ivp
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
@@ -70,7 +67,7 @@ for _, df_ in df.groupby("dataset_name"):
 
     # get and save vtk image data
     imgdata = vtk_io.get_vtk_image_data_from_flow_field(flow_field_dict)
-    vtk_io.save_vtk_image_data(imgdata, output_path=output_savedir+f"flow_field_{condition}.vtk")
+    vtk_io.save_vtk_image_data(imgdata, output_path=vtk_savedir+f"flow_field_{condition}.vtk")
 
     # get mean trajectory from the data for comparison to ODE solver
     # take mean of PC1, PC2, PC3 over crops at each time point,
@@ -82,14 +79,16 @@ for _, df_ in df.groupby("dataset_name"):
     traj_dict[condition] = traj # trajectory to dictionary - saved out and used later to reconstruct crops
 
     # convert trajectory to volume coordinates and save out for vtk viz
-    traj_vol = np.zeros_like(traj)
-    for j in range(3):
-        traj_vol[:,j] = vtk_io.convert_coordinates_from_pc_to_volume(traj[:,j], grid_spacing, bounds[j][0])
-    # save out trajectory as vtk file
-    vtk_io.save_points_as_polydata(coordinates=traj_vol, file_name=f"{vtk_savedir}{condition}_trajectory.vtk")
+    for tp in range(traj.shape[0]):
+        traj_vol = []
+        for j in range(3):
+            traj_vol.append(vtk_io.convert_coordinates_from_pc_to_volume(traj[tp,j], grid_spacing, bounds[j][0]))
+        traj_vol = np.array([traj_vol])
+        # save out point as vtk file
+        vtk_io.save_points_as_polydata(coordinates=traj_vol, file_name=vtk_savedir+f"trajectory_{condition}_{tp:05}.vtk")
 
     # call main flow field viz function (makes and saves plots)
-    ffv.flow_field_viz_main(flow_field_dict,df_,traj,fig_savedir)
+    # ffv.flow_field_viz_main(flow_field_dict,df_,traj,fig_savedir)
 
     # free up memory
     del df_
