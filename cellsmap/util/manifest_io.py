@@ -8,6 +8,7 @@ from cellsmap.util import dataset_io
 from cellsmap.util.manifest_pca import get_outliers
 import platform
 
+
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
     from aicsfiles import fms, FileLevelMetadataKeys
@@ -80,8 +81,12 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
+    if fmsid == "" or fmsid is None:
+        print(f'No DiffAE manifest found for dataset {dataset_name}')
+        return None
     df = get_dataframe_by_fmsid(fmsid)
     return df
+
 
 def list_datasets_with_manifest(manifest_name: str) -> list:
     """
