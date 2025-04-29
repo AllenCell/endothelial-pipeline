@@ -1,6 +1,7 @@
 import fire
 import numpy as np
 import pandas as pd
+import dask.array as da
 
 from typing import Dict, Any, Optional
 from bioio.writers import OmeTiffWriter
@@ -26,16 +27,18 @@ def make_overlay(filename, feature_movie, end_y, end_x):
     fluor_img = fluor_img[:, :end_y, :end_x]
     bf_img = bf_img[:, :end_y, :end_x]
 
-    feature_movie = np.concatenate((fluor_img[:, None], bf_img[:, None], feature_movie), axis=1)
+    feature_movie = da.concatenate((fluor_img[:, None], bf_img[:, None], feature_movie), axis=1)
     # for ometiff saving, add dummy Z dimension
-    feature_movie = np.expand_dims(feature_movie, 2)
+    feature_movie = da.expand_dims(feature_movie, 2)
     return feature_movie
 
 
 def generate_spatial_feature_movie(model_name:str, dataset_name: str, pca_dir:str, overlap: float = 0.75, resolution_level:int=0, n_pcs: Optional[int] = None, use_pcs: bool = True, overrides: Dict[str, Any] = {}):
     """
-    Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` tiff file for each position in the dataset.
+    Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` tiff file for each position in the dataset with an overlay of the brightfield standard deviation projection and max projection of the fluorescent channel.
     The movie is saved in the `models/{model_name}/spatial_pcs` directory.
+
+    Example usage: python make_spatial_pc_movie.py --model_name diffae_04_10 --dataset_name 20241016_20X --pca_dir //allen/aics/users/erin.angelini/git-repos/cellsmap/results/stochastic_dynamics/default/outputs/ --overlap 0.5 --resolution_level 0 --n_pcs 3
 
     Parameters
     ----------
@@ -98,6 +101,7 @@ def generate_spatial_feature_movie(model_name:str, dataset_name: str, pca_dir:st
                 count_movie[:, row.start_y:row.end_y, row.start_x:row.end_x] += 1
             movie[T] = timepoint_movie / count_movie
         movie = make_overlay(data.zarr_path.iloc[0], movie, end_y=data.end_y.max(), end_x=data.end_x.max())
+        breakpoint()
         OmeTiffWriter.save(uri = save_dir/f'{dataset_name}_{position_name}.tiff', data = movie)
 
 if __name__ == '__main__':
