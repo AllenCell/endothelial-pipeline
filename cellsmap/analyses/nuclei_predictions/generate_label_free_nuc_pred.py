@@ -1,7 +1,7 @@
 from pathlib import Path
 from bioio import BioImage
 import numpy as np
-from cellsmap.util.dataset_io import load_config, get_dataset_info
+from cellsmap.util.dataset_io import load_config, get_dataset_info, get_available_datasets
 from cellsmap.util import get_sldy_metadata as sldmd
 from cellsmap.util.general_image_preprocessing import save_image_output, build_analysis_queue, get_dim_map, get_default_dim_order
 from cellsmap.util.set_output import get_output_path
@@ -9,7 +9,7 @@ from cellpose import models
 from tqdm import tqdm
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
 from multiprocessing import Pool
-
+from typing import List
 
 # Predict nuclei from brightfield images using the retrained CellPose model
 def generate_results(args: dict):
@@ -87,7 +87,11 @@ def generate_results(args: dict):
             save_image_output(out_path_validation, images_out, images_out_metadata)
 
 
-def main(dataset_name=None, n_proc=1, save_output=True, overwrite=True, is_test=False):
+def main(dataset_name: str|List|None=None, n_proc=1, save_output=True, overwrite=True, is_test=False):
+    """
+    To enter a list of datasets to analyze, use the following format:
+    '\"20241016_20X\",\"20241120_20X\"'
+    """
     # Set the output directory
     out_dir = Path(get_output_path(Path(__file__).stem))
 
@@ -109,9 +113,14 @@ def main(dataset_name=None, n_proc=1, save_output=True, overwrite=True, is_test=
                                 and config_data['live_or_fixed_sample'] == 'live')
                                 and 'AICS-126' in config_data['cell_lines']
                                 and config_data['duration'] > 1]
-    else:
+    elif type(dataset_name) == str:
         dataset_name_list = [dataset_name]
-
+        assert all([dataset_name in get_available_datasets(verbose=False)]), f'Dataset {dataset_name} not found in data_config.yaml'
+    elif type(dataset_name) == list:
+        dataset_name_list = dataset_name
+        assert all([dataset_name in get_available_datasets(verbose=False) for dataset_name in dataset_name_list]), f'All datasets in {dataset_name_list} must be found in the available datasets {get_available_datasets()}'
+    else:
+        raise ValueError(f'Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}.')
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)
