@@ -4,7 +4,7 @@ import dask.dataframe as dd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from cellsmap.util.dataset_io import get_tracking_data_filtered, get_measurement_data_raws, load_config, get_cdh5_classic_segmentation_path, get_dataset_info, ipython_cli_flexecute
+from cellsmap.util.dataset_io import get_tracking_data_filtered, get_tracking_data_raws, get_measurement_data_raws, load_config, get_cdh5_classic_segmentation_path, get_dataset_info, ipython_cli_flexecute
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue
 from bioio import BioImage
@@ -45,7 +45,10 @@ def filter_big_table(big_table: pd.DataFrame,
     # THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
     # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
     # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
-
+    tracking_data_filtered = filter_on_fold_change(tracking_data_filtered,
+                                                    fold_change=area_change_allowed,
+                                                    fold_change_of_diff=fold_change,
+                                                    smoothing_sigma=smoothing_sigma)
     big_table = big_table[big_table.groupby(
             ['dataset_name',
              'position',
@@ -90,8 +93,9 @@ def calculate_derived_data(big_table: pd.DataFrame
     # add column for orientation in degrees of the 
     # ellipse fitted to each segmentation in degrees
     print('Converting orientation to degrees...')
-    big_table['orientation_deg'] = np.rad2deg(big_table['orientation'])
-    big_table['dorientation_deg_dt'] = big_table['orientation_deg'].diff() / big_table['time_minutes'].diff()
+    big_table['orientation_rel_to_horizontal'] = big_table['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
+    big_table['orientation_deg_rel_to_horizontal'] = np.rad2deg(big_table['orientation_rel_to_horizontal'])
+    big_table['dorient_dt_deg_rel_to_horizontal'] = big_table['orientation_deg_rel_to_horizontal'].diff() / big_table['time_minutes'].diff()
 
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
@@ -235,8 +239,10 @@ segprops_df_list = []
 alignments_df_list = []
 for dataset_name in dataset_name_list:
     tracking_df_list.append(
-        get_tracking_data_filtered([dataset_name],
-                                   as_dask=True))
+        # get_tracking_data_filtered([dataset_name],
+        #                            as_dask=True))
+        get_tracking_data_raws([dataset_name],
+                               as_dask=True))
     segprops_df_list.append(
         get_measurement_data_raws([dataset_name],
                                   kind='segmentation_properties',
