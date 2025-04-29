@@ -101,13 +101,8 @@ def generate_spatial_feature_movie(model_name:str, dataset_name: str, pca_dir:st
                 count_movie[:, row.start_y:row.end_y, row.start_x:row.end_x] += 1
             movie[T] = timepoint_movie / count_movie
         movie = make_overlay(data.zarr_path.iloc[0], movie, end_y=data.end_y.max(), end_x=data.end_x.max())
-        breakpoint()
         OmeTiffWriter.save(uri = save_dir/f'{dataset_name}_{position_name}.tiff', data = movie)
 
+
 if __name__ == '__main__':
-    # fire.Fire(generate_spatial_pc_movie)
-    model_name = "diffae_04_10"
-    pca_dir = "//allen/aics/users/erin.angelini/git-repos/cellsmap/results/stochastic_dynamics/default/outputs/"
-    overlap = 0.5
-    for dataset_name in ["20241016_20X"]:
-        generate_spatial_feature_movie(model_name=model_name, dataset_name=dataset_name, pca_dir=pca_dir, overlap=overlap, n_pcs=3)
+    fire.Fire(generate_spatial_feature_movie)
