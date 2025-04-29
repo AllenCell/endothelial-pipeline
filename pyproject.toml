@@ -35,6 +35,7 @@ dependencies = [
     "scipy==1.13.1",
     "seaborn>=0.13.2",
     "sympy==1.13.1",
+    "torch~=2.0.0",
     "tqdm>=4.66.5",
     "vtk>=9.4.1",
     "wasmtime<22.0",
@@ -59,12 +60,24 @@ ml_workflows = [
     "monai>=1.4.0",
     "mlflow>=2.21.2",
 ]
-cellpose = [
-    "cellpose>=3.1",
+cellpose-a100 = [
+    "cellpose==3.0.11",
     "torch==1.13.1+cu116",
     "torchvision==0.14.1+cu116",
     "torchaudio==0.13.1",
 ]
+cellpose = [
+    "cellpose==3.0.11",
+    "torch==1.13.1",
+    "torchvision==0.14.1",
+    "torchaudio==0.13.1",
+]
+
+[[tool.pdm.source]]
+name = "cellpose-a100"
+url = "https://download.pytorch.org/whl/cu116"
+verify_ssl = true
+include_packages = ["torch", "torchvision", "torchaudio"]
 
 [dependency-groups]
 dev = [
