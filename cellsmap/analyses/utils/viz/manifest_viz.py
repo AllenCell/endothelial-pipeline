@@ -75,7 +75,7 @@ def plot_top_3_PCs(feats_proj:np.ndarray,fig_ax:Tuple|None=None) -> Tuple:
 
     return fig, ax
 
-def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
+def plot_top_3_PCs_alldata(pca:Pipeline) -> Tuple:
     '''
     Plot projection of feature data from all datasets along the top 3 principal components.
 
@@ -86,7 +86,6 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
     TO DO: set y-axis limits to be the same for all subplots (tbd based on inputs or data)
 
     Input:
-    - df: pd.DataFrame, the manifest dataframe containing feature data for multiple datasets
     - pca: Pipeline, the PCA model used to project the feature data onto the top 3 PCs
         - can include any preprocessing steps before PCA, such as scaling
     
@@ -95,7 +94,7 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
     - ax: plt.Axes
     '''
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
-    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid") # get all datasets with DiffAE manifest data
     title_dict = mio.get_dataset_descriptions(list_of_datasets,simple=True) # get description of dataset by flow conditions, for title of subfig
 
     # initialize figure with subfigures for each dataset

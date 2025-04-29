@@ -170,20 +170,20 @@ def add_crop_index(df:pd.DataFrame) -> pd.DataFrame:
     '''
     assert 'start_x' in df.columns, 'Data must have a column for start_x'
     assert 'start_y' in df.columns, 'Data must have a column for start_y'
-    assert 'FOV_ID' in df.columns, 'Data must have a column for FOV_ID'
+    assert 'position' in df.columns, 'Data must have a column for FOV_ID'
 
-    # get list of unique starting positions and FOV_IDs
+    # get list of unique starting positions and FOV_IDs (position column in DiffAE manifest)
     start_x = df[df['T']==df['T'].min()]['start_x'].values.tolist()
     start_y = df[df['T']==df['T'].min()]['start_y'].values.tolist()
-    FOV_ID = df[df['T']==df['T'].min()]['FOV_ID'].values.tolist()
-    tup_list = list(zip(start_x,start_y,FOV_ID))
+    position = df[df['T']==df['T'].min()]['position'].values.tolist()
+    tup_list = list(zip(start_x,start_y,position))
 
     # function to convert starting position and FOV_ID to crop index
-    def pos_to_index(x,y,FOV):
-        return tup_list.index((x,y,FOV))
+    def pos_to_index(x,y,position):
+        return tup_list.index((x,y,position))
 
     # apply function to DataFrame to get crop index
-    df['crop_index'] = df.apply(lambda x: pos_to_index(x['start_x'],x['start_y'], x['FOV_ID']),axis=1)
+    df['crop_index'] = df.apply(lambda x: pos_to_index(x['start_x'],x['start_y'], x['position']),axis=1)
 
     return df
 
