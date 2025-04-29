@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import simpson
 from typing import Tuple
 
+from cellsmap.analyses.utils.model_eval import get_normalization_constant
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
 def gradient_flow_term(U:np.ndarray, D:np.ndarray, x:list) -> np.ndarray:
@@ -158,7 +159,8 @@ def grad_flux_decomposition(f:np.ndarray, D:np.ndarray, x:list, additive_noise:b
 
     P = stationary_fp.solve(f,D) # solve for stationary probability density
     P[P<tol] = tol # set values less than tol to tol to avoid log(0) and divide by 0 errors
-    P = P/np.sum(P) # normalize
+    C = get_normalization_constant(P,dx) # compute normalization constant
+    P = P/C # normalize
 
     # get generalized potential
     U = -np.log(P)

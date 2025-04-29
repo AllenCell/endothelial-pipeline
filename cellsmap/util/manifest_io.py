@@ -5,8 +5,9 @@ import os
 from pathlib import Path
 import pickle
 from cellsmap.util import dataset_io
-from cellsmap.analyses.utils.manifest_pca import get_outliers
+from cellsmap.util.manifest_pca import get_outliers
 import platform
+
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -80,8 +81,12 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
+    if fmsid == "" or fmsid is None:
+        print(f'No DiffAE manifest found for dataset {dataset_name}')
+        return None
     df = get_dataframe_by_fmsid(fmsid)
     return df
+
 
 def list_datasets_with_manifest(manifest_name: str) -> list:
     """
@@ -124,18 +129,20 @@ def load_manifest_to_df(verbose:bool=True) -> pd.DataFrame:
     Outputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata columns
     '''
-    # manifest files for most (older) datasets
-    path_to_data_multi = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
-    
+    # manifest files for most (older) datasets    
+    path_to_data_multi = '//allen/aics/users/benjamin.morris/cyto_dl/logs/eval/runs/diffae/latent_dim_8_for_erin/2025-02-24_17-13-26/predict.parquet'
+
     # manifest files for newer datasets
-    path_to_20241217 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
-    path_to_20250224 = '//allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
+    path_to_20241217 = '//allen/aics/users/benjamin.morris/cyto_dl/logs/eval/runs/diffae/latent_dim_8_20241217/2025-02-28_10-41-33/predict.parquet'
+    path_to_20250224 = '//allen/aics/users/benjamin.morris/cyto_dl/logs/eval/runs/diffae/latent_dim_8_20250224/2025-03-03_11-45-02/predict.parquet'
+    path_to_20250319 = '//allen/aics/users/benjamin.morris/cyto_dl/logs/eval/runs/diffae/mixed_flow/2025-03-26_10-47-46/predict.parquet'
 
     df = read_file_to_dataframe(path_to_data_multi)
     df_1217 = read_file_to_dataframe(path_to_20241217)
     df_0224 = read_file_to_dataframe(path_to_20250224)
+    df_0319 = read_file_to_dataframe(path_to_20250319)
 
-    df = pd.concat([df,df_1217,df_0224],ignore_index=True)
+    df = pd.concat([df,df_1217,df_0224,df_0319],ignore_index=True)
 
     # FOR NOW: drop 20241105 and 20241210 datasets from analysis, no longer in data_config.yaml
     df = df[~df.filename_or_obj.str.contains('20241105')]
@@ -174,10 +181,11 @@ def add_metadata_from_path(df:pd.DataFrame,verbose:bool=True) -> pd.DataFrame:
     df['T'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])//6)
     df['FOV_ID'] = df.filename_or_obj.apply(lambda s: int(s.split('/')[-1].split('_')[-1][2:-4])%6)
 
-    # filepath for this dataset in manifest includes barcode, so we need to change the 
+    # filepath for these dataset in manifest includes barcode, so we need to change the 
     # dataset_name value in df to match the name int data_config.yaml
     # this is a temporary fix until we standardize the data handoff process
     df.loc[df.dataset_name.str.contains('20250224'),'dataset_name'] = '20250224_20X'
+    df.loc[df.dataset_name.str.contains('20250319'),'dataset_name'] = '20250319_20X'
 
     # drop filename_or_obj column
     df.drop(columns=['filename_or_obj'],inplace=True)
@@ -187,7 +195,7 @@ def add_metadata_from_path(df:pd.DataFrame,verbose:bool=True) -> pd.DataFrame:
 
     return df
 
-def get_descriptive_metadata(df:pd.DataFrame) -> dict:
+def get_descriptive_metadata(df:pd.DataFrame,simple:bool=False) -> dict:
     '''
     Get descriptive metadata for each dataset present in the DataFrame df.
 
@@ -196,6 +204,8 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata column for dataset_name
         - The string in the dataset_name column should match the dataset name in data_config.yaml
+    - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
+
 
     Outputs:
     - description_dic: dict, dictionary of dataset names and their descriptive metadata
@@ -215,10 +225,22 @@ def get_descriptive_metadata(df:pd.DataFrame) -> dict:
         num_flows = len(flow_config) # number of flow conditions in dataset
 
         shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)] # get shear rate for each flow condition, last element in each list in flow_config
-        shear_rate_str = [str(i)+'_dyncm2' for i in shear_rate] # convert shear rates to strings
+        if simple: # if simple description, use qualitative description of shear stress level
+            shear_rate_str = []
+            for shear in shear_rate:
+                if shear >= 20:
+                    shear_rate_str.append('High')
+                elif shear > 7: 
+                    shear_rate_str.append(f'Intermediate_{int(shear)}')
+                elif shear > 0:
+                    shear_rate_str.append('Low')
+                else:
+                    shear_rate_str.append('No')
+        else:
+            shear_rate_str = [f'{int(i)}_dyncm2' for i in shear_rate] # convert shear rates to strings
 
-        time_str = [str(int((flow_config[i][1]-flow_config[i][0])*5/60))+'_hours' for i in range(num_flows)] # get duration of each flow condition in hours
-        description = '_'.join([time_str[i]+'_at_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
+        time_str = [f'{int((flow_config[i][1]-flow_config[i][0])*5/60)}hr' for i in range(num_flows)] # get duration of each flow condition in hours
+        description = '_'.join([time_str[i]+'_'+shear_rate_str[i] for i in range(num_flows)]) # concatenate time and shear rate for each flow condition
         description_dic[mv_name] = description # add description to dictionary
 
     return description_dic
@@ -276,6 +298,8 @@ def get_dataset_name(ds_path:str,path_prefix:str|None=None,file_ext:str='.ome.za
         dataset_name = dataset_name.replace('_SLDY','')
     if '_timelapse' in dataset_name:
         dataset_name = dataset_name.replace('_timelapse','')
+    if '_Timelapsee' in dataset_name: # typo in manifest file
+        dataset_name = dataset_name.replace('_Timelapsee','')
     return dataset_name
 
 def get_list_of_datasets(df:pd.DataFrame,verbose:bool=False,print_path:bool=False) -> list:

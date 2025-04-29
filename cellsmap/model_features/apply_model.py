@@ -95,7 +95,25 @@ def load_overrides(overrides: Union[str, Dict]) -> Dict:
         raise ValueError('Overrides must be a dictionary or a string')
     return overrides
 
-def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, save_path: Union[str, Path] = None, overrides:Union[str, Dict]={}):
+def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, save_path: Union[str, Path] = None, overrides:Union[str, Dict]={}):
+    """
+    Apply a model to a single dataset.
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model from `model_config.yaml` to apply.
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    save_path: str
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
     if not torch.cuda.is_available():
         raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
     overrides = load_overrides(overrides)
@@ -136,8 +154,35 @@ def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, uploa
     commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
     if upload_to_fms:
-        save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
-    return prediction_path
+        file_id = save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
+
+    return prediction_path  
+
+def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level: int = 0, upload_to_fms: bool = True,  save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
+    """
+    Apply a model to a multiple datasets.
+    Example usage: python apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model from `model_config.yaml` to apply.
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    save_path: str
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
+    for name in dataset_names:
+        apply_model_single(model_name=model_name, dataset_name=name, resolution_level=resolution_level, upload_to_fms=upload_to_fms, save_path=save_path, overrides=overrides)
 
 if __name__ == '__main__':
     fire.Fire(apply_model)

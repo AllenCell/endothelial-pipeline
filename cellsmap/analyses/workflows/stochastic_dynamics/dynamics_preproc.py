@@ -1,8 +1,8 @@
 import fire
 
+from cellsmap.util import manifest_io, manifest_pca
 from cellsmap.util.set_output import get_output_path
-from cellsmap.util import manifest_io
-from cellsmap.analyses.utils import manifest_pca, regression_main
+from cellsmap.analyses.utils import regression_main
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.viz import manifest_viz, viz_base as vb
 
@@ -15,7 +15,7 @@ def main(config_name:str='default') -> None:
     # get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_output_folder = "stochastic_dynamics/"+config["name"]+"/outputs"
-    savedir = get_output_path(workflow_output_folder,verbose=False)
+    savedir = get_output_path(workflow_output_folder)
 
     # get output subdirectory for figures that workflow outputs (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
@@ -43,12 +43,18 @@ def main(config_name:str='default') -> None:
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
     PCs = config['PCs_to_analyze']
-    Nbins = config['N_bins_kramers_moyal']
     dt = config['dt']
     ds_to_skip = config['datasets_to_skip']
+    kramers_moyal_config = config['kramers_moyal']
+    Nbins = kramers_moyal_config['Nbins']
+    km_method = kramers_moyal_config['method']
+    kernel_params=None
+    if 'kernel_params' in kramers_moyal_config:
+        kernel_params = kramers_moyal_config['kernel_params']
 
     # build train-test data for regression
-    train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, dt, ds_to_skip)
+    train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, dt, ds_to_skip, fig_savedir,
+                                                                     method=km_method, kernel_params=kernel_params)
 
     ################### Save train-test data ###################
     dynamics_io.save_train_test(train_test_dict, savedir)

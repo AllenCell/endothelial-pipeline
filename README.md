@@ -165,6 +165,7 @@ cd cellsmap
 pdm run cellsmap/analyses/workflows/cdh5_classic_seg.py --N_PROC 30
 pdm run cellsmap/features/cdh5_classic_seg_tracking.py
 pdm run cellsmap/features/cdh5_nodes_and_edges.py --N_PROC 30
+pdm run cellsmap/features/cdh5_nodes_and_edges_concatenate_tables.py
 pdm run cellsmap/analyses/cdh5_ndoes_and_edges_analysis.py --N_PROC 30
 ```
 
@@ -258,6 +259,20 @@ Outputs tables of measured features from the segmentation borders produced from 
 
 
 - **NOTE:** The "edge_labels", "node_labels", and "node_pair_labels" found in the tables output by `cdh5_nodes_and_edges.py` should all match / be consistent with each other.
+</details>
+
+<details>
+<summary>cdh5_nodes_and_edges_concatenate_tables.py</summary>
+
+#### Summary
+Concatenates the tables output by `cdh5_nodes_and_edges.py` into a single large table.
+
+#### Options
+
+#### Inputs
+
+#### Outputs
+
 </details>
 
 <details>
