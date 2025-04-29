@@ -1,54 +1,95 @@
 import vtk
 import numpy as np
-import pandas as pd
 from vtkmodules.util import numpy_support as vtknp
 
-from cellsmap.analyses.utils import regression_helper as rh
-from cellsmap.analyses.utils.viz import viz_base as vb
+def save_vector_field_as_vtk(vector_field_dict, output_path) -> None:
+    """
+    Save 3D vector field data as a VTK file.
 
-def get_vtk_image_data_from_flow_field(flow_field_dict) -> vtk.vtkImageData:
+    Parameters:
+    - vector_field_dict: Dictionary containing the vector field data.
+        - "velocities": Tuple of 3D arrays (vx, vy, vz) with the vector values in each dimension.
+        - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension.
+    - output_path: Path to save the VTK file.
+    """
+    image_data = get_vtk_image_data_from_vector_field(vector_field_dict)
+    save_vtk_image_data(image_data, output_path)
+    return
 
-        vx = flow_field_dict["velocities"][0]
-        vy = flow_field_dict["velocities"][1]
-        vz = flow_field_dict["velocities"][2]
+def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
+    '''
+    Convert 3D vector field to VTK image data format.
 
-        dims = vx.shape
+    Inputs:
+    - vector_field_dict: dictionary with the following keys:
+        - "velocities": tuple of 3D arrays (vx, vy, vz) with the vector values in each dimension
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    
+    Outputs:
+    - imageData: vtkImageData object with the vector field data
+    '''
+    vx = vector_field_dict["velocities"][0]
+    vy = vector_field_dict["velocities"][1]
+    vz = vector_field_dict["velocities"][2]
 
-        imageData = vtk.vtkImageData()
-        imageData.SetDimensions(dims)
-        imageData.SetSpacing(1, 1, 1)
+    dims = vx.shape
 
-        # Create VTK arrays from NumPy arrays
-        x_array = vtknp.numpy_to_vtk(vx.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
-        x_array.SetName("vx")
-        y_array = vtknp.numpy_to_vtk(vy.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
-        y_array.SetName("vy")
-        z_array = vtknp.numpy_to_vtk(vz.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
-        z_array.SetName("vz")
+    imageData = vtk.vtkImageData()
+    imageData.SetDimensions(dims)
+    imageData.SetSpacing(1, 1, 1)
 
-        # Create a vector array
-        vectors = vtk.vtkFloatArray()
-        vectors.SetNumberOfComponents(3)
-        vectors.SetName("Vectors")
+    # Create VTK arrays from NumPy arrays
+    x_array = vtknp.numpy_to_vtk(vx.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
+    x_array.SetName("vx")
+    y_array = vtknp.numpy_to_vtk(vy.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
+    y_array.SetName("vy")
+    z_array = vtknp.numpy_to_vtk(vz.ravel(order='F'), deep=True, array_type=vtk.VTK_FLOAT)
+    z_array.SetName("vz")
 
-        # Interleave the x, y, and z components into the vector array
-        for i in range(vx.size):
-            vectors.InsertTuple3(i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i))
+    # Create a vector array
+    vectors = vtk.vtkFloatArray()
+    vectors.SetNumberOfComponents(3)
+    vectors.SetName("Vectors")
 
-        # Add vector array to PointData
-        pointData = imageData.GetPointData()
-        pointData.AddArray(vectors)
-        pointData.SetActiveVectors("Velocity")
+    # Interleave the x, y, and z components into the vector array
+    for i in range(vx.size):
+        vectors.InsertTuple3(i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i))
 
-        return imageData
+    # Add vector array to PointData
+    pointData = imageData.GetPointData()
+    pointData.AddArray(vectors)
+    pointData.SetActiveVectors("Velocity")
 
-def save_vtk_image_data(img, output_path):
+    return imageData
+
+def save_vtk_image_data(img:vtk.vtkImageData, output_path:str) -> None:
+    '''
+    Save VTK image data to a file.
+
+    Inputs:
+    - img: vtkImageData object containing the data to save
+    - output_path: path to the VTK file to save
+
+    Outputs:
+    - None (the file is saved to output_path)
+    '''
     writer = vtk.vtkStructuredPointsWriter()
     writer.SetInputData(img)
     writer.SetFileName(output_path)
     writer.Write()
+    return
 
-def save_points_as_polydata(coordinates, file_name):
+def save_points_as_polydata(coordinates:np.ndarray, file_name:str) -> None:
+    '''
+    Save 3D coordinates as VTK polydata.
+
+    Inputs:
+    - coordinates: numpy array of shape (n_points, 3) containing the 3D coordinates
+    - file_name: path to the VTK file to save
+
+    Outputs:
+    - None (the file is saved to file_name)
+    '''
     pts = vtk.vtkPoints()
     pts.SetData(vtknp.numpy_to_vtk(coordinates))
     poly = vtk.vtkPolyData()
@@ -57,8 +98,18 @@ def save_points_as_polydata(coordinates, file_name):
     writer.SetInputData(poly)
     writer.SetFileName(file_name)
     writer.Write()
+    return
 
-def load_polydata(file_name) -> vtk.vtkPolyData:
+def load_polydata(file_name:str) -> vtk.vtkPolyData:
+    '''
+    Load a VTK polydata file.
+
+    Inputs:
+    - file_name: path to the VTK file
+
+    Outputs:
+    - polydata: vtkPolyData object containing the data from the file
+    '''
     reader = vtk.vtkPolyDataReader()
     reader.SetFileName(file_name)
     reader.Update()
@@ -86,57 +137,6 @@ def convert_coordinates_from_volume_to_pc(vol_coord:np.ndarray, origin:float, gr
     pc_coord = origin + vol_coord*grid_spacing
     return pc_coord
 
-
-def get_random_early_points(self, condition:str, npoints:int, buffer:float=0.1, tmax:int=50) -> np.array:
-    # Sample no flow at early timepoints points for setting initial
-    # condition of the simulations
-    df_initial = self._df.loc[
-        (self._df.description==condition)&
-        (self._df["T"]<tmax)&
-        (self._df.PC1>(1-buffer)*self._bounds.xmin)&
-        (self._df.PC1<(1-buffer)*self._bounds.xmax)&
-        (self._df.PC2>(1-buffer)*self._bounds.ymin)&
-        (self._df.PC2<(1-buffer)*self._bounds.ymax)&
-        (self._df.PC3>(1-buffer)*self._bounds.zmin)&
-        (self._df.PC3<(1-buffer)*self._bounds.zmax)
-    ]
-    if len(df_initial) < npoints:
-        raise Exception(f"Number of points available in condition {condition} is {len(df_initial)}.")
-    df_initial = df_initial.sample(npoints).copy()
-    
-    for var, origin in zip(self._ss_vars, [self._bounds.xmin, self._bounds.ymin, self._bounds.zmin]):
-        df_initial[var] = self.convert_coordinates_from_pc_to_volume(xpc=df_initial[var], origin=origin)
-
-    print("Bounds of state space variables:")
-    coords = df_initial[self._ss_vars].values
-    print(coords.min(axis=0))
-    print(coords.max(axis=0))
-    if self._verbose:
-        print("Shape of sampled coordinated:")
-        print(coords.shape)
-    return coords
-
-
-
-def get_random_points(self, npoints: int, offset:int=5) -> np.array:
-    xmin, xmax = self._bounds.xmin, self._bounds.xmax
-    ymin, ymax = self._bounds.ymin, self._bounds.ymax
-    zmin, zmax = self._bounds.zmin, self._bounds.zmax
-    coords = [
-        [offset+(((vmax-vmin)/self._grid_spacing)-2*offset)*np.random.rand() for (vmin, vmax) in [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
-    ] for _ in range(npoints)]
-    coords = np.array(coords)
-    if self._verbose:
-        print("Shape of sampled coordinated:")
-        print(coords.shape)
-    return coords
-
-def calculate_simulation_speed(self, target_nframes: int=100) -> float:
-    TOTAL_DURATION_IN_HOURS = 48
-    speed = (TOTAL_DURATION_IN_HOURS*60/5)/target_nframes * self._mean_speed
-    if self._verbose:
-        print(f"Points' speed in the simulation for the target number of frames: {speed:.3f} pc units/min")
-    return speed
 
 def simulate_particles_in_flow_field(self, condition, filename_prefix:str=None, npoints=500, initial_coords=None, target_nframes=100, use_pc_units=False, clusters=0):
     # condition can be either a string or a list of string that serve

@@ -31,7 +31,7 @@ reducer = manifest_io.load_pca_model(output_savedir)
 # Model we want to use to generate reconstructed crops
 model_name = "diffae_04_10"
 
-mean_traj = np.load(output_savedir+"traj_dict.npy",allow_pickle=True).item()
+traj_dict = np.load(output_savedir+"traj_dict.npy",allow_pickle=True).item()
 # %%
 # Reconstruction of crops from latent space coordinates via DiffAE model
 # To note: you should run this script on a machine with a GPU, and you must
@@ -41,7 +41,7 @@ for condition in df.description.unique():
     print("Reconstructing crops for condition: ", condition)
 
     # get full mean trajectory
-    coords = mean_traj[condition]
+    coords = traj_dict[condition]
     
     # interpolate points evenly spaced along the trajectory
     interpolated_points = ddff.interpolate_on_curve(coords)

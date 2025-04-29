@@ -60,38 +60,45 @@ for _, df_ in df.groupby("dataset_name"):
     # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
     X_list, dX_list, dT_list = rh.get_X_dX_and_dT(df_,feat_cols=feat_cols)
     # get drift and diffusion estimates (Kramers-Moyal coefficients)
-    f_KM, _ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins=bins,dt=dt,method="kernel",kernel_params=kernel_params)
+    f_KM, D_KM = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins=bins,dt=dt,method="kernel",kernel_params=kernel_params)
     
-    # compute interpolated flow field
+    # compute interpolated flow field - drift
     flow_field_dict = ddff.compute_extrapolated_flow_field(f_KM, centers,interpolator="nearest")
+    # save flow field as vtk image data
+    vtk_io.save_flow_field_as_vtk(flow_field_dict, vtk_savedir+f"flow_field_{condition}.vtk")
 
-    # get and save vtk image data
-    imgdata = vtk_io.get_vtk_image_data_from_flow_field(flow_field_dict)
-    vtk_io.save_vtk_image_data(imgdata, output_path=vtk_savedir+f"flow_field_{condition}.vtk")
+    # compute interpolated diffusion field (diagonal diffusion tensor represented as 3D vector field)
+    diffusion_field_dict = ddff.compute_extrapolated_flow_field(D_KM, centers,interpolator="nearest")
+    # save diffusion field as vtk image data
+    vtk_io.save_flow_field_as_vtk(diffusion_field_dict, vtk_savedir+f"diffusion_field_{condition}.vtk")
 
-    # get mean trajectory from the data for comparison to ODE solver
-    # take mean of PC1, PC2, PC3 over crops at each time point,
-    # then take only the first time point (t=0) to get initial condition
+    ##### ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) #####
+    # with initial conditions given by the mean of the data at T=0
+
+    # get initial conditions for the ODE solver from data
     inits_mean = df_.groupby("T").mean(numeric_only=True)[feat_cols].values[0]
 
-    traj = ddff.solve_ddff_ode(flow_field_dict, inits_mean, t_span) # solve IVP, get back trajectory
+    # solve IVP, get back trajectory
+    traj = ddff.solve_ddff_ode(flow_field_dict, inits_mean, t_span) 
 
-    traj_dict[condition] = traj # trajectory to dictionary - saved out and used later to reconstruct crops
+    # trajectory to dictionary - saved out and used later to reconstruct crops
+    traj_dict[condition] = traj 
 
     # convert trajectory to volume coordinates and save out for vtk viz
     for tp in range(traj.shape[0]):
-        traj_vol = []
-        for j in range(3):
-            traj_vol.append(vtk_io.convert_coordinates_from_pc_to_volume(traj[tp,j], grid_spacing, bounds[j][0]))
-        traj_vol = np.array([traj_vol])
-        # save out point as vtk file
-        vtk_io.save_points_as_polydata(coordinates=traj_vol, file_name=vtk_savedir+f"trajectory_{condition}_{tp:05}.vtk")
+        # convert every 20 timepoints save out as vtk file
+        if tp % 20 != 0:
+            continue
+        else:
+            traj_vol = []
+            for j in range(3):
+                traj_vol.append(vtk_io.convert_coordinates_from_pc_to_volume(traj[tp,j], grid_spacing, bounds[j][0]))
+            traj_vol = np.array([traj_vol])
+            vtk_io.save_points_as_polydata(coordinates=traj_vol, file_name=vtk_savedir+f"trajectory_{condition}_{tp:05}.vtk")
 
     # call main flow field viz function (makes and saves plots)
-    # ffv.flow_field_viz_main(flow_field_dict,df_,traj,fig_savedir)
+    ffv.flow_field_viz_main(flow_field_dict,df_,traj,fig_savedir)
 
-    # free up memory
-    del df_
 
 # %%
 # save out dictionary of mean trajectories as npy file
