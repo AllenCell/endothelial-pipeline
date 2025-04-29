@@ -3,6 +3,7 @@ from pathlib import Path
 from cellsmap.util import dataset_io
 from bioio import BioImage
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 #%%
 print('Available datasets:')
 dataset_name_list = dataset_io.get_available_datasets()
@@ -44,4 +45,43 @@ for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='
             img = BioImage(position_path)
     except Exception as e:
         print(f"Failed to open zarr for dataset {dataset_name}: {e}")
+
+#%% Quickly visualize crop in first position, first timepoint of each zarr to confirm channel order is correct
+for dataset_name in dataset_name_list:
+    print(f"Dataset: {dataset_name}")
+    config_data = dataset_io.get_dataset_info(dataset_name)
+    zarr_path = Path(config_data['zarr_path'])
+
+    position_path = get_position_zarr_path(zarr_path, 0)
+    img = BioImage(position_path)
+    print(f"Image shape: {img.shape}")
+    n_channels = img.shape[1]
+
+    def get_channel_crop(img, T, C, crop_size=(128, 128)):
+        """Helper function to get cropped data for a specific channel."""
+        return img.get_image_dask_data("ZYX", T=T, C=C)[
+            :,  # Keep all Z-slices
+            0:crop_size[0],  # Crop along Y-axis
+            0:crop_size[1]   # Crop along X-axis
+        ]
+
+    # Compute projections for all channels
+    channel_projections = []
+    for c in range(n_channels):
+        channel = get_channel_crop(img, T=0, C=c)
+        if c == 1:  # Special case for Channel 1 (BF): use center slice
+            projection = channel[channel.shape[0] // 2, :, :]
+        else:  # Default: use max projection
+            projection = channel.max(axis=0)
+        channel_projections.append(projection)
+
+    # Plot all channels
+    fig, axes = plt.subplots(1, n_channels, figsize=(6 * n_channels, 6))
+    if n_channels == 1:
+        axes = [axes]  # Ensure axes is iterable for a single channel
+    for c, ax in enumerate(axes):
+        ax.imshow(channel_projections[c], cmap='gray')
+        ax.set_title(f'{dataset_name} - Channel {c}')
+    plt.show()
+        
 #%%

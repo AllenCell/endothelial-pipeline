@@ -148,9 +148,9 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20241217_20X, # will get new FMS id .. original data needs to be re-uploaded
-  original_path: "//allen/aics/endothelial/morphological_features/image_data/original_data/20241217_GE00006535_20X_timelapse_sldy/20241217_GE00006535_20X_timelapse_SLDY.sldy",
-  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_23e702041f144d0d8caf0a56ea8736da", 
-  fmsid: "23e702041f144d0d8caf0a56ea8736da",
+  original_path: "//allen/programs/allencell/data/proj0/cfb/696/9de/19e/f96/498/74b/18f/348/efe/ec/20241217_GE00006535_20X_timelapse_sldy/20241217_GE00006535_20X_timelapse_SLDY.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_ecefe34818f74b498f9619e9de696cfb", 
+  fmsid: "ecefe34818f74b498f9619e9de696cfb",
   barcode: GE00006535,
   cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
@@ -313,10 +313,10 @@
   nuclear_seg_manifest_fmsid: "",
   diffae_manifest_fmsid: "", 
 },{
-  name: 20250122_SMAD1, # to do
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250122/20250122_GE00006322_SMAD1_SLDY.sldy",
-  zarr_path: None,
-  fmsid: "",
+  name: 20250122_SMAD1,
+  original_path: "//allen/programs/allencell/data/proj0/64a/773/f5c/a3b/43b/ed8/74e/3fa/b22/139/b0/20250122_GE00006322_20X_SMAD1_sldy/20250122_GE00006322_SMAD1_SLDY.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250122_b0139b223fa74eed843ba3bf5c77364a",
+  fmsid: "b0139b223fa74eed843ba3bf5c77364a",
   barcode: GE00006322,
   cell_lines: [AICS-126,],
   live_or_fixed_sample: fixed,
@@ -726,14 +726,14 @@
   brightfield_channel_index: 1, 
   n_nuclear_seg_manifest_fmsid: "",
   n_total_positions: 6, # positions are represented as timeframes in the dataset
-  notes: "Stopped imaging prior to 48 hours because cells were very packed, intermediate shear stress",
+  notes: "Stopped imaging prior to 48 hours because cells were very packed",
   nuclear_label_free_seg_path: "",
   diffae_manifest_fmsid: "", 
 },{
   name: 20250326_20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250326/20250326_GE00007488_20X_timelapse_sldy.sldy",
-  zarr_path: none,
-  fmsid: "",
+  original_path: "//allen/programs/allencell/data/proj0/353/acc/1d4/7ad/611/c5a/c44/262/ddf/97a/eb/20250326_GE00007488_20X_timelapse_sldy/20250326_GE00007488_20X_timelapse_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250326_eb97addf262c44c5a6117ad1d4acc353",
+  fmsid: "eb97addf262c44c5a6117ad1d4acc353",
   barcode: GE00007488,
   cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
@@ -741,11 +741,11 @@
   shear_stress_regime: intermediate,
   use_cases: [],
   pixel_size_xy_in_um: 0.382,
-  duration: 577, # double check
+  duration: 577, 
   time_interval_in_minutes: 5.0,
   flow: [[0, 576, 15.74]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
-  egfp_channel_index: 0, # double check
-  brightfield_channel_index: 1, # double check
+  egfp_channel_index: 0, 
+  brightfield_channel_index: 1, 
   n_total_positions: 6,
   notes: "",
   nuclear_label_free_seg_path: "",
@@ -754,9 +754,9 @@
 }, 
 {
   name: 20250331_20X,
-  original_path: "//allen/aics/microscopy/Endo Timelapses/20250331/20250331_GE00007559_20X_timelapse_sldy.sldy",
-  zarr_path: none,
-  fmsid: "",
+  original_path: "//allen/programs/allencell/data/proj0/edc/ed9/2ac/52b/a30/c1a/b40/027/33e/c86/92/20250331_GE00007559_20X_timelapse_sldy/20250331_GE00007559_20X_timelapse_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250331_92c8633e027b40c1aa3052b2aced9edc",
+  fmsid: "92c8633e027b40c1aa3052b2aced9edc",
   barcode: GE00007559,
   cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
@@ -764,11 +764,11 @@
   shear_stress_regime: 24hr_high-to-24hr_low,
   use_cases: [],
   pixel_size_xy_in_um: 0.382,
-  duration: 577, # double check
+  duration: 577,
   time_interval_in_minutes: 5.0,
   flow: [[0, 275, 24.39], [276, 577, 5.83]], # format: [[start_time_in_frames, end_time_in_frames, flow in dyn/cm2], ...]
-  egfp_channel_index: 0, # double check
-  brightfield_channel_index: 1, # double check
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
   n_total_positions: 6,
   notes: "Frame of flow switch was ~275.",
   nuclear_label_free_seg_path: "",
@@ -798,7 +798,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250415_SlideE_20X,
-  original_path: //allen/aics/endothelial/morphological_features/image_data/original_data/20250415/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy,
+  original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy,
   zarr_path: None,
   fmsid: "",
   barcode: GE00007101,
@@ -840,5 +840,49 @@
   n_total_positions: 50, # positions are represented as timeframes in the dataset
   nuclear_label_free_seg_path: "",
   diffae_manifest_fmsid: "", 
+},
+{
+  name: 20250402_20X,
+  original_path: "//allen/programs/allencell/data/proj0/269/7fb/469/95b/849/efa/440/8f1/b7d/e37/90/20250402_GE00007594_20X_timelapse_sldy/20250402_GE00007594_20X_timelapse_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250402_90e37b7d8f1440efa84995b4697fb269",
+  fmsid: "90e37b7d8f1440efa84995b4697fb269",
+  barcode: GE00007594,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 48hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 571,
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 570, 5.85]],
+  egfp_channel_index: 0, 
+  brightfield_channel_index: 1,
+  n_total_positions: 6,
+  notes: "cells become extremely crowded at end of video",
+  nuclear_label_free_seg_path: "",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "",
+},
+{
+  name: 20250409_20X,
+  original_path: "//allen/programs/allencell/data/proj0/ac1/24e/dd5/23a/579/6f9/94c/bbc/a02/6b2/df/20250409_GE00007696_20X_timelapse_sldy/20250409_GE00007696_20X_timelapse_sldy.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250409_df6b2a02bbc94c6f957923add524eac1",
+  fmsid: "df6b2a02bbc94c6f957923add524eac1",
+  barcode: GE00007696,
+  live_or_fixed_sample: live,
+  microscope: 3i,
+  shear_stress_regime: 48hr_low,
+  use_cases: [],
+  pixel_size_xy_in_um: 0.382,
+  duration: 544,
+  time_interval_in_minutes: 5.0,
+  flow: [[0, 543, 5.24]],
+  egfp_channel_index: 0,
+  brightfield_channel_index: 1,
+  n_total_positions: 6,
+  notes: "cells become very crowded near end of timelapse",
+  nuclear_label_free_seg_path: "",
+  nuclear_seg_manifest_fmsid: "",
+  diffae_manifest_fmsid: "",
 }
 ]
