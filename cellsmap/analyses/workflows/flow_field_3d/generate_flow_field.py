@@ -45,7 +45,7 @@ bins, centers = rh.get_bins(Nbins, bin_limits=bounds)
 
 # time stepping for the flow field and later for the ODE solver
 dt = 5
-t_span = [0,1750] # 48 hours in frames (5 min/frame)
+t_span = [0,1750] # units for time steps are on the order of minutes
 traj_dict = {}
 save_traj_points = False
 
