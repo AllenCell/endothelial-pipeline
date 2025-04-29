@@ -10,10 +10,6 @@ __pycache__/
 *.mypy_cache/
 *.ipynb_checkpoints/
 
-# PDM lock file
-pdm.lock
-.pdm-python
-
 # PDM virtual environment directory
 .pdm-python
 .python-version
@@ -31,7 +27,6 @@ venv/
 
 # Log files
 *.log
-*.txt
 
 # Image files
 *.png
@@ -50,4 +45,3 @@ analyses/results/
 
 # ignore CellPose models which can be quite large
 cellsmap/analyses/nuclei_predictions/models/
-
