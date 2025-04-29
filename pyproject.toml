@@ -56,12 +56,24 @@ ml_workflows = [
     "monai>=1.4.0",
     "mlflow>=2.21.2",
 ]
-cellpose = [
-    "cellpose>=3.1",
+cellpose-a100 = [
+    "cellpose==3.0.11",
     "torch==1.13.1+cu116",
     "torchvision==0.14.1+cu116",
     "torchaudio==0.13.1",
 ]
+cellpose = [
+    "cellpose==3.0.11",
+    "torch==1.13.1",
+    "torchvision==0.14.1",
+    "torchaudio==0.13.1",
+]
+
+[[tool.pdm.source]]
+name = "cellpose-a100"
+url = "https://download.pytorch.org/whl/cu116"
+verify_ssl = true
+include_packages = ["torch", "torchvision", "torchaudio"]
 
 [build-system]
 requires = ["pdm-pep517>=1.0"]
