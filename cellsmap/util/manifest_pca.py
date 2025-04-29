@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import pandas as pd
 
-from cellsmap.util.manifest_io import get_diffae_manifest, get_feature_cols
+from cellsmap.util import manifest_io
 from cellsmap.util.dataset_io import get_reference_datasets, get_dataset_info
 
 # this is to suppress the SettingWithCopyWarning
@@ -72,21 +72,18 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
     if 'dataset' not in df.columns:
         raise ValueError('Data must have a column for dataset')
     df['pca_ref'] = False
-    datasets_present = df.dataset.unique()
-    for dataset_name in get_reference_datasets():
-        dataset_info = get_dataset_info(dataset_name)
-        # check that the necessary datasets are present for fitting PCA
-        if dataset_name not in datasets_present:
-            raise ValueError(f'Dataset {dataset_name} not present in the data but required for fitting PCA.')
-        valid_timepoints = dataset_info.get('valid_timepoints')
-        if valid_timepoints is None:
-            df.loc[df.dataset == dataset_name, 'pca_ref'] = True
-        else:
-            tps  = []
-            for start, stop in zip(valid_timepoints['start'], valid_timepoints['stop']):
-                tps.extend(list(range(start, stop + 1)))
-            valid_subset = df[df.dataset == dataset_name].frame_number.isin(tps)
-            df.loc[df.dataset == dataset_name, 'pca_ref'] = valid_subset
+    dataset_name = df.dataset.unique()
+    dataset_info = get_dataset_info(dataset_name)
+    # check that the necessary datasets are present for fitting PCA
+    valid_timepoints = dataset_info.get('valid_timepoints')
+    if valid_timepoints is None:
+        df['pca_ref'] = True
+    else:
+        tps  = []
+        for start, stop in zip(valid_timepoints['start'], valid_timepoints['stop']):
+            tps.extend(list(range(start, stop + 1)))
+        valid_subset = df.frame_number.isin(tps)
+        df['pca_ref'] = valid_subset
     return df[df.pca_ref]
 
 def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
@@ -105,7 +102,7 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
     reference_datasets = get_reference_datasets()
     data_ref = []
     for name in reference_datasets:
-        df_ = get_diffae_manifest(name) # get the manifest for the dataset
+        df_ = manifest_io.get_diffae_manifest(name) # get the manifest for the dataset
         df_ = get_pca_reference(df_) # get df with only the reference timepoints for fitting PCA
         data_ref.append(df_) # append the reference timepoints to the list
 
@@ -126,7 +123,7 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
             ('pca', PCA(n_components=num_pcs, svd_solver='full'))
         ])
     # get the feature columns from the data, these are the columns that start with 'feat_'
-    feature_cols = get_feature_cols(data_ref)
+    feature_cols = manifest_io.get_feature_cols(data_ref)
     pipe.fit(data_ref[feature_cols].values) # fit PCA
 
     if verbose: # print explained variance ratios
@@ -166,7 +163,7 @@ def fit_pca_OLD(data: pd.DataFrame, num_pcs: int, scale:bool = False, verbose:bo
         pipe = Pipeline([
             ('pca', PCA(n_components=num_pcs, svd_solver='full'))
         ])
-    feature_cols = get_feature_cols(data)
+    feature_cols = manifest_io.get_feature_cols(data)
     pipe.fit(data_ref[feature_cols].values) # fit PCA
 
     if verbose: # print explained variance ratios

@@ -2,10 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 import os
-from pathlib import Path
 import pickle
 from cellsmap.util import dataset_io
-from cellsmap.util.manifest_pca import get_outliers
 import platform
 
 
@@ -241,10 +239,12 @@ def project_PCA_one_dataset(df:pd.DataFrame,pca:Pipeline,ds_name:str) -> pd.Data
     # this is assuming that there are 8 feature columns, will need to change if this is not the case
     feat_cols=get_feature_cols(df)
 
-    # project feature data onto PCA axes, replace feature columns with features projected onto PCA axes
-    df.loc[:,feat_cols] = pca.transform(df[feat_cols].values)
+    df_ = df.copy() # make copy of DataFrame to avoid modifying original DataFrame
 
-    return df
+    # project feature data onto PCA axes, replace feature columns with features projected onto PCA axes
+    df_.loc[:,feat_cols] = pca.transform(df_[feat_cols].values)
+
+    return df_
 
 def df_to_array(df_:pd.DataFrame,feat_cols:list) -> np.ndarray:
     '''

@@ -96,7 +96,7 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
     '''
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
     list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
-    title_dict = mio.get_descriptive_metadata(list_of_datasets,simple=True) # get description of dataset by flow conditions, for title of subfig
+    title_dict = mio.get_dataset_descriptions(list_of_datasets,simple=True) # get description of dataset by flow conditions, for title of subfig
 
     # initialize figure with subfigures for each dataset
     n_ = len(list_of_datasets)
