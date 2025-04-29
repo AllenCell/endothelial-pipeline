@@ -23,85 +23,81 @@ def set_3D_bounds_from_data(x: np.array, y: np.array, z: np.array, excluded_frac
         bounds.append(np.percentile(var, [excluded_fraction, 100-excluded_fraction]))
     return bounds
 
-def compute_extrapolated_flow_field(drift_kmcs:np.ndarray, 
+def compute_extrapolated_vector_field(kmcs:np.ndarray, 
                                     grid_centers:list[np.ndarray], 
-                                    interpolator:str="nearest",
-                                    verbose:bool=True) -> dict:
+                                    interpolator:str="nearest") -> dict:
     '''
-    Get flow field dx/dt = f(x) via estimates of drift (first Kramers-Moyal coefficient)
-    for a given condition.
+    Get extrapolated 3D vector field F(x) via estimates of of that vector field 
+    (i.e., first or second Kramers-Moyal coefficients: drift or diffusion) from the data
+    for a given experimental condition.
 
     Inputs:
-    - drift_kmcs: 3D array of drift estimates (shape: (num_bins_x, num_bins_y, num_bins_z, 3))
+    - kmcs: 3D array of drift or diffusion estimates (shape: (num_bins_x, num_bins_y, num_bins_z, 3))
         - Computed via the cellsmap.analyses.utils.regression_helper.get_kramers_moyal using the kernel-based method
     - grid_centers: 1D numpy arrays with the grid points in each dimension (centers of bins of x,y,z space)
     - interpolator (optional, default="nearest"): interpolation method by which to infer flow field at 
         points where data is scarce (drift_kmcs = np.nan)
         - options are "nearest" (nearest neighbors) and "linear" (linear interpolation)
-    - verbose: (optional, default True): if true, print statements
 
     Outputs:
-    - flow_field_dict: dictionary with the following keys:
-        - "velocities": tuple of 3D arrays (dU, dV, dQ) with the velocities in each dimension
+    - vector_field_dict: dictionary with the following keys:
+        - "vectors": tuple of 3D arrays (F1,F2,F3) with the vector values in each dimension
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
     '''
 
     # generate a mesh grid of points in the state space
     xgrid, ygrid, zgrid = np.meshgrid(*grid_centers, indexing='ij') # make meshgrid
     
-    if verbose:
-        print("Shape of grid:")
-        print(xgrid.shape, ygrid.shape, zgrid.shape)
-    
-    assert drift_kmcs.shape == (len(grid_centers[0]), len(grid_centers[1]), len(grid_centers[2]), 3), \
-        f"Shape of flow field {drift_kmcs.shape} does not match shape of grid {xgrid.shape}."
+    assert kmcs.shape == (len(grid_centers[0]), len(grid_centers[1]), len(grid_centers[2]), 3), \
+        f"Shape of vector field {kmcs.shape} does not match shape of grid {xgrid.shape}."
 
-    # flow field: dx/dt = f(x) (drift, first Kramers-Moyal coefficient)
-    dU = drift_kmcs[...,0]
-    dV = drift_kmcs[...,1]
-    dQ = drift_kmcs[...,2]
+    # vector field F(x)
+    F1 = kmcs[...,0]
+    F2 = kmcs[...,1]
+    F3 = kmcs[...,2]
 
     # where KMCs have been masked to nan, extrapolate 
     # via nearest neighbors.
     # use spinterp.interpn with method='nearest'
     # Find the indices of valid (non-NaN) points
-    valid_mask = ~np.isnan(dU)
+    valid_mask = ~np.isnan(F1)
     valid_points = np.array(np.nonzero(valid_mask)).T  # Get the coordinates of valid points
-    valid_values_U = dU[valid_mask]  # Get the corresponding values for dU
-    valid_values_V = dV[valid_mask]  # Get the corresponding values for dV
-    valid_values_Q = dQ[valid_mask]  # Get the corresponding values for dQ
+    valid_values_F1 = F1[valid_mask]  # Get the corresponding values for dU
+    valid_values_F2 = F2[valid_mask]  # Get the corresponding values for dV
+    valid_values_F3 = F3[valid_mask]  # Get the corresponding values for dQ
 
-    # Create interpolators for dU, dV, and dQ
+    # Create interpolators for each component of the vector field
     if interpolator == "nearest": # nearest neighbor
-        interpolator_U = spinterp.NearestNDInterpolator(valid_points, valid_values_U)
-        interpolator_V = spinterp.NearestNDInterpolator(valid_points, valid_values_V)
-        interpolator_Q = spinterp.NearestNDInterpolator(valid_points, valid_values_Q)
+        interpolator_F1 = spinterp.NearestNDInterpolator(valid_points, valid_values_F1)
+        interpolator_F2 = spinterp.NearestNDInterpolator(valid_points, valid_values_F2)
+        interpolator_F3 = spinterp.NearestNDInterpolator(valid_points, valid_values_F3)
     elif interpolator == "linear": # linear interpolation
-        interpolator_U = spinterp.LinearNDInterpolator(valid_points, valid_values_U)
-        interpolator_V = spinterp.LinearNDInterpolator(valid_points, valid_values_V)
-        interpolator_Q = spinterp.LinearNDInterpolator(valid_points, valid_values_Q)
+        interpolator_F1 = spinterp.LinearNDInterpolator(valid_points, valid_values_F1)
+        interpolator_F2 = spinterp.LinearNDInterpolator(valid_points, valid_values_F2)
+        interpolator_F3 = spinterp.LinearNDInterpolator(valid_points, valid_values_F3)
     else:
         raise ValueError(f"Interpolator {interpolator} not recognized. Use 'nearest' or 'linear'.")
 
     # Find the indices of all points (including NaN points)
-    all_points = np.array(np.indices(dU.shape)).reshape(len(dU.shape), -1).T
+    all_points = np.array(np.indices(F1.shape)).reshape(len(F1.shape), -1).T
 
     # Interpolate the NaN points
-    dU = interpolator_U(all_points).reshape(dU.shape)
-    dV = interpolator_V(all_points).reshape(dV.shape)
-    dQ = interpolator_Q(all_points).reshape(dQ.shape)
+    F1 = interpolator_F1(all_points).reshape(F1.shape)
+    F2 = interpolator_F2(all_points).reshape(F2.shape)
+    F3 = interpolator_F3(all_points).reshape(F3.shape)
 
-    flow_field_dict = {"velocities": (dU, dV, dQ), "grid": (xgrid, ygrid, zgrid)}
+    # Create a dictionary to store the vector field and grid
+    vector_field_dict = {"vectors": (F1,F2,F3), "grid": (xgrid, ygrid, zgrid)}
 
-    return flow_field_dict
+    return vector_field_dict
 
-def get_callable_flow_field(flow_field_dict:dict) -> Callable:
+def get_callable_vector_field(vector_field_dict:dict) -> Callable:
     """
-    Get a callable flow field via linear interpolation on computed values of f on the grid.
+    Get a callable vector field via linear interpolation on computed values of f on the grid.
 
     Inputs:
-    - flow_field_dict: dictionary with the following keys:
-        - "velocities": tuple of 3D arrays (dU, dV, dQ) with the velocities in each dimension
+    - vector_field_dict: dictionary with the following keys:
+        - "vectors": tuple of 3D arrays (F1,F2,F3) with the vector values in each dimension
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
     
     Outputs:
@@ -111,20 +107,20 @@ def get_callable_flow_field(flow_field_dict:dict) -> Callable:
     """
 
     # get the interpolator for f_KM
-    f_grid = np.stack(flow_field_dict["velocities"], axis=-1) # shape (num_bins_x, num_bins_y, num_bins_z, 3)
-    X = np.moveaxis(np.array(flow_field_dict["grid"]),0,-1).reshape((-1,3))    
-    f_interp = spinterp.LinearNDInterpolator(X, f_grid.reshape((-1, 3))) # interpolator for f_KM
+    F_grid = np.stack(vector_field_dict["vectors"], axis=-1) # shape (num_bins_x, num_bins_y, num_bins_z, 3)
+    X = np.moveaxis(np.array(vector_field_dict["grid"]),0,-1).reshape((-1,3))    
+    F_interp = spinterp.LinearNDInterpolator(X, F_grid.reshape((-1, 3))) # interpolator for f_KM
 
     # define a callable function to pass into the ODE solver
     # for scipy.integrate.solve_ivp, need time as first argument
     # and x as second argument even if the system is time-independent
-    def my_flow(t,x):
+    def F(t,x):
         # get interpolated value
-        f_interp_val = f_interp(x)
+        F_interp_val = F_interp(x)
         # return dx/dt = f(x)
-        return f_interp_val
+        return F_interp_val
     
-    return my_flow
+    return F
 
 def solve_ddff_ode(flow_field_dict:dict,init:np.ndarray,t_span:list[float],num_T:int=1750) -> np.ndarray:
     """
@@ -132,7 +128,7 @@ def solve_ddff_ode(flow_field_dict:dict,init:np.ndarray,t_span:list[float],num_T
 
     Inputs:
     - flow_field_dict: dictionary with the following keys:
-        - "velocities": tuple of 3D arrays (dU, dV, dQ) with the velocities in each dimension
+        - "vectors": tuple of 3D arrays (f1, f2, f3) with the velocities in each dimension
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
     - init: initial condition for the trajectory (shape (3,))
     - t_span: time span for the ODE solver (list of two floats)
@@ -142,7 +138,7 @@ def solve_ddff_ode(flow_field_dict:dict,init:np.ndarray,t_span:list[float],num_T
     - sol: solution of the ODE with the given initial condition (shape (num_T, 3))
 
     """
-    my_flow = get_callable_flow_field(flow_field_dict) # turn flow field into callable function (works via interpolation)
+    my_flow = get_callable_vector_field(flow_field_dict) # turn flow field into callable function (works via interpolation)
     t_eval = np.linspace(t_span[0],t_span[1],num_T) # timepoints at which to evaluate the solution
     sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval) # solve the IVP
     return sol.y.T # get trajectory, shape (num_T, 3) (3D trajectory in state space)

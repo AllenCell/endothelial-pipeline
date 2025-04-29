@@ -8,7 +8,7 @@ def save_vector_field_as_vtk(vector_field_dict, output_path) -> None:
 
     Parameters:
     - vector_field_dict: Dictionary containing the vector field data.
-        - "velocities": Tuple of 3D arrays (vx, vy, vz) with the vector values in each dimension.
+        - "vectors": Tuple of 3D arrays (vx, vy, vz) with the vector values in each dimension.
         - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension.
     - output_path: Path to save the VTK file.
     """
@@ -22,15 +22,15 @@ def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
 
     Inputs:
     - vector_field_dict: dictionary with the following keys:
-        - "velocities": tuple of 3D arrays (vx, vy, vz) with the vector values in each dimension
+        - "vectors": tuple of 3D arrays (vx, vy, vz) with the vector values in each dimension
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
     
     Outputs:
     - imageData: vtkImageData object with the vector field data
     '''
-    vx = vector_field_dict["velocities"][0]
-    vy = vector_field_dict["velocities"][1]
-    vz = vector_field_dict["velocities"][2]
+    vx = vector_field_dict["vectors"][0]
+    vy = vector_field_dict["vectors"][1]
+    vz = vector_field_dict["vectors"][2]
 
     dims = vx.shape
 
