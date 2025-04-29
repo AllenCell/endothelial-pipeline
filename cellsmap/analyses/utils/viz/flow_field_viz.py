@@ -74,7 +74,7 @@ def plot_quiver_slices(flow_field_dict:dict,
                        norm:bool=True,
                        fig_ax:Tuple|None=None) -> Tuple[plt.Figure, plt.Axes]:
     # get flow field
-    dU, dV, dQ = flow_field_dict["velocities"]
+    dU, dV, dQ = flow_field_dict["vectors"]
 
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -119,7 +119,7 @@ def plot_one_slice_streamplot(velocities:Tuple,
 def plot_streamplot_slices(flow_field_dict:dict,
                            slice_indexes:Tuple[np.ndarray]) -> Tuple[plt.Figure, Tuple[plt.Axes]]:
     # get flow field
-    dU, dV, dQ = flow_field_dict["velocities"]
+    dU, dV, dQ = flow_field_dict["vectors"]
 
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
