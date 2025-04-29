@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from cyto_dl.api import CytoDLModel
-from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P, load_config, write_config
+from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P
 from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
@@ -95,7 +95,7 @@ def load_overrides(overrides: Union[str, Dict]) -> Dict:
         raise ValueError('Overrides must be a dictionary or a string')
     return overrides
 
-def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, update_data_config: bool= True, save_path: Union[str, Path] = None, overrides:Union[str, Dict]={}):
+def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, save_path: Union[str, Path] = None, overrides:Union[str, Dict]={}):
     """
     Apply a model to a single dataset.
 
@@ -109,8 +109,6 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
-    update_data_config: bool
-        Whether to update the data config with the FMS ID of the prediction file. Default is True. For the data config to be updated, `upload_to_fms` must also be True.
     save_path: str
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     overrides: str or dict
@@ -161,9 +159,11 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
 
     return prediction_path  
 
-def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level: int = 0, upload_to_fms: bool = True, update_data_config: bool = True, save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
+def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level: int = 0, upload_to_fms: bool = True,  save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
     """
     Apply a model to a multiple datasets.
+    Example usage: python apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+
 
     Parameters
     ----------
@@ -175,8 +175,6 @@ def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level:
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
-    update_data_config: bool
-        Whether to update the data config with the FMS ID of the prediction file. Default is True. For the data config to be updated, `upload_to_fms` must also be True.
     save_path: str
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     overrides: str or dict
@@ -185,7 +183,7 @@ def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level:
     if isinstance(dataset_names, str):
         dataset_names = [dataset_names]
     for name in dataset_names:
-        apply_model_single(model_name=model_name, dataset_name=name, resolution_level=resolution_level, upload_to_fms=upload_to_fms, update_data_config=update_data_config, save_path=save_path, overrides=overrides)
+        apply_model_single(model_name=model_name, dataset_name=name, resolution_level=resolution_level, upload_to_fms=upload_to_fms, save_path=save_path, overrides=overrides)
 
 if __name__ == '__main__':
     fire.Fire(apply_model)
