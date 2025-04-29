@@ -17,7 +17,7 @@ def run_workflow(queue):
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df['T'].tolist()
     scene_index, position = int(queue_df['scene_index'].unique()[0]), queue_df['position'].unique()[0]
-    save_output = queue_df['save_output'].unique()[0]
+    image_validation_frequency = queue_df['image_validation_frequency'].unique()[0]
     verbose = queue_df['verbose'].unique()[0]
     out_dir = queue_df['output_dir'].unique()[0] / f'{dataset_name}/P{position}'
     out_filename_prefix = f'{dataset_name}_P{position}'
@@ -53,13 +53,14 @@ def run_workflow(queue):
                      sorting_key=preproc.extract_T,
                      C=segmentation_channel,
                      T=T_to_eval,
-                     extra_in_dir=raw_filepath,
-                     extra_C=raw_channel,
-                     extra_scene=scene_index,
-                     extra_T=T_to_eval,
+                    #  extra_in_dir=raw_filepath,
+                    #  extra_C=raw_channel,
+                    #  extra_scene=scene_index,
+                    #  extra_T=T_to_eval,
                      Z_projection=np.max,
+                     track_tolerance=3,
                      img_metadata=img_metadata,
-                     save_output=save_output,
+                     image_validation_frequency=image_validation_frequency,
                      verbose=verbose)
 
     else:
@@ -73,7 +74,8 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                             for config_data in load_config(config_type='data')
                             if (config_data['microscope'] == '3i'
                                 and config_data['live_or_fixed_sample'] == 'live')
-                                and 'AICS-126' in config_data['cell_lines']]
+                                and 'AICS-126' in config_data['cell_lines']
+                                and config_data['duration'] > 1]
     else:
         dataset_name_list = [dataset_name]
 
@@ -83,7 +85,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                                           overwrite=True,
                                           verbose=verbose,
                                           is_test=is_test,
-                                          image_validation_frequency=1,
+                                          image_validation_frequency=0,
                                           use_original_data=True)
 
     analysis_queue_df = pd.DataFrame(analysis_queue)
@@ -93,7 +95,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
         if __name__ == '__main__':
             print('Starting multiprocessing...')
             with Pool(processes=n_proc) as pool:
-                list(tqdm(pool.imap(run_workflow, analysis_queue_per_position, chunksize=1), total=len(analysis_queue_per_position)))
+                list(tqdm(pool.imap(run_workflow, analysis_queue_per_position, chunksize=1), total=len(analysis_queue_per_position), desc='Positions completed'))
                 pool.close()
                 pool.join()
             print('Done multiprocessing.')

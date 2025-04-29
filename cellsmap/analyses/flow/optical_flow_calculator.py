@@ -7,6 +7,7 @@ from matplotlib import gridspec as gs
 from skimage import registration as skreg
 from skimage.draw import circle_perimeter
 from skimage.filters import gaussian
+from skimage.exposure import rescale_intensity
 from sklearn.decomposition import PCA
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from pathlib import Path
@@ -63,12 +64,13 @@ class FlowCalculator():
     ncores = 1 # Number of cores to be used in the calculation
     radius = 30 # Radius of the neighborhood after downscaling
 
-    def __init__(self, dataset, debug=False):
+    def __init__(self, dataset, position_or_scene_index, debug=False):
         self.dataset = dataset
+        self.position = position_or_scene_index
         if debug:
             self.set_debug_mode_on()
 
-    def initialize(self, channel: list[str], delta_t: int=1, load_from_file=None, ncores: int=20):
+    def initialize(self, channel: list[str], delta_t: int=1, level: int=1, load_from_file=None, ncores: int=20):
         """
         channel: list[str]
             A list of the names of the channels to be loaded from the dataset.
@@ -76,18 +78,21 @@ class FlowCalculator():
             The difference between the start and end timeframes when calculating the flow field vectors.
         """
         self.channel = channel
-        self.channel_index = dataset_io.get_channel_index(self.dataset, channel)
+        zarr_name = dataset_io.get_zarr_name(self.dataset, self.position)
+        self.channel_index = dataset_io.get_channel_index(self.dataset, channel)[zarr_name]
         assert len(self.channel) == 1 and len(self.channel) == 1, f"Only one channel is implemented for flow calculation. Channels provided were {self.channel} corresponding to channel indices {self.channel_index}."
         self.delta_t = delta_t
-        self.load_dataset()
+        self.load_dataset(level)
         # self.dims = dict(zip('TCYX', self.data.shape))
         # self.dim_order = dict(zip('TCYX', range(len(self.data.shape))))
         if load_from_file:
             self.load_flow_from_file(load_from_file)
         self.set_number_of_cores(ncores)
 
-    def load_dataset(self):
-        self.data = dataset_io.load_dataset(self.dataset, channels=self.channel, level=2)
+    def load_dataset(self, level):
+        # self.data = dataset_io.load_dataset(self.dataset, channels=self.channel, level=2)
+        img_data = dataset_io.load_dataset_position_as_dask_array(self.dataset, self.position, self.channel, level=level) # level=2 not present in ZARRs anymore
+        self.data = img_data.max(axis=dataset_io.get_dim_map('TCZYX')['Z'])
 
     def load_flow_from_file(self, fname):
         with open(fname, "rb") as fpk:
@@ -132,8 +137,10 @@ class FlowCalculator():
         self.tps = tps
 
     def compute_flow_at_timepoint(self, time):
-        raw0 = self.data[time, 0]
-        raw1 = self.data[time+self.delta_t, 0]
+        # note that the compute_flow will return an empty array for vx and vy
+        # the image intensity is not bright enough, therefore we rescale it
+        raw0 = rescale_intensity(self.data[time, 0], out_range=self.data.dtype.type)
+        raw1 = rescale_intensity(self.data[time+self.delta_t, 0], out_range=self.data.dtype.type)
         (vx, vy) = self.compute_flow(raw0, raw1, radius=self.radius)
         return (raw1, vx, vy)
 
@@ -233,7 +240,10 @@ class FlowCalculator():
         plt.tight_layout()
 
         canvas.draw()
-        plot = np.frombuffer(canvas.buffer_rgba(), dtype="uint8")
+        plot = np.frombuffer(canvas.buffer_rgba(), dtype="uint8").copy()
+        # the .copy() at the end above is required so that the plot is
+        # not cleared when calling plt.show(); this way you can both show
+        # the plot with display=True and return it with return_map=True
         plot = plot.reshape(fig.canvas.get_width_height()[::-1] + (4,))
 
         if display:
@@ -276,14 +286,14 @@ class FlowCalculator():
         self.calculate_flow_velocity()
         self.calculate_instantaneous_velocity()
 
-def compute_and_save_flow_field(out_dir, dataset_name, delta_t=1, executor=None, ncores=1, debug=False):
+def compute_and_save_flow_field(out_dir, dataset_name, position, delta_t=1, level=1, executor=None, ncores=1, debug=False):
     print(f'Analyzing dataset: {dataset_name}')
 
     # Initialize the flow field calculator
-    flowc = FlowCalculator(dataset=dataset_name, debug=debug)
-    channel_name = [chan for chan in dataset_io.get_available_channels(dataset_name) if chan in ('CDH5_Tubulin', 'CDH5')]
+    flowc = FlowCalculator(dataset=dataset_name, position_or_scene_index=position, debug=debug)
+    channel_name = ['EGFP']
     print('initializing...')
-    flowc.initialize(channel=channel_name, delta_t=delta_t, ncores=ncores)
+    flowc.initialize(channel=channel_name, delta_t=delta_t, level=level, ncores=ncores)
 
     # Compute the flow field
     print('computing flow field...')

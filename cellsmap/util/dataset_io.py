@@ -2,6 +2,7 @@ import yaml
 import dask
 import numpy as np
 import pandas as pd
+import dask.dataframe as dd
 from pathlib import Path
 from bioio import BioImage
 import dask.array
@@ -10,7 +11,7 @@ try:
 except ModuleNotFoundError:
     pass
 import fire
-from typing import List, Dict, Any, Union, Tuple, Callable, Optional
+from typing import List, Dict, Any, Union, Tuple, Callable, Optional, Literal
 import re
 
 # model methods
@@ -109,6 +110,18 @@ def get_channel_index(dataset_name: str, channel_names: List[str], zarr_name: Op
         # available_channels[filename].update([available_channels.index(channel) if channel in available_channels else None for channel in channel_names])
         channel_indices[filename] = [available_channels[filename].index(channel) if channel in available_channels[filename] else None for channel in channel_names]
     return channel_indices
+
+def get_zarr_name(dataset_name: str, position: int) -> str:
+    """
+    Get the zarr name for a given dataset and position.
+    """
+    zarr_paths = get_zarr_path(dataset_name)
+    zarr_found_for_position = position in [extract_P(zarr_name) for zarr_name in zarr_paths.keys()]
+    assert zarr_found_for_position, f'Zarr file for position {position} not found in dataset {dataset_name}.'
+    for zarr_name in zarr_paths.keys():
+        if position == extract_P(zarr_name):
+            break
+    return zarr_name
 
 def get_specific_channel_order(dataset_name:str):
     dataset_info = get_dataset_info(dataset_name)
@@ -255,6 +268,112 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     position_path = f"{base_path}/P{position}/"
     return position_path
 
+def get_tracking_data_paths(dataset_name: str,
+                            position: int,
+                            ) -> Path:
+    # NOTE the tracking paths should probably be added to some
+    # sort of config file at some point, but in the interest of
+    # going fast they are hardcoded here for now
+    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking')
+    base_path = base_path / f'{dataset_name}/P{position}'
+    data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
+    return data_path
+
+def get_tracking_data_raws(dataset_name_list: List,
+                           position: int|None=None,
+                           as_dask: bool=True,
+                           ) -> pd.DataFrame:
+    # get all the filepaths and check that none of the requested
+    # datasets-position-kind combinations are missing data paths
+    # first before opening them
+    tracking_data_list = []
+    for dataset_name in dataset_name_list:
+        position_list = range(get_total_number_of_positions(dataset_name)) if position==None else [position]
+        for pos in position_list:
+            data_path = Path(get_tracking_data_paths(dataset_name, pos))
+            if not data_path.exists():
+                print(f'No tracking data found for {dataset_name} P{pos}. Skipping...')
+                continue
+            else:
+                # open the data tables
+                tracking_data = dd.read_csv(data_path, sep='\t')
+                # the tracking data by default does not have the
+                # dataset name or the position, so add those in
+                tracking_data['dataset_name'] = dataset_name
+                tracking_data['position'] = pos
+                # also include the path to the table that this
+                # part of the dataframe was loaded from
+                tracking_data['source_tracking_table_path'] = data_path.as_posix()
+                tracking_data_list.append(tracking_data)
+    # concatenate the dataframes into a single dataframe and return it
+    tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    return tracking_dataframe if as_dask else tracking_dataframe.compute()
+
+def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> pd.DataFrame:
+    """
+    NOTE: Cannot use only dask here because if it is called in the
+    same script that a multiprocessing workflow that later uses
+    dask delayed reading (such as opening files with bioio) then
+    the script will hang when trying to execute the later dask
+    delayed .compute() function. This is the case even if this
+    function get_tracking_data_filtered is called outside of
+    multiprocessing.
+    """
+    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/track_filtering')
+    tracking_data_list = []
+    for dataset_name in dataset_name_list:
+        data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
+        if data_path.exists():
+            # open the data tables
+            if as_dask:
+                tracking_data = dd.read_csv(data_path, sep='\t')
+            else:
+                tracking_data = pd.read_csv(data_path, sep='\t')
+            # include path to file that this data was loaded from
+            tracking_data['source_filtered_tracking_table_path'] = data_path.as_posix()
+            tracking_data_list.append(tracking_data)
+        else:
+            print(f'No filtered tracking data found for {dataset_name}. Skipping...')
+            continue
+    # concatenate the dataframes into a single dataframe and return it
+    if as_dask:
+        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    else:
+        tracking_dataframe = pd.concat(tracking_data_list, axis=0, ignore_index=True)
+    return tracking_dataframe
+
+def get_measurement_data_paths(dataset_name: str,
+                               kind: Literal['alignments', 'segmentation_properties']
+                               ) -> Path:
+    # NOTE the tracking paths should probably be added to some
+    # sort of config file at some point, but in the interest of
+    # going fast they are hardcoded here for now
+    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/cdh5_nodes_and_edges')
+    base_path = base_path / dataset_name
+    data_path = base_path / f"{dataset_name}_{kind}.csv"
+    return data_path
+
+def get_measurement_data_raws(dataset_name_list: List,
+                              kind: Literal['alignments', 'segmentation_properties'],
+                              as_dask: bool=True,
+                              ) -> pd.DataFrame:
+    measurement_data_list = []
+    # get all the filepaths and check that none of the requested
+    # datasets-position-kind combinations are missing data paths
+    # first before opening them
+    for dataset_name in dataset_name_list:
+        data_path = Path(get_measurement_data_paths(dataset_name, kind))
+        if not data_path.exists():
+            print(f'No {kind} tracking data found for {dataset_name}. Skipping...')
+            continue
+        else:
+            measurement_data = dd.read_csv(data_path)
+            measurement_data['source_measurement_table_path'] = data_path.as_posix()
+            measurement_data_list.append(measurement_data)
+    # open the files and concatenate them into a single dataframe
+    measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
+    return measurement_dataframe if as_dask else measurement_dataframe.compute()
+
 # model methods
 def get_available_models():
     model_info = load_config('model')
@@ -389,4 +508,3 @@ def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f'P{position_value}'
-
