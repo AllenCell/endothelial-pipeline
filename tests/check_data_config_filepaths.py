@@ -2,6 +2,7 @@
 from pathlib import Path
 from cellsmap.util import dataset_io
 from bioio import BioImage
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 #%%

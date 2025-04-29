@@ -30,7 +30,7 @@ def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extensio
         filepath = [Path(fp) for fp in filepath_sorted]
 
     return filepath
-#%%
+
 def load_images_sequentially(
     filepaths: Union[List[Path], Tuple[Path], Path], 
     crops: Optional[Union[List[Dict], Dict]] = None, 
@@ -148,7 +148,6 @@ def load_images_sequentially(
 
 ## NOTE END OF CODE BLOCK THAT SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 
-#%%
 
 def match_labels_from_images(
     labeled_images: List, 
@@ -477,8 +476,39 @@ def match_labels_from_overlaps(labeled_images: list[np.ndarray], reference_index
         props_ref_from_refs = regionprops(labeled_images[reference_index], labeled_images[i], extra_properties=[get_label_with_most_overlap,])
         props_ref_to_refs = regionprops(labeled_images[i], labeled_images[reference_index], extra_properties=[get_label_with_most_overlap,])
 
-        ref_labs_from_refs, query_labs_from_refs, metrics_vals_from_refs = zip(*[(prop.label, *prop['get_label_with_most_overlap'].keys(), *prop['get_label_with_most_overlap'].values()) for prop in props_ref_from_refs])
-        query_labs_to_refs, ref_labs_to_refs, metrics_vals_to_refs = zip(*[(prop.label, *prop['get_label_with_most_overlap'].keys(), *prop['get_label_with_most_overlap'].values()) for prop in props_ref_to_refs])
+        ref_labs_from_refs, query_labs_from_refs, metrics_vals_from_refs = [], [], []
+        for prop in props_ref_from_refs:
+            ref_labs_from_refs.append(prop.label)
+            if len(prop['get_label_with_most_overlap']) == 0:
+                query_labs_from_refs.append(np.ma.masked)
+                metrics_vals_from_refs.append(np.ma.masked)
+            elif len(prop['get_label_with_most_overlap']) == 1:
+                query_labs_from_refs.append(*prop['get_label_with_most_overlap'].keys())
+                metrics_vals_from_refs.append(*prop['get_label_with_most_overlap'].values())
+            else:
+                # the reason to keep this if-else statement instead of
+                # always choosing the first match is in case we want to
+                # implement keeping tracking of multiple matches in
+                # the future (e.g. track merging or splitting behavior)
+                query_labs_from_refs.append(list(prop['get_label_with_most_overlap'].keys())[0])
+                metrics_vals_from_refs.append(list(prop['get_label_with_most_overlap'].values())[0])
+
+        query_labs_to_refs, ref_labs_to_refs, metrics_vals_to_refs = [], [], []
+        for prop in props_ref_to_refs:
+            query_labs_to_refs.append(prop.label)
+            if len(prop['get_label_with_most_overlap']) == 0:
+                ref_labs_to_refs.append(np.ma.masked)
+                metrics_vals_to_refs.append(np.ma.masked)
+            elif len(prop['get_label_with_most_overlap']) == 1:
+                ref_labs_to_refs.append(*prop['get_label_with_most_overlap'].keys())
+                metrics_vals_to_refs.append(*prop['get_label_with_most_overlap'].values())
+            else:
+                # the reason to keep this if-else statement instead of
+                # always choosing the first match is in case we want to
+                # implement keeping tracking of multiple matches in
+                # the future (e.g. track merging or splitting behavior)
+                ref_labs_to_refs.append(list(prop['get_label_with_most_overlap'].keys())[0])
+                metrics_vals_to_refs.append(list(prop['get_label_with_most_overlap'].values())[0])
 
         matched_labels: Tuple[Any, Any]
         matched_metrics: Tuple[Any, Any]
@@ -498,18 +528,18 @@ def match_labels_from_overlaps(labeled_images: list[np.ndarray], reference_index
                 matched_metrics = (ref_labs_from_refs, metrics_vals_from_refs)
             case 'reciprocal_matches_only':
                 matches_from_refs = dict(zip(ref_labs_from_refs, query_labs_from_refs))
-                matches_to_refs = dict(zip(ref_labs_to_refs, query_labs_to_refs))
+                matches_to_refs = dict(zip(query_labs_to_refs, ref_labs_to_refs))
                 matches_from_refs_vals = dict(zip(ref_labs_from_refs, metrics_vals_from_refs))
 
                 ref_labs_reciprocal = []
                 query_labs_reciprocal = []
                 metrics_vals_reciprocal = []
-                for lab in matches_from_refs:
-                    if lab in matches_to_refs and (matches_from_refs[lab] == matches_to_refs[lab]):
-                        ref_labs_reciprocal.append(lab)
-                        query_labs_reciprocal.append(matches_from_refs[lab])
-                        metrics_vals_reciprocal.append(matches_from_refs_vals[lab])
-                
+                for ref_lab, query_lab in matches_from_refs.items():
+                    if ref_lab in matches_to_refs.values() and (ref_lab == matches_to_refs[query_lab]):
+                        ref_labs_reciprocal.append(ref_lab)
+                        query_labs_reciprocal.append(matches_from_refs[ref_lab])
+                        metrics_vals_reciprocal.append(matches_from_refs_vals[ref_lab])
+
                 matched_labels = (ref_labs_reciprocal, query_labs_reciprocal)
                 matched_metrics = (ref_labs_reciprocal, metrics_vals_reciprocal)
             case _:
@@ -533,11 +563,18 @@ def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarr
     """
     region_mask_size = np.count_nonzero(region_mask)
     labels_overlapping, sizes_overlapping = np.unique(labeled_image[region_mask], return_counts=True, equal_nan=False)
-    fractions_outside_labeled_region = (region_mask_size - sizes_overlapping) / region_mask_size
-    label_with_most_overlap = labels_overlapping[np.argmin(fractions_outside_labeled_region)]
-    fraction_overlap = 1 - np.min(fractions_outside_labeled_region)
-
-    return {label_with_most_overlap: fraction_overlap} if label_with_most_overlap not in masked_labels else {np.ma.masked: np.ma.masked}
+    # remove the masked labels from the list of overlapping labels
+    mask = np.isin(labels_overlapping, masked_labels)
+    labels_overlapping = labels_overlapping[~mask]
+    sizes_overlapping = sizes_overlapping[~mask]
+    if np.any(labels_overlapping):
+        fractions_outside_labeled_region = (region_mask_size - sizes_overlapping) / region_mask_size
+        label_with_most_overlap = labels_overlapping[fractions_outside_labeled_region == fractions_outside_labeled_region.min()].tolist()
+        fraction_overlap = 1 - np.min(fractions_outside_labeled_region)
+        labels_with_most_overlap = {lab: fraction_overlap for lab in label_with_most_overlap}
+    else:
+        labels_with_most_overlap = {}
+    return labels_with_most_overlap
 
 
 def initialize_track_ids(list_of_region_props: list, image_index:int=0, T: int=0, track_id_offset: int=0, props_to_include: list=['label', 'centroid',]) -> pd.DataFrame:
@@ -660,7 +697,7 @@ def axial_min(arr: np.ndarray, mask: Optional[np.ndarray] = None, mask_values_be
     ij_argmins = (np.ma.masked_array(data=np.arange(for_i_in_arr_argmin.shape[0]), mask=for_i_in_arr_min.mask), for_i_in_arr_argmin.squeeze(axis=1))
     ji_argmins = (for_j_in_arr_argmin.squeeze(axis=0), np.ma.masked_array(data=np.arange(for_j_in_arr_argmin.shape[1]), mask=for_j_in_arr_min.mask))
 
-    reciprocal_argmin = np.ma.where((arr == for_j_in_arr_min) + (arr == for_i_in_arr_min))
+    reciprocal_argmin = np.ma.where((arr == for_j_in_arr_min) * (arr == for_i_in_arr_min))
 
     return ij_argmins, ji_argmins, reciprocal_argmin
 
@@ -684,28 +721,30 @@ def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, i
 
     extra_image_props = ['image', 'name', 'color']
     extra_image, extra_name, extra_color = [extra_channel[prop] if prop in extra_image_props else [] for prop in extra_image_props] if extra_channel else [[], [], []]
-    extra_color = [extra_color] or [(255,255,255)] if isinstance(extra_image, np.ndarray) else []
-    extra_name = [extra_name] or ['extra_channel'] if isinstance(extra_image, np.ndarray) else []
+    extra_color = [extra_color] or [(255,255,255)] if isinstance(extra_image, np.ndarray) else extra_color
+    extra_name = [extra_name] or ['extra_channel'] if isinstance(extra_image, np.ndarray) else extra_name
 
-    voxel_size = (1, 1, 1)
     if image_metadata is not None and 'physical_pixel_sizes' in image_metadata:
         assert len(image_metadata['physical_pixel_sizes']) == 3, 'physical_pixel_sizes must be a 3D iterable with entries for Z, Y, X in that order.'
         voxel_size = tuple([image_metadata['physical_pixel_sizes'][dim] for dim in 'ZYX'])
         physical_pixel_sizes = PhysicalPixelSizes(*voxel_size)
-
+    else:
+        voxel_size = (1, 1, 1)
+        physical_pixel_sizes = PhysicalPixelSizes(*voxel_size)
+        
     if image_metadata is None or 'image_name' not in image_metadata:
         image_name = out_path.stem
     else:
         image_name = image_metadata['image_name']
 
     images_out_metadata = {'image_name': image_name,
-                           'channel_names': ['segmentation_track_labeled', 'borders_track_labeled'] + extra_name,
-                           'channel_colors': [(255,0,255), (0,255,255)] + extra_color,
+                           'channel_names': ['segmentation_track_labeled'] + extra_name,
+                           'channel_colors': [(255,0,255)] + extra_color,
                            'physical_pixel_sizes': physical_pixel_sizes,
                            'dim_order': current_dim_of_track_labeled_image,
                            }
     save_image_output(out_path=out_path,
-                      images=[track_labeled_image, find_boundaries(track_labeled_image) * track_labeled_image] + [extra_image],
+                      images=[track_labeled_image] + extra_image,
                       images_metadata=images_out_metadata,
                       dtype=np.uint32)
 
@@ -753,9 +792,11 @@ def run_tracking(
     NOTE: OME-ZARR files are directories of sub-directories and not files by pathlib.Path, but the
             function parse_paths has been created to handle these files.
     """
+    out_dir = Path(out_dir)
+
     for fps in [in_dir, out_dir]:
-        assert isinstance(fps, (list, Path, str)) or fps==None, 'in_dir, out_dir must be Path-like or a list of Paths'
-    assert isinstance(extra_in_dir, (list, Path, str)) or extra_in_dir==None, 'extra_in_dir must be Path-like or a list of Paths'
+        assert isinstance(fps, (tuple, list, Path, str)) or fps==None, 'in_dir, out_dir must be Path-like or a list of Paths'
+    assert isinstance(extra_in_dir, (tuple, list, Path, str)) or extra_in_dir==None, 'extra_in_dir must be Path-like or a list of Paths'
 
     if sorting_key is None:
         sorting_function = None
@@ -816,7 +857,7 @@ def run_tracking(
     results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, timeframes_for_table=timeframes, image_buffer_prior=0, image_buffer_next=track_tolerance+1, verbose=verbose)
 
     # create output directories if they don't exist and get image metadata from the input image
-    for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}'):
+    for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}', unit='frame'):
         if image_validation_frequency > 0:
             if idx in range(0, len(timeframes), image_validation_frequency):
                 images_out_dir = out_dir / 'tracked_images'
@@ -942,11 +983,10 @@ def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid
         else:
             current_T = timeframes_for_table[i]
 
-        print(f'Working on {fp.name}...')
+        print(f'Working on {fp.name}...') if verbose else None
         labeled_images = [img_arr.squeeze() for img_arr in labeled_images]
 
         track_labeled_image, current_tracks, track_table = update_track_table(labeled_images, track_table, current_T, tracking_metrics, image_buffer_prior, image_buffer_next, reference_index=0, verbose=verbose)
 
         yield i, fp, track_labeled_image, track_table
 
-# %%
