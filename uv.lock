@@ -2,25 +2,32 @@ version = 1
 revision = 2
 requires-python = "==3.10.*"
 resolution-markers = [
-    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version > '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
 ]
 conflicts = [[
     { package = "cellsmap", extra = "cellpose" },
+    { package = "cellsmap", extra = "cellpose-a100" },
     { package = "cellsmap", extra = "ml-workflows" },
 ]]
 
@@ -394,12 +401,12 @@ dependencies = [
     { name = "ngff-zarr" },
     { name = "numpy" },
     { name = "ome-types", extra = ["lxml"] },
-    { name = "ome-zarr", version = "0.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version <= '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
-    { name = "ome-zarr", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version > '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ome-zarr", version = "0.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version <= '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ome-zarr", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version > '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "scikit-image" },
     { name = "semver" },
-    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "zarr" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2f/a5/6e16b381bcc347f73f937b654630d307204c603c3e59fbaab6fe7e6e1908/bioio-1.5.2.tar.gz", hash = "sha256:f31d5fef319e7d6f39b31011d538624db9514d56c25a3fc37311d5b7282dbb87", size = 81925, upload_time = "2025-04-18T19:07:39.465Z" }
@@ -431,7 +438,7 @@ dependencies = [
     { name = "aicspylibczi" },
     { name = "aiohttp" },
     { name = "bioio-base" },
-    { name = "dask", extra = ["array"], marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
+    { name = "dask", extra = ["array"], marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "fsspec" },
     { name = "lxml" },
     { name = "ome-types" },
@@ -475,8 +482,8 @@ dependencies = [
     { name = "ome-types", extra = ["lxml"] },
     { name = "pydantic" },
     { name = "pyyaml" },
-    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "xarray" },
     { name = "xmlschema" },
     { name = "zarr" },
@@ -493,8 +500,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bioio-base" },
     { name = "fsspec" },
-    { name = "ome-zarr", version = "0.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version <= '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
-    { name = "ome-zarr", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version > '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ome-zarr", version = "0.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version <= '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ome-zarr", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version > '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "xarray" },
     { name = "zarr" },
 ]
@@ -530,8 +537,8 @@ dependencies = [
     { name = "fsspec" },
     { name = "imagecodecs" },
     { name = "numpy" },
-    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "xarray" },
     { name = "zarr" },
 ]
@@ -547,8 +554,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "mypy-extensions" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pathspec" },
     { name = "platformdirs" },
     { name = "tomli" },
@@ -628,7 +635,7 @@ wheels = [
 
 [[package]]
 name = "cellpose"
-version = "3.1.1.1"
+version = "3.0.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastremap" },
@@ -641,12 +648,13 @@ dependencies = [
     { name = "roifile" },
     { name = "scipy" },
     { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" } },
-    { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" } },
+    { name = "torch", version = "1.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose') or extra == 'extra-8-cellsmap-cellpose-a100' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/2b/da74c175e4219ec3a1395bdecb027038641092242e7be243fec30714a725/cellpose-3.1.1.1.tar.gz", hash = "sha256:e087458be2336e19b6a112ffc97e22ebb4a4873cf64162c9166e2d4124c5e5da", size = 23332101, upload_time = "2025-02-12T11:00:13.355Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/25/566e0ec2f42fa6be7ec4225ee3b71670d31471ce1381ae5bffdd318b24dc/cellpose-3.0.11.tar.gz", hash = "sha256:a8d902e7fe76fe0319871ac9426dd8d1d3d526f014d51c070918762939ce40db", size = 23299394, upload_time = "2024-08-25T21:36:51.174Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/87/6852c1de3390d88512fc1f399b1c18c27ddabc1bc602fc78a62ff3d3e07a/cellpose-3.1.1.1-py3-none-any.whl", hash = "sha256:737d23284b11b9c4a491b246adb88c7b49e1fe7f000ccb0ce9ee7bf32a8d8ebc", size = 225941, upload_time = "2025-02-12T11:00:09.683Z" },
+    { url = "https://files.pythonhosted.org/packages/66/7c/ed5a019a665945c0edfa6a8c7a973de3849550d7a20c281fddd10755eed7/cellpose-3.0.11-py3-none-any.whl", hash = "sha256:b9d2d7ffac746fed0a2eebfe31c67d905f072726e563e4427c0df9876f690b5c", size = 205180, upload_time = "2024-08-25T21:36:48.915Z" },
 ]
 
 [[package]]
@@ -690,9 +698,18 @@ dependencies = [
 [package.optional-dependencies]
 cellpose = [
     { name = "cellpose" },
+    { name = "torch", version = "1.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torchaudio", version = "0.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torchaudio", version = "0.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torchvision", version = "0.14.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torchvision", version = "0.14.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+]
+cellpose-a100 = [
+    { name = "cellpose" },
     { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" } },
-    { name = "torchaudio", version = "0.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
-    { name = "torchaudio", version = "0.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torchaudio", version = "0.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torchaudio", version = "0.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "torchvision", version = "0.14.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" } },
 ]
 internal = [
@@ -746,7 +763,8 @@ requires-dist = [
     { name = "bioio-ome-zarr", specifier = ">=1.1.1" },
     { name = "bioio-sldy", specifier = ">=1.0.3" },
     { name = "bioio-tifffile", specifier = ">=1.0.1" },
-    { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1" },
+    { name = "cellpose", marker = "extra == 'cellpose'", specifier = "==3.0.11" },
+    { name = "cellpose", marker = "extra == 'cellpose-a100'", specifier = "==3.0.11" },
     { name = "colorcet", specifier = ">=3.1.0" },
     { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.4.0" },
     { name = "fastparquet", specifier = ">=2024.11.0" },
@@ -772,14 +790,17 @@ requires-dist = [
     { name = "scipy", specifier = "==1.13.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "sympy", specifier = "==1.13.1" },
-    { name = "torch", marker = "extra == 'cellpose'", specifier = "==1.13.1+cu116", index = "https://download.pytorch.org/whl/cu116" },
+    { name = "torch", marker = "extra == 'cellpose'", specifier = "==1.13.1", index = "https://download.pytorch.org/whl/cu116" },
+    { name = "torch", marker = "extra == 'cellpose-a100'", specifier = "==1.13.1+cu116", index = "https://download.pytorch.org/whl/cu116" },
     { name = "torchaudio", marker = "extra == 'cellpose'", specifier = "==0.13.1", index = "https://download.pytorch.org/whl/cu116" },
-    { name = "torchvision", marker = "extra == 'cellpose'", specifier = "==0.14.1+cu116", index = "https://download.pytorch.org/whl/cu116" },
+    { name = "torchaudio", marker = "extra == 'cellpose-a100'", specifier = "==0.13.1", index = "https://download.pytorch.org/whl/cu116" },
+    { name = "torchvision", marker = "extra == 'cellpose'", specifier = "==0.14.1", index = "https://download.pytorch.org/whl/cu116" },
+    { name = "torchvision", marker = "extra == 'cellpose-a100'", specifier = "==0.14.1+cu116", index = "https://download.pytorch.org/whl/cu116" },
     { name = "tqdm", specifier = ">=4.66.5" },
     { name = "vtk", specifier = ">=9.4.1" },
     { name = "wasmtime", specifier = "<22.0" },
 ]
-provides-extras = ["internal", "ml-workflows", "cellpose"]
+provides-extras = ["internal", "ml-workflows", "cellpose-a100", "cellpose"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1117,8 +1138,8 @@ dependencies = [
     { name = "mlflow" },
     { name = "monai" },
     { name = "numpy" },
-    { name = "ome-zarr", version = "0.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version <= '3.10' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
-    { name = "ome-zarr", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version > '3.10' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ome-zarr", version = "0.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version <= '3.10' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ome-zarr", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version > '3.10' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "omegaconf" },
     { name = "online-stats" },
     { name = "opencv-python" },
@@ -1149,8 +1170,8 @@ dependencies = [
     { name = "cloudpickle" },
     { name = "fsspec" },
     { name = "importlib-metadata" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "partd" },
     { name = "pyyaml" },
     { name = "toolz" },
@@ -1259,8 +1280,8 @@ dependencies = [
     { name = "jinja2" },
     { name = "locket" },
     { name = "msgpack" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "psutil" },
     { name = "pyyaml" },
     { name = "sortedcontainers" },
@@ -1392,8 +1413,8 @@ dependencies = [
     { name = "cramjam" },
     { name = "fsspec" },
     { name = "numpy" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pandas" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b4/66/862da14f5fde4eff2cedc0f51a8dc34ba145088e5041b45b2d57ac54f922/fastparquet-2024.11.0.tar.gz", hash = "sha256:e3b1fc73fd3e1b70b0de254bae7feb890436cb67e99458b88cb9bd3cc44db419", size = 467192, upload_time = "2024-11-15T19:30:10.413Z" }
@@ -1905,7 +1926,7 @@ name = "ipykernel"
 version = "6.29.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "appnope", marker = "sys_platform == 'darwin' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "appnope", marker = "sys_platform == 'darwin' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "comm" },
     { name = "debugpy" },
     { name = "ipython" },
@@ -1913,8 +1934,8 @@ dependencies = [
     { name = "jupyter-core" },
     { name = "matplotlib-inline" },
     { name = "nest-asyncio" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "psutil" },
     { name = "pyzmq" },
     { name = "tornado" },
@@ -1930,12 +1951,12 @@ name = "ipython"
 version = "8.36.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "decorator" },
     { name = "exceptiongroup" },
     { name = "jedi" },
     { name = "matplotlib-inline" },
-    { name = "pexpect", marker = "(sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'win32' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "pexpect", marker = "(sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'emscripten' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'emscripten' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'win32' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'win32' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'win32' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "prompt-toolkit" },
     { name = "pygments" },
     { name = "stack-data" },
@@ -2018,7 +2039,7 @@ name = "itkwasm-downsample-emscripten"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "itkwasm", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32')" },
+    { name = "itkwasm", marker = "sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/63/1e687e250f921bbd20d20b63805b9fa577ac42c865a97fea80bf818ce471/itkwasm_downsample_emscripten-1.6.0.tar.gz", hash = "sha256:69f993cc85b2a7dd30e30e333d93c4ea8986097b819acd5ff4aec785160e61fc", size = 118687, upload_time = "2025-02-24T16:27:18.57Z" }
 wheels = [
@@ -2213,7 +2234,7 @@ version = "5.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "platformdirs" },
-    { name = "pywin32", marker = "(platform_python_implementation != 'PyPy' and sys_platform == 'win32') or (platform_python_implementation == 'PyPy' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'win32' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "pywin32", marker = "(platform_python_implementation != 'PyPy' and sys_platform == 'win32') or (platform_python_implementation == 'PyPy' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_python_implementation == 'PyPy' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_python_implementation == 'PyPy' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'win32' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'win32' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'win32' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "traitlets" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/00/11/b56381fa6c3f4cc5d2cf54a7dbf98ad9aa0b339ef7a601d6053538b079a7/jupyter_core-5.7.2.tar.gz", hash = "sha256:aa5f8d32bbf6b431ac830496da7392035d6f61b4f54872f15c4bd2a9c3f536d9", size = 87629, upload_time = "2024-03-12T12:37:35.652Z" }
@@ -2227,8 +2248,8 @@ version = "0.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema", extra = ["format-nongpl"] },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "python-json-logger" },
     { name = "pyyaml" },
     { name = "referencing" },
@@ -2268,10 +2289,10 @@ dependencies = [
     { name = "nbconvert" },
     { name = "nbformat" },
     { name = "overrides" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "prometheus-client" },
-    { name = "pywinpty", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "pywinpty", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "pyzmq" },
     { name = "send2trash" },
     { name = "terminado" },
@@ -2289,7 +2310,7 @@ name = "jupyter-server-terminals"
 version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pywinpty", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "pywinpty", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "terminado" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fc/d5/562469734f476159e99a55426d697cbf8e7eb5efe89fb0e0b4f83a3d3459/jupyter_server_terminals-0.5.3.tar.gz", hash = "sha256:5ae0295167220e9ace0edcfdb212afd2b01ee8d179fe6f23c899590e9b8a5269", size = 31430, upload_time = "2024-03-12T14:37:03.049Z" }
@@ -2311,8 +2332,8 @@ dependencies = [
     { name = "jupyter-server" },
     { name = "jupyterlab-server" },
     { name = "notebook-shim" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "setuptools" },
     { name = "tomli" },
     { name = "tornado" },
@@ -2342,8 +2363,8 @@ dependencies = [
     { name = "json5" },
     { name = "jsonschema" },
     { name = "jupyter-server" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "requests" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0a/c9/a883ce65eb27905ce77ace410d83587c82ea64dc85a48d1f7ed52bcfa68d/jupyterlab_server-2.27.3.tar.gz", hash = "sha256:eb36caca59e74471988f0ae25c77945610b887f777255aa21f8065def9e51ed4", size = 76173, upload_time = "2024-07-16T17:02:04.149Z" }
@@ -2368,8 +2389,8 @@ dependencies = [
     { name = "markdown-it-py" },
     { name = "mdit-py-plugins" },
     { name = "nbformat" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pyyaml" },
     { name = "tomli" },
 ]
@@ -2412,8 +2433,8 @@ name = "lazy-loader"
 version = "0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6f/6b/c875b30a1ba490860c93da4cabf479e03f584eba06fe5963f6f6644653d8/lazy_loader-0.4.tar.gz", hash = "sha256:47c75182589b91a4e1a85a136c074285a5ad4d9f39c63e0d7fb76391c4574cd1", size = 15431, upload_time = "2024-04-05T13:03:12.261Z" }
 wheels = [
@@ -2425,7 +2446,7 @@ name = "lightning"
 version = "2.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "fsspec", extra = ["http"], marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
+    { name = "fsspec", extra = ["http"], marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "lightning-utilities" },
     { name = "numpy" },
     { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" } },
@@ -2569,8 +2590,8 @@ dependencies = [
     { name = "fonttools" },
     { name = "kiwisolver" },
     { name = "numpy" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pillow" },
     { name = "pyparsing" },
     { name = "python-dateutil" },
@@ -2843,8 +2864,8 @@ dependencies = [
     { name = "mistune" },
     { name = "nbclient" },
     { name = "nbformat" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pandocfilters" },
     { name = "pygments" },
     { name = "traitlets" },
@@ -3049,20 +3070,23 @@ name = "ome-zarr"
 version = "0.10.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version <= '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version <= '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
 ]
 dependencies = [
     { name = "aiohttp", marker = "python_full_version <= '3.10'" },
     { name = "dask", marker = "python_full_version <= '3.10'" },
     { name = "distributed", marker = "python_full_version <= '3.10'" },
-    { name = "fsspec", extra = ["s3"], marker = "python_full_version <= '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "fsspec", extra = ["s3"], marker = "python_full_version <= '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "numpy", marker = "python_full_version <= '3.10'" },
     { name = "requests", marker = "python_full_version <= '3.10'" },
     { name = "scikit-image", marker = "python_full_version <= '3.10'" },
@@ -3079,19 +3103,22 @@ name = "ome-zarr"
 version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version > '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows'",
-    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'win32' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
 ]
 dependencies = [
     { name = "aiohttp", marker = "python_full_version > '3.10'" },
     { name = "dask", marker = "python_full_version > '3.10'" },
-    { name = "fsspec", extra = ["s3"], marker = "python_full_version > '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "fsspec", extra = ["s3"], marker = "python_full_version > '3.10' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "numpy", marker = "python_full_version > '3.10'" },
     { name = "requests", marker = "python_full_version > '3.10'" },
     { name = "scikit-image", marker = "python_full_version > '3.10'" },
@@ -3253,14 +3280,20 @@ name = "packaging"
 version = "25.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a1/d4/1fc4078c65507b51b96ca8f8c3ba19e6a61c8253c72794544580a7b6c24d/packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f", size = 165727, upload_time = "2025-04-19T11:48:59.673Z" }
 wheels = [
@@ -3367,7 +3400,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "sys_platform != 'win32' or extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "ptyprocess", marker = "sys_platform != 'win32' or extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload_time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -3760,11 +3793,11 @@ name = "pytest"
 version = "8.3.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "exceptiongroup" },
     { name = "iniconfig" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pluggy" },
     { name = "tomli" },
 ]
@@ -3846,7 +3879,7 @@ name = "pytorch-lightning"
 version = "2.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "fsspec", extra = ["http"], marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
+    { name = "fsspec", extra = ["http"], marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "lightning-utilities" },
     { name = "numpy" },
     { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" } },
@@ -3911,7 +3944,7 @@ name = "pyzmq"
 version = "26.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "implementation_name == 'pypy' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "cffi", marker = "implementation_name == 'pypy' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b1/11/b9213d25230ac18a71b39b3723494e57adebe36e066397b961657b3b41c1/pyzmq-26.4.0.tar.gz", hash = "sha256:4bd13f85f80962f91a651a7356fe0472791a5f7a92f227822b5acf44795c626d", size = 278293, upload_time = "2025-04-04T12:05:44.049Z" }
 wheels = [
@@ -4158,12 +4191,12 @@ dependencies = [
     { name = "lazy-loader" },
     { name = "networkx" },
     { name = "numpy" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pillow" },
     { name = "scipy" },
-    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "tifffile", version = "2025.1.10", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "tifffile", version = "2025.3.30", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/65/c1/a49da20845f0f0e1afbb1c2586d406dc0acb84c26ae293bad6d7e7f718bc/scikit_image-0.22.0.tar.gz", hash = "sha256:018d734df1d2da2719087d15f679d19285fce97cd37695103deadfaef2873236", size = 22685018, upload_time = "2023-10-03T21:36:34.274Z" }
 wheels = [
@@ -4330,12 +4363,12 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alabaster" },
     { name = "babel" },
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "docutils" },
     { name = "imagesize" },
     { name = "jinja2" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pygments" },
     { name = "requests" },
     { name = "snowballstemmer" },
@@ -4542,8 +4575,8 @@ name = "terminado"
 version = "0.18.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "os_name != 'nt' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
-    { name = "pywinpty", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "ptyprocess", marker = "os_name != 'nt' or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "pywinpty", marker = "(os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux') or (os_name == 'nt' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name == 'nt' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (os_name != 'nt' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
     { name = "tornado" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8a/11/965c6fd8e5cc254f1fe142d547387da17a8ebfd75a3455f637c663fb38a0/terminado-0.18.1.tar.gz", hash = "sha256:de09f2c4b85de4765f7714688fff57d3e75bad1f909b589fde880460c753fd2e", size = 32701, upload_time = "2024-03-12T14:34:39.026Z" }
@@ -4575,7 +4608,7 @@ resolution-markers = [
     "python_full_version <= '3.10' and sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "numpy", marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
+    { name = "numpy", marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d5/fc/697d8dac6936a81eda88e7d4653d567fcb0d504efad3fd28f5272f96fcf9/tifffile-2025.1.10.tar.gz", hash = "sha256:baaf0a3b87bf7ec375fa1537503353f70497eabe1bdde590f2e41cc0346e612f", size = 365585, upload_time = "2025-01-10T19:55:24.166Z" }
 wheels = [
@@ -4587,17 +4620,23 @@ name = "tifffile"
 version = "2025.3.30"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows')",
-    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
-    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows')",
+    "python_full_version > '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version > '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
+    "python_full_version <= '3.10' and extra != 'extra-8-cellsmap-cellpose' and extra != 'extra-8-cellsmap-cellpose-a100' and extra != 'extra-8-cellsmap-ml-workflows'",
 ]
 dependencies = [
-    { name = "numpy", marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "numpy", marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3c/54/d5ebe66a9de349b833e570e87bdbd9eec76ec54bd505c24b0591a15783ad/tifffile-2025.3.30.tar.gz", hash = "sha256:3cdee47fe06cd75367c16bc3ff34523713156dae6cd498e3a392e5b39a51b789", size = 366039, upload_time = "2025-03-30T04:45:30.503Z" }
 wheels = [
@@ -4652,14 +4691,29 @@ wheels = [
 
 [[package]]
 name = "torch"
+version = "1.13.1"
+source = { registry = "https://download.pytorch.org/whl/cu116" }
+resolution-markers = [
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/torch-1.13.1-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:d9fe785d375f2e26a5d5eba5de91f89e6a3be5d11efb497e76705fdf93fa3c2e" },
+]
+
+[[package]]
+name = "torch"
 version = "1.13.1+cu116"
 source = { registry = "https://download.pytorch.org/whl/cu116" }
 resolution-markers = [
     "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version > '3.10' and sys_platform == 'darwin'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version <= '3.10' and sys_platform == 'darwin'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
@@ -4701,12 +4755,13 @@ version = "0.13.1"
 source = { registry = "https://download.pytorch.org/whl/cu116" }
 resolution-markers = [
     "python_full_version > '3.10' and sys_platform == 'darwin'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version <= '3.10' and sys_platform == 'darwin'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or sys_platform == 'darwin'" },
+    { name = "torch", version = "1.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose') or (sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
 ]
 wheels = [
     { url = "https://download.pytorch.org/whl/torchaudio-0.13.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:5e0f3dc6699506521364266704e6bf89d0d0579fd435d12c5c2f5858d52de4fa" },
@@ -4746,14 +4801,37 @@ wheels = [
 
 [[package]]
 name = "torchvision"
+version = "0.14.1"
+source = { registry = "https://download.pytorch.org/whl/cu116" }
+resolution-markers = [
+    "python_full_version > '3.10' and sys_platform == 'darwin'",
+    "python_full_version <= '3.10' and sys_platform == 'darwin'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "numpy", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or sys_platform == 'darwin'" },
+    { name = "pillow", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or sys_platform == 'darwin'" },
+    { name = "requests", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or sys_platform == 'darwin'" },
+    { name = "torch", version = "1.13.1", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-8-cellsmap-cellpose') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (platform_machine != 'aarch64' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (sys_platform != 'linux' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "torch", version = "1.13.1+cu116", source = { registry = "https://download.pytorch.org/whl/cu116" }, marker = "(sys_platform == 'darwin' and extra == 'extra-8-cellsmap-cellpose') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows') or (extra == 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or sys_platform == 'darwin'" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/torchvision-0.14.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:eeb05dd9dd3af5428fee525400759daf8da8e4caec45ddd6908cfb36571f6433" },
+    { url = "https://download.pytorch.org/whl/torchvision-0.14.1-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:8a9eb773a2fa8f516e404ac09c059fb14e6882c48fdbb9c946327d2ce5dba6cd" },
+]
+
+[[package]]
+name = "torchvision"
 version = "0.14.1+cu116"
 source = { registry = "https://download.pytorch.org/whl/cu116" }
 resolution-markers = [
     "(python_full_version > '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version > '3.10' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "(python_full_version <= '3.10' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version <= '3.10' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version > '3.10' and sys_platform == 'darwin'",
-    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version <= '3.10' and sys_platform == 'darwin'",
+    "python_full_version > '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version <= '3.10' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
@@ -5115,8 +5193,8 @@ version = "2025.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
-    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-ml-workflows'" },
-    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra != 'extra-8-cellsmap-ml-workflows'" },
+    { name = "packaging", version = "24.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-cellpose-a100') or (extra != 'extra-8-cellsmap-cellpose-a100' and extra == 'extra-8-cellsmap-ml-workflows') or (extra != 'extra-8-cellsmap-cellpose' and extra == 'extra-8-cellsmap-ml-workflows')" },
+    { name = "packaging", version = "25.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-8-cellsmap-cellpose' or extra == 'extra-8-cellsmap-cellpose-a100' or extra != 'extra-8-cellsmap-ml-workflows'" },
     { name = "pandas" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7c/c4/6931c37cd418658d596e78794bdd1bcb67efec0aac3cdb720e37e03c1ea1/xarray-2025.3.1.tar.gz", hash = "sha256:0252c96a73528b29d1ed7f0ab28d928d2ec00ad809e47369803b184dece1e447", size = 3300778, upload_time = "2025-03-31T02:57:21.387Z" }
