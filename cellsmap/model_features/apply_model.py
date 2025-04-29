@@ -54,8 +54,8 @@ def generate_overrides(user_overrides, save_path: str, data_path: str, ckpt_path
             "save_suffix": f"{dataset_name}_{model_name}_features"
         },
     }
-    user_overrides.update(overrides)
-    return user_overrides
+    overrides.update(user_overrides)
+    return overrides
 
 def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0):
     # generate csv with paths to zarr files
@@ -76,7 +76,7 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: S
     pred_df['model_name'] = model_name
     pred_df['mlflow_id'] = mlflow_id
 
-    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms
+    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
     pred_df['resolution_level'] = 1
 
     pred_df['end_y'] = pred_df['start_y'] + crop_size[0]
@@ -122,7 +122,7 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
     model_path = Path(get_output_path(f'models/{model_name}'))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = model_path/dataset_name
+    save_path = save_path or model_path/dataset_name
     save_path.mkdir(parents=True, exist_ok=True)
 
     # load model
@@ -131,7 +131,6 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
 
     # create zarr dataset
     data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
-
     # apply overrides
     overrides = generate_overrides(
         overrides,
