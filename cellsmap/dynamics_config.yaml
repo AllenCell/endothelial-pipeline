@@ -5,7 +5,7 @@
   dt: 5,
   kramers_moyal: {"Nbins": [50,45],
                   "method": 'kernel',
-                  "kernel_params": {"bandwidth": 0.1,
+                  "kernel_params": {"bandwidth": 0.075,
                                     "kernel": 'gaussian',
                                     },
                   },

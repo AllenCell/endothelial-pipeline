@@ -3,18 +3,13 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import pandas as pd
+
+from cellsmap.util.manifest_io import get_diffae_manifest, get_feature_cols
 from cellsmap.util.dataset_io import get_reference_datasets, get_dataset_info
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
 
-def get_feature_cols(df: pd.DataFrame) -> list:
-    """
-    Extract columns corresponding to model features from dataframe
-    """
-    feat_cols = [c for c in df.columns if c.startswith('feat_')]
-    feat_cols = sorted(feat_cols, key=lambda x: int(x.split('_')[1]))
-    return feat_cols
 
 def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
     '''
@@ -94,7 +89,53 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
             df.loc[df.dataset == dataset_name, 'pca_ref'] = valid_subset
     return df[df.pca_ref]
 
-def fit_pca(data: pd.DataFrame, num_pcs: int, scale:bool = False, verbose:bool=True) -> Pipeline:
+def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
+    """
+    Helper function for fitting PCA pipeline.
+
+    Args:
+        num_pcs (int, optional): Number of principal components to keep (default: 8, i.e., full PCA)
+        scale (bool, optional): Whether to scale the data before fitting PCA (default: False)
+        verbose (bool): Whether to print the explained variance ratios (default: True)
+
+    Returns:
+        pipe (Pipeline): Fitted PCA pipeline (may include scaling)
+    """    
+    # first, get list of reference datasets to use for PCA
+    reference_datasets = get_reference_datasets()
+    data_ref = []
+    for name in reference_datasets:
+        df_ = get_diffae_manifest(name) # get the manifest for the dataset
+        df_ = get_pca_reference(df_) # get df with only the reference timepoints for fitting PCA
+        data_ref.append(df_) # append the reference timepoints to the list
+
+    data_ref = pd.concat(data_ref, ignore_index=True) # concatenate the reference timepoints into a single dataframe
+    # remove outliers
+    if 'outlier' not in data_ref.columns:
+        data_ref = get_outliers(data_ref)
+    data_ref = remove_outliers(data_ref)
+
+    # fit PCA
+    if scale: # scale the data before fitting PCA
+        pipe = Pipeline([
+            ('scaler', StandardScaler()),
+            ('pca', PCA(n_components=num_pcs, svd_solver='full'))
+        ])
+    else: # don't scale the data before fitting PCA
+        pipe = Pipeline([
+            ('pca', PCA(n_components=num_pcs, svd_solver='full'))
+        ])
+    # get the feature columns from the data, these are the columns that start with 'feat_'
+    feature_cols = get_feature_cols(data_ref)
+    pipe.fit(data_ref[feature_cols].values) # fit PCA
+
+    if verbose: # print explained variance ratios
+        print(f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}')
+
+    # return the fit PCA pipeline
+    return pipe
+
+def fit_pca_OLD(data: pd.DataFrame, num_pcs: int, scale:bool = False, verbose:bool=True) -> Pipeline:
     """
     Helper function for fitting PCA pipeline.
 

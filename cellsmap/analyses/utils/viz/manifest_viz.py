@@ -95,8 +95,8 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
     - ax: plt.Axes
     '''
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
-    list_of_datasets = mio.get_list_of_datasets(df)
-    title_dict = mio.get_descriptive_metadata(df) # get description of dataset by flow conditions, for title of subfig
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
+    title_dict = mio.get_descriptive_metadata(list_of_datasets,simple=True) # get description of dataset by flow conditions, for title of subfig
 
     # initialize figure with subfigures for each dataset
     n_ = len(list_of_datasets)
@@ -108,8 +108,10 @@ def plot_top_3_PCs_alldata(df:pd.DataFrame,pca:Pipeline) -> Tuple:
     # loop over datasets, project feature data onto top 3 PCs, and plot
     for row, subfig in enumerate(subfigs):
         ds_name = list_of_datasets[row] # get the dataset name
-        df_proj = mio.project_PCA_one_dataset(df,pca,ds_name) # project the dataset onto the PCA space
-        PCs = [str(i) for i in range(3)] # top 3 PCs
+        df_manifest = mio.get_diffae_manifest(ds_name) # get the DiffAE manifest data for the dataset
+        df_manifest = mio.add_crop_index(df_manifest) # add crop index to the manifest data
+        df_proj = mio.project_PCA_one_dataset(df_manifest,pca) # project the dataset onto the PCA space
+        PCs = [f"feat_{i}" for i in range(3)] # top 3 PCs
         feats_proj = mio.df_to_array(df_proj,PCs) # get the feature data projected onto the top 3 PCs
 
         for j in range(3):
