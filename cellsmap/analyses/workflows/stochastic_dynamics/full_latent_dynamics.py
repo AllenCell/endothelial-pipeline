@@ -4,6 +4,7 @@ import pysindy as ps
 import numdifftools as nd
 
 from cellsmap.util import manifest_io
+from cellsmap.util.manifest_preprocessing import manifest_pca, diffae_feature_preprocessing as diffae_preproc
 from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils import regression_helper as rh, model_eval
 from cellsmap.analyses.utils.io import dynamics_io
@@ -21,19 +22,24 @@ savedir = get_output_path(workflow_output_folder)
 workflow_fig_folder = f"stochastic_dynamics/{workflow_name}/figs"
 fig_savedir = get_output_path(workflow_fig_folder)
 
-# load manifest to DataFrame with metadata
-df = manifest_io.load_manifest_to_df()
+pca = manifest_pca.fit_pca()
+
+list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
+
+Nbins = [40,40,40]
+bin_limits_pcs = [
+    [-1,1],
+    [-0.7,0.7],
+    [-1,1]
+]
+bins = rh.get_bins(Nbins,bin_limits=bin_limits_pcs)[0]
 
 # %%
-feat_cols = [str(i) for i in range(8)]
-
-list_of_datasets = manifest_io.get_list_of_datasets(df,verbose=False)
-
 for ds_name in list_of_datasets:
     print(f"Processing dataset: {ds_name}")
-    df_ds = df[df['dataset_name'] == ds_name].copy()
-    df_ds = manifest_io.add_crop_index(df_ds)
-    feats = manifest_io.df_to_array(df_ds, feat_cols)
+    df_ds = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name,pca=None)
+    feat_cols = manifest_io.get_feature_cols(df_ds)
+    feats = diffae_preproc.df_to_array(df_ds,feat_cols)
     fig, ax = manifest_viz.plot_latent_component_mean(feats)
     fig.suptitle(f"Dataset: {ds_name}",y=0.95,fontsize=25)
     vb.save_plot(fig,f"{fig_savedir}/{ds_name}_latent_mean")
@@ -41,25 +47,51 @@ for ds_name in list_of_datasets:
     fig, ax = manifest_viz.plot_latent_component_histogram(feats)
     fig.suptitle(f"Dataset: {ds_name}",y=0.95,fontsize=25)
     vb.save_plot(fig,f"{fig_savedir}/{ds_name}_latent_histogram")
+
+    df_proj = diffae_preproc.project_manifest_to_pcs(df_ds,pca)
+    feats = diffae_preproc.df_to_array(df_proj,feat_cols)[...,:3] # only looking at top 3 PCs
+
+    fig, ax = manifest_viz.plot_principal_component_histogram(feats,bins=bins)
+    fig.suptitle(f"Dataset: {ds_name}",y=0.95,fontsize=25)
+    vb.save_plot(fig,f"{fig_savedir}/{ds_name}_PC_histogram")
 # %%
 
 ds_to_analyze = "20250319_20X"
-df_ = df[df['dataset_name'] == ds_to_analyze].copy()
-df_ = manifest_io.add_crop_index(df_)
-df_.sort_values(by=['crop_index','T'],inplace=True)
-latent_idxs = [0,2,3,6]
-latent_dims = [str(i) for i in latent_idxs]
+df_ = diffae_preproc.get_manifest_for_dynamics_workflows(ds_to_analyze,pca=None)
+df_.sort_values(by=['crop_index','frame_number'],inplace=True)
+latent_idxs = [3,4,6]
+latent_dims = [f"feat_{i}" for i in latent_idxs]
 
 X_list, dX_list, dT_list = rh.get_X_dX_and_dT(df_, latent_dims)
 
 # %%
-Nbins = [40 for _ in range(len(latent_dims))]
+Nbins = [50 for _ in range(len(latent_dims))]
 bins, centers = rh.get_bins(Nbins,data=X_list)
-kernel_params = {'bandwidth': 0.1,'kernel': 'gaussian'}
+kernel_params = {'bandwidth': 0.05,'kernel': 'gaussian'}
 
 # get drift and diffusion estimates (Kramers-Moyal coefficients)
 f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt=5,kernel_params=kernel_params)
 
+# plot drift and diffusion estimates
+ndim = len(latent_dims)
+if ndim == 2:
+    kmc = np.concatenate([f_KM_,D_KM_],axis=-1).T
+    fig, ax00,ax01,ax10,ax11 = manifest_viz.plot_km(centers,kmc,latent_idxs,12.2)
+    ax = (ax00,ax01,ax10,ax11)
+    for ax_ in ax:
+        ax_.set_xlabel(f'latent dim {latent_idxs[0]}',fontsize=15)
+        ax_.set_ylabel(f'latent dim {latent_idxs[1]}',fontsize=15)
+
+    vb.save_plot(fig,filename=fig_savedir+f"kmcs_all_{ds_name}",format='.png',dpi=500)
+
+    # quiver and streamplot of drift vector field
+    fig, ax = manifest_viz.plot_km_drift_2D(centers,kmc,latent_idxs,12.2)
+    for ax_ in ax:
+        ax_.set_xlabel(f'latent dim {latent_idxs[0]}',fontsize=15)
+        ax_.set_ylabel(f'latent dim {latent_idxs[1]}',fontsize=15)
+    vb.save_plot(fig,filename=fig_savedir+f"kmcs_drift_{ds_name}",format='.png',dpi=500)
+
+# %%
 f_KM_noNAN, X_pts_, = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)
 D_KM_noNAN, _ = rh.masked_vector_field(D_KM_, np.array(np.meshgrid(*centers)).T)
 
@@ -70,9 +102,9 @@ X_train, X_test, Y_train, Y_test, V_train, V_test = rh.train_test_all([X_pts_],[
 del f_KM_noNAN, D_KM_noNAN, X_pts_
 # %%
 # for fitting model of drift and diffusion terms
-drift_lib = ps.PolynomialLibrary(degree=4, include_bias=True)
+drift_lib = ps.PolynomialLibrary(degree=5, include_bias=True)
 
-diff_lib = ps.PolynomialLibrary(degree=4, include_bias=True)
+diff_lib = ps.PolynomialLibrary(degree=5, include_bias=True)
 ################### Fit SINDy models ###################
 
 # fit model for drift term - SINDy based regression
@@ -94,7 +126,7 @@ diff_R2 = diffModel.score(X_test,x_dot=V_test)
 diffModel.print()
 
 print('Coefficient of determination (R^2) for model of diffusion term: %f' %diff_R2)
-# %%
+
 del X_train, X_test, Y_train, Y_test, V_train, V_test
 # %%
 f = model_eval.vector_field_function(driftModel)
@@ -121,8 +153,10 @@ flowJacobian = nd.Jacobian(f)
 for fpt in fpts:
     J = flowJacobian(fpt)
     eigvals = np.linalg.eigvals(J)
+    print(f"Eigenvalues of Jacobian at fixed point {fpt}: {eigvals}")
     # check for stability of fixed points
     if np.all(np.real(eigvals) < 0):
         fptStability = 'Stable'
         print(f'  • {fptStability} at x = {[fpt_i for fpt_i in fpt]}')
         fpts_new.append(fpt)
+# %%

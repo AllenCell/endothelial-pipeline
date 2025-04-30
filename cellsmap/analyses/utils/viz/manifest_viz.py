@@ -50,7 +50,7 @@ def plot_latent_component_mean(feats:np.ndarray) -> Tuple:
     fig.subplots_adjust(hspace=0.5)
     return fig, ax
 
-def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
+def plot_latent_component_histogram(feats:np.ndarray,bins:list|None=None) -> Tuple:
     '''
     Plot histogram of latent components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -60,8 +60,8 @@ def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     Input:
     - feats: np.ndarray, feature data for a single dataset
         - shape (num_crops, num_frames, num_features)
-    - Nbins: int, number of bins for histogram
-        - default: 40
+    - bins (optional): list, number of bins for histogram
+        - if None, use default number of bins
 
     Output:
     - fig: plt.Figure
@@ -69,7 +69,10 @@ def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     '''
     # right now, this function is only used for 8D latent space
     assert feats.shape[-1] == 8, 'Number of latent components must be 8'
-
+    if bins is None:
+        Nbins = 40
+    else:
+        Nbins = len(bins[0]) - 1
     # initialize figure and axes
     fig, ax = vb.init_subplots(4,2,figsize=(15,20))
 
@@ -80,7 +83,10 @@ def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     hist_array = np.zeros((num_feats,Nbins,num_T)) # histogram values for each component as a function of time
 
     # get bin edges for histogram
-    bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
+    if bins is None:
+        bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
+    else:
+        bin_edges = bins
     for t in range(num_T):
         # loop over latent components
         for dim in range(num_feats):
@@ -102,7 +108,7 @@ def plot_latent_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     fig.subplots_adjust(hspace=0.5)
     return fig, ax
 
-def plot_principal_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
+def plot_principal_component_histogram(feats:np.ndarray,bins:list|None) -> Tuple:
     '''
     Plot histogram of principal components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -112,8 +118,8 @@ def plot_principal_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     Input:
     - feats: np.ndarray, feature data for a single dataset
         - shape (num_crops, num_frames, num_features)
-    - Nbins: int, number of bins for histogram
-        - default: 40
+    - bins: list, number of bins for histogram
+        - if None, use default number of bins (40)
 
     Output:
     - fig: plt.Figure
@@ -121,6 +127,11 @@ def plot_principal_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     '''
     # right now, this function is only used for 8D latent space
     assert feats.shape[-1] == 3, 'Number of principal components must be 3'
+
+    if bins is None:
+        Nbins = 40
+    else:
+        Nbins = len(bins[0]) - 1
 
     # initialize figure and axes
     fig, ax = vb.init_subplots(3,1,figsize=(15,15))
@@ -132,7 +143,11 @@ def plot_principal_component_histogram(feats:np.ndarray,Nbins:int=40) -> Tuple:
     hist_array = np.zeros((num_feats,Nbins,num_T)) # histogram values for each component as a function of time
 
     # get bin edges for histogram
-    bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
+    if bins is None:
+        bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
+    else:
+        bin_edges = bins
+
     for t in range(num_T):
         # loop over latent components
         for dim in range(num_feats):
