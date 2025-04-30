@@ -295,7 +295,10 @@ def get_tracking_data_raws(dataset_name_list: List,
                 tracking_data['source_tracking_table_path'] = data_path.as_posix()
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    if tracking_data_list:
+        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    else: # create an empty dataframe
+        tracking_dataframe = dd.DataFrame.from_dict({})
     return tracking_dataframe if as_dask else tracking_dataframe.compute()
 
 def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> pd.DataFrame:
@@ -360,7 +363,10 @@ def get_measurement_data_raws(dataset_name_list: List,
             measurement_data['source_measurement_table_path'] = data_path.as_posix()
             measurement_data_list.append(measurement_data)
     # open the files and concatenate them into a single dataframe
-    measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
+    if measurement_data_list:
+        measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
+    else: # create an empty dataframe
+        measurement_dataframe = dd.DataFrame.from_dict({})
     return measurement_dataframe if as_dask else measurement_dataframe.compute()
 
 # model methods

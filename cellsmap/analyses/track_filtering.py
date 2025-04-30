@@ -106,7 +106,7 @@ def filter_tracking_dataframe(tracking_data: pd.DataFrame,
         standard deviations from the cells mean area for that track
     """
 
-    # NOTE: depsite the matching method being reciprocal_matches_only, thee are some instances of track
+    # NOTE: despite the matching method being reciprocal_matches_only, thee are some instances of track
     # splitting. I will need to find out why this is, but for now I will filter out these tracks.
     # UPDATE: I looked in to it and this occurs when 2 regions from a
     # query frame (e.g. a future timeframe) are both completely

@@ -4,7 +4,7 @@ import dask.dataframe as dd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from cellsmap.util.dataset_io import get_tracking_data_filtered, get_tracking_data_raws, get_measurement_data_raws, load_config, get_cdh5_classic_segmentation_path, get_dataset_info, ipython_cli_flexecute
+from cellsmap.util.dataset_io import get_tracking_data_raws, get_measurement_data_raws, load_config, get_cdh5_classic_segmentation_path, get_dataset_info, ipython_cli_flexecute
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.general_image_preprocessing import get_dim_map, build_analysis_queue
 from bioio import BioImage
@@ -12,9 +12,10 @@ from skimage import measure
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
+from scipy.ndimage import gaussian_filter1d
 from multiprocessing import Pool
 from tqdm import tqdm
-from cellsmap.analyses.track_filtering import make_orientation_relative_to_flow
+from cellsmap.util.dataset_io import load_dataset_position_as_dask_array, get_zarr_path, get_zarr_name, get_original_path
 
 def merge_segprops_and_track_data(
         segprops_df,
@@ -34,8 +35,31 @@ def merge_segprops_and_track_data(
     return big_table
 
 def filter_big_table(big_table: pd.DataFrame,
-                     min_num_points_per_track: int = 20
+                     out_dir: Path,
+                     min_num_points_per_track: int = 20,
                      ) -> pd.DataFrame:
+
+    num_rows_before_filtering = len(big_table)
+    num_unique_tracks_before_filtering = big_table.groupby(['dataset_name', 'position'])['track_id'].nunique().sum()
+
+    # NOTE: despite the matching method being reciprocal_matches_only, thee are some instances of track
+    # splitting. I will need to find out why this is, but for now I will filter out these tracks.
+    # UPDATE: I looked in to it and this occurs when 2 regions from a
+    # query frame (e.g. a future timeframe) are both completely
+    # overlapped by the reference frame (e.g. the current timeframe),
+    # in which case they both have equal metric values and are both
+    # included.
+    # NOTE UPDATE: This was fixed in the latest version of the tracking
+    # workflow, but the tracking workflow has not been re-run yet.
+    big_table = big_table[big_table.groupby(['dataset_name', 'position', 'track_id'])['T'].transform(lambda t: t.nunique() == t.size)]
+
+    area_change_allowed = 0.1
+    fold_change = True
+    sigma = 2.0
+    big_table = filter_on_fold_change(big_table,
+                                      fold_change=area_change_allowed,
+                                      fold_change_of_diff=fold_change,
+                                      smoothing_sigma=sigma)
     big_table = big_table[~big_table['touches_image_border']]
     # NOTE that we are only dropping the segmentation that
     # touch the border from this table, not the whole track
@@ -45,18 +69,58 @@ def filter_big_table(big_table: pd.DataFrame,
     # THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
     # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
     # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
-    tracking_data_filtered = filter_on_fold_change(tracking_data_filtered,
-                                                    fold_change=area_change_allowed,
-                                                    fold_change_of_diff=fold_change,
-                                                    smoothing_sigma=smoothing_sigma)
     big_table = big_table[big_table.groupby(
             ['dataset_name',
              'position',
              'track_id'])['track_id'].transform(
                  lambda x: x.count() > min_num_points_per_track)]
+
+    num_rows_after_filtering = len(big_table)
+    num_unique_tracks_after_filtering = big_table.groupby(['dataset_name', 'position'])['track_id'].nunique().sum()
+
+    # save a log file of the filtering that was done
+    timestamp = pd.Timestamp.now()
+    out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
+    out_dir_logs.mkdir(parents=True, exist_ok=True)
+    with open(out_dir_logs / f'{dataset_name}_filtered_tracking_results_run_log.txt', 'w') as f:
+        f.write(f'Date run: {str(timestamp)}\n')
+        f.write(f'Dataset analyzed: {dataset_name}\n')
+        f.write(f'Fold change used for filtering: {fold_change}\n')
+        f.write(f'Fold change of area difference for filtering? {area_change_allowed}\n')
+        f.write(f'Smoothing kernel used: gaussian with sigma={sigma}\n')
+        f.write(f'Number of rows before filtering: {num_rows_before_filtering}\n')
+        f.write(f'Number of rows after filtering: {num_rows_after_filtering}\n')
+        f.write(f'Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n')
+        f.write(f'Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n')
+
+    # create some validation plots
+    for (dataset_nm, position), df in big_table.groupby(['dataset_name', 'position']):
+        summary = df.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
+
+        # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
+        out_dir_plots = out_dir / 'num_tracks_plots' / dataset_name
+        out_dir_plots.mkdir(parents=True, exist_ok=True)
+
+        fig, ax = plt.subplots()
+        ax.set_title(f'Dataset {dataset_name} P{position}')
+        ax.set_xlabel('Timepoint')
+        ax.set_ylabel('Number of unique tracks')
+        sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
+        sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
+        ax.set_ylim(0)
+        left_of_boxes = [(ax.get_xlim()[0], ax.get_xlim()[0]), (summary['T'].max()-min_num_points_per_track, summary['T'].max()-min_num_points_per_track)]
+        right_of_boxes = [(min_num_points_per_track, min_num_points_per_track), (ax.get_xlim()[1], ax.get_xlim()[1])]
+        top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
+        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
+        ax.set_xlim(ax.get_xlim())
+        [ax.fill_betweenx(y=y, x1=x1, x2=x2, color='lightgrey') for y, x1, x2 in boxes]
+        fig.savefig(out_dir_plots / f'{dataset_nm}_P{position}_num_tracks_over_time.png', dpi=80)
+        plt.close(fig)
+
     return big_table
 
-def calculate_derived_data(big_table: pd.DataFrame
+def calculate_derived_data(big_table: pd.DataFrame,
+                           verbose = False
                            ) -> pd.DataFrame:
     """
     """
@@ -64,9 +128,9 @@ def calculate_derived_data(big_table: pd.DataFrame
     time_res_map = {dataset_name: get_dataset_info(dataset_name)['time_interval_in_minutes'] for dataset_name in big_table['dataset_name'].unique()}
 
     # dimensionalize the time column
-    print('Adding time intervals per timepoint...')
+    print('Adding time intervals per timepoint...') if verbose else None
     big_table['time_resolution_minutes'] = big_table['dataset_name'].transform(lambda dataset_name: time_res_map[dataset_name])
-    print('Calculating time in minutes and hours...')
+    print('Calculating time in minutes and hours...') if verbose else None
     big_table['time_minutes'] = big_table['image_index'] * big_table['time_resolution_minutes']
     big_table['time_hours'] = big_table['time_minutes'] / 60
     # (NOTE the image index column is produced in the
@@ -84,7 +148,7 @@ def calculate_derived_data(big_table: pd.DataFrame
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
-    print('Adding number of tracks for each timepoint...')
+    print('Adding number of tracks for each timepoint...') if verbose else None
     big_table['num_tracks_at_T'] = big_table.groupby(
         ['dataset_name',
          'position',
@@ -92,27 +156,27 @@ def calculate_derived_data(big_table: pd.DataFrame
 
     # add column for orientation in degrees of the 
     # ellipse fitted to each segmentation in degrees
-    print('Converting orientation to degrees...')
+    print('Converting orientation to degrees...') if verbose else None
     big_table['orientation_rel_to_horizontal'] = big_table['orientation'].transform(lambda x: make_orientation_relative_to_flow(x))
     big_table['orientation_deg_rel_to_horizontal'] = np.rad2deg(big_table['orientation_rel_to_horizontal'])
     big_table['dorient_dt_deg_rel_to_horizontal'] = big_table['orientation_deg_rel_to_horizontal'].diff() / big_table['time_minutes'].diff()
 
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
-    print('Calculating nematic order and aspect ratio...')
+    print('Calculating nematic order and aspect ratio...') if verbose else None
     big_table['nematic_order'] = get_nematic_order(big_table['orientation'])
     big_table['aspect_ratio'] = get_aspect_ratio(big_table['eccentricity'])
 
     # recalculate the centroid speeds of each track
     # after filtering
-    print('Calculating centroid velocities...')
+    print('Calculating centroid velocities...') if verbose else None
     big_table['pixel_size_xy_in_um'] = big_table['dataset_name'].transform(lambda dataset_name: um_per_px_map[dataset_name])
     big_table[['centroid_y', 'centroid_x']] = big_table['centroid'].transform(lambda c: stringified_floatlist_to_floatlist(c)).tolist()
     big_table['centroid_x_um'] = big_table['centroid_x'] * big_table['pixel_size_xy_in_um']
     big_table['centroid_y_um'] = big_table['centroid_y'] * big_table['pixel_size_xy_in_um']
     big_table[['centroid_dx_dt', 'centroid_dy_dt']] = big_table.groupby(['dataset_name', 'position', 'track_id'], as_index=True)[['centroid_x_um', 'centroid_y_um', 'time_minutes']].apply(lambda df: pd.DataFrame(columns=['centroid_dx_dt', 'centroid_dy_dt'], data=zip(*get_centroid_velocity(df['centroid_x_um'].values, df['centroid_y_um'].values, df['time_minutes'].values)), index=df.index)).droplevel([0,1,2])
 
-    print('Calculating centroid velocity magnitude and angle...')
+    print('Calculating centroid velocity magnitude and angle...') if verbose else None
     big_table['centroid_velocity_magnitude'] = np.linalg.norm([big_table['centroid_dx_dt'], big_table['centroid_dy_dt']], axis=0)
     big_table['centroid_velocity_angle'] = np.arctan2(big_table['centroid_dy_dt'], big_table['centroid_dx_dt'])
     big_table['centroid_velocity_angle_deg'] = np.rad2deg(big_table['centroid_velocity_angle'])
@@ -121,7 +185,7 @@ def calculate_derived_data(big_table: pd.DataFrame
 
     # add a column for the number of neighbors
     # touching each region that is being tracked
-    print('Calculating number of neighbors...')
+    print('Calculating number of neighbors...') if verbose else None
     big_table['neighboring_cell_labels'] = big_table['neighboring_cell_labels'].transform(lambda x: stringified_floatlist_to_floatlist(x))
     big_table['number_of_neighbors'] = big_table['neighboring_cell_labels'].transform(lambda x: len(x))
     return big_table
@@ -216,6 +280,37 @@ def plot_per_position(df_group, x_key, y_key, filepath_out, x_label=None, y_labe
         plt.close(fig)
     return
 
+def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_of_diff=False, smoothing_sigma: float=2.0):
+    tracking_results = tracking_results.copy()
+    # NOTE: this method filters based on fold change of a smoothed version of the data:
+    tracking_results['smoothed_area'] = tracking_results.groupby('track_id')['area'].transform(gaussian_filter1d, sigma=smoothing_sigma)
+    tracking_results['area_normd'] = tracking_results['area'] / tracking_results['smoothed_area']
+    tracking_results['area_normd_diff'] = tracking_results.groupby('track_id')['area_normd'].transform(lambda x: np.diff(x, prepend=np.nan))
+
+    if fold_change_of_diff:
+        tracking_results = tracking_results[(tracking_results['area_normd_diff'] > (-1 * fold_change)) + tracking_results['area_normd_diff'].transform(np.isnan)]
+        tracking_results = tracking_results[(tracking_results['area_normd_diff'] < fold_change) + tracking_results['area_normd_diff'].transform(np.isnan)]
+    else:
+        tracking_results = tracking_results[tracking_results['area_normd'] > (1 / fold_change)]
+        tracking_results = tracking_results[tracking_results['area_normd'] < fold_change]
+
+    return tracking_results
+
+# restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
+# we can interpret this orientation as being either parallel or perpendicular to flow
+def shift_orientation_phase(orientation: float):
+    return orientation - np.pi/2
+
+def restrict_orientation_to_positive(orientation: float):
+    return abs(orientation)
+
+def make_orientation_relative_to_flow(orientation: float):
+    # you can visualize this process as folding a paper circle in half
+    # (the top half) and then rotating this half circle 90 degrees to
+    # the right, and then folding it in half again so you are only
+    # left with the top right quadrant of the circle.
+    return restrict_orientation_to_positive(shift_orientation_phase(restrict_orientation_to_positive(orientation)))
+
 
 out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_dir.mkdir(parents=True, exist_ok=True)
@@ -234,64 +329,109 @@ if dataset_name == None:
 else:
     dataset_name_list = [dataset_name]
 
-tracking_df_list = []
-segprops_df_list = []
-alignments_df_list = []
-for dataset_name in dataset_name_list:
-    tracking_df_list.append(
-        # get_tracking_data_filtered([dataset_name],
-        #                            as_dask=True))
-        get_tracking_data_raws([dataset_name],
-                               as_dask=True))
-    segprops_df_list.append(
-        get_measurement_data_raws([dataset_name],
-                                  kind='segmentation_properties',
-                                  as_dask=True))
-    alignments_df_list.append(
-        get_measurement_data_raws([dataset_name],
-                                  kind='alignments',
-                                  as_dask=True))
-tracking_df = dd.concat(tracking_df_list)
-segprops_df = dd.concat(segprops_df_list)
-alignments_df = dd.concat(alignments_df_list)
+# tracking_df_list = []
+# segprops_df_list = []
+# alignments_df_list = []
+verbose = False
+for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='Processing datasets', unit='datasets'):
+    # dataset_name = '20241016_20X'
+    tracking_df = get_tracking_data_raws([dataset_name], as_dask=False)
+    segprops_df = get_measurement_data_raws([dataset_name], kind='segmentation_properties', as_dask=False)
+    if tracking_df.empty or segprops_df.empty:
+        continue
+    # alignments_df = get_measurement_data_raws([dataset_name], kind='alignments', as_dask=False)
 
-# NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
-out_path_tracks = out_dir / f'tracking_data.tsv'
-out_path_segprops = out_dir / f'segmentation_properties.tsv'
-# out_path_alignments = out_dir / f'alignments.tsv'
+    # tracking_df_list.append(tracking_df)
+    # segprops_df_list.append(segprops_df)
+    # alignments_df_list.append(alignments_df_list)
 
-tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
-segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
-# alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
+# tracking_df = dd.concat(tracking_df_list)
+# segprops_df = dd.concat(segprops_df_list)
+# alignments_df = dd.concat(alignments_df_list)
 
-tracking_df = pd.read_csv(out_path_tracks, sep='\t')
-segprops_df = pd.read_csv(out_path_segprops, sep='\t')
-# alignments_df = pd.read_csv(out_path_alignments, sep='\t')
-# NOTE END OF TEST CODE
+    # # NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
+    # out_path_tracks = out_dir / f'{dataset_name}_tracking_data.tsv'
+    # out_path_segprops = out_dir / f'{dataset_name}_segmentation_properties.tsv'
+    # # out_path_alignments = out_dir / f'alignments.tsv'
+
+    # tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
+    # segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
+    # # alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
+
+    # tracking_df = pd.read_csv(out_path_tracks, sep='\t')
+    # segprops_df = pd.read_csv(out_path_segprops, sep='\t')
+    # # alignments_df = pd.read_csv(out_path_alignments, sep='\t')
+    # # NOTE END OF TEST CODE
 
 # tracking_df = dd.concat(tracking_df_list)
 # segprops_df = dd.concat(segprops_df_list)
 
-# combine the tracking data with the segmentation
-# properties data
-print('Combining tracking data with segmentation properties data...')
-big_table = merge_segprops_and_track_data(segprops_df, tracking_df)
+    # combine the tracking data with the segmentation
+    # properties data
+    print('Combining tracking data with segmentation properties data...') if verbose else None
+    big_table = merge_segprops_and_track_data(segprops_df, tracking_df)
 
-# filter the segprops data to remove regions that
-# touch the image borders and keep only tracks that
-# have a minimum number of datapoints after this
-print('Filtering out regions that touch the image borders and tracks that are too short...')
-big_table = filter_big_table(big_table, min_num_points_per_track=20)
+    # filter the segprops data to remove regions that
+    # touch the image borders and keep only tracks that
+    # have a minimum number of datapoints after this
+    print('Filtering out regions that touch the image borders and tracks that are too short...') if verbose else None
+    big_table = filter_big_table(big_table, out_dir, min_num_points_per_track=120)
 
-# add some columns that are calculated from the
-# existing columns include:
-# orientation in degrees, velocities, nematic order,
-# aspect ratio, number of tracks (i.e. approximate 
-# number of detected cells)
-print('Calculating metrics from existing measurements...')
-big_table = calculate_derived_data(big_table)
+    # add some columns that are calculated from the
+    # existing columns include:
+    # orientation in degrees, velocities, nematic order,
+    # aspect ratio, number of tracks (i.e. approximate 
+    # number of detected cells)
+    print('Calculating metrics from existing measurements...') if verbose else None
+    big_table = calculate_derived_data(big_table)
 
-# big_table.dropna(inplace=True)
+    # break
+
+    # table for Benji
+    # remove all the centroids that are closer than 128 pixels
+    # to the image border
+    new_cols = {}
+    for (ds_nm, pos), grp in big_table.groupby(['dataset_name', 'position']):
+
+        zarr_name = get_zarr_name(ds_nm, pos)
+        zarr_path = Path(get_zarr_path(ds_nm, zarr_name)[zarr_name])
+
+        print('loading image...') if verbose else None
+        # NOTE the zarr paths are not working for 20241203_9db6173b3da7452b91756b6e86b0da61_P3
+        try:
+            img = BioImage(zarr_path)
+            img.set_resolution_level(0)
+            channel_index = dict(zip(img.channel_names, range(len(img.channel_names))))
+        except:
+            print('loading zarr failed, falling back to original path...')
+            og_path = get_original_path(ds_nm)
+            img = BioImage(og_path)
+            channel_index = dict(zip(["EGFP", "BF"], range(len(img.channel_names))))
+
+        # load_dataset_position_as_dask_array(dataset_name, 0)
+        image_size_y, image_size_x = img.dims.Y, img.dims.X
+
+        new_cols[(ds_nm, pos)] = {'zarr_path': zarr_path.as_posix(),
+                                  'image_size_x': image_size_x,
+                                  'image_size_y': image_size_y,
+                                  'EGFP_channel_index_zarr': channel_index['EGFP'],
+                                  'brightfield_channel_index_zarr': channel_index['BF'],}
+
+    big_table = big_table.merge(big_table.groupby(['dataset_name', 'position']).apply(lambda df: pd.DataFrame(columns=new_cols[df.name].keys(), data=new_cols[df.name], index=df.index), include_groups=False).droplevel([0,1]), left_index=True, right_index=True)
+
+    out_dir_for_integration = out_dir / f'single_cell_track_integration/'
+    out_dir_for_integration.mkdir(parents=True, exist_ok=True)
+    integration_table = big_table[['zarr_path', 'image_index', 'track_id', 'label', 'centroid_x', 'centroid_y', 'image_size_x', 'image_size_y']].copy()
+    integration_table = integration_table[integration_table['centroid_x'] > 128]
+    integration_table = integration_table[integration_table['centroid_y'] > 128]
+    integration_table = integration_table[integration_table['centroid_x'] < integration_table['image_size_x'] - 128]
+    integration_table = integration_table[integration_table['centroid_y'] < integration_table['image_size_y'] - 128]
+    integration_table['crop_size'] = 256
+    integration_table.to_csv(out_dir_for_integration / f'{dataset_name}_single_cell_track_integration.csv', index=False)
+
+    # save the filtered data to a file
+
+    # big_table.dropna(inplace=True)
 
 # TODO parallelize the graph generation here
 # make basic plots for each dataset
