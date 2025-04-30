@@ -41,6 +41,7 @@ def filter_big_table(big_table: pd.DataFrame,
 
     num_rows_before_filtering = len(big_table)
     num_unique_tracks_before_filtering = big_table.groupby(['dataset_name', 'position'])['track_id'].nunique().sum()
+    big_table['num_unique_tracks_before_filtering_at_T'] = big_table.groupby(['dataset_name', 'position', 'T'])['track_id'].transform(lambda x: x.nunique())
 
     # NOTE: despite the matching method being reciprocal_matches_only, thee are some instances of track
     # splitting. I will need to find out why this is, but for now I will filter out these tracks.
@@ -77,6 +78,7 @@ def filter_big_table(big_table: pd.DataFrame,
 
     num_rows_after_filtering = len(big_table)
     num_unique_tracks_after_filtering = big_table.groupby(['dataset_name', 'position'])['track_id'].nunique().sum()
+    big_table['num_unique_tracks_after_filtering_at_T'] = big_table.groupby(['dataset_name', 'position', 'T'])['track_id'].transform(lambda x: x.nunique())
 
     # save a log file of the filtering that was done
     timestamp = pd.Timestamp.now()
@@ -84,7 +86,7 @@ def filter_big_table(big_table: pd.DataFrame,
     out_dir_logs.mkdir(parents=True, exist_ok=True)
     with open(out_dir_logs / f'{dataset_name}_filtered_tracking_results_run_log.txt', 'w') as f:
         f.write(f'Date run: {str(timestamp)}\n')
-        f.write(f'Dataset analyzed: {dataset_name}\n')
+        f.write(f'Datasets analyzed: {big_table["dataset_name"].unique()}\n')
         f.write(f'Fold change used for filtering: {fold_change}\n')
         f.write(f'Fold change of area difference for filtering? {area_change_allowed}\n')
         f.write(f'Smoothing kernel used: gaussian with sigma={sigma}\n')
@@ -95,28 +97,27 @@ def filter_big_table(big_table: pd.DataFrame,
 
     # create some validation plots
     for (dataset_nm, position), df in big_table.groupby(['dataset_name', 'position']):
-        summary = df.groupby('T')[['T', 'num_tracks_before_filtering', 'num_tracks_after_filtering']].agg('median')
-
+        summary = df.groupby('T')[['T', 'num_unique_tracks_before_filtering_at_T', 'num_unique_tracks_after_filtering_at_T']].agg('median')
+        timelapse_duration = get_dataset_info(dataset_nm)['duration']
         # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
-        out_dir_plots = out_dir / 'num_tracks_plots' / dataset_name
+        out_dir_plots = out_dir / 'num_tracks_plots' / dataset_nm
         out_dir_plots.mkdir(parents=True, exist_ok=True)
 
         fig, ax = plt.subplots()
-        ax.set_title(f'Dataset {dataset_name} P{position}')
+        ax.set_title(f'Dataset {dataset_nm} P{position}')
         ax.set_xlabel('Timepoint')
         ax.set_ylabel('Number of unique tracks')
-        sns.lineplot(x='T', y='num_tracks_before_filtering', data=summary, ax=ax, label='Before filtering')
-        sns.lineplot(x='T', y='num_tracks_after_filtering', data=summary, ax=ax, label='After filtering')
+        sns.lineplot(x='T', y='num_unique_tracks_before_filtering_at_T', data=summary, ax=ax, label='Before filtering')
+        sns.lineplot(x='T', y='num_unique_tracks_after_filtering_at_T', data=summary, ax=ax, label='After filtering')
         ax.set_ylim(0)
-        left_of_boxes = [(ax.get_xlim()[0], ax.get_xlim()[0]), (summary['T'].max()-min_num_points_per_track, summary['T'].max()-min_num_points_per_track)]
-        right_of_boxes = [(min_num_points_per_track, min_num_points_per_track), (ax.get_xlim()[1], ax.get_xlim()[1])]
+        left_of_boxes = [(0, 0), (timelapse_duration-min_num_points_per_track, timelapse_duration-min_num_points_per_track)]
+        right_of_boxes = [(min_num_points_per_track, min_num_points_per_track), (timelapse_duration, timelapse_duration)]
         top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
         boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
-        ax.set_xlim(ax.get_xlim())
+        ax.set_xlim(0, timelapse_duration)
         [ax.fill_betweenx(y=y, x1=x1, x2=x2, color='lightgrey') for y, x1, x2 in boxes]
         fig.savefig(out_dir_plots / f'{dataset_nm}_P{position}_num_tracks_over_time.png', dpi=80)
         plt.close(fig)
-
     return big_table
 
 def calculate_derived_data(big_table: pd.DataFrame,
@@ -296,6 +297,56 @@ def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_
 
     return tracking_results
 
+def more_filtering_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=0, return_df=False):
+    # remove all the centroids that are closer than 128 pixels
+    # to the image border
+    new_cols = {}
+    for (ds_nm, pos), grp in big_table.groupby(['dataset_name', 'position']):
+
+        zarr_name = get_zarr_name(ds_nm, pos)
+        zarr_path = Path(get_zarr_path(ds_nm, zarr_name)[zarr_name])
+
+        print('loading image...') if verbose else None
+        # NOTE the zarr paths are not working for 20241203_9db6173b3da7452b91756b6e86b0da61_P3
+        try:
+            img = BioImage(zarr_path)
+            img.set_resolution_level(0)
+            channel_index = dict(zip(img.channel_names, range(len(img.channel_names))))
+        except:
+            print('loading zarr failed, falling back to original path...')
+            og_path = get_original_path(ds_nm)
+            img = BioImage(og_path)
+            channel_index = dict(zip(["EGFP", "BF"], range(len(img.channel_names))))
+
+        image_size_y, image_size_x = img.dims.Y, img.dims.X
+
+        new_cols[(ds_nm, pos)] = {'zarr_path': zarr_path.as_posix(),
+                                'image_size_x': image_size_x,
+                                'image_size_y': image_size_y,
+                                'EGFP_channel_index_zarr': channel_index['EGFP'],
+                                'brightfield_channel_index_zarr': channel_index['BF'],}
+
+    big_table = big_table.merge(big_table.groupby(['dataset_name', 'position']).apply(lambda df: pd.DataFrame(columns=new_cols[tuple(df.name)].keys(), data=new_cols[tuple(df.name)], index=df.index), include_groups=False).droplevel([0,1]), left_index=True, right_index=True)
+
+    big_table = big_table[big_table.groupby(
+            ['dataset_name',
+             'position',
+             'track_id'])['track_id'].transform(
+                 lambda x: x.count() > min_num_points_per_track)]
+
+    out_dir_for_integration = out_dir / f'single_cell_track_integration/'
+    out_dir_for_integration.mkdir(parents=True, exist_ok=True)
+    integration_table = big_table[['zarr_path', 'image_index', 'track_id', 'label', 'centroid_x', 'centroid_y', 'image_size_x', 'image_size_y']].copy()
+    integration_table = integration_table[integration_table['centroid_x'] > 128]
+    integration_table = integration_table[integration_table['centroid_y'] > 128]
+    integration_table = integration_table[integration_table['centroid_x'] < integration_table['image_size_x'] - 128]
+    integration_table = integration_table[integration_table['centroid_y'] < integration_table['image_size_y'] - 128]
+    integration_table['crop_size'] = 256
+    # save the filtered data to a file
+    integration_table.to_csv(out_dir_for_integration / f'{dataset_name}_single_cell_track_integration.csv', index=False)
+    return integration_table if return_df else None
+
+
 # restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
 # we can interpret this orientation as being either parallel or perpendicular to flow
 def shift_orientation_phase(orientation: float):
@@ -337,9 +388,9 @@ for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='
     # dataset_name = '20241016_20X'
     tracking_df = get_tracking_data_raws([dataset_name], as_dask=False)
     segprops_df = get_measurement_data_raws([dataset_name], kind='segmentation_properties', as_dask=False)
+    # alignments_df = get_measurement_data_raws([dataset_name], kind='alignments', as_dask=False)
     if tracking_df.empty or segprops_df.empty:
         continue
-    # alignments_df = get_measurement_data_raws([dataset_name], kind='alignments', as_dask=False)
 
     # tracking_df_list.append(tracking_df)
     # segprops_df_list.append(segprops_df)
@@ -363,8 +414,8 @@ for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='
     # # alignments_df = pd.read_csv(out_path_alignments, sep='\t')
     # # NOTE END OF TEST CODE
 
-# tracking_df = dd.concat(tracking_df_list)
-# segprops_df = dd.concat(segprops_df_list)
+    # tracking_df = dd.concat(tracking_df_list)
+    # segprops_df = dd.concat(segprops_df_list)
 
     # combine the tracking data with the segmentation
     # properties data
@@ -375,7 +426,7 @@ for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='
     # touch the image borders and keep only tracks that
     # have a minimum number of datapoints after this
     print('Filtering out regions that touch the image borders and tracks that are too short...') if verbose else None
-    big_table = filter_big_table(big_table, out_dir, min_num_points_per_track=120)
+    big_table = filter_big_table(big_table, out_dir, min_num_points_per_track=20)
 
     # add some columns that are calculated from the
     # existing columns include:
@@ -385,136 +436,94 @@ for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='
     print('Calculating metrics from existing measurements...') if verbose else None
     big_table = calculate_derived_data(big_table)
 
-    # break
+    print('Outputting a subset of the cell tracking data for integration with landscapes...') if verbose else None
+    more_filtering_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=120, return_df=False)
 
-    # table for Benji
-    # remove all the centroids that are closer than 128 pixels
-    # to the image border
-    new_cols = {}
-    for (ds_nm, pos), grp in big_table.groupby(['dataset_name', 'position']):
+    # TODO parallelize the graph generation here
+    # make basic plots for each dataset
+    for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+        out_dir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/'
+        vel_mag_mean = df_group['centroid_velocity_magnitude'].mean()
+        vel_mag_std = df_group['centroid_velocity_magnitude'].std()
+        # things_to_plot are tuples of (x_key, y_key, x_label, y_label, y_lim, filename_out)
+        things_to_plot = [('time_hours', 'orientation_deg_rel_to_horizontal', 'Time (hours)', 'Orientation (deg)', (0, 90), f'{dataset_name}_P{position}_orientations.png'),
+                          ('time_hours', 'eccentricity', 'Time (hours)', 'Eccentricity', (0, 1), f'{dataset_name}_P{position}_eccentricities.png'),
+                          ('time_hours', 'nematic_order', 'Time (hours)', 'Nematic Order', (None, None), f'{dataset_name}_P{position}_nematic_order.png'),
+                          ('time_hours', 'aspect_ratio', 'Time (hours)', 'Aspect Ratio', (None, None), f'{dataset_name}_P{position}_aspect_ratio.png'),
+                          ('time_hours', 'area', 'Time (hours)', 'Area (px**2)', (0, None), f'{dataset_name}_P{position}_region_areas.png'),
+                          ('time_hours', 'number_of_neighbors', 'Time (hours)', 'Number of Neighbors', (0, None), f'{dataset_name}_P{position}_num_neighbors.png'),
+                          ('time_hours', 'num_tracks_at_T', 'Time (hours)', 'Number of Cell Tracks', (0, None), f'{dataset_name}_P{position}_num_tracks.png'),
+                          ('time_hours', 'centroid_velocity_angle_deg_rel_to_horizontal', 'Time (hours)', 'Centroid Velocity Orientation (deg)', (0, 90), f'{dataset_name}_P{position}_centroid_velocity_angles.png'),
+                          ('time_hours', 'centroid_velocity_magnitude', 'Time (hours)', 'Centroid Velocity Magnitude (px/frame)', (0, vel_mag_mean + 2*vel_mag_std), f'{dataset_name}_P{position}_centroid_velocity_magnitudes.png'),
+                          ]
+        for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
+            out_subdir_plots = out_dir_plots / f'{y_key}/{dataset_name}'
+            out_subdir_plots.mkdir(parents=True, exist_ok=True)
+            plot_per_position(df_group,
+                            x_key=x_key,
+                            y_key=y_key,
+                            filepath_out=out_subdir_plots / filename_out,
+                            x_label=x_label,
+                            y_label=y_label,
+                            y_lims=y_lims,
+                            )
 
-        zarr_name = get_zarr_name(ds_nm, pos)
-        zarr_path = Path(get_zarr_path(ds_nm, zarr_name)[zarr_name])
-
-        print('loading image...') if verbose else None
-        # NOTE the zarr paths are not working for 20241203_9db6173b3da7452b91756b6e86b0da61_P3
-        try:
-            img = BioImage(zarr_path)
-            img.set_resolution_level(0)
-            channel_index = dict(zip(img.channel_names, range(len(img.channel_names))))
-        except:
-            print('loading zarr failed, falling back to original path...')
-            og_path = get_original_path(ds_nm)
-            img = BioImage(og_path)
-            channel_index = dict(zip(["EGFP", "BF"], range(len(img.channel_names))))
-
-        # load_dataset_position_as_dask_array(dataset_name, 0)
-        image_size_y, image_size_x = img.dims.Y, img.dims.X
-
-        new_cols[(ds_nm, pos)] = {'zarr_path': zarr_path.as_posix(),
-                                  'image_size_x': image_size_x,
-                                  'image_size_y': image_size_y,
-                                  'EGFP_channel_index_zarr': channel_index['EGFP'],
-                                  'brightfield_channel_index_zarr': channel_index['BF'],}
-
-    big_table = big_table.merge(big_table.groupby(['dataset_name', 'position']).apply(lambda df: pd.DataFrame(columns=new_cols[df.name].keys(), data=new_cols[df.name], index=df.index), include_groups=False).droplevel([0,1]), left_index=True, right_index=True)
-
-    out_dir_for_integration = out_dir / f'single_cell_track_integration/'
-    out_dir_for_integration.mkdir(parents=True, exist_ok=True)
-    integration_table = big_table[['zarr_path', 'image_index', 'track_id', 'label', 'centroid_x', 'centroid_y', 'image_size_x', 'image_size_y']].copy()
-    integration_table = integration_table[integration_table['centroid_x'] > 128]
-    integration_table = integration_table[integration_table['centroid_y'] > 128]
-    integration_table = integration_table[integration_table['centroid_x'] < integration_table['image_size_x'] - 128]
-    integration_table = integration_table[integration_table['centroid_y'] < integration_table['image_size_y'] - 128]
-    integration_table['crop_size'] = 256
-    integration_table.to_csv(out_dir_for_integration / f'{dataset_name}_single_cell_track_integration.csv', index=False)
-
-    # save the filtered data to a file
-
-    # big_table.dropna(inplace=True)
-
-# TODO parallelize the graph generation here
-# make basic plots for each dataset
-for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
-    out_dir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/'
-    vel_mag_mean = df_group['centroid_velocity_magnitude'].mean()
-    vel_mag_std = df_group['centroid_velocity_magnitude'].std()
-    # things_to_plot are tuples of (x_key, y_key, x_label, y_label, y_lim, filename_out)
-    things_to_plot = [('time_hours', 'orientation_deg', 'Time (hours)', 'Orientation (deg)', (0, 90), f'{dataset_name}_P{position}_orientations.png'),
-                      ('time_hours', 'eccentricity', 'Time (hours)', 'Eccentricity', (0, 1), f'{dataset_name}_P{position}_eccentricities.png'),
-                      ('time_hours', 'nematic_order', 'Time (hours)', 'Nematic Order', (None, None), f'{dataset_name}_P{position}_nematic_order.png'),
-                      ('time_hours', 'aspect_ratio', 'Time (hours)', 'Aspect Ratio', (None, None), f'{dataset_name}_P{position}_aspect_ratio.png'),
-                      ('time_hours', 'area', 'Time (hours)', 'Area (px**2)', (0, None), f'{dataset_name}_P{position}_region_areas.png'),
-                      ('time_hours', 'number_of_neighbors', 'Time (hours)', 'Number of Neighbors', (0, None), f'{dataset_name}_P{position}_num_neighbors.png'),
-                      ('time_hours', 'num_tracks_at_T', 'Time (hours)', 'Number of Cell Tracks', (0, None), f'{dataset_name}_P{position}_num_tracks.png'),
-                      ('time_hours', 'centroid_velocity_angle_deg_rel_to_horizontal', 'Time (hours)', 'Centroid Velocity Orientation (deg)', (0, 90), f'{dataset_name}_P{position}_centroid_velocity_angles.png'),
-                      ('time_hours', 'centroid_velocity_magnitude', 'Time (hours)', 'Centroid Velocity Magnitude (px/frame)', (0, vel_mag_mean + 2*vel_mag_std), f'{dataset_name}_P{position}_centroid_velocity_magnitudes.png'),
-                      ]
-    for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
-        out_subdir_plots = out_dir_plots / f'{y_key}/{dataset_name}'
+    t_range = range(0, 1000, 36)
+    for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+        out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/violin/{dataset_name}'
         out_subdir_plots.mkdir(parents=True, exist_ok=True)
-        plot_per_position(df_group,
-                          x_key=x_key,
-                          y_key=y_key,
-                          filepath_out=out_subdir_plots / filename_out,
-                          x_label=x_label,
-                          y_label=y_label,
-                          y_lims=y_lims,
-                          )
-
-t_range = range(0, 1000, 36)
-for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
-    out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/violin/{dataset_name}'
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(18, 12))
-    sns.violinplot(data=df_group.query('image_index in @t_range'),
-                   x='time_hours',
-                   y='orientation_deg',
-                   ax=ax)
-    ax.set_title(f'{dataset_name} P{position}')
-    ax.set_xlabel('Time (hours)')
-    ax.set_ylabel('Orientation (deg)')
-    plt.tight_layout()
-    fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_violin.png', bbox_inches='tight')
-    plt.close(fig)
+        fig, ax = plt.subplots(figsize=(18, 12))
+        sns.violinplot(data=df_group.query('image_index in @t_range'),
+                    x='time_hours',
+                    y='orientation_deg_rel_to_horizontal',
+                    ax=ax)
+        ax.set_title(f'{dataset_name} P{position}')
+        ax.set_xlabel('Time (hours)')
+        ax.set_ylabel('Orientation (deg)')
+        plt.tight_layout()
+        fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_violin.png', bbox_inches='tight')
+        plt.close(fig)
 
 
-# plot orientation vs change in orientation over time
-for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
-    out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/orientation_phase/{dataset_name}'
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
-    sns.scatterplot(data=df_group,
-                   x='orientation_deg',
-                   y='dorientation_deg_dt',
-                   hue='track_id',
-                   alpha=0.5,
-                   legend=False,
-                   ax=ax)
-    ax.set_title(f'{dataset_name} P{position}')
-    ax.set_xlabel('Orientation (deg)')
-    ax.set_ylabel('Orientation Change (deg/min)')
-    plt.tight_layout()
-    fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_phase.png', bbox_inches='tight')
-    plt.close(fig)
+    # plot orientation vs change in orientation over time
+    for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+        out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/orientation_phase/{dataset_name}'
+        out_subdir_plots.mkdir(parents=True, exist_ok=True)
+        # df_group.groupby('track_id').plot(x='orientation_deg_rel_to_horizontal', y='dorient_dt_deg_rel_to_horizontal', marker='.', hue=)
+        fig, ax = plt.subplots()
+        sns.scatterplot(data=df_group,
+                        x='orientation_deg_rel_to_horizontal',
+                        y='dorient_dt_deg_rel_to_horizontal',
+                        hue='track_id',
+                        palette='flare',
+                        alpha=0.5,
+                        marker='.',
+                        legend=False,
+                        ax=ax)
+        ax.set_title(f'{dataset_name} P{position}')
+        ax.set_xlabel('Orientation (deg)')
+        ax.set_ylabel('Orientation Change (deg/min)')
+        plt.tight_layout()
+        fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_phase.png', bbox_inches='tight')
+        plt.close(fig)
 
-# plot orientation vs time with track_id as hue
-for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
-    out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/orientations_by_track/{dataset_name}'
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
-    sns.scatterplot(data=df_group,
-                   x='time_hours',
-                   y='orientation_deg',
-                   hue='track_id',
-                   alpha=0.5,
-                   marker='.',
-                   lw=0,
-                   legend=False,
-                   ax=ax)
-    ax.set_title(f'{dataset_name} P{position}')
-    ax.set_xlabel('Time (hours)')
-    ax.set_ylabel('Orientation (deg)')
-    plt.tight_layout()
-    fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_by_track.png', bbox_inches='tight')
-    plt.close(fig)
+    # plot orientation vs time with track_id as hue
+    for (dataset_name, position), df_group in tqdm(big_table.groupby(['dataset_name', 'position']), total=len(big_table.groupby(['dataset_name', 'position'])), desc='Plotting features', unit='positions'):
+        out_subdir_plots = Path(out_dir) / f'cdh5_classic_seg_plots/orientations_by_track/{dataset_name}'
+        out_subdir_plots.mkdir(parents=True, exist_ok=True)
+        fig, ax = plt.subplots()
+        sns.scatterplot(data=df_group,
+                    x='time_hours',
+                    y='orientation_deg_rel_to_horizontal',
+                    hue='track_id',
+                    alpha=0.5,
+                    marker='.',
+                    lw=0,
+                    legend=False,
+                    ax=ax)
+        ax.set_title(f'{dataset_name} P{position}')
+        ax.set_xlabel('Time (hours)')
+        ax.set_ylabel('Orientation (deg)')
+        plt.tight_layout()
+        fig.savefig(out_subdir_plots / f'{dataset_name}_P{position}_orientations_by_track.png', bbox_inches='tight')
+        plt.close(fig)
