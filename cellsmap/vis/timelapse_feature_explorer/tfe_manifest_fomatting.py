@@ -6,8 +6,8 @@ def update_manifest_for_tfe(df, dataset, position, output_dir):
     Update the manifest DataFrame for TFE by adding necessary columns.
     """
     df["centroid"] = df["centroid"].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
-    df["centroid_x"] = df["centroid"].apply(lambda x: x[0])
-    df["centroid_y"] = df["centroid"].apply(lambda x: x[1])
+    df["centroid_x"] = df["centroid"].apply(lambda x: x[1])
+    df["centroid_y"] = df["centroid"].apply(lambda x: x[0])
     df["dataset"] = dataset
     df["position"] = position
     df["object_id"] = df.groupby(["position", "image_index", "label"]).ngroup() + 1 # plus one so object id is not 0, background
