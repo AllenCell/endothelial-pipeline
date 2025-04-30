@@ -17,6 +17,9 @@ __pycache__/
 # PDM config file
 .pdm.toml
 
+# uv cache
+.cache/uv
+
 # Environment variables
 venv/
 .venv

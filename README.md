@@ -21,7 +21,8 @@ part1 & part2 & part4 & part5 --> part3
 
 ## Installation
 
-This project requires Python 3.10.
+This project requires Python 3.11.
+We recommend using the most recent version of Python 3.11 (Python 3.11.12).
 Package dependencies can be found in the `pyproject.toml` file.
 
 ### Installation using UV
@@ -63,17 +64,21 @@ uv sync --extra internal
 ```
 
 If you want to run ML workflows, install the optional `ml_workflows` dependency group.
-Note that the `workflows` dependency group is incompatible with the `cellpose` dependency group; you cannot install both.
 
 ```bash
 uv sync --extra ml_workflows
 ```
 
 If you want to run Cellpose workflows, install the optional `cellpose` dependency group.
-Note that the `cellpose` dependency group is incompatible with the `ml_worfklows` dependency group; you cannot install both.
 
 ```bash
 uv sync --extra cellpose
+```
+
+To install multiple dependency groups, such as `ml_workflows` and `internal`:
+
+```bash
+uv sync --extra ml_workflows --extra internal
 ```
 
 **4. Activate the virtual environment**
