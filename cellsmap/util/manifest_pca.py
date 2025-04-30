@@ -31,6 +31,7 @@ def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
     Z = 3/2. * X - 0.6
     return Z > Y
 
+
 def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     '''
     Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
@@ -44,6 +45,7 @@ def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     '''
     data['outlier'] = simple_linear_classifier(data['feat_0'], data['feat_3'])
     return data
+
 
 def remove_outliers(data:pd.DataFrame) -> pd.DataFrame:
     '''

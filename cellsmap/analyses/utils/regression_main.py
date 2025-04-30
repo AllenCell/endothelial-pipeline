@@ -160,9 +160,9 @@ def build_kramers_moyal_train_test(pca:Pipeline,
 
         print('**** Generating train/test sets for dataset',ds_name,'**** \n')
 
-        # project data from this one dataset onto principal component axes as defined by fit PCA object pca
-        df_ = mio.get_diffae_manifest(ds_name) # get the manifest for the dataset
-        df_proj = diffae_preproc.project_manifest_to_pcs(df_,pca) # project data onto PC axes
+        # load DiffAE feature data from this one dataset, with outliers labeled and features
+        # projected onto principal component axes as defined by fit PCA object pca
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name,pca) 
         
         # get train test split for this dataset
         X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = \
