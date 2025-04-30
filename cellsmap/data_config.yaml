@@ -49,7 +49,7 @@
   notes: "",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241022_20X_mito",
   nuclear_seg_manifest_fmsid: "4cc9c9f7be764040b4c0250504ed49a2",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "f1a32daf5f004ce58d410f7d81d3d6d0", 
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/programs/allencell/data/proj0/866/cdf/da7/303/188/0e8/642/01e/3a7/aa8/55/20240328_GE00007383_20X_fixed_sldy/20240328_GE00007383_20X_fixed_SLDY.sldy", 
@@ -122,7 +122,8 @@
   notes: "This is a nice 48hr high flow dataset.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X",
   nuclear_seg_manifest_fmsid: "a9ef7c8557334f1fb36393f79b582609",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "3ce3dedd56a54b48a544c99dc61a2fe1", 
+  is_reference: True,
 },{
   name: 20241203_20X,
   original_path: "//allen/programs/allencell/data/proj0/a61/b0d/e86/6b6/175/2b9/745/3da/73b/b61/9d/20241203_GE00007661_20X_timelapse_sldy/20241203_GE00007661_20X_timelapse_SLDY.sldy",
@@ -145,7 +146,7 @@
   notes: "This timelapse has not yet been converted to ZARR.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241203_20X",
   nuclear_seg_manifest_fmsid: "f17ac69d490b43d48492332c29e338ee",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "b02cf89d77da4e1592a36dc93dd690bd", 
 },{
   name: 20241217_20X, # will get new FMS id .. original data needs to be re-uploaded
   original_path: "//allen/programs/allencell/data/proj0/cfb/696/9de/19e/f96/498/74b/18f/348/efe/ec/20241217_GE00006535_20X_timelapse_sldy/20241217_GE00006535_20X_timelapse_SLDY.sldy",
@@ -167,7 +168,9 @@
   notes: "This dataset seems to be missing a metadata file... No flow with 1 feed only.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241217_20X",
   nuclear_seg_manifest_fmsid: "225e4e4f67934f2781caba8db82401f6",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "da36d8a9fd7541e0b4d459d396063343", 
+  valid_timepoints: {start: [0, 300], stop: [100, 420]},
+  is_reference: True
 },{
   name: 20250110_paired20X,
   original_path: "//allen/programs/allencell/data/proj0/030/79c/609/5c6/ec5/d9b/047/4ff/376/5cc/d9/20250110_GE00006323_20X_zstacks_SLDY/20250110_GE00006323_20X_zstacks_SLDY.sldy",
@@ -523,7 +526,7 @@
   notes: "",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250224_20X",
   nuclear_seg_manifest_fmsid: "dd80c432b37e4268a4dc44d96fb3e475",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "80affabd33654cb583818cc106c06697", 
 },{
   name: 20250224_20X_Nikon,
   original_path: "//allen/programs/allencell/data/proj0/8c9/a46/343/900/268/3e9/348/54f/81b/c69/0c/20250224_GE00006992_endo_low_to_high.nd2",
@@ -728,13 +731,14 @@
   n_total_positions: 6, # positions are represented as timeframes in the dataset
   notes: "Stopped imaging prior to 48 hours because cells were very packed",
   nuclear_label_free_seg_path: "",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "f68469a1a7f948dc92d20693a59b1aeb", 
 },{
   name: 20250326_20X,
   original_path: "//allen/programs/allencell/data/proj0/353/acc/1d4/7ad/611/c5a/c44/262/ddf/97a/eb/20250326_GE00007488_20X_timelapse_sldy/20250326_GE00007488_20X_timelapse_sldy.sldy",
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250326_eb97addf262c44c5a6117ad1d4acc353",
   fmsid: "eb97addf262c44c5a6117ad1d4acc353",
   barcode: GE00007488,
+  cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
   microscope: 3i,
   shear_stress_regime: intermediate,
@@ -749,7 +753,7 @@
   notes: "",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "5b56ac5942f74709af9b79c56ffb21c3",
 }, 
 {
   name: 20250331_20X,
@@ -757,6 +761,7 @@
   zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250331_92c8633e027b40c1aa3052b2aced9edc",
   fmsid: "92c8633e027b40c1aa3052b2aced9edc",
   barcode: GE00007559,
+  cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
   microscope: 3i,
   shear_stress_regime: 24hr_high-to-24hr_low,
@@ -771,10 +776,10 @@
   notes: "Frame of flow switch was ~275.",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "3221e4f0a473402db6c95e26b5219707",
 },{
   name: 20250415_SlideA_20X,
-  original_path: //allen/aics/endothelial/morphological_features/image_data/original_data/20250415/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy,
+  original_path: //allen/programs/allencell/data/proj0/af5/a86/27d/d28/ffd/319/b4d/ee9/0b6/9a4/80/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy,
   zarr_path: None,
   fmsid: "",
   barcode: GE00007488,
@@ -796,7 +801,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250415_SlideE_20X,
-  original_path: //allen/aics/endothelial/morphological_features/image_data/original_data/20250415/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy,
+  original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy,
   zarr_path: None,
   fmsid: "",
   barcode: GE00007101,
@@ -818,7 +823,7 @@
   diffae_manifest_fmsid: "", 
 },{
   name: 20250415_SlideH_20X,
-  original_path: //allen/aics/endothelial/morphological_features/image_data/original_data/20250415/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy,
+  original_path: //allen/programs/allencell/data/proj0/655/ee7/c58/80c/e02/60a/c44/308/307/a3c/eb/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy,
   zarr_path: None,
   fmsid: "",
   barcode: GE00006885,
@@ -859,7 +864,8 @@
   notes: "cells become extremely crowded at end of video",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "ef883577f6014f8cab3452cf2205864d",
+  is_reference: True
 },
 {
   name: 20250409_20X,
@@ -881,6 +887,7 @@
   notes: "cells become very crowded near end of timelapse",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "2979ed0ac60c492db40511ea0b0bef6b",
+  is_reference: True
 }
 ]
