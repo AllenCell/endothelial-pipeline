@@ -138,7 +138,7 @@ def build_kramers_moyal_train_test(pca:Pipeline,
     The train test sets are concatenated across all datasets in the dataframe.
     '''
     # get list of datasets with DiffAE manifest data
-    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid") # get all datasets with DiffAE manifest data
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
 
     # initialize lists to store train test sets for each dataset
     X_train_list = []

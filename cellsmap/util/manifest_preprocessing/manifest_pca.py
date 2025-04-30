@@ -35,7 +35,8 @@ def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
 def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     '''
     Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
-    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space.
+    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space
+    (indexing starts at 0).
 
     Inputs:
     - data: pd.DataFrame, containing the 8-dimensional latent space
@@ -43,7 +44,7 @@ def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     Outputs:
     - data: pd.DataFrame, with an additional column 'outlier' indicating whether the crop is an outlier
     '''
-    data['outlier'] = simple_linear_classifier(data['feat_0'], data['feat_3'])
+    data['outlier'] = simple_linear_classifier(data['feat_1'], data['feat_4'])
     return data
 
 
@@ -126,46 +127,6 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
         ])
     # get the feature columns from the data, these are the columns that start with 'feat_'
     feature_cols = manifest_io.get_feature_cols(data_ref)
-    pipe.fit(data_ref[feature_cols].values) # fit PCA
-
-    if verbose: # print explained variance ratios
-        print(f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}')
-
-    # return the fit PCA pipeline
-    return pipe
-
-def fit_pca_OLD(data: pd.DataFrame, num_pcs: int, scale:bool = False, verbose:bool=True) -> Pipeline:
-    """
-    Helper function for fitting PCA pipeline.
-
-    Args:
-        data (pd.DataFrame): DataFrame containing the data to fit PCA on
-        num_pcs (int): Number of principal components to keep
-        scale (bool): Whether to scale the data before fitting PCA (default: False)
-        verbose (bool): Whether to print the explained variance ratios (default: True)
-
-    Returns:
-        pipe (Pipeline): Fitted PCA pipeline (may include scaling)
-    """    
-    # get reference timepoints for fitting PCA
-    data_ref = get_pca_reference(data)
-
-    # remove outliers
-    if 'outlier' not in data_ref.columns:
-        data_ref = get_outliers(data_ref)
-    data_ref = remove_outliers(data_ref)
-
-    # fit PCA
-    if scale: # scale the data before fitting PCA
-        pipe = Pipeline([
-            ('scaler', StandardScaler()),
-            ('pca', PCA(n_components=num_pcs, svd_solver='full'))
-        ])
-    else: # don't scale the data before fitting PCA
-        pipe = Pipeline([
-            ('pca', PCA(n_components=num_pcs, svd_solver='full'))
-        ])
-    feature_cols = manifest_io.get_feature_cols(data)
     pipe.fit(data_ref[feature_cols].values) # fit PCA
 
     if verbose: # print explained variance ratios

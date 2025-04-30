@@ -2,8 +2,30 @@ import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import dataset_io, manifest_io, manifest_pca
+from cellsmap.util import dataset_io, manifest_io
+from cellsmap.util.manifest_preprocessing import manifest_pca
 
+
+def add_description_column(df:pd.DataFrame, ds_name:str, simple:bool=False) -> pd.DataFrame:
+    '''
+    Add description column to DataFrame df. (Descriptions are currently based on the dataset name.)
+    
+    Inputs:
+    - df: pd.DataFrame, DataFrame of feature data for dataset ds_name
+        - IMPORTANT: DataFrame must be restricted to one dataset only, as identified by the dataset_name column
+    - ds_name: str, name of dataset to add description for
+    - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
+
+    Outputs:
+    - df: pd.DataFrame, DataFrame of feature data for one dataset with added description column
+    '''
+    # get descriptions for each dataset name
+    description = get_dataset_descriptions([ds_name],simple=simple)
+
+    # add description column to DataFrame
+    df['description'] = description[ds_name] # add description to DataFrame
+
+    return df
 
 def get_dataset_descriptions(list_of_datasets:list[str],simple:bool=False) -> dict:
     '''

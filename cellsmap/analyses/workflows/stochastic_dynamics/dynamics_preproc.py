@@ -1,6 +1,7 @@
 import fire
 
-from cellsmap.util import manifest_io, manifest_pca
+from cellsmap.util import manifest_io
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils import regression_main
 from cellsmap.analyses.utils.io import dynamics_io
