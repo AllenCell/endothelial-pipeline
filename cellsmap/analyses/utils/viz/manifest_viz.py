@@ -123,7 +123,7 @@ def plot_top_3_PCs_alldata(pca:Pipeline) -> Tuple:
             y_lims[j][0] = min(y_lims[j][0],np.min(feats_proj[...,j]))
             y_lims[j][1] = max(y_lims[j][1],np.max(feats_proj[...,j]))
 
-        subfig.suptitle(title_dict[ds_name],fontsize=26) # title of subfig: description of dataset by flow conditions
+        subfig.suptitle(f"{ds_name} ({title_dict[ds_name]})",fontsize=26) # title of subfig: description of dataset by flow conditions
 
         # create 1x3 subplots per subfig
         axs = subfig.subplots(nrows=1, ncols=3)
