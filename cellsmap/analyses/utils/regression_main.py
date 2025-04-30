@@ -43,8 +43,9 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
     '''
 
     # for extracting just the axes (specified via PCs) we want from the resulting dataframe
-    # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_1' and 'feat_2'
-    feat_cols = mio.get_feature_cols(df_proj)[PCs]
+    # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_0' and 'feat_1'
+    feat_cols_all = mio.get_feature_cols(df_proj)
+    feat_cols = [feat_cols_all[i] for i in PCs]
     ndim = len(PCs)
 
     # split out data by flow condition

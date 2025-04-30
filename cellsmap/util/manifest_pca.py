@@ -34,7 +34,7 @@ def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
 def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     '''
     Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
-    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space
+    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space.
 
     Inputs:
     - data: pd.DataFrame, containing the 8-dimensional latent space
@@ -42,7 +42,7 @@ def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     Outputs:
     - data: pd.DataFrame, with an additional column 'outlier' indicating whether the crop is an outlier
     '''
-    data['outlier'] = simple_linear_classifier(data['feat_1'], data['feat_4'])
+    data['outlier'] = simple_linear_classifier(data['feat_0'], data['feat_3'])
     return data
 
 def remove_outliers(data:pd.DataFrame) -> pd.DataFrame:
