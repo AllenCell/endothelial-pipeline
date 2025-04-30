@@ -147,7 +147,7 @@ def apply_model_single(model_name:str, dataset_name: str, save_path: Optional[Un
 def apply_model(model_name: str, dataset_names: Sequence[str], upload_to_fms: bool = True,  save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
     """
     Apply a model to a multiple datasets.
-    Example usage: python apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+    Example usage: python apply_on_crop.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
 
 
     Parameters
