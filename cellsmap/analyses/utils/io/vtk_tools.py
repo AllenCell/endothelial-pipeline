@@ -71,7 +71,7 @@ class DataDrivenFlowField3D():
         # identifier determines the building blocks of the dataframe. For 
         # example, cell_index or crop_index. We assume that dataframe has been
         # sorted by identifier and time with:
-        #     df = df.sort_values(by=["crop_index", "T"])
+        #     df = df.sort_values(by=["crop_index", "frame_number"])
         self._df = df.copy()
         self._identifier = identifier
     def set_state_space_variables(self, vars: list) -> None:
@@ -247,7 +247,7 @@ class DataDrivenFlowField3D():
         # condition of the simulations
         df_initial = self._df.loc[
             (self._df.description==condition)&
-            (self._df["T"]<tmax)&
+            (self._df["frame_number"]<tmax)&
             (self._df.PC1>(1-buffer)*self._bounds.xmin)&
             (self._df.PC1<(1-buffer)*self._bounds.xmax)&
             (self._df.PC2>(1-buffer)*self._bounds.ymin)&
