@@ -59,10 +59,9 @@ cellpose = [
 [dependency-groups]
 dev = [
     "pre-commit>=3.7.1",
-    "isort>=5.13.2",
-    "jupytext>=1.16.2",
 ]
 lint = [
+    "isort>=5.13.2",
     "black>=24.4.2",
     "ruff>=0.4.6",
     "mypy>=1.10.0",
@@ -75,6 +74,7 @@ test = [
     "pytest-subtests>=0.13.1",
 ]
 docs = [
+    "jupytext>=1.16.2",
     "sphinx>=7.3.7",
     "furo>=2024.5.6",
     "myst-parser>=3.0.1",
