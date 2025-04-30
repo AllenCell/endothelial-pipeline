@@ -10,16 +10,15 @@ __pycache__/
 *.mypy_cache/
 *.ipynb_checkpoints/
 
-# PDM lock file
-pdm.lock
-.pdm-python
-
 # PDM virtual environment directory
 .pdm-python
 .python-version
 
 # PDM config file
 .pdm.toml
+
+# uv cache
+.cache/uv
 
 # Environment variables
 venv/
@@ -31,7 +30,6 @@ venv/
 
 # Log files
 *.log
-*.txt
 
 # Image files
 *.png
@@ -50,9 +48,3 @@ analyses/results/
 
 # ignore CellPose models which can be quite large
 cellsmap/analyses/nuclei_predictions/models/
-
-# ignore files that might not be included
-cdh5_classic_seg_old.py
-sldy_load_test.py
-concatenate_timepoints.py
-ROUGH_vis_cdh5_nodes_and_edges_analysis.py
