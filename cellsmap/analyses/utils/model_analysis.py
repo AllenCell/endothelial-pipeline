@@ -11,6 +11,7 @@ from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import model_eval, regression_helper as rh
 from cellsmap.analyses.utils.viz import pplane, dynamics_viz as dviz, viz_base as vb
 from cellsmap.analyses.utils.numerics import gen_potential as gp
+from cellsmap.util.manifest_preprocessing import diffae_feature_preprocessing as diffae_preproc
 
 def model_data_comparison_one_dataset(model:list[Callable], 
                                       data:pd.DataFrame,
@@ -69,7 +70,10 @@ def model_data_comparison_one_dataset(model:list[Callable],
         p_fit = model_eval.get_stationary_probability(f_vals,D_vals,bins)
 
     # get "stationary" distribution from data
-    feat_cols = [str(i) for i in PCs] # for extracting PC values from DataFrame
+    # for extracting just the axes (specified via PCs) we want from the resulting dataframe
+    # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_0' and 'feat_1'
+    feat_cols_all = mio.get_feature_cols(data)
+    feat_cols = [feat_cols_all[i] for i in PCs]
     p_hist = rh.get_stationary_hist(data,feat_cols,bins)
 
     fig2,ax2 = dviz.compare_stationary_distributions(p_fit,p_hist,bins)
@@ -106,11 +110,10 @@ def model_data_comparison(model:list[Callable],
     Outputs:
     - None, saves figures to fig_savedir
     '''
-    
-    # load manifest to DataFrame with metadata
-    df = mio.load_manifest_to_df(verbose=False)
-    # get list of datasets represented in feature data
-    list_of_datasets = mio.get_list_of_datasets(df)
+
+    # get list of datasets with DiffAE manifest data
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
+
 
     for ds_name in list_of_datasets: 
         # if we don't want to fit model using this dataset, skip it
@@ -121,7 +124,9 @@ def model_data_comparison(model:list[Callable],
         print('**** Running model analysis for dataset',ds_name,'**** \n')
 
         # project data from this one dataset onto PCs as defined by fit PCA object pca
-        df_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
+        # load DiffAE feature data from this one dataset, with outliers labeled and features
+        # projected onto principal component axes as defined by fit PCA object pca
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name,pca) 
 
         # split out data by flow condition
         df_by_flow, shear_list = rh.get_X_by_flow(df_proj,ds_name,verbose=False)

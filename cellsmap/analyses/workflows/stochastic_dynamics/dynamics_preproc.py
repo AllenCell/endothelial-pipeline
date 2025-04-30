@@ -1,6 +1,7 @@
 import fire
 
-from cellsmap.util import manifest_io, manifest_pca
+from cellsmap.util import manifest_io
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils import regression_main
 from cellsmap.analyses.utils.io import dynamics_io
@@ -22,11 +23,8 @@ def main(config_name:str='default') -> None:
     workflow_fig_folder = "stochastic_dynamics/"+config["name"]+"/figs"
     fig_savedir = get_output_path(workflow_fig_folder)
 
-    # load manifest to DataFrame with metadata
-    df = manifest_io.load_manifest_to_df()
-
-    # fit PCA to data
-    pca = manifest_pca.fit_pca(df, num_pcs=8)
+    # fit PCA to reference timepoints of reference datasets (removing outliers)
+    pca = manifest_pca.fit_pca()
 
     # save out PCA object (need later for analysis and summary of fit dynamical systems model)
     manifest_io.save_pca_model(pca, savedir)
@@ -37,7 +35,7 @@ def main(config_name:str='default') -> None:
     vb.save_plot(fig,filename=fig_savedir+'explained_variance_ratio',format='.png',dpi=500)
 
     # plot top 3 principal components of feature data vs. frame number
-    fig, _ = manifest_viz.plot_top_3_PCs_alldata(df,pca)
+    fig, _ = manifest_viz.plot_top_3_PCs_alldata(pca)
     vb.save_plot(fig,filename=fig_savedir+'top_3_PCs',format='.png',dpi=500)
 
     ################### Build train-test data for regression ###################
@@ -53,7 +51,7 @@ def main(config_name:str='default') -> None:
         kernel_params = kramers_moyal_config['kernel_params']
 
     # build train-test data for regression
-    train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, dt, ds_to_skip, fig_savedir,
+    train_test_dict = regression_main.build_kramers_moyal_train_test(pca, PCs, Nbins, dt, ds_to_skip, fig_savedir,
                                                                      method=km_method, kernel_params=kernel_params)
 
     ################### Save train-test data ###################

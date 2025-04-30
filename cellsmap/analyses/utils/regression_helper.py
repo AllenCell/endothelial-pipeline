@@ -82,8 +82,8 @@ def get_X_by_flow(df_proj:pd.DataFrame,ds_name:str,verbose:bool=True) -> Tuple[l
             print('Shear stress',first_shear,'dyn/cm^2 until frame',change_frame)
             print('Shear stress',second_shear,'dyn/cm^2 after frame',change_frame)
         # separate data into two dataframes based on frame number where flow condition changes
-        data_flow1 = df_proj[df_proj['T']<change_frame].copy()
-        data_flow2 = df_proj[df_proj['T']>=change_frame].copy()
+        data_flow1 = df_proj[df_proj['frame_number']<change_frame].copy()
+        data_flow2 = df_proj[df_proj['frame_number']>=change_frame].copy()
         # return list of dataframes for each flow condition
         data_all = [data_flow1,data_flow2]
     else: # else, there is only one flow condition
@@ -110,7 +110,7 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
     '''
     if 'outlier' not in X.columns:
         raise ValueError('Data must have a column for outlier')
-    if 'T' not in X.columns:
+    if 'frame_number' not in X.columns:
         raise ValueError('Data must have a column for time')
     if 'crop_index' not in X.columns:
         raise ValueError('Data must have a column for crop_index')
@@ -128,15 +128,15 @@ def get_X_dX_and_dT(X:pd.DataFrame,feat_cols:list) -> Tuple[list,list,list]:
     # loop over each crop in the dataset
     for crop in crop_list:
         # get data for each crop, sorted by time
-        X_crop = X[X['crop_index']==crop].sort_values(by='T')
+        X_crop = X[X['crop_index']==crop].sort_values(by='frame_number')
 
-        num_T = X_crop['T'].nunique() # number of timepoints for this crop
+        num_T = X_crop['frame_number'].nunique() # number of timepoints for this crop
         # check that the array of feature data has the correct shape (num_T x ndim)
         assert X_crop[feat_cols].values.shape == (num_T,len(feat_cols))
 
         # get displacement vectors and time differences for each crop
         dX = np.diff(X_crop[feat_cols].values,axis=0)
-        dT = np.diff(X_crop['T'].values)
+        dT = np.diff(X_crop['frame_number'].values)
 
         # append data to lists: trajectory, displacement vectors, time differences
         X_list.append(X_crop[feat_cols].values)
@@ -268,17 +268,17 @@ def get_stationary_hist(data:pd.DataFrame, feat_cols:list, bins:list, frame_inde
     - p_hist: numpy array, stationary histogram of the data in feature space
     '''
     ndim = len(feat_cols)
-    T_max = data['T'].max()
+    T_max = data['frame_number'].max()
     if frame_index < 0: # if negative, frame_index is relative to the last frame
         frame_index = T_max + frame_index
 
     # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
         # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
-        p_hist, _, _ = np.histogram2d(data[data['T']>frame_index][feat_cols[0]], 
-                                      data[data['T']>frame_index][feat_cols[1]], bins, density=True)
+        p_hist, _, _ = np.histogram2d(data[data['frame_number']>frame_index][feat_cols[0]], 
+                                      data[data['frame_number']>frame_index][feat_cols[1]], bins, density=True)
     elif ndim == 1:
-        p_hist, _ = np.histogram(data[data['T']>frame_index][feat_cols[0]], bins[0], density=True)
+        p_hist, _ = np.histogram(data[data['frame_number']>frame_index][feat_cols[0]], bins[0], density=True)
     else:
         raise ValueError('Only 1D or 2D data supported.')
     
