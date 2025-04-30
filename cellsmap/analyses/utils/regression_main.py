@@ -6,6 +6,7 @@ from typing import Tuple
 from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.viz import manifest_viz as mv, viz_base as vb
+from cellsmap.util.manifest_preprocessing import diffae_feature_preprocessing as diffae_preproc
 
 
 def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame, 
@@ -42,8 +43,8 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
     '''
 
     # for extracting just the axes (specified via PCs) we want from the resulting dataframe
-    # e.g., if we are just analyzing the first two principal components, we want to extract columns '0' and '1'
-    feat_cols = [str(i) for i in PCs]
+    # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_1' and 'feat_2'
+    feat_cols = mio.get_feature_cols(df_proj)[PCs]
     ndim = len(PCs)
 
     # split out data by flow condition
@@ -99,8 +100,7 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
 
     return X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test
 
-def build_kramers_moyal_train_test(df:pd.DataFrame, 
-                                   pca:Pipeline, 
+def build_kramers_moyal_train_test(pca:Pipeline, 
                                    PCs:list[int], 
                                    Nbins:list[int], 
                                    dt:float, 
@@ -136,8 +136,8 @@ def build_kramers_moyal_train_test(df:pd.DataFrame,
         - 'u_test': test flow conditions
     The train test sets are concatenated across all datasets in the dataframe.
     '''
-    # get list of datasets in the dataframe
-    list_of_datasets = mio.get_list_of_datasets(df,verbose=False)
+    # get list of datasets with DiffAE manifest data
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid") # get all datasets with DiffAE manifest data
 
     # initialize lists to store train test sets for each dataset
     X_train_list = []
@@ -160,7 +160,8 @@ def build_kramers_moyal_train_test(df:pd.DataFrame,
         print('**** Generating train/test sets for dataset',ds_name,'**** \n')
 
         # project data from this one dataset onto principal component axes as defined by fit PCA object pca
-        df_proj = mio.project_PCA_one_dataset(df,pca,ds_name)
+        df_ = mio.get_diffae_manifest(ds_name) # get the manifest for the dataset
+        df_proj = diffae_preproc.project_manifest_to_pcs(df_,pca) # project data onto PC axes
         
         # get train test split for this dataset
         X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = \

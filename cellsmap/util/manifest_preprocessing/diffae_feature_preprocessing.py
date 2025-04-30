@@ -128,7 +128,7 @@ def df_to_array(df_:pd.DataFrame,feat_cols:list) -> np.ndarray:
     num_crop = df_['crop_index'].nunique() # number of crops made at each timepoint
 
     # get array of num crops x num timepoints x num PCs
-    feats = np.array([df_[df_['crop_index']==ii].sort_values(by='T')[feat_cols].values for ii in range(num_crop)])
+    feats = np.array([df_[df_['crop_index']==ii].sort_values(by='frame_number')[feat_cols].values for ii in range(num_crop)])
     
     # check that array shape is correct
     assert feats.shape == (num_crop,num_T,len(feat_cols))

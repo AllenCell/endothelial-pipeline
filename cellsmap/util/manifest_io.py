@@ -84,6 +84,7 @@ def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     df = get_dataframe_by_fmsid(fmsid)
     return df
 
+
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
     Extract columns corresponding to DiffAE model features from dataframe (loaded DiffAE manifest).
@@ -92,7 +93,8 @@ def get_feature_cols(df: pd.DataFrame) -> list:
     feat_cols = sorted(feat_cols, key=lambda x: int(x.split('_')[1]))
     return feat_cols
 
-def list_datasets_with_manifest(manifest_name: str) -> list:
+
+def list_datasets_with_manifest(manifest_name: str, verbose:bool=False) -> list:
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
@@ -100,12 +102,18 @@ def list_datasets_with_manifest(manifest_name: str) -> list:
         dataset_io.get_available_datasets(verbose = False)
     ) 
 
+    if verbose:
+        manifest_type = "nuclear segmentation" if manifest_name == "nuclear_seg_manifest_fmsid" else "DiffAE"
+        print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
     for dataset_name in all_datasets:
         dataset_info = dataset_io.get_dataset_info(dataset_name)
         if manifest_name in dataset_info and dataset_info[manifest_name] != "":
             dataset_list.append(dataset_name)
+            if verbose:
+                print(f" - {dataset_name}")
     return dataset_list
+
 
 def save_pca_model(pca:Pipeline,savedir:str) -> None:
     '''

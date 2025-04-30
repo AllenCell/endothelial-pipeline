@@ -97,7 +97,7 @@ def plot_top_3_PCs_alldata(pca:Pipeline) -> Tuple:
     - ax: plt.Axes
     '''
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
-    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid") # get all datasets with DiffAE manifest data
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid",verbose=True) # get all datasets with DiffAE manifest data
     title_dict = diffae_preproc.get_dataset_descriptions(list_of_datasets,simple=True) # get description of dataset by flow conditions, for title of subfig
 
     # initialize figure with subfigures for each dataset
@@ -114,7 +114,7 @@ def plot_top_3_PCs_alldata(pca:Pipeline) -> Tuple:
         df_manifest = diffae_preproc.add_crop_index(df_manifest) # add crop index to the manifest data
         df_proj = diffae_preproc.project_manifest_to_pcs(df_manifest,pca) # project the dataset onto the PCA space
         PCs = [f"feat_{i}" for i in range(3)] # top 3 PCs
-        feats_proj = mio.df_to_array(df_proj,PCs) # get the feature data projected onto the top 3 PCs
+        feats_proj = diffae_preproc.df_to_array(df_proj,PCs) # get the feature data projected onto the top 3 PCs
 
         for j in range(3):
             if ds_name == '20241203_20X': # dataset with bubbles, outliers will skew the y-limits
