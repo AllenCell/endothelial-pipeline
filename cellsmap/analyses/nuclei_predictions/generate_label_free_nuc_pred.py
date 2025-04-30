@@ -12,7 +12,7 @@ from multiprocessing import Pool
 from typing import List
 
 # Predict nuclei from brightfield images using the retrained CellPose model
-def generate_results(args: dict):
+def generate_results(args: dict) -> None:
     print(f'Working on dataset {args["dataset_name"]}, T = {args["T"]}, scene = {args["scene_index"]}...')
 
     dataset_name = args['dataset_name']
@@ -23,7 +23,7 @@ def generate_results(args: dict):
     out_dir_validation = Path(args['output_dir']) / 'validation' / dataset_name / f'P{args["position"]}'
     out_dir_validation.mkdir(exist_ok=True, parents=True)
 
-    out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
+    out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}.ome.tiff'
     out_path_validation = out_dir_validation / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose_overlay.ome.tiff'
     if (args['overwrite'] == False) and out_path.exists():
         print(' - output already exists, skipping...')
@@ -87,7 +87,7 @@ def generate_results(args: dict):
             save_image_output(out_path_validation, images_out, images_out_metadata)
 
 
-def main(dataset_name: str|List|None=None, n_proc=1, save_output=True, overwrite=True, is_test=False):
+def main(dataset_name: str|List|None=None, n_proc: int=1, save_output: bool=True, overwrite: bool=True, is_test: bool=False) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
     '\"20241016_20X\",\"20241120_20X\"'

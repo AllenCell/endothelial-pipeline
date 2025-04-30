@@ -17,7 +17,7 @@ from tqdm import tqdm
 from datetime import datetime
 import shutil
 import re
-from typing import List, Dict, Literal
+from typing import List, Dict, Literal, Any
 
 
 def get_scenes_to_use(dataset_name: str|None = None) -> Dict:
@@ -64,7 +64,7 @@ def get_training_data_output_dirs(kind: List[Literal['images','labels']]|None=No
         return [out_dirs[training_data_kind] for training_data_kind in kind]
 
 
-def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
+def get_old_cellpose_train_test_losses(cellpose_model_dir: Path|str, model_name_list: List) -> tuple:
     """
     This function extracts the training and test losses from the run.log file
     produced during the training of a Cellpose model.
@@ -83,7 +83,7 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
 
     pages = {}
     with open(run_log_filepath) as run_log:
-        pg = {}
+        pg: dict = {}
         for line in run_log:
             for model_name in model_name_list:
                 if model_name in line:
@@ -124,7 +124,7 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
     return train_losses, test_losses, time_list, epoch_list
 
 
-def get_image_data_from_original(dataset_name, scene, T, verbose=False):
+def get_image_data_from_original(dataset_name: str, scene: str|int, T: int, verbose: bool=False) -> tuple:
 
     dim_order = get_default_dim_order()
     dim_map = get_dim_map(dim_order)
@@ -144,19 +144,19 @@ def get_image_data_from_original(dataset_name, scene, T, verbose=False):
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-def get_image_data_from_zarr(dataset_name):
+def get_image_data_from_zarr(dataset_name: str) -> None:
     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
     print(f'Zarrs not yet implemented. Skipping {dataset_name}.')
     return
-    for zarr_name in get_zarr_path(dataset_name):
-        img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
-        img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
-        img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
-        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
-        yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
+    # for zarr_name in get_zarr_path(dataset_name):
+    #     img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
+    #     img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
+    #     img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
+    #     img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
+    #     yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
 
 
-def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
+def save_overlay(labels: np.ndarray, bg_img: np.ndarray, out_name: Path|str, outlines: bool=True, face: bool=True) -> None:
     seg_outlines = find_boundaries(labels)
     if outlines and face:
         labels[seg_outlines] = 0
@@ -174,7 +174,7 @@ def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
     plt.close(fig)
 
 
-def generate_training_data(analysis_args):
+def generate_training_data(analysis_args: dict) -> None:
     use_original_data = analysis_args['use_original_data']
     dataset_name = analysis_args['dataset_name']
     scene_name = analysis_args['scene_name']
@@ -277,7 +277,7 @@ def generate_training_data(analysis_args):
     return
 
 
-def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
+def get_training_data(analysis_queue: List, create_training_data: bool=False, n_proc: int=1) -> tuple:
 
     if create_training_data:
         if __name__ == '__main__':
@@ -308,7 +308,7 @@ def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
     return (images_paths, labels_paths)
 
 
-def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, train_from_base_cellpose_nuclei_model=True, use_original_data=True, verbose=False):
+def main(n_proc: int=1, create_training_data: bool=False, retrain_Gouthams_model: bool=False, train_from_base_cellpose_nuclei_model: bool=True, use_original_data: bool=True, verbose: bool=False) -> None:
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
@@ -356,9 +356,7 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     n_epochs = 300#100#300
     gpu = core.use_gpu()
 
-    # initiate the cellpose logger so that we
-    # can extract the training and test losses
-    logger_setup()
+    # create a timestamp for when this workflow was run
     timestamp = datetime.today().strftime('%Y%m%d-%H_%M')
 
     # get the nuclei model path from the config file
@@ -372,68 +370,88 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     model_dir = model_path.parent / timestamp
     model_dir.mkdir(exist_ok=True, parents=True)
 
-    model_name_list = [] # will populate this as we go
+    # initiate the cellpose logger so that we
+    # can extract the training and test losses
+    logger_setup(cp_path=model_dir, logfile_name=f'{timestamp}_run.log')
+
+    # will populate this dictionary as we go
+    run_record: dict[str, Any] = {}
 
     if retrain_Gouthams_model:
         # retrain Goutham's Cellpose model
         model_dir_Goutham_retrain = model_dir / 'Goutham_model_finetuning'
         Goutham_finetuned_model_name = f"bf_std_model_no_preprocess_retrained_{timestamp}"
-        model_name_list.append(Goutham_finetuned_model_name)
 
         model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
-        model_path = train.train_seg(model_bf_stdproject.net,
-                                    train_data=images_training,
-                                    train_labels=labels_training,
-                                    test_data=images_testing,
-                                    test_labels=labels_testing,
-                                    channels=[0,0],
-                                    normalize=True,
-                                    weight_decay=weight_decay,
-                                    SGD=sgd,
-                                    learning_rate=learning_rate,
-                                    n_epochs=n_epochs,
-                                    save_path=model_dir_Goutham_retrain,
-                                    model_name=Goutham_finetuned_model_name)
+        model_path, train_losses, test_losses = train.train_seg(
+            model_bf_stdproject.net,
+            train_data=images_training,
+            train_labels=labels_training,
+            test_data=images_testing,
+            test_labels=labels_testing,
+            channels=[0,0],
+            normalize=True,
+            weight_decay=weight_decay,
+            SGD=sgd,
+            learning_rate=learning_rate,
+            n_epochs=n_epochs,
+            save_path=model_dir_Goutham_retrain,
+            model_name=Goutham_finetuned_model_name)
+
+        run_record[Goutham_finetuned_model_name] = {
+            'model_path': model_path,
+            'train_losses': train_losses,
+            'test_losses': test_losses,
+        }
 
     if train_from_base_cellpose_nuclei_model:
         # fine-tune the basic CellPose nuclei model
         model_dir_from_default = model_dir / 'CellPose_default_nuclei_model_finetuning'
         model_dir_from_default.mkdir(exist_ok=True)
         labelfree_nuc_pred_from_default_model_name = f"labelfree_nuc_pred_{timestamp}"
-        model_name_list.append(labelfree_nuc_pred_from_default_model_name)
 
         model_nuclei_original = models.CellposeModel(gpu=gpu, model_type='nuclei')
 
-        model_path = train.train_seg(model_nuclei_original.net,
-                                    train_data=images_training,
-                                    train_labels=labels_training,
-                                    test_data=images_testing,
-                                    test_labels=labels_testing,
-                                    channels=[0,0],
-                                    normalize=True,
-                                    weight_decay=weight_decay,
-                                    SGD=sgd,
-                                    learning_rate=learning_rate,
-                                    n_epochs=n_epochs,
-                                    save_path=model_dir_from_default,
-                                    model_name=labelfree_nuc_pred_from_default_model_name)
+        model_path, train_losses, test_losses = train.train_seg(
+            model_nuclei_original.net,
+            train_data=images_training,
+            train_labels=labels_training,
+            test_data=images_testing,
+            test_labels=labels_testing,
+            channels=[0,0],
+            normalize=True,
+            weight_decay=weight_decay,
+            SGD=sgd,
+            learning_rate=learning_rate,
+            n_epochs=n_epochs,
+            save_path=model_dir_from_default,
+            model_name=labelfree_nuc_pred_from_default_model_name)
+
+        run_record[labelfree_nuc_pred_from_default_model_name] = {
+            'model_path': model_path,
+            'train_losses': train_losses,
+            'test_losses': test_losses,
+        }
 
     # move the run.log file to the model directory for record keeping purposes
-    run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-    assert model_dir.exists(), f"Cellpose model directory {model_dir} does not exist"
-    run_log_filepath_new = Path(model_dir) / 'run.log'
-    shutil.move(run_log_filepath, run_log_filepath_new)
+    # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
+    # assert model_dir.exists(), f"Cellpose model directory {model_dir} does not exist"
+    # run_log_filepath_new = Path(model_dir) / 'run.log'
+    # shutil.move(run_log_filepath, run_log_filepath_new)
 
     # generate plots of the training and test losses
-    if any(model_name_list):
+    if any(run_record):
         # load the training and test losses from the run.log file
-        train_losses, test_losses, time_list, epoch_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
+        # train_losses, test_losses, time_list, epoch_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
 
         # save the training and test losses to a file
-        for model_name in model_name_list:
+        for model_name in run_record:
+            train_losses = run_record[model_name]['train_losses']
+            test_losses = run_record[model_name]['test_losses']
+
             fig, ax = plt.subplots(nrows=1, ncols=1)
-            ax.plot(epoch_list[model_name], train_losses[model_name], label='train_loss')
-            ax.plot(epoch_list[model_name], test_losses[model_name], label='test_loss')
+            ax.plot(np.where(train_losses)[0], train_losses[np.where(train_losses)], label='train_loss')
+            ax.plot(np.where(test_losses)[0], test_losses[np.where(test_losses)], label='test_loss')
             ax.set_title(f'{model_name} training and test losses')
             ax.set_xlabel('epoch')
             ax.set_ylabel('loss')
@@ -462,41 +480,21 @@ def main(n_proc=1, create_training_data=False, retrain_Gouthams_model=False, tra
     test_prediction, flows, probs = model_nuclei_original_finetuned.eval(test_img_arr, channels=[0,0], min_size=500, flow_threshold=0, cellprob_threshold=-6.0)
 
     # plot and save the resulting nuclei prediction
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+    fig, (ax0, ax1, ax2) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     image_rescaled = rescale_intensity(np.clip(test_img_arr,
                                             a_min=np.percentile(test_img_arr, 1),
                                             a_max=np.percentile(test_img_arr, 99)),
                                     out_range=(0,1))
-    ax[0].imshow(image_rescaled, cmap='gray')
-    ax[0].set_title('BF STD')
-    ax[1].imshow(label2rgb(test_prediction))
-    ax[1].set_title('Nuclei Predictions')
+    ax0.imshow(image_rescaled, cmap='gray')
+    ax0.set_title('BF STD')
+    ax1.imshow(label2rgb(test_prediction))
+    ax1.set_title('Nuclei Predictions')
     overlay = label2rgb(label=test_prediction, image=image_rescaled, bg_label=0)
-    ax[2].imshow(overlay)
-    [ax.set_axis_off() for ax in ax]
+    ax2.imshow(overlay)
+    [ax.set_axis_off() for ax in (ax0, ax1, ax2)]
     plt.tight_layout()
     fig.savefig(model_dir / f'{model_name}_test_image.png', bbox_inches='tight', dpi=180)
     plt.close(fig)
 
 if __name__ == '__main__':
     ipython_cli_flexecute(main)
-
-
-# MIGHT DELETE THIS BLOCK LATER
-
-# if show_watershed_segmentations:
-#     for i in range(len(images)):
-#         fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-#         image_rescaled = rescale_intensity(np.clip(images[i],
-#                                                 a_min=np.percentile(images[i], 1),
-#                                                 a_max=np.percentile(images[i], 99)),
-#                                         out_range=(0,1))
-#         ax[0].imshow(image_rescaled, cmap='gray')
-#         ax[0].set_title('BF STD')
-#         ax[1].imshow(label2rgb(labels[i]))
-#         ax[1].set_title('Watershed')
-#         overlay = label2rgb(label=labels[i], image=image_rescaled, bg_label=0)
-#         ax[2].imshow(overlay)
-#         [ax.set_axis_off() for ax in ax]
-#         plt.tight_layout()
-#         plt.show()
