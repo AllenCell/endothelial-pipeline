@@ -62,11 +62,6 @@ for ds_name in datasets_to_use:
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     ax.scatter(dfs["feat_1"], dfs["feat_4"], s=0.1, label=ds_name)
-fig, ax = vb.init_plot(figsize=(5, 5))
-for ds_name in datasets_to_use:
-    # get the data for the dataset based on ds_name being in the crop_index column
-    dfs = df[df["crop_index"].str.contains(ds_name)]
-    ax.scatter(dfs["feat_1"], dfs["feat_4"], s=0.1, label=ds_name)
 plt.legend()
 plt.show()
 vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4", dpi=72)
