@@ -134,7 +134,7 @@ def project_manifest_to_pcs(df:pd.DataFrame,pca:Pipeline) -> pd.DataFrame:
 def get_manifest_for_dynamics_workflows(ds_name:str, pca:Pipeline) -> pd.DataFrame:
     '''
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
-    in the stochastic dynamics workflow. Adds crop index and outlier columns to DataFrame,
+    in the stochastic dynamics workflow. Adds crop index column to DataFrame,
     and projects feature data onto PC axes.
 
     Inputs:
@@ -148,9 +148,6 @@ def get_manifest_for_dynamics_workflows(ds_name:str, pca:Pipeline) -> pd.DataFra
     '''
     # load manifest data for dataset ds_name
     df = manifest_io.get_diffae_manifest(ds_name)
-
-    # add outlier column
-    df = manifest_pca.get_outliers(df)
 
     # add crop index column
     df = add_crop_index(df)
