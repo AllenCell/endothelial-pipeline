@@ -16,10 +16,11 @@ from scipy.ndimage import gaussian_filter1d
 from multiprocessing import Pool
 from tqdm import tqdm
 from cellsmap.util.dataset_io import load_dataset_position_as_dask_array, get_zarr_path, get_zarr_name, get_original_path
+from typing import List, Tuple, Any
 
 def merge_segprops_and_track_data(
-        segprops_df,
-        tracking_df
+        segprops_df: pd.DataFrame,
+        tracking_df: pd.DataFrame,
         ) -> pd.DataFrame:
     """
     This function merges the outputs from the tracking
@@ -121,7 +122,7 @@ def filter_seg_feature_table(big_table: pd.DataFrame,
     return big_table
 
 def calculate_derived_data(big_table: pd.DataFrame,
-                           verbose = False
+                           verbose: bool = False
                            ) -> pd.DataFrame:
     """
     """
@@ -165,8 +166,8 @@ def calculate_derived_data(big_table: pd.DataFrame,
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     print('Calculating nematic order and aspect ratio...') if verbose else None
-    big_table['nematic_order'] = get_nematic_order(big_table['orientation'])
-    big_table['aspect_ratio'] = get_aspect_ratio(big_table['eccentricity'])
+    big_table['nematic_order'] = big_table['orientation'].transform(get_nematic_order)
+    big_table['aspect_ratio'] = big_table['eccentricity'].transform(get_aspect_ratio)
 
     # recalculate the centroid speeds of each track
     # after filtering
@@ -191,11 +192,11 @@ def calculate_derived_data(big_table: pd.DataFrame,
     big_table['number_of_neighbors'] = big_table['neighboring_cell_labels'].transform(lambda x: len(x))
     return big_table
 
-def get_nematic_order(theta):
+def get_nematic_order(theta: float) -> float:
     nematic_order_S = np.cos(2*theta)
     return nematic_order_S
 
-def get_aspect_ratio(eccentricity):
+def get_aspect_ratio(eccentricity: float) -> float:
     # eccentricity = focal_distance / major_axis
     # focal distance = sqrt(major_axis**2 - minor_axis**2)
     # eccentricity**2 = (major_axis**2 - minor_axis**2) / major_axis**2
@@ -208,7 +209,7 @@ def get_aspect_ratio(eccentricity):
     aspect_ratio = np.sqrt(1 / (1 - eccentricity**2))
     return aspect_ratio
 
-def stringified_floatlist_to_floatlist(ls, to_tuple=False):
+def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> List|Tuple:
     """Converts a list that is saved as a string back to a list object.
     Assumes that there is only one set of brackets (either '[]' or '()')."""
     # if 'ls' is already a list of floats then return the input
@@ -218,7 +219,7 @@ def stringified_floatlist_to_floatlist(ls, to_tuple=False):
     else:
         strfloats = ls.strip('[]')
         strfloats = strfloats.strip('()')
-        float_list = []
+        float_list: List[Any] = []
         for x in strfloats.split(','):
             try:
                 float_list.append(float(x))
@@ -234,12 +235,12 @@ def stringified_floatlist_to_floatlist(ls, to_tuple=False):
                     raise ValueError(f'Could not convert "{x}" to float.')
     return tuple(float_list) if to_tuple else float_list
 
-def get_centroid_velocity(centroid_xs, centroid_ys, timepoints):
+def get_centroid_velocity(centroid_xs: float, centroid_ys: float, timepoints: float) -> Tuple[float, float]:
     dx, dy, dt = np.diff([centroid_xs, centroid_ys, timepoints], prepend=np.nan, axis=1)
     dx_dt, dy_dt = dx / dt, dy / dt
     return dx_dt, dy_dt
 
-def plot_per_position(df_group, x_key, y_key, filepath_out, x_label=None, y_label=None, x_lims=(None,None), y_lims=(None,None), show_plot=False):
+def plot_per_position(df_group: pd.DataFrame, x_key: str, y_key: str, filepath_out: str|Path, x_label: str|None = None, y_label: str|None = None, x_lims: Tuple = (None,None), y_lims: Tuple = (None,None), show_plot: bool = False) -> None:
     num_positions = df_group['position'].nunique()
     assert len(df_group['dataset_name'].unique()) == 1, f'Only a single dataset allowed in df_group, datasets found: {df_group["dataset_name"].unique()}'
     dataset_name = df_group['dataset_name'].unique()[0]
@@ -268,7 +269,7 @@ def plot_per_position(df_group, x_key, y_key, filepath_out, x_label=None, y_labe
         plt.close(fig)
     return
 
-def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_of_diff=False, smoothing_sigma: float=2.0):
+def filter_on_fold_change(tracking_results: pd.DataFrame, fold_change: float = 1.5, fold_change_of_diff: bool = False, smoothing_sigma: float = 2.0) -> pd.DataFrame:
     tracking_results = tracking_results.copy()
     # NOTE: this method filters based on fold change of a smoothed version of the data:
     tracking_results['smoothed_area'] = tracking_results.groupby('track_id')['area'].transform(gaussian_filter1d, sigma=smoothing_sigma)
@@ -284,7 +285,7 @@ def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_
 
     return tracking_results
 
-def filter_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=0, return_df=False):
+def filter_and_save_track_data_for_landscape_integration(big_table: pd.DataFrame, min_num_points_per_track: int = 0, return_df: bool = False) -> pd.DataFrame|None:
     # remove all the centroids that are closer than 128 pixels
     # to the image border
     new_cols = {}
@@ -336,13 +337,13 @@ def filter_and_save_track_data_for_landscape_integration(big_table, min_num_poin
 
 # restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
 # we can interpret this orientation as being either parallel or perpendicular to flow
-def shift_orientation_phase(orientation: float):
+def shift_orientation_phase(orientation: float) -> float:
     return orientation - np.pi/2
 
-def restrict_orientation_to_positive(orientation: float):
+def restrict_orientation_to_positive(orientation: float) -> float:
     return abs(orientation)
 
-def make_orientation_relative_to_flow(orientation: float):
+def make_orientation_relative_to_flow(orientation: float) -> float:
     # you can visualize this process as folding a paper circle in half
     # (the top half) and then rotating this half circle 90 degrees to
     # the right, and then folding it in half again so you are only

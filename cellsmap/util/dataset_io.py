@@ -52,7 +52,7 @@ def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
             return dataset
     raise ValueError(f'Dataset {dataset_name} not found in config file')
 
-def get_frame(filename):
+def get_frame(filename: str) -> int:
     return int(str(filename).split('.')[0][-4:])
 
 def get_flow(dataset_name: str, T: float) -> Union[int, float]:
@@ -123,7 +123,7 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
             break
     return zarr_name
 
-def get_specific_channel_order(dataset_name:str):
+def get_specific_channel_order(dataset_name:str) -> tuple[Any, Any, Any]:
     dataset_info = get_dataset_info(dataset_name)
     gfp_index = dataset_info.get('egfp_channel_index')
     bf_index = dataset_info.get('brightfield_channel_index')
@@ -395,10 +395,10 @@ def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
         raise FileNotFoundError(f"Segmentation features manifest not found at {manifest_path}.")
     return pd.read_csv(manifest_path, sep='\t')
 
-def get_cell_track_integration_dataset(dataset_name: str) -> pd.DataFrame:
+def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
     """
-    Get the cell track integration dataset for a given dataset.
-    The integration dataset is a CSV file that contains the
+    Get the cell track integration manifest for a given dataset.
+    The integration manifest is a CSV file that contains the
     track_id, centroids, zarr paths, and crop size of a subset
     of the tracked segmentations of a dataset.
     """
@@ -410,7 +410,7 @@ def get_cell_track_integration_dataset(dataset_name: str) -> pd.DataFrame:
     return pd.read_csv(integration_path, sep='\t')
 
 # model methods
-def get_available_models():
+def get_available_models() -> None:
     model_info = load_config('model')
     model_names = [model['name'] for model in model_info]
     for name in model_names:
@@ -456,7 +456,7 @@ def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = F
 
     return results if return_results else None
 
-def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
+def extract_T(fp_as_string: Union[str, Path], int_only: bool=True, use_last_match: bool=True, default_if_not_found: int|str='') -> str|int:
     """
     Extract the timepoint value from a string or Path.name.
     Searches for the pattern "T[0-9]+" to find the timepoint.
@@ -492,15 +492,13 @@ def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
 
     index = -1 if use_last_match else 0
     t = re.findall('T[0-9]+', fp_as_string)
-    if t:
-        t_value = int(t[index].split('T')[-1])
-    else:
-        t_value = default_if_not_found
+    t_value = int(t[index].split('T')[-1]) if t else default_if_not_found
+    if not t:
         print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
 
     return t_value if int_only else f'T{t_value}'
 
-def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
+def extract_P(fp_as_string: Union[str, Path], int_only: bool=True, use_last_match: bool=True, default_if_not_found: int|str='') -> str|int:
     """
     Extract the position value from a string or Path.name.
     Searches for the pattern "P[0-9]+" to find the position.
@@ -536,10 +534,8 @@ def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
 
     index = -1 if use_last_match else 0
     p = re.findall('P[0-9]+', fp_as_string)
-    if p:
-        position_value = int(p[index].split('P')[-1])
-    else:
-        position_value = default_if_not_found
+    position_value = int(p[index].split('P')[-1]) if p else default_if_not_found
+    if not p:
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f'P{position_value}'
