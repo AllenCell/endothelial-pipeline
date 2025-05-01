@@ -113,6 +113,22 @@ DDFF.build()
 # %%
 # plot the PCA components
 fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
+for ds_name in datasets_to_use:
+    # get the data for the dataset based on ds_name being in the crop_index column
+    dfs = df[df["crop_index"].str.contains(ds_name)]
+    ax1.scatter(df.PC1, df.PC2, s=0.01, label=ds_name)
+    ax2.scatter(df.PC1, df.PC3, s=0.01, label=ds_name)
+    for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
+        ax.set_xlabel("PC1", fontsize=14)
+        ax.set_ylabel(ylab, fontsize=14)
+        ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
+        ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
+        ax.set_aspect("equal")
+plt.tight_layout()
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=72)
+
+# %%
+fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
 ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["frame_number"])
 ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["frame_number"])
 for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
