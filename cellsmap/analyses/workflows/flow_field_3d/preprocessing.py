@@ -177,10 +177,6 @@ for ds_name in datasets_to_use:
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     for track, df_track in dfs.groupby("crop_index"):
-for ds_name in datasets_to_use:
-    # get the data for the dataset based on ds_name being in the crop_index column
-    dfs = df[df["crop_index"].str.contains(ds_name)]
-    for track, df_track in dfs.groupby("crop_index"):
         ax.plot(df_track.PC1, df_track.PC2, label=ds_name)
         break
 ax.set_xlabel("PC1", fontsize=14)
