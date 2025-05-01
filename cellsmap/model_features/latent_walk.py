@@ -133,7 +133,7 @@ def generate_latent_walk(model_name:str, pca_dir: Optional[str] = None, num_pcs:
     if use_pcs: 
         # use fitted PCA if path to one is passed, otherwise fit a new one on the reference dataset
         if pca_dir is None:
-            pca = fit_pca(reference_manifests, num_pcs=num_pcs)
+            pca = fit_pca(num_pcs=num_pcs)
             save_pca_model(pca, save_dir)
         else:
             pca = load_pca_model(pca_dir)
