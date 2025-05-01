@@ -18,6 +18,10 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
                                          fig_savedir:str,
                                          method:str='kernel',
                                          kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
+                                         train_frac:float,
+                                         fig_savedir:str,
+                                         method:str='kernel',
+                                         kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     '''
     Generate train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for one dataset. 
     This function is called by build_kramers_moyal_train_test in a loop over all datasets in the dataframe.
@@ -29,6 +33,7 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
     - Nbins: list of number of bins to use for histogramming data to compute the Kramers-Moyal coefficients (conditional averages computed in each bin)
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
     - train_frac: fraction of data to use for training
+    - method: method to use for computing Kramers-Moyal coefficients ('kernel' or 'histogram', default is 'kernel')
     - method: method to use for computing Kramers-Moyal coefficients ('kernel' or 'histogram', default is 'kernel')
 
     Outputs:
@@ -111,6 +116,11 @@ def build_kramers_moyal_train_test(pca:Pipeline,
                                    method:str='kernel',
                                    kernel_params:dict|None=None,
                                    ) -> dict:
+                                   fig_savedir:str,
+                                   train_frac:float=0.8,
+                                   method:str='kernel',
+                                   kernel_params:dict|None=None,
+                                   ) -> dict:
     '''
     Build train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for all datasets in the dataframe df.
 
@@ -122,6 +132,8 @@ def build_kramers_moyal_train_test(pca:Pipeline,
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
     - ds_to_skip: list of dataset names to skip when building train test sets (e.g., if a dataset is known to be problematic)
     - train_frac: fraction of data to use for training (default is 0.8)
+    - method: method to use for computing Kramers-Moyal coefficients ('kernel' or 'histogram', default is 'kernel')
+    - kernel_params: dictionary of parameters for kernel method (default is None, which uses default parameters if method is 'kernel')
     - method: method to use for computing Kramers-Moyal coefficients ('kernel' or 'histogram', default is 'kernel')
     - kernel_params: dictionary of parameters for kernel method (default is None, which uses default parameters if method is 'kernel')
 
@@ -166,6 +178,8 @@ def build_kramers_moyal_train_test(pca:Pipeline,
         
         # get train test split for this dataset
         X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = \
+            kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac, fig_savedir,
+                                                 method=method, kernel_params=kernel_params)
             kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac, fig_savedir,
                                                  method=method, kernel_params=kernel_params)
 

@@ -5,6 +5,7 @@ from typing import Tuple
 
 import cellsmap.util.dataset_io as dio
 import cellsmap.analyses.utils.numerics.kramers_moyal as km
+import cellsmap.analyses.utils.numerics.kramers_moyal as km
 
 def get_bins(Nbins:list,data:list[np.ndarray]|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
     '''
@@ -30,6 +31,9 @@ def get_bins(Nbins:list,data:list[np.ndarray]|None=None,bin_limits:list|None=Non
         bins = []
         centers = []
         for i in range(ndim):
+            traj_min = min([traj[:,i].min() for traj in data])
+            traj_max = max([traj[:,i].max() for traj in data])
+            bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
             traj_min = min([traj[:,i].min() for traj in data])
             traj_max = max([traj[:,i].max() for traj in data])
             bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
@@ -151,6 +155,12 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
     Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
     These functions are defined in cellsmap.analyses.utils.numerics.kramers_moyal.py.
+def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list:list[np.ndarray], 
+                      bins:list[np.ndarray], dt:float, method:str='kernel',kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray]:
+    ''' 
+    Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
+    Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
+    These functions are defined in cellsmap.analyses.utils.numerics.kramers_moyal.py.
 
     Inputs:
     - X_list: list of numpy arrays, each array is a single trajectory in feature space
@@ -158,6 +168,7 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     - dT_list: list of numpy arrays, each array is the time differences along that trajectory
     - bins: list of numpy arrays, each array contains the bin edges for a dimension (used for computing conditional averages)
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
+    - method: method to use for computing Kramers-Moyal coefficients from data (default is 'kernel')
     - method: method to use for computing Kramers-Moyal coefficients from data (default is 'kernel')
 
     Outputs:

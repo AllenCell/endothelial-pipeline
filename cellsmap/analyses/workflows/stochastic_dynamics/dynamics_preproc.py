@@ -51,7 +51,11 @@ def main(config_name:str='default') -> None:
         kernel_params = kramers_moyal_config['kernel_params']
 
     # build train-test data for regression
+<<<<<<< HEAD
     train_test_dict = regression_main.build_kramers_moyal_train_test(pca, PCs, Nbins, dt, ds_to_skip, fig_savedir,
+=======
+    train_test_dict = regression_main.build_kramers_moyal_train_test(df, pca, PCs, Nbins, dt, ds_to_skip, fig_savedir,
+>>>>>>> flow_refactor_DDFF_updates
                                                                      method=km_method, kernel_params=kernel_params)
 
     ################### Save train-test data ###################
