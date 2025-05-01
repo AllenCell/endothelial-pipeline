@@ -94,7 +94,8 @@ pca = manifest_pca.fit_pca(num_pcs=3, scale=scale)
 manifest_io.save_pca_model(pca, output_savedir)
 
 # Apply PCA
-X = df[[f"feat_{i}" for i in range(8)]].values
+feat_cols = manifest_io.get_feature_cols(df)
+X = df[feat_cols].values
 Xt = pca.transform(X)
 
 # add PCA components to dataframe
