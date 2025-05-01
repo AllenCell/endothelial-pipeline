@@ -4,11 +4,16 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from cellsmap.util.set_output import get_output_path
 from cellsmap.analyses.utils.io import vtk_tools as tools
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
-from cellsmap.util.manifest_preprocessing import diffae_feature_preprocessing as diffae_preproc, manifest_pca
+from cellsmap.util.manifest_preprocessing import (
+    diffae_feature_preprocessing as diffae_preproc,
+)
+from cellsmap.util.manifest_preprocessing import (
+    manifest_pca,
+)
+from cellsmap.util.set_output import get_output_path
 
 # %%
 # Create output folder if does not exist yet
@@ -21,7 +26,11 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
 # only keep the reference datasets for this workflow
-datasets_to_use = ["20241120_20X", "20241217_20X", "20250409_20X"] # 48hr high flow, 48hr no flow, 48hr low flow
+datasets_to_use = [
+    "20241120_20X",
+    "20241217_20X",
+    "20250409_20X",
+]  # 48hr high flow, 48hr no flow, 48hr low flow
 df = []
 # load the manifest for each dataset, add outlier column, add crop index column
 for name in datasets_to_use:
@@ -32,34 +41,44 @@ for name in datasets_to_use:
     df_ = diffae_preproc.add_crop_index(df_)
     # add dataset name to crop index
     # this is to make the crop index unique across datasets
-    df_["crop_index"] = f"{name}_" + df_["crop_index"].astype(str) # add dataset name to crop index to make unique
-    df_ = diffae_preproc.add_description_column(df_, name, simple=True) # add description column (e.g., 48hr_High)
+    df_["crop_index"] = f"{name}_" + df_["crop_index"].astype(
+        str
+    )  # add dataset name to crop index to make unique
+    df_ = diffae_preproc.add_description_column(
+        df_, name, simple=True
+    )  # add description column (e.g., 48hr_High)
     df.append(df_)
 
-df = pd.concat(df, ignore_index=True) # concatenate the dataframes into a single dataframe
+df = pd.concat(
+    df, ignore_index=True
+)  # concatenate the dataframes into a single dataframe
 
 # %%
 # plot the data in latent space (features 1 and 4) before removing outliers
-fig, ax = vb.init_plot(figsize=(5,5))
+fig, ax = vb.init_plot(figsize=(5, 5))
 for ds_name in datasets_to_use:
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     ax.scatter(dfs["feat_1"], dfs["feat_4"], s=0.1, label=ds_name)
 plt.legend()
 plt.show()
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4", dpi=72)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4", dpi=72)
 
 # plot latent dims 1 and 4 after with outliers labelled
-fig, ax = plt.subplots(1,1, figsize=(5,5))
+fig, ax = plt.subplots(1, 1, figsize=(5, 5))
 ax.scatter(df["feat_1"], df["feat_4"], c=df["outlier"], s=0.2)
 plt.show()
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_overview_feats_1_4_no_bubbles", dpi=72)
+vb.save_plot(
+    fig,
+    filename=fig_savedir + "reference_dataset_overview_feats_1_4_no_bubbles",
+    dpi=72,
+)
 
 # shape of the dataset before removing outliers
 shape_init = df.shape
 
 # remove outliers (bubbles) from the dataset
-# note: this is for downstream analysis, 
+# note: this is for downstream analysis,
 # outliers automatically removed for fitting PCA
 df = manifest_pca.remove_outliers(df)
 shape_post = df.shape
@@ -68,7 +87,7 @@ print(f"Removed {shape_init[0]-shape_post[0]} outliers from the dataset")
 # %%
 
 # fit PCA to data
-scale = False # whether to scale the data before PCA
+scale = False  # whether to scale the data before PCA
 pca = manifest_pca.fit_pca(num_pcs=3, scale=scale)
 
 # save out PCA object (need later for analysis and summary of fit dynamical systems model)
@@ -103,7 +122,7 @@ for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
     ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
     ax.set_aspect("equal")
 plt.tight_layout()
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=72)
 
 # %%
 # plot with example single crop tracks
@@ -118,11 +137,11 @@ for ds_name in datasets_to_use:
 ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
 ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
 ax.set_aspect("equal")
-plt.legend(loc = "lower left", fontsize=8)
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
+plt.legend(loc="lower left", fontsize=8)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_with_tracks", dpi=72)
 
 # %%
 # Save final manifest for creating flow fields
-df.to_csv(output_savedir+"manifest.csv")
+df.to_csv(output_savedir + "manifest.csv")
 
 # %%
