@@ -369,6 +369,35 @@ def get_measurement_data_raws(dataset_name_list: List,
         measurement_dataframe = dd.DataFrame.from_dict({})
     return measurement_dataframe if as_dask else measurement_dataframe.compute()
 
+def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
+    """
+    NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
+    Get the segmentation features manifest for a given dataset.
+    The manifest is a TSV file that contains the measurements
+    from the tracked segmentations of a dataset.
+    These datasets are raw / unfiltered.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['segmentation_features_manifest_fmsid']
+    manifest_path = Path(base_path) / f"{dataset_name}_segmentation_features.tsv"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Segmentation features manifest not found at {manifest_path}.")
+    return pd.read_csv(manifest_path, sep='\t')
+
+def get_cell_track_integration_dataset(dataset_name: str) -> pd.DataFrame:
+    """
+    Get the cell track integration dataset for a given dataset.
+    The integration dataset is a CSV file that contains the
+    track_id, centroids, zarr paths, and crop size of a subset
+    of the tracked segmentations of a dataset.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['cell_track_integration_manifest_fmsid']
+    integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
+    if not integration_path.exists():
+        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
+    return pd.read_csv(integration_path, sep='\t')
+
 # model methods
 def get_available_models():
     model_info = load_config('model')

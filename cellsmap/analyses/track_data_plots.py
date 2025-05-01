@@ -34,10 +34,10 @@ def merge_segprops_and_track_data(
                          )
     return big_table
 
-def filter_big_table(big_table: pd.DataFrame,
-                     out_dir: Path,
-                     min_num_points_per_track: int = 20,
-                     ) -> pd.DataFrame:
+def filter_seg_feature_table(big_table: pd.DataFrame,
+                             out_dir: Path,
+                             min_num_points_per_track: int = 20,
+                             ) -> pd.DataFrame:
 
     num_rows_before_filtering = len(big_table)
     num_unique_tracks_before_filtering = big_table.groupby(['dataset_name', 'position'])['track_id'].nunique().sum()
@@ -84,7 +84,7 @@ def filter_big_table(big_table: pd.DataFrame,
     timestamp = pd.Timestamp.now()
     out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
     out_dir_logs.mkdir(parents=True, exist_ok=True)
-    with open(out_dir_logs / f'{dataset_name}_filtered_tracking_results_run_log.txt', 'w') as f:
+    with open(out_dir_logs / f'{timestamp.strftime("%Y%m%d_%H%M")}_filtered_tracking_results_run_log.txt', 'w') as f:
         f.write(f'Date run: {str(timestamp)}\n')
         f.write(f'Datasets analyzed: {big_table["dataset_name"].unique()}\n')
         f.write(f'Fold change used for filtering: {fold_change}\n')
@@ -206,16 +206,6 @@ def get_aspect_ratio(eccentricity):
     # 1 / (1 - eccentricity**2) = aspect_ratio**2
     # aspect_ratio = sqrt(1 / (1 - eccentricity**2))
     aspect_ratio = np.sqrt(1 / (1 - eccentricity**2))
-
-    # Saurabh: Using the length of the major
-    # axis (a) + the aspect ratio (r) you
-    # can get the eccentricity as sqrt(1 - r^2)
-    # aspect_ratio = np.sqrt(1 - eccentricity**2)
-    # NOTE: my derivation differs from what Saurabh
-    # told me - double check with him if the aspect
-    # ratio that he is using is defined as the
-    # major axis / minor axis, and if so then check
-    # for an error in my derivation.
     return aspect_ratio
 
 def stringified_floatlist_to_floatlist(ls, to_tuple=False):
@@ -247,9 +237,6 @@ def stringified_floatlist_to_floatlist(ls, to_tuple=False):
 def get_centroid_velocity(centroid_xs, centroid_ys, timepoints):
     dx, dy, dt = np.diff([centroid_xs, centroid_ys, timepoints], prepend=np.nan, axis=1)
     dx_dt, dy_dt = dx / dt, dy / dt
-    # vel = pd.DataFrame({'centroid_dx_dt':dx_dt,
-    #                       'centroid_dy_dt':dy_dt},
-    #                      centroid_xs.index)
     return dx_dt, dy_dt
 
 def plot_per_position(df_group, x_key, y_key, filepath_out, x_label=None, y_label=None, x_lims=(None,None), y_lims=(None,None), show_plot=False):
@@ -297,7 +284,7 @@ def filter_on_fold_change(tracking_results, fold_change: float=1.5, fold_change_
 
     return tracking_results
 
-def more_filtering_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=0, return_df=False):
+def filter_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=0, return_df=False):
     # remove all the centroids that are closer than 128 pixels
     # to the image border
     new_cols = {}
@@ -362,12 +349,10 @@ def make_orientation_relative_to_flow(orientation: float):
     # left with the top right quadrant of the circle.
     return restrict_orientation_to_positive(shift_orientation_phase(restrict_orientation_to_positive(orientation)))
 
-
+verbose = False
 out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 out_dir.mkdir(parents=True, exist_ok=True)
 
-# dataset_name = '20250227_40X'
-# dataset_name = '20241016_20X'
 dataset_name = None
 if dataset_name == None:
     dataset_name_list = [config_data['name']
@@ -380,53 +365,30 @@ if dataset_name == None:
 else:
     dataset_name_list = [dataset_name]
 
-# tracking_df_list = []
-# segprops_df_list = []
-# alignments_df_list = []
-verbose = False
 for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='Processing datasets', unit='datasets'):
-    # dataset_name = '20241016_20X'
     tracking_df = get_tracking_data_raws([dataset_name], as_dask=False)
     segprops_df = get_measurement_data_raws([dataset_name], kind='segmentation_properties', as_dask=False)
     # alignments_df = get_measurement_data_raws([dataset_name], kind='alignments', as_dask=False)
     if tracking_df.empty or segprops_df.empty:
         continue
 
-    # tracking_df_list.append(tracking_df)
-    # segprops_df_list.append(segprops_df)
-    # alignments_df_list.append(alignments_df_list)
-
-# tracking_df = dd.concat(tracking_df_list)
-# segprops_df = dd.concat(segprops_df_list)
-# alignments_df = dd.concat(alignments_df_list)
-
-    # # NOTE THIS CODE IS FOR LOCAL TESTING ONLY; CAN DELETE BEFORE MERGING
-    # out_path_tracks = out_dir / f'{dataset_name}_tracking_data.tsv'
-    # out_path_segprops = out_dir / f'{dataset_name}_segmentation_properties.tsv'
-    # # out_path_alignments = out_dir / f'alignments.tsv'
-
-    # tracking_df.to_csv(out_path_tracks, sep='\t', index=False)
-    # segprops_df.to_csv(out_path_segprops, sep='\t', index=False)
-    # # alignments_df.to_csv(out_path_alignments, sep='\t', index=False)
-
-    # tracking_df = pd.read_csv(out_path_tracks, sep='\t')
-    # segprops_df = pd.read_csv(out_path_segprops, sep='\t')
-    # # alignments_df = pd.read_csv(out_path_alignments, sep='\t')
-    # # NOTE END OF TEST CODE
-
-    # tracking_df = dd.concat(tracking_df_list)
-    # segprops_df = dd.concat(segprops_df_list)
-
     # combine the tracking data with the segmentation
     # properties data
     print('Combining tracking data with segmentation properties data...') if verbose else None
     big_table = merge_segprops_and_track_data(segprops_df, tracking_df)
 
+    # save the raw combined data tables
+    # (we want to have an accessible version of the raw data)
+    out_dir_raw = out_dir / f'segmentation_features_manifests/'
+    out_dir_raw.mkdir(parents=True, exist_ok=True)
+    out_path_raw = out_dir_raw / f'{dataset_name}_segmentation_features.tsv'
+    big_table.to_csv(out_path_raw, sep='\t', index=False)
+
     # filter the segprops data to remove regions that
     # touch the image borders and keep only tracks that
     # have a minimum number of datapoints after this
     print('Filtering out regions that touch the image borders and tracks that are too short...') if verbose else None
-    big_table = filter_big_table(big_table, out_dir, min_num_points_per_track=20)
+    big_table = filter_seg_feature_table(big_table, out_dir, min_num_points_per_track=20)
 
     # add some columns that are calculated from the
     # existing columns include:
@@ -437,7 +399,7 @@ for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='
     big_table = calculate_derived_data(big_table)
 
     print('Outputting a subset of the cell tracking data for integration with landscapes...') if verbose else None
-    more_filtering_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=120, return_df=False)
+    filter_and_save_track_data_for_landscape_integration(big_table, min_num_points_per_track=120, return_df=False)
 
     # TODO parallelize the graph generation here
     # make basic plots for each dataset
