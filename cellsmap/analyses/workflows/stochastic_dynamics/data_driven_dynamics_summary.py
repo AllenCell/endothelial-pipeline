@@ -1,9 +1,10 @@
 import fire
+import numpy as np
 
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils import regression_main
+from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
 from cellsmap.analyses.utils.viz import (
@@ -64,19 +65,54 @@ def main(config_name: str = "default") -> None:
         kernel_params = kramers_moyal_config["kernel_params"]
 
     # build train-test data for regression
-    train_test_dict = regression_main.build_kramers_moyal_train_test(
-        pca,
-        PCs,
-        Nbins,
-        dt,
-        ds_to_skip,
-        fig_savedir,
-        method=km_method,
-        kernel_params=kernel_params,
-    )
+    list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
 
-    ################### Save train-test data ###################
-    dynamics_io.save_train_test(train_test_dict, savedir)
+    for name in list_of_datasets:
+        if name in ds_to_skip:
+            print(f"**** Skipping dataset {name}, **** \n")
+            continue
+        print(f"Computing drift and diffusion fields for dataset {name}")
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+
+        feat_cols_all = manifest_io.get_feature_cols(df_proj)
+        feat_cols = [feat_cols_all[i] for i in PCs] # just get PCs of interest
+
+        # split out data by flow condition
+        df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name)
+        num_flow = len(shear_list)
+
+        f_KM = []
+        D_KM = []
+        X_pts = []
+
+        for j in range(num_flow):
+            # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
+            X_list, dX_list, dT_list = rh.get_X_dX_and_dT(
+                df_by_flow[j], feat_cols=feat_cols
+            )
+
+            # get bins for histogramming (for drift and diffusion estimates)
+            bins, centers = rh.get_bins(Nbins, data=X_list)
+
+            # get drift and diffusion estimates (Kramers-Moyal coefficients)
+            f_KM, D_KM = rh.get_kramers_moyal(
+                X_list,
+                dX_list,
+                dT_list,
+                bins,
+                dt,
+                method=km_method,
+                kernel_params=kernel_params,
+            )
+
+            # extrapolate nans in drift and diffusion estimates
+            drift_dict = ddff.compute_extrapolated_vector_field(f_KM, centers,interpolator="nearest")
+            diffusion_dict = ddff.compute_extrapolated_vector_field(D_KM, centers,interpolator="nearest")
+
+            drift = ddff.get_callable_vector_field(drift_dict)
+            diffusion = ddff.get_callable_vector_field(diffusion_dict)
+
+            
 
 
 if __name__ == "__main__":

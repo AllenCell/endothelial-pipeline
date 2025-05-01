@@ -45,49 +45,38 @@ def compute_extrapolated_vector_field(kmcs:np.ndarray,
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
     '''
 
+    ndim = len(grid_centers) # number of dimensions
+
     # generate a mesh grid of points in the state space
-    xgrid, ygrid, zgrid = np.meshgrid(*grid_centers, indexing='ij') # make meshgrid
-    
-    assert kmcs.shape == (len(grid_centers[0]), len(grid_centers[1]), len(grid_centers[2]), 3), \
-        f"Shape of vector field {kmcs.shape} does not match shape of grid {xgrid.shape}."
+    grid = np.meshgrid(*grid_centers, indexing='ij') # make meshgrid
 
     # vector field F(x)
-    F1 = kmcs[...,0]
-    F2 = kmcs[...,1]
-    F3 = kmcs[...,2]
+    F_vec = [kmcs[...,i] for i in range(ndim)] # get the vector field components from the Kramers-Moyal coefficients
 
     # where KMCs have been masked to nan, extrapolate 
     # via nearest neighbors.
     # use spinterp.interpn with method='nearest'
     # Find the indices of valid (non-NaN) points
-    valid_mask = ~np.isnan(F1)
+    valid_mask = ~np.isnan(F_vec[0])
     valid_points = np.array(np.nonzero(valid_mask)).T  # Get the coordinates of valid points
-    valid_values_F1 = F1[valid_mask]  # Get the corresponding values for dU
-    valid_values_F2 = F2[valid_mask]  # Get the corresponding values for dV
-    valid_values_F3 = F3[valid_mask]  # Get the corresponding values for dQ
+    valid_values_F = [F_vec[i][valid_mask] for i in range(ndim)] # Get the values of valid points
 
     # Create interpolators for each component of the vector field
     if interpolator == "nearest": # nearest neighbor
-        interpolator_F1 = spinterp.NearestNDInterpolator(valid_points, valid_values_F1)
-        interpolator_F2 = spinterp.NearestNDInterpolator(valid_points, valid_values_F2)
-        interpolator_F3 = spinterp.NearestNDInterpolator(valid_points, valid_values_F3)
+        interpolator_F = [spinterp.NearestNDInterpolator(valid_points, valid_values_F[i]) for i in range(ndim)]
     elif interpolator == "linear": # linear interpolation
-        interpolator_F1 = spinterp.LinearNDInterpolator(valid_points, valid_values_F1)
-        interpolator_F2 = spinterp.LinearNDInterpolator(valid_points, valid_values_F2)
-        interpolator_F3 = spinterp.LinearNDInterpolator(valid_points, valid_values_F3)
+        interpolator_F = [spinterp.LinearNDInterpolator(valid_points, valid_values_F[i]) for i in range(ndim)]
     else:
         raise ValueError(f"Interpolator {interpolator} not recognized. Use 'nearest' or 'linear'.")
 
     # Find the indices of all points (including NaN points)
-    all_points = np.array(np.indices(F1.shape)).reshape(len(F1.shape), -1).T
+    all_points = np.array(np.indices(F_vec[0].shape)).reshape(len(F_vec[0].shape), -1).T
 
     # Interpolate the NaN points
-    F1 = interpolator_F1(all_points).reshape(F1.shape)
-    F2 = interpolator_F2(all_points).reshape(F2.shape)
-    F3 = interpolator_F3(all_points).reshape(F3.shape)
+    F_interpolated = [interpolator_F[i](all_points) for i in range(ndim)]
 
     # Create a dictionary to store the vector field and grid
-    vector_field_dict = {"vectors": (F1,F2,F3), "grid": (xgrid, ygrid, zgrid)}
+    vector_field_dict = {"vectors": F_interpolated, "grid": grid}
 
     return vector_field_dict
 

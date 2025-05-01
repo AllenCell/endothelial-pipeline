@@ -9,19 +9,6 @@ from sklearn.pipeline import Pipeline
 from cellsmap.analyses.utils import model_eval
 from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.numerics import gen_potential as gp
-<<<<<<< HEAD
-from cellsmap.util.manifest_preprocessing import diffae_feature_preprocessing as diffae_preproc
-
-def model_data_comparison_one_dataset(model:list[Callable], 
-                                      data:pd.DataFrame,
-                                      u:float, 
-                                      PCs:list, 
-                                      bins:list, 
-                                      pplane_xvec:np.ndarray,
-                                      pplane_yvec:np.ndarray,
-                                      use_fipy:bool=False) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
-    '''
-=======
 from cellsmap.analyses.utils.viz import dynamics_viz as dviz
 from cellsmap.analyses.utils.viz import pplane
 from cellsmap.analyses.utils.viz import viz_base as vb
@@ -42,7 +29,6 @@ def model_data_comparison_one_dataset(
     use_fipy: bool = False,
 ) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
     """
->>>>>>> main
     Qualitative evaluation of fit SDE model by taking one dataset at one flow condition,
     generating phase portrait of the drift term at shear stress = shear stress from data, and comparing
     the predicted stationary distribution of the model at that shear stress to the histogram
@@ -97,11 +83,7 @@ def model_data_comparison_one_dataset(
     # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_0' and 'feat_1'
     feat_cols_all = mio.get_feature_cols(data)
     feat_cols = [feat_cols_all[i] for i in PCs]
-<<<<<<< HEAD
-    p_hist = rh.get_stationary_hist(data,feat_cols,bins)
-=======
     p_hist = rh.get_stationary_hist(data, feat_cols, bins)
->>>>>>> main
 
     fig2, ax2 = dviz.compare_stationary_distributions(p_fit, p_hist, bins)
 
@@ -139,21 +121,12 @@ def model_data_comparison(
 
     Outputs:
     - None, saves figures to fig_savedir
-<<<<<<< HEAD
-    '''
-=======
     """
->>>>>>> main
 
     # get list of datasets with DiffAE manifest data
     list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
 
-<<<<<<< HEAD
-
-    for ds_name in list_of_datasets: 
-=======
     for ds_name in list_of_datasets:
->>>>>>> main
         # if we don't want to fit model using this dataset, skip it
         if ds_name in ds_to_skip:
             print("**** Skipping dataset", ds_name, "**** \n")
@@ -164,11 +137,7 @@ def model_data_comparison(
         # project data from this one dataset onto PCs as defined by fit PCA object pca
         # load DiffAE feature data from this one dataset, with outliers labeled and features
         # projected onto principal component axes as defined by fit PCA object pca
-<<<<<<< HEAD
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name,pca) 
-=======
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
->>>>>>> main
 
         # split out data by flow condition
         df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name, verbose=False)
