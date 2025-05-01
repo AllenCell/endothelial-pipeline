@@ -1,5 +1,6 @@
 import fire
 import numpy as np
+import matplotlib.pyplot as plt
 
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import manifest_pca
@@ -67,7 +68,21 @@ def main(config_name: str = "default") -> None:
     if "kernel_params" in kramers_moyal_config:
         kernel_params = kramers_moyal_config["kernel_params"]
 
-    # build train-test data for regression
+    pplane_xlim = config["plt_xlim"]["pplane"]
+    pplane_ylim = config["plt_ylim"]["pplane"]
+    bin_xlim = config["plt_xlim"]["hist"]
+    bin_ylim = config["plt_ylim"]["hist"]
+    N_pts_pplane = config["N_pts_pplane"]
+    N_bins_hist = config["N_bins_hist"]
+
+    # for phase plane plots, fix grid across all datasets
+    pplane_xvec = np.linspace(pplane_xlim[0], pplane_xlim[1], N_pts_pplane + 1)
+    pplane_yvec = np.linspace(pplane_ylim[0], pplane_ylim[1], N_pts_pplane + 1)
+
+    # for histogram plots, fix bins across all datasets
+    bins_hist, centers_hist = rh.get_bins(N_bins_hist, bin_limits=[bin_xlim, bin_ylim])
+
+    # loop through datasets, get flow field estimates, and save out figures
     list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
 
     for name in list_of_datasets:
@@ -114,19 +129,37 @@ def main(config_name: str = "default") -> None:
             drift = ddff.get_callable_vector_field(drift_dict)
             diffusion = ddff.get_callable_vector_field(diffusion_dict)
 
-            fig1, _, fig2, _ = model_data_comparison_one_dataset(
+            fig1, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(
                     [drift, diffusion],
                     df_proj,
                     shear_list[j],
                     PCs,
                     bins,
-                    pplane_xvec: np.ndarray,
-                    pplane_yvec: np.ndarray,
-                    use_fipy: bool = False,
+                    pplane_xvec,
+                    pplane_yvec
                 )
-
             
+            sup_title = fig2._suptitle.get_text()
+            sup_title = (
+                name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
+            )
+            fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(), y=1.15)
 
+            # save figures
+            vb.save_plot(
+                fig1,
+                fig_savedir
+                + name
+                + "_ddff_phase_portrait_shear_"
+                + str(int(shear_list[j])),
+            )
+            vb.save_plot(
+                fig2,
+                fig_savedir
+                + name
+                + "_ddff_stationary_dist_shear_"
+                + str(int(shear_list[j])),
+            )
 
 if __name__ == "__main__":
     fire.Fire(main)
