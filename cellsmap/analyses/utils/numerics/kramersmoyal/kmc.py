@@ -1,15 +1,17 @@
+import inspect
+from itertools import product
+from typing import Callable
+
 import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
-from itertools import product
-import inspect
-from typing import Callable
 
-from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
 from cellsmap.analyses.utils.numerics.kramersmoyal import kernels
+from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
+
 
 def string_to_kernel(kernel: str) -> Callable:
-    '''
+    """
     Function to convert a string to the corresponding kernel function.
 
     Input:
@@ -18,26 +20,38 @@ def string_to_kernel(kernel: str) -> Callable:
     Output:
     - kernel_func: callable, the kernel function with the given name
     as defined in cellsmap.analyses.utils.numerics.kramersmoyal.kernels
-    '''
+    """
     # get dictionary of all callable functions in the kernels module
-    not_kernel = {'factorial2','kernel','wraps','silvermans_rule'} # functions that are not kernels
+    not_kernel = {
+        "factorial2",
+        "kernel",
+        "wraps",
+        "silvermans_rule",
+    }  # functions that are not kernels
     kernel_dict = {
-        name: func for name, func in inspect.getmembers(kernels, inspect.isfunction) if name not in not_kernel
+        name: func
+        for name, func in inspect.getmembers(kernels, inspect.isfunction)
+        if name not in not_kernel
     }
     if kernel in kernel_dict:
         return kernel_dict[kernel]
     else:
-        raise ValueError(f"Kernel '{kernel}' not recognized. Available kernels: {list(kernel_dict.keys())}")
+        raise ValueError(
+            f"Kernel '{kernel}' not recognized. Available kernels: {list(kernel_dict.keys())}"
+        )
 
-def km(timeseries: list[np.ndarray]|np.ndarray, 
-        grads:list[np.ndarray]|np.ndarray|None = None,
-        bins: str='default', 
-        powers: int=4,
-        kernel: str='epanechnikov', 
-        bw: float|None=None, 
-        tol: float=1e-3,
-        multi_traj: bool=False,
-        conv_method: str='auto') -> np.ndarray:
+
+def km(
+    timeseries: list[np.ndarray] | np.ndarray,
+    grads: list[np.ndarray] | np.ndarray | None = None,
+    bins: str = "default",
+    powers: int = 4,
+    kernel: str = "epanechnikov",
+    bw: float | None = None,
+    tol: float = 1e-3,
+    multi_traj: bool = False,
+    conv_method: str = "auto",
+) -> np.ndarray:
     """
     Estimates the Kramers─Moyal coefficients from a timeseries using a kernel
     estimator method. `km` can calculate the Kramers─Moyal coefficients for a
@@ -101,7 +115,7 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
 
     bw: float (default `None`)
         Desired bandwidth of the kernel. A value of 1 occupies the full space of
-        the bin space. Recommended are values `0.005 < bw < 0.5`. 
+        the bin space. Recommended are values `0.005 < bw < 0.5`.
 
     tol: float (default `1e-10`)
         Round to zero absolute values smaller than `tol`, after the
@@ -135,17 +149,17 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
     drift and diffusion coefficients of stochastic processes." Physics Letters A
     373(39), 3507─3512, 2009. DOI: 10.1016/j.physleta.2009.07.073
     .. [Gorjão2019] L. R. Gorjão and F. Meirinhos, "kramersmoyal: Kramers-Moyal
-    coefficients for stochastic processes." Journal of Open Source Software 4(44), 
+    coefficients for stochastic processes." Journal of Open Source Software 4(44),
     1693, 2019. DOI: 10.21105/joss.01693
     """
     # check inputs (case of multi_traj and single traj)
     if multi_traj:
-        assert len(timeseries) == len(grads), \
-            "Must have gradients for each timeseries"
+        assert len(timeseries) == len(grads), "Must have gradients for each timeseries"
         assert len(timeseries) > 0, "No data in timeseries"
         assert len(grads) > 0, "No data in gradients"
-        assert len(grads[0]) == len(timeseries[0])-1, \
-            "Need to have gradients for each timepoint in timeseries except for last"
+        assert (
+            len(grads[0]) == len(timeseries[0]) - 1
+        ), "Need to have gradients for each timepoint in timeseries except for last"
         timeseries = [np.asarray_chkfinite(ts, dtype=float) for ts in timeseries]
         grads = [np.asarray_chkfinite(g, dtype=float) for g in grads]
 
@@ -171,8 +185,9 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
     # Tranforming powers into right shape
     if isinstance(powers, int):
         # complicated way of obtaing powers in all dimensions
-        powers = np.array(sorted(product(*(range(powers + 1),) * dims),
-            key=lambda x: (max(x), x)))
+        powers = np.array(
+            sorted(product(*(range(powers + 1),) * dims), key=lambda x: (max(x), x))
+        )
 
     powers = np.asarray_chkfinite(powers, dtype=float)
     if len(powers.shape) == 1:
@@ -186,18 +201,19 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
 
     # Check and adjust bins
     if isinstance(bins, str):
-        if bins == 'default':
+        if bins == "default":
             bins = [5000] if dims == 1 else bins
             bins = [100] * 2 if dims == 2 else bins
             bins = [25] * 3 if dims == 3 else bins
         assert dims < 4, "If dimension of timeseries > 3, set bins manually"
 
     if isinstance(bins, int):
-        bins = [int(bins**(1/dims))] * dims
+        bins = [int(bins ** (1 / dims))] * dims
 
     if isinstance(bins, (list, tuple)):
-        assert all(isinstance(ele, (int, np.ndarray)) for ele in bins), \
-            "list or tuples of bins must either be ints or arrays"
+        assert all(
+            isinstance(ele, (int, np.ndarray)) for ele in bins
+        ), "list or tuples of bins must either be ints or arrays"
 
     assert dims == len(bins), "bins not matching timeseries' dimension"
 
@@ -206,7 +222,7 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
 
     # check bandwidth input
     if bw is None:
-        bw = kernels.silvermans_rule(timeseries,multi_traj=multi_traj)
+        bw = kernels.silvermans_rule(timeseries, multi_traj=multi_traj)
     elif callable(bw):
         bw = bw(timeseries)
     assert bw > 0.0, "Bandwidth must be > 0"
@@ -214,21 +230,29 @@ def km(timeseries: list[np.ndarray]|np.ndarray,
     print(f"Using bandwidth {bw} for kernel {kernel}.")
 
     # This is where the calculations take place
-    kmc = _km(timeseries, grads, bins, powers, kernel_func, 
-                      bw, tol, conv_method, multi_traj)
+    kmc = _km(
+        timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method, multi_traj
+    )
 
     return kmc
 
 
-def _km(timeseries: list[np.ndarray]|np.ndarray,
-        grads: list[np.ndarray]|np.ndarray|None, 
-        bins: np.ndarray, powers: np.ndarray,
-        kernel_func: callable, bw: float, tol: float,
-        conv_method: str, multi_traj:bool) -> np.ndarray:
+def _km(
+    timeseries: list[np.ndarray] | np.ndarray,
+    grads: list[np.ndarray] | np.ndarray | None,
+    bins: np.ndarray,
+    powers: np.ndarray,
+    kernel_func: callable,
+    bw: float,
+    tol: float,
+    conv_method: str,
+    multi_traj: bool,
+) -> np.ndarray:
     """
     Helper function for `km` that does the heavy lifting and actually estimates
     the Kramers─Moyal coefficients from the timeseries.
     """
+
     # Internal function to get the Cartesian product of the bin edges
     def cartesian_product(arrays: np.ndarray):
         # Taken from https://stackoverflow.com/questions/11144513
@@ -256,21 +280,21 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
 
     ##### Weights: for each displacement vector, get the coresponding powers/products
     #               of the gradients for the Kramers─Moyal coefficients.
-        
-    # Raises each component of the gradient array to the corresponding 
+
+    # Raises each component of the gradient array to the corresponding
     #    element of the powers and then multiplies them together.
     # e.g., for 2D, powers = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]], we have:
-    # > np.power(grads.T, powers[..., None]) = [[1, 1], 
-    #                                           [x_0(t+1)-x_0(t), 1] 
-    #                                           [1 , x_1(t+1)-x_1(t)], 
+    # > np.power(grads.T, powers[..., None]) = [[1, 1],
+    #                                           [x_0(t+1)-x_0(t), 1]
+    #                                           [1 , x_1(t+1)-x_1(t)],
     #                                           [x_0(t+1)-x_0(t), (x_1(t+1)-x_1(t))],
-    #                                           [(x_0(t+1)-x_0(t))^2, 1], 
+    #                                           [(x_0(t+1)-x_0(t))^2, 1],
     #                                           [1, (x_1(t+1)-x_1(t))^2]]
-    # > np.prod(..., axis=1) = [1, 
-    #                           (x_0(t+1)-x_0(t)), 
+    # > np.prod(..., axis=1) = [1,
+    #                           (x_0(t+1)-x_0(t)),
     #                           (x_1(t+1)-x_1(t)),
     #                           (x_0(t+1)-x_0(t))(x_1(t+1)-x_1(t)),
-    #                           (x_0(t+1)-x_0(t))^2, 
+    #                           (x_0(t+1)-x_0(t))^2,
     #                           (x_1(t+1)-x_1(t))^2]
     # If there are L powers and M observations, the result is an L x M array.
     weights = np.prod(np.power(grads.T, powers[..., None]), axis=1)
@@ -279,9 +303,7 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
 
     # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
     # where N[i] is the number of bins in dimension i.
-    hist, edges = histogramdd(timeseries_, bins=bins,
-                              weights=weights, bw=bw)
-    
+    hist, edges = histogramdd(timeseries_, bins=bins, weights=weights, bw=bw)
 
     ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
 
@@ -290,7 +312,7 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
     # for the interval [-L_i, L_i] with the same bin width. This grid is twice the size
     # of the histogram in each dimension and centered around the origin.
 
-    # The kernel is then evaluated at all points in this extended grid (obtained 
+    # The kernel is then evaluated at all points in this extended grid (obtained
     # via the cartesian product of the entries of edges_k).
     # The purpose of this is to artifically construct a periodic kernel
     # that is centered around the origin, so that the input into the convolution
@@ -299,22 +321,25 @@ def _km(timeseries: list[np.ndarray]|np.ndarray,
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in edges]
     kernel_ = kernel_func(cartesian_product(edges_k), bw=bw)
 
-
     ##### KMC computation: convolve the histogram with the kernel
 
-    # Convolve weighted histogram of kmc observations (displacements ^ powers) 
+    # Convolve weighted histogram of kmc observations (displacements ^ powers)
     # with augmented periodic kernel and trim it back to the original size.
     # Note that the first entry of the output is the normalization factor
     # of the kernel estimator, which is the same for all dimensions.
     # The normalization factor is the KDE of the empirical density function.
-    kmc = convolve(hist, kernel_[None, ...], mode='same', method=conv_method)
+    kmc = convolve(hist, kernel_[None, ...], mode="same", method=conv_method)
 
     # Normalise with correct factorial coefficients * histogram
-    mask = np.abs(kmc[0]) < tol # where probability density is small... (i.e., little to no data)
-    kmc[0:, mask] = np.nan # ...set kmc coeffs to nan
+    mask = (
+        np.abs(kmc[0]) < tol
+    )  # where probability density is small... (i.e., little to no data)
+    kmc[0:, mask] = np.nan  # ...set kmc coeffs to nan
 
     # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
     taylors = np.prod(factorial(powers[1:]), axis=1)
-    kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask] # divide by Taylor coeff * 0th order coeffs (probability density)
+    kmc[1:, ~mask] /= (
+        taylors[..., None] * kmc[0, ~mask]
+    )  # divide by Taylor coeff * 0th order coeffs (probability density)
 
     return kmc

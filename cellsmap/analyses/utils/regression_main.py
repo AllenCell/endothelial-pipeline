@@ -1,10 +1,11 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
-from typing import Tuple
 
-from cellsmap.util import manifest_io as mio
 from cellsmap.analyses.utils import regression_helper as rh
+<<<<<<< HEAD
 from cellsmap.analyses.utils.viz import manifest_viz as mv, viz_base as vb
 from cellsmap.util.manifest_preprocessing import diffae_feature_preprocessing as diffae_preproc
 
@@ -24,6 +25,38 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
                                          kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
     '''
     Generate train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for one dataset. 
+=======
+from cellsmap.analyses.utils.viz import manifest_viz as mv
+from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util import manifest_io as mio
+from cellsmap.util.manifest_preprocessing import (
+    diffae_feature_preprocessing as diffae_preproc,
+)
+
+
+def kramers_moyal_train_test_one_dataset(
+    df_proj: pd.DataFrame,
+    ds_name: str,
+    PCs: list,
+    Nbins: list,
+    dt: float,
+    train_frac: float,
+    fig_savedir: str,
+    method: str = "kernel",
+    kernel_params: dict | None = None,
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    """
+    Generate train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for one dataset.
+>>>>>>> main
     This function is called by build_kramers_moyal_train_test in a loop over all datasets in the dataframe.
 
     Inputs:
@@ -45,7 +78,7 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
     - V_test: test data for diffusion estimates from the given dataset
     - u_train: training flow conditions (shear rates) from the given dataset
     - u_test: test flow conditions from the given dataset
-    '''
+    """
 
     # for extracting just the axes (specified via PCs) we want from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_0' and 'feat_1'
@@ -54,7 +87,7 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
     ndim = len(PCs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = rh.get_X_by_flow(df_proj,ds_name)
+    df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name)
     num_flow = len(shear_list)
 
     f_KM = []
@@ -63,49 +96,79 @@ def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame,
 
     for j in range(num_flow):
         # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
-        X_list, dX_list, dT_list = rh.get_X_dX_and_dT(df_by_flow[j],feat_cols=feat_cols)
+        X_list, dX_list, dT_list = rh.get_X_dX_and_dT(
+            df_by_flow[j], feat_cols=feat_cols
+        )
 
         # get bins for histogramming (for drift and diffusion estimates)
-        bins, centers = rh.get_bins(Nbins,data=X_list)
+        bins, centers = rh.get_bins(Nbins, data=X_list)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
-        f_KM_, D_KM_ = rh.get_kramers_moyal(X_list,dX_list,dT_list,bins,dt,method=method,kernel_params=kernel_params)
+        f_KM_, D_KM_ = rh.get_kramers_moyal(
+            X_list,
+            dX_list,
+            dT_list,
+            bins,
+            dt,
+            method=method,
+            kernel_params=kernel_params,
+        )
 
         # plot drift and diffusion estimates
-        kmc = np.concatenate([f_KM_,D_KM_],axis=-1).T
-        fig = mv.plot_km(centers,kmc,PCs,shear_list[j])[0]
-        vb.save_plot(fig,filename=fig_savedir+f"kmcs_all_{ds_name}_flow_{j}",format='.png',dpi=500)
+        kmc = np.concatenate([f_KM_, D_KM_], axis=-1).T
+        fig = mv.plot_km(centers, kmc, PCs, shear_list[j])[0]
+        vb.save_plot(
+            fig,
+            filename=fig_savedir + f"kmcs_all_{ds_name}_flow_{j}",
+            format=".png",
+            dpi=500,
+        )
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = mv.plot_km_drift_2D(centers,kmc,PCs,shear_list[j])[0]
-            vb.save_plot(fig,filename=fig_savedir+f"kmcs_drift_{ds_name}_flow_{j}",format='.png',dpi=500)
+            fig = mv.plot_km_drift_2D(centers, kmc, PCs, shear_list[j])[0]
+            vb.save_plot(
+                fig,
+                filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",
+                format=".png",
+                dpi=500,
+            )
 
         # remove NaNs from drift and diffusion estimates (bins with no data), get corresponding bin centers as well
-        f_KM_noNAN, X_pts_, = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)
+        (
+            f_KM_noNAN,
+            X_pts_,
+        ) = rh.masked_vector_field(f_KM_, np.array(np.meshgrid(*centers)).T)
         D_KM_noNAN, _ = rh.masked_vector_field(D_KM_, np.array(np.meshgrid(*centers)).T)
         f_KM.append(f_KM_noNAN)
         D_KM.append(D_KM_noNAN)
         X_pts.append(X_pts_)
 
-    del df_by_flow # free up memory
+    del df_by_flow  # free up memory
 
     # get train test split of Kramers-Moyal estimates for each flow condition
-    X_train, X_test, Y_train, Y_test, V_train, V_test = rh.train_test_all(X_pts,f_KM,D_KM,train_frac,seed=47)
-    
+    X_train, X_test, Y_train, Y_test, V_train, V_test = rh.train_test_all(
+        X_pts, f_KM, D_KM, train_frac, seed=47
+    )
+
     # get number of training and test points for each flow condition
     N_tot = [X_pts[j].shape[0] for j in range(num_flow)]
-    N_train = [int(train_frac*N_tot[j]) for j in range(num_flow)]
-    N_test = [N_tot[j]-N_train[j] for j in range(num_flow)]
+    N_train = [int(train_frac * N_tot[j]) for j in range(num_flow)]
+    N_test = [N_tot[j] - N_train[j] for j in range(num_flow)]
 
     # get corresponding flow condition for each training and test point
-    u_train = np.concatenate([shear_list[j]*np.ones((N_train[j],1)) for j in range(num_flow)])
-    u_test = np.concatenate([shear_list[j]*np.ones((N_test[j],1)) for j in range(num_flow)])
+    u_train = np.concatenate(
+        [shear_list[j] * np.ones((N_train[j], 1)) for j in range(num_flow)]
+    )
+    u_test = np.concatenate(
+        [shear_list[j] * np.ones((N_test[j], 1)) for j in range(num_flow)]
+    )
 
-    del X_pts, f_KM, D_KM # free up memory
+    del X_pts, f_KM, D_KM  # free up memory
 
     return X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test
 
+<<<<<<< HEAD
 def build_kramers_moyal_train_test(pca:Pipeline, 
                                    PCs:list[int], 
                                    Nbins:list[int], 
@@ -122,6 +185,21 @@ def build_kramers_moyal_train_test(pca:Pipeline,
                                    kernel_params:dict|None=None,
                                    ) -> dict:
     '''
+=======
+
+def build_kramers_moyal_train_test(
+    pca: Pipeline,
+    PCs: list[int],
+    Nbins: list[int],
+    dt: float,
+    ds_to_skip: list[str],
+    fig_savedir: str,
+    train_frac: float = 0.8,
+    method: str = "kernel",
+    kernel_params: dict | None = None,
+) -> dict:
+    """
+>>>>>>> main
     Build train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for all datasets in the dataframe df.
 
     Inputs:
@@ -148,7 +226,11 @@ def build_kramers_moyal_train_test(pca:Pipeline,
         - 'u_train': training flow conditions (shear rates) - passed in as control variable
         - 'u_test': test flow conditions
     The train test sets are concatenated across all datasets in the dataframe.
+<<<<<<< HEAD
     '''
+=======
+    """
+>>>>>>> main
     # get list of datasets with DiffAE manifest data
     list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
 
@@ -162,16 +244,21 @@ def build_kramers_moyal_train_test(pca:Pipeline,
     u_train_list = []
     u_test_list = []
 
-    # for each dataset, generate train test sets for drift and diffusion estimates 
+    # for each dataset, generate train test sets for drift and diffusion estimates
     # (Kramers-Moyal coefficients, Y and V, respectively)
-    for ds_name in list_of_datasets: 
+    for ds_name in list_of_datasets:
         # skip specified datasets when building train test sets
         if ds_name in ds_to_skip:
-            print('**** Skipping dataset',ds_name,'**** \n')
+            print("**** Skipping dataset", ds_name, "**** \n")
             continue
 
-        print('**** Generating train/test sets for dataset',ds_name,'**** \n')
+        print("**** Generating train/test sets for dataset", ds_name, "**** \n")
 
+        # load DiffAE feature data from this one dataset, with outliers labeled and features
+        # projected onto principal component axes as defined by fit PCA object pca
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
+
+<<<<<<< HEAD
         # load DiffAE feature data from this one dataset, with outliers labeled and features
         # projected onto principal component axes as defined by fit PCA object pca
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name,pca) 
@@ -182,6 +269,22 @@ def build_kramers_moyal_train_test(pca:Pipeline,
                                                  method=method, kernel_params=kernel_params)
             kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac, fig_savedir,
                                                  method=method, kernel_params=kernel_params)
+=======
+        # get train test split for this dataset
+        X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = (
+            kramers_moyal_train_test_one_dataset(
+                df_proj,
+                ds_name,
+                PCs,
+                Nbins,
+                dt,
+                train_frac,
+                fig_savedir,
+                method=method,
+                kernel_params=kernel_params,
+            )
+        )
+>>>>>>> main
 
         # add train test for this dataset to list
         X_train_list.append(X_train)
@@ -193,7 +296,16 @@ def build_kramers_moyal_train_test(pca:Pipeline,
         u_train_list.append(u_train)
         u_test_list.append(u_test)
 
-        del X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test # free up memory
+        del (
+            X_train,
+            X_test,
+            Y_train,
+            Y_test,
+            V_train,
+            V_test,
+            u_train,
+            u_test,
+        )  # free up memory
 
     # concatenate all per-dataset train test sets to get final train test sets
     X_train = np.concatenate(X_train_list)
@@ -204,12 +316,17 @@ def build_kramers_moyal_train_test(pca:Pipeline,
     V_test = np.concatenate(V_test_list)
     u_train = np.concatenate(u_train_list)
     u_test = np.concatenate(u_test_list)
-    
+
     # store final train test sets in dictionary
-    out_dict = {'X_train':X_train, 'X_test':X_test, 
-                'Y_train':Y_train, 'Y_test':Y_test, 
-                'V_train':V_train, 'V_test':V_test, 
-                'u_train':u_train, 'u_test':u_test}
+    out_dict = {
+        "X_train": X_train,
+        "X_test": X_test,
+        "Y_train": Y_train,
+        "Y_test": Y_test,
+        "V_train": V_train,
+        "V_test": V_test,
+        "u_train": u_train,
+        "u_test": u_test,
+    }
 
     return out_dict
-

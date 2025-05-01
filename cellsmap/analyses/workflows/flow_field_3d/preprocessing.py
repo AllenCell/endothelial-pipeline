@@ -3,6 +3,7 @@
 # %%
 import matplotlib.pyplot as plt
 import pandas as pd
+import pandas as pd
 
 from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
 from cellsmap.analyses.utils.viz import viz_base as vb
@@ -22,6 +23,7 @@ output_savedir = get_output_path(workflow_output_folder, verbose=False)
 fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
+# %%
 # %%
 # only keep the reference datasets for this workflow
 datasets_to_use = [
@@ -60,14 +62,27 @@ for ds_name in datasets_to_use:
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     ax.scatter(dfs["feat_1"], dfs["feat_4"], s=0.1, label=ds_name)
+fig, ax = vb.init_plot(figsize=(5, 5))
+for ds_name in datasets_to_use:
+    # get the data for the dataset based on ds_name being in the crop_index column
+    dfs = df[df["crop_index"].str.contains(ds_name)]
+    ax.scatter(dfs["feat_1"], dfs["feat_4"], s=0.1, label=ds_name)
 plt.legend()
 plt.show()
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4", dpi=72)
 vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4", dpi=72)
 
 # plot latent dims 1 and 4 after with outliers labelled
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
 ax.scatter(df["feat_1"], df["feat_4"], c=df["outlier"], s=0.2)
+fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+ax.scatter(df["feat_1"], df["feat_4"], c=df["outlier"], s=0.2)
 plt.show()
+vb.save_plot(
+    fig,
+    filename=fig_savedir + "reference_dataset_overview_feats_1_4_no_bubbles",
+    dpi=72,
+)
 vb.save_plot(
     fig,
     filename=fig_savedir + "reference_dataset_overview_feats_1_4_no_bubbles",
@@ -78,6 +93,7 @@ vb.save_plot(
 shape_init = df.shape
 
 # remove outliers (bubbles) from the dataset
+# note: this is for downstream analysis,
 # note: this is for downstream analysis,
 # outliers automatically removed for fitting PCA
 df = manifest_pca.remove_outliers(df)
@@ -93,7 +109,8 @@ pca = manifest_pca.fit_pca(num_pcs=3) # only working with top 3 PCs
 manifest_io.save_pca_model(pca, output_savedir)
 
 # Apply PCA
-X = df[[f"feat_{i}" for i in range(8)]].values
+feat_cols = manifest_io.get_feature_cols(df)
+X = df[feat_cols].values
 Xt = pca.transform(X)
 
 # add PCA components to dataframe
@@ -114,8 +131,30 @@ bounds = ddff.set_3D_bounds_from_data(
     ) 
 
 # plot the PCA components
-# turn these into viz functions?
-fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
+fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
+for i, ds_name in enumerate(datasets_to_use):
+    print(f"Plotting {ds_name}")
+    # get the data for the dataset based on ds_name being in the crop_index column
+    dfs = df[df["crop_index"].str.contains(ds_name)]
+    alpha = 0.75
+    if ds_name == "20241217_20X":
+        alpha=0.5
+    ax1.scatter(dfs.PC1, dfs.PC2, s=0.01, label=ds_name,alpha=alpha)
+    ax2.scatter(dfs.PC1, dfs.PC3, s=0.01, label=ds_name,alpha=alpha)
+    for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
+        ax.set_xlabel("PC1", fontsize=14)
+        ax.set_ylabel(ylab, fontsize=14)
+        ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
+        if ylab == "PC2":
+            ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
+        else:
+            ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
+        ax.set_aspect("auto")
+plt.tight_layout()
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_scatter", dpi=72)
+
+# %%
+fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
 ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["frame_number"])
 ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["frame_number"])
 for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
@@ -128,12 +167,16 @@ for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
         ax.set_ylim(bounds[2][0], bounds[2][-1])
     ax.set_aspect("equal")
 plt.tight_layout()
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=72)
 
 # %%
 # plot with example single crop tracks
 fig, ax = vb.init_plot(figsize=(5, 5))
 ax.scatter(df.PC1, df.PC2, s=0.1, color="black", alpha=0.05)
+for ds_name in datasets_to_use:
+    # get the data for the dataset based on ds_name being in the crop_index column
+    dfs = df[df["crop_index"].str.contains(ds_name)]
+    for track, df_track in dfs.groupby("crop_index"):
 for ds_name in datasets_to_use:
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
@@ -145,8 +188,8 @@ ax.set_ylabel("PC2", fontsize=14)
 ax.set_xlim(bounds[0][0], bounds[0][-1])
 ax.set_ylim(bounds[1][0], bounds[1][-1])
 ax.set_aspect("equal")
-plt.legend(loc = "lower left", fontsize=8)
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
+plt.legend(loc="lower left", fontsize=8)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_with_tracks", dpi=72)
 
 
 

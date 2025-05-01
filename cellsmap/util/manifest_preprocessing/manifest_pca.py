@@ -5,6 +5,8 @@ from sklearn.pipeline import Pipeline
 import pandas as pd
 
 from cellsmap.util import manifest_io
+
+from cellsmap.util import manifest_io
 from cellsmap.util.dataset_io import get_reference_datasets, get_dataset_info
 
 # this is to suppress the SettingWithCopyWarning
@@ -32,10 +34,12 @@ def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
     return Z > Y
 
 
+
 def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     '''
     Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
     The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space
+    (indexing starts at 0).
     (indexing starts at 0).
 
     Inputs:
@@ -46,6 +50,7 @@ def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
     '''
     data['outlier'] = simple_linear_classifier(data['feat_1'], data['feat_4'])
     return data
+
 
 
 def remove_outliers(data:pd.DataFrame) -> pd.DataFrame:
@@ -87,8 +92,21 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
             tps.extend(list(range(start, stop + 1)))
         valid_subset = df.frame_number.isin(tps)
         df['pca_ref'] = valid_subset
+    dataset_name = df.dataset.unique()
+    dataset_info = get_dataset_info(dataset_name)
+    # check that the necessary datasets are present for fitting PCA
+    valid_timepoints = dataset_info.get('valid_timepoints')
+    if valid_timepoints is None:
+        df['pca_ref'] = True
+    else:
+        tps  = []
+        for start, stop in zip(valid_timepoints['start'], valid_timepoints['stop']):
+            tps.extend(list(range(start, stop + 1)))
+        valid_subset = df.frame_number.isin(tps)
+        df['pca_ref'] = valid_subset
     return df[df.pca_ref]
 
+def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
 def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
     """
     Helper function for fitting PCA pipeline.
@@ -131,6 +149,8 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
         pipe = Pipeline([
             ('pca', PCA(n_components=num_pcs, svd_solver='full'))
         ])
+    # get the feature columns from the data, these are the columns that start with 'feat_'
+    feature_cols = manifest_io.get_feature_cols(data_ref)
     # get the feature columns from the data, these are the columns that start with 'feat_'
     feature_cols = manifest_io.get_feature_cols(data_ref)
     pipe.fit(data_ref[feature_cols].values) # fit PCA

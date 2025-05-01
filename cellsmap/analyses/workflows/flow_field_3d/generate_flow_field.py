@@ -6,11 +6,7 @@ import numpy as np
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-
-from cellsmap.analyses.utils.io import vtk_io
-from cellsmap.analyses.utils import regression_helper as rh
-from cellsmap.analyses.utils.viz import flow_field_viz as ffv
-from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
+from cellsmap.analyses.utils.io import vtk_tools
 # %%
 # Create output folder if does not exist yet
 workflow_fig_folder = "flow_field_3d/figs"
