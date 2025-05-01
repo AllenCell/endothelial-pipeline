@@ -107,7 +107,6 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
     return df[df.pca_ref]
 
 def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
-def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
     """
     Helper function for fitting PCA pipeline.
 
@@ -125,8 +124,8 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
         print(f"Reference datasets for PCA:")
     data_ref = []
     for name in reference_datasets:
-        if name == '20250402_20X':
-            continue # skip this dataset, it is not a reference dataset
+        # if name == '20250402_20X':
+        #     continue # skip this dataset, it is not a reference dataset
         if verbose:
             print(f"- {name}")
         df_ = manifest_io.get_diffae_manifest(name) # get the manifest for the dataset

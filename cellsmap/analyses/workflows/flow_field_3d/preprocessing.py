@@ -144,11 +144,11 @@ for i, ds_name in enumerate(datasets_to_use):
     for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(ylab, fontsize=14)
-        ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
+        ax.set_xlim(bounds[0][0],bounds[0][1])
         if ylab == "PC2":
-            ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
+            ax.set_ylim(bounds[1][0], bounds[1][1])
         else:
-            ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
+            ax.set_ylim(bounds[2][0], bounds[2][1])
         ax.set_aspect("auto")
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_scatter", dpi=72)
