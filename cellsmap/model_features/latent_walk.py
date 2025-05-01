@@ -8,8 +8,8 @@ from bioio.writers import OmeTiffWriter
 from typing import Optional, Tuple, List
 
 from cellsmap.util.dataset_io import get_reference_datasets
-from cellsmap.util.manifest_io import get_diffae_manifest, load_pca_model, save_pca_model
-from cellsmap.util.manifest_preprocessing.manifest_pca import get_feature_cols, fit_pca
+from cellsmap.util.manifest_io import get_feature_cols, get_diffae_manifest, load_pca_model, save_pca_model
+from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.model_features.generate_image import generate_from_coords
 from cellsmap.util.set_output import get_output_path
 
