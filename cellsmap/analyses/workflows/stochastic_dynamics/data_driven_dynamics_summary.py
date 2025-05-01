@@ -4,7 +4,10 @@ import numpy as np
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils import regression_helper as rh
+from cellsmap.analyses.utils import (
+    regression_helper as rh,
+    model_analysis,
+)
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
 from cellsmap.analyses.utils.viz import (
@@ -78,12 +81,11 @@ def main(config_name: str = "default") -> None:
         feat_cols = [feat_cols_all[i] for i in PCs] # just get PCs of interest
 
         # split out data by flow condition
-        df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name)
+        df_by_flow, shear_list = rh.get_X_by_flow(df_proj, name)
         num_flow = len(shear_list)
 
         f_KM = []
         D_KM = []
-        X_pts = []
 
         for j in range(num_flow):
             # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
@@ -111,6 +113,17 @@ def main(config_name: str = "default") -> None:
 
             drift = ddff.get_callable_vector_field(drift_dict)
             diffusion = ddff.get_callable_vector_field(diffusion_dict)
+
+            fig1, _, fig2, _ = model_data_comparison_one_dataset(
+                    [drift, diffusion],
+                    df_proj,
+                    shear_list[j],
+                    PCs,
+                    bins,
+                    pplane_xvec: np.ndarray,
+                    pplane_yvec: np.ndarray,
+                    use_fipy: bool = False,
+                )
 
             
 

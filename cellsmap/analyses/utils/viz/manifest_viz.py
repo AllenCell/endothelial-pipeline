@@ -2,35 +2,18 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-<<<<<<< HEAD
-import matplotlib.pyplot as plt
-from typing import Tuple
-
-import cellsmap.analyses.utils.viz.viz_base as vb
-from cellsmap.analyses.utils import regression_helper as rh
-
-def plot_latent_component_mean(feats:np.ndarray) -> Tuple:
-    '''
-    Plot mean values of latent components for a gven dataset.     
-    At each frame in the dataset, takes the mean and standard 
-    deviation of the feature data over all crops. Then plots 
-    the mean and standard deviation of the feature data over 
-    all frames in the dataset.
-=======
-import pandas as pd
 from sklearn.pipeline import Pipeline
 
+import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
 
-
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> Tuple:
     """
     Plot explained variance ratio of PCA components.
->>>>>>> main
 
     Input:
     - feats: np.ndarray, feature data for a single dataset
@@ -39,23 +22,6 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> Tuple:
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
-<<<<<<< HEAD
-    '''
-    # right now, this function is only used for 8D latent space
-    assert feats.shape[-1] == 8, 'Number of latent components must be 8'
-
-    fig, ax = vb.init_subplots(4,2,figsize=(15,20))
-
-    # get mean and standard deviation of feature data projected onto top 3 PCs
-    # mean and standard deviation taken over all crops at each timepoint
-    num_T = feats.shape[1]
-    # take standard deviation and mean over all crops at each timepoint
-    st_dev = np.std(feats,axis=0)
-    mean_feats = np.mean(feats,axis=0)
-
-    # loop over PCs, plot mean and standard deviation of feature data projected onto each PC
-    for col, ax_ in enumerate(ax.flatten()):
-=======
     """
     fig, ax = vb.init_plot()  # initialize figure and axes
 
@@ -103,7 +69,6 @@ def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: Tuple | None = None) -> Tuple
 
     # loop over PCs, plot mean and standard deviation of feature data projected onto each PC
     for col, ax_ in enumerate(ax):  # len(ax) = 3
->>>>>>> main
         # plot mean values
         ax_.plot(np.arange(num_T), mean_feats[:, col], "k-")
 
@@ -117,26 +82,6 @@ def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: Tuple | None = None) -> Tuple
         )
 
         # set axis labels and title
-<<<<<<< HEAD
-        ax_.set_title(f'Latent dimension {col+1}')
-        ax_.set_xlabel('Frame number')
-    
-    fig.subplots_adjust(hspace=0.5)
-    return fig, ax
-
-def plot_latent_component_histogram(feats:np.ndarray,bins:list|None=None) -> Tuple:
-    '''
-    Plot histogram of latent components for a given dataset.
-    At each frame in the dataset, computes the histogram of the
-    crops for each latent component. Then plots the histogram
-    for each latent component as a function of time.
-
-    Input:
-    - feats: np.ndarray, feature data for a single dataset
-        - shape (num_crops, num_frames, num_features)
-    - bins (optional): list, number of bins for histogram
-        - if None, use default number of bins
-=======
         ax_.set_title(f"PC{col+1}")
         ax_.set_xlabel("Frame number")
 
@@ -156,67 +101,10 @@ def plot_top_3_PCs_alldata(pca: Pipeline) -> Tuple:
     Input:
     - pca: Pipeline, the PCA model used to project the feature data onto the top 3 PCs
         - can include any preprocessing steps before PCA, such as scaling
->>>>>>> main
 
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
-<<<<<<< HEAD
-    '''
-    # right now, this function is only used for 8D latent space
-    assert feats.shape[-1] == 8, 'Number of latent components must be 8'
-    if bins is None:
-        Nbins = 40
-    else:
-        Nbins = len(bins[0]) - 1
-    # initialize figure and axes
-    fig, ax = vb.init_subplots(4,2,figsize=(15,20))
-
-    # loop over time points, compute histogram of feature data along each component
-    num_traj = feats.shape[0]
-    num_T = feats.shape[1]
-    num_feats = feats.shape[-1]
-    hist_array = np.zeros((num_feats,Nbins,num_T)) # histogram values for each component as a function of time
-
-    # get bin edges for histogram
-    if bins is None:
-        bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
-    else:
-        bin_edges = bins
-    for t in range(num_T):
-        # loop over latent components
-        for dim in range(num_feats):
-            # compute histogram of feature data along each component
-            hist = np.histogram(feats[:,t,dim], bins=bin_edges[dim], density=True)[0]
-            hist_array[dim,:,t] = hist
-
-    # loop over latent components, plot histogram of feature data projected onto each PC
-    for col, ax_ in enumerate(ax.flatten()):
-        # plot histogram values - time on x-axis, histogram values on y-axis
-        ax_.imshow(hist_array[col], aspect='auto', cmap='inferno', interpolation='nearest', origin='lower')
-        ax_.set_title(f'Latent component {col+1}')
-        ax_.set_xlabel('Frame number')
-        ax_.set_xticks(np.arange(0, num_T, step=100))
-        ax_.set_xticklabels(np.arange(0, num_T, step=100))
-        ax_.set_yticks(np.arange(0, Nbins+1, step=5))
-        ax_.set_yticklabels(np.round(bin_edges[col],2)[::5])
-    
-    fig.subplots_adjust(hspace=0.5)
-    return fig, ax
-
-def plot_principal_component_histogram(feats:np.ndarray,bins:list|None) -> Tuple:
-    '''
-    Plot histogram of principal components for a given dataset.
-    At each frame in the dataset, computes the histogram of the
-    crops for each principal component. Then plots the histogram
-    for each principal component as a function of time.
-
-    Input:
-    - feats: np.ndarray, feature data for a single dataset
-        - shape (num_crops, num_frames, num_features)
-    - bins: list, number of bins for histogram
-        - if None, use default number of bins (40)
-=======
     """
     # plot top 3 PCs for each dataset in one figure (each row is a dataset)
     list_of_datasets = mio.list_datasets_with_manifest(
@@ -291,30 +179,10 @@ def plot_PCA_projection_2D(
     - fig_title: str (default=None), title of the figure
     - fig_ax: tuple (default=None), tuple of plt.Figure and plt.Axes objects to plot on
         - if None, initializes a new figure and axes
->>>>>>> main
 
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
-<<<<<<< HEAD
-    '''
-    # right now, this function is only used for 8D latent space
-    assert feats.shape[-1] == 3, 'Number of principal components must be 3'
-
-    if bins is None:
-        Nbins = 40
-    else:
-        Nbins = len(bins[0]) - 1
-
-    # initialize figure and axes
-    fig, ax = vb.init_subplots(3,1,figsize=(15,15))
-
-    # loop over time points, compute histogram of feature data along each component
-    num_traj = feats.shape[0]
-    num_T = feats.shape[1]
-    num_feats = feats.shape[-1]
-    hist_array = np.zeros((num_feats,Nbins,num_T)) # histogram values for each component as a function of time
-=======
     """
     # initialize figure and axes, if not provided
     if fig_ax is not None:
@@ -335,33 +203,7 @@ def plot_PCA_projection_2D(
     ax.set_ylabel("PC2")
     if fig_title is not None:
         ax.set_title(fig_title)
->>>>>>> main
-
-    # get bin edges for histogram
-    if bins is None:
-        bin_edges = [rh.get_bins([Nbins], [feats[i,:,j].reshape((-1,1)) for i in range(num_traj)])[0][0] for j in range(num_feats)]
-    else:
-        bin_edges = bins
-
-    for t in range(num_T):
-        # loop over latent components
-        for dim in range(num_feats):
-            # compute histogram of feature data along each component
-            hist = np.histogram(feats[:,t,dim], bins=bin_edges[dim], density=True)[0]
-            hist_array[dim,:,t] = hist
-
-    # loop over latent components, plot histogram of feature data projected onto each PC
-    for col, ax_ in enumerate(ax.flatten()):
-        # plot histogram values - time on x-axis, histogram values on y-axis
-        ax_.imshow(hist_array[col], aspect='auto', cmap='inferno', interpolation='nearest', origin='lower')
-        ax_.set_title(f'PC{col+1}')
-        ax_.set_xlabel('Frame number')
-        ax_.set_xticks(np.arange(0, num_T, step=100))
-        ax_.set_xticklabels(np.arange(0, num_T, step=100))
-        ax_.set_yticks(np.arange(0, Nbins+1, step=5))
-        ax_.set_yticklabels(np.round(bin_edges[col],2)[::5])
-    
-    fig.subplots_adjust(hspace=0.5)
+        
     return fig, ax
 
 
@@ -444,13 +286,9 @@ def plot_km(
         raise ValueError("ndim must be 1 or 2")
 
 
-<<<<<<< HEAD
-def plot_km_drift_2D(centers:list[np.ndarray],kmc:np.ndarray,PCs:list[int],shear_stress:float) -> Tuple:
-=======
 def plot_km_drift_2D(
     centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
 ) -> Tuple:
->>>>>>> main
     X_1, X_2 = np.meshgrid(*centers)
 
     fig, ax = vb.init_subplots()
