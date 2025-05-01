@@ -54,8 +54,8 @@ def generate_overrides(user_overrides, save_path: str, data_path: str, ckpt_path
             "save_suffix": f"{dataset_name}_{model_name}_features"
         },
     }
-    user_overrides.update(overrides)
-    return user_overrides
+    overrides.update(user_overrides)
+    return overrides
 
 def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0):
     # generate csv with paths to zarr files
@@ -64,8 +64,6 @@ def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int=0
     })
     df['channel'] = ZARR_BF_CHANNEL
     df['resolution'] = resolution_level
-    df['start']  = 0
-    df['stop'] = 10
     data_path = str(save_path / 'dataset.csv')
     df.to_csv(data_path, index=False)
     return data_path
@@ -79,8 +77,6 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: S
     pred_df['mlflow_id'] = mlflow_id
 
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
-
-    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms
     pred_df['resolution_level'] = 1
 
     pred_df['end_y'] = pred_df['start_y'] + crop_size[0]
@@ -92,21 +88,41 @@ def update_prediction_with_meta(dataset_name: str, model_name: str, crop_size: S
     pred_df.to_parquet(prediction_path)
     return prediction_path
 
-def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, overrides:Union[str, Dict]={}):
-    if not torch.cuda.is_available():
-        raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
-
+def load_overrides(overrides: Union[str, Dict]) -> Dict:
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
     elif not isinstance(overrides, dict):
         raise ValueError('Overrides must be a dictionary or a string')
-    
+    return overrides
+
+def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0, upload_to_fms: bool=True, save_path: Union[str, Path] = None, overrides:Union[str, Dict]={}):
+    """
+    Apply a model to a single dataset.
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model from `model_config.yaml` to apply.
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    save_path: str
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError('CUDA is not available. Please run on a GPU machine.')
+    overrides = load_overrides(overrides)
     # download model from mlflow
     mlflow_id = get_model_info(model_name)['mlflow_run_id']
     model_path = Path(get_output_path(f'models/{model_name}'))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = model_path/dataset_name
+    save_path = save_path or model_path/dataset_name
     save_path.mkdir(parents=True, exist_ok=True)
 
     # load model
@@ -115,7 +131,6 @@ def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, uploa
 
     # create zarr dataset
     data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
-
     # apply overrides
     overrides = generate_overrides(
         overrides,
@@ -139,8 +154,35 @@ def apply_model(model_name:str, dataset_name: str, resolution_level:int=0, uploa
     commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
     if upload_to_fms:
-        save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
-    return prediction_path
+        file_id = save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
+
+    return prediction_path  
+
+def apply_model(model_name: str, dataset_names: Sequence[str], resolution_level: int = 0, upload_to_fms: bool = True,  save_path: Union[str, Path] = None, overrides: Union[str, Dict] = {}):
+    """
+    Apply a model to a multiple datasets.
+    Example usage: python apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model from `model_config.yaml` to apply.
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    save_path: str
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
+    for name in dataset_names:
+        apply_model_single(model_name=model_name, dataset_name=name, resolution_level=resolution_level, upload_to_fms=upload_to_fms, save_path=save_path, overrides=overrides)
 
 if __name__ == '__main__':
     fire.Fire(apply_model)

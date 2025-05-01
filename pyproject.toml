@@ -3,7 +3,7 @@ name = "cellsmap"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "", email = ""},
+    { name = "", email = "" },
 ]
 
 dependencies = [
@@ -19,7 +19,6 @@ dependencies = [
     "fipy>=3.4.5",
     "fire>=0.6.0",
     "ipykernel>=6.29.5",
-    "itkwasm==1.0b171",
     "jupyter>=1.0.0",
     "matplotlib>=3.10",
     "ngff-zarr==0.8.2",
@@ -30,7 +29,6 @@ dependencies = [
     "pathlib>=1.0.1",
     "pyarrow<=19.0.1",
     "pysindy>=1.7.5",
-    "pytest>=8.2.2",
     "scikit-image==0.22.0",
     "scikit-learn==1.5.1",
     "scipy==1.13.1",
@@ -38,97 +36,113 @@ dependencies = [
     "sympy==1.13.1",
     # "torch~=2.0.0",
     "tqdm>=4.66.5",
-    # specifying wasmtime < 23.0 is currently needed because our slurm nodes are on Ubuntu 18 and don't have GLIBC_2.28
-    "vtk>=9.4.1", 
-    "wasmtime<22.0",
+    "vtk>=9.4.1",
 ]
-requires-python = "<3.11,>=3.10"
+
+requires-python = ">=3.11,<3.12"
 readme = "README.md"
-license = {text = "AISL"}
+license = { text = "AISL" }
 
 [project.optional-dependencies]
 internal = [
-    "aicsfiles>=7.10.0", # internal package
+    "aicsfiles>=7.10.0",
 ]
 ml_workflows = [
-    "cyto-dl>=0.4.0",
+    "cyto-dl>=0.6.0",
     "hydra-core>=1.3.2",
-    "monai>=1.4.0",
     "mlflow>=2.21.2",
 ]
-cellpose-a100 = [
-    "cellpose==3.0.11",
-    "torch==1.13.1+cu116",
-    "torchvision==0.14.1+cu116",
-    "torchaudio==0.13.1",
-]
 cellpose = [
-    "cellpose==3.0.11",
-    "torch==1.13.1",
-    "torchvision==0.14.1",
-    "torchaudio==0.13.1",
+    "cellpose>=3.1.0",
 ]
 
-[[tool.pdm.source]]
-name = "cellpose-a100"
-url = "https://download.pytorch.org/whl/cu116"
-verify_ssl = true
-include_packages = ["torch", "torchvision", "torchaudio"]
+[dependency-groups]
+dev = [
+    "pre-commit>=3.7.1",
+]
+lint = [
+    "isort>=5.13.2",
+    "black>=24.4.2",
+    "ruff>=0.4.6",
+    "mypy>=1.10.0",
+]
+test = [
+    "pytest>=8.2.2",
+    "pytest-cov>=5.0.0",
+    "pytest-raises>=0.11",
+    "coverage>=7.5.3",
+    "pytest-subtests>=0.13.1",
+]
+docs = [
+    "jupytext>=1.16.2",
+    "sphinx>=7.3.7",
+    "furo>=2024.5.6",
+    "myst-parser>=3.0.1",
+    "sphinx-copybutton>=0.5.2",
+]
+types = [
+    "types-PyYAML>=6.0.12.20241230",
+    "pandas-stubs>=2.2.3.250308",
+    "types-tqdm>=4.67.0.20250301",
+    "types-seaborn>=0.13.2.20250111",
+]
 
 [build-system]
-requires = ["pdm-pep517>=1.0"]
-build-backend = "pdm.pep517.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
-[tool.pytest.ini_options]
-testpaths = "tests/"
+[tool.uv]
+default-groups = ["dev", "lint", "test", "docs", "types"]
+cache-dir = ".cache/uv"
+
+[tool.uv.sources]
+aicsfiles = { index = "artifactory" }
+
+[[tool.uv.index]]
+name = "artifactory"
+url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple"
+explicit = true
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+line_length = 88
+profile = "black"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-select = [
+    "E",      # style errors
+    "F",      # flakes
+    "D",      # pydocstyle
+    "I001",   # isort
+    "UP",     # pyupgrade
+    "N",      # pep8-naming
+    # "S",    # bandit
+    "C",      # flake8-comprehensions
+    "B",      # flake8-bugbear
+    "A001",   # flake8-builtins
+    "RUF",    # ruff-specific rules
+    "RUF100", # Unused noqa directive
+]
+extend-ignore = [
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in __init__
+    "D202", # Blank lines between the function body and the function docstring
+    "D203", # 1 blank line required before class docstring
+    "D205", # 1 blank line required between summary line and description
+    "D212", # Multi-line docstring summary should start at the first line
+    "D213", # Multi-line docstring summary should start at the second line
+    "D413", # Missing blank line after last section
+    "D416", # Section name should end with a colon
+]
 
 [tool.mypy]
-packages = "cellsmap"
-# Relax the checks by ignoring specific error codes
-disable_error_code = [
-    "call-overload", 
-    "var-annotated", 
-    "import-untyped",
-]
-
-[[tool.mypy.overrides]]
-# The following dependencies are untyped. mypy should ignore them
-module = [
-    "fire",
-    "fplanck.utility",
-    "cyto_dl",
-    "cyto_dl.api",
-    "cyto_dl.utils",
-    "fipy",
-    "kramersmoyal",
-    "matplotlib",
-    "matplotlib.gridspec",
-    "pysindy",
-    "scipy",
-    "scipy.sparse",
-    "scipy.linalg",
-    "scipy.optimize",
-    "scipy.integrate",
-    "scipy.stats",
-    "scipy.signal",
-    "scipy.ndimage",
-    "sklearn",
-    "sklearn.decomposition",
-    "sklearn.preprocessing",
-    "sklearn.linear_model",
-    "sklearn.model_selection",
-    "sympy",
-]
 ignore_missing_imports = true
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "mypy>=1.15.0",
-    "pandas-stubs>=2.2.3.250308",
-    "types-python-dateutil>=2.9.0.20241206",
-    "types-PyYAML>=6.0.12.20241230",
-    "typing_extensions>=4.12.2",
-    "types-seaborn>=0.13.2.20250111",
-    "types-tqdm>=4.67.0.20250301",
-    "types-requests>=2.32.0.20250306",
-]
+disallow_untyped_defs = true
+check_untyped_defs = true
+show_error_codes = true

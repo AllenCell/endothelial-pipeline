@@ -51,7 +51,7 @@
   notes: "",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241022_20X_mito",
   nuclear_seg_manifest_fmsid: "4cc9c9f7be764040b4c0250504ed49a2",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "f1a32daf5f004ce58d410f7d81d3d6d0", 
 },{
   name: 20240328_T02_001, #FIXED DATA. Each timepoint is a different position
   original_path: "//allen/programs/allencell/data/proj0/866/cdf/da7/303/188/0e8/642/01e/3a7/aa8/55/20240328_GE00007383_20X_fixed_sldy/20240328_GE00007383_20X_fixed_SLDY.sldy", 
@@ -123,9 +123,10 @@
   notes: "This is a nice 48hr high flow dataset.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X",
   nuclear_seg_manifest_fmsid: "a9ef7c8557334f1fb36393f79b582609",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "3ce3dedd56a54b48a544c99dc61a2fe1", 
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "//allen/aics/endothelial/morphological_features/single_cell_track_integration/20241120_20X_single_cell_track_integration.csv",
+  is_reference: True,
 },{
   name: 20241203_20X,
   original_path: "//allen/programs/allencell/data/proj0/a61/b0d/e86/6b6/175/2b9/745/3da/73b/b61/9d/20241203_GE00007661_20X_timelapse_sldy/20241203_GE00007661_20X_timelapse_SLDY.sldy",
@@ -148,7 +149,7 @@
   notes: "This timelapse has not yet been converted to ZARR.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241203_20X",
   nuclear_seg_manifest_fmsid: "f17ac69d490b43d48492332c29e338ee",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "b02cf89d77da4e1592a36dc93dd690bd", 
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "//allen/aics/endothelial/morphological_features/single_cell_track_integration/20241203_20X_single_cell_track_integration.csv",
 },{
@@ -172,9 +173,11 @@
   notes: "This dataset seems to be missing a metadata file... No flow with 1 feed only.",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241217_20X",
   nuclear_seg_manifest_fmsid: "225e4e4f67934f2781caba8db82401f6",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "da36d8a9fd7541e0b4d459d396063343", 
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "//allen/aics/endothelial/morphological_features/single_cell_track_integration/20241217_20X_single_cell_track_integration.csv",
+  valid_timepoints: {start: [0, 300], stop: [100, 420]},
+  is_reference: True
 },{
   name: 20250110_paired20X,
   original_path: "//allen/programs/allencell/data/proj0/030/79c/609/5c6/ec5/d9b/047/4ff/376/5cc/d9/20250110_GE00006323_20X_zstacks_SLDY/20250110_GE00006323_20X_zstacks_SLDY.sldy",
@@ -530,7 +533,7 @@
   notes: "",
   nuclear_label_free_seg_path: "//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250224_20X",
   nuclear_seg_manifest_fmsid: "dd80c432b37e4268a4dc44d96fb3e475",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "80affabd33654cb583818cc106c06697", 
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "//allen/aics/endothelial/morphological_features/single_cell_track_integration/20250224_20X_single_cell_track_integration.csv",
 },{
@@ -739,7 +742,7 @@
   n_total_positions: 6, # positions are represented as timeframes in the dataset
   notes: "Stopped imaging prior to 48 hours because cells were very packed",
   nuclear_label_free_seg_path: "",
-  diffae_manifest_fmsid: "", 
+  diffae_manifest_fmsid: "f68469a1a7f948dc92d20693a59b1aeb", 
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "//allen/aics/endothelial/morphological_features/single_cell_track_integration/20250319_20X_single_cell_track_integration.csv",
 },{
@@ -763,7 +766,7 @@
   notes: "",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "5b56ac5942f74709af9b79c56ffb21c3",
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "",
 },{
@@ -787,7 +790,7 @@
   notes: "Frame of flow switch was ~275.",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "3221e4f0a473402db6c95e26b5219707",
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "",
 },{
@@ -877,9 +880,10 @@
   notes: "cells become extremely crowded at end of video",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "ef883577f6014f8cab3452cf2205864d",
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "",
+  is_reference: True
 },{
   name: 20250409_20X,
   original_path: "//allen/programs/allencell/data/proj0/ac1/24e/dd5/23a/579/6f9/94c/bbc/a02/6b2/df/20250409_GE00007696_20X_timelapse_sldy/20250409_GE00007696_20X_timelapse_sldy.sldy",
@@ -901,8 +905,9 @@
   notes: "cells become very crowded near end of timelapse",
   nuclear_label_free_seg_path: "",
   nuclear_seg_manifest_fmsid: "",
-  diffae_manifest_fmsid: "",
+  diffae_manifest_fmsid: "2979ed0ac60c492db40511ea0b0bef6b",
   segmentation_features_manifest_fmsid: "",
   cell_track_integration_manifest_fmsid: "",
+  is_reference: True
 }
 ]
