@@ -5,27 +5,6 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.analyses.utils import regression_helper as rh
-<<<<<<< HEAD
-from cellsmap.analyses.utils.viz import manifest_viz as mv, viz_base as vb
-from cellsmap.util.manifest_preprocessing import diffae_feature_preprocessing as diffae_preproc
-
-
-def kramers_moyal_train_test_one_dataset(df_proj:pd.DataFrame, 
-                                         ds_name:str, 
-                                         PCs:list, 
-                                         Nbins:list,
-                                         dt:float, 
-                                         train_frac:float,
-                                         fig_savedir:str,
-                                         method:str='kernel',
-                                         kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
-                                         train_frac:float,
-                                         fig_savedir:str,
-                                         method:str='kernel',
-                                         kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray,np.ndarray]:
-    '''
-    Generate train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for one dataset. 
-=======
 from cellsmap.analyses.utils.viz import manifest_viz as mv
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io as mio
@@ -56,7 +35,6 @@ def kramers_moyal_train_test_one_dataset(
 ]:
     """
     Generate train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for one dataset.
->>>>>>> main
     This function is called by build_kramers_moyal_train_test in a loop over all datasets in the dataframe.
 
     Inputs:
@@ -168,24 +146,6 @@ def kramers_moyal_train_test_one_dataset(
 
     return X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test
 
-<<<<<<< HEAD
-def build_kramers_moyal_train_test(pca:Pipeline, 
-                                   PCs:list[int], 
-                                   Nbins:list[int], 
-                                   dt:float, 
-                                   ds_to_skip:list[str], 
-                                   fig_savedir:str,
-                                   train_frac:float=0.8,
-                                   method:str='kernel',
-                                   kernel_params:dict|None=None,
-                                   ) -> dict:
-                                   fig_savedir:str,
-                                   train_frac:float=0.8,
-                                   method:str='kernel',
-                                   kernel_params:dict|None=None,
-                                   ) -> dict:
-    '''
-=======
 
 def build_kramers_moyal_train_test(
     pca: Pipeline,
@@ -199,7 +159,6 @@ def build_kramers_moyal_train_test(
     kernel_params: dict | None = None,
 ) -> dict:
     """
->>>>>>> main
     Build train test sets for Kramers-Moyal coefficients (drift and diffusion estimates) for all datasets in the dataframe df.
 
     Inputs:
@@ -226,11 +185,7 @@ def build_kramers_moyal_train_test(
         - 'u_train': training flow conditions (shear rates) - passed in as control variable
         - 'u_test': test flow conditions
     The train test sets are concatenated across all datasets in the dataframe.
-<<<<<<< HEAD
-    '''
-=======
     """
->>>>>>> main
     # get list of datasets with DiffAE manifest data
     list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
 
@@ -258,18 +213,6 @@ def build_kramers_moyal_train_test(
         # projected onto principal component axes as defined by fit PCA object pca
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
 
-<<<<<<< HEAD
-        # load DiffAE feature data from this one dataset, with outliers labeled and features
-        # projected onto principal component axes as defined by fit PCA object pca
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name,pca) 
-        
-        # get train test split for this dataset
-        X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = \
-            kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac, fig_savedir,
-                                                 method=method, kernel_params=kernel_params)
-            kramers_moyal_train_test_one_dataset(df_proj, ds_name, PCs, Nbins, dt, train_frac, fig_savedir,
-                                                 method=method, kernel_params=kernel_params)
-=======
         # get train test split for this dataset
         X_train, X_test, Y_train, Y_test, V_train, V_test, u_train, u_test = (
             kramers_moyal_train_test_one_dataset(
@@ -284,7 +227,6 @@ def build_kramers_moyal_train_test(
                 kernel_params=kernel_params,
             )
         )
->>>>>>> main
 
         # add train test for this dataset to list
         X_train_list.append(X_train)
