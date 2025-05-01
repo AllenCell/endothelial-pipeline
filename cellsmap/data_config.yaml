@@ -154,9 +154,9 @@
   cell_track_integration_manifest_fmsid: "//allen/aics/endothelial/morphological_features/single_cell_track_integration/20241203_20X_single_cell_track_integration.csv",
 },{
   name: 20241217_20X, # will get new FMS id .. original data needs to be re-uploaded
-  original_path: "//allen/aics/endothelial/morphological_features/image_data/original_data/20241217_GE00006535_20X_timelapse_sldy/20241217_GE00006535_20X_timelapse_SLDY.sldy",
-  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_23e702041f144d0d8caf0a56ea8736da", 
-  fmsid: "23e702041f144d0d8caf0a56ea8736da",
+  original_path: "//allen/programs/allencell/data/proj0/cfb/696/9de/19e/f96/498/74b/18f/348/efe/ec/20241217_GE00006535_20X_timelapse_sldy/20241217_GE00006535_20X_timelapse_SLDY.sldy",
+  zarr_path: "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_ecefe34818f74b498f9619e9de696cfb", 
+  fmsid: "ecefe34818f74b498f9619e9de696cfb",
   barcode: GE00006535,
   cell_lines: [AICS-126,],
   live_or_fixed_sample: live,
