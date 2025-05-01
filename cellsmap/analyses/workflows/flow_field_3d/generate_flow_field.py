@@ -52,10 +52,8 @@ save_traj_points = False
 # %% 
 # compute flow field via first Kramers-Moyal coefficient (drift)
 
-for _, df_ in df.groupby("dataset_name"):
+for condition, df_ in df.groupby("description"):
     # get dataset name and condition
-    ds_name = df_["dataset_name"].values[0]
-    condition = df_["description"].values[0]
     print(f"Computing drift flow field for {condition}")
 
     # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
@@ -77,7 +75,7 @@ for _, df_ in df.groupby("dataset_name"):
     # with initial conditions given by the mean of the data at T=0
 
     # get initial conditions for the ODE solver from data
-    inits_mean = df_.groupby("T").mean(numeric_only=True)[feat_cols].values[0]
+    inits_mean = df_.groupby("frame_number").mean(numeric_only=True)[feat_cols].values[0]
 
     # solve IVP, get back trajectory
     traj = ddff.solve_ddff_ode(flow_field_dict, inits_mean, t_span) 
