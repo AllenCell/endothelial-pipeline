@@ -28,8 +28,8 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 # only keep the reference datasets for this workflow
 datasets_to_use = [
     "20241120_20X",
-    "20241217_20X",
     "20250409_20X",
+    "20241217_20X"
 ]  # 48hr high flow, 48hr no flow, 48hr low flow
 df = []
 # load the manifest for each dataset, add outlier column, add crop index column
@@ -109,35 +109,46 @@ DDFF = tools.DataDrivenFlowField3D(verbose=True)
 DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
 DDFF.set_dataframe(df, identifier="crop_index")
 DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
+DDFF.set_excluded_fraction(0.0)
 DDFF.build()
 
 # %%
 # plot the PCA components
-fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
-for ds_name in datasets_to_use:
+fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
+for i, ds_name in enumerate(datasets_to_use):
+    print(f"Plotting {ds_name}")
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
-    ax1.scatter(df.PC1, df.PC2, s=0.01, label=ds_name)
-    ax2.scatter(df.PC1, df.PC3, s=0.01, label=ds_name)
+    alpha = 0.75
+    if ds_name == "20241217_20X":
+        alpha=0.5
+    ax1.scatter(dfs.PC1, dfs.PC2, s=0.01, label=ds_name,alpha=alpha)
+    ax2.scatter(dfs.PC1, dfs.PC3, s=0.01, label=ds_name,alpha=alpha)
     for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(ylab, fontsize=14)
         ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
-        ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
-        ax.set_aspect("equal")
+        if ylab == "PC2":
+            ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
+        else:
+            ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
+        ax.set_aspect("auto")
 plt.tight_layout()
-vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=72)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_scatter", dpi=72)
 
 # %%
-fig, (ax1, ax2) = vb.init_subplots(figsize=(10, 5))
+fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
 ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["frame_number"])
 ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["frame_number"])
 for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
     ax.set_xlabel("PC1", fontsize=14)
     ax.set_ylabel(ylab, fontsize=14)
     ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
-    ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
-    ax.set_aspect("equal")
+    if ylab == "PC2":
+        ax.set_ylim(DDFF._bounds.ymin, DDFF._bounds.ymax)
+    else:
+        ax.set_ylim(DDFF._bounds.zmin, DDFF._bounds.zmax)
+    ax.set_aspect("auto")
 plt.tight_layout()
 vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=72)
 

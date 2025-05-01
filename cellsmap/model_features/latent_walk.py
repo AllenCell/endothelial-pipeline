@@ -1,16 +1,22 @@
 # MODIFIED FROM https://github.com/AllenCellModeling/cyto-dl/blob/08c6aadb5da54ef7d186d82b71bf8473c5e0e814/cyto_dl/callbacks/latent_walk_diffae.py#L16
-import fire
+from pathlib import Path
+from typing import List, Optional, Tuple
+
 import cv2
+import fire
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from bioio.writers import OmeTiffWriter
-from typing import Optional, Tuple, List
 
-from cellsmap.util.dataset_io import get_reference_datasets
-from cellsmap.util.manifest_io import get_feature_cols, get_diffae_manifest, load_pca_model, save_pca_model
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.model_features.generate_image import generate_from_coords
+from cellsmap.util.dataset_io import get_reference_datasets
+from cellsmap.util.manifest_io import (
+    get_diffae_manifest,
+    get_feature_cols,
+    load_pca_model,
+    save_pca_model,
+)
+from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
 
 
@@ -25,6 +31,7 @@ def write_text(img, text):
     cv2.putText(img, text, (text_x, text_y), font, font_scale, color, thickness)
     return img
 
+
 def write_pc_vals(walk_img, ranges):
     """Write PC index and value on image."""
     idx = 0
@@ -33,6 +40,7 @@ def write_pc_vals(walk_img, ranges):
             walk_img[idx] = write_text(walk_img[idx], f"PC{i+1}:{val:.1f}")
             idx += 1
     return walk_img
+
 
 def get_walk(data, n_dims, sigma, n_steps):
     """
@@ -67,6 +75,7 @@ def get_walk(data, n_dims, sigma, n_steps):
     walk = np.stack(walk).squeeze()
     return walk, ranges
 
+
 def get_pca_coords(data, pca, num_pcs, sigma, n_steps) -> Tuple[List, List]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
@@ -88,6 +97,7 @@ def get_pca_coords(data, pca, num_pcs, sigma, n_steps) -> Tuple[List, List]:
     walk = pca.inverse_transform(walk)
     return walk, ranges
 
+
 def get_latent_coords(data, sigma, n_steps) -> Tuple[List, List]:
     """
     Generate latent coordinates and corresponding values for a latent walk.
@@ -104,7 +114,16 @@ def get_latent_coords(data, sigma, n_steps) -> Tuple[List, List]:
     walk, ranges = get_walk(data, n_dims, sigma, n_steps)
     return walk, ranges
 
-def generate_latent_walk(model_name:str, pca_dir: Optional[str] = None, num_pcs: int = 3, sigma: float = 3.0, n_steps: int = 10, use_pcs: bool = True, show_coords: bool = True):
+
+def generate_latent_walk(
+    model_name: str,
+    pca_dir: Optional[str] = None,
+    num_pcs: int = 3,
+    sigma: float = 3.0,
+    n_steps: int = 10,
+    use_pcs: bool = True,
+    show_coords: bool = True,
+):
     """
     Create latent walk for a given model using PCA or model features
 
@@ -123,14 +142,16 @@ def generate_latent_walk(model_name:str, pca_dir: Optional[str] = None, num_pcs:
     use_pcs: bool, optional
         Whether to use PCA for generating the latent walk. If False, the raw latent dimensions are used. Default is True.
     show_coords: bool, optional
-        Whether to show the dimension value to generate a given image. Default is True.    
+        Whether to show the dimension value to generate a given image. Default is True.
     """
     save_dir = get_output_path(f"models/{model_name}")
 
-    reference_manifests = pd.concat([get_diffae_manifest(name) for name in get_reference_datasets()])
+    reference_manifests = pd.concat(
+        [get_diffae_manifest(name) for name in get_reference_datasets()]
+    )
     feature_cols = get_feature_cols(reference_manifests)
     data = reference_manifests[feature_cols].values
-    if use_pcs: 
+    if use_pcs:
         # use fitted PCA if path to one is passed, otherwise fit a new one on the reference dataset
         if pca_dir is None:
             pca = fit_pca(num_pcs=num_pcs)
@@ -147,9 +168,12 @@ def generate_latent_walk(model_name:str, pca_dir: Optional[str] = None, num_pcs:
     walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
     if show_coords:
         walk_img = write_pc_vals(walk_img, ranges)
-    
-    OmeTiffWriter.save(uri=Path(save_dir)/f'latent_walk_sigma_{sigma}_use_pcs_{use_pcs}.tif', data=walk_img)
+
+    OmeTiffWriter.save(
+        uri=Path(save_dir) / f"latent_walk_sigma_{sigma}_use_pcs_{use_pcs}.tif",
+        data=walk_img,
+    )
 
 
-if  __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(generate_latent_walk)
