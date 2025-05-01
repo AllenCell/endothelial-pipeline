@@ -5,20 +5,9 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 import cellsmap.analyses.utils.numerics.kramers_moyal as km
-<<<<<<< HEAD
-import cellsmap.analyses.utils.numerics.kramers_moyal as km
 
 def get_bins(Nbins:list,data:list[np.ndarray]|None=None,bin_limits:list|None=None) -> Tuple[list,list]:
-    '''
-=======
-import cellsmap.util.dataset_io as dio
-
-
-def get_bins(
-    Nbins: list, data: pd.DataFrame | None = None, bin_limits: list | None = None
-) -> Tuple[list, list]:
     """
->>>>>>> main
     Generate histogram bins for computing Kramers-Moyal estimates from trajectories, either automatically based on data or user-defined.
 
     Inputs:
@@ -48,14 +37,10 @@ def get_bins(
             traj_min = min([traj[:, i].min() for traj in data])
             traj_max = max([traj[:, i].max() for traj in data])
             bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
-<<<<<<< HEAD
             traj_min = min([traj[:,i].min() for traj in data])
             traj_max = max([traj[:,i].max() for traj in data])
             bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
             my_bins = np.linspace(bin_min, bin_max, Nbins[i]+1)
-=======
-            my_bins = np.linspace(bin_min, bin_max, Nbins[i] + 1)
->>>>>>> main
             bins.append(my_bins)
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
     else:  # Use user-defined bins
@@ -113,13 +98,8 @@ def get_X_by_flow(
             print("Shear stress", first_shear, "dyn/cm^2 until frame", change_frame)
             print("Shear stress", second_shear, "dyn/cm^2 after frame", change_frame)
         # separate data into two dataframes based on frame number where flow condition changes
-<<<<<<< HEAD
         data_flow1 = df_proj[df_proj['frame_number']<change_frame].copy()
         data_flow2 = df_proj[df_proj['frame_number']>=change_frame].copy()
-=======
-        data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
-        data_flow2 = df_proj[df_proj["frame_number"] >= change_frame].copy()
->>>>>>> main
         # return list of dataframes for each flow condition
         data_all = [data_flow1, data_flow2]
     else:  # else, there is only one flow condition
@@ -144,8 +124,7 @@ def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> Tuple[list, list, list]
     - X_list: list of numpy arrays, each array is the trajectory of a single crop in feature space
     - dX_list: list of numpy arrays, each array is the displacement vectors along that trajectory for a single crop in feature space
     - dT_list: list of numpy arrays, each array is the time differences along that trajectory for a single crop
-<<<<<<< HEAD
-    '''
+    """
     if 'outlier' not in X.columns:
         raise ValueError('Data must have a column for outlier')
     if 'frame_number' not in X.columns:
@@ -154,17 +133,6 @@ def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> Tuple[list, list, list]
         raise ValueError('Data must have a column for crop_index')
     
     X = X[X['outlier']==False] # remove outliers
-=======
-    """
-    if "outlier" not in X.columns:
-        raise ValueError("Data must have a column for outlier")
-    if "frame_number" not in X.columns:
-        raise ValueError("Data must have a column for time")
-    if "crop_index" not in X.columns:
-        raise ValueError("Data must have a column for crop_index")
-
-    X = X[X["outlier"] == False]  # remove outliers
->>>>>>> main
 
     # get list of unique crop indices
     crop_list = X["crop_index"].unique()
@@ -177,26 +145,15 @@ def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> Tuple[list, list, list]
     # loop over each crop in the dataset
     for crop in crop_list:
         # get data for each crop, sorted by time
-<<<<<<< HEAD
         X_crop = X[X['crop_index']==crop].sort_values(by='frame_number')
 
         num_T = X_crop['frame_number'].nunique() # number of timepoints for this crop
-=======
-        X_crop = X[X["crop_index"] == crop].sort_values(by="frame_number")
-
-        num_T = X_crop["frame_number"].nunique()  # number of timepoints for this crop
->>>>>>> main
         # check that the array of feature data has the correct shape (num_T x ndim)
         assert X_crop[feat_cols].values.shape == (num_T, len(feat_cols))
 
         # get displacement vectors and time differences for each crop
-<<<<<<< HEAD
         dX = np.diff(X_crop[feat_cols].values,axis=0)
         dT = np.diff(X_crop['frame_number'].values)
-=======
-        dX = np.diff(X_crop[feat_cols].values, axis=0)
-        dT = np.diff(X_crop["frame_number"].values)
->>>>>>> main
 
         # append data to lists: trajectory, displacement vectors, time differences
         X_list.append(X_crop[feat_cols].values)
@@ -235,15 +192,9 @@ def get_kramers_moyal(
     """
     if method == "kernel":
         if kernel_params is None:
-<<<<<<< HEAD
             print('No kernel parameters provided, using default parameters: ')
             kernel_params = {'bandwidth':0.1,'kernel': 'gaussian'}
             print(f"bandwidth = {kernel_params['bandwidth']}, kernel = {kernel_params['kernel']}")
-=======
-            print("No kernel parameters provided, using default parameters: ")
-            kernel_params = {"bandwidth": 0.1, "kernel": "gaussian"}
-            print(f"bw = {kernel_params['bw']}, kernel = {kernel_params['kernel']}")
->>>>>>> main
         f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
     elif method == "histogram":
         f_KM, D_KM = km.get_km_histogram(X_list, dX_list, dT_list, bins, dt)
@@ -354,24 +305,13 @@ def get_stationary_hist(
     - p_hist: numpy array, stationary histogram of the data in feature space
     """
     ndim = len(feat_cols)
-<<<<<<< HEAD
     T_max = data['frame_number'].max()
     if frame_index < 0: # if negative, frame_index is relative to the last frame
-=======
-    T_max = data["frame_number"].max()
-    if frame_index < 0:  # if negative, frame_index is relative to the last frame
->>>>>>> main
         frame_index = T_max + frame_index
 
     # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
         # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
-<<<<<<< HEAD
-        p_hist, _, _ = np.histogram2d(data[data['frame_number']>frame_index][feat_cols[0]], 
-                                      data[data['frame_number']>frame_index][feat_cols[1]], bins, density=True)
-    elif ndim == 1:
-        p_hist, _ = np.histogram(data[data['frame_number']>frame_index][feat_cols[0]], bins[0], density=True)
-=======
         p_hist, _, _ = np.histogram2d(
             data[data["frame_number"] > frame_index][feat_cols[0]],
             data[data["frame_number"] > frame_index][feat_cols[1]],
@@ -384,7 +324,6 @@ def get_stationary_hist(
             bins[0],
             density=True,
         )
->>>>>>> main
     else:
         raise ValueError("Only 1D or 2D data supported.")
 
