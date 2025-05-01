@@ -29,7 +29,7 @@ def generate_overrides(user_overrides: Dict[str, Any], save_path: str, data_path
         'callbacks.prediction_saver': {
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
             "save_dir": str(save_path),
-            "meta_keys": ["T", 'start_y', 'start_x', 'end_y', 'end_x', 'filename_or_obj'],
+            "meta_keys": ["T", 'start_y', 'start_x', 'end_y', 'end_x', 'filename_or_obj', 'track_id'],
             "save_suffix": f"{dataset_name}_{model_name}_crop_features"
         },
         # add cropping transform
@@ -38,9 +38,12 @@ def generate_overrides(user_overrides: Dict[str, Any], save_path: str, data_path
             'keys': ['raw_bf'],
             'start_keys': ['start_y', 'start_x'],
             'end_keys': ['end_y', 'end_x'],
+            'meta_keys': ['track_id'],
         },
         # persist coordinate data through MultiDimImageDataset
-        'data.predict_dataloaders.dataset.extra_columns': ['start_y', 'start_x', 'end_y', 'end_x'],
+        'data.predict_dataloaders.dataset.extra_columns': ['start_y', 'start_x', 'end_y', 'end_x', 'track_id'],
+        # no spatial inferer needed
+        'model.spatial_inferer': None,
     }
     overrides.update(user_overrides)
     return overrides
@@ -60,7 +63,6 @@ def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
     df = get_dataframe_by_fmsid(fms_id)
     # convert centroids to bounding boxes
     df = centroid_to_bbox(df)
-    df = df[df.zarr_path.str.contains('P0')]
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = df.groupby(['zarr_path', 'image_index']).agg({
@@ -68,6 +70,7 @@ def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
         'start_x': lambda x: list(x),
         'end_y': lambda x: list(x),
         'end_x': lambda x: list(x),
+        'track_id': lambda x: list(x),
     }).reset_index()
     grouped_df['channel'] = ZARR_BF_CHANNEL
     grouped_df['resolution'] = 0
@@ -76,7 +79,6 @@ def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
     grouped_df['stop'] = grouped_df['image_index']
     grouped_df.rename({'zarr_path': 'path', 'image_index': 'T'}, axis=1, inplace=True)
 
-    grouped_df = grouped_df.sample(3)
     save_path = save_dir / 'aggregated_crop_manifest.csv'
     grouped_df.to_csv(save_path,index=False)
     return save_path
