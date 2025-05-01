@@ -28,7 +28,7 @@ df = pd.read_csv(output_savedir+"manifest.csv")
 # %%
 # hardcoded for now, would be great to get these into a config file
 # Create flow field dx/dt = f(x)
-kernel_params = {"bandwidth":0.1,"kernel":"gaussian"}
+kernel_params = {"bandwidth":0.09,"kernel":"gaussian"}
 
 feat_cols = [f"PC{i+1}" for i in range(3)]
 

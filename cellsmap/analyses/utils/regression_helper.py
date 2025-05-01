@@ -155,12 +155,6 @@ def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list
     Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
     Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
     These functions are defined in cellsmap.analyses.utils.numerics.kramers_moyal.py.
-def get_kramers_moyal(X_list:list[np.ndarray], dX_list:list[np.ndarray], dT_list:list[np.ndarray], 
-                      bins:list[np.ndarray], dt:float, method:str='kernel',kernel_params:dict|None=None) -> Tuple[np.ndarray,np.ndarray]:
-    ''' 
-    Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
-    Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
-    These functions are defined in cellsmap.analyses.utils.numerics.kramers_moyal.py.
 
     Inputs:
     - X_list: list of numpy arrays, each array is a single trajectory in feature space

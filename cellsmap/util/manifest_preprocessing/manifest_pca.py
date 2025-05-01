@@ -103,8 +103,14 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
     """    
     # first, get list of reference datasets to use for PCA
     reference_datasets = get_reference_datasets()
+    if verbose:
+        print(f"Reference datasets for PCA:")
     data_ref = []
     for name in reference_datasets:
+        if name == '20250402_20X':
+            continue # skip this dataset, it is not a reference dataset
+        if verbose:
+            print(f"- {name}")
         df_ = manifest_io.get_diffae_manifest(name) # get the manifest for the dataset
         df_ = get_pca_reference(df_) # get df with only the reference timepoints for fitting PCA
         data_ref.append(df_) # append the reference timepoints to the list
