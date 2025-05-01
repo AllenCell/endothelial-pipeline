@@ -70,14 +70,7 @@ vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4",
 # plot latent dims 1 and 4 after with outliers labelled
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
 ax.scatter(df["feat_1"], df["feat_4"], c=df["outlier"], s=0.2)
-fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-ax.scatter(df["feat_1"], df["feat_4"], c=df["outlier"], s=0.2)
 plt.show()
-vb.save_plot(
-    fig,
-    filename=fig_savedir + "reference_dataset_overview_feats_1_4_no_bubbles",
-    dpi=72,
-)
 vb.save_plot(
     fig,
     filename=fig_savedir + "reference_dataset_overview_feats_1_4_no_bubbles",
