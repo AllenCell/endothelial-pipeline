@@ -80,7 +80,7 @@ def main(config_name: str = "default") -> None:
     pplane_yvec = np.linspace(pplane_ylim[0], pplane_ylim[1], N_pts_pplane + 1)
 
     # for histogram plots, fix bins across all datasets
-    bins_hist, centers_hist = rh.get_bins(N_bins_hist, bin_limits=[bin_xlim, bin_ylim])
+    bins, centers = rh.get_bins(N_bins_hist, bin_limits=[bin_xlim, bin_ylim])
 
     # loop through datasets, get flow field estimates, and save out figures
     list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
@@ -109,7 +109,7 @@ def main(config_name: str = "default") -> None:
             )
 
             # get bins for histogramming (for drift and diffusion estimates)
-            bins, centers = rh.get_bins(Nbins, data=X_list)
+            # bins, centers = rh.get_bins(Nbins, data=X_list)
 
             # get drift and diffusion estimates (Kramers-Moyal coefficients)
             f_KM, D_KM = rh.get_kramers_moyal(
@@ -127,16 +127,19 @@ def main(config_name: str = "default") -> None:
             diffusion_dict = ddff.compute_extrapolated_vector_field(D_KM, centers,interpolator="nearest")
 
             drift = ddff.get_callable_vector_field(drift_dict,for_solve_ivp=False)
+            drift_ = lambda x, u: drift(x)
             diffusion = ddff.get_callable_vector_field(diffusion_dict,for_solve_ivp=False)
+            diffusion_ = lambda x, u: diffusion(x)
 
             fig1, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(
-                    [drift, diffusion],
+                    [drift_, diffusion_],
                     df_proj,
                     shear_list[j],
                     PCs,
-                    bins_hist,
+                    bins,
                     pplane_xvec,
-                    pplane_yvec
+                    pplane_yvec,
+                    use_fipy=False
                 )
             
             sup_title = fig2._suptitle.get_text()

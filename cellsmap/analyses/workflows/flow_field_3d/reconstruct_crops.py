@@ -23,6 +23,7 @@ fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
+# %%
 df = pd.read_csv(output_savedir+"manifest.csv")
 
 # Load PCA model
