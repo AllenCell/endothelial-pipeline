@@ -157,7 +157,7 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
         file_id = save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
 
         update_dataset_config(
-            dataset_name=dataset_name,
+            dataset_name,
             {'diffae_manifest_fmsid': file_id},
         )
 
