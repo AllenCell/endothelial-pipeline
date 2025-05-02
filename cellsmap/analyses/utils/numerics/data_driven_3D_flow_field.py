@@ -80,7 +80,7 @@ def compute_extrapolated_vector_field(kmcs:np.ndarray,
 
     return vector_field_dict
 
-def get_callable_vector_field(vector_field_dict:dict) -> Callable:
+def get_callable_vector_field(vector_field_dict:dict,for_solve_ivp:bool=True) -> Callable:
     """
     Get a callable vector field via linear interpolation on computed values of f on the grid.
 
@@ -95,19 +95,28 @@ def get_callable_vector_field(vector_field_dict:dict) -> Callable:
             (on which the flow field was numerically estimated from the data)
     """
 
-    # get the interpolator for f_KM
-    F_grid = np.stack(vector_field_dict["vectors"], axis=-1) # shape (num_bins_x, num_bins_y, num_bins_z, 3)
-    X = np.moveaxis(np.array(vector_field_dict["grid"]),0,-1).reshape((-1,3))    
-    F_interp = spinterp.LinearNDInterpolator(X, F_grid.reshape((-1, 3))) # interpolator for f_KM
+    ndim = len(vector_field_dict["grid"]) # number of dimensions
 
-    # define a callable function to pass into the ODE solver
-    # for scipy.integrate.solve_ivp, need time as first argument
-    # and x as second argument even if the system is time-independent
-    def F(t,x):
-        # get interpolated value
-        F_interp_val = F_interp(x)
-        # return dx/dt = f(x)
-        return F_interp_val
+    # get the interpolator for f_KM
+    F_grid = np.stack(vector_field_dict["vectors"], axis=-1) # shape (num_bins_x, num_bins_y, ... , ndim)
+    X = np.moveaxis(np.array(vector_field_dict["grid"]),0,-1).reshape((-1,ndim))    
+    F_interp = spinterp.LinearNDInterpolator(X, F_grid.reshape((-1, ndim))) # interpolator for f_KM
+
+    if for_solve_ivp:
+        # define a callable function to pass into the ODE solver
+        # for scipy.integrate.solve_ivp, need time as first argument
+        # and x as second argument even if the system is time-independent
+        def F(t,x):
+            # get interpolated value
+            F_interp_val = F_interp(x)
+            # return dx/dt = f(x)
+            return F_interp_val
+    else:
+        def F(x):
+            # get interpolated value
+            F_interp_val = F_interp(x)
+            # return dx/dt = f(x)
+            return F_interp_val
     
     return F
 

@@ -126,15 +126,15 @@ def main(config_name: str = "default") -> None:
             drift_dict = ddff.compute_extrapolated_vector_field(f_KM, centers,interpolator="nearest")
             diffusion_dict = ddff.compute_extrapolated_vector_field(D_KM, centers,interpolator="nearest")
 
-            drift = ddff.get_callable_vector_field(drift_dict)
-            diffusion = ddff.get_callable_vector_field(diffusion_dict)
+            drift = ddff.get_callable_vector_field(drift_dict,for_solve_ivp=False)
+            diffusion = ddff.get_callable_vector_field(diffusion_dict,for_solve_ivp=False)
 
             fig1, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(
                     [drift, diffusion],
                     df_proj,
                     shear_list[j],
                     PCs,
-                    bins,
+                    bins_hist,
                     pplane_xvec,
                     pplane_yvec
                 )
