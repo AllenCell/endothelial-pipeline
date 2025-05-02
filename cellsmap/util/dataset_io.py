@@ -68,7 +68,7 @@ def get_reference_datasets() -> List[str]:
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     config = load_config()
-    if 'dataset_name' not in config:
+    if dataset_name not in config:
         raise ValueError('Dataset name not found in config file')
     return config[dataset_name]
 
