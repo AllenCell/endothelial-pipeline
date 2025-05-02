@@ -229,7 +229,7 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> List|
     Assumes that there is only one set of brackets (either '[]' or '()')."""
     # if 'ls' is already a list of floats then return the input
     if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
-        float_list = ls
+        return tuple(ls) if to_tuple else ls
     # otherwise procede with the conversion
     else:
         strfloats = ls.strip('[]')
@@ -248,7 +248,7 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> List|
                     pass
                 else:
                     raise ValueError(f'Could not convert "{x}" to float.')
-    return tuple(float_list) if to_tuple else float_list
+        return tuple(float_list) if to_tuple else float_list
 
 def get_centroid_velocity(centroid_xs: float, centroid_ys: float, timepoints: float) -> Tuple[float, float]:
     dx, dy, dt = np.diff([centroid_xs, centroid_ys, timepoints], prepend=np.nan, axis=1)

@@ -9,11 +9,11 @@ from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_ou
 from cellsmap.util.dataset_io import extract_T
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
-from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple
+from typing import Optional, Callable, Union, List, Any, Dict, Literal, Tuple, Generator, Sequence
 from tqdm import tqdm
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
-def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension='*', sorting_function: Optional[Callable] = None):
+def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extension : str='*', sorting_function: Optional[Callable] = None) -> Path|List[Path]:
     if isinstance(filepath, (Path, str)):
         filepath = Path(filepath)
         if filepath.is_file():
@@ -32,13 +32,13 @@ def parse_paths(filepath: Union[str, Path, List[str], List[Path]], file_extensio
     return filepath
 
 def load_images_sequentially(
-    filepaths: Union[List[Path], Tuple[Path], Path], 
-    crops: Optional[Union[List[Dict], Dict]] = None, 
+    filepaths: str|Path|Sequence[Path]|Sequence[str], 
+    crops: Optional[Union[Sequence[Dict], Dict]] = None, 
     image_buffer_prior: int = 0, 
     image_buffer_next: int = 0, 
     axis: Optional[str] = None, 
     verbose: bool = False
-):
+) -> Generator[Tuple[Path, Dict, List[np.ndarray]], None]:
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
@@ -77,7 +77,7 @@ def load_images_sequentially(
         filepath_list = list(filepaths)
     if isinstance(filepaths, Path):
         filepath = filepaths     # Chantelle got it
-    
+
     crops = list(crops) if isinstance(crops, (list, tuple)) else crops
 
     axis = 'filepaths' if isinstance(filepath_list, (list, tuple)) else axis or 'T'
@@ -100,9 +100,10 @@ def load_images_sequentially(
         if axis == 'filepaths':
             crops = [crops] * len(filepath_list)
         else: # axis = 'T' there is only one filepath
-            new_crops = []
-            # filepath_array = np.array(filepath)
-            for i in range(BioImage(filepath).dims[axis]): 
+            new_crops: List = []
+            assert len(axis) == 1, f'Axis must be a single dimension (T, C, Z, Y, or X) if a single file is provided.'
+            axis_length: int = int(*BioImage(filepath).dims[axis])
+            for i in range(axis_length):
                 new_crop = crops.copy()
                 new_crop[axis] = i
 
@@ -123,8 +124,8 @@ def load_images_sequentially(
 
     assert len(filepath_list) == len(crops), f'If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepath_list)}, but crops has length {len(crops)}).'
 
-    old_image_list = []
-    loaded_images = []
+    old_image_list: List = []
+    loaded_images: List = []
     for i in range(total_image_length):
 
         relative_slice = slice(max(0, i - image_buffer_prior), min(len(filepath_list), i + 1 + image_buffer_next))
@@ -144,7 +145,7 @@ def load_images_sequentially(
 
         print(f'[new images being loaded: {tuple([fp.name for fp in new_image_list])}]') if verbose else None
 
-        yield filepath_list[i], crops[i], loaded_images
+        yield Path(filepath_list[i]), crops[i], loaded_images
 
 ## NOTE END OF CODE BLOCK THAT SHOULD BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 
@@ -296,7 +297,7 @@ def match_labels_from_metrics(
     metrics_thresholds: Optional[List] = None, 
     matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
     exclude_if_any_thresholded: bool = False,
-):
+) -> Dict:
     """
     Compares the dictionary of labeled metrics at list_of_labeled_metric_vals[reference_index] to the
     dictionary of labeled metrics from each of the other indices in list_of_labeled_metric_vals and 
@@ -399,11 +400,13 @@ def match_labels_from_metrics(
         reference_label_arrs, query_label_arrs = labels_arrs[i]
 
         invalid_query_matches_from_refs = np.logical_or(*[arr.mask for arr in indices_refs_matched_to_queries_list[i]])
-        ref_labs_from_refs, query_labs_from_refs = reference_label_arrs[indices_refs_matched_to_queries_list[i]], np.ma.masked_array(data=query_label_arrs[indices_refs_matched_to_queries_list[i]], mask=invalid_query_matches_from_refs)
+        ref_labs_from_refs = reference_label_arrs[indices_refs_matched_to_queries_list[i]]
+        query_labs_from_refs = np.ma.masked_array(data=query_label_arrs[indices_refs_matched_to_queries_list[i]], mask=invalid_query_matches_from_refs)
         metrics_vals_from_refs = metrics_diffs_mean_list[i][indices_refs_matched_to_queries_list[i]]
 
         invalid_query_matches_to_refs = np.logical_or(*[arr.mask for arr in indices_queries_matched_to_refs_list[i]])
-        ref_labs_to_refs, query_labs_to_refs = reference_label_arrs[indices_queries_matched_to_refs_list[i]], np.ma.masked_array(data=query_label_arrs[indices_queries_matched_to_refs_list[i]], mask=invalid_query_matches_to_refs)
+        ref_labs_to_refs = reference_label_arrs[indices_queries_matched_to_refs_list[i]]
+        query_labs_to_refs = np.ma.masked_array(data=query_label_arrs[indices_queries_matched_to_refs_list[i]], mask=invalid_query_matches_to_refs)
         metrics_vals_to_refs = metrics_diffs_mean_list[i][indices_queries_matched_to_refs_list[i]]
 
         match matching_method:
@@ -438,7 +441,12 @@ def match_labels_from_metrics(
 
     return matched_labels_dict
 
-def match_labels_from_overlaps(labeled_images: list[np.ndarray], reference_index: int=0, matching_method='forward', overlap_minimum=None) -> dict:
+def match_labels_from_overlaps(
+        labeled_images: List[np.ndarray],
+        reference_index: int = 0,
+        matching_method: Literal['forward', 'reverse', 'to_reference', 'from_reference', 'reciprocal_matches_only'] = 'forward',
+        overlap_minimum: float|None = None
+        ) -> dict:
     """
     Match labels between frames based on the fraction of overlap between regions.
 
@@ -557,7 +565,11 @@ def match_labels_from_overlaps(labeled_images: list[np.ndarray], reference_index
     return matched_labels_dict
 
 
-def get_label_with_most_overlap(region_mask: np.ndarray, labeled_image: np.ndarray, masked_labels=[0,]) -> dict:
+def get_label_with_most_overlap(
+        region_mask: np.ndarray,
+        labeled_image: np.ndarray,
+        masked_labels: List = [0,]
+        ) -> Dict:
     """
     Calculate the fraction of region_mask that does not overlap with labeled_image.
     """
@@ -583,7 +595,7 @@ def initialize_track_ids(list_of_region_props: list, image_index:int=0, T: int=0
     Each label in the region_props_list will get a row in the dataframe with its own track_id
     as well as the associated centroid."""
 
-    tracking_data = list(zip(*[(image_index, T, id + 1 + track_id_offset, *(list_of_region_props[id][prop] for prop in props_to_include)) for id in range(len(list_of_region_props))]))
+    tracking_data = list(zip(*[(image_index, T, id + track_id_offset, *(list_of_region_props[id][prop] for prop in props_to_include)) for id in range(len(list_of_region_props))]))
     column_names = [column_name for column_name in ('image_index', 'T', 'track_id', *props_to_include)]
     track_ids = dict(zip(column_names, tracking_data))
 
@@ -694,15 +706,20 @@ def axial_min(arr: np.ndarray, mask: Optional[np.ndarray] = None, mask_values_be
     for_i_in_arr_argmin = np.ma.masked_array(data=for_i_in_arr_argmin, mask=for_i_in_arr_min.mask)
     for_j_in_arr_argmin = np.ma.masked_array(data=for_j_in_arr_argmin, mask=for_j_in_arr_min.mask)
 
-    ij_argmins = (np.ma.masked_array(data=np.arange(for_i_in_arr_argmin.shape[0]), mask=for_i_in_arr_min.mask), for_i_in_arr_argmin.squeeze(axis=1))
-    ji_argmins = (for_j_in_arr_argmin.squeeze(axis=0), np.ma.masked_array(data=np.arange(for_j_in_arr_argmin.shape[1]), mask=for_j_in_arr_min.mask))
+    ij_argmins: Tuple = (np.ma.masked_array(data=np.arange(for_i_in_arr_argmin.shape[0]), mask=for_i_in_arr_min.mask), for_i_in_arr_argmin.squeeze(axis=1))
+    ji_argmins: Tuple = (for_j_in_arr_argmin.squeeze(axis=0), np.ma.masked_array(data=np.arange(for_j_in_arr_argmin.shape[1]), mask=for_j_in_arr_min.mask))
 
     reciprocal_argmin = np.ma.where((arr == for_j_in_arr_min) * (arr == for_i_in_arr_min))
 
     return ij_argmins, ji_argmins, reciprocal_argmin
 
 
-def save_track_labeled_images(out_path: Path, track_labeled_image: np.ndarray, image_metadata: Optional[dict]=None, extra_channel: Optional[dict]=None):
+def save_track_labeled_images(
+        out_path: Path,
+        track_labeled_image: np.ndarray,
+        image_metadata: Optional[dict] = None,
+        extra_channel: Optional[dict] = None
+        ) -> None:
     """
     track_labeled_image: np.ndarray
         a 2D or 3D array where each region has an integer corresponding to the track_id
@@ -769,7 +786,7 @@ def run_tracking(
     img_metadata: Optional[Any] = None,
     image_validation_frequency: int = 0,
     verbose: bool = False
-):
+) -> None:
     """
     in_dir_extra is supposed to be a folder or list of filepaths to the raw images that can be
     added to the output track-labeled images as an extra channel.
@@ -926,7 +943,16 @@ def run_tracking(
         track_table.to_csv(out_path, index=False, sep='\t')
 
 
-def update_track_table(labeled_images, existing_track_ids, current_T, tracking_metrics=['centroid'], image_buffer_prior=0, image_buffer_next=1, reference_index=0, verbose=False):
+def update_track_table(
+        labeled_images: List[np.ndarray],
+        existing_track_ids: pd.DataFrame,
+        current_T: int,
+        tracking_metrics: List = ['centroid'],
+        image_buffer_prior: int = 0,
+        image_buffer_next: int = 1,
+        reference_index: int = 0,
+        verbose: bool = False
+        ) -> Tuple:
 
     print(f'- updating tracks...') if verbose else None
 
@@ -945,12 +971,13 @@ def update_track_table(labeled_images, existing_track_ids, current_T, tracking_m
 
     # initialize track ids
     track_tolerance = image_buffer_next - image_buffer_prior - 1
-    newest_track_id_label = existing_track_ids['track_id'].max() if isinstance(existing_track_ids, pd.DataFrame) else 0
+    newest_track_id_label = existing_track_ids['track_id'].max() + 1 if not existing_track_ids.empty else 1
+    assert newest_track_id_label < np.iinfo(np.uint32).max, 'HALTING: NUMBER OF NEW TRACKS EXCEEDS 32-BIT INTEGER LIMIT'
 
     print(f'- initializing track ids...') if verbose else None
     new_track_ids = initialize_track_ids(matched_labels_props_list, image_index=current_image_index, T=current_T, track_id_offset=newest_track_id_label, props_to_include=props_to_include)
 
-    if isinstance(existing_track_ids, pd.DataFrame):
+    if not existing_track_ids.empty:
         recent_tracks_range = range(max(0, current_image_index - track_tolerance - 1), current_image_index)
         recent_track_ids = existing_track_ids[existing_track_ids['image_index'].isin(recent_tracks_range)].copy()
 
@@ -961,7 +988,7 @@ def update_track_table(labeled_images, existing_track_ids, current_T, tracking_m
         pass
     # concatenate reassigned track ids to existing track ids
     print(f'- concatenating existing track table and new track table...') if verbose else None
-    existing_track_ids = pd.concat([existing_track_ids, new_track_ids]) if isinstance(existing_track_ids, pd.DataFrame) else new_track_ids
+    existing_track_ids = pd.concat([existing_track_ids, new_track_ids]) if not existing_track_ids.empty else new_track_ids
 
     # relabel images
     # NOTE I adopted this reassignment methodology from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
@@ -973,7 +1000,15 @@ def update_track_table(labeled_images, existing_track_ids, current_T, tracking_m
     return track_labeled_image, new_track_ids, existing_track_ids
 
 
-def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid'], timeframes_for_table=None, image_buffer_prior=0, image_buffer_next=1, verbose=False):
+def generate_tracks(
+        image_filepaths: str|Path|Sequence[Path]|Sequence[str],
+        img_crops: Optional[Union[Sequence[Dict], Dict]] = None,
+        tracking_metrics: List = ['centroid'],
+        timeframes_for_table: Sequence|None = None,
+        image_buffer_prior: int = 0,
+        image_buffer_next: int = 1,
+        verbose: bool = False
+        ) -> Generator:
     """
     Will build tracks from images and save a version of the images relabeled according to
     track_id as well as a table of the results to out_dir.
@@ -986,7 +1021,7 @@ def generate_tracks(image_filepaths, img_crops=None, tracking_metrics=['centroid
     # NOTE load_images_sequentially is a generator
     paths_crops_labeled_images_all = load_images_sequentially(image_filepaths, img_crops, image_buffer_prior, image_buffer_next, verbose=verbose)
 
-    track_table = []
+    track_table = pd.DataFrame()
     for i, (fp, crop, labeled_images) in enumerate(paths_crops_labeled_images_all):
         if timeframes_for_table == None:
             current_T = i
