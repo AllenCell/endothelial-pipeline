@@ -38,7 +38,7 @@ def load_images_sequentially(
     image_buffer_next: int = 0, 
     axis: Optional[str] = None, 
     verbose: bool = False
-) -> Generator[Tuple[Path, Dict, List[np.ndarray]], None]:
+) -> Generator:
     """Load a list of sequential images from a list of filepaths or from a single filepath.
     1. If no crop is provided then the entire image for each image specified by filepaths will be loaded.
     2. If a list of filepaths is provided and a list of crop dictionaries is provided then they
@@ -401,12 +401,12 @@ def match_labels_from_metrics(
 
         invalid_query_matches_from_refs = np.logical_or(*[arr.mask for arr in indices_refs_matched_to_queries_list[i]])
         ref_labs_from_refs = reference_label_arrs[indices_refs_matched_to_queries_list[i]]
-        query_labs_from_refs = np.ma.masked_array(data=query_label_arrs[indices_refs_matched_to_queries_list[i]], mask=invalid_query_matches_from_refs)
+        query_labs_from_refs: np.ma.masked_array = np.ma.masked_array(data=query_label_arrs[indices_refs_matched_to_queries_list[i]], mask=invalid_query_matches_from_refs)
         metrics_vals_from_refs = metrics_diffs_mean_list[i][indices_refs_matched_to_queries_list[i]]
 
         invalid_query_matches_to_refs = np.logical_or(*[arr.mask for arr in indices_queries_matched_to_refs_list[i]])
         ref_labs_to_refs = reference_label_arrs[indices_queries_matched_to_refs_list[i]]
-        query_labs_to_refs = np.ma.masked_array(data=query_label_arrs[indices_queries_matched_to_refs_list[i]], mask=invalid_query_matches_to_refs)
+        query_labs_to_refs: np.ma.masked_array = np.ma.masked_array(data=query_label_arrs[indices_queries_matched_to_refs_list[i]], mask=invalid_query_matches_to_refs)
         metrics_vals_to_refs = metrics_diffs_mean_list[i][indices_queries_matched_to_refs_list[i]]
 
         match matching_method:
@@ -771,7 +771,7 @@ def run_tracking(
     out_dir: Path,
     out_filename_prefix: Optional[str|None] = None,
     tracking_metrics: List[str] = ['region_overlap'], # for nuclei try 'centroids'
-    sorting_key: Optional[Callable[[Any], int]] = None,
+    sorting_key: Callable|None = None,
     C: int = 0,
     scene: Optional[Union[str, int]] = None,
     bin_level: Optional[int] = None,

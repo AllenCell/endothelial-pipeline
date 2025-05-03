@@ -10,10 +10,11 @@ from cellsmap.util.get_sldy_metadata import get_voxel_size
 from multiprocessing import Pool
 from tqdm import tqdm
 import pandas as pd
+from typing import Sequence
 
 
 
-def run_workflow(queue):
+def run_workflow(queue: Sequence) -> None:
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df['T'].tolist()
     scene_index, position = int(queue_df['scene_index'].unique()[0]), queue_df['position'].unique()[0]
@@ -39,7 +40,9 @@ def run_workflow(queue):
             img.set_scene(scene_index)
         else:
             raw_channel = 0 # zarr files are created such that the first channel is always Cdh5
-            raw_filepath = Path(dataset_io.get_zarr_path(dataset_name))
+            zarr_name = dataset_io.get_zarr_name(dataset_name, position)
+            zarr_path = dataset_io.get_zarr_path(dataset_name, zarr_name)[zarr_name]
+            raw_filepath = Path(zarr_path)
             img = BioImage(raw_filepath)
             img.set_resolution_level(binning_level)
 
@@ -67,7 +70,12 @@ def run_workflow(queue):
         print(f'No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False.')
         return
 
-def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
+def main(n_proc: int = 1,
+         dataset_name: str|None = None,
+         save_output: bool = True,
+         is_test: bool = False,
+         verbose: bool = False
+         ) -> None:
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
@@ -109,13 +117,13 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
 
     print('\N{microscope} Done analysis.')
 
-    for dataset_name in dataset_name_list:
-        tracking_table_paths = (out_dir / dataset_name).glob('**/*.tsv')
+    for dataset in dataset_name_list:
+        tracking_table_paths = (out_dir / dataset).glob('**/*.tsv')
         if tracking_table_paths:
             pd.concat(
                 [pd.read_csv(fp, sep='\t') for fp in tracking_table_paths]
                 ).to_csv(
-                    out_dir / dataset_name / f'{dataset_name}_tracking.tsv',
+                    out_dir / dataset / f'{dataset}_tracking.tsv',
                     index=False,
                     sep='\t',
                 )
