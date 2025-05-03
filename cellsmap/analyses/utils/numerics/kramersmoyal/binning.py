@@ -1,6 +1,8 @@
-from scipy.sparse import csr_matrix
-import numpy as np
 from typing import Tuple
+
+import numpy as np
+from scipy.sparse import csr_matrix
+
 
 def _get_outer_edges(a, edge_range, bw):
     """
@@ -10,12 +12,12 @@ def _get_outer_edges(a, edge_range, bw):
     if edge_range is not None:
         first_edge, last_edge = edge_range
         if first_edge > last_edge:
-            raise ValueError(
-                'Max must be larger than min in range parameter')
+            raise ValueError("Max must be larger than min in range parameter")
         if not (np.isfinite(first_edge) and np.isfinite(last_edge)):
             raise ValueError(
-                'Supplied range of [{}, {}] '
-                ' is not finite'.format(first_edge, last_edge))
+                "Supplied range of [{}, {}] "
+                " is not finite".format(first_edge, last_edge)
+            )
     elif a.size == 0:
         # handle empty arrays. Can't determine range, so use 0-1.
         first_edge, last_edge = 0, 1
@@ -23,8 +25,9 @@ def _get_outer_edges(a, edge_range, bw):
         first_edge, last_edge = a.min() - bw, a.max() + bw
         if not (np.isfinite(first_edge) and np.isfinite(last_edge)):
             raise ValueError(
-                'Autodetected range of [{}, {}] '
-                ' is not finite'.format(first_edge, last_edge))
+                "Autodetected range of [{}, {}] "
+                " is not finite".format(first_edge, last_edge)
+            )
 
     # expand empty range to avoid divide by zero
     if first_edge == last_edge:
@@ -33,11 +36,18 @@ def _get_outer_edges(a, edge_range, bw):
 
     return first_edge, last_edge
 
+
 # An alternative to Numpy's histogramdd, supporting a weights matrix.
 # Part of the following code is licensed under the BSD-3 License (from Numpy).
-def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
-    normed: str=None, weights: np.ndarray=None, density: np.ndarray=None,
-    bw: float=0.0) -> Tuple[np.ndarray, np.ndarray]:
+def histogramdd(
+    sample: np.ndarray,
+    bins: int = 10,
+    edge_range: str = None,
+    normed: str = None,
+    weights: np.ndarray = None,
+    density: np.ndarray = None,
+    bw: float = 0.0,
+) -> Tuple[np.ndarray, np.ndarray]:
 
     try:
         # Sample is an ND-array.
@@ -57,8 +67,9 @@ def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
         M = len(bins)
         if M != D:
             raise ValueError(
-                'The dimension of bins must be equal to the dimension of the '
-                ' sample x')
+                "The dimension of bins must be equal to the dimension of the "
+                " sample x"
+            )
     except TypeError:
         # bins is an integer
         bins = D * [bins]
@@ -67,25 +78,27 @@ def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
     if edge_range is None:
         edge_range = (None,) * D
     elif len(edge_range) != D:
-        raise ValueError('Range argument must have one entry per dimension')
+        raise ValueError("Range argument must have one entry per dimension")
 
     # Create edge arrays
     for i in range(D):
         if np.ndim(bins[i]) == 0:
             if bins[i] < 1:
                 raise ValueError(
-                    '`bins[{}]` must be positive, when an integer'.format(i))
+                    "`bins[{}]` must be positive, when an integer".format(i)
+                )
             smin, smax = _get_outer_edges(sample[:, i], edge_range[i], bw)
             edges[i] = np.linspace(smin, smax, bins[i] + 1)
         elif np.ndim(bins[i]) == 1:
             edges[i] = np.asarray(bins[i])
             if np.any(edges[i][:-1] > edges[i][1:]):
                 raise ValueError(
-                    '`bins[{}]` must be monotonically increasing, when an array'
-                    .format(i))
+                    "`bins[{}]` must be monotonically increasing, when an array".format(
+                        i
+                    )
+                )
         else:
-            raise ValueError(
-                '`bins[{}]` must be a scalar or 1d array'.format(i))
+            raise ValueError("`bins[{}]` must be a scalar or 1d array".format(i))
 
         nbin[i] = len(edges[i]) + 1  # includes an outlier on each end
         dedges[i] = np.diff(edges[i])
@@ -93,7 +106,7 @@ def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
     # Compute the bin number each sample falls into.
     Ncount = tuple(
         # avoid np.digitize to work around gh-11022
-        np.searchsorted(edges[i], sample[:, i], side='right')
+        np.searchsorted(edges[i], sample[:, i], side="right")
         for i in range(D)
     )
 
@@ -102,7 +115,7 @@ def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
     # counted in the last bin, and not as an outlier.
     for i in range(D):
         # Find which points are on the rightmost edge.
-        on_edge = (sample[:, i] == edges[i][-1])
+        on_edge = sample[:, i] == edges[i][-1]
         # Shift these points one bin to the left.
         Ncount[i][on_edge] -= 1
 
@@ -121,7 +134,7 @@ def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
         hist = hist.reshape((weights.shape[0], *nbin))
 
     # This preserves the (bad) behavior observed in gh-7845, for now.
-    hist = hist.astype(float, casting='safe')
+    hist = hist.astype(float, casting="safe")
 
     # Remove outliers (indices 0 and -1 for each dimension).
     core = D * (slice(1, -1),)
@@ -157,18 +170,15 @@ def histogramdd(sample: np.ndarray, bins: int=10, edge_range: str=None,
 
     if weights.ndim == 1:
         if (hist.shape != nbin - 2).any():
-            raise RuntimeError(
-                "Internal Shape Error")
+            raise RuntimeError("Internal Shape Error")
     else:
         if (hist.shape != np.array([weights.shape[0], *(nbin - 2)])).any():
-            raise RuntimeError(
-                "Internal Shape Error")
+            raise RuntimeError("Internal Shape Error")
     return hist, edges
 
 
 def bincount1(x, weights, minlength=0):
-    return np.array(
-        [np.bincount(x, w, minlength=minlength) for w in weights])
+    return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
 
 
 def bincount2(x, weights, minlength=0):
@@ -177,9 +187,10 @@ def bincount2(x, weights, minlength=0):
 
     ans_size = x.max() + 1
 
-    if (ans_size < minlength):
+    if ans_size < minlength:
         ans_size = minlength
 
-    csr = csr_matrix((np.ones(x.shape[0]), (np.arange(x.shape[0]), x)), shape=[
-                     x.shape[0], ans_size])
+    csr = csr_matrix(
+        (np.ones(x.shape[0]), (np.arange(x.shape[0]), x)), shape=[x.shape[0], ans_size]
+    )
     return weights * csr

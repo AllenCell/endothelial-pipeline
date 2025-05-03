@@ -14,6 +14,7 @@ import fire
 from typing import List, Dict, Any, Union, Tuple, Callable, Optional, Literal
 import re
 
+
 # model methods
 def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
@@ -29,17 +30,37 @@ def write_config(config: List[Dict[str, Any]], config_type: str = 'data') -> Non
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f'{config_type}_config.yaml'
+
+    # Write lists with brackets, not dashes
+    def represent_list(dumper, data):
+        return dumper.represent_sequence('tag:yaml.org,2002:seq', data, flow_style=True)
+    yaml.add_representer(list, represent_list)
+
     with open(config_file, 'w') as file:
-        yaml.dump(config, file, default_flow_style=True)
+        #                        one key per line            keep ordering    wrap lines
+        yaml.dump(config, file, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None:
+    """
+    Update the dataset config file with new values.
+    
+    Parameters
+    ----------
+    dataset_name: str
+        Name of the dataset to update.
+    new_config: dict
+        Dictionary with new values to update in the config file.
+    """
+    cfg = load_config('data')
+    cfg[dataset_name].update(new_config)
+    write_config(cfg, 'data')
 
 # dataset methods
 def get_available_datasets(verbose: bool = True) -> List[str]:
-    datasets = []
-    config = load_config()
-    for dataset in config:
-        datasets.append(dataset['name'])
-        if verbose:
-            print(dataset['name'])
+    cfg = load_config('data')
+    datasets = list(cfg.keys())
+    if verbose:
+        print("\n".join(datasets))
     return datasets
 
 def get_reference_datasets() -> List[str]:
@@ -47,10 +68,9 @@ def get_reference_datasets() -> List[str]:
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     config = load_config()
-    for dataset in config:
-        if dataset['name'] == dataset_name:
-            return dataset
-    raise ValueError(f'Dataset {dataset_name} not found in config file')
+    if 'dataset_name' not in config:
+        raise ValueError('Dataset name not found in config file')
+    return config[dataset_name]
 
 def get_frame(filename: str) -> int:
     return int(str(filename).split('.')[0][-4:])
