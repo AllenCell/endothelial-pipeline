@@ -68,7 +68,7 @@ def run_workflow(queue: Sequence) -> None:
         return
 
 def main(n_proc: int = 1,
-         dataset_name: str|None = None,
+         dataset_name: str|Sequence|None = None,
          save_output: bool = True,
          is_test: bool = False,
          verbose: bool = False
@@ -84,7 +84,7 @@ def main(n_proc: int = 1,
                                 and 'AICS-126' in config_data['cell_lines']
                                 and config_data['duration'] > 1]
     else:
-        dataset_name_list = [dataset_name]
+        dataset_name_list = [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
 
     analysis_queue = build_analysis_queue(dataset_name_list,
                                           save_output=save_output,
