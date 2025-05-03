@@ -103,17 +103,14 @@ def main(n_proc: int = 1,
 
     if n_proc > 1:
         if __name__ == '__main__':
-            print('Starting multiprocessing...')
+            n_proc = min(n_proc, len(analysis_queue_per_position))
             with Pool(processes=n_proc) as pool:
-                list(tqdm(pool.imap(run_workflow, analysis_queue_per_position, chunksize=1), total=len(analysis_queue_per_position), desc='Positions completed'))
+                list(tqdm(pool.imap(run_workflow, analysis_queue_per_position, chunksize=1), total=len(analysis_queue_per_position), desc='Tracking (MP)'))
                 pool.close()
                 pool.join()
-            print('Done multiprocessing.')
     else:
-        for queue in analysis_queue_per_position:
-            print('Running workflow with single process...')
+        for queue in tqdm(analysis_queue_per_position, total=len(analysis_queue_per_position), desc='Tracking (1P)'):
             run_workflow(queue)
-            print('Done single-processing.')
 
     print('\N{microscope} Done analysis.')
 
