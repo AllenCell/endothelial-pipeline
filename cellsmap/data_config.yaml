@@ -783,6 +783,7 @@
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250402_90e37b7d8f1440efa84995b4697fb269
   fmsid: 90e37b7d8f1440efa84995b4697fb269
   barcode: GE00007594
+  cell_lines: [AICS-126]
   live_or_fixed_sample: live
   microscope: 3i
   shear_stress_regime: 48hr_low
@@ -804,6 +805,7 @@
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250409_df6b2a02bbc94c6f957923add524eac1
   fmsid: df6b2a02bbc94c6f957923add524eac1
   barcode: GE00007696
+  cell_lines: [AICS-126]
   live_or_fixed_sample: live
   microscope: 3i
   shear_stress_regime: 48hr_low

@@ -567,8 +567,9 @@ def main(dataset_name: str|None=None,
 
     dataset_name = None
     if dataset_name == None:
-        dataset_name_list = [config_data['name']
-                            for config_data in load_config(config_type='data')
+        config_data = load_config(config_type='data')
+        dataset_name_list = [dataset_name
+                            for dataset_name, config_data in config_data.items()
                             if (config_data['microscope'] == '3i'
                                 and config_data['live_or_fixed_sample'] == 'live')
                                 and 'cell_lines' in config_data
