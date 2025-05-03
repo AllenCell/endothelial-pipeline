@@ -876,7 +876,7 @@ def run_tracking(
     results = generate_tracks(img_fps_for_tracking, crops_for_tracking, tracking_metrics, timeframes_for_table=timeframes, image_buffer_prior=0, image_buffer_next=track_tolerance+1, verbose=verbose)
 
     # create output directories if they don't exist and get image metadata from the input image
-    for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}', unit='frame'):
+    for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}', unit='frame', position=1):
         if image_validation_frequency:
             if idx in range(0, len(timeframes), image_validation_frequency):
                 images_out_dir = out_dir / 'tracked_images'
