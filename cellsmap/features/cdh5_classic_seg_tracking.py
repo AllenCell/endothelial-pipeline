@@ -17,14 +17,13 @@ from typing import Sequence
 def run_workflow(queue: Sequence) -> None:
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df['T'].tolist()
-    scene_index, position = int(queue_df['scene_index'].unique()[0]), queue_df['position'].unique()[0]
+    position = queue_df['position'].unique()[0]
     image_validation_frequency = queue_df['image_validation_frequency'].unique()[0]
     validation_image = queue_df['validation_image'].unique()[0]
     verbose = queue_df['verbose'].unique()[0]
     out_dir = queue_df['output_dir'].unique()[0] / f'{dataset_name}/P{position}'
     out_filename_prefix = f'{dataset_name}_P{position}'
     use_original_data = queue_df['use_original_data'].unique()[0]
-    binning_level = queue_df['image_bin_level'].unique()[0]
 
     # get the segmentation images
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position=position))
@@ -35,23 +34,19 @@ def run_workflow(queue: Sequence) -> None:
     if seg_filepaths:
         if validation_image:
             # get the raw cadherin channel from either original data or the zarr version
+            scene_index = int(queue_df['scene_index'].unique()[0])
             if use_original_data:
                 raw_channel = dataset_io.get_dataset_info(dataset_name)['egfp_channel_index']
                 raw_filepath = Path(dataset_io.get_original_path(dataset_name))
-                img = BioImage(raw_filepath)
-                img.set_scene(scene_index)
             else:
                 raw_channel = 0 # zarr files are created such that the first channel is always Cdh5
                 zarr_name = dataset_io.get_zarr_name(dataset_name, position)
                 zarr_path = dataset_io.get_zarr_path(dataset_name, zarr_name)[zarr_name]
                 raw_filepath = Path(zarr_path)
-                img = BioImage(raw_filepath)
-                img.set_resolution_level(binning_level)
-
-            # get voxel sizes from the raw image to pass along to saved images from tracking
-            img_metadata = {'physical_pixel_sizes': get_voxel_size(img.metadata),}
         else:
-            img_metadata = None
+            scene_index = None
+            raw_filepath = None
+            raw_channel = None
         run_tracking(in_dir=seg_filepaths,
                      out_dir=out_dir,
                      out_filename_prefix=out_filename_prefix,
@@ -59,13 +54,12 @@ def run_workflow(queue: Sequence) -> None:
                      sorting_key=preproc.extract_T,
                      C=segmentation_channel,
                      T=T_to_eval,
-                    #  extra_in_dir=raw_filepath,
-                    #  extra_C=raw_channel,
-                    #  extra_scene=scene_index,
-                    #  extra_T=T_to_eval,
+                     extra_in_dir=raw_filepath,
+                     extra_C=raw_channel,
+                     extra_scene=scene_index,
+                     extra_T=T_to_eval,
                      Z_projection=np.max,
                      track_tolerance=3,
-                     img_metadata=img_metadata,
                      image_validation_frequency=image_validation_frequency,
                      verbose=verbose)
 

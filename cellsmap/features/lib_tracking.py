@@ -783,7 +783,6 @@ def run_tracking(
     extra_T: Optional[List[int]] = None,
     Z_projection: Optional[Callable] = None,
     track_tolerance: int = 0,
-    img_metadata: Dict|None = None,
     image_validation_frequency: int = 0,
     verbose: bool = False
 ) -> None:
@@ -910,10 +909,9 @@ def run_tracking(
                             raw_image.set_scene(extra_scene)
                         if extra_bin_level:
                             raw_image.set_resolution_level(extra_bin_level)
-                        if img_metadata is None:
-                            img_metadata = {'physical_pixel_sizes': {'Z': raw_image.physical_pixel_sizes.Z,
-                                                                     'Y': raw_image.physical_pixel_sizes.Y,
-                                                                     'X': raw_image.physical_pixel_sizes.X}}
+                        img_metadata = {'physical_pixel_sizes': {'Z': raw_image.physical_pixel_sizes.Z,
+                                                                 'Y': raw_image.physical_pixel_sizes.Y,
+                                                                 'X': raw_image.physical_pixel_sizes.X}}
                         raw_image_daskarr = raw_image.get_image_dask_data(dim_order,
                                                                         T=range(raw_image.dims.T)[overlay_crop['T']],
                                                                         C=range(raw_image.dims.C)[overlay_crop['C']])
