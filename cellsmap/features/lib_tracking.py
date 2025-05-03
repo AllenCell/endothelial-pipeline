@@ -809,6 +809,7 @@ def run_tracking(
             function parse_paths has been created to handle these files.
     """
     out_dir = Path(out_dir)
+
     dim_order = 'TCZYX'
     dim_map = get_dim_map(dim_order)
 
@@ -876,11 +877,10 @@ def run_tracking(
 
     # create output directories if they don't exist and get image metadata from the input image
     for idx, input_image_filepath, track_labeled_image, track_table in tqdm(results, total=len(timeframes), desc=f'{(out_filename_prefix or Path(out_dir).name)}', unit='frame'):
-        if image_validation_frequency > 0:
+        if image_validation_frequency:
             if idx in range(0, len(timeframes), image_validation_frequency):
                 images_out_dir = out_dir / 'tracked_images'
-                for out in (images_out_dir, out_dir):
-                    out.mkdir(parents=True, exist_ok=True)
+                images_out_dir.mkdir(parents=True, exist_ok=True)
                 # try to extract the T position from the filename, and if
                 # unsucessful then use the T position from the img_queue
                 t = extract_T(input_image_filepath.name, default_if_not_found="")
@@ -930,6 +930,7 @@ def run_tracking(
         out_filename_prefix = out_filename_prefix or out_dir.stem
         table_out_name = f'{out_filename_prefix}_tracking.tsv'
         out_path = out_dir / table_out_name
+        out_dir.mkdir(parents=True, exist_ok=True)
         print(f'Saving tracking table to {out_path}') if verbose else None
 
         # split the 'centroid' column into separate columns for each dimension
@@ -958,7 +959,7 @@ def update_track_table(
 
     print(f'- updating tracks...') if verbose else None
 
-    current_image_index = int(existing_track_ids['image_index'].max()) + 1 if isinstance(existing_track_ids, pd.DataFrame) else 0
+    current_image_index = int(existing_track_ids['image_index'].max()) + 1 if not existing_track_ids.empty else 0
 
     print(f'- matching labels...') if verbose else None
     matched_labels = match_labels_from_images(labeled_images, reference_index=reference_index, metrics=tracking_metrics, matching_method='reciprocal_matches_only', verbose=verbose)

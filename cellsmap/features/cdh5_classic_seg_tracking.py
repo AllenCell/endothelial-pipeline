@@ -68,7 +68,7 @@ def run_workflow(queue: Sequence) -> None:
         return
 
 def main(n_proc: int = 1,
-         dataset_name: str|Sequence|None = None,
+         dataset_name: str|Sequence|None = '20241016_20X',
          save_output: bool = True,
          is_test: bool = False,
          verbose: bool = False
@@ -123,4 +123,4 @@ def main(n_proc: int = 1,
                 )
 
 if __name__ == '__main__':
-    ipython_cli_flexecute(main, verbose=True)
+    ipython_cli_flexecute(main)
