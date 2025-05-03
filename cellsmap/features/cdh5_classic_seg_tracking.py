@@ -19,6 +19,7 @@ def run_workflow(queue: Sequence) -> None:
     T_to_eval = queue_df['T'].tolist()
     scene_index, position = int(queue_df['scene_index'].unique()[0]), queue_df['position'].unique()[0]
     image_validation_frequency = queue_df['image_validation_frequency'].unique()[0]
+    validation_image = queue_df['validation_image'].unique()[0]
     verbose = queue_df['verbose'].unique()[0]
     out_dir = queue_df['output_dir'].unique()[0] / f'{dataset_name}/P{position}'
     out_filename_prefix = f'{dataset_name}_P{position}'
@@ -32,23 +33,25 @@ def run_workflow(queue: Sequence) -> None:
 
     # run the tracking workflow
     if seg_filepaths:
-    # get the raw cadherin channel from either original data or the zarr version
-        if use_original_data:
-            raw_channel = dataset_io.get_dataset_info(dataset_name)['egfp_channel_index']
-            raw_filepath = Path(dataset_io.get_original_path(dataset_name))
-            img = BioImage(raw_filepath)
-            img.set_scene(scene_index)
+        if validation_image:
+            # get the raw cadherin channel from either original data or the zarr version
+            if use_original_data:
+                raw_channel = dataset_io.get_dataset_info(dataset_name)['egfp_channel_index']
+                raw_filepath = Path(dataset_io.get_original_path(dataset_name))
+                img = BioImage(raw_filepath)
+                img.set_scene(scene_index)
+            else:
+                raw_channel = 0 # zarr files are created such that the first channel is always Cdh5
+                zarr_name = dataset_io.get_zarr_name(dataset_name, position)
+                zarr_path = dataset_io.get_zarr_path(dataset_name, zarr_name)[zarr_name]
+                raw_filepath = Path(zarr_path)
+                img = BioImage(raw_filepath)
+                img.set_resolution_level(binning_level)
+
+            # get voxel sizes from the raw image to pass along to saved images from tracking
+            img_metadata = {'physical_pixel_sizes': get_voxel_size(img.metadata),}
         else:
-            raw_channel = 0 # zarr files are created such that the first channel is always Cdh5
-            zarr_name = dataset_io.get_zarr_name(dataset_name, position)
-            zarr_path = dataset_io.get_zarr_path(dataset_name, zarr_name)[zarr_name]
-            raw_filepath = Path(zarr_path)
-            img = BioImage(raw_filepath)
-            img.set_resolution_level(binning_level)
-
-        # get voxel sizes from the raw image to pass along to saved images from tracking
-        img_metadata = {'physical_pixel_sizes': get_voxel_size(img.metadata),}
-
+            img_metadata = None
         run_tracking(in_dir=seg_filepaths,
                      out_dir=out_dir,
                      out_filename_prefix=out_filename_prefix,
