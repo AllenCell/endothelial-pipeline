@@ -43,7 +43,7 @@ def gradient_flow_term(potential: np.ndarray,
     return flow_term
 
 
-def compute_J_terms(
+def compute_flux_terms(
     p: np.ndarray, 
     drift: np.ndarray, 
     diffusion: np.ndarray, 
@@ -148,7 +148,7 @@ def probability_flux(
     dx = [x[i][1] - x[i][0] for i in range(d)]  # grid spacing
 
     # D grad P
-    f_p, div_d_p, d_grad_p = compute_J_terms(p, 
+    f_p, div_d_p, d_grad_p = compute_flux_terms(p, 
                                              drift, 
                                              diffusion, 
                                              dx, 
