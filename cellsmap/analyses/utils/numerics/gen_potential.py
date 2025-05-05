@@ -266,7 +266,8 @@ def compute_D_gradU_f(potential,
 
     # initialize array to store D(x) grad(U) + f(x)
     d_grad_u_f = np.zeros_like(drift)  
-    # take advantage of diagonal matrix structure: element i of D(x)*grad(U(x)) is D[i]*gradU[i]
+    # take advantage of diagonal matrix structure: 
+    # element i of D(x)*grad(U(x)) is D[i]*gradU[i]
     for i in range(d):
         # grad(U): numerical gradient
         grad_u_i = np.gradient(potential, 
@@ -289,7 +290,8 @@ def entropy_production(
     additive_noise: bool
 ) -> float:
     """
-    Compute the entropy production rate for a given stationary probability P(x) via the Fokker-Planck equation
+    Compute the entropy production rate for a given stationary probability 
+    P(x) via the Fokker-Planck equation
     with drift vector field f(x) and diffusion matrix D(x).
 
     Inputs:
@@ -307,8 +309,10 @@ def entropy_production(
 
     Outputs:
     - integral: float, entropy production rate
-        - computed numerically as the integral of ||D grad U + F||^2 * P(x) over the grid x, where
-            U(x) = -log P(x) is the generalized potential
+        - computed numerically as the integral of 
+            ||D grad U + F||^2 * P(x) 
+          over the grid x, where U(x) = -log P(x) 
+          is the generalized potential
         - Simpson's rule is used for numerical integration
     """
 
