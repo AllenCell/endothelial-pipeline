@@ -16,7 +16,7 @@ import re
 
 
 # model methods
-def load_config(config_type: str = 'data') -> Dict[Dict[str, Any]]:
+def load_config(config_type: str = 'data') -> Dict[str, Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
