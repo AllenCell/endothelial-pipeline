@@ -10,60 +10,7 @@ from cellsmap.util.dataset_io import get_dataset_info, get_reference_datasets
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
 
-
-def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
-    """
-    Simple linear classifier to identify outliers based on the following rule:
-        Z = 3/2 * X - 0.6
-        Outlier if Z > Y
-    where X is the first latent dimension and Y is the fourth latent dimension of
-    the 8-dimensional latent space of the Diffusion Autoencoder model.
-
-    This was a simple rule that was found to work well for the datasets with persistent bubbles.
-
-    Inputs:
-    - X: pd.Series (column of pd.DataFrame), first latent dimension of the 8-dimensional latent space
-    - Y: pd.Series (column of pd.DataFrame), fourth latent dimension of the 8-dimensional latent space
-
-    Outputs:
-    - Z>Y: pd.Series, boolean column indicating whether the point is an outlier
-    """
-    Z = 3 / 2.0 * X - 0.6
-    return Z > Y
-
-
-def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
-    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space
-    (indexing starts at 0).
-
-    Inputs:
-    - data: pd.DataFrame, containing the 8-dimensional latent space
-
-    Outputs:
-    - data: pd.DataFrame, with an additional column 'outlier' indicating whether the crop is an outlier
-    """
-    data["outlier"] = simple_linear_classifier(data["feat_1"], data["feat_4"])
-    return data
-
-
-def remove_outliers(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Remove outlier crops from the dataset.
-
-    Inputs:
-    - data: pd.DataFrame, containing the 8-dimensional latent space
-        - must have a column 'outlier' indicating whether the crop is an outlier
-
-    Outputs:
-    - data: pd.DataFrame, with the outliers removed
-    """
-    data = data[~data.outlier]
-    return data
-
-
-def get_pca_reference(df: pd.DataFrame, dataset_name:str) -> pd.DataFrame:
+def get_pca_reference(df:pd.DataFrame,dataset_name:str) -> pd.DataFrame:
     """
     Select reference timepoints for fitting PCA based on the dataset annotations
 
@@ -104,19 +51,11 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     reference_datasets = get_reference_datasets()
     data_ref = []
     for name in reference_datasets:
-        df_ = manifest_io.get_diffae_manifest(name)  # get the manifest for the dataset
-        df_ = get_pca_reference(
-            df_, name
-        )  # get df with only the reference timepoints for fitting PCA
-        data_ref.append(df_)  # append the reference timepoints to the list
+        df_ = manifest_io.get_diffae_manifest(name) # get the manifest for the dataset
+        df_ = get_pca_reference(df_, name) # get df with only the reference timepoints for fitting PCA
+        data_ref.append(df_) # append the reference timepoints to the list
 
-    data_ref = pd.concat(
-        data_ref, ignore_index=True
-    )  # concatenate the reference timepoints into a single dataframe
-    # remove outliers
-    if "outlier" not in data_ref.columns:
-        data_ref = get_outliers(data_ref)
-    data_ref = remove_outliers(data_ref)
+    data_ref = pd.concat(data_ref, ignore_index=True) # concatenate the reference timepoints into a single dataframe
 
     # fit PCA
     if scale:  # scale the data before fitting PCA

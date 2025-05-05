@@ -75,11 +75,6 @@ def get_X_by_flow(
     If there is only one flow condition, data_all and shear_list are still lists (of length 1), respectively containing the original dataframe and single shear stress condition.
     """
 
-    if "outlier" in df_proj.columns:
-        df_proj = df_proj[
-            df_proj["outlier"] == False
-        ]  # remove outliers (bubble detection)
-
     # load flow information from data_config.yaml
     flow_info = dio.get_flow_info(ds_name)
 
@@ -117,7 +112,7 @@ def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> Tuple[list, list, list]
     Get list of per-crop trajectories, the corresponding displacement vectors, and time differences along the trajectory for each crop in the dataset.
 
     Inputs:
-    - X: pandas DataFrame with columns for each feature. Should have a column for time, a column for the crop index, and a column indicating an outlier point.
+    - X: pandas DataFrame with columns for each feature. Should have a column for time and a column for the crop index
         This data should be for one dataset and one flow condition.
     - feat_cols: list of feature column names (used to extract feature data from the dataframe X)
 
@@ -126,14 +121,10 @@ def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> Tuple[list, list, list]
     - dX_list: list of numpy arrays, each array is the displacement vectors along that trajectory for a single crop in feature space
     - dT_list: list of numpy arrays, each array is the time differences along that trajectory for a single crop
     """
-    if "outlier" not in X.columns:
-        raise ValueError("Data must have a column for outlier")
     if "frame_number" not in X.columns:
         raise ValueError("Data must have a column for time")
     if "crop_index" not in X.columns:
         raise ValueError("Data must have a column for crop_index")
-
-    X = X[X["outlier"] == False]  # remove outliers
 
     # get list of unique crop indices
     crop_list = X["crop_index"].unique()
