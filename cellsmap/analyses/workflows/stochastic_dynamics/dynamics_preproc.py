@@ -45,7 +45,7 @@ def main(config_name: str = "default") -> None:
     workflow_fig_folder = "stochastic_dynamics/" + config["name"] + "/figs"
     fig_savedir = get_output_path(workflow_fig_folder)
 
-    # fit PCA to reference timepoints of reference datasets (removing outliers)
+    # fit PCA to reference timepoints of reference datasets
     pca = manifest_pca.fit_pca()
 
     # save out PCA object (need later for analysis and
