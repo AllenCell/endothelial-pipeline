@@ -17,7 +17,7 @@ from tqdm import tqdm
 from datetime import datetime
 import shutil
 import re
-from typing import List, Dict, Literal
+from typing import List, Dict, Tuple, Literal
 
 
 def get_scenes_to_use(dataset_name: str|None = None) -> Dict:
@@ -64,7 +64,7 @@ def get_training_data_output_dirs(kind: List[Literal['images','labels']]|None=No
         return [out_dirs[training_data_kind] for training_data_kind in kind]
 
 
-def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
+def get_old_cellpose_train_test_losses(cellpose_model_dir: str|Path, model_name_list: List) -> Tuple:
     """
     This function extracts the training and test losses from the run.log file
     produced during the training of a Cellpose model.
@@ -83,7 +83,7 @@ def get_old_cellpose_train_test_losses(cellpose_model_dir, model_name_list):
 
     pages = {}
     with open(run_log_filepath) as run_log:
-        pg = {}
+        pg: dict = {}
         for line in run_log:
             for model_name in model_name_list:
                 if model_name in line:
