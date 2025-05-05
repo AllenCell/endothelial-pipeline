@@ -78,15 +78,6 @@ def get_km_kernel(
     - diff_km: numpy array, Kramers-Moyal diffusion estimate
         for each bin in feature space
     """
-    for i, dt_ in enumerate(dt_list):
-        # where outlier points were removed,
-        # time difference was greater than 1, mask out these points
-        mask = np.where(dt_ == 1)[0]
-        # mask_ for trajectories: should be mask but with additional point
-        # include frame after last frame in mask
-        mask_ = np.concatenate((mask, [mask[-1] + 1]))
-        x_list[i] = x_list[i][mask_]
-        dx_list[i] = dx_list[i][mask]
 
     ndim = len(bins)
     powers = get_km_powers(ndim)
