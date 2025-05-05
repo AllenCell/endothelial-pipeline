@@ -396,7 +396,7 @@ def run_gen_potential_analysis(
         U = -np.log(p_fit)
 
         # plot generalized potential energy landscape
-        fig, ax = dviz.plot_gen_potential_2D(
+        fig, ax = dviz.plot_gen_potential_2d(
             U, centers[0], centers[1], cmap="jet", surf=False
         )
         ax.set_xlabel("PC" + str(PCs[0] + 1))
