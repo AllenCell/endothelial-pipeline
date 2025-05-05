@@ -135,7 +135,7 @@ def generate_latent_walk(
     num_pcs: int, optional
         Number of principal components to use for the latent walk. Default is 3.
     sigma: float, optional
-        Number of standard deviations from the mean to traverse for the latent walk. Default is 3.0.
+        Number of standard deviations from the mean to traverse for the latent walk. Default is 3.0. If passing `sigma=None`, the min and max of the range are used as endpoints for the walk.
     n_steps: int, optional
         Number of steps in the latent walk. Default is 10.
     use_pcs: bool, optional
