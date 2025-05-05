@@ -23,7 +23,7 @@ def generate_results(args: dict) -> None:
     out_dir_validation = Path(args['output_dir']) / 'validation' / dataset_name / f'P{args["position"]}'
     out_dir_validation.mkdir(exist_ok=True, parents=True)
 
-    out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
+    out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}.ome.tiff'
     out_path_validation = out_dir_validation / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose_overlay.ome.tiff'
     if (args['overwrite'] == False) and out_path.exists():
         print(' - output already exists, skipping...')
@@ -100,8 +100,9 @@ def main(dataset_name: str|List|None = None, n_proc: int = 1, save_output: bool 
     # so I will only analyze .sldy files for now out of an abundance of caution
     # until .ome.zarr files are available
     if dataset_name == None:
-        dataset_name_list = [config_data['name']
-                            for config_data in load_config(config_type='data')
+        config_data = load_config(config_type='data')
+        dataset_name_list = [dataset_name
+                            for dataset_name, config_data in config_data.items()
                             if (config_data['microscope'] == '3i'
                                 and config_data['live_or_fixed_sample'] == 'live')
                                 and 'AICS-126' in config_data['cell_lines']
