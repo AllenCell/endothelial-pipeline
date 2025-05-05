@@ -84,7 +84,7 @@ def get_level_shapes(
     return level_shapes
 
 
-def get_zarr_chunk_dims(im_shape: tuple) -> list[tuple]:
+def get_zarr_chunk_dims(im_shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]) -> list[tuple]:
     """
     Determines the chunk dimensions for Zarr storage.
 
@@ -95,7 +95,7 @@ def get_zarr_chunk_dims(im_shape: tuple) -> list[tuple]:
     list[tuple]: A list of chunk dimensions for each resolution level.
     """
     chunk_dims = []
-    level_shapes = get_level_shapes(im_shape)
+    level_shapes = get_level_shapes(im_shape, xy_scaling, z_scaling)
     for i, dim in enumerate(level_shapes):
         z = np.min([dim[-3], 4**i])
         chunk_dims.append((1, 1, z, dim[-2], dim[-1]))
@@ -112,6 +112,8 @@ def write_scene(
     position: int,
     physical_pixel_sizes: PhysicalPixelSizes,
     interval_min: float,
+    xy_scaling: list[float] = [0.5], 
+    z_scaling: list[float] = [1.0]
 ) -> None:
     """
     Writes a scene to a Zarr store.
@@ -128,13 +130,12 @@ def write_scene(
     Returns:
     None
     """
-
-    zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape)
+    zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
 
     writer = ome_zarr_writer.OmeZarrWriter()
     writer.init_store(
         output_path=full_zarr_path,
-        shapes=get_level_shapes(im.shape),
+        shapes=get_level_shapes(im.shape, xy_scaling, z_scaling),
         chunk_sizes=zarr_chunk_dims_tuples,
         dtype=im.dtype,
     )
