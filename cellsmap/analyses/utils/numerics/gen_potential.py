@@ -241,47 +241,6 @@ def grad_flux_decomposition(
 
     return potential, gradient_term, diffusion_geometry, flux_term
 
-
-def compute_D_gradU_f(potential, 
-                      drift, 
-                      diffusion, 
-                      dx):
-    """
-    Compute the term D(x) grad(U) + f(x) for a given potential U, 
-    drift vector field f, and diagonal diffusion matrix D(x).
-
-    Inputs:
-    - potential: np.ndarray, potential U=-lnP evaluated
-        on a d-D grid (n1 x n2 x ... x nd array)
-    - drift: np.ndarray, drift vector field evaluated 
-        on a d-D grid (d x n1 x n2 x ... x nd array)
-    - diffusion: np.ndarray, diagonal terms of diffusion matrix 
-        evaluated on an dD grid (dimensions d x n1 x n2 x ... nd)
-    - dx: list, grid spacing in each dimension
-
-    Outputs:
-    - D_gradU_f: np.ndarray, D(x) grad(U) + f(x) (dimensions N x n1 x n2 x ... x nN)
-    """
-    d = len(dx)  # number of dimensions
-
-    # initialize array to store D(x) grad(U) + f(x)
-    d_grad_u_f = np.zeros_like(drift)  
-    # take advantage of diagonal matrix structure: 
-    # element i of D(x)*grad(U(x)) is D[i]*gradU[i]
-    for i in range(d):
-        # grad(U): numerical gradient
-        grad_u_i = np.gradient(potential, 
-                               dx[i], 
-                               axis=i, 
-                               edge_order=2)
-
-        # compute D(x) grad(U) + f(x)
-        d_grad_u_f[i] = diffusion[i] * grad_u_i \
-                             + drift[i]
-
-    return d_grad_u_f
-
-
 def entropy_production(
     p: np.ndarray, 
     drift: np.ndarray, 
