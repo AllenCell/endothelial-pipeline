@@ -1,6 +1,5 @@
 from collections.abc import Callable
 
-import fipy
 import numpy as np
 import pysindy as ps
 
