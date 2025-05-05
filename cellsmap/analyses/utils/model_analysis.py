@@ -100,7 +100,7 @@ def model_data_comparison(
     model: list[Callable],
     fig_savedir: str,
     pca: Pipeline,
-    PCs: list,
+    pcs: list,
     bins: list,
     ds_to_skip: list,
     pplane_xvec: np.ndarray,
@@ -118,7 +118,7 @@ def model_data_comparison(
     - fig_savedir: str, directory to save figures
     - pca: Pipeline object, PCA object fit to feature data 
         (can include scaling)
-    - PCs: list of ints, indices of which PCs model 
+    - pcs: list of ints, indices of which PCs model 
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
     - ds_to_skip: list of str, dataset names to skip 
@@ -154,7 +154,7 @@ def model_data_comparison(
 
         for j in range(num_flow):  # get bins and centers for data at high and low flow
             fig1, _, fig2, _ = model_data_comparison_one_dataset(
-                model, df_by_flow[j], shear_list[j], PCs, bins, pplane_xvec, pplane_yvec
+                model, df_by_flow[j], shear_list[j], pcs, bins, pplane_xvec, pplane_yvec
             )
 
             # add dataset name and shear stress to figure 
@@ -217,7 +217,7 @@ def get_fixed_points_by_shear(
 
     for u in shear_range:
 
-        def myFlow(x):  # define ODE "flow" function (drift function, u is fixed)
+        def my_flow(x):  # define ODE "flow" function (drift function, u is fixed)
             return f(x, u)
 
         # for finding fixed points numerically, we need to provide initial guesses
@@ -228,9 +228,9 @@ def get_fixed_points_by_shear(
             for j in range(len(x2_coarse))
         ]
         # get fixed points and classify them
-        fpts = pplane.get_fps(myFlow, init_coarse)
+        fpts = pplane.get_fps(my_flow, init_coarse)
         fpt_types, fpts_, _ = pplane.classify_fps(
-            myFlow, fpts, [x1, x2], unique=False, verbose=False
+            my_flow, fpts, [x1, x2], unique=False, verbose=False
         )
 
         # store fixed points and their types in dictionary
@@ -246,7 +246,7 @@ def get_fixed_points_by_shear(
 def run_fixed_point_analysis(
     drift_function: Callable,
     shear_range: np.ndarray,
-    PCs: list,
+    pcs: list,
     plt_lims: list,
     fig_savedir: str,
 ) -> None:
@@ -272,9 +272,9 @@ def run_fixed_point_analysis(
     """
     print("*** Running fixed point analysis...\n")
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
-    figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, PCs, plt_lims)
+    figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pcs, plt_lims)
     for i in range(len(figs)):
-        vb.save_plot(figs[i], fig_savedir + "fixed_points_by_shear_" + str(i))
+        vb.save_plot(figs[i], fig_savedir + f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
@@ -304,29 +304,40 @@ def get_epr(
         as a function of shear stress
     """
     # get drift and diffusion functions
-    f = model[0]
-    D = model[1]
+    drift = model[0]
+    diffusion = model[1]
 
     # get mesh grid functions for drift and diffusion
-    f_mesh = model_eval.mesh_grid_function(f)
-    D_mesh = model_eval.mesh_grid_function(D)
+    drift_mesh = model_eval.mesh_grid_function(drift)
+    diff_mesh = model_eval.mesh_grid_function(diffusion)
 
     tic = time()
 
     # drift_diffusion_vary_shear = []
     epr = np.zeros(len(shear_range))
     for i, shear in enumerate(shear_range):
-        f_vals = f_mesh(np.meshgrid(*centers), shear).T
-        D_vals = D_mesh(np.meshgrid(*centers), shear).T
+        drift_vals = drift_mesh(np.meshgrid(*centers), shear).T
+        diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
 
         # get stationary probability distribution
-        P = model_eval.get_stationary_probability(f_vals, D_vals, bins)
+        p = model_eval.get_stationary_probability(
+            drift_vals, 
+            diff_vals, 
+            bins
+            )
 
         # get entropy production rate
-        epr[i] = gp.entropy_production(P, f_vals, D_vals, centers, additive_noise)
+        epr[i] = gp.entropy_production(
+            p, 
+            drift_vals, 
+            diff_vals, 
+            centers, 
+            additive_noise
+            )
 
         # free up memory
-        del f_vals, D_vals, P
+        del drift_vals, diff_vals, p
+
     toc = time()
     if toc - tic > 60:
         print(
@@ -414,27 +425,27 @@ def run_gen_potential_analysis(
     - None, saves figures to fig_savedir
     """
     print("*** Running generalized potential energy landscape analysis...\n")
-    f = model[0]
-    D = model[1]
+    drift = model[0]
+    diffusion = model[1]
 
     # define mesh grid functions for drift and diffusion
-    f_mesh = model_eval.mesh_grid_function(f)
-    D_mesh = model_eval.mesh_grid_function(D)
+    drift_mesh = model_eval.mesh_grid_function(drift)
+    diff_mesh = model_eval.mesh_grid_function(diffusion)
 
     for ii, u in enumerate(shear_range):
         # evaluate drift and diffusion functions at 
         # grid points for given shear stress
-        f_vals = f_mesh(np.meshgrid(*centers), u).T
-        D_vals = D_mesh(np.meshgrid(*centers), u).T
+        drift_vals = drift_mesh(np.meshgrid(*centers), u).T
+        diff_vals = diff_mesh(np.meshgrid(*centers), u).T
 
         # get stationary probability distribution to get 
         # generalized potential energy landscape U
-        p_fit = model_eval.get_stationary_probability(f_vals, D_vals, bins)
-        U = -np.log(p_fit)
+        p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+        potential = -np.log(p_fit)
 
         # plot generalized potential energy landscape
         fig, ax = dviz.plot_gen_potential_2d(
-            U, centers[0], centers[1], cmap="jet", surf=False
+            potential, centers[0], centers[1], cmap="jet", surf=False
         )
         ax.set_xlabel(f"PC{pcs[0] + 1}")
         ax.set_ylabel(f"PC{pcs[1] + 1}")
@@ -453,7 +464,7 @@ def run_gen_potential_analysis(
 
         # get gradient/flux decomposition
         _, grad_term, _, flux_term = gp.grad_flux_decomposition(
-            f_vals, D_vals, centers, additive_noise
+            drift_vals, diff_vals, centers, additive_noise
         )
 
         # was having issues with flux_term being an
@@ -465,7 +476,7 @@ def run_gen_potential_analysis(
 
         # plot gradient/flux decomposition on top of landscape
         fig, ax = dviz.plot_grad_flux_decomposition(
-            U,
+            potential,
             centers[0],
             centers[1],
             grad_term,
