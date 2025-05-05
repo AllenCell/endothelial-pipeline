@@ -1,15 +1,24 @@
 import json
-import fire
-import torch
-from typing import Dict, Union, Sequence
 from pathlib import Path
-import pandas as pd
+from typing import Dict, Sequence, Union
 
+import fire
+import pandas as pd
+import torch
 from cyto_dl.api import CytoDLModel
-from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P, update_dataset_config
-from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
-from cellsmap.util.set_output import get_output_path
+
+from cellsmap.model_features.utils.mlflow_utils import (
+    download_mlflow_artifact,
+    download_model,
+)
+from cellsmap.util.dataset_io import (
+    extract_P,
+    get_model_info,
+    get_zarr_path,
+    update_dataset_config,
+)
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
+from cellsmap.util.set_output import get_output_path
 
 # the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1
