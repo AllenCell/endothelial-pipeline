@@ -1,11 +1,12 @@
-from bioio import BioImage
-import numpy as np
-from cellsmap.util import dataset_io
-import matplotlib.pyplot as plt
-from skimage.measure import label
-from matplotlib.colors import ListedColormap, BoundaryNorm
 import colorcet as cc
+import matplotlib.pyplot as plt
+import numpy as np
+from bioio import BioImage
+from matplotlib.colors import BoundaryNorm, ListedColormap
+from skimage.measure import label
+
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util import dataset_io
 
 
 def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
@@ -16,9 +17,7 @@ def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
 
     image = BioImage(fov_path)
     stdev_proj = image.get_image_data("YX", C=1)
-    brightfield_data = image.get_image_data(
-        "YX", C=0
-    )
+    brightfield_data = image.get_image_data("YX", C=0)
     segmentation_data = image.get_image_data("YX", C=2)
     labeled_image = label(segmentation_data)
 
