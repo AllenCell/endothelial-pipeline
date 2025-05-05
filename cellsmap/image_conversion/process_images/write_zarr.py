@@ -3,9 +3,7 @@ import numpy as np
 from bioio import BioImage
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
-from tqdm import tqdm
 
-# from pathlib import Path
 from cellsmap.util import dataset_io
 
 

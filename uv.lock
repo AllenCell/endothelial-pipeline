@@ -703,7 +703,7 @@ requires-dist = [
     { name = "bioio-tifffile", specifier = ">=1.0.1" },
     { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1.0" },
     { name = "colorcet", specifier = ">=3.1.0" },
-    { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.0" },
+    { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.1" },
     { name = "fastparquet", specifier = ">=2024.11.0" },
     { name = "fipy", specifier = ">=3.4.5" },
     { name = "fire", specifier = ">=0.6.0" },
@@ -742,7 +742,7 @@ docs = [
 ]
 lint = [
     { name = "black", specifier = ">=24.4.2" },
-    { name = "isort", specifier = ">=5.13.2" },
+    { name = "isort", specifier = "<=5.13.2" },
     { name = "mypy", specifier = ">=1.10.0" },
     { name = "ruff", specifier = ">=0.4.6" },
 ]
@@ -1044,7 +1044,7 @@ wheels = [
 
 [[package]]
 name = "cyto-dl"
-version = "0.6.0"
+version = "0.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anndata" },
@@ -1083,9 +1083,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/f6/8fb114dc567a243e167fb6cd2329902d76e1a06e121cf624745367d276ca/cyto-dl-0.6.0.tar.gz", hash = "sha256:9106e8d48f94358d2e7d228a35fdebb43d03c5f4664cfeb2a0ea377236821500", size = 436716, upload-time = "2025-04-25T21:21:32.709Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/74/df392a762a8e2e070a11faaf714553d2d30df38343e030100982b6888d76/cyto-dl-0.6.1.tar.gz", hash = "sha256:f3a3a5d5110a3bd549c8c930d614f8f42759824f2a587bfe12a0ac0229d914ee", size = 438080, upload-time = "2025-05-05T20:42:15.459Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/fc/65da5d1a87e394c257fb5f57f243f56b4728c00271dc3c860eeacb304c25/cyto_dl-0.6.0-py3-none-any.whl", hash = "sha256:8fd4ab3dedc47632670b9fdd1b2555e05ba5a77581d4ff6da7eedb6b5ddb92f9", size = 309375, upload-time = "2025-04-25T21:21:30.49Z" },
+    { url = "https://files.pythonhosted.org/packages/22/df/930ad85f8c005c68c22acf54ae8f8159d86d3ac83acb7ec93ef0449a59b8/cyto_dl-0.6.1-py3-none-any.whl", hash = "sha256:7c33e6df980299a590ac41ecc3a4f053e7c95ad1bd9f595bbcef09eb365ddb92", size = 310639, upload-time = "2025-05-05T20:42:13.398Z" },
 ]
 
 [[package]]
@@ -1919,11 +1919,11 @@ wheels = [
 
 [[package]]
 name = "isort"
-version = "6.0.1"
+version = "5.13.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b8/21/1e2a441f74a653a144224d7d21afe8f4169e6c7c20bb13aec3a2dc3815e0/isort-6.0.1.tar.gz", hash = "sha256:1cb5df28dfbc742e490c5e41bad6da41b805b0a8be7bc93cd0fb2a8a890ac450", size = 821955, upload-time = "2025-02-26T21:13:16.955Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/f9/c1eb8635a24e87ade2efce21e3ce8cd6b8630bb685ddc9cdaca1349b2eb5/isort-5.13.2.tar.gz", hash = "sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109", size = 175303, upload-time = "2023-12-13T20:37:26.124Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/11/114d0a5f4dabbdcedc1125dee0888514c3c3b16d3e9facad87ed96fad97c/isort-6.0.1-py3-none-any.whl", hash = "sha256:2dc5d7f65c9678d94c88dfc29161a320eec67328bc97aad576874cb4be1e9615", size = 94186, upload-time = "2025-02-26T21:13:14.911Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/b3/8def84f539e7d2289a02f0524b944b15d7c75dab7628bedf1c4f0992029c/isort-5.13.2-py3-none-any.whl", hash = "sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6", size = 92310, upload-time = "2023-12-13T20:37:23.244Z" },
 ]
 
 [[package]]
