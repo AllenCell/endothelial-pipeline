@@ -102,7 +102,7 @@ def kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = mv.plot_km_drift_2D(centers, kmc, pcs, shear_list[j])[0]
+            fig = mv.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             vb.save_plot(
                 fig,
                 filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",

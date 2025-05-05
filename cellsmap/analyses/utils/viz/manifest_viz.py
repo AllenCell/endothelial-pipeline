@@ -12,10 +12,11 @@ from cellsmap.util.manifest_preprocessing import (
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     """
-    Plot explained variance ratio of PCA components.
+    Plot cumulative explained variance ratio of PCA components.
 
     Input:
-    - explained_variance_ratio: np.ndarray, explained variance ratio of PCA components
+    - explained_variance_ratio: np.ndarray, explained variance 
+        ratio of PCA components
 
     Output:
     - fig: plt.Figure
@@ -25,9 +26,14 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
-    ax.plot(np.arange(1, n_components + 1), np.cumsum(explained_variance_ratio), "k-o")
+    ax.plot(np.arange(1, n_components + 1), 
+            np.cumsum(explained_variance_ratio), 
+            "k-o"
+            )
     ax.plot(
-        np.arange(1, n_components + 1), 0.95 * np.ones(n_components), "r--", alpha=0.8
+        np.arange(1, n_components + 1), 
+        0.95 * np.ones(n_components), 
+        "r--", alpha=0.8
     )  # 95% explained variance line
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
@@ -36,16 +42,22 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: tuple | None = None) -> tuple:
+def plot_top_3_PCs(feats_proj: np.ndarray, 
+                   fig_ax: tuple | None = None
+                   ) -> tuple:
     """
-    Plot Diffusion AE feature data from a dataset along the top 3 principal components.
-    At each frame in the dataset, takes the mean and standard deviation of the feature data
-    projected onto the top 3 PCs over all crops. Then plots the mean and standard deviation
-    of the feature data projected onto each PC over all frames in the dataset.
+    Plot Diffusion AE feature data from a dataset along 
+    the top 3 principal components. At each frame in the dataset, 
+    takes the mean and standard deviation of the feature data
+    projected onto the top 3 PCs over all crops. 
+    Then plots the mean and standard deviation of the feature data 
+    projected onto each PC over all frames in the dataset.
 
     Input:
-    - feats_proj: np.ndarray, feature data projected onto the top 3 PCs for a single dataset
-    - fig_ax: tuple (default=None), tuple of plt.Figure and plt.Axes objects to plot on
+    - feats_proj: np.ndarray, feature data projected onto 
+        the top 3 PCs for a single dataset
+    - fig_ax: tuple (default=None), tuple of plt.Figure and 
+        plt.Axes objects to plot on
         - if None, initializes a new figure and axes
 
     Output:
@@ -59,13 +71,16 @@ def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: tuple | None = None) -> tuple
         fig, ax = fig_ax
     assert len(ax) == 3, "Number of subplots must be 3"
 
-    # get mean and standard deviation of feature data projected onto top 3 PCs
-    # mean and standard deviation taken over all crops at each timepoint
+    # get mean and standard deviation of feature data 
+    # projected onto top 3 PCs
+    # mean and standard deviation taken over 
+    # all crops at each timepoint
     num_T = feats_proj.shape[1]
     st_dev = np.std(feats_proj, axis=0)
     mean_feats = np.mean(feats_proj, axis=0)
 
-    # loop over PCs, plot mean and standard deviation of feature data projected onto each PC
+    # loop over PCs, plot mean and standard deviation 
+    # of feature data projected onto each PC
     for col, ax_ in enumerate(ax):  # len(ax) = 3
         # plot mean values
         ax_.plot(np.arange(num_T), mean_feats[:, col], "k-")
@@ -88,16 +103,18 @@ def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: tuple | None = None) -> tuple
 
 def plot_top_3_PCs_alldata(pca: Pipeline) -> tuple:
     """
-    Plot projection of feature data from all datasets along the top 3 principal components.
+    Plot projection of feature data from all datasets 
+    along the top 3 principal components.
 
-    For each dataset, projects the feature data onto the top 3 PCs, gets the mean and standard deviation
-    over all crops at each frame, and plots this mean and standard deviation vs. frame number for each PC.
+    For each dataset, projects the feature data onto 
+    the top 3 PCs, gets the mean and standard deviation
+    over all crops at each frame, and plots this mean 
+    and standard deviation vs. frame number for each PC.
     Calls plot_top_3_PCs() to plot the data for each dataset.
 
-    TO DO: set y-axis limits to be the same for all subplots (tbd based on inputs or data)
-
     Input:
-    - pca: Pipeline, the PCA model used to project the feature data onto the top 3 PCs
+    - pca: Pipeline, the PCA model used to project the 
+        feature data onto the top 3 PCs
         - can include any preprocessing steps before PCA, such as scaling
 
     Output:
@@ -165,79 +182,37 @@ def plot_top_3_PCs_alldata(pca: Pipeline) -> tuple:
 
     return fig, axs
 
-
-def plot_PCA_projection_2D(
-    feats_proj: np.ndarray, fig_title: str | None = None, fig_ax: tuple | None = None
-) -> tuple:
-    """
-    Plot mean values of projected feature data onto the top 2 PCs for each frame in the dataset.
-
-    Input:
-    - feats_proj: np.ndarray, feature data projected onto the top 2 PCs for a single dataset
-    - fig_title: str (default=None), title of the figure
-    - fig_ax: tuple (default=None), tuple of plt.Figure and plt.Axes objects to plot on
-        - if None, initializes a new figure and axes
-
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
-    """
-    # initialize figure and axes, if not provided
-    if fig_ax is not None:
-        fig, ax = fig_ax
-    else:
-        fig, ax = vb.init_plot()
-
-    # get mean values of feature data projected onto top 2 PCs
-    # mean taken over all crops at each timepoint
-    num_T = feats_proj.shape[1]
-    mean_feats = np.mean(feats_proj, axis=0)
-
-    # plot mean values, color coded by frame number (timepoint)
-    ax.scatter(mean_feats[:, 0], mean_feats[:, 1], c=range(num_T), cmap="jet")
-
-    # set axis labels and title
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    if fig_title is not None:
-        ax.set_title(fig_title)
-
-    return fig, ax
-
-
 def plot_km(
-    centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
+    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
 ) -> tuple:
-    """
-    Plot Kramers-Moyal coefficients.
-    """
-    ndim = len(PCs)
+    """Plot Kramers-Moyal coefficients in 1 or 2D."""
+    ndim = len(pcs)
     if ndim == 2:
-        X_1, X_2 = np.meshgrid(*centers)
+        x_1, x_2 = np.meshgrid(*centers)
         fig = plt.figure(figsize=(12, 8))
 
         ax_00 = fig.add_subplot(2, 2, 1, projection="3d")
 
-        # the Kramers−Moyal coefficients [1,0]: first component of drift
-        ax_00.contour3D(X_1, X_2, kmc[0], 50, cmap="Greens", alpha=0.5)
+        # the Kramers-Moyal coefficients [1,0]: first component of drift
+        ax_00.contour3D(x_1, x_2, kmc[0], 50, cmap="Greens", alpha=0.5)
         ax_00.set_title("$\hat{D}^{(1)}_1$")
 
-        # the Kramers−Moyal coefficients [0,1]: second component of drift
+        # the Kramers-Moyal coefficients [0,1]: second component of drift
         ax_01 = fig.add_subplot(2, 2, 2, projection="3d")
 
-        ax_01.contour3D(X_1, X_2, kmc[1], 50, cmap="Greens", alpha=0.5)
+        ax_01.contour3D(x_1, x_2, kmc[1], 50, cmap="Greens", alpha=0.5)
         ax_01.set_title("$\hat{D}^{(1)}_2$")
 
-        # the Kramers−Moyal coefficients [2,0]: first component of diffusion (diagonal)
+        # the Kramers-Moyal coefficients [2,0]: first component of diffusion (diagonal)
         ax_10 = fig.add_subplot(2, 2, 3, projection="3d")
 
-        ax_10.contour3D(X_1, X_2, kmc[2], 50, cmap="Greens", alpha=0.5)
+        ax_10.contour3D(x_1, x_2, kmc[2], 50, cmap="Greens", alpha=0.5)
         ax_10.set_title("$\hat{D}^{(2)}_{11}$")
 
-        # the Kramers−Moyal coefficients [0,2]: second component of diffusion (diagonal)
+        # the Kramers-Moyal coefficients [0,2]: second component of diffusion (diagonal)
         ax_11 = fig.add_subplot(2, 2, 4, projection="3d")
 
-        ax_11.contour3D(X_1, X_2, kmc[3], 50, cmap="Greens", alpha=0.5)
+        ax_11.contour3D(x_1, x_2, kmc[3], 50, cmap="Greens", alpha=0.5)
         ax_11.set_title("$\hat{D}^{(2)}_{22}$")
 
         # Rotate views and add labels
@@ -246,34 +221,34 @@ def plot_km(
         ax_10.view_init(30, 20)
         ax_11.view_init(30, 20)
 
-        ax_00.set_xlabel(f"PC{PCs[0]+1}")
-        ax_01.set_xlabel(f"PC{PCs[0]+1}")
-        ax_10.set_xlabel(f"PC{PCs[0]+1}")
-        ax_11.set_xlabel(f"PC{PCs[0]+1}")
+        ax_00.set_xlabel(f"PC{pcs[0]+1}")
+        ax_01.set_xlabel(f"PC{pcs[0]+1}")
+        ax_10.set_xlabel(f"PC{pcs[0]+1}")
+        ax_11.set_xlabel(f"PC{pcs[0]+1}")
 
-        ax_00.set_ylabel(f"PC{PCs[1]+1}")
-        ax_01.set_ylabel(f"PC{PCs[1]+1}")
-        ax_10.set_ylabel(f"PC{PCs[1]+1}")
-        ax_11.set_ylabel(f"PC{PCs[1]+1}")
+        ax_00.set_ylabel(f"PC{pcs[1]+1}")
+        ax_01.set_ylabel(f"PC{pcs[1]+1}")
+        ax_10.set_ylabel(f"PC{pcs[1]+1}")
+        ax_11.set_ylabel(f"PC{pcs[1]+1}")
 
         fig.suptitle(f"Kramers-Moyal coefficients ({shear_stress} dyn/cm$^2$)")
 
         return fig, ax_00, ax_01, ax_10, ax_11
     elif ndim == 1:
-        X_1 = centers[0]
+        x_1 = centers[0]
         fig = plt.figure(figsize=(12, 8))
         ax_00 = fig.add_subplot(1, 2, 1)
         ax_01 = fig.add_subplot(1, 2, 2)
 
         # drift coefficient
-        ax_00.plot(X_1, kmc[0], "k-")
+        ax_00.plot(x_1, kmc[0], "k-")
         ax_00.set_title("$\hat{D}^{(1)}$")
-        ax_00.set_xlabel(f"PC{PCs[0]+1}")
+        ax_00.set_xlabel(f"PC{pcs[0]+1}")
 
         # diffusion coefficient
-        ax_01.plot(X_1, kmc[1], "k-")
+        ax_01.plot(x_1, kmc[1], "k-")
         ax_01.set_title("$\hat{D}^{(2)}$")
-        ax_01.set_xlabel(f"PC{PCs[0]+1}")
+        ax_01.set_xlabel(f"PC{pcs[0]+1}")
 
         fig.suptitle(
             f"Kramers-Moyal coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)"
@@ -284,19 +259,23 @@ def plot_km(
         raise ValueError("ndim must be 1 or 2")
 
 
-def plot_km_drift_2D(
-    centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
+def plot_km_drift_2d(
+    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
 ) -> tuple:
-    X_1, X_2 = np.meshgrid(*centers)
+    """
+    Plot Kramers-Moyal drift coefficients in 2D
+    (Quiver and streamplot).
+    """
+    x_1, x_2 = np.meshgrid(*centers)
 
     fig, ax = vb.init_subplots()
-    ax[0].quiver(X_1, X_2, kmc[0], kmc[1], color="k", linewidth=0.5)
-    ax[0].set_xlabel(f"PC{PCs[0]+1}")
-    ax[0].set_ylabel(f"PC{PCs[1]+1}")
+    ax[0].quiver(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
+    ax[0].set_xlabel(f"PC{pcs[0]+1}")
+    ax[0].set_ylabel(f"PC{pcs[1]+1}")
 
-    ax[1].streamplot(X_1, X_2, kmc[0], kmc[1], color="k", linewidth=0.5)
-    ax[1].set_xlabel(f"PC{PCs[0]+1}")
-    ax[1].set_ylabel(f"PC{PCs[1]+1}")
+    ax[1].streamplot(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
+    ax[1].set_xlabel(f"PC{pcs[0]+1}")
+    ax[1].set_ylabel(f"PC{pcs[1]+1}")
     fig.suptitle(
         f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)"
     )
