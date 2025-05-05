@@ -9,7 +9,7 @@ from bioio import BioImage
 from scipy.ndimage import gaussian_filter1d
 from multiprocessing import Pool
 from tqdm import tqdm
-from cellsmap.util.dataset_io import get_zarr_path, get_zarr_name, get_original_path
+from cellsmap.util.dataset_io import get_zarr_path, get_zarr_name, get_original_path, get_available_datasets
 from typing import List, Tuple, Any, Sequence
 
 def merge_segprops_and_track_data(
@@ -414,7 +414,7 @@ def plot_tracking_data(big_table_subset: pd.DataFrame,
                           ('time_hours', 'number_of_neighbors', 'Time (hours)', 'Number of Neighbors', (0, None), f'{dataset_name}_P{position}_num_neighbors.png'),
                           ('time_hours', 'num_tracks_at_T', 'Time (hours)', 'Number of Cell Tracks', (0, None), f'{dataset_name}_P{position}_num_tracks.png'),
                           ('time_hours', 'centroid_velocity_angle_deg_rel_to_flow', 'Time (hours)', 'Centroid Velocity Alignment (deg)', (0, 90), f'{dataset_name}_P{position}_centroid_velocity_angles.png'),
-                          ('time_hours', 'centroid_velocity_magnitude', 'Time (hours)', 'Centroid Velocity Magnitude (px/frame)', (0, vel_mag_mean + 2*vel_mag_std), f'{dataset_name}_P{position}_centroid_velocity_magnitudes.png'),
+                          ('time_hours', 'centroid_velocity_magnitude', 'Time (hours)', 'Centroid Velocity Magnitude (px/frame)', (0, None), f'{dataset_name}_P{position}_centroid_velocity_magnitudes.png'),
                           ]
         for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
             out_subdir_plots = out_dir / f'{y_key}/{dataset_name}'
@@ -575,8 +575,10 @@ def main(dataset_name: str|None=None,
                                 and 'cell_lines' in config_data
                                 and 'AICS-126' in config_data['cell_lines']
                                 and config_data['duration'] > 1]
+    elif isinstance(dataset_name, str) or isinstance(dataset_name, Sequence):
+        dataset_name_list = [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
     else:
-        dataset_name_list = [dataset_name]
+        raise ValueError(f'Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}.')
 
     if n_proc > 1:
         n_proc = min(n_proc, len(dataset_name_list))
