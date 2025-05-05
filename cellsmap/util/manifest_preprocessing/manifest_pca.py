@@ -63,7 +63,7 @@ def remove_outliers(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def get_pca_reference(df: pd.DataFrame) -> pd.DataFrame:
+def get_pca_reference(df: pd.DataFrame, dataset_name:str) -> pd.DataFrame:
     """
     Select reference timepoints for fitting PCA based on the dataset annotations
 
@@ -73,10 +73,7 @@ def get_pca_reference(df: pd.DataFrame) -> pd.DataFrame:
     Outputs:
     - df: pd.DataFrame, with an additional column 'pca_ref' indicating whether the timepoint is a reference timepoint
     """
-    if "dataset" not in df.columns:
-        raise ValueError("Data must have a column for dataset")
     df["pca_ref"] = False
-    dataset_name = df.dataset.unique()[0]
     dataset_info = get_dataset_info(dataset_name)
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = dataset_info.get("valid_timepoints")
@@ -109,7 +106,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     for name in reference_datasets:
         df_ = manifest_io.get_diffae_manifest(name)  # get the manifest for the dataset
         df_ = get_pca_reference(
-            df_
+            df_, name
         )  # get df with only the reference timepoints for fitting PCA
         data_ref.append(df_)  # append the reference timepoints to the list
 
