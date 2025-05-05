@@ -69,11 +69,4 @@ generate_tfe_dataset(
     manifest_name=manifest_name,
     backdrops=False,
 )
-# %%
-segmenation="cell_seg",
-output_dir=Path("//allen/aics/assay-dev/users/Chantelle/colorizer_data"),
-df = manifest_io.read_file_to_dataframe(manifest_name)
-df = update_manifest_for_tfe(df, dataset, position, output_dir, segmenation)
-# %%
-df.to_csv(f"//allen/aics/users/chantelle.leveille/repos/cellsmap2/cellsmap/results/{dataset}_P{position}_tfe_manifest.csv", index=False)
-# %%
+#%%
