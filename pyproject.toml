@@ -61,7 +61,7 @@ dev = [
     "pre-commit>=3.7.1",
 ]
 lint = [
-    "isort>=5.13.2",
+    "isort<=5.13.2",
     "black>=24.4.2",
     "ruff>=0.4.6",
     "mypy>=1.10.0",
