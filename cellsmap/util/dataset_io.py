@@ -16,7 +16,7 @@ import re
 
 
 # model methods
-def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
+def load_config(config_type: str = 'data') -> Dict[Dict[str, Any]]:
     if config_type not in ['data', 'model','dynamics']:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
@@ -68,7 +68,7 @@ def get_reference_datasets() -> List[str]:
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     config = load_config()
-    if 'dataset_name' not in config:
+    if dataset_name not in config.keys():
         raise ValueError('Dataset name not found in config file')
     return config[dataset_name]
 
