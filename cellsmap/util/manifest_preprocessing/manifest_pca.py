@@ -76,7 +76,7 @@ def get_pca_reference(df: pd.DataFrame) -> pd.DataFrame:
     if "dataset" not in df.columns:
         raise ValueError("Data must have a column for dataset")
     df["pca_ref"] = False
-    dataset_name = df.dataset.unique()
+    dataset_name = df.dataset.unique()[0]
     dataset_info = get_dataset_info(dataset_name)
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = dataset_info.get("valid_timepoints")
