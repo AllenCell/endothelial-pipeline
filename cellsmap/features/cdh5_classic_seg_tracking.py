@@ -69,6 +69,8 @@ def run_workflow(queue):
 
 def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
 
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+
     if dataset_name == None:
         dataset_name_list = [config_data['name']
                             for config_data in load_config(config_type='data')
@@ -81,11 +83,11 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
 
     analysis_queue = build_analysis_queue(dataset_name_list,
                                           save_output=save_output,
-                                          out_dir=get_output_path(Path(__file__).stem, verbose=False),
+                                          out_dir=out_dir,
                                           overwrite=True,
                                           verbose=verbose,
                                           is_test=is_test,
-                                          image_validation_frequency=0,
+                                          image_validation_frequency=None,
                                           use_original_data=True)
 
     analysis_queue_df = pd.DataFrame(analysis_queue)
@@ -107,6 +109,16 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
 
     print('\N{microscope} Done analysis.')
 
+    for dataset_name in dataset_name_list:
+        tracking_table_paths = (out_dir / dataset_name).glob('**/*.tsv')
+        if tracking_table_paths:
+            pd.concat(
+                [pd.read_csv(fp, sep='\t') for fp in tracking_table_paths]
+                ).to_csv(
+                    out_dir / dataset_name / f'{dataset_name}_tracking.tsv',
+                    index=False,
+                    sep='\t',
+                )
 
 if __name__ == '__main__':
     ipython_cli_flexecute(main, verbose=True)

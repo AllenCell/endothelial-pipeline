@@ -72,7 +72,7 @@ def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
         raise ValueError('Dataset name not found in config file')
     return config[dataset_name]
 
-def get_frame(filename):
+def get_frame(filename: str) -> int:
     return int(str(filename).split('.')[0][-4:])
 
 def get_flow(dataset_name: str, T: float) -> Union[int, float]:
@@ -143,7 +143,7 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
             break
     return zarr_name
 
-def get_specific_channel_order(dataset_name:str):
+def get_specific_channel_order(dataset_name:str) -> tuple[Any, Any, Any]:
     dataset_info = get_dataset_info(dataset_name)
     gfp_index = dataset_info.get('egfp_channel_index')
     bf_index = dataset_info.get('brightfield_channel_index')
@@ -326,7 +326,10 @@ def get_tracking_data_raws(dataset_name_list: List,
                 tracking_data['source_tracking_table_path'] = data_path.as_posix()
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    if tracking_data_list:
+        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+    else: # create an empty dataframe
+        tracking_dataframe = dd.DataFrame.from_dict({})
     return tracking_dataframe if as_dask else tracking_dataframe.compute()
 
 def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> pd.DataFrame:
@@ -391,11 +394,43 @@ def get_measurement_data_raws(dataset_name_list: List,
             measurement_data['source_measurement_table_path'] = data_path.as_posix()
             measurement_data_list.append(measurement_data)
     # open the files and concatenate them into a single dataframe
-    measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
+    if measurement_data_list:
+        measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
+    else: # create an empty dataframe
+        measurement_dataframe = dd.DataFrame.from_dict({})
     return measurement_dataframe if as_dask else measurement_dataframe.compute()
 
+def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
+    """
+    NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
+    Get the segmentation features manifest for a given dataset.
+    The manifest is a TSV file that contains the measurements
+    from the tracked segmentations of a dataset.
+    These datasets are raw / unfiltered.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['segmentation_features_manifest_fmsid']
+    manifest_path = Path(base_path) / f"{dataset_name}_segmentation_features.tsv"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Segmentation features manifest not found at {manifest_path}.")
+    return pd.read_csv(manifest_path, sep='\t')
+
+def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
+    """
+    Get the cell track integration manifest for a given dataset.
+    The integration manifest is a CSV file that contains the
+    track_id, centroids, zarr paths, and crop size of a subset
+    of the tracked segmentations of a dataset.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    base_path = dataset_info['cell_track_integration_manifest_fmsid']
+    integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
+    if not integration_path.exists():
+        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
+    return pd.read_csv(integration_path, sep='\t')
+
 # model methods
-def get_available_models():
+def get_available_models() -> None:
     model_info = load_config('model')
     model_names = [model['name'] for model in model_info]
     for name in model_names:
@@ -441,7 +476,7 @@ def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = F
 
     return results if return_results else None
 
-def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
+def extract_T(fp_as_string: Union[str, Path], int_only: bool=True, use_last_match: bool=True, default_if_not_found: int|str='') -> str|int:
     """
     Extract the timepoint value from a string or Path.name.
     Searches for the pattern "T[0-9]+" to find the timepoint.
@@ -477,15 +512,13 @@ def extract_T(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
 
     index = -1 if use_last_match else 0
     t = re.findall('T[0-9]+', fp_as_string)
-    if t:
-        t_value = int(t[index].split('T')[-1])
-    else:
-        t_value = default_if_not_found
+    t_value = int(t[index].split('T')[-1]) if t else default_if_not_found
+    if not t:
         print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
 
     return t_value if int_only else f'T{t_value}'
 
-def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True, default_if_not_found=''):
+def extract_P(fp_as_string: Union[str, Path], int_only: bool=True, use_last_match: bool=True, default_if_not_found: int|str='') -> str|int:
     """
     Extract the position value from a string or Path.name.
     Searches for the pattern "P[0-9]+" to find the position.
@@ -521,10 +554,8 @@ def extract_P(fp_as_string: Union[str, Path], int_only=True, use_last_match=True
 
     index = -1 if use_last_match else 0
     p = re.findall('P[0-9]+', fp_as_string)
-    if p:
-        position_value = int(p[index].split('P')[-1])
-    else:
-        position_value = default_if_not_found
+    position_value = int(p[index].split('P')[-1]) if p else default_if_not_found
+    if not p:
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f'P{position_value}'

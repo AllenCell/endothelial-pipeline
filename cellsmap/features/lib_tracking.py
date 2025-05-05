@@ -793,6 +793,8 @@ def run_tracking(
             function parse_paths has been created to handle these files.
     """
     out_dir = Path(out_dir)
+    dim_order = 'TCZYX'
+    dim_map = get_dim_map(dim_order)
 
     for fps in [in_dir, out_dir]:
         assert isinstance(fps, (tuple, list, Path, str)) or fps==None, 'in_dir, out_dir must be Path-like or a list of Paths'
@@ -886,8 +888,6 @@ def run_tracking(
                 overlay_crop = crops_for_overlay[idx]
                 if extra_in_dir:
                     if overlay_path and overlay_crop:
-                        dim_order = 'TCZYX'
-                        dim_map = get_dim_map(dim_order)
                         raw_image = BioImage(overlay_path)
                         if extra_scene:
                             raw_image.set_scene(extra_scene)
@@ -913,6 +913,16 @@ def run_tracking(
         out_path = out_dir / table_out_name
         print(f'Saving tracking table to {out_path}') if verbose else None
 
+        # split the 'centroid' column into separate columns for each dimension
+        if 'centroid' in track_table.columns:
+            centroid_subdf = pd.DataFrame(track_table['centroid'].tolist(), index=track_table.index)
+            num_centroid_dims = len(centroid_subdf.columns)
+            # note that we have to iterate through the coordinates
+            # in reverse
+            centroid_dims = dim_order[::-1][:num_centroid_dims][::-1]
+            for i in range(num_centroid_dims):
+                dim = centroid_dims[i]
+                track_table[f'centroid_{dim}'] = centroid_subdf[i]
         track_table.to_csv(out_path, index=False, sep='\t')
 
 

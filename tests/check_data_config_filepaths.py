@@ -4,6 +4,7 @@ from cellsmap.util import dataset_io
 from bioio import BioImage
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 #%%
 print('Available datasets:')
 dataset_name_list = dataset_io.get_available_datasets()
