@@ -809,6 +809,8 @@ def run_tracking(
             function parse_paths has been created to handle these files.
     """
     out_dir = Path(out_dir)
+    dim_order = 'TCZYX'
+    dim_map = get_dim_map(dim_order)
 
     dim_order = 'TCZYX'
     dim_map = get_dim_map(dim_order)

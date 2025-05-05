@@ -76,6 +76,8 @@ def main(n_proc: int = 1,
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+
     if dataset_name == None:
         dataset_name_list = [config_data['name']
                             for config_data in load_config(config_type='data')

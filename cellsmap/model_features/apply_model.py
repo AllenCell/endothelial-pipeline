@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from cyto_dl.api import CytoDLModel
-from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P
+from cellsmap.util.dataset_io import get_model_info, get_zarr_path, extract_P, update_dataset_config
 from cellsmap.model_features.utils.mlflow_utils import download_model, download_mlflow_artifact
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
@@ -155,6 +155,11 @@ def apply_model_single(model_name:str, dataset_name: str, resolution_level:int=0
 
     if upload_to_fms:
         file_id = save_file_to_fms(prediction_path, dataset_name, commit_hash, misc_notes='', mlflow_run_id=mlflow_id)
+
+        update_dataset_config(
+            dataset_name=dataset_name,
+            {'diffae_manifest_fmsid': file_id},
+        )
 
     return prediction_path  
 
