@@ -1,21 +1,22 @@
-import fire
-import torch
-from typing import Dict, Union, Optional, Any, Sequence
 from pathlib import Path
-import pandas as pd
+from typing import Any, Dict, Optional, Sequence, Union
 
+import fire
+import pandas as pd
+import torch
 from cyto_dl.api import CytoDLModel
+
+from cellsmap.model_features.apply_model import get_cytodl_commit_hash, load_overrides
+from cellsmap.model_features.utils.mlflow_utils import download_model
 from cellsmap.util.dataset_io import (
-    get_model_info,
-    get_dataset_info,
     extract_P,
+    get_dataset_info,
     get_fmsid,
+    get_model_info,
 )
 from cellsmap.util.manifest_io import get_dataframe_by_fmsid
-from cellsmap.model_features.utils.mlflow_utils import download_model
-from cellsmap.util.set_output import get_output_path
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.model_features.apply_model import load_overrides, get_cytodl_commit_hash
+from cellsmap.util.set_output import get_output_path
 
 ZARR_BF_CHANNEL = 1
 
