@@ -1,15 +1,13 @@
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import wasserstein_distance_nd as emd
 
 from cellsmap.analyses.utils.viz import viz_base as vb
 
 
 def plot_fixed_points_by_shear(
     fpt_dict_list: list, shear_range: np.ndarray, PCs: list, plt_lims: list
-) -> Tuple[list[plt.Figure], list[plt.Axes]]:
+) -> tuple[list[plt.Figure], list[plt.Axes]]:
     """
     Plot individual components of fixed points (one for each dimension of the
     state space used to fit the dynamical systems model) of the system by shear stress.
@@ -161,7 +159,7 @@ def kl_divergence(p, q, dx, tol=1e-8):
 
 def compare_stationary_distributions(
     p_model: np.ndarray, p_hist: np.ndarray, bins
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Side-by-side plots of the histogram of the data at steady state ("empirical PDF") and the numerical solution
     to the stationary Fokker-Planck equation for the fit SDE model ("model PDF"). The figure suptitle includes
@@ -202,7 +200,7 @@ def compare_stationary_distributions(
     KL = kl_divergence(p_hist, p_model, dx)
 
     fig.suptitle(
-        "$D_{KL}(p_{hist}||p_{model}) =$" + "{:0.4f}".format(KL), fontsize=16, y=1.05
+        "$D_{KL}(p_{hist}||p_{model}) =$" + f"{KL:0.4f}", fontsize=16, y=1.05
     )
 
     return fig, ax
@@ -210,7 +208,7 @@ def compare_stationary_distributions(
 
 def plot_entropy_production_rate(
     epr: np.ndarray, shear_range: np.ndarray
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot entropy production rate as a function of shear stress.
 
@@ -231,7 +229,7 @@ def plot_entropy_production_rate(
 
 def plot_gen_potential_1D(
     U: np.ndarray, xvec: np.ndarray
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 1D generalized potential energy landscape.
 
@@ -256,7 +254,7 @@ def plot_gen_potential_2D(
     yvec: np.ndarray,
     cmap: str = "jet",
     surf: bool = False,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 2D generalized potential energy landscape with specified colormap.
 
@@ -301,7 +299,7 @@ def plot_grad_flux_decomposition(
     cmap: str = "jet",
     normed: bool = False,
     downsample: int = 10,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot quiver plot of gradient and flux decomposition of drift vector field
     over a contour plot of the 2D generalized potential energy landscape.

@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 from scipy.integrate import simpson
@@ -39,7 +38,7 @@ def gradient_flow_term(U: np.ndarray, D: np.ndarray, x: list) -> np.ndarray:
 
 def compute_J_terms(
     P: np.ndarray, f: np.ndarray, D: np.ndarray, dx: list, additive_noise: bool
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute the terms needed for the stationary probability flux J(x) = f(x)P(x) - div(D(x) P(x))
     for a given drift vector field f and diagonal diffusion matrix D with stationary
@@ -126,7 +125,7 @@ def probability_flux(
 
 def grad_flux_decomposition(
     f: np.ndarray, D: np.ndarray, x: list, additive_noise: bool, tol: float = 1e-8
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute the gradient/flux decomposition of the drift vector field f(x) for
     stochastic dynamics with diagonal diffusion matrix D(x):

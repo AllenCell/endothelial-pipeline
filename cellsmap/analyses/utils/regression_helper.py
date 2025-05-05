@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -10,7 +9,7 @@ import cellsmap.util.dataset_io as dio
 
 def get_bins(
     Nbins: list, data: pd.DataFrame | None = None, bin_limits: list | None = None
-) -> Tuple[list, list]:
+) -> tuple[list, list]:
     """
     Generate histogram bins for computing Kramers-Moyal estimates from trajectories, either automatically based on data or user-defined.
 
@@ -60,7 +59,7 @@ def get_bins(
 
 def get_X_by_flow(
     df_proj: pd.DataFrame, ds_name: str, verbose: bool = True
-) -> Tuple[list, list]:
+) -> tuple[list, list]:
     """
     Get crop-based feature data (Diffusion AE output) for different flow conditions present in dataset ds_name.
 
@@ -112,7 +111,7 @@ def get_X_by_flow(
     return data_all, shear_list
 
 
-def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> Tuple[list, list, list]:
+def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> tuple[list, list, list]:
     """
     Get list of per-crop trajectories, the corresponding displacement vectors, and time differences along the trajectory for each crop in the dataset.
 
@@ -172,7 +171,7 @@ def get_kramers_moyal(
     dt: float,
     method: str = "kernel",
     kernel_params: dict | None = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Wrapper function for Kramers-Moyal coefficients for drift and diffusion estimates.
     Calls either the kernel or histogram method for estimating Kramers-Moyal coefficients.
@@ -203,7 +202,7 @@ def get_kramers_moyal(
     return f_KM, D_KM
 
 
-def masked_vector_field(F: np.ndarray, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def masked_vector_field(F: np.ndarray, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     For the vector field F over grid X, mask out F at points X where F(X) is NaN.
 

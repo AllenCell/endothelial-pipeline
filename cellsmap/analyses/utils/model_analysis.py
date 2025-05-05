@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from time import time
-from typing import Callable, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +27,7 @@ def model_data_comparison_one_dataset(
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
     use_fipy: bool = False,
-) -> Tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
     """
     Qualitative evaluation of fit SDE model by taking one dataset at one flow condition,
     generating phase portrait of the drift term at shear stress = shear stress from data, and comparing
@@ -305,15 +305,11 @@ def get_epr(
     toc = time()
     if toc - tic > 60:
         print(
-            "Time to calculate entropy production rate: {:.2f} minutes".format(
-                np.round((toc - tic) / 60, 4)
-            )
+            f"Time to calculate entropy production rate: {np.round((toc - tic) / 60, 4):.2f} minutes"
         )
     else:
         print(
-            "Time to calculate entropy production rate: {:.2f} seconds".format(
-                toc - tic
-            )
+            f"Time to calculate entropy production rate: {toc - tic:.2f} seconds"
         )
 
     return epr

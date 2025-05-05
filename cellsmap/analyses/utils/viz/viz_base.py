@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 
@@ -16,7 +15,7 @@ plt_params = {
 plt.rcParams.update(plt_params)
 
 
-def init_plot(figsize: tuple = (7, 6)) -> Tuple[plt.Figure, plt.Axes]:
+def init_plot(figsize: tuple = (7, 6)) -> tuple[plt.Figure, plt.Axes]:
     """
     Initialize a matplotlib figure and axes with default settings.
 
@@ -33,7 +32,7 @@ def init_plot(figsize: tuple = (7, 6)) -> Tuple[plt.Figure, plt.Axes]:
 
 def init_subplots(
     nrows: int = 1, ncols: int = 2, figsize: tuple = (14, 6)
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Initialize matplotlib figure with multiple subplots.
 

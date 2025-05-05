@@ -1,8 +1,6 @@
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from sklearn.pipeline import Pipeline
 
 import cellsmap.analyses.utils.viz.viz_base as vb
@@ -12,7 +10,7 @@ from cellsmap.util.manifest_preprocessing import (
 )
 
 
-def plot_explained_variance(explained_variance_ratio: np.ndarray) -> Tuple:
+def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     """
     Plot explained variance ratio of PCA components.
 
@@ -38,7 +36,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> Tuple:
     return fig, ax
 
 
-def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: Tuple | None = None) -> Tuple:
+def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: tuple | None = None) -> tuple:
     """
     Plot Diffusion AE feature data from a dataset along the top 3 principal components.
     At each frame in the dataset, takes the mean and standard deviation of the feature data
@@ -88,7 +86,7 @@ def plot_top_3_PCs(feats_proj: np.ndarray, fig_ax: Tuple | None = None) -> Tuple
     return fig, ax
 
 
-def plot_top_3_PCs_alldata(pca: Pipeline) -> Tuple:
+def plot_top_3_PCs_alldata(pca: Pipeline) -> tuple:
     """
     Plot projection of feature data from all datasets along the top 3 principal components.
 
@@ -169,8 +167,8 @@ def plot_top_3_PCs_alldata(pca: Pipeline) -> Tuple:
 
 
 def plot_PCA_projection_2D(
-    feats_proj: np.ndarray, fig_title: str | None = None, fig_ax: Tuple | None = None
-) -> Tuple:
+    feats_proj: np.ndarray, fig_title: str | None = None, fig_ax: tuple | None = None
+) -> tuple:
     """
     Plot mean values of projected feature data onto the top 2 PCs for each frame in the dataset.
 
@@ -209,7 +207,7 @@ def plot_PCA_projection_2D(
 
 def plot_km(
     centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
-) -> Tuple:
+) -> tuple:
     """
     Plot Kramers-Moyal coefficients.
     """
@@ -288,7 +286,7 @@ def plot_km(
 
 def plot_km_drift_2D(
     centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
-) -> Tuple:
+) -> tuple:
     X_1, X_2 = np.meshgrid(*centers)
 
     fig, ax = vb.init_subplots()

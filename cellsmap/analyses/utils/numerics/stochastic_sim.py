@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import numpy.random as rnd
@@ -45,7 +45,7 @@ def stochastic_sim_EM(
             traj_nan.extend(np.where(np.isnan(x))[1].tolist())
             traj_nan = unique_list(traj_nan)  # get only unique elements
             if verbose:
-                print("NaN encountered at timepoint {}".format(j))
+                print(f"NaN encountered at timepoint {j}")
         if len(traj_nan) > 0:
             x[:, traj_nan] = np.nan * np.ones((n_dim, len(traj_nan)))
             no_nan = complement_list(traj_nan, n_traj)

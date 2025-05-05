@@ -124,7 +124,7 @@ for i, ds_name in enumerate(datasets_to_use):
         alpha = 0.5
     ax1.scatter(dfs.PC1, dfs.PC2, s=0.01, label=ds_name, alpha=alpha)
     ax2.scatter(dfs.PC1, dfs.PC3, s=0.01, label=ds_name, alpha=alpha)
-    for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
+    for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"], strict=False):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(ylab, fontsize=14)
         ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)
@@ -140,7 +140,7 @@ vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_scatter", dpi=72
 fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
 ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["frame_number"])
 ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["frame_number"])
-for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
+for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"], strict=False):
     ax.set_xlabel("PC1", fontsize=14)
     ax.set_ylabel(ylab, fontsize=14)
     ax.set_xlim(DDFF._bounds.xmin, DDFF._bounds.xmax)

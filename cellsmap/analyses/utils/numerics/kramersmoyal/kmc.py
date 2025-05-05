@@ -1,6 +1,6 @@
 import inspect
+from collections.abc import Callable
 from itertools import product
-from typing import Callable
 
 import numpy as np
 from scipy.signal import convolve
@@ -12,7 +12,7 @@ from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
 
 def string_to_kernel(kernel: str) -> Callable:
     """
-    Function to convert a string to the corresponding kernel function.
+    Convert a string to the corresponding kernel function.
 
     Input:
     - kernel: string, name of the kernel function
@@ -37,7 +37,8 @@ def string_to_kernel(kernel: str) -> Callable:
         return kernel_dict[kernel]
     else:
         raise ValueError(
-            f"Kernel '{kernel}' not recognized. Available kernels: {list(kernel_dict.keys())}"
+            f"Kernel '{kernel}' not recognized. "
+            f" Available kernels: {list(kernel_dict.keys())}"
         )
 
 
@@ -60,12 +61,11 @@ def km(
     Parameters
     ----------
     timeseries: list of np.ndarrays (if multi_traj is True) or np.ndarray
-        The D-dimensional timeseries `(N, D)`. The timeseries of length `N`
-        and dimensions `D`.
+        The d-dimensional timeseries `(n, d)`.
 
     grads: list of np.ndarrays (if multi_traj is True) or np.ndarray
-        The displacement vectors of the timeseries. The gradients of length `N` and
-        dimensions `D`.
+        The displacement vectors of the timeseries.
+        (length `n` and dimensions `d`).
 
     bins: int or list or np.ndarray or string (default `default`)
         The number of bins. This is the underlying space for the Kramers─Moyal
@@ -80,8 +80,8 @@ def km(
         If default, the bin numbers for different dimensions are:
 
         * 1-D, 5000;
-        * 2-D, 100×100;
-        * 3-D, 25×25×25.
+        * 2-D, 100x100;
+        * 3-D, 25x25x25.
 
         The bumber of bins along each dimension can be specified, e.g.,
 
@@ -89,7 +89,7 @@ def km(
         * 3-D, `[100, 80, 120]`.
 
         If `bins` is int, or a list or np.array of dimension 1, and the
-        `timeseries` dimension is `D`, then `int(bins**(1/D))`.
+        `timeseries` dimension is `d`, then `int(bins**(1/d))`.
 
     powers: int or list or tuple or np.ndarray (default `4`)
         Powers for the operation of calculating the Kramers─Moyal coefficients.
@@ -111,7 +111,8 @@ def km(
         Kernel used to convolute with the Kramers-Moyal coefficients. To select
         for example a Gaussian kernel use
             `kernel = `gaussian`
-        Has to be a kernel implemented in `cellsmap.analyses.utils.numerics.kramersmoyal.kernels`.
+        Has to be a kernel implemented in
+        `cellsmap.analyses.utils.numerics.kramersmoyal.kernels`.
 
     bw: float (default `None`)
         Desired bandwidth of the kernel. A value of 1 occupies the full space of
@@ -120,6 +121,10 @@ def km(
     tol: float (default `1e-10`)
         Round to zero absolute values smaller than `tol`, after the
         convolutions.
+
+    multi_traj: bool (default `False`)
+        If `True`, the timeseries is a list of trajectories, each of shape
+        `(n, d)`, and the gradients are a list of the same length, each of shape
 
     conv_method: str (default `auto`)
         A string indicating which method to use to calculate the convolution.
@@ -210,9 +215,9 @@ def km(
     if isinstance(bins, int):
         bins = [int(bins ** (1 / dims))] * dims
 
-    if isinstance(bins, (list, tuple)):
+    if isinstance(bins, list | tuple):
         assert all(
-            isinstance(ele, (int, np.ndarray)) for ele in bins
+            isinstance(ele, int | np.ndarray) for ele in bins
         ), "list or tuples of bins must either be ints or arrays"
 
     assert dims == len(bins), "bins not matching timeseries' dimension"
@@ -249,8 +254,8 @@ def _km(
     multi_traj: bool,
 ) -> np.ndarray:
     """
-    Helper function for `km` that does the heavy lifting and actually estimates
-    the Kramers─Moyal coefficients from the timeseries.
+    Estimate the Kramers─Moyal coefficients from a timeseries using a kernel
+    estimator method. This is the internal function that does the heavy lifting.
     """
 
     # Internal function to get the Cartesian product of the bin edges
@@ -273,7 +278,8 @@ def _km(
     if multi_traj:
         # Concatenate all gradients, need to get weights for weighted histogram
         grads = np.concatenate(grads, axis=0)
-        # Get trajectories for weighted histogram (timepoints corresponding to the gradients)
+        # Get trajectories for weighted histogram
+        # (timepoints corresponding to the gradients)
         timeseries_ = np.concatenate([ts[:-1] for ts in timeseries], axis=0)
     else:
         timeseries_ = timeseries[:-1]
@@ -317,7 +323,8 @@ def _km(
     # The purpose of this is to artifically construct a periodic kernel
     # that is centered around the origin, so that the input into the convolution
     # is compatible with the circular nature of the convolution obtained via fft.
-    # (Default convolution method is 'auto', which uses fft if the kernel is large enough.)
+    # (Default convolution method is 'auto', which uses
+    # fft if the kernel is large enough.)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in edges]
     kernel_ = kernel_func(cartesian_product(edges_k), bw=bw)
 

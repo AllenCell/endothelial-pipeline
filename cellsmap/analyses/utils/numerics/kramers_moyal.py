@@ -2,10 +2,7 @@
 # occurs in KM_avg_ND function for bins with no data points
 # probably a better way to handle this, but for now, suppress warnings
 import warnings
-from itertools import product
-from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -57,7 +54,7 @@ def get_km_kernel(
     bins: list,
     dt: float,
     kernel_params: dict,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
 
     for i, dT in enumerate(dT_list):
         mask = np.where(dT == 1)[
@@ -107,7 +104,7 @@ def get_km_kernel(
 
 def get_km_histogram(
     X_list: list, dX_list: list, dT_list: list, bins: list, dt: float
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Kramers-Moyal average drift and diffusion estimates for trajectories in N-dimensional space.
 
@@ -151,7 +148,7 @@ def get_km_histogram(
             np.digitize(X[:-1, i], bins[i]) for i in range(ndim)
         ]  # which bin each data point falls into (by each dimension)
         uids = list(
-            set(zip(*id_list))
+            set(zip(*id_list, strict=False))
         )  # unique bin ids (zipped tuple of bin ids by dimension)
         if any([len(bins[i]) in id_list[i] for i in range(ndim)]):
             raise ValueError(

@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -16,14 +15,14 @@ from cellsmap.util.manifest_preprocessing import (
 def kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
     ds_name: str,
-    PCs: list,
-    Nbins: list,
+    pcs: list,
+    num_bins: list,
     dt: float,
     train_frac: float,
     fig_savedir: str,
     method: str = "kernel",
     kernel_params: dict | None = None,
-) -> Tuple[
+) -> tuple[
     np.ndarray,
     np.ndarray,
     np.ndarray,
@@ -40,8 +39,8 @@ def kramers_moyal_train_test_one_dataset(
     Inputs:
     - df_proj: pandas dataframe containing the dataset of interest, projected onto all principal component axes (change of basis, no dimensionality reduction)
     - ds_name: name of the dataset (used to split out data by flow condition, acessed via data_config.yaml)
-    - PCs: list of principal component axes to project data onto for Kramers-Moyal analysis (e.g., [0,1] for first two principal components)
-    - Nbins: list of number of bins to use for histogramming data to compute the Kramers-Moyal coefficients (conditional averages computed in each bin)
+    - pcs: list of principal component axes to project data onto for Kramers-Moyal analysis (e.g., [0,1] for first two principal components)
+    - num_bins: list of number of bins to use for histogramming data to compute the Kramers-Moyal coefficients (conditional averages computed in each bin)
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
     - train_frac: fraction of data to use for training
     - method: method to use for computing Kramers-Moyal coefficients ('kernel' or 'histogram', default is 'kernel')
@@ -60,8 +59,8 @@ def kramers_moyal_train_test_one_dataset(
     # for extracting just the axes (specified via PCs) we want from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components, we want to extract columns 'feat_0' and 'feat_1'
     feat_cols_all = mio.get_feature_cols(df_proj)
-    feat_cols = [feat_cols_all[i] for i in PCs]
-    ndim = len(PCs)
+    feat_cols = [feat_cols_all[i] for i in pcs]
+    ndim = len(pcs)
 
     # split out data by flow condition
     df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name)
@@ -78,7 +77,7 @@ def kramers_moyal_train_test_one_dataset(
         )
 
         # get bins for histogramming (for drift and diffusion estimates)
-        bins, centers = rh.get_bins(Nbins, data=X_list)
+        bins, centers = rh.get_bins(num_bins, data=X_list)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
         f_KM_, D_KM_ = rh.get_kramers_moyal(
@@ -93,7 +92,7 @@ def kramers_moyal_train_test_one_dataset(
 
         # plot drift and diffusion estimates
         kmc = np.concatenate([f_KM_, D_KM_], axis=-1).T
-        fig = mv.plot_km(centers, kmc, PCs, shear_list[j])[0]
+        fig = mv.plot_km(centers, kmc, pcs, shear_list[j])[0]
         vb.save_plot(
             fig,
             filename=fig_savedir + f"kmcs_all_{ds_name}_flow_{j}",
@@ -103,7 +102,7 @@ def kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = mv.plot_km_drift_2D(centers, kmc, PCs, shear_list[j])[0]
+            fig = mv.plot_km_drift_2D(centers, kmc, pcs, shear_list[j])[0]
             vb.save_plot(
                 fig,
                 filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",
@@ -148,8 +147,8 @@ def kramers_moyal_train_test_one_dataset(
 
 def build_kramers_moyal_train_test(
     pca: Pipeline,
-    PCs: list[int],
-    Nbins: list[int],
+    pcs: list[int],
+    num_bins: list[int],
     dt: float,
     ds_to_skip: list[str],
     fig_savedir: str,
@@ -215,8 +214,8 @@ def build_kramers_moyal_train_test(
             kramers_moyal_train_test_one_dataset(
                 df_proj,
                 ds_name,
-                PCs,
-                Nbins,
+                pcs,
+                num_bins,
                 dt,
                 train_frac,
                 fig_savedir,

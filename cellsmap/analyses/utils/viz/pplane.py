@@ -80,8 +80,10 @@ def get_fps(myFlow, ICs):
 
 def find_stability(J, ndim=2):
     """Determines stability of a fixed point of dx/dt = f(x).
+
     Args:
         J (float or np.array 2x2): the derivative (1d) or the Jacobian matrix of the function f(x) at the fixed point.
+
     Return:
         (string) classification of equilibrium point
     """
