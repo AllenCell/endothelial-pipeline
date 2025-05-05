@@ -184,7 +184,7 @@ def model_data_comparison(
 
 
 def get_fixed_points_by_shear(
-    f: Callable, plt_lims: list, shear_range: np.ndarray
+    drift: Callable, plt_lims: list, shear_range: np.ndarray
 ) -> list[dict]:
     """
     Get fixed points and their types for a given drift 
@@ -193,7 +193,7 @@ def get_fixed_points_by_shear(
     Currently only implemented for 2D systems.
 
     Inputs:
-    - f: Callable, drift function
+    - drift: Callable, drift function
     - plt_lims: list of np.ndarrays, limits for excluding 
         fixed points outside of plotting range
     - shear_range: np.ndarray, shear stresses at 
@@ -215,10 +215,11 @@ def get_fixed_points_by_shear(
     x1_coarse = np.linspace(x1_lims[0], x1_lims[1], 7)
     x2_coarse = np.linspace(x2_lims[0], x2_lims[1], 7)
 
-    for u in shear_range:
+    for u_val in shear_range:
 
-        def my_flow(x):  # define ODE "flow" function (drift function, u is fixed)
-            return f(x, u)
+        # define ODE "flow" function (drift function, u is fixed)
+        def my_flow(x,u=u_val):  
+            return drift(x, u)
 
         # for finding fixed points numerically, we need to provide initial guesses
         # we will use a coarse grid of points as initial guesses
@@ -237,7 +238,7 @@ def get_fixed_points_by_shear(
         fpt_dict = {}
         fpt_dict["fixed_points"] = fpts_  # list of fixed points
         fpt_dict["fixed_point_types"] = fpt_types  # corresponding types
-        fpt_dict["shear"] = u  # value of shear stress
+        fpt_dict["shear"] = u_val  # value of shear stress
         fpt_dict_list.append(fpt_dict)  # add to list
 
     return fpt_dict_list
@@ -341,7 +342,8 @@ def get_epr(
     toc = time()
     if toc - tic > 60:
         print(
-            f"Time to calculate entropy production rate: {np.round((toc - tic) / 60, 4):.2f} minutes"
+            "Time to calculate entropy production rate: " 
+            f" {np.round((toc - tic) / 60, 4):.2f} minutes"
         )
     else:
         print(f"Time to calculate entropy production rate: {toc - tic:.2f} seconds")
