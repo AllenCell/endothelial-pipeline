@@ -1,0 +1,31 @@
+repos:
+
+  - repo: 'https://github.com/pre-commit/pre-commit-hooks'
+    rev: v4.4.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: 'https://github.com/psf/black-pre-commit-mirror'
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  - repo: 'https://github.com/pycqa/isort'
+    rev: 5.12.0
+    hooks:
+      - id: isort
+
+  - repo: 'https://github.com/astral-sh/uv-pre-commit'
+    rev: 0.7.1
+    hooks:
+      - id: uv-lock
+
+  - repo: 'https://github.com/astral-sh/uv-pre-commit'
+    rev: 0.7.1
+    hooks:
+      - id: uv-export
+        args: ["--frozen", "--output-file=requirements.txt"]
