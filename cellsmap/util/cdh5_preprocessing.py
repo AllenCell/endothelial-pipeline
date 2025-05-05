@@ -1,19 +1,21 @@
-import numpy as np
-from skimage.filters import gaussian, apply_hysteresis_threshold
-from skimage.measure import label, regionprops
-from skimage.restoration import rolling_ball
-from skimage.exposure import rescale_intensity
-from scipy.ndimage import distance_transform_edt
-from skimage.feature import peak_local_max
-from skimage.morphology import binary_dilation, disk, skeletonize, remove_small_objects
-from skimage.segmentation import watershed, join_segmentations, find_boundaries
-from skimage.graph import rag_boundary, merge_hierarchical
-from cellsmap.util.general_image_preprocessing import get_dim_map
-from cellsmap.util.dataset_io import extract_T
 from pathlib import Path
+from typing import Any, List, Optional, Union
+
+import numpy as np
 import yaml
 from bioio import BioImage
-from typing import Any, Optional, List, Union
+from scipy.ndimage import distance_transform_edt
+from skimage.exposure import rescale_intensity
+from skimage.feature import peak_local_max
+from skimage.filters import apply_hysteresis_threshold, gaussian
+from skimage.graph import merge_hierarchical, rag_boundary
+from skimage.measure import label, regionprops
+from skimage.morphology import binary_dilation, disk, remove_small_objects, skeletonize
+from skimage.restoration import rolling_ball
+from skimage.segmentation import find_boundaries, join_segmentations, watershed
+
+from cellsmap.util.dataset_io import extract_T
+from cellsmap.util.general_image_preprocessing import get_dim_map
 
 
 def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
@@ -40,7 +42,10 @@ def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
 
     return sub
 
-def get_noodly_regions(binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidity_filter=0.6):
+
+def get_noodly_regions(
+    binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidity_filter=0.6
+):
     """
     A function to divide a binary image into filamentous regions and round regions.
     The binary image is labeled first and then the labeled regions are classified as
@@ -53,16 +58,16 @@ def get_noodly_regions(binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidi
     binary_img_arr: np.ndarray
         The binary image as a numpy array to split into elongated, "noodly" regions and
         round, solid regions.
-    
+
     axis_ratio_filter: float
         The ratio of the regions major axis length to its minor axis length. Higher numbers
         equal more elongated structures, and a perfect circle has a ratio of 1.
         Note that spirals or snaking ("S"-shaped) regions will have a low ratio, and can
         be differentiated from a circle or round region with the solidity_filter.
         Default is 2.5.
-    
+
     solidity_filter: float
-        The fraction of a regions convex hull that is occupied by the region. 
+        The fraction of a regions convex hull that is occupied by the region.
         Default is 0.6.
 
     Returns
@@ -77,30 +82,45 @@ def get_noodly_regions(binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidi
     img_labeled = label(binary_img_arr)
     img_props = regionprops(img_labeled)
 
-    axis_ratio_filter = 2.5 # NOTE 1 = perfect circle, higher numbers == more elongated ovals
+    axis_ratio_filter = (
+        2.5  # NOTE 1 = perfect circle, higher numbers == more elongated ovals
+    )
     solidity_filter = 0.6
 
     hyst_props_axes_ratio = {}
     for prop in img_props:
         if prop.axis_minor_length:
-            hyst_props_axes_ratio[prop.label] = (prop.axis_major_length / prop.axis_minor_length)
+            hyst_props_axes_ratio[prop.label] = (
+                prop.axis_major_length / prop.axis_minor_length
+            )
         else:
             hyst_props_axes_ratio[prop.label] = np.inf
 
     img_props_solidity = {prop.label: prop.solidity for prop in img_props}
 
-    img_props_noodly = [prop.label for prop in img_props
-                        if (hyst_props_axes_ratio[prop.label] >= axis_ratio_filter
-                            or img_props_solidity[prop.label] <= solidity_filter)]
-    img_props_round = [prop.label for prop in img_props
-                       if (hyst_props_axes_ratio[prop.label] < axis_ratio_filter
-                            and img_props_solidity[prop.label] > solidity_filter)]
+    img_props_noodly = [
+        prop.label
+        for prop in img_props
+        if (
+            hyst_props_axes_ratio[prop.label] >= axis_ratio_filter
+            or img_props_solidity[prop.label] <= solidity_filter
+        )
+    ]
+    img_props_round = [
+        prop.label
+        for prop in img_props
+        if (
+            hyst_props_axes_ratio[prop.label] < axis_ratio_filter
+            and img_props_solidity[prop.label] > solidity_filter
+        )
+    ]
 
     ## SPLIT UP NOODLY PIECES AND OTHER PIECES
     img_arr_noodly = np.isin(img_labeled, img_props_noodly)
     img_arr_round = np.isin(img_labeled, img_props_round)
 
     return img_arr_noodly, img_arr_round
+
 
 def get_thresholds(processed_img: np.ndarray):
     """
@@ -129,12 +149,15 @@ def get_thresholds(processed_img: np.ndarray):
 
     low_thresh, high_thresh = np.percentile(processed_img, q=(66, 80))
     hyst = apply_hysteresis_threshold(processed_img, low=low_thresh, high=high_thresh)
-    hyst_noodly, hyst_round = get_noodly_regions(hyst, axis_ratio_filter=2.5, solidity_filter=0.6)
+    hyst_noodly, hyst_round = get_noodly_regions(
+        hyst, axis_ratio_filter=2.5, solidity_filter=0.6
+    )
 
     return hyst, hyst_noodly, hyst_round
 
+
 def get_classic_segmentation(image: np.ndarray) -> np.ndarray:
-    """ Takes an image with a membrane-labeled structure and returns an instance
+    """Takes an image with a membrane-labeled structure and returns an instance
     segmentation as an array with the same shape as 'image'.
     The methodology is:
     1. process the image
@@ -157,11 +180,14 @@ def get_classic_segmentation(image: np.ndarray) -> np.ndarray:
     # threshold the processed image
     hyst, hyst_clean, hyst_removed = get_thresholds(processed_img)
     # segment the processed image with the help of the thresholded image
-    seg_image, seg2_lab = generate_segmentations(processed_img, hyst, hyst_clean, hyst_removed)
+    seg_image, seg2_lab = generate_segmentations(
+        processed_img, hyst, hyst_clean, hyst_removed
+    )
 
     return seg_image
 
-def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int=50):
+
+def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int = 50):
     """
     Performs a distance transform on a binary image array and finds the peaks
     and inverse of the distance transform in order to get the seeds and basins
@@ -188,8 +214,10 @@ def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int=50)
 
     dist = distance_transform_edt(binary_img_arr)
     dist_labels = label(binary_img_arr)
-    basins = 1 - rescale_intensity(dist, out_range=(0,1))
-    peaks = peak_local_max(dist, min_distance=min_dist, labels=dist_labels, exclude_border=False)
+    basins = 1 - rescale_intensity(dist, out_range=(0, 1))
+    peaks = peak_local_max(
+        dist, min_distance=min_dist, labels=dist_labels, exclude_border=False
+    )
     peaks_arr = np.zeros(binary_img_arr.shape, dtype=binary_img_arr.dtype)
     peaks_arr[tuple(zip(*peaks))] = 1
 
@@ -199,7 +227,13 @@ def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int=50)
 
     return seeds, basins
 
-def clean_labeled_img(labeled_img: np.ndarray, eccentricity_filter: float=0.5, size_filter_conditional: int=2000, size_filter_strict: int=500):
+
+def clean_labeled_img(
+    labeled_img: np.ndarray,
+    eccentricity_filter: float = 0.5,
+    size_filter_conditional: int = 2000,
+    size_filter_strict: int = 500,
+):
     """
     Removes small, round objects from a labeled image.
 
@@ -221,7 +255,7 @@ def clean_labeled_img(labeled_img: np.ndarray, eccentricity_filter: float=0.5, s
 
     size_filter_strict: int
         Unconditionally remove any regions with a size less than this size filter.
-    
+
     Returns
     -------
     labeled_img_clean: np.ndarray
@@ -234,14 +268,24 @@ def clean_labeled_img(labeled_img: np.ndarray, eccentricity_filter: float=0.5, s
     # size_filter_conditional = int(np.pi * 25**2) = approx 2000
     labeled_props = regionprops(labeled_img)
 
-    labeled_props_sm_round = [prop.label for prop in labeled_props 
-                              if (prop.eccentricity < eccentricity_filter
-                                  and prop.num_pixels < size_filter_conditional)
-                                  or prop.num_pixels < size_filter_strict]
-    labeled_props_lrg_oblong = [prop.label for prop in labeled_props
-                                if (prop.eccentricity >= eccentricity_filter
-                                    or prop.num_pixels >= size_filter_conditional)
-                                    and prop.num_pixels >= size_filter_strict]
+    labeled_props_sm_round = [
+        prop.label
+        for prop in labeled_props
+        if (
+            prop.eccentricity < eccentricity_filter
+            and prop.num_pixels < size_filter_conditional
+        )
+        or prop.num_pixels < size_filter_strict
+    ]
+    labeled_props_lrg_oblong = [
+        prop.label
+        for prop in labeled_props
+        if (
+            prop.eccentricity >= eccentricity_filter
+            or prop.num_pixels >= size_filter_conditional
+        )
+        and prop.num_pixels >= size_filter_strict
+    ]
 
     labeled_img_clean = np.isin(labeled_img, labeled_props_lrg_oblong) * labeled_img
 
@@ -249,7 +293,10 @@ def clean_labeled_img(labeled_img: np.ndarray, eccentricity_filter: float=0.5, s
 
     return labeled_img_clean, labeled_img_removed
 
-def initialize_rag(labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool=False):
+
+def initialize_rag(
+    labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool = False
+):
     """
     Creates a region-adjacency graph (RAG) using a labeled image and an
     intensity image.
@@ -281,13 +328,15 @@ def initialize_rag(labeled_image: np.ndarray, intensity_image: np.ndarray, as_di
 
     """
 
-    rag = rag_boundary(labels=labeled_image, edge_map=intensity_image, connectivity=labeled_image.ndim)
+    rag = rag_boundary(
+        labels=labeled_image, edge_map=intensity_image, connectivity=labeled_image.ndim
+    )
     ## remove the connection to the background label by setting the edge to the highest
     ## possible weight. This way the 0-labeled node won't be merged with neighboring nodes.
     # rag.remove_node(0) if 0 in rag else None
     if 0 in rag:
         for neighbor in rag[0]:
-            rag[0][neighbor]['weight'] = 1
+            rag[0][neighbor]["weight"] = 1
 
     for node in rag:
         rag[node]
@@ -296,12 +345,14 @@ def initialize_rag(labeled_image: np.ndarray, intensity_image: np.ndarray, as_di
 
     return rag
 
+
 ## the dummy and weighting functions below that are used in
 ## hierarchical merging were taken directly from the example
 ## provided in the scikit-image docs:
 ## https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_boundary_merge.html#sphx-glr-auto-examples-segmentation-plot-boundary-merge-py
 def dummy_func(graph, src, dst):
     pass
+
 
 def weight_boundary(graph, src, dst, n):
     """
@@ -328,21 +379,27 @@ def weight_boundary(graph, src, dst, n):
         assigned for the merged node.
 
     """
-    default = {'weight': 0.0, 'count': 0}
+    default = {"weight": 0.0, "count": 0}
 
-    count_src = graph[src].get(n, default)['count']
-    count_dst = graph[dst].get(n, default)['count']
+    count_src = graph[src].get(n, default)["count"]
+    count_dst = graph[dst].get(n, default)["count"]
 
-    weight_src = graph[src].get(n, default)['weight']
-    weight_dst = graph[dst].get(n, default)['weight']
+    weight_src = graph[src].get(n, default)["weight"]
+    weight_dst = graph[dst].get(n, default)["weight"]
 
     count = count_src + count_dst
     return {
-        'count': count,
-        'weight': (count_src * weight_src + count_dst * weight_dst) / count,
+        "count": count,
+        "weight": (count_src * weight_src + count_dst * weight_dst) / count,
     }
 
-def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_clean: np.ndarray, hyst_removed: np.ndarray):
+
+def generate_segmentations(
+    processed_img: np.ndarray,
+    hyst: np.ndarray,
+    hyst_clean: np.ndarray,
+    hyst_removed: np.ndarray,
+):
     """
     Create segmentations from processed_img with the help of the original
     threshold "hyst", the cleaned threshold "hyst_clean", and the regions from
@@ -362,7 +419,7 @@ def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_cle
     hyst_removed: np.ndarray
         The regions removed from hyst to generate hyst_clean. Will be used to
         aid in segmentation generation.
-    
+
     Returns
     -------
     seg2_lab_no_mask_merge: np.ndarray
@@ -410,9 +467,15 @@ def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_cle
     rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask, rag, thresh=merge_thresh,
-                                                rag_copy=False, in_place_merge=True,
-                                                merge_func=dummy_func, weight_func=weight_boundary)
+    seg2_lab_no_mask_merge = merge_hierarchical(
+        seg2_lab_no_mask,
+        rag,
+        thresh=merge_thresh,
+        rag_copy=False,
+        in_place_merge=True,
+        merge_func=dummy_func,
+        weight_func=weight_boundary,
+    )
     # the += 1 is necessary because merge_hierarchical starts labels at 0,
     # when they should start at 1 (0 labels are reserved for background).
     seg2_lab_no_mask_merge += 1
@@ -428,7 +491,7 @@ def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_cle
     # merge some regions that were skipped in the previous
     # merge_hierarchical step because of large bright cdh5
     # puncta within a cell or long thin regions with not-so-dim
-    # intracellular signal or puncta giving an incorrectly large 
+    # intracellular signal or puncta giving an incorrectly large
     # weight to a boundary between 2 regions
     skel = skeletonize(hyst)
     processed_img_normd_skel = rescale_intensity(processed_img, out_range=(0, 1))
@@ -473,8 +536,8 @@ def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_cle
                 # max value (1) so that merge_hierarchical doesn't
                 # merge those regions
                 if neighbor not in set(rag[lab]):
-                    rag_skel[lab][neighbor]['weight'] = 1
-            
+                    rag_skel[lab][neighbor]["weight"] = 1
+
             for neighbor in rag[lab]:
                 # check if there are any neighbors in the previous
                 # segmentation that were not a neighbor for that same
@@ -490,14 +553,20 @@ def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_cle
 
     good_label_mask = seg2_lab_no_mask_merge != 0
 
-    merge_thresh = (1/2)/2
+    merge_thresh = (1 / 2) / 2
 
     # note that seg2_lab_no_mask_merge and seg2_lab_no_mask_skel have
     # the same labels in roughly the same positions (with slightly
     # different borders)
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag_skel, thresh=merge_thresh,
-                                                rag_copy=False, in_place_merge=True,
-                                                merge_func=dummy_func, weight_func=weight_boundary)
+    seg2_lab_no_mask_merge = merge_hierarchical(
+        seg2_lab_no_mask_merge,
+        rag_skel,
+        thresh=merge_thresh,
+        rag_copy=False,
+        in_place_merge=True,
+        merge_func=dummy_func,
+        weight_func=weight_boundary,
+    )
     # the += 1 is necessary because merge_hierarchical starts labels at 0,
     # when they should start at 1 (0 labels are reserved for background).
     # We use good_label_mask so that the the labels that were in the
@@ -510,21 +579,32 @@ def generate_segmentations(processed_img: np.ndarray, hyst: np.ndarray, hyst_cle
     # or get merged and repeat the watershed -> RAG -> merge step
     # NOTE we assume that these "small" regions can't possibly be
     # its own cell
-    cell_size_filter = 2000 # number of pixels of segmented area that is considered too small
-    seg2_filtered = remove_small_objects(seg2_lab_no_mask_merge, min_size=cell_size_filter)
+    cell_size_filter = (
+        2000  # number of pixels of segmented area that is considered too small
+    )
+    seg2_filtered = remove_small_objects(
+        seg2_lab_no_mask_merge, min_size=cell_size_filter
+    )
     seg2_lab_no_mask_merge = watershed(image=processed_img_normd, markers=seg2_filtered)
 
     rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
     merge_thresh = np.percentile(processed_img_normd, q=80)
 
-    seg2_lab_no_mask_merge = merge_hierarchical(seg2_lab_no_mask_merge, rag, thresh=merge_thresh,
-                                                rag_copy=False, in_place_merge=True,
-                                                merge_func=dummy_func, weight_func=weight_boundary)
+    seg2_lab_no_mask_merge = merge_hierarchical(
+        seg2_lab_no_mask_merge,
+        rag,
+        thresh=merge_thresh,
+        rag_copy=False,
+        in_place_merge=True,
+        merge_func=dummy_func,
+        weight_func=weight_boundary,
+    )
     # the += 1 is necessary because merge_hierarchical starts labels at 0,
     # when they should start at 1 (0 labels are reserved for background).
     seg2_lab_no_mask_merge += 1
 
     return seg2_lab_no_mask_merge, seg2_lab
+
 
 def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> list:
     """
@@ -542,18 +622,25 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
         A list of Path objects pointing to each image file (one image per timepoint).
     """
 
-    prj_dir = Path('../').resolve()
-    config_file = prj_dir / 'cdh5_seg_config.yaml'
+    prj_dir = Path("../").resolve()
+    config_file = prj_dir / "cdh5_seg_config.yaml"
     assert config_file.exists()
-    with open(config_file, 'r') as file:
+    with open(config_file, "r") as file:
         config_data = yaml.safe_load(file)
-    segmentation_dirs = [prj_dir / data['segmentation_dir'] for data in config_data if data['name']==dataset_name]
-    filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob('*.tif*'))]
+    segmentation_dirs = [
+        prj_dir / data["segmentation_dir"]
+        for data in config_data
+        if data["name"] == dataset_name
+    ]
+    filepaths = [
+        fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob("*.tif*"))
+    ]
 
     if sort_paths:
         filepaths = sorted(filepaths, key=lambda fpath: extract_T(fpath.name))
 
     return filepaths
+
 
 def get_cdh5_classic_segmentation(
     dataset_name: str,
@@ -561,8 +648,8 @@ def get_cdh5_classic_segmentation(
     channels: Optional[List[str]] = None,
     crop_y: Optional[slice] = None,
     crop_x: Optional[slice] = None,
-    as_dask: bool = False
-    ) -> List[Any]:
+    as_dask: bool = False,
+) -> List[Any]:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.
@@ -578,8 +665,8 @@ def get_cdh5_classic_segmentation(
         The desired timepoint in the dataset.
 
     channels: list or None
-        The channels to load. Each element in the list is a string and can 
-        be one of: 
+        The channels to load. Each element in the list is a string and can
+        be one of:
         'raw', 'processed', 'hysteresis_threshold', 'segmentations_initial',
         'segmentations_merged', or 'segmentations_merged_borders'.
         If channel=None then a list with all channels will be returned.
@@ -606,20 +693,28 @@ def get_cdh5_classic_segmentation(
     filepaths = get_cdh5_classic_segmentation_paths(dataset_name)
     filepaths_dict = {fpath: extract_T(fpath) for fpath in filepaths}
     fpath = [fpath for fpath in filepaths_dict if filepaths_dict[fpath] == T]
-    assert len(fpath) == 1, f"Multiple files found for timepoint {T}." if len(fpath) > 1 else f"No files found for timepoint {T}."
+    assert len(fpath) == 1, (
+        f"Multiple files found for timepoint {T}."
+        if len(fpath) > 1
+        else f"No files found for timepoint {T}."
+    )
 
-    dim_map = get_dim_map('TCZYX')
+    dim_map = get_dim_map("TCZYX")
     dim_order = sorted(dim_map, key=lambda d: dim_map[d])
     img = BioImage(*fpath)
-    chan_map = {name:index for index, name in enumerate(img.channel_names)}
+    chan_map = {name: index for index, name in enumerate(img.channel_names)}
     channels = channels or img.channel_names
-    channel_crops = [slice(chan_map[chan], chan_map[chan]+1) for chan in channels]
-    crop_maps = [{'T': slice(None, None),
-                  'C': C,
-                  'Z': slice(None, None),
-                  'Y': crop_y or slice(None, None),
-                  'X': crop_x or slice(None, None)}
-                 for C in channel_crops]
+    channel_crops = [slice(chan_map[chan], chan_map[chan] + 1) for chan in channels]
+    crop_maps = [
+        {
+            "T": slice(None, None),
+            "C": C,
+            "Z": slice(None, None),
+            "Y": crop_y or slice(None, None),
+            "X": crop_x or slice(None, None),
+        }
+        for C in channel_crops
+    ]
 
     # The reason for using the crop maps above instead of loading individual
     # crops by specifying T, C, Y, and X in img.get_image_data is because
@@ -627,11 +722,16 @@ def get_cdh5_classic_segmentation(
     # split up by timepoint. Using the slice objects is favoured over tuples
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
-    crops = [{d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps]
-    dim_order_string = ''.join(dim_order)
+    crops = [
+        {d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order}
+        for crop_map in crop_maps
+    ]
+    dim_order_string = "".join(dim_order)
     if not as_dask:
         nd_arrays = [img.get_image_data(dim_order_string, **crop) for crop in crops]
         return nd_arrays
     else:
-        dask_arrays = [img.get_image_dask_data(dim_order_string, **crop) for crop in crops]
+        dask_arrays = [
+            img.get_image_dask_data(dim_order_string, **crop) for crop in crops
+        ]
         return dask_arrays
