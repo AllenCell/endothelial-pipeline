@@ -22,10 +22,10 @@ class SteadyFP:
     Proc. R. Soc. A 477:20210092. https://doi.org/10.1098/rspa.2021.0092
     """
 
-    def __init__(self, n: int | list, dx: float | list) -> None:
+    def __init__(self, n: list, dx: list) -> None:
         """
         Initialize the SteadyFP object.
-        
+
         Input:
         - n: int or list of ints, grid resolution 
             n[0] x n[1] x ... x n[d-1] for d-dimensional grid
@@ -37,15 +37,19 @@ class SteadyFP:
         - None (initializes object)
         """
 
-        # set number of dimensions ndim based on input N
-        if isinstance(n, int):
-            self.d = 1
-        else:
-            self.d = len(n)
+        # set number of dimensions ndim based on input n
+        # (number of grid points in each dimension)
+        self.d = len(n)
 
         # set grid resolution and spacing
-        self.n = n
-        self.dx = dx
+        if self.d == 1:
+            # if dim is 1, convert
+            # input list to scalar
+            self.n = n[0]
+            self.dx = dx[0]
+        else:
+            self.n = n
+            self.dx = dx
 
         # Set up indexing matrices for Fourier method for ndim = 1, 2
         if self.d == 1:

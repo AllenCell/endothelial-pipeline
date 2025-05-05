@@ -164,12 +164,7 @@ def get_stationary_probability(
     Nbins = [len(bins[i]) - 1 for i in range(ndim)]  # number of bins in each dimension
 
     # initialize SteadyFP object
-    if ndim == 1:
-        # if 1D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be scalars
-        fp = fps.SteadyFP(Nbins[0], dx[0])
-    else:
-        # if 2D, inputs Nbins (number of bins) and dx (bin width) to SteadyFP must be lists (one for each dimension)
-        fp = fps.SteadyFP(Nbins, dx)
+    fp = fps.SteadyFP(Nbins, dx)
 
     p_fit = fp.solve(f_vals, D_vals)  # solve stationary Fokker-Planck equation
 
