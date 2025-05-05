@@ -12,15 +12,19 @@ def gradient_flow_term(potential: np.ndarray,
                        ) -> np.ndarray:
     """
     Compute the gradient flow term -D(x) grad(U) for a given potential U
-    and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,DN(x)].
+    and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,Dd(x)].
 
     Inputs:
-    - U: np.ndarray, potential evaluated on an ND grid (dimensions n1 x n2 x ... x nN)
-    - D: np.ndarray, diagonal terms of diffusion matrix evaluated on an ND grid (dimensions N x n1 x n2 x ... nN)
-    - x: list, arrays [x1,x2,..xN] such that U and D have been evaluated on np.meshgrid(*x, indexing = 'ij')
+    - potential: np.ndarray, generalized potential U evaluated
+        on a d-D grid (n1 x n2 x ... x nd array)
+    - diffusion: np.ndarray, diagonal terms of diffusion matrix
+        evaluated on a d-D grid (dimensions d x n1 x n2 x ... nd)
+    - x: list, arrays [x1,x2,..xd] such that diff.
+        has been evaluated on np.meshgrid(*x, indexing = 'ij')
 
     Outputs:
-    - flow_term: np.ndarray, gradient flow term = -D(x) grad[U] (dimensions N x n1 x n2 x ... x nN)
+    - flow_term: np.ndarray, gradient flow term = -D(x) grad(U)
+        (dimensions d x n1 x n2 x ... x nd)
     """
 
     d = len(x)  # number of dimensions
@@ -81,7 +85,8 @@ def compute_J_terms(
     f_p = np.zeros_like(drift)  # initialize array to store f(x)P(x)
     div_d_p = np.zeros_like(drift)  # initialize array to store div(D(x)) * P(x)
     d_grad_p = np.zeros_like(drift)  # initialize array to store D(x) grad(P)
-    # take advantage of diagonal matrix structure: element i of D(x)*grad(P(x)) is D[i]*gradP[i]
+    # take advantage of diagonal matrix structure: 
+    # element i of D(x)*grad(P(x)) is D[i]*gradP[i]
     for i in range(d):
         # f(x)P(x)
         f_p[i] = drift[i] * p
@@ -168,9 +173,9 @@ def grad_flux_decomposition(
     stochastic dynamics with diagonal diffusion matrix D(x):
         f(x) = [gradient flow] + [diffusion geometry] + [flux term]
     where
-        [gradient flow] = -D(x) grad(U)
-        [diffusion geometry] = div(D(x))
-        [flux term] = (f(x)P(x) - div(D(x) P(x)))/P(x)
+        [gradient flow] = -D(x) grad(U),
+        [diffusion geometry] = div(D(x)),
+        [flux term] = (f(x)P(x) - div(D(x) P(x)))/P(x).
 
     Inputs:
     - drift: np.ndarray, drift vector field evaluated on 
@@ -210,7 +215,8 @@ def grad_flux_decomposition(
     # initialize stationary Fokker-Planck solver
     stationary_fp = fps.SteadyFP(num_bins, dx)
 
-    p = stationary_fp.solve(drift, diffusion)  # solve for stationary probability density
+    # solve for stationary probability density
+    p = stationary_fp.solve(drift, diffusion)  
     p[p < tol] = (
         tol  # set values less than tol to tol to avoid log(0) and divide by 0 errors
     )
