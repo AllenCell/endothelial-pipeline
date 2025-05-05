@@ -28,13 +28,13 @@ def main(config_name: str = "default") -> None:
     ################### Load configs from dynamics_config ###################
     config = dynamics_io.load_dynamics_config(config_name)
 
-    # get output subdirectory for intermediate workflow outputs 
+    # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_output_folder = "stochastic_dynamics/" + config["name"] + "/outputs"
     savedir = get_output_path(workflow_output_folder, verbose=False)
 
-    # get output subdirectory for figures that workflow outputs 
+    # get output subdirectory for figures that workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_fig_folder = "stochastic_dynamics/" + config["name"] + "/figs"
@@ -118,7 +118,7 @@ def main(config_name: str = "default") -> None:
 
     #### Generalized potential energy landscape ####
 
-    # plot generalized potential energy landscape for 
+    # plot generalized potential energy landscape for
     # each shear stress specified in shear_range_gp
     model_analysis.run_gen_potential_analysis(
         my_model,

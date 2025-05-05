@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -199,9 +198,7 @@ def compare_stationary_distributions(
     dx = [bins[i][1] - bins[i][0] for i in range(ndim)]  # bin widths
     KL = kl_divergence(p_hist, p_model, dx)
 
-    fig.suptitle(
-        "$D_{KL}(p_{hist}||p_{model}) =$" + f"{KL:0.4f}", fontsize=16, y=1.05
-    )
+    fig.suptitle("$D_{KL}(p_{hist}||p_{model}) =$" + f"{KL:0.4f}", fontsize=16, y=1.05)
 
     return fig, ax
 

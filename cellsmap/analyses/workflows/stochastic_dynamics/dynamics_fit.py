@@ -8,25 +8,25 @@ from cellsmap.util.set_output import get_output_path
 
 def main(config_name: str = "default") -> None:
     """
-    Fit SINDy (polynomial regression) models for drift 
-    and diffusion terms using the training data generated 
+    Fit SINDy (polynomial regression) models for drift
+    and diffusion terms using the training data generated
     in the previous step of the workflow
     (cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py).
 
     Input:
-    - config_name (str): Name of the configuration to load from dynamics_config.yaml. 
+    - config_name (str): Name of the configuration to load from dynamics_config.yaml.
         Default is "default".
-    
+
     Output:
     - Saves the trained models for drift and diffusion terms in a specified directory.
         Saved out as a dictionary with keys "driftModel" and "diffModel",
-        where the values are the trained models for the drift and 
+        where the values are the trained models for the drift and
         diffusion terms, respectively.
     """
     ################### Load configs from dynamics_config ###################
     config = dynamics_io.load_dynamics_config(config_name)
 
-    # get output subdirectory for intermediate workflow outputs 
+    # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_output_folder = "stochastic_dynamics/" + config["name"] + "/outputs"

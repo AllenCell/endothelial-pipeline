@@ -250,7 +250,9 @@ class DataDrivenFlowField3D:
             scale=50,
             color="red",
         )
-        for ax, (qmin, qmax) in zip((ax1, ax2), [(ymin, ymax), (zmin, zmax)], strict=False):
+        for ax, (qmin, qmax) in zip(
+            (ax1, ax2), [(ymin, ymax), (zmin, zmax)], strict=False
+        ):
             ax.set_xlim(xmin, xmax)
             ax.set_ylim(qmin, qmax)
             ax.set_aspect("equal")
@@ -341,7 +343,9 @@ class DataDrivenFlowField3D:
         df_initial = df_initial.sample(npoints).copy()
 
         for var, origin in zip(
-            self._ss_vars, [self._bounds.xmin, self._bounds.ymin, self._bounds.zmin], strict=False
+            self._ss_vars,
+            [self._bounds.xmin, self._bounds.ymin, self._bounds.zmin],
+            strict=False,
         ):
             df_initial[var] = self.convert_coordinates_from_pc_to_volume(
                 xpc=df_initial[var], origin=origin

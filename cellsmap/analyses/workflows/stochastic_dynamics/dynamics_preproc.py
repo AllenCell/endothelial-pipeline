@@ -11,17 +11,17 @@ from cellsmap.util.set_output import get_output_path
 
 def main(config_name: str = "default") -> None:
     """
-    Build training and test data for regression 
-    model fitting and evaluation of the dynamical 
+    Build training and test data for regression
+    model fitting and evaluation of the dynamical
     systems model for the manifest data (Diff AE).
 
     Input:
-    - config_name (str): Name of the configuration to load from dynamics_config.yaml. 
+    - config_name (str): Name of the configuration to load from dynamics_config.yaml.
         Default is "default".
 
     Output:
-    - Saves the training and test data for regression model 
-        fitting in a specified directory. Saved out as a 
+    - Saves the training and test data for regression model
+        fitting in a specified directory. Saved out as a
         dictionary with keys "X_train", "X_test", "Y_train", "Y_test",
         "V_train", "V_test", "u_train", "u_test",
         where the values Y and V are the estimated
@@ -33,13 +33,13 @@ def main(config_name: str = "default") -> None:
     print("\n", "*** Running workflow using config: ", config_name, "\n")
     config = dynamics_io.load_dynamics_config(config_name)
 
-    # get output subdirectory for intermediate workflow outputs 
+    # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_output_folder = "stochastic_dynamics/" + config["name"] + "/outputs"
     savedir = get_output_path(workflow_output_folder)
 
-    # get output subdirectory for figures that workflow outputs 
+    # get output subdirectory for figures that workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
     workflow_fig_folder = "stochastic_dynamics/" + config["name"] + "/figs"
@@ -48,7 +48,7 @@ def main(config_name: str = "default") -> None:
     # fit PCA to reference timepoints of reference datasets (removing outliers)
     pca = manifest_pca.fit_pca()
 
-    # save out PCA object (need later for analysis and 
+    # save out PCA object (need later for analysis and
     # summary of fit dynamical systems model)
     manifest_io.save_pca_model(pca, savedir)
 

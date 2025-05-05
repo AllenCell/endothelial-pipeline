@@ -5,7 +5,7 @@ import cellsmap.analyses.utils.numerics.kramersmoyal.kmc as km
 
 def get_km_powers(ndim: int) -> np.ndarray:
     """
-    Generate the powers for the Kramers-Moyal coefficients 
+    Generate the powers for the Kramers-Moyal coefficients
     based on the dimensionality of the data.
 
     Inputs:
@@ -50,12 +50,12 @@ def get_km_kernel(
     kernel_params: dict,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Get Kramers-Moyal coefficients for a list 
+    Get Kramers-Moyal coefficients for a list
     of trajectories in d-dimensional space using
     a kernel density estimation method.
 
     Inputs:
-    - x_list: list of numpy arrays, each array is a single 
+    - x_list: list of numpy arrays, each array is a single
         trajectory in (d-dim) feature space
     - dx_list: list of numpy arrays, each array is the
         displacement vectors along that trajectory
@@ -71,7 +71,7 @@ def get_km_kernel(
     - kernel_params: dictionary containing kernel parameters
         - bandwidth: float, bandwidth for kernel density estimation
         - kernel: str, type of kernel to use (e.g. 'gaussian')
-    
+
     Outputs:
     - drift_km: numpy array, Kramers-Moyal drift estimate
         for each bin in feature space
@@ -79,11 +79,9 @@ def get_km_kernel(
         for each bin in feature space
     """
     for i, dt_ in enumerate(dt_list):
-        # where outlier points were removed, 
+        # where outlier points were removed,
         # time difference was greater than 1, mask out these points
-        mask = np.where(dt_ == 1)[
-            0
-        ]  
+        mask = np.where(dt_ == 1)[0]
         # mask_ for trajectories: should be mask but with additional point
         # include frame after last frame in mask
         mask_ = np.concatenate((mask, [mask[-1] + 1]))
@@ -112,18 +110,12 @@ def get_km_kernel(
     else:  # if ndim > 1, need to make sure arrays are in the right shape
         # permuted axes (0, ndim, ndim-1, ..., 1)
         axes_permute = [0, *list(reversed(range(1, ndim + 1)))]
-        #  swap last ndim axes to get correct shape: 
+        #  swap last ndim axes to get correct shape:
         # n_powers x N[ndim] x N[ndim-1] x ... x N[1]
-        kmc = np.transpose(
-            kmc, axes_permute
-        ) 
+        kmc = np.transpose(kmc, axes_permute)
         # take drift terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
-        drift_km = kmc[
-            1 : ndim + 1
-        ].T  
+        drift_km = kmc[1 : ndim + 1].T
         # take diffusion terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
-        diff_km = kmc[
-            ndim + 1 :
-        ].T  
+        diff_km = kmc[ndim + 1 :].T
 
     return drift_km, diff_km

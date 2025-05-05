@@ -15,9 +15,9 @@ def stochastic_sim_em(
 ) -> np.ndarray:
     """
     Simulate ensemble of ND stochastic trajectories of length n_timepoints
-    starting at initial points x0 using Euler-Maruyama method. 
-    The number of trajectories n_traj is determined by the 
-    number of columns in x0 (x0.shape[1]), and the number of dimensions 
+    starting at initial points x0 using Euler-Maruyama method.
+    The number of trajectories n_traj is determined by the
+    number of columns in x0 (x0.shape[1]), and the number of dimensions
     n_dim is determined by the number of rows in x0 (x0.shape[0]).
 
     Input:
@@ -33,7 +33,7 @@ def stochastic_sim_em(
     - verbose: bool (default=False), whether to print NaN warnings
 
     Output:
-    - ensemble: np.ndarray, ensemble of stochastic trajectories, 
+    - ensemble: np.ndarray, ensemble of stochastic trajectories,
         shape (n_dim,n_timepoints,n_traj)
     """
     # initialize random number generator

@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 
 # set default plot parameters
@@ -57,10 +56,10 @@ def save_plot(
 
     Input:
     - fig: plt.Figure, the figure to save
-    - filename: str, the filepath to save the figure 
+    - filename: str, the filepath to save the figure
         (includes file name, but NOT the file extension)
     - format: str (default='.png'), the file format to save the figure
-    - dpi: int (default=450), the resolution of the figure in 
+    - dpi: int (default=450), the resolution of the figure in
         dots per inch (dpi) if format is .png
 
     Output:

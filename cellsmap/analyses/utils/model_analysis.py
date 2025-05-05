@@ -308,9 +308,7 @@ def get_epr(
             f"Time to calculate entropy production rate: {np.round((toc - tic) / 60, 4):.2f} minutes"
         )
     else:
-        print(
-            f"Time to calculate entropy production rate: {toc - tic:.2f} seconds"
-        )
+        print(f"Time to calculate entropy production rate: {toc - tic:.2f} seconds")
 
     return epr
 

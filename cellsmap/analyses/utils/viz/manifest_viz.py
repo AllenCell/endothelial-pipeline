@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.pipeline import Pipeline
@@ -15,7 +14,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     Plot cumulative explained variance ratio of PCA components.
 
     Input:
-    - explained_variance_ratio: np.ndarray, explained variance 
+    - explained_variance_ratio: np.ndarray, explained variance
         ratio of PCA components
 
     Output:
@@ -26,14 +25,9 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
-    ax.plot(np.arange(1, n_components + 1), 
-            np.cumsum(explained_variance_ratio), 
-            "k-o"
-            )
+    ax.plot(np.arange(1, n_components + 1), np.cumsum(explained_variance_ratio), "k-o")
     ax.plot(
-        np.arange(1, n_components + 1), 
-        0.95 * np.ones(n_components), 
-        "r--", alpha=0.8
+        np.arange(1, n_components + 1), 0.95 * np.ones(n_components), "r--", alpha=0.8
     )  # 95% explained variance line
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
@@ -42,21 +36,19 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_top_3_PCs(feats_proj: np.ndarray, 
-                   fig_ax: tuple | None = None
-                   ) -> tuple:
+def plot_top_3_pcs(feats_proj: np.ndarray, fig_ax: tuple | None = None) -> tuple:
     """
-    Plot Diffusion AE feature data from a dataset along 
-    the top 3 principal components. At each frame in the dataset, 
+    Plot Diffusion AE feature data from a dataset along
+    the top 3 principal components. At each frame in the dataset,
     takes the mean and standard deviation of the feature data
-    projected onto the top 3 PCs over all crops. 
-    Then plots the mean and standard deviation of the feature data 
+    projected onto the top 3 PCs over all crops.
+    Then plots the mean and standard deviation of the feature data
     projected onto each PC over all frames in the dataset.
 
     Input:
-    - feats_proj: np.ndarray, feature data projected onto 
+    - feats_proj: np.ndarray, feature data projected onto
         the top 3 PCs for a single dataset
-    - fig_ax: tuple (default=None), tuple of plt.Figure and 
+    - fig_ax: tuple (default=None), tuple of plt.Figure and
         plt.Axes objects to plot on
         - if None, initializes a new figure and axes
 
@@ -71,23 +63,23 @@ def plot_top_3_PCs(feats_proj: np.ndarray,
         fig, ax = fig_ax
     assert len(ax) == 3, "Number of subplots must be 3"
 
-    # get mean and standard deviation of feature data 
+    # get mean and standard deviation of feature data
     # projected onto top 3 PCs
-    # mean and standard deviation taken over 
+    # mean and standard deviation taken over
     # all crops at each timepoint
-    num_T = feats_proj.shape[1]
+    num_frames = feats_proj.shape[1]
     st_dev = np.std(feats_proj, axis=0)
     mean_feats = np.mean(feats_proj, axis=0)
 
-    # loop over PCs, plot mean and standard deviation 
+    # loop over PCs, plot mean and standard deviation
     # of feature data projected onto each PC
     for col, ax_ in enumerate(ax):  # len(ax) = 3
         # plot mean values
-        ax_.plot(np.arange(num_T), mean_feats[:, col], "k-")
+        ax_.plot(np.arange(num_frames), mean_feats[:, col], "k-")
 
         # plot 1 standard deviation as shaded region around mean
         ax_.fill_between(
-            np.arange(num_T),
+            np.arange(num_frames),
             mean_feats[:, col] - st_dev[:, col],
             mean_feats[:, col] + st_dev[:, col],
             color="k",
@@ -101,19 +93,19 @@ def plot_top_3_PCs(feats_proj: np.ndarray,
     return fig, ax
 
 
-def plot_top_3_PCs_alldata(pca: Pipeline) -> tuple:
+def plot_top_3_pcs_alldata(pca: Pipeline) -> tuple:
     """
-    Plot projection of feature data from all datasets 
+    Plot projection of feature data from all datasets
     along the top 3 principal components.
 
-    For each dataset, projects the feature data onto 
+    For each dataset, projects the feature data onto
     the top 3 PCs, gets the mean and standard deviation
-    over all crops at each frame, and plots this mean 
+    over all crops at each frame, and plots this mean
     and standard deviation vs. frame number for each PC.
     Calls plot_top_3_PCs() to plot the data for each dataset.
 
     Input:
-    - pca: Pipeline, the PCA model used to project the 
+    - pca: Pipeline, the PCA model used to project the
         feature data onto the top 3 PCs
         - can include any preprocessing steps before PCA, such as scaling
 
@@ -150,9 +142,9 @@ def plot_top_3_PCs_alldata(pca: Pipeline) -> tuple:
         df_proj = diffae_preproc.project_manifest_to_pcs(
             df_manifest, pca
         )  # project the dataset onto the PCA space
-        PCs = [f"feat_{i}" for i in range(3)]  # top 3 PCs
+        pcs = [f"feat_{i}" for i in range(3)]  # top 3 PCs
         feats_proj = diffae_preproc.df_to_array(
-            df_proj, PCs
+            df_proj, pcs
         )  # get the feature data projected onto the top 3 PCs
 
         for j in range(3):
@@ -172,15 +164,16 @@ def plot_top_3_PCs_alldata(pca: Pipeline) -> tuple:
         axs = subfig.subplots(nrows=1, ncols=3)
 
         # plot top 3 PCs for the dataset
-        fig, axs = plot_top_3_PCs(feats_proj, fig_ax=(fig, axs))
+        fig, axs = plot_top_3_pcs(feats_proj, fig_ax=(fig, axs))
 
     # set y-limits for each PC across all datasets
     for j in range(3):
-        for row, subfig in enumerate(subfigs):
+        for _row, subfig in enumerate(subfigs):
             axs = subfig.axes[j]
             axs.set_ylim(y_lims[j][0], y_lims[j][1])  # set y-limits for each PC
 
     return fig, axs
+
 
 def plot_km(
     centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float

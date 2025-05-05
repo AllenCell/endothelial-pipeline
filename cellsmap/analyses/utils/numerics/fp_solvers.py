@@ -14,7 +14,7 @@ class SteadyFP:
     """
     Solve the steady-state Fokker-Planck equation using Fourier-Galerkin method.
 
-    This class defines a solver object for steady-state Fokker-Planck 
+    This class defines a solver object for steady-state Fokker-Planck
     equation in 1D or 2D, solving using Fourier-Galerkin method.
 
     Code adapted from https://github.com/dynamicslab/langevin-regression, code for paper
@@ -27,7 +27,7 @@ class SteadyFP:
         Initialize the SteadyFP object.
 
         Input:
-        - n: int or list of ints, grid resolution 
+        - n: int or list of ints, grid resolution
             n[0] x n[1] x ... x n[d-1] for d-dimensional grid
             - if int, 1D grid
         - dx: float or list of floats, grid spacing
@@ -74,25 +74,25 @@ class SteadyFP:
 
         # This will be the operator matrix for the linear system
         # Gets initialized separately with precompute_operator
-        self.operator_matrix = None  
+        self.operator_matrix = None
 
     def precompute_operator(self, drift: np.ndarray, diffusion: np.ndarray) -> None:
         """
         Precompute the operator matrix for the linear system of equations.
-        This method computes the Fourier transform of the drift 
-        and diffusion coefficients and sets up the operator matrix 
+        This method computes the Fourier transform of the drift
+        and diffusion coefficients and sets up the operator matrix
         for the linear system.
 
         Inputs:
-        - f: np.ndarray, drift coefficients evaluated on 
+        - f: np.ndarray, drift coefficients evaluated on
             d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
-        - D: np.ndarray, diffusion coefficients evaluated on 
+        - D: np.ndarray, diffusion coefficients evaluated on
             d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
 
         Output:
         - None (initializes operator matrix for linear system)
 
-        Possible to do: generalize to covariate noise, would need to add a 
+        Possible to do: generalize to covariate noise, would need to add a
         dimension to the diffusion matrix
         """
 
@@ -103,11 +103,8 @@ class SteadyFP:
 
             # Set up spectral projection operator
             self.operator_matrix = np.einsum(
-                "i,ij->ij", -1j * self.k,
-                drift_hat[self.idx]
-                ) + np.einsum(
-                "i,ij->ij", -self.k**2, diff_hat[self.idx]
-                )
+                "i,ij->ij", -1j * self.k, drift_hat[self.idx]
+            ) + np.einsum("i,ij->ij", -self.k**2, diff_hat[self.idx])
 
         if self.d == 2:
             # Initialize Fourier transformed coefficients
@@ -121,55 +118,47 @@ class SteadyFP:
             self.operator_matrix = (
                 -1j
                 * np.einsum(
-                    "i,ijkl->ijkl", 
-                    self.k[0], 
-                    drift_hat[0, self.idx[0], self.idx[1]]
+                    "i,ijkl->ijkl", self.k[0], drift_hat[0, self.idx[0], self.idx[1]]
                 )
                 - 1j
                 * np.einsum(
-                    "j,ijkl->ijkl", 
-                    self.k[1], 
-                    drift_hat[1, self.idx[0], self.idx[1]]
+                    "j,ijkl->ijkl", self.k[1], drift_hat[1, self.idx[0], self.idx[1]]
                 )
                 - np.einsum(
-                    "i,ijkl->ijkl", 
-                    self.k[0] ** 2, 
-                    diff_hat[0, self.idx[0], self.idx[1]]
+                    "i,ijkl->ijkl",
+                    self.k[0] ** 2,
+                    diff_hat[0, self.idx[0], self.idx[1]],
                 )
                 - np.einsum(
-                    "j,ijkl->ijkl", 
-                    self.k[1] ** 2, 
-                    diff_hat[1, self.idx[0], self.idx[1]]
+                    "j,ijkl->ijkl",
+                    self.k[1] ** 2,
+                    diff_hat[1, self.idx[0], self.idx[1]],
                 )
             )
 
             # Reshape operator matrix (flatten along grid dimensions)
             self.operator_matrix = np.reshape(
-                self.operator_matrix, 
-                (np.prod(self.n), np.prod(self.n))
-                )
+                self.operator_matrix, (np.prod(self.n), np.prod(self.n))
+            )
 
     def solve(
-            self, 
-            drift: np.ndarray, 
-            diffusion: np.ndarray, 
-            verbose: bool = False
-            ) -> np.ndarray:
+        self, drift: np.ndarray, diffusion: np.ndarray, verbose: bool = False
+    ) -> np.ndarray:
         """
         Solve stationary Fokker-Planck equation from input drift coefficients using
-        a Fourier-Galerkin method (uses Fourier transform of drift f(x) 
-        and diffusion D(x) to derive inhomogeneous linear system 
+        a Fourier-Galerkin method (uses Fourier transform of drift f(x)
+        and diffusion D(x) to derive inhomogeneous linear system
         of equations, solved below).
 
         Inputs:
-        - drift: np.ndarray, drift coefficients evaluated on 
+        - drift: np.ndarray, drift coefficients evaluated on
             d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
-        - diffusion: np.ndarray, diffusion coefficients evaluated on 
+        - diffusion: np.ndarray, diffusion coefficients evaluated on
             d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
         - verbose: bool (default False), whether to print out timing information
 
         Output:
-        - p: np.ndarray, stationary probability density evaluated on 
+        - p: np.ndarray, stationary probability density evaluated on
             d-dimensional grid (N[0] x N[1] x ... x N[d-1])
         """
 
