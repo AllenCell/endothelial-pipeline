@@ -1,11 +1,13 @@
-import numpy as np
 import dask.array as da
+import numpy as np
+from bioio import BioImage
+from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
+from bioio_base.types import PhysicalPixelSizes
+from tqdm import tqdm
+
 # from pathlib import Path
 from cellsmap.util import dataset_io
-from bioio import BioImage
-from bioio_base.types import PhysicalPixelSizes
-from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
-from tqdm import tqdm
+
 
 def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     """
@@ -22,18 +24,19 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     metadata = im.metadata
     return metadata
 
+
 def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     """
     Retrieves the physical pixel sizes for the given sldy metadata.
-    
+
     Parameters:
     metadata (dict): The metadata as a dictionary of dictrionaries from a .sldy file opened with BioImage.
-    
+
     Returns:
     PhysicalPixelSizes: The physical pixel sizes for the dataset.
     """
-    xy_pixel_size_in_um = metadata['image_record']['CLensDef70']['mMicronPerPixel']
-    optovar_mag = metadata['image_record']['COptovarDef70']['mMagnification']
+    xy_pixel_size_in_um = metadata["image_record"]["CLensDef70"]["mMicronPerPixel"]
+    optovar_mag = metadata["image_record"]["COptovarDef70"]["mMagnification"]
     z_step_um = metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
 
     physical_pixel_sizes = PhysicalPixelSizes(
@@ -50,7 +53,7 @@ def get_level_shapes(
     """
     Determines the image data shape at different resolutions using XY and Z scaling parameters.
     By default, it returns the full resolution and a single downsampled resolution at 50% in XY.
-    The number of levels in the final output is determined by the length of the xy_scaling and 
+    The number of levels in the final output is determined by the length of the xy_scaling and
     z_scaling lists plus one (original resolution and then the scaled ones).
 
     Parameters:
@@ -59,7 +62,7 @@ def get_level_shapes(
     z_scaling (list[float]): The scaling factors for the Z dimension.
 
     Returns:
-    list[tuple]: A list of shapes for each resolution level. 
+    list[tuple]: A list of shapes for each resolution level.
     """
 
     if len(xy_scaling) != len(z_scaling):
@@ -84,7 +87,9 @@ def get_level_shapes(
     return level_shapes
 
 
-def get_zarr_chunk_dims(im_shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]) -> list[tuple]:
+def get_zarr_chunk_dims(
+    im_shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]
+) -> list[tuple]:
     """
     Determines the chunk dimensions for Zarr storage.
 
@@ -112,8 +117,8 @@ def write_scene(
     position: int,
     physical_pixel_sizes: PhysicalPixelSizes,
     interval_min: float,
-    xy_scaling: list[float] = [0.5], 
-    z_scaling: list[float] = [1.0]
+    xy_scaling: list[float] = [0.5],
+    z_scaling: list[float] = [1.0],
 ) -> None:
     """
     Writes a scene to a Zarr store.
