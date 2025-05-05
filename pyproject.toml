@@ -15,7 +15,7 @@ dependencies = [
     "bioio-sldy>=1.0.3",
     "bioio-tifffile>=1.0.1",
     "colorcet>=3.1.0",
-    "colorizer_data @ git+https://github.com/allen-cell-animated/colorizer-data.git@v1.5.2",
+    "colorizer_data @ git+https://github.com/allen-cell-animated/colorizer-data.git@v1.6.1",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",
