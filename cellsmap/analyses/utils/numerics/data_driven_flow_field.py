@@ -34,7 +34,7 @@ def compute_extrapolated_vector_field(kmcs:np.ndarray,
                                     grid_centers:list[np.ndarray], 
                                     interpolator:str="nearest") -> dict:
     '''
-    Get extrapolated 3D vector field via estimates of 
+    Get an extrapolated 3D vector field via estimates of 
     that vector field (i.e., first or second Kramers-Moyal 
     coefficients: drift or diffusion) from the data
     for a given experimental condition.
@@ -171,58 +171,81 @@ def get_callable_vector_field(vector_field_dict:dict,for_solve_ivp:bool=True) ->
     
     return vec_func
 
-def solve_ddff_ode(flow_field_dict:dict,init:np.ndarray,t_span:list[float],num_T:int=1750) -> np.ndarray:
+def solve_ddff_ode(
+        flow_field_dict:dict,
+        init:np.ndarray,
+        t_span:list[float],
+        num_t:int=1750
+) -> np.ndarray:
     """
     Solve the ODE dx/dt = f(x) using scipy.integrate.solve_ivp.
 
     Inputs:
     - flow_field_dict: dictionary with the following keys:
-        - "vectors": tuple of 3D arrays (f1, f2, f3) with the velocities in each dimension
-        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+        - "vectors": tuple of 3D arrays (1, f2, f3) with the 
+            velocities in each dimension
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the 
+            grid points in each dimension
     - init: initial condition for the trajectory (shape (3,))
     - t_span: time span for the ODE solver (list of two floats)
-    - num_T: number of time points to evaluate the solution (default is 1750)
+    - num_T: number of time points to evaluate the solution 
+        (default is 1750)
 
     Outputs:
-    - sol: solution of the ODE with the given initial condition (shape (num_T, 3))
+    - sol: solution of the ODE with the given 
+        initial condition (shape (num_t, 3))
 
     """
-    my_flow = get_callable_vector_field(flow_field_dict) # turn flow field into callable function (works via interpolation)
-    t_eval = np.linspace(t_span[0],t_span[1],num_T) # timepoints at which to evaluate the solution
-    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval) # solve the IVP
+    # turn flow field into callable function (works via interpolation)
+    my_flow = get_callable_vector_field(flow_field_dict) 
+    # timepoints at which to evaluate the solution
+    t_eval = np.linspace(t_span[0],t_span[1],num_t) 
+    # solve the IVP
+    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval) 
     return sol.y.T # get trajectory, shape (num_T, 3) (3D trajectory in state space)
 
 def interpolate_on_curve(traj:np.ndarray,n_points:int=5) -> np.ndarray:
     '''
-    Function to interpolate a trajectory in ND space to get n_points evenly spaced points along the trajectory.
+    Interpolate a trajectory in ND space to get 
+    n_points evenly spaced points along the trajectory.
 
     Inputs:
-    - traj: trajectory in ND space (shape (num_points, num_dimensions))
+    - traj: trajectory in ND space 
+        - shape (num_t, num_dimensions)
     - n_points: number of points to interpolate to (default is 5)
 
     Outputs:
-    - interpolated_points: interpolated points along the trajectory (shape (n_points, num_dimensions)),
-        equally spaced by arc length
+    - interpolated_points: interpolated points along the trajectory 
+        - shape (n_points, num_dimensions),
+        - equally spaced by arc length
     '''
     ndim = traj.shape[1] # number of dimensions
 
-    # compute cumulative distance from the first point along the trajectory
-    distances = np.linalg.norm(np.diff(traj, axis=0), axis=1) # get distances between points
-    arc_length = np.cumsum(np.concatenate(([0],distances))) # cumulative distance from the first point
+    # compute cumulative distance of 
+    # each point from the first point 
+    # along the trajectory
+    distances = np.linalg.norm(np.diff(traj, axis=0), axis=1)
+    arc_length = np.cumsum(np.concatenate(([0],distances)))
 
-    # interpolate to get n_points evenly spaced points
-    arc_length_new = np.linspace(0, arc_length[-1], n_points) # arc length distance of evenly spaced points
+    # interpolate to by these distances to
+    #  get n_points evenly spaced points
+    arc_length_new = np.linspace(0, arc_length[-1], n_points)
 
     # initialize array interpolated points
     interpolated_points = np.zeros((n_points, 3)) 
     for i in range(ndim): # loop over dimensions
-        interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
+        interpolated_points[:, i] = np.interp(
+            arc_length_new, arc_length, traj[:, i]
+            )
     
     return interpolated_points 
 
-def convert_coordinates_from_volume_to_pc(xvol:np.array, grid_spacing:float, origin:float) -> np.array:
+def convert_coordinates_from_volume_to_pc(
+        xvol:np.array, grid_spacing:float, origin:float
+) -> np.array:
     '''
-    Convert coordinates from 3D volume space to 3D PC space (for saving as .vtk to view in ParaView)
+    Convert coordinates from 3D volume space to 3D PC space 
+    (for saving as .vtk to view in ParaView).
     '''
     xpc = origin + xvol*grid_spacing
     return xpc
