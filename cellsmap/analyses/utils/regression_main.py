@@ -62,7 +62,7 @@ def kramers_moyal_train_test_one_dataset(
     ndim = len(pcs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name)
+    df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, ds_name)
     num_flow = len(shear_list)
 
     f_KM = []
@@ -71,18 +71,17 @@ def kramers_moyal_train_test_one_dataset(
 
     for j in range(num_flow):
         # get list of per-crop trajectories, the corresponding displacement vectors, and time differences
-        X_list, dX_list, dT_list = rh.get_X_dX_and_dT(
+        traj_list, d_traj_list = rh.get_traj_and_diff(
             df_by_flow[j], feat_cols=feat_cols
         )
 
         # get bins for histogramming (for drift and diffusion estimates)
-        bins, centers = rh.get_bins(num_bins, data=X_list)
+        bins, centers = rh.get_bins(num_bins, data=traj_list)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
         f_KM_, D_KM_ = rh.get_kramers_moyal(
-            X_list,
-            dX_list,
-            dT_list,
+            traj_list,
+            d_traj_list,
             bins,
             dt,
             method=method,

@@ -7,22 +7,35 @@ import cellsmap.util.dataset_io as dio
 
 
 def get_bins(
-    Nbins: list, data: pd.DataFrame | None = None, bin_limits: list | None = None
+    num_bins: list, 
+    data: pd.DataFrame | None = None, 
+    bin_limits: list | None = None
 ) -> tuple[list, list]:
     """
-    Generate histogram bins for computing Kramers-Moyal estimates from trajectories, either automatically based on data or user-defined.
+    Generate histogram bins for computing Kramers-Moyal 
+    estimates from trajectories, either automatically 
+    based on data or user-defined bin limits.
 
     Inputs:
-    - Nbins: list of number of bins in each dimension (list of length ndim, where ndim is the number of dimensions of the feature space)
-    - data: list of numpy arrays, each array is the trajectory of a single crop in feature space (ndim = len(Nbins))
-    - bin_limits: list of tuples, each tuple contains the lower and upper bounds for the bins in each dimension
-    Either data or bin_limits must be provided. If bin_limits provided, data is ignored.
+    - Nbins: list of number of bins in each dimension 
+        (list of length ndim, where ndim is the number 
+        of dimensions of the feature space)
+    - data: list of numpy arrays, each array is the trajectory 
+        of a single crop in feature space (ndim = len(num_bins))
+    - bin_limits: list of tuples, each tuple contains the lower 
+        and upper bounds for the bins in each dimension
+
+    Either data or bin_limits must be provided. 
+    If bin_limits provided, data is ignored.
 
     Outputs:
-    - bins: list of numpy arrays, each array contains the bin edges for a dimension
-    - centers: list of numpy arrays, each array contains the center of each bin in a dimension
+    - bins: list of numpy arrays, each array contains 
+        the bin edges for a dimension
+    - centers: list of numpy arrays, each array contains 
+        the center of each bin in a dimension
 
-    If the dimension is 1, bins and centers are still lists (of length 1), containing the bin edges and centers for the single dimension.
+    If the dimension is 1, bins and centers are still lists (of length 1), 
+    containing the bin edges and centers for the single dimension.
     """
     if bin_limits is None:  # Automatically determine bins based on data
         if data is None:
@@ -31,7 +44,7 @@ def get_bins(
             )
         ndim = data[0].shape[1]
         assert ndim == len(
-            Nbins
+            num_bins
         ), "Number of bins must match number of dimensions in data."
         bins = []
         centers = []
@@ -39,38 +52,45 @@ def get_bins(
             traj_min = min([traj[:, i].min() for traj in data])
             traj_max = max([traj[:, i].max() for traj in data])
             bin_min, bin_max = traj_min - 0.1, traj_max + 0.1
-            my_bins = np.linspace(bin_min, bin_max, Nbins[i] + 1)
+            my_bins = np.linspace(bin_min, bin_max, num_bins[i] + 1)
             bins.append(my_bins)
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
     else:  # Use user-defined bins
         ndim = len(bin_limits)
         assert ndim == len(
-            Nbins
+            num_bins
         ), "Number of bins must match number of dimensions in data."
         bins = []
         centers = []
         for i in range(ndim):
-            my_bins = np.linspace(bin_limits[i][0], bin_limits[i][1], Nbins[i] + 1)
+            my_bins = np.linspace(bin_limits[i][0], bin_limits[i][1], num_bins[i] + 1)
             bins.append(my_bins)
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
     return bins, centers
 
 
-def get_X_by_flow(
+def get_traj_by_flow(
     df_proj: pd.DataFrame, ds_name: str, verbose: bool = True
 ) -> tuple[list, list]:
     """
-    Get crop-based feature data (Diffusion AE output) for different flow conditions present in dataset ds_name.
+    Get crop-based feature data (Diffusion AE output) for 
+    different flow conditions present in dataset ds_name.
 
     Inputs:
-    - df_proj: pandas dataframe containing the dataset of interest, projected onto all principal component axes (change of basis, no dimensionality reduction)
-    - ds_name: name of the dataset (used to split out data by flow condition, acessed via data_config.yaml)
+    - df_proj: pandas dataframe containing the dataset of interest, 
+        projected onto all principal component axes 
+        (change of basis, no dimensionality reduction)
+    - ds_name: name of the dataset (used to split out data 
+        by flow condition, acessed via data_config.yaml)
 
     Outputs:
-    - data_all: list of dataframes, each containing the feature data for one flow condition
+    - data_all: list of dataframes, each containing 
+        the feature data for one flow condition
     - shear_list: list of shear stress conditions for each flow condition
 
-    If there is only one flow condition, data_all and shear_list are still lists (of length 1), respectively containing the original dataframe and single shear stress condition.
+    If there is only one flow condition, data_all and shear_list 
+    are still lists (of length 1), respectively containing the 
+    original dataframe and single shear stress condition.
     """
 
     # load flow information from data_config.yaml
@@ -105,61 +125,60 @@ def get_X_by_flow(
     return data_all, shear_list
 
 
-def get_X_dX_and_dT(X: pd.DataFrame, feat_cols: list) -> tuple[list, list, list]:
+def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list, list]:
     """
-    Get list of per-crop trajectories, the corresponding displacement vectors, and time differences along the trajectory for each crop in the dataset.
+    Get list of per-crop trajectories, the corresponding displacement vectors, 
+    and time differences along the trajectory for each crop in the dataset.
 
     Inputs:
-    - X: pandas DataFrame with columns for each feature. Should have a column for time and a column for the crop index
+    - data: pandas DataFrame with columns for each feature. Should have a 
+        column for time and a column for the crop index
         This data should be for one dataset and one flow condition.
-    - feat_cols: list of feature column names (used to extract feature data from the dataframe X)
+    - feat_cols: list of feature column names 
+        (used to extract feature data from the dataframe X)
 
     Outputs:
-    - X_list: list of numpy arrays, each array is the trajectory of a single crop in feature space
-    - dX_list: list of numpy arrays, each array is the displacement vectors along that trajectory for a single crop in feature space
-    - dT_list: list of numpy arrays, each array is the time differences along that trajectory for a single crop
+    - traj_list: list of numpy arrays, each array is the 
+        trajectory of a single crop in feature space
+    - d_traj_list: list of numpy arrays, each array is the displacement 
+        vectors along that trajectory for a single crop in feature space
     """
-    if "frame_number" not in X.columns:
+    if "frame_number" not in data.columns:
         raise ValueError("Data must have a column for time")
-    if "crop_index" not in X.columns:
+    if "crop_index" not in data.columns:
         raise ValueError("Data must have a column for crop_index")
 
     # get list of unique crop indices
-    crop_list = X["crop_index"].unique()
+    crop_list = data["crop_index"].unique()
 
-    # initialize lists for storing data
-    X_list = []
-    dX_list = []
-    dT_list = []
+    # initialize lists for storing outputs
+    traj_list = []  
+    d_traj_list = []
 
     # loop over each crop in the dataset
     for crop in crop_list:
         # get data for each crop, sorted by time
-        X_crop = X[X["crop_index"] == crop].sort_values(by="frame_number")
+        data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
 
-        num_T = X_crop["frame_number"].nunique()  # number of timepoints for this crop
+        num_frames = data_crop["frame_number"].nunique()  # number of timepoints for this crop
         # check that the array of feature data has the correct shape (num_T x ndim)
-        assert X_crop[feat_cols].values.shape == (num_T, len(feat_cols))
+        assert data_crop[feat_cols].values.shape == (num_frames, len(feat_cols))
 
         # get displacement vectors and time differences for each crop
-        dX = np.diff(X_crop[feat_cols].values, axis=0)
-        dT = np.diff(X_crop["frame_number"].values)
+        d_traj = np.diff(data_crop[feat_cols].values, axis=0)
 
         # append data to lists: trajectory, displacement vectors, time differences
-        X_list.append(X_crop[feat_cols].values)
-        dX_list.append(dX)
-        dT_list.append(dT)
+        traj_list.append(data_crop[feat_cols].values)
+        d_traj_list.append(d_traj)
 
-    return X_list, dX_list, dT_list
+    return traj_list, d_traj_list
 
 
 def get_kramers_moyal(
-    X_list: list[np.ndarray],
-    dX_list: list[np.ndarray],
-    dT_list: list[np.ndarray],
+    traj_list: list[np.ndarray],
+    d_traj_list: list[np.ndarray],
     bins: list[np.ndarray],
     dt: float,
-    method: str = "kernel",
     kernel_params: dict | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -170,7 +189,6 @@ def get_kramers_moyal(
     Inputs:
     - X_list: list of numpy arrays, each array is a single trajectory in feature space
     - dX_list: list of numpy arrays, each array is the displacement vectors along that trajectory
-    - dT_list: list of numpy arrays, each array is the time differences along that trajectory
     - bins: list of numpy arrays, each array contains the bin edges for a dimension (used for computing conditional averages)
     - dt: time step between data points (used to compute Kramers-Moyal coefficients)
     - method: method to use for computing Kramers-Moyal coefficients from data (default is 'kernel')
@@ -179,16 +197,11 @@ def get_kramers_moyal(
     - f_KM: numpy array, drift estimates for each bin in feature space
     - D_KM: numpy array, diffusion estimates for each bin in feature space
     """
-    if method == "kernel":
-        if kernel_params is None:
-            print("No kernel parameters provided, using default parameters: ")
-            kernel_params = {"bandwidth": 0.1, "kernel": "gaussian"}
-            print(f"bw = {kernel_params['bw']}, kernel = {kernel_params['kernel']}")
-        f_KM, D_KM = km.get_km_kernel(X_list, dX_list, dT_list, bins, dt, kernel_params)
-    elif method == "histogram":
-        f_KM, D_KM = km.get_km_histogram(X_list, dX_list, dT_list, bins, dt)
-    else:
-        raise ValueError("Method must be either kernel or histogram.")
+    if kernel_params is None:
+        print("No kernel parameters provided, using default parameters: ")
+        kernel_params = {"bandwidth": 0.1, "kernel": "gaussian"}
+        print(f"bw = {kernel_params['bw']}, kernel = {kernel_params['kernel']}")
+    f_KM, D_KM = km.get_km_kernel(traj_list, d_traj_list, bins, dt, kernel_params)
     return f_KM, D_KM
 
 

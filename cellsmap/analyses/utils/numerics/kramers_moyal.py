@@ -44,7 +44,6 @@ def get_km_powers(ndim: int) -> np.ndarray:
 def get_km_kernel(
     x_list: list,
     dx_list: list,
-    dt_list: list,
     bins: list,
     dt: float,
     kernel_params: dict,

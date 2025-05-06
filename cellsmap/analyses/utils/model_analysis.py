@@ -148,7 +148,7 @@ def model_data_comparison(
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
 
         # split out data by flow condition
-        df_by_flow, shear_list = rh.get_X_by_flow(df_proj, ds_name, verbose=False)
+        df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, ds_name, verbose=False)
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
