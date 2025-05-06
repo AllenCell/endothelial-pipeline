@@ -30,8 +30,8 @@ def generate_results(
           dataset_name: str,
           T: int,
           out_dir: str | Path,
-          scene: str | None = None,
-          position: int | None = None,
+          scene: str | int = 0,
+          position: int = 0,
           use_original_data: bool | None = False,
           img_bin_level: int = 0,
           save_output: bool | None = True,
@@ -82,9 +82,9 @@ def generate_results(
     # load the segmentation images
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     seg_filepaths = sorted(seg_dir.glob('*.ome.tif*'), key=lambda fp: extract_T(fp.name))
-    seg_filepath = [fp for fp in seg_dir.glob('*.ome.tif*') if extract_T(fp.name) == T]
-    assert len(seg_filepath) == 1, f'Found {len(seg_filepath)} segmentation files for T={T} in {dataset_name}. Expected 1.'
-    seg_filepath = seg_filepath[0]
+    seg_filepath_list = [fp for fp in seg_dir.glob('*.ome.tif*') if extract_T(fp.name) == T]
+    assert len(seg_filepath_list) == 1, f'Found {len(seg_filepath_list)} segmentation files for T={T} in {dataset_name}. Expected 1.'
+    seg_filepath = seg_filepath_list[0]
     seg = BioImage(seg_filepath)
     seg_arr = seg.get_image_dask_data(dim_order).compute().squeeze()
     # NOTE: the segmentation images are stored as a single channel and single timepoint
@@ -194,12 +194,13 @@ def generate_results(
                 })
             table.to_csv(tables_out_dir_segprops / f'{dataset_name}_P{position}_T{T}_segprops.csv', index=False)
 
-def concatenate_tables(dataset_name, out_dir):
+def concatenate_tables(dataset_name:str, out_dir:str|Path)->None:
         print(f'- {dataset_name}')
         # get the alignment table paths and segmentation properties
         # table paths for each dataset
-        tables_alignments = Path(out_dir).glob(f'**/{dataset_name}/*/tables_alignments/*.csv')
-        tables_segprops = Path(out_dir).glob(f'**/{dataset_name}/*/tables_segmentation_properties/*.csv')
+        out_dir = Path(out_dir)
+        tables_alignments = out_dir.glob(f'**/{dataset_name}/*/tables_alignments/*.csv')
+        tables_segprops = out_dir.glob(f'**/{dataset_name}/*/tables_segmentation_properties/*.csv')
 
         # concatenate and save the tables for each dataset
         concatenated_table_out_dir = out_dir / f'{dataset_name}'
@@ -210,22 +211,23 @@ def concatenate_tables(dataset_name, out_dir):
         master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
         master_table.to_csv(concatenated_table_out_dir / f'{dataset_name}_segmentation_properties.csv', index=False)
 
-def concatenate_tables_multiproc(queue_group):
+def concatenate_tables_multiproc(queue_group: Tuple)->None:
      dataset_name, queue_df = queue_group
      out_dir = queue_df['output_dir'].iloc[0]
      concatenate_tables(dataset_name, out_dir)
 
 
-def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
+def main(n_proc: int = 1, dataset_name: str|None=None, save_output:bool=True, is_test:bool=False, verbose:bool=False) -> None:
 
     if dataset_name == None:
-        dataset_name_list = [config_data['name']
-                            for config_data in load_config(config_type='data')
+        config_data = load_config(config_type='data')
+        dataset_name_list = [dataset_name
+                            for dataset_name, config_data in config_data.items()
                             if (config_data['microscope'] == '3i'
                                 and config_data['live_or_fixed_sample'] == 'live')
                                 and 'AICS-126' in config_data['cell_lines']]
     else:
-        dataset_name_list = [dataset_name]
+        dataset_name_list = [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
 
     print('Building analysis queue...')
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
