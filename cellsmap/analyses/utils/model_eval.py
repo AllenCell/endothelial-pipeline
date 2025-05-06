@@ -102,17 +102,13 @@ def vector_field_component(f: Callable, i: int) -> Callable:
         if isinstance(x, tuple) or isinstance(x, list):
             # if passing in a meshgrid, make sure 
             # to evaluate the function on the meshgrid
-            if (
-                len(x[0].shape) == 2
-            ):  
+            if len(x[0].shape) == 2:  
                 f_mesh = mesh_grid_function(f)
                 # transpose output so that the components are the first axis
                 f_out = f_mesh(x, u).T  
             else:  # if single point in ND, convert tuple to array
                 # transpose output so that the components are the first axis
-                f_out = f(
-                    np.array(x).reshape(-1, len(x)), u
-                ).T  
+                f_out = f(np.array(x).reshape(-1, len(x)), u).T  
         # if passing in an array of points, 
         # evaluate the function on the array of points
         else:  
@@ -202,9 +198,8 @@ def get_stationary_probability(
     # solve stationary Fokker-Planck equation
     p_fit = fp.solve(drift_vals, diff_vals)  
 
-    p_fit[p_fit < tol] = (
-        tol  # set small values to a small number to avoid numerical issues
-    )
+    # set small values to a small number to avoid numerical issues
+    p_fit[p_fit < tol] = tol
     # integrate to get normalization constant
     c = get_normalization_constant(p_fit, dx)  
     # normalize probability distribution
