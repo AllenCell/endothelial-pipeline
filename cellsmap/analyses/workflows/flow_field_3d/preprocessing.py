@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pandas as pd
 
-from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
+from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
@@ -54,39 +54,6 @@ df = pd.concat(
 )  # concatenate the dataframes into a single dataframe
 
 # %%
-# plot the data in latent space (features 1 and 4) before removing outliers
-fig, ax = vb.init_plot(figsize=(5, 5))
-for ds_name in datasets_to_use:
-    # get the data for the dataset based on ds_name being in the crop_index column
-    dfs = df[df["crop_index"].str.contains(ds_name)]
-    ax.scatter(dfs["feat_1"], dfs["feat_4"], s=0.1, label=ds_name)
-plt.legend()
-plt.show()
-vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4", dpi=72)
-vb.save_plot(fig, filename=fig_savedir + "reference_dataset_overview_feats_1_4", dpi=72)
-
-# plot latent dims 1 and 4 after with outliers labelled
-fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-ax.scatter(df["feat_1"], df["feat_4"], c=df["outlier"], s=0.2)
-plt.show()
-vb.save_plot(
-    fig,
-    filename=fig_savedir + "reference_dataset_overview_feats_1_4_no_bubbles",
-    dpi=72,
-)
-
-# shape of the dataset before removing outliers
-shape_init = df.shape
-
-# remove outliers (bubbles) from the dataset
-# note: this is for downstream analysis,
-# note: this is for downstream analysis,
-# outliers automatically removed for fitting PCA
-df = manifest_pca.remove_outliers(df)
-shape_post = df.shape
-print(f"Removed {shape_init[0]-shape_post[0]} outliers from the dataset")
-
-# %%
 
 # fit PCA to data
 pca = manifest_pca.fit_pca(num_pcs=3) # only working with top 3 PCs
@@ -96,12 +63,11 @@ manifest_io.save_pca_model(pca, output_savedir)
 
 # Apply PCA
 feat_cols = manifest_io.get_feature_cols(df)
-X = df[feat_cols].values
-Xt = pca.transform(X)
+x_proj = pca.transform(df[feat_cols].values)
 
 # add PCA components to dataframe
 for pc in range(3):
-    df[f"PC{pc+1}"] = Xt[:, pc]
+    df[f"pc{pc+1}"] = x_proj[:, pc]
 
 # %%
 # Save final manifest for creating flow fields
@@ -109,10 +75,10 @@ df.to_csv(output_savedir+"manifest.csv")
 # %%
 # get state space bounds from data between the 0.1 and 0.9 percentiles in each dimension
 # used for plotting in this file, analysis in generate_flow_field.py
-bounds = ddff.set_3D_bounds_from_data(
-    df.PC1, 
-    df.PC2, 
-    df.PC3,
+bounds = ddff.set_3d_bounds_from_data(
+    df.pc1, 
+    df.pc2, 
+    df.pc3,
     excluded_fraction=0.0
     ) 
 
