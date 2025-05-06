@@ -1,16 +1,23 @@
+from pathlib import Path
+from typing import Any, List, Optional, Union
 
 import numpy as np
-from pathlib import Path
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
-from cellsmap.util.dataset_io import get_zarr_path, get_original_path, get_total_number_of_positions
-from cellsmap.util.set_output import get_output_path
-from cellsmap.util.get_sldy_metadata import get_objective_info
-from typing import List, Any, Union, Optional
 from tqdm import tqdm
 
+from cellsmap.util.dataset_io import (
+    get_original_path,
+    get_total_number_of_positions,
+    get_zarr_path,
+)
+from cellsmap.util.get_sldy_metadata import get_objective_info
+from cellsmap.util.set_output import get_output_path
+
+
 def get_default_dim_order() -> str:
-    return 'TCZYX'
+    return "TCZYX"
+
 
 def get_dim_map(dim_order: str) -> dict:
 
@@ -20,27 +27,52 @@ def get_dim_map(dim_order: str) -> dict:
 
     return dim_map
 
+
 def get_chan_map(filepath: Path) -> dict:
     img = BioImage(filepath)
-    return {name:index for index, name in enumerate(img.channel_names)}
+    return {name: index for index, name in enumerate(img.channel_names)}
 
-def build_analysis_queue(dataset_name_list: list,
-                         t_start: int=0, t_final: int|None=None, t_step: int=1,
-                         img_bin_level: int=0,
-                         save_output=True, overwrite=False, out_dir: str|Path|None=None,
-                         magnification: int|None=None,
-                         image_validation_frequency: int|None=None,
-                         verbose=None, is_test=False, use_original_data=False) -> list:
-    print(f'Building analysis queue for the following datasets: {dataset_name_list}')
+
+def build_analysis_queue(
+    dataset_name_list: list,
+    t_start: int = 0,
+    t_final: int | None = None,
+    t_step: int = 1,
+    img_bin_level: int = 0,
+    save_output=True,
+    overwrite=False,
+    out_dir: str | Path | None = None,
+    magnification: int | None = None,
+    image_validation_frequency: int | None = None,
+    verbose=None,
+    is_test=False,
+    use_original_data=False,
+) -> list:
+    print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
-    out_dir = Path(out_dir) if out_dir != None else Path(get_output_path('analysis_queue_output_temp', verbose=False))
-    for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='Building analysis queue', unit='dataset'):
-        img_path = Path(get_zarr_path(dataset_name)) if not use_original_data else Path(get_original_path(dataset_name))
+    out_dir = (
+        Path(out_dir)
+        if out_dir != None
+        else Path(get_output_path("analysis_queue_output_temp", verbose=False))
+    )
+    for dataset_name in tqdm(
+        dataset_name_list,
+        total=len(dataset_name_list),
+        desc="Building analysis queue",
+        unit="dataset",
+    ):
+        img_path = (
+            Path(get_zarr_path(dataset_name))
+            if not use_original_data
+            else Path(get_original_path(dataset_name))
+        )
         img = BioImage(img_path)
 
         num_positions = get_total_number_of_positions(dataset_name)
 
-        assert num_positions % len(img.scenes) == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}'
+        assert (
+            num_positions % len(img.scenes) == 0
+        ), f"Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}"
         num_pos_in_T = num_positions // len(img.scenes)
         num_pos_in_S = len(img.scenes)
 
@@ -52,25 +84,48 @@ def build_analysis_queue(dataset_name_list: list,
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
             img.set_scene(pos_in_S)
             scene_name = img.scenes[pos_in_S]
-            if magnification !=None and get_objective_info(img.metadata)['magnification'] != magnification:
-                print(f'Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping...') if verbose else None
+            if (
+                magnification != None
+                and get_objective_info(img.metadata)["magnification"] != magnification
+            ):
+                (
+                    print(
+                        f"Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping..."
+                    )
+                    if verbose
+                    else None
+                )
             else:
-                print(f'- adding Position {pos} (scene {img.current_scene})...') if verbose else None
-                assert img.dims.T % num_pos_in_T == 0, f'Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file.'
+                (
+                    print(f"- adding Position {pos} (scene {img.current_scene})...")
+                    if verbose
+                    else None
+                )
+                assert (
+                    img.dims.T % num_pos_in_T == 0
+                ), f"Number of timepoints ({img.dims.T}) must be divisible by number of positions ({num_pos_in_T}) in the data_config.yaml for dataset {dataset_name} if number of positions does not equal the number of scenes in the image file."
                 # calculate the duration of the positions in frames (they must all have the same duration)
-                duration_in_frames = min(t_final, img.dims.T // num_pos_in_T) if isinstance(t_final, int) else img.dims.T // num_pos_in_T
+                duration_in_frames = (
+                    min(t_final, img.dims.T // num_pos_in_T)
+                    if isinstance(t_final, int)
+                    else img.dims.T // num_pos_in_T
+                )
                 # correct the t_start, t_final, and t_step values to account for the intercalation of positions with timeframes
                 t_start_adjusted = t_start or pos_in_T
                 t_step_adjusted = t_step * num_pos_in_T
                 t_final_adjusted = pos_in_T + duration_in_frames * num_pos_in_T
                 t_range = range(t_start_adjusted, t_final_adjusted, t_step_adjusted)
                 if image_validation_frequency is not None:
-                    validation_t_range = range(t_start_adjusted, t_final_adjusted, image_validation_frequency * t_step_adjusted)
+                    validation_t_range = range(
+                        t_start_adjusted,
+                        t_final_adjusted,
+                        image_validation_frequency * t_step_adjusted,
+                    )
                 else:
                     # return an empty range
                     validation_t_range = range(0, 0, -1)
 
-                for i,t in enumerate(t_range):
+                for i, t in enumerate(t_range):
                     if is_test and i >= 10:
                         break
                     else:
@@ -78,26 +133,31 @@ def build_analysis_queue(dataset_name_list: list,
                     validation_image = True if t in validation_t_range else False
 
                     if t >= t_start_adjusted and t < t_final_adjusted:
-                        analysis_queue.append({
-                            'dataset_name': dataset_name,
-                            'image_bin_level': img_bin_level,
-                            'scene_index': pos_in_S,
-                            'scene_name': scene_name,
-                            'position': pos,
-                            'T': t,
-                            'input_path': img_path,
-                            'output_dir': out_dir,
-                            'save_output': save_output,
-                            'overwrite': overwrite,
-                            'validation_image': validation_image,
-                            'image_validation_frequency': image_validation_frequency,
-                            'use_original_data': use_original_data,
-                            'is_test': is_test,
-                            'verbose': verbose,
-                            })
+                        analysis_queue.append(
+                            {
+                                "dataset_name": dataset_name,
+                                "image_bin_level": img_bin_level,
+                                "scene_index": pos_in_S,
+                                "scene_name": scene_name,
+                                "position": pos,
+                                "T": t,
+                                "input_path": img_path,
+                                "output_dir": out_dir,
+                                "save_output": save_output,
+                                "overwrite": overwrite,
+                                "validation_image": validation_image,
+                                "image_validation_frequency": image_validation_frequency,
+                                "use_original_data": use_original_data,
+                                "is_test": is_test,
+                                "verbose": verbose,
+                            }
+                        )
     return analysis_queue
 
-def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str='TCZYX') -> np.ndarray:
+
+def restore_full_dims(
+    image: np.ndarray, current_dims: str, full_dims: str = "TCZYX"
+) -> np.ndarray:
     """
     Takes an array with specified image dims and restores dimensions with size 1
     that are present in full_dims.
@@ -130,7 +190,9 @@ def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str='TCZY
         The image with its dimensions expanded.
     """
 
-    assert all([dim in list(full_dims) for dim in list(current_dims)]), "All dimensions in current_dims must be in full_dims."
+    assert all(
+        [dim in list(full_dims) for dim in list(current_dims)]
+    ), "All dimensions in current_dims must be in full_dims."
     dim_map = get_dim_map(full_dims)
     for dim in full_dims:
         if dim not in list(current_dims):
@@ -138,7 +200,13 @@ def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str='TCZY
 
     return image
 
-def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], images_metadata: dict, dtype: Optional[Any] = None) -> None:
+
+def save_image_output(
+    out_path: Union[str, Path],
+    images: List[np.ndarray],
+    images_metadata: dict,
+    dtype: Optional[Any] = None,
+) -> None:
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
     along with metadata using bioio.OmeTiffWriter.save().
@@ -170,40 +238,51 @@ def save_image_output(out_path: Union[str, Path], images: List[np.ndarray], imag
     Nothing (saves an image to out_path).
     """
 
-    assert all([img.shape == images[-1].shape for img in images]), "All images must have the same shape."
+    assert all(
+        [img.shape == images[-1].shape for img in images]
+    ), "All images must have the same shape."
     # if a data type is not specified then use the smallest uint type that can hold the max value
     # among all images being saved
     if not dtype:
         img_max = max([img.max() for img in images])
-        dtypes = {np.iinfo(dtype).max: dtype for dtype in (np.uint8, np.uint16, np.uint32) if img_max <= np.iinfo(dtype).max}
+        dtypes = {
+            np.iinfo(dtype).max: dtype
+            for dtype in (np.uint8, np.uint16, np.uint32)
+            if img_max <= np.iinfo(dtype).max
+        }
 
-        assert dtypes, \
-        '''
-        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater. 
+        assert dtypes, """
+        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater.
         Please find a way to reduce the max value in the culprit channel or save the image in a different format.
-        '''
+        """
 
         dtype = dtypes[min(dtypes)]
     else:
         pass
 
-    image_name = images_metadata['image_name']
-    ch_colors = images_metadata['channel_colors']
-    ch_names = images_metadata['channel_names']
-    px_res = images_metadata['physical_pixel_sizes']
-    img_dim_order = images_metadata['dim_order']
-    dim_order_out = 'TCZYX'
+    image_name = images_metadata["image_name"]
+    ch_colors = images_metadata["channel_colors"]
+    ch_names = images_metadata["channel_names"]
+    px_res = images_metadata["physical_pixel_sizes"]
+    img_dim_order = images_metadata["dim_order"]
+    dim_order_out = "TCZYX"
 
     dim_map = get_dim_map(dim_order_out)
 
-    merged_img = np.concatenate([
-        restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images], 
-        axis=dim_map['C']).astype(dtype)
+    merged_img = np.concatenate(
+        [
+            restore_full_dims(img, img_dim_order, full_dims=dim_order_out)
+            for img in images
+        ],
+        axis=dim_map["C"],
+    ).astype(dtype)
 
-    OmeTiffWriter.save(merged_img, 
-                       out_path,
-                       physical_pixel_sizes=px_res,
-                       dim_order=dim_order_out,
-                       image_name=image_name,
-                       channel_names=ch_names,
-                       channel_colors=ch_colors)
+    OmeTiffWriter.save(
+        merged_img,
+        out_path,
+        physical_pixel_sizes=px_res,
+        dim_order=dim_order_out,
+        image_name=image_name,
+        channel_names=ch_names,
+        channel_colors=ch_colors,
+    )

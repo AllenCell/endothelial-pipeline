@@ -1,196 +1,111 @@
-from typing import Tuple
-
 import numpy as np
-from scipy.sparse import csr_matrix
 
 
-def _get_outer_edges(a, edge_range, bw):
-    """
-    Determine the outer bin edges to use, from either the data or the range
-    argument
-    """
-    if edge_range is not None:
-        first_edge, last_edge = edge_range
-        if first_edge > last_edge:
-            raise ValueError("Max must be larger than min in range parameter")
-        if not (np.isfinite(first_edge) and np.isfinite(last_edge)):
-            raise ValueError(
-                "Supplied range of [{}, {}] "
-                " is not finite".format(first_edge, last_edge)
-            )
-    elif a.size == 0:
-        # handle empty arrays. Can't determine range, so use 0-1.
-        first_edge, last_edge = 0, 1
-    else:
-        first_edge, last_edge = a.min() - bw, a.max() + bw
-        if not (np.isfinite(first_edge) and np.isfinite(last_edge)):
-            raise ValueError(
-                "Autodetected range of [{}, {}] "
-                " is not finite".format(first_edge, last_edge)
-            )
-
-    # expand empty range to avoid divide by zero
-    if first_edge == last_edge:
-        first_edge = first_edge - 0.5
-        last_edge = last_edge + 0.5
-
-    return first_edge, last_edge
+def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0):
+    """Get the weighted counts of the input array x."""
+    return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
 
 
-# An alternative to Numpy's histogramdd, supporting a weights matrix.
-# Part of the following code is licensed under the BSD-3 License (from Numpy).
-def histogramdd(
+def _get_bin_counts(
     sample: np.ndarray,
-    bins: int = 10,
-    edge_range: str = None,
-    normed: str = None,
-    weights: np.ndarray = None,
-    density: np.ndarray = None,
-    bw: float = 0.0,
-) -> Tuple[np.ndarray, np.ndarray]:
-
-    try:
-        # Sample is an ND-array.
-        N, D = sample.shape
-    except (AttributeError, ValueError):
-        # Sample is a sequence of 1D arrays.
-        sample = np.atleast_2d(sample).T
-        N, D = sample.shape
-
-    nbin = np.empty(D, int)
-    edges = D * [None]
-    dedges = D * [None]
-    if weights is not None:
-        weights = np.asarray(weights)
-
-    try:
-        M = len(bins)
-        if M != D:
-            raise ValueError(
-                "The dimension of bins must be equal to the dimension of the "
-                " sample x"
-            )
-    except TypeError:
-        # bins is an integer
-        bins = D * [bins]
-
-    # normalize the range argument
-    if edge_range is None:
-        edge_range = (None,) * D
-    elif len(edge_range) != D:
-        raise ValueError("Range argument must have one entry per dimension")
-
-    # Create edge arrays
-    for i in range(D):
-        if np.ndim(bins[i]) == 0:
-            if bins[i] < 1:
-                raise ValueError(
-                    "`bins[{}]` must be positive, when an integer".format(i)
-                )
-            smin, smax = _get_outer_edges(sample[:, i], edge_range[i], bw)
-            edges[i] = np.linspace(smin, smax, bins[i] + 1)
-        elif np.ndim(bins[i]) == 1:
-            edges[i] = np.asarray(bins[i])
-            if np.any(edges[i][:-1] > edges[i][1:]):
-                raise ValueError(
-                    "`bins[{}]` must be monotonically increasing, when an array".format(
-                        i
-                    )
-                )
-        else:
-            raise ValueError("`bins[{}]` must be a scalar or 1d array".format(i))
-
-        nbin[i] = len(edges[i]) + 1  # includes an outlier on each end
-        dedges[i] = np.diff(edges[i])
-
+    weights: np.ndarray,
+    edges: list[np.ndarray],
+    d: int,
+    nbin: np.ndarray,
+) -> np.ndarray:
+    """Get weighted bin counts for the input sample."""
     # Compute the bin number each sample falls into.
-    Ncount = tuple(
-        # avoid np.digitize to work around gh-11022
-        np.searchsorted(edges[i], sample[:, i], side="right")
-        for i in range(D)
+    n_count = tuple(
+        np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d)
     )
 
-    # Using digitize, values that fall on an edge are put in the right bin.
-    # For the rightmost bin, we want values equal to the right edge to be
-    # counted in the last bin, and not as an outlier.
-    for i in range(D):
+    # Using searchsorted, values that fall on an
+    # edge are put in the right bin.
+    # For the rightmost bin, we want values equal
+    # to the right edge to be counted in the last bin,
+    # and not as an outlier.
+    for i in range(d):
         # Find which points are on the rightmost edge.
         on_edge = sample[:, i] == edges[i][-1]
         # Shift these points one bin to the left.
-        Ncount[i][on_edge] -= 1
+        n_count[i][on_edge] -= 1
+
+    # These next two lines assign the
+    # correct bin count to the histogram.
 
     # Compute the sample indices in the flattened histogram matrix.
-    # This raises an error if the array is too large.
-    xy = np.ravel_multi_index(Ncount, nbin)
+    xy = np.ravel_multi_index(n_count, nbin)
 
     # Compute the number of repetitions in xy and assign it to the
     # flattened histmat.
-    hist = bincount1(xy, weights, minlength=nbin.prod())
+    hist = _bincount(xy, weights, minlength=nbin.prod())
+    return hist
 
-    # Shape into a proper matrix
+
+def histogramdd(
+    sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray
+) -> np.ndarray:
+    """
+    Compute the multidimensional weighted histogram of a sample.
+
+    Allows for a weights matrix to be passed in, which is
+    used to weight the samples in each bin.
+
+    This code is a modified version of the histogramdd function
+    in Numpy, with the addition of a weights matrix.
+
+    Part of the following code is licensed under the BSD-3 License (from Numpy).
+
+    Inputs:
+    - sample: np.ndarray, shape (n, d)
+        The input data, where n is the number of samples
+        and d is the number of dimensions.
+    - bins: list[np.ndarray]
+        The bin edges for each dimension. Each element of the list
+        is a 1D array of bin edges for that dimension.
+    - weights: np.ndarray, shape (n,) or (n, m)
+        The weights for each sample.
+
+    Outputs:
+    - hist: np.ndarray, shape (nbin,)
+        The histogram counts for each bin.
+    """
+
+    d = sample.shape[-1]
+    # initialize edges, dedges, and nbin
+    edges = bins.copy()
+    dedges = d * [None]
+    nbin = np.zeros(d, dtype=int)
+    weights = np.asarray(weights)
+    for i in range(d):
+        nbin[i] = len(edges[i]) + 1
+        # check that bins are monotonically increasing
+        if np.any(edges[i][:-1] > edges[i][1:]):
+            raise ValueError(
+                f"`bins[{i}]` must be monotonically increasing, when an array"
+            )
+        # increase bin count by 1 to include outliers
+        nbin[i] = len(edges[i]) + 1
+        # get the width of each bin
+        dedges[i] = np.diff(edges[i])
+
+    m = len(bins)
+    if m != d:
+        raise ValueError(
+            "The dimension of bins must be equal to the dimension of the " " sample x"
+        )
+
+    # Get the histogram counts.
+    hist = _get_bin_counts(sample, weights, edges, d, nbin)
+
+    # Reshape the histogram matrix to the correct shape.
     if weights.ndim == 1:
         hist = hist.reshape(nbin)
     else:
         hist = hist.reshape((weights.shape[0], *nbin))
 
-    # This preserves the (bad) behavior observed in gh-7845, for now.
-    hist = hist.astype(float, casting="safe")
-
     # Remove outliers (indices 0 and -1 for each dimension).
-    core = D * (slice(1, -1),)
+    core = d * (slice(1, -1),)
     hist = hist[(...,) + core]
 
-    # handle the aliasing normed argument
-    if normed is None:
-        if density is None:
-            density = False
-    elif density is None:
-        # an explicit normed argument was passed, alias it to the new name
-        density = normed
-    else:
-        raise TypeError("Cannot specify both 'normed' and 'density'")
-
-    if density:
-        if weights.ndim == 1:
-            # calculate the probability density function
-            s = hist.sum()
-            for i in range(D):
-                shape = np.ones(D, int)
-                shape[i] = nbin[i] - 2
-                hist = hist / dedges[i].reshape(shape)
-            hist /= s
-        else:
-            for d in range(weights.shape[0]):
-                s = hist[d, ...].sum()
-                for i in range(D):
-                    shape = np.ones(D, int)
-                    shape[i] = nbin[i] - 2
-                    hist[d, ...] = hist[d, ...] / dedges[i].reshape(shape)
-                hist[d, ...] /= s
-
-    if weights.ndim == 1:
-        if (hist.shape != nbin - 2).any():
-            raise RuntimeError("Internal Shape Error")
-    else:
-        if (hist.shape != np.array([weights.shape[0], *(nbin - 2)])).any():
-            raise RuntimeError("Internal Shape Error")
-    return hist, edges
-
-
-def bincount1(x, weights, minlength=0):
-    return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
-
-
-def bincount2(x, weights, minlength=0):
-    # Small speedup if # of weights is large
-    assert len(x.shape) == 1
-
-    ans_size = x.max() + 1
-
-    if ans_size < minlength:
-        ans_size = minlength
-
-    csr = csr_matrix(
-        (np.ones(x.shape[0]), (np.arange(x.shape[0]), x)), shape=[x.shape[0], ans_size]
-    )
-    return weights * csr
+    return hist

@@ -33,11 +33,11 @@ def write_text(img, text):
 
 
 def write_pc_vals(walk_img, ranges):
-    """Write PC index and value on image."""
+    """Write dimension index and value on image."""
     idx = 0
     for i, range_ in enumerate(ranges):
         for val in range_:
-            walk_img[idx] = write_text(walk_img[idx], f"PC{i+1}:{val:.1f}")
+            walk_img[idx] = write_text(walk_img[idx], f"{i+1}:{val:.1f}")
             idx += 1
     return walk_img
 
@@ -59,20 +59,19 @@ def get_walk(data, n_dims, sigma, n_steps):
     walk = []
     ranges = []
     for dim in range(n_dims):
-        std = data[:, dim].std()
         if sigma is None:
-            min = data[:, dim].min() / std
-            max = data[:, dim].max() / std
+            min = data[:, dim].min()
+            max = data[:, dim].max()
             range_ = np.linspace(min, max, n_steps)
         else:
-            range_ = np.arange(-sigma, sigma + 0.01)
-        print(f"PC{dim} range: {range_}")
-        for i in range_:
-            array = np.zeros(n_dims)
-            array[dim] = i * std
-            walk.append(array)
+            std = data[:, dim].std()
+            range_ = np.arange(-sigma, sigma + 0.01) * std
+        print(f"Dim {dim} range: {range_}")
+        dim_traversal = np.stack([data.mean(axis=0)] * range_.shape[0])
+        dim_traversal[:, dim] = range_
+        walk.append(dim_traversal)
         ranges.append(range_)
-    walk = np.stack(walk).squeeze()
+    walk = np.concatenate(walk).squeeze()
     return walk, ranges
 
 
@@ -136,7 +135,7 @@ def generate_latent_walk(
     num_pcs: int, optional
         Number of principal components to use for the latent walk. Default is 3.
     sigma: float, optional
-        Number of standard deviations from the mean to traverse for the latent walk. Default is 3.0.
+        Number of standard deviations from the mean to traverse for the latent walk. Default is 3.0. If passing `sigma=None`, the min and max of the range are used as endpoints for the walk.
     n_steps: int, optional
         Number of steps in the latent walk. Default is 10.
     use_pcs: bool, optional
@@ -169,8 +168,9 @@ def generate_latent_walk(
     if show_coords:
         walk_img = write_pc_vals(walk_img, ranges)
 
+    save_path = Path(save_dir) / f"latent_walk_sigma_{sigma}_use_pcs_{use_pcs}_new.tif"
     OmeTiffWriter.save(
-        uri=Path(save_dir) / f"latent_walk_sigma_{sigma}_use_pcs_{use_pcs}.tif",
+        uri=save_path,
         data=walk_img,
     )
 

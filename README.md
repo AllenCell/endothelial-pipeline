@@ -223,11 +223,11 @@ Processes all datasets in the `data_config.yaml` that were acquired on the 3i mi
 From the directory where you cloned cellsmap to:
 ```bash
 cd cellsmap
-pdm run cellsmap/analyses/workflows/cdh5_classic_seg.py --N_PROC 30
-pdm run cellsmap/features/cdh5_classic_seg_tracking.py
-pdm run cellsmap/features/cdh5_nodes_and_edges.py --N_PROC 30
-pdm run cellsmap/features/cdh5_nodes_and_edges_concatenate_tables.py
-pdm run cellsmap/analyses/cdh5_ndoes_and_edges_analysis.py --N_PROC 30
+uv run cellsmap/analyses/workflows/cdh5_classic_seg.py --N_PROC 30
+uv run cellsmap/features/cdh5_classic_seg_tracking.py
+uv run cellsmap/features/cdh5_nodes_and_edges.py --N_PROC 30
+uv run cellsmap/features/cdh5_nodes_and_edges_concatenate_tables.py
+uv run cellsmap/analyses/cdh5_ndoes_and_edges_analysis.py --N_PROC 30
 ```
 
 ### Descriptions
@@ -368,7 +368,7 @@ Currently evaluates every 48th timeframe (i.e. every 4hrs) for all datasets in t
 ### Usage
 ```bash
 cd cellsmap
-pdm run cellsmap/analyses/nuclei_predictions/generate_label_free_nuc_pred.py
+uv run cellsmap/analyses/nuclei_predictions/generate_label_free_nuc_pred.py
 ```
 **NOTE** Tracking of nuclei has not been implemented yet.
 
@@ -411,7 +411,7 @@ Currently runs on a single dataset as a proof-of-concept.
 ### Usage
 ```bash
 cd cellsmap
-pdm run cellsmap/analyses/flow/flow_features.py
+uv run cellsmap/analyses/flow/flow_features.py
 ```
 
 ### Description
