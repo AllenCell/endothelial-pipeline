@@ -9,7 +9,7 @@ from skimage.exposure import rescale_intensity
 from typing import Optional, Tuple, List, Any, Union, Literal
 
 
-def arr2graph(arr: np.ndarray, closing_step=True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Will take a binary image array showing a network-like structure
     and return the labeled versions of the nodes, edges, skeletons and
     pixel connectivity in that order. The connectivity equal to the
@@ -198,7 +198,7 @@ def get_windows(img_lab: np.ndarray) -> zip: #labeled_img
     return lab_windows
 
 
-def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, bad_neighbors: list=[0], as_dict: bool=False):
+def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, bad_neighbors: list=[0], as_dict: bool=False) -> Tuple:
     """
     Takes a labeled array of nodes and a labeled array of edges and returns
     a list or dict of which nodes neighbor each node, which edges neighbor each node,
@@ -392,7 +392,7 @@ def get_angle(
     return np.rad2deg(rad) if in_deg else rad
 
 
-def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False):
+def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False) -> np.ndarray:
     """
     Takes a list of paired coordinates and an array and draws rasterized versions of
     the lines between the paired coordinates.
@@ -439,7 +439,9 @@ def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.nda
 
     return (arr_to_draw_on, label_dict) if label_lines else arr_to_draw_on
 
-def build_vector(stop_position, start_position):
+def build_vector(stop_position: np.ndarray,
+                 start_position: np.ndarray
+                 ) -> np.ndarray:
     vec = stop_position - start_position
     return vec
 

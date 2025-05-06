@@ -1,3 +1,4 @@
+from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -11,7 +12,7 @@ from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_
 from cellsmap.util.set_output import get_output_path
 import subprocess
 
-def generate_results_multiproc_wrapper(args):
+def generate_results_multiproc_wrapper(args: Dict) -> None:
     dataset_name = args['dataset_name']
     scene = args['scene_index']
     position = args['position']
@@ -22,10 +23,21 @@ def generate_results_multiproc_wrapper(args):
     verbose = args['verbose']
     use_original_data = args['use_original_data']
     create_validation_image = args['validation_image']
-    generate_results(dataset_name, T, scene, position, use_original_data, img_bin_level, out_dir=out_dir, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
+    generate_results(dataset_name, T, out_dir=out_dir, scene, position, use_original_data, img_bin_level, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
 
 # def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
-def generate_results(dataset_name, T, scene=None, position=None, use_original_data=False, img_bin_level=0, out_dir=None, save_output=True, create_validation_image=False, verbose=True):
+def generate_results(
+          dataset_name: str,
+          T: int,
+          out_dir: str | Path,
+          scene: str | None = None,
+          position: int | None = None,
+          use_original_data: bool | None = False,
+          img_bin_level: int = 0,
+          save_output: bool | None = True,
+          create_validation_image: bool = False,
+          verbose: bool = True
+          ) -> None:
 
     # get some versioning info about when this script was run and
     # what version of the script was used to produce the output
@@ -44,6 +56,7 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
     dim_order = 'TCZYX'
     dim_map = get_dim_map(dim_order)
 
+    out_dir = Path(out_dir)
     images_out_dir = out_dir / f'{dataset_name}/P{position}/images'
     tables_out_dir_alignments = out_dir / f'{dataset_name}/P{position}/tables_alignments'
     tables_out_dir_segprops = out_dir / f'{dataset_name}/P{position}/tables_segmentation_properties'
@@ -158,6 +171,8 @@ def generate_results(dataset_name, T, scene=None, position=None, use_original_da
                 'cell_area (px**2)': labeled_region_metrics['cell_area (px**2)'],
                 'cell_perimeter (px)': labeled_region_metrics['cell_perimeter (px)'],
                 'cell_solidity': labeled_region_metrics['cell_solidity'],
+                'fitted_ellipse_major_axis': labeled_region_metrics['major_axis'],
+                'fitted_ellipse_minor_axis': labeled_region_metrics['minor_axis'],
                 'cell_eccentricity': labeled_region_metrics['cell_eccentricity'],
                 'cell_orientation': labeled_region_metrics['cell_orientation'],
                 'cell_fluorescence_mean (a.u.)': labeled_region_metrics['cell_fluorescence_mean (au)'],
