@@ -1,25 +1,18 @@
 import fire
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from cellsmap.util import manifest_io
-from cellsmap.util.manifest_preprocessing import manifest_pca
-from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils import (
-    regression_helper as rh,
-    model_analysis,
-)
+from cellsmap.analyses.utils import model_analysis
+from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_3D_flow_field as ddff
-from cellsmap.analyses.utils.viz import (
-    manifest_viz,
-    viz_base as vb,
-)
+from cellsmap.analyses.utils.viz import manifest_viz
+from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
-    manifest_pca,
     diffae_feature_preprocessing as diffae_preproc,
 )
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 
@@ -93,7 +86,7 @@ def main(config_name: str = "default") -> None:
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
 
         feat_cols_all = manifest_io.get_feature_cols(df_proj)
-        feat_cols = [feat_cols_all[i] for i in PCs] # just get PCs of interest
+        feat_cols = [feat_cols_all[i] for i in PCs]  # just get PCs of interest
 
         # split out data by flow condition
         df_by_flow, shear_list = rh.get_X_by_flow(df_proj, name)
@@ -123,29 +116,33 @@ def main(config_name: str = "default") -> None:
             )
 
             # extrapolate nans in drift and diffusion estimates
-            drift_dict = ddff.compute_extrapolated_vector_field(f_KM, centers,interpolator="nearest")
-            diffusion_dict = ddff.compute_extrapolated_vector_field(D_KM, centers,interpolator="nearest")
+            drift_dict = ddff.compute_extrapolated_vector_field(
+                f_KM, centers, interpolator="nearest"
+            )
+            diffusion_dict = ddff.compute_extrapolated_vector_field(
+                D_KM, centers, interpolator="nearest"
+            )
 
-            drift = ddff.get_callable_vector_field(drift_dict,for_solve_ivp=False)
+            drift = ddff.get_callable_vector_field(drift_dict, for_solve_ivp=False)
             drift_ = lambda x, u: drift(x)
-            diffusion = ddff.get_callable_vector_field(diffusion_dict,for_solve_ivp=False)
+            diffusion = ddff.get_callable_vector_field(
+                diffusion_dict, for_solve_ivp=False
+            )
             diffusion_ = lambda x, u: diffusion(x)
 
             fig1, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(
-                    [drift_, diffusion_],
-                    df_proj,
-                    shear_list[j],
-                    PCs,
-                    bins,
-                    pplane_xvec,
-                    pplane_yvec,
-                    use_fipy=False
-                )
-            
-            sup_title = fig2._suptitle.get_text()
-            sup_title = (
-                name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
+                [drift_, diffusion_],
+                df_proj,
+                shear_list[j],
+                PCs,
+                bins,
+                pplane_xvec,
+                pplane_yvec,
+                use_fipy=False,
             )
+
+            sup_title = fig2._suptitle.get_text()
+            sup_title = name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
             fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(), y=1.15)
 
             # save figures
@@ -163,6 +160,7 @@ def main(config_name: str = "default") -> None:
                 + "_ddff_stationary_dist_shear_"
                 + str(int(shear_list[j])),
             )
+
 
 if __name__ == "__main__":
     fire.Fire(main)

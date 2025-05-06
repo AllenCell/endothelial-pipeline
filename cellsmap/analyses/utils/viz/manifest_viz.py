@@ -11,6 +11,7 @@ from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
 
+
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> Tuple:
     """
     Plot explained variance ratio of PCA components.
@@ -203,7 +204,7 @@ def plot_PCA_projection_2D(
     ax.set_ylabel("PC2")
     if fig_title is not None:
         ax.set_title(fig_title)
-        
+
     return fig, ax
 
 

@@ -3,15 +3,14 @@
 # %%
 import matplotlib.pyplot as plt
 import pandas as pd
-import pandas as pd
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
-    manifest_pca
 )
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%
@@ -56,7 +55,7 @@ df = pd.concat(
 # %%
 
 # fit PCA to data
-pca = manifest_pca.fit_pca(num_pcs=3) # only working with top 3 PCs
+pca = manifest_pca.fit_pca(num_pcs=3)  # only working with top 3 PCs
 
 # save out PCA object (need later for analysis and summary of fit dynamical systems model)
 manifest_io.save_pca_model(pca, output_savedir)
@@ -71,16 +70,11 @@ for pc in range(3):
 
 # %%
 # Save final manifest for creating flow fields
-df.to_csv(output_savedir+"manifest.csv")
+df.to_csv(output_savedir + "manifest.csv")
 # %%
 # get state space bounds from data between the 0.1 and 0.9 percentiles in each dimension
 # used for plotting in this file, analysis in generate_flow_field.py
-bounds = ddff.set_3d_bounds_from_data(
-    df.pc1, 
-    df.pc2, 
-    df.pc3,
-    excluded_fraction=0.0
-    ) 
+bounds = ddff.set_3d_bounds_from_data(df.pc1, df.pc2, df.pc3, excluded_fraction=0.0)
 
 # plot the PCA components
 fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
@@ -96,7 +90,7 @@ for i, ds_name in enumerate(datasets_to_use):
     for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(ylab, fontsize=14)
-        ax.set_xlim(bounds[0][0],bounds[0][1])
+        ax.set_xlim(bounds[0][0], bounds[0][1])
         if ylab == "PC2":
             ax.set_ylim(bounds[1][0], bounds[1][1])
         else:
@@ -138,7 +132,6 @@ ax.set_ylim(bounds[1][0], bounds[1][-1])
 ax.set_aspect("equal")
 plt.legend(loc="lower left", fontsize=8)
 vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_with_tracks", dpi=72)
-
 
 
 # %%
