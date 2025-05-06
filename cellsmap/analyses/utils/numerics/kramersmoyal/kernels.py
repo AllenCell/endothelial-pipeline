@@ -7,14 +7,14 @@ from scipy.stats import norm
 
 def kernel(kernel_func):
     """
-    Transforms a kernel function into a scaled kernel function
-    (for a certain bandwidth ``bw``)
+    Transform a kernel function into a scaled kernel function
+    (for a certain bandwidth ``bw``).
 
     Currently implemented kernels are:
-        Epanechnikov, Gaussian, Uniform, Triangular, Quartic
+        Epanechnikov, Gaussian, Uniform, Triangular, Quartic.
 
     For a good overview of various kernels see
-    https://en.wikipedia.org/wiki/Kernel_(statistics)
+    https://en.wikipedia.org/wiki/Kernel_(statistics).
     """
 
     @wraps(kernel_func)  # just for naming
@@ -38,9 +38,7 @@ def kernel(kernel_func):
 
 @kernel
 def epanechnikov(x: np.ndarray, dims: int) -> np.ndarray:
-    """
-    The Epanechnikov kernel in dimensions dims.
-    """
+    """Define the Epanechnikov kernel in dimensions dims."""
     normalisation = 2.0 / (dims + 2.0)
     x2 = x**2
     mask = x2 < 1.0
@@ -51,9 +49,7 @@ def epanechnikov(x: np.ndarray, dims: int) -> np.ndarray:
 
 @kernel
 def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
-    """
-    Gaussian kernel in dimensions dims.
-    """
+    """Define the Gaussian kernel in dimensions dims."""
 
     def gaussian_integral(n):
         if n % 2 == 0:
@@ -68,9 +64,7 @@ def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
 
 @kernel
 def uniform(x: np.ndarray, dims: int) -> np.ndarray:
-    """
-    Uniform, or rectangular kernel in dimensions dims.
-    """
+    """Define the uniform, or rectangular, kernel in dimensions dims."""
     mask = x < 1.0
     kernel = np.zeros_like(x)
     kernel[mask] = 1.0
@@ -79,9 +73,7 @@ def uniform(x: np.ndarray, dims: int) -> np.ndarray:
 
 @kernel
 def triangular(x: np.ndarray, dims: int) -> np.ndarray:
-    """
-    Triangular kernel in dimensions dims.
-    """
+    """Define the triangular kernel in dimensions dims."""
     normalisation = 1.0 / 2.0
     mask = x < 1.0
     kernel = np.zeros_like(x)
@@ -91,9 +83,7 @@ def triangular(x: np.ndarray, dims: int) -> np.ndarray:
 
 @kernel
 def quartic(x: np.ndarray, dims: int) -> np.ndarray:
-    """
-    Quartic, or biweight kernel in dimensions dims.
-    """
+    """Define the quartic, or biweight, kernel in dimensions dims."""
     normalisation = 2.0 / (dims + 2.0)
     x2 = x**2
     mask = x2 < 1.0
@@ -103,6 +93,7 @@ def quartic(x: np.ndarray, dims: int) -> np.ndarray:
 
 
 def silvermans_rule(timeseries: np.ndarray, multi_traj: bool = False) -> float:
+    """Apply Silverman's rule of thumb for bandwidth selection."""
     if multi_traj:  # take average of std of each trajectory along each dimension
         n = 0
         dim = timeseries[0].shape[1]

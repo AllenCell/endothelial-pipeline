@@ -54,10 +54,6 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
         print(f"Reference datasets for PCA:")
     data_ref = []
     for name in reference_datasets:
-        # if name == '20250402_20X':
-        #     continue # skip this dataset, it is not a reference dataset
-        if verbose:
-            print(f"- {name}")
         df_ = manifest_io.get_diffae_manifest(name)  # get the manifest for the dataset
         df_ = get_pca_reference(
             df_, name
