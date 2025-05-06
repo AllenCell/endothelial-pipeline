@@ -1,5 +1,3 @@
-# Preprocess the pre-computed features generated in the endo project by the diffusion autoencoder.
-# This code generates the figures presented APS March Meeting 2025
 # %%
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -23,14 +21,16 @@ fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
-# only keep the reference datasets for this workflow
+# only keep the reference datasets for this workflow:
+# 48hr high flow, 48hr no flow, 48hr low flow, 
+# 2 48hr intermediate flows (12 and 15 dyn)
 datasets_to_use = [
     "20241120_20X",
     "20241217_20X",
     "20250409_20X",
     "20250319_20X",
     "20250326_20X",
-]  # 48hr high flow, 48hr no flow, 48hr low flow, 2 48hr intermediate flows (12 and 15 dyn)
+]  
 df = []
 # load the manifest for each dataset, add crop index column
 for name in datasets_to_use:
@@ -53,10 +53,10 @@ df = pd.concat(
 
 # %%
 
-# fit PCA to data
-pca = manifest_pca.fit_pca(num_pcs=3)  # only working with top 3 PCs
+# fit PCA to data (only working with top 3 PCs)
+pca = manifest_pca.fit_pca(num_pcs=3)
 
-# save out PCA object (need later for analysis and summary of fit dynamical systems model)
+# save out PCA object
 manifest_io.save_pca_model(pca, output_savedir)
 
 # Apply PCA
@@ -71,15 +71,17 @@ for pc in range(3):
 # Save final manifest for creating flow fields
 df.to_csv(output_savedir + "manifest.csv")
 # %%
-# get state space bounds from data between the 0.1 and 0.9 percentiles in each dimension
-# used for plotting in this file, analysis in generate_flow_field.py
+# get state space bounds from data
+# used for plotting in this file, 
+# analysis in generate_flow_field.py
 bounds = ddff.set_3d_bounds_from_data(df.pc1, df.pc2, df.pc3, excluded_fraction=0.0)
 
 # plot the PCA components
 fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
-for i, ds_name in enumerate(datasets_to_use):
+for ds_name in datasets_to_use:
     print(f"Plotting {ds_name}")
-    # get the data for the dataset based on ds_name being in the crop_index column
+    # get the data for the dataset based on 
+    # ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     alpha = 0.75
     if ds_name == "20241217_20X":
@@ -119,9 +121,10 @@ vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=7
 fig, ax = vb.init_plot(figsize=(5, 5))
 ax.scatter(df.pc1, df.pc2, s=0.1, color="black", alpha=0.05)
 for ds_name in datasets_to_use:
-    # get the data for the dataset based on ds_name being in the crop_index column
+    # get the data for the dataset based on 
+    # ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
-    for track, df_track in dfs.groupby("crop_index"):
+    for _track, df_track in dfs.groupby("crop_index"):
         ax.plot(df_track.pc1, df_track.pc2, label=ds_name)
         break
 ax.set_xlabel("PC1", fontsize=14)
