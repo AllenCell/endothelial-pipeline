@@ -367,7 +367,7 @@ Currently evaluates every 48th timeframe (i.e. every 4hrs) for all datasets in t
 
 ### Usage
 ```bash
-cd cellsma
+cd cellsmap
 uv run cellsmap/analyses/nuclei_predictions/generate_label_free_nuc_pred.py
 ```
 **NOTE** Tracking of nuclei has not been implemented yet.
