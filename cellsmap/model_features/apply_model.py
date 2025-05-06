@@ -202,8 +202,8 @@ def apply_model_single(
         )
 
         update_dataset_config(
-            dataset_name=dataset_name,
-            new_config={"diffae_manifest_fmsid": file_id},
+            dataset_name,
+            {"diffae_manifest_fmsid": file_id},
         )
 
     return prediction_path
