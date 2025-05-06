@@ -239,7 +239,7 @@ def main(n_proc: int = 1, dataset_name: str|None=None, save_output:bool=True, is
                                           verbose=verbose,
                                           is_test=is_test,
                                           image_validation_frequency=None,
-                                          use_original_data=True)
+                                          use_original_data=False)
 
     if n_proc > 1:
             if __name__ == '__main__':
