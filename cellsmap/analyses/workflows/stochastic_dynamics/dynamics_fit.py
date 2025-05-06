@@ -57,16 +57,16 @@ def main(config_name: str = "default") -> None:
     # fit model for drift term - SINDy based regression
     drift_model = ps.SINDy(feature_library=drift_lib, optimizer=ps.SSR())
     drift_model.fit(
-        train_test_dict["X_train"],
+        train_test_dict["x_train"],
         t=dt,
-        x_dot=train_test_dict["Y_train"],
+        x_dot=train_test_dict["y_train"],
         u=train_test_dict["u_train"],
     )
 
     # score on test set
     drift_r2 = drift_model.score(
-        train_test_dict["X_test"],
-        x_dot=train_test_dict["Y_test"],
+        train_test_dict["x_test"],
+        x_dot=train_test_dict["y_test"],
         u=train_test_dict["u_test"],
     )
     drift_model.print()
@@ -76,16 +76,16 @@ def main(config_name: str = "default") -> None:
     # fit model for diffusion term - SINDy based regression
     diff_model = ps.SINDy(feature_library=diff_lib, optimizer=ps.SSR())
     diff_model.fit(
-        train_test_dict["X_train"],
+        train_test_dict["x_train"],
         t=dt,
-        x_dot=train_test_dict["V_train"],
+        x_dot=train_test_dict["v_train"],
         u=train_test_dict["u_train"],
     )
 
     # score on test set
     diff_r2 = diff_model.score(
-        train_test_dict["X_test"],
-        x_dot=train_test_dict["V_test"],
+        train_test_dict["x_test"],
+        x_dot=train_test_dict["v_test"],
         u=train_test_dict["u_test"],
     )
     diff_model.print()
