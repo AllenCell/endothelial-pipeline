@@ -70,7 +70,9 @@ class SteadyFP:
                     self.idx[1, i, j, :, :] = j - np.tile(np.arange(n[1]), [n[0], 1])
 
         else:  # only implemented for 1D and 2D
-            print("WARNING: NOT IMPLEMENTED FOR HIGHER DIMENSIONS")
+            raise ValueError(
+                "SteadyFP solver only implemented for 1D and 2D. "
+            )
 
         # This will be the operator matrix for the linear system
         # Gets initialized separately with precompute_operator
