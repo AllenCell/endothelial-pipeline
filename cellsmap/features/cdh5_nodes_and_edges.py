@@ -218,7 +218,7 @@ def concatenate_tables_multiproc(queue_group: Tuple)->None:
      concatenate_tables(dataset_name, out_dir)
 
 
-def main(n_proc: int = 1, dataset_name: str|None=None, save_output:bool=True, is_test:bool=False, verbose:bool=False) -> None:
+def main(n_proc: int = 1, dataset_name: str|None=None, save_output:bool=True, is_test:bool=False, verbose:bool=False, use_original_data: bool = False) -> None:
 
     if dataset_name == None:
         config_data = load_config(config_type='data')
@@ -239,7 +239,7 @@ def main(n_proc: int = 1, dataset_name: str|None=None, save_output:bool=True, is
                                           verbose=verbose,
                                           is_test=is_test,
                                           image_validation_frequency=None,
-                                          use_original_data=False)
+                                          use_original_data=use_original_data)
 
     if n_proc > 1:
             if __name__ == '__main__':
