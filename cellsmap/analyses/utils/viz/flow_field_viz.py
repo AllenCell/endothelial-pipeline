@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +8,7 @@ from cellsmap.analyses.utils.viz import viz_base as vb
 
 
 def set_slice_plot_bounds_and_labels(
-    axs: Tuple[plt.Axes], bounds: list[Tuple[float]]
+    axs: tuple[plt.Axes], bounds: list[tuple[float]]
 ) -> plt.Axes:
     """
     Set the axis limits and labels for the plots
@@ -19,7 +18,7 @@ def set_slice_plot_bounds_and_labels(
     ymin, ymax = bounds[1]
     zmin, zmax = bounds[2]
 
-    for ax, (qmin, qmax) in zip(axs, [(ymin, ymax), (zmin, zmax)]):
+    for ax, (qmin, qmax) in zip(axs, [(ymin, ymax), (zmin, zmax)], strict=False):
         ax.set_xlim(xmin, xmax)
         ax.set_xlabel("PC1", fontsize=18)
         ax.set_ylabel("PC2" if ax == axs[0] else "PC3", fontsize=18)
@@ -63,13 +62,13 @@ def get_slice_indexes(
 
 
 def plot_one_slice_quiver(
-    velocities: Tuple,
-    grid: Tuple,
+    velocities: tuple,
+    grid: tuple,
     slice_indexes: np.ndarray,
     color: str = "mediumturquoise",
     norm: bool = True,
     ax: plt.Axes | None = None,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot one slice of the flow field (quiver plot) 
     for a given slice of the grid.
@@ -96,17 +95,17 @@ def plot_one_slice_quiver(
 
 def plot_quiver_slices(
     flow_field_dict: dict,
-    slice_indexes: Tuple[np.ndarray],
+    slice_indexes: tuple[np.ndarray],
     color: str = "mediumturquoise",
     norm: bool = True,
-    fig_ax: Tuple | None = None,
-) -> Tuple[plt.Figure, plt.Axes]:
+    fig_ax: tuple | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot quiver plots of the 3D flow field 
     for the specified 2D slices.
     """
     # get flow field
-    dU, dV, dQ = flow_field_dict["vectors"]
+    v1, v2, v3 = flow_field_dict["vectors"]
 
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -117,18 +116,18 @@ def plot_quiver_slices(
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
-        (dU, dV), (xgrid, ygrid), slice_indexes[0], color=color, ax=ax[0], norm=norm
+        (v1, v2), (xgrid, ygrid), slice_indexes[0], color=color, ax=ax[0], norm=norm
     )
     ax[1] = plot_one_slice_quiver(
-        (dU, dQ), (xgrid, zgrid), slice_indexes[1], color=color, ax=ax[1], norm=norm
+        (v1, v3), (xgrid, zgrid), slice_indexes[1], color=color, ax=ax[1], norm=norm
     )
 
     return fig, ax
 
 
 def plot_one_slice_streamplot(
-    velocities: Tuple,
-    grid: Tuple,
+    velocities: tuple,
+    grid: tuple,
     slice_indexes: np.ndarray,
     ax: plt.Axes | None = None,
 ) -> plt.Axes:
@@ -153,7 +152,8 @@ def plot_one_slice_streamplot(
     dx1 = velocities[0][slice_indexes].reshape(x1_grid.shape)
     dx2 = velocities[1][slice_indexes].reshape(x2_grid.shape)
 
-    # transpose the grid and velocities for streamplot (meshgrid generated via indexing ij)
+    # transpose the grid and velocities for streamplot 
+    # (meshgrid generated via indexing ij)
     ax.streamplot(
         x1_grid.T, x2_grid.T, dx1.T, dx2.T, color="black", linewidth=1, density=2
     )
@@ -161,14 +161,14 @@ def plot_one_slice_streamplot(
 
 
 def plot_streamplot_slices(
-    flow_field_dict: dict, slice_indexes: Tuple[np.ndarray]
-) -> Tuple[plt.Figure, Tuple[plt.Axes]]:
+    flow_field_dict: dict, slice_indexes: tuple[np.ndarray]
+) -> tuple[plt.Figure, tuple[plt.Axes]]:
     """
     Plot streamplot of the 3D flow field
     for the specified 2D slices.
     """
     # get flow field
-    dU, dV, dQ = flow_field_dict["vectors"]
+    v1, v2, v3 = flow_field_dict["vectors"]
 
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -176,10 +176,10 @@ def plot_streamplot_slices(
     # plot streamplot for the specified slices
     fig, ax = vb.init_subplots(figsize=(14, 5))
     ax[0] = plot_one_slice_streamplot(
-        (dU, dV), (xgrid, ygrid), slice_indexes[0], ax=ax[0]
+        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0]
     )
     ax[1] = plot_one_slice_streamplot(
-        (dU, dQ), (xgrid, zgrid), slice_indexes[1], ax=ax[1]
+        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1]
     )
 
     return fig, ax
@@ -189,10 +189,10 @@ def plot_flow_field_slices(
     flow_field_dict: dict,
     df_cond: pd.DataFrame | None,
     fig_savedir: str | None,
-    pc_vals: Tuple[float] | None = None,
+    pc_vals: tuple[float] | None = None,
     color: str = "mediumturquoise",
     norm: bool = True,
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot 2D slices of the 3D flow field
     for the specified 2D slices.
