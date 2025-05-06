@@ -9,9 +9,9 @@ def save_vector_field_as_vtk(vector_field_dict, output_path) -> None:
 
     Parameters:
     - vector_field_dict: Dictionary containing the vector field data.
-        - "vectors": Tuple of 3D arrays (vx, vy, vz) with the 
+        - "vectors": Tuple of 3D arrays (vx, vy, vz) with the
             vector values in each dimension.
-        - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the 
+        - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the
             grid points in each dimension.
     - output_path: Path to save the VTK file.
     """
@@ -26,9 +26,9 @@ def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
 
     Inputs:
     - vector_field_dict: dictionary with the following keys:
-        - "vectors": tuple of 3D arrays (vx, vy, vz) with the 
+        - "vectors": tuple of 3D arrays (vx, vy, vz) with the
             vector values in each dimension
-        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) 
+        - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
             with the grid points in each dimension
 
     Outputs:
@@ -66,10 +66,7 @@ def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
     # Interleave the x, y, and z components into the vector array
     for i in range(vx.size):
         vectors.InsertTuple3(
-            i, 
-            x_array.GetTuple1(i), 
-            y_array.GetTuple1(i), 
-            z_array.GetTuple1(i)
+            i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i)
         )
 
     # Add vector array to PointData
@@ -103,7 +100,7 @@ def save_points_as_polydata(coordinates: np.ndarray, file_name: str) -> None:
     Save 3D coordinates as VTK polydata.
 
     Inputs:
-    - coordinates: numpy array of shape (n_points, 3) 
+    - coordinates: numpy array of shape (n_points, 3)
         containing the 3D coordinates
     - file_name: path to the VTK file to save
 
@@ -129,7 +126,7 @@ def load_polydata(file_name: str) -> vtk.vtkPolyData:
     - file_name: path to the VTK file
 
     Outputs:
-    - polydata: vtkPolyData object containing 
+    - polydata: vtkPolyData object containing
         the data from the file
     """
     reader = vtk.vtkPolyDataReader()
@@ -143,16 +140,16 @@ def convert_coordinates_from_pc_to_volume(
     pc_coord: np.ndarray, origin: float, grid_spacing: float
 ) -> np.ndarray:
     """
-    Convert coordinates from 3D PC space to 3D volume space 
+    Convert coordinates from 3D PC space to 3D volume space
     (for saving as .vtk to view in ParaView)
 
     Inputs:
     - xpc: numpy array of 1 component of 3D coordinates in PC space
-        - i.e., this function is called for each of the 3 
+        - i.e., this function is called for each of the 3
             components of the coordinates
     - grid_spacing: spacing between grid points in PC space
-    - origin: point in PC space that corresponds to the 
-        origin in volume space (e.g., the minimum bound 
+    - origin: point in PC space that corresponds to the
+        origin in volume space (e.g., the minimum bound
         for the bins over that dimension in PC space)
 
     Outputs:
