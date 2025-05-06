@@ -1,13 +1,12 @@
 from typing import Tuple
 
 import numpy as np
-from scipy.sparse import csr_matrix
 
 
-def _get_outer_edges(a:np.ndarray, edge_range:tuple | list, bw: float):
+def _get_outer_edges(a:np.ndarray, edge_range:tuple | list | None, bw: float):
     """
-    Determine the outer bin edges to use, from either the data or the range
-    argument
+    Determine the outer bin edges to use, from either 
+    the data or the range argument.
     """
     if edge_range is not None:
         first_edge, last_edge = edge_range
@@ -48,7 +47,9 @@ def histogramdd(
     density: np.ndarray = None,
     bw: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
-
+    """
+    Compute the multidimensional histogram of a sample.
+    """
     try:
         # Sample is an ND-array.
         _n, d = sample.shape
