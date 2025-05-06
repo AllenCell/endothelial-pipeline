@@ -42,8 +42,8 @@ def get_km_powers(ndim: int) -> np.ndarray:
 
 
 def get_km_kernel(
-    x_list: list,
-    dx_list: list,
+    traj_list: list,
+    d_traj_list: list,
     bins: list,
     dt: float,
     kernel_params: dict,
@@ -54,12 +54,10 @@ def get_km_kernel(
     a kernel density estimation method.
 
     Inputs:
-    - x_list: list of numpy arrays, each array is a single
+    - traj_list: list of numpy arrays, each array is a single
         trajectory in (d-dim) feature space
-    - dx_list: list of numpy arrays, each array is the
+    - d_traj_list: list of numpy arrays, each array is the
         displacement vectors along that trajectory
-    - dt_list: list of numpy arrays, each array is the
-        time step differences along that trajectory
     - bins: list of numpy arrays, each array contains the
         bin edges for a dimension (used for computing
         conditional averages)
@@ -83,8 +81,8 @@ def get_km_kernel(
 
     kmc = (
         km.km(
-            x_list,
-            grads=dx_list,
+            traj_list,
+            grads=d_traj_list,
             bins=bins,
             bw=kernel_params["bandwidth"],
             kernel=kernel_params["kernel"],
@@ -99,7 +97,9 @@ def get_km_kernel(
         diff_km = kmc[2]
     else:  # if ndim > 1, need to make sure arrays are in the right shape
         # permuted axes (0, ndim, ndim-1, ..., 1)
-        axes_permute = [0, *list(reversed(range(1, ndim + 1)))]
+        axes_permute = [0] + list(
+            reversed(range(1, ndim + 1))
+        )
         #  swap last ndim axes to get correct shape:
         # n_powers x N[ndim] x N[ndim-1] x ... x N[1]
         kmc = np.transpose(kmc, axes_permute)

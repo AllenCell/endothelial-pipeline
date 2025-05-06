@@ -244,7 +244,7 @@ def km(
 
 def _km(
     timeseries: list[np.ndarray] | np.ndarray,
-    grads: list[np.ndarray] | np.ndarray | None,
+    grads: list[np.ndarray] | np.ndarray,
     bins: np.ndarray,
     powers: np.ndarray,
     kernel_func: callable,
@@ -267,13 +267,6 @@ def _km(
             arr[..., i] = a
         return arr
 
-    ##### Calculate derivative (if not provided)
-    if grads is None:
-        # Calculate the gradients if not provided
-        if multi_traj:
-            grads = [np.diff(ts, axis=0) for ts in timeseries]
-        else:
-            grads = np.diff(timeseries, axis=0)
     # Check if the gradients are in the right shape, trim timeseries to the same length
     if multi_traj:
         # Concatenate all gradients, need to get weights for weighted histogram

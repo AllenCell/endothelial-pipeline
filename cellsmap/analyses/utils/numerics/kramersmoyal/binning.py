@@ -38,7 +38,6 @@ def histogramdd(
     sample: np.ndarray,
     bins: int = 10,
     edge_range: tuple | list | None = None,
-    density: bool = True,
     weights: np.ndarray | None = None,
     bw: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -50,11 +49,11 @@ def histogramdd(
 
     try:
         # Sample is an ND-array.
-        n, d = sample.shape
+        d = sample.shape[1]
     except (AttributeError, ValueError):
         # Sample is a sequence of 1D arrays.
         sample = np.atleast_2d(sample).T
-        n, d = sample.shape
+        d = sample.shape[1]
 
     nbin = np.empty(d, int)
     edges = d * [None]
@@ -133,26 +132,25 @@ def histogramdd(
 
     # Remove outliers (indices 0 and -1 for each dimension).
     core = d * (slice(1, -1),)
-    hist = hist[(..., *core)]
+    hist = hist[(...,) + core]
 
-    # if density is requested, normalize the histogram
-    if density:
-        if weights.ndim == 1:
-            # calculate the probability density function
-            s = hist.sum()
+    # normalize the histogram
+    if weights.ndim == 1:
+        # calculate the probability density function
+        s = hist.sum()
+        for i in range(d):
+            shape = np.ones(d, int)
+            shape[i] = nbin[i] - 2
+            hist = hist / dedges[i].reshape(shape)
+        hist /= s
+    else:
+        for dd in range(weights.shape[0]):
+            s = hist[dd, ...].sum()
             for i in range(d):
                 shape = np.ones(d, int)
                 shape[i] = nbin[i] - 2
-                hist = hist / dedges[i].reshape(shape)
-            hist /= s
-        else:
-            for dd in range(weights.shape[0]):
-                s = hist[dd, ...].sum()
-                for i in range(d):
-                    shape = np.ones(d, int)
-                    shape[i] = nbin[i] - 2
-                    hist[dd, ...] = hist[dd, ...] / dedges[i].reshape(shape)
-                hist[dd, ...] /= s
+                hist[dd, ...] = hist[dd, ...] / dedges[i].reshape(shape)
+            hist[dd, ...] /= s
 
     if weights.ndim == 1:
         if (hist.shape != nbin - 2).any():
