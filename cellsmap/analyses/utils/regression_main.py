@@ -206,7 +206,7 @@ def build_kramers_moyal_train_test(
 
         print("**** Generating train/test sets for dataset", ds_name, "**** \n")
 
-        # load DiffAE feature data from this one dataset, with outliers labeled and features
+        # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined by fit PCA object pca
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
 

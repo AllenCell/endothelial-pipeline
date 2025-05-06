@@ -252,7 +252,7 @@ def save_image_output(
         }
 
         assert dtypes, """
-        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater. 
+        Max pixel value in one of the channels to be saved exceeds uint32 data type, unable to save OME-TIFFs with dtype uint64 of greater.
         Please find a way to reduce the max value in the culprit channel or save the image in a different format.
         """
 

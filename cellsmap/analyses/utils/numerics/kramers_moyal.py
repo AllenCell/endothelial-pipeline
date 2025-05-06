@@ -136,23 +136,20 @@ def get_km_histogram(
     for j, X in enumerate(X_list):
         dX = dX_list[j]
         dT = dT_list[j]
-        mask = np.where(dT == 1)[
-            0
-        ]  # where outlier points were removed, time difference was greater than 1, mask out these points
-        X = X[mask]
-        dXdt = (
-            dX[mask] / dt
-        )  # displacement divided by time step to get velocity (for fitting drift)
-        dX2dt = (
-            dX**2 / dt
-        )  # squared displacement divided by time step (for fitting diffusion)
+        # should not have timestep > 1
+        assert np.all(dT == 1), \
+            "Consecutive time points should be used for Kramers-Moyal analysis"
+        # displacement divided by time step to get velocity (for fitting drift)
+        dXdt = dX/dt
+        # squared displacement divided by time step (for fitting diffusion)
+        dX2dt = dX**2/dt
 
-        id_list = [
-            np.digitize(X[:-1, i], bins[i]) for i in range(ndim)
-        ]  # which bin each data point falls into (by each dimension)
+        # which bin each data point falls into (by each dimension)
+        id_list = [np.digitize(X[:-1, i], bins[i]) for i in range(ndim)]
+        # unique bin ids (zipped tuple of bin ids by dimension)  
         uids = list(
             set(zip(*id_list))
-        )  # unique bin ids (zipped tuple of bin ids by dimension)
+        )  
         if any([len(bins[i]) in id_list[i] for i in range(ndim)]):
             raise ValueError(
                 "Data point outside of histogram bins. Please update bounds."
