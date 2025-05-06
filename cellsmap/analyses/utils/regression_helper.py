@@ -129,7 +129,7 @@ def get_traj_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list, list]:
+def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
     """
     Get list of per-crop trajectories, the corresponding
     displacement vectors, and time differences along
