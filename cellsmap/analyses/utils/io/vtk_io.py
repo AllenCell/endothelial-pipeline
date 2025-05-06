@@ -3,25 +3,32 @@ import vtk
 from vtkmodules.util import numpy_support as vtknp
 
 
-def save_vector_field_as_vtk(vector_field_dict, output_path) -> None:
+def save_vector_field_as_vtk(
+        vector_field_dict:dict, 
+        output_path:str
+) -> None:
     """
     Save 3D vector field data as a VTK file.
 
-    Parameters
-    ----------
+    Inputs:
     - vector_field_dict: Dictionary containing the vector field data.
         - "vectors": Tuple of 3D arrays (vx, vy, vz) with the
             vector values in each dimension.
         - "grid": Tuple of 3D arrays (xgrid, ygrid, zgrid) with the
             grid points in each dimension.
     - output_path: Path to save the VTK file.
+
+    Outputs:
+    - None (the file is saved to output_path)
     """
     image_data = get_vtk_image_data_from_vector_field(vector_field_dict)
     save_vtk_image_data(image_data, output_path)
     return
 
 
-def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
+def get_vtk_image_data_from_vector_field(
+        vector_field_dict:dict
+ ) -> vtk.vtkImageData:
     """
     Convert 3D vector field to VTK image data format.
 
@@ -78,7 +85,10 @@ def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
     return image_data
 
 
-def save_vtk_image_data(img: vtk.vtkImageData, output_path: str) -> None:
+def save_vtk_image_data(
+        img: vtk.vtkImageData, 
+        output_path: str
+) -> None:
     """
     Save VTK image data to a file.
 
@@ -96,7 +106,10 @@ def save_vtk_image_data(img: vtk.vtkImageData, output_path: str) -> None:
     return
 
 
-def save_points_as_polydata(coordinates: np.ndarray, file_name: str) -> None:
+def save_points_as_polydata(
+        coordinates: np.ndarray, 
+        file_name: str
+) -> None:
     """
     Save 3D coordinates as VTK polydata.
 
@@ -138,7 +151,9 @@ def load_polydata(file_name: str) -> vtk.vtkPolyData:
 
 
 def convert_coordinates_from_pc_to_volume(
-    pc_coord: np.ndarray, origin: float, grid_spacing: float
+    pc_coord: np.ndarray, 
+    origin: float, 
+    grid_spacing: float
 ) -> np.ndarray:
     """
     Convert coordinates from 3D PC space to 3D volume space
