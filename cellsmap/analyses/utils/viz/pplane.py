@@ -97,8 +97,8 @@ def get_fps(my_flow: Callable, inits: list[tuple]) -> list[tuple]:
     # Only keep unique fixed points and throw
     # away 'nan' entries (findroot did not converge)
     for r in roots:
-        # check if the root is not nan and not already in the list
-        if not np.isnan(r).any() and r not in fpts:
+        # check if the root is not nan 
+        if not np.isnan(r).any():
             fpts.append(r)
     # round to 4 decimal places, get unique elements of list
     return list(set(map(tuple, np.round(fpts, 4))))
@@ -295,7 +295,7 @@ def plot_flow(
         Grid points at which to evaluate the flow
     - num_grid: number of grid points to use (default=15)
         for plotting the flow field
-    
+
     Outputs:
     - ax: matplotlib axes object with flow field plotted
     """
@@ -351,11 +351,12 @@ def phase_portrait(
             of x1, x2 and params
     - nullclines: boolean (default=True)
         If True, nullclines will be plotted
-    
+
     Outputs:
     - fig: matplotlib Figure object
     - ax: matplotlib Axes object
     """
+
     # define function x' = [f1(x),f2(x)] for rest
     # of code (does not need t as variable)
     def my_flow(x):
