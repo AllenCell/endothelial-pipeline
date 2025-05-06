@@ -103,6 +103,9 @@ def compute_extrapolated_vector_field(
     # Interpolate the NaN points
     vec_interpolated = [interpolator_func[i](all_points) for i in range(ndim)]
 
+    # reshape back to original grid shape
+    vec_interpolated = [vec.reshape(vector_field[0].shape) for vec in vec_interpolated]
+
     # Create a dictionary to store the vector field and grid
     vector_field_dict = {"vectors": vec_interpolated, "grid": grid}
 
