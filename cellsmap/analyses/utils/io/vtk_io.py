@@ -7,7 +7,8 @@ def save_vector_field_as_vtk(vector_field_dict, output_path) -> None:
     """
     Save 3D vector field data as a VTK file.
 
-    Parameters:
+    Parameters
+    ----------
     - vector_field_dict: Dictionary containing the vector field data.
         - "vectors": Tuple of 3D arrays (vx, vy, vz) with the
             vector values in each dimension.
@@ -40,9 +41,9 @@ def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
 
     dims = vx.shape
 
-    imageData = vtk.vtkImageData()
-    imageData.SetDimensions(dims)
-    imageData.SetSpacing(1, 1, 1)
+    image_data = vtk.vtkImageData()
+    image_data.SetDimensions(dims)
+    image_data.SetSpacing(1, 1, 1)
 
     # Create VTK arrays from NumPy arrays
     x_array = vtknp.numpy_to_vtk(
@@ -70,11 +71,11 @@ def get_vtk_image_data_from_vector_field(vector_field_dict) -> vtk.vtkImageData:
         )
 
     # Add vector array to PointData
-    pointData = imageData.GetPointData()
-    pointData.AddArray(vectors)
-    pointData.SetActiveVectors("Velocity")
+    point_data = image_data.GetPointData()
+    point_data.AddArray(vectors)
+    point_data.SetActiveVectors("Velocity")
 
-    return imageData
+    return image_data
 
 
 def save_vtk_image_data(img: vtk.vtkImageData, output_path: str) -> None:
@@ -141,7 +142,7 @@ def convert_coordinates_from_pc_to_volume(
 ) -> np.ndarray:
     """
     Convert coordinates from 3D PC space to 3D volume space
-    (for saving as .vtk to view in ParaView)
+    (for saving as .vtk to view in ParaView).
 
     Inputs:
     - xpc: numpy array of 1 component of 3D coordinates in PC space
