@@ -62,7 +62,7 @@ for condition, df_ in df.groupby("description"):
 
     # get list of per-crop trajectories, the corresponding 
     # displacement vectors, and time differences
-    traj_list, d_traj_list = rh.get_X_dX_and_dT(df_, feat_cols=feat_cols)
+    traj_list, d_traj_list = rh.get_traj_and_diff(df_, feat_cols)
     # get drift and diffusion estimates 
     # (Kramers-Moyal coefficients)
     drift_km, diff_km = rh.get_kramers_moyal(
@@ -70,7 +70,7 @@ for condition, df_ in df.groupby("description"):
         d_traj_list,
         bins=bins,
         dt=dt,
-        kernel_params=kernel_params,
+        kernel_params=kernel_params
     )
 
     # compute interpolated flow field - drift

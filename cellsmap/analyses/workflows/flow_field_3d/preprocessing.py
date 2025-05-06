@@ -23,7 +23,6 @@ fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
-# %%
 # only keep the reference datasets for this workflow
 datasets_to_use = [
     "20241120_20X",
@@ -85,8 +84,8 @@ for i, ds_name in enumerate(datasets_to_use):
     alpha = 0.75
     if ds_name == "20241217_20X":
         alpha = 0.5
-    ax1.scatter(dfs.PC1, dfs.PC2, s=0.01, label=ds_name, alpha=alpha)
-    ax2.scatter(dfs.PC1, dfs.PC3, s=0.01, label=ds_name, alpha=alpha)
+    ax1.scatter(dfs.pc1, dfs.pc2, s=0.01, label=ds_name, alpha=alpha)
+    ax2.scatter(dfs.pc1, dfs.pc3, s=0.01, label=ds_name, alpha=alpha)
     for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"], strict=False):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(ylab, fontsize=14)
@@ -101,8 +100,8 @@ vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_scatter", dpi=72
 
 # %%
 fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
-ax1.scatter(df.PC1, df.PC2, cmap="inferno", s=0.01, c=df["frame_number"])
-ax2.scatter(df.PC1, df.PC3, cmap="inferno", s=0.01, c=df["frame_number"])
+ax1.scatter(df.pc1, df.pc2, cmap="inferno", s=0.01, c=df["frame_number"])
+ax2.scatter(df.pc1, df.pc3, cmap="inferno", s=0.01, c=df["frame_number"])
 for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"], strict=False):
     ax.set_xlabel("PC1", fontsize=14)
     ax.set_ylabel(ylab, fontsize=14)
@@ -118,12 +117,12 @@ vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=7
 # %%
 # plot with example single crop tracks
 fig, ax = vb.init_plot(figsize=(5, 5))
-ax.scatter(df.PC1, df.PC2, s=0.1, color="black", alpha=0.05)
+ax.scatter(df.pc1, df.pc2, s=0.1, color="black", alpha=0.05)
 for ds_name in datasets_to_use:
     # get the data for the dataset based on ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     for track, df_track in dfs.groupby("crop_index"):
-        ax.plot(df_track.PC1, df_track.PC2, label=ds_name)
+        ax.plot(df_track.pc1, df_track.pc2, label=ds_name)
         break
 ax.set_xlabel("PC1", fontsize=14)
 ax.set_ylabel("PC2", fontsize=14)
