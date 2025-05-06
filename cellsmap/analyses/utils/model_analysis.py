@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from time import time
 
+from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -218,8 +219,9 @@ def get_fixed_points_by_shear(
     for u_val in shear_range:
 
         # define ODE "flow" function (drift function, u is fixed)
-        def my_flow(x, u=u_val):
-            return drift(x, u)
+        my_flow = partial(drift, u=u_val)
+        # def my_flow(x, u=u_val):
+        #     return drift(x, u)
 
         # for finding fixed points numerically, we need to provide initial guesses
         # we will use a coarse grid of points as initial guesses
