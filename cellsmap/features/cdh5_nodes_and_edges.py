@@ -7,7 +7,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from bioio import BioImage
 from cellsmap.util import shape_features as feat
-from cellsmap.util.dataset_io import ipython_cli_flexecute, load_config, get_dataset_info, get_zarr_path, get_original_path, load_dataset_position_as_dask_array, get_cdh5_classic_segmentation_path, extract_T
+from cellsmap.util.dataset_io import ipython_cli_flexecute, load_config, get_dataset_info, get_zarr_name, get_zarr_path, get_original_path, load_dataset_position_as_dask_array, get_cdh5_classic_segmentation_path, extract_T
 from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_dim_map, save_image_output
 from cellsmap.util.set_output import get_output_path
 import subprocess
@@ -75,7 +75,8 @@ def generate_results(
     else:
         raw_arr = load_dataset_position_as_dask_array(dataset_name, position, channels=['EGFP'])
         raw_arr = raw_arr.max(axis=dim_map['Z']).squeeze()
-        image_path = Path(get_zarr_path(dataset_name))
+        zarr_name = get_zarr_name(dataset_name, position)
+        image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
 
     print(f'T={T} -- loading classic segmentation') if verbose else None

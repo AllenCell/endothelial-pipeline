@@ -6,7 +6,7 @@ from skimage import morphology
 from skimage import segmentation
 from skimage import graph
 from skimage.exposure import rescale_intensity
-from typing import Optional, Tuple, List, Any, Union, Literal
+from typing import Optional, Tuple, List, Dict, Any, Union, Literal
 
 
 def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -392,7 +392,7 @@ def get_angle(
     return np.rad2deg(rad) if in_deg else rad
 
 
-def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False) -> np.ndarray:
+def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False) -> Tuple[np.ndarray, Dict|None]:
     """
     Takes a list of paired coordinates and an array and draws rasterized versions of
     the lines between the paired coordinates.
@@ -437,7 +437,7 @@ def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.nda
         arr_to_draw_on[(*locs,)] = label if label_lines else True
     label_dict = {label: label_dict[label] for label in sorted(label_dict.keys())}
 
-    return (arr_to_draw_on, label_dict) if label_lines else arr_to_draw_on
+    return (arr_to_draw_on, label_dict) if label_lines else (arr_to_draw_on, None)
 
 def build_vector(stop_position: np.ndarray,
                  start_position: np.ndarray
@@ -1016,9 +1016,9 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
     coords = list(zip(*np.where(skel)))
 
     if len(coords) < 2:
-        line1 = {(coords)[-1]: {}}
+        line1: Dict = {(coords)[-1]: {}}
         if bidirectional:
-            line2 = {(coords)[-1]: {}}
+            line2: Dict = {(coords)[-1]: {}}
         else:
             pass
         pass
