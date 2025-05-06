@@ -6,7 +6,7 @@ from scipy.signal import convolve
 from scipy.special import factorial
 
 from cellsmap.analyses.utils.numerics.kramersmoyal import kernels
-from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
+from cellsmap.analyses.utils.numerics.kramersmoyal.binning_TEST import histogramdd
 
 
 def string_to_kernel(kernel: str) -> Callable:
