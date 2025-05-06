@@ -8,14 +8,17 @@ import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:
     """
-    Turn fit regression model (SINDy object) into vector-valued function f that
-    can be evaluated at a point x as f(x) using the model's built-in
-    `predict' function. This function serves to wrap the model's predict function
-    into a callable function that can be used to evaluate the model at a single point x.
+    Turn fit regression model (SINDy object) into vector-valued 
+    function f that can be evaluated at a point x as f(x) using 
+    the model's built-in `predict' function. This function serves 
+    to wrap the model's predict function into a callable function 
+    that can be used to evaluate the model at a single point x.
 
-    The returned function allows for control parameters as an optional argument.
+    The returned function allows for control parameters 
+    as an optional argument.
 
-    This function is used when the dimension of the state space is greater than 1.
+    This function is used when the dimension 
+    of the state space is greater than 1.
     """
 
     def f(x, u=None):
@@ -46,14 +49,18 @@ def vector_field_function(sindy_model: ps.SINDy) -> Callable:
 
 def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
     """
-    Turn vector-valued function f(x,u) into function f_mesh(x,u) that can be evaluated
-    appropriately on a mesh grid (i.e., np.meshgrid(*arrays) object), where x is the state variable
+    Turn vector-valued function f(x,u) into function f_mesh(x,u) 
+    that can be evaluated appropriately on a mesh grid (i.e., 
+    np.meshgrid(*arrays) object), where x is the state variable
     and u is the (optional) control parameter.
 
-    If the dimension of the state variable is greater than 2, the dimension must be passed in explicitly as ndim.
-    It is assumed that the state variable x and the vector field f(x) are of the same dimension.
+    If the dimension of the state variable is greater than 2, 
+    the dimension must be passed in explicitly as ndim.
+    It is assumed that the state variable x and the vector 
+    field f(x) are of the same dimension.
 
-    The returned function allows for control parameters as an optional argument.
+    The returned function allows for control parameters 
+    as an optional argument.
     """
 
     def f_mesh(mesh_grid, u=None):
@@ -64,23 +71,25 @@ def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
         )
 
         # Evaluate the function on all grid points
-        V_flat = np.apply_along_axis(f, 1, grid_points, u)
+        v_flat = np.apply_along_axis(f, 1, grid_points, u)
 
         # Reshape the result to match the original grid shape
-        V = V_flat.reshape(*mesh_shape, ndim)
+        v = v_flat.reshape(*mesh_shape, ndim)
 
-        return np.asarray(V)  # return the result as a numpy array (not AxesArray)
+        return np.asarray(v)  # return the result as a numpy array (not AxesArray)
 
     return f_mesh  # return the the callable function f_mesh
 
 
 def vector_field_component(f: Callable, i: int) -> Callable:
     """
-    Returns the scalar valued function corresponding to the i-th component (indexing starting at 0)
-    of the vector-valued function f(x,u), where x is the state variable
-    and u is the (optional) control parameter.
+    Returns the scalar valued function corresponding to 
+    the i-th component (indexing starting at 0)
+    of the vector-valued function f(x,u), where x is 
+    the state variable and u is the (optional) control parameter.
 
-    The returned function allows for control parameters as an optional argument.
+    The returned function allows for control parameters 
+    as an optional argument.
     """
 
     def f_i(x, u=None):
@@ -111,47 +120,59 @@ def vector_field_component(f: Callable, i: int) -> Callable:
 
 def get_normalization_constant(p_fit: np.ndarray, dx: list) -> float:
     """
-    Get normalization constant for stationary probability distribution p_fit.
-    The normalization constant is the integral of the probability distribution over the state space.
+    Get normalization constant for stationary probability 
+    distribution p_fit. The normalization constant is the 
+    integral of the probability distribution over the state space.
 
     Inputs:
-    - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
+    - p_fit: np.ndarray, stationary probability 
+        distribution of the fit SDE model
         - shape N[1] x N[2] x ... x N[ndim]
     - dx: list, bin width in each dimension
 
     Outputs:
-    - C: float, normalization constant
+    - c: float, normalization constant
     """
     ndim = len(dx)  # number of dimensions
 
-    C = p_fit.copy()  # copy p_fit to avoid modifying the original array
+    c = p_fit.copy()  # copy p_fit to avoid modifying the original array
     for i in range(ndim):
         # integrate over each dimension
-        C = np.trapz(
-            C, dx=dx[i], axis=0
-        )  # integrate over the i-th dimension, axis=0 as we marginalize over each dimension
+        c = np.trapz(
+            c, dx=dx[i], axis=0
+        )  # integrate over axis=0 as we marginalize over each dimension
 
-    return C
+    return c
 
 
 def get_stationary_probability(
-    f_vals: np.ndarray, D_vals: np.ndarray, bins: list, tol: float = 1e-10
+    drift_vals: np.ndarray, 
+    diff_vals: np.ndarray, 
+    bins: list, 
+    tol: float = 1e-10
 ) -> np.ndarray:
     """
-    Get stationary probability distribution of fit SDE (Langevin) model with drift function f and diffusion D by solving the
-    stationary Fokker-Planck equation. The drift and diffusion functions can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
+    Get stationary probability distribution of fit SDE (Langevin) model 
+    with drift function f and diffusion D by solving the
+    stationary Fokker-Planck equation. The drift and diffusion functions 
+    can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
 
-    This function calls the PDE solver SteadyFP implemented in the `numerics.fp_solvers' module.
+    This function calls the PDE solver SteadyFP implemented in the 
+    `cellsmap.analyses.utils.numerics.fp_solvers' module.
 
     Inputs:
-    - f_vals: np.ndarray, values of the drift function evaluated at the bin centers
+    - drift_vals: np.ndarray, values of the drift function evaluated at the bin centers
         - if the drift function is scalar-valued, f_vals is a 1D array
-        - if the drift function is vector-valued, f_vals is an (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - D_vals: np.ndarray, values of the diffusion function evaluated at the bin centers
+        - if the drift function is vector-valued, f_vals is an 
+            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
+    - diff_vals: np.ndarray, values of the diffusion function evaluated at the bin centers
         - if the diffusion function is scalar-valued, D_vals is a 1D array
-        - if the diffusion function is vector-valued, D_vals is an (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - bins: list of arrays defining bin edges for each dimension of the state variable
-    - tol: float, tolerance for small values in the stationary probability distribution (default is 1e-10)
+        - if the diffusion function is vector-valued, D_vals is an 
+            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
+    - bins: list of arrays defining bin edges for each dimension 
+        of the state variable
+    - tol: float, tolerance for small values in the stationary 
+        probability distribution (default is 1e-10)
         - if the probability distribution is less than tol, it is set to tol
 
     Outputs:
@@ -159,18 +180,21 @@ def get_stationary_probability(
     """
 
     ndim = len(bins)
-    dx = [bins[i][1] - bins[i][0] for i in range(ndim)]  # bin width in each dimension
-    Nbins = [len(bins[i]) - 1 for i in range(ndim)]  # number of bins in each dimension
+    # bin width in each dimension
+    dx = [bins[i][1] - bins[i][0] for i in range(ndim)]
+    # bin centers in each dimension
+    num_bins = [len(bins[i]) - 1 for i in range(ndim)] 
 
     # initialize SteadyFP object
-    fp = fps.SteadyFP(Nbins, dx)
+    fp = fps.SteadyFP(num_bins, dx)
 
-    p_fit = fp.solve(f_vals, D_vals)  # solve stationary Fokker-Planck equation
+    # solve stationary Fokker-Planck equation
+    p_fit = fp.solve(drift_vals, diff_vals)  
 
     p_fit[p_fit < tol] = (
         tol  # set small values to a small number to avoid numerical issues
     )
-    C = get_normalization_constant(p_fit, dx)  # integrate to get normalization constant
-    p_fit = p_fit / C  # normalize probability distribution
+    c = get_normalization_constant(p_fit, dx)  # integrate to get normalization constant
+    p_fit = p_fit / c  # normalize probability distribution
 
     return p_fit

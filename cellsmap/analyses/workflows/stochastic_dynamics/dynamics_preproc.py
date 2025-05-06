@@ -60,7 +60,7 @@ def main(config_name: str = "default") -> None:
     )
 
     # plot top 3 principal components of feature data vs. frame number
-    fig, _ = manifest_viz.plot_top_3_PCs_alldata(pca)
+    fig, _ = manifest_viz.plot_top_3_pcs_alldata(pca)
     vb.save_plot(fig, filename=fig_savedir + "top_3_PCs", format=".png", dpi=500)
 
     ################### Build train-test data for regression ###################
