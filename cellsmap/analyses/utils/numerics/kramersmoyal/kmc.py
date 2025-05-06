@@ -69,42 +69,42 @@ def km(
         be equal to the number of gradients in `grads`.
 
     bins: list of np.ndarrays
-        List of monotonically increasing bin edges in each dimension. 
+        List of monotonically increasing bin edges in each dimension.
         This is the underlying space for the Kramers─Moyal
         coefficients to be estimated.
 
     powers: np.ndarray
         Powers for the operation of calculating the Kramers─Moyal coefficients.
-        The powers are the exponents of the components of the displacement 
-        vectors in the Kramers─Moyal coefficients. 
+        The powers are the exponents of the components of the displacement
+        vectors in the Kramers─Moyal coefficients.
 
-        The powers are given in the form of a 2-D array, 
-        where each row corresponds to a power, and each column 
-        corresponds to a component of the displacement vector 
-        that is raised to that power. The first row is always 
+        The powers are given in the form of a 2-D array,
+        where each row corresponds to a power, and each column
+        corresponds to a component of the displacement vector
+        that is raised to that power. The first row is always
         zero, to account for the normalization of the coefficients.
 
-        * e.g., to compute each component of the drift 
-        coefficient in 2D, the powers are `[[0, 0], [1, 0], [0, 1]]`, 
+        * e.g., to compute each component of the drift
+        coefficient in 2D, the powers are `[[0, 0], [1, 0], [0, 1]]`,
         where the first row is the normalization
-        
+
         The powers can be computed by calling `get_km_powers(ndim)`, where
         `ndim` is the dimension of the timeseries. The powers are then
-        automatically generated, but only up to second order. 
+        automatically generated, but only up to second order.
 
-        The order that they appear dictates the order of the 
+        The order that they appear dictates the order of the
         corresponding coefficient in the output `kmc`.
 
     kernel: string
-        Kernel used to convolute with the Kramers-Moyal coefficients. 
+        Kernel used to convolute with the Kramers-Moyal coefficients.
         To select, for example, a Gaussian kernel use
             `kernel = `gaussian`
         Has to be the name of a kernel implemented in
         `cellsmap.analyses.utils.numerics.kramersmoyal.kernels`.
 
     bw: float (default `None`)
-        Desired bandwidth of the kernel. A value of 1 occupies 
-        the full space of the bin space. 
+        Desired bandwidth of the kernel. A value of 1 occupies
+        the full space of the bin space.
         Recommended are values `0.005 < bw < 0.5`.
 
     tol: float (default `1e-10`)
@@ -152,7 +152,7 @@ def km(
     powers = np.asarray_chkfinite(powers, dtype=float)
     # check if powers is a 1D array
     # if so, reshape it to a 2D array with one column
-    if len(powers.shape) == 1: 
+    if len(powers.shape) == 1:
         powers = powers.reshape(-1, 1)
 
     # add normalization factor to powers
@@ -169,9 +169,7 @@ def km(
     print(f"Using bandwidth {bw} for kernel {kernel}.")
 
     # This is where the calculations take place
-    kmc = _km(
-        timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method
-    )
+    kmc = _km(timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method)
 
     return kmc
 
@@ -204,10 +202,9 @@ def _km(
     grads = np.concatenate(grads, axis=0)
     # Get trajectories for weighted histogram
     # (timepoints corresponding to the gradients)
-    # Note that the last timepoint of each trajectory 
+    # Note that the last timepoint of each trajectory
     # is not included, as it is not used in the gradients.
     timeseries_ = np.concatenate([ts[:-1] for ts in timeseries], axis=0)
-
 
     ##### Weights: for each displacement vector, get the coresponding powers/products
     #               of the gradients for the Kramers─Moyal coefficients.

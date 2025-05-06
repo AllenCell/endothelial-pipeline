@@ -86,7 +86,7 @@ def get_km_kernel(
             bins=bins,
             bw=kernel_params["bandwidth"],
             kernel=kernel_params["kernel"],
-            powers=powers
+            powers=powers,
         )
         / dt
     )

@@ -1,31 +1,28 @@
-from typing import Tuple
-
 import numpy as np
 
 
-def _bincount(x:np.ndarray, weights:np.ndarray, minlength:int=0):
-    """ Get the weighted counts of the input array x. """
+def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0):
+    """Get the weighted counts of the input array x."""
     return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
 
 
 def _get_bin_counts(
-        sample:np.ndarray, 
-        weights:np.ndarray,
-        edges:list[np.ndarray], 
-        d:int, 
-        nbin:np.ndarray
+    sample: np.ndarray,
+    weights: np.ndarray,
+    edges: list[np.ndarray],
+    d: int,
+    nbin: np.ndarray,
 ) -> np.ndarray:
-    """ Get weighted bin counts for the input sample. """
+    """Get weighted bin counts for the input sample."""
     # Compute the bin number each sample falls into.
     n_count = tuple(
-        np.searchsorted(edges[i], sample[:, i], side="right")
-        for i in range(d)
+        np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d)
     )
 
-    # Using searchsorted, values that fall on an 
+    # Using searchsorted, values that fall on an
     # edge are put in the right bin.
-    # For the rightmost bin, we want values equal 
-    # to the right edge to be counted in the last bin, 
+    # For the rightmost bin, we want values equal
+    # to the right edge to be counted in the last bin,
     # and not as an outlier.
     for i in range(d):
         # Find which points are on the rightmost edge.
@@ -33,9 +30,9 @@ def _get_bin_counts(
         # Shift these points one bin to the left.
         n_count[i][on_edge] -= 1
 
-    # These next two lines assign the 
+    # These next two lines assign the
     # correct bin count to the histogram.
-        
+
     # Compute the sample indices in the flattened histogram matrix.
     xy = np.ravel_multi_index(n_count, nbin)
 
@@ -46,9 +43,7 @@ def _get_bin_counts(
 
 
 def histogramdd(
-    sample: np.ndarray,
-    bins: list[np.ndarray],
-    weights: np.ndarray
+    sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray
 ) -> np.ndarray:
     """
     Compute the multidimensional weighted histogram of a sample.
@@ -63,7 +58,7 @@ def histogramdd(
 
     Inputs:
     - sample: np.ndarray, shape (n, d)
-        The input data, where n is the number of samples 
+        The input data, where n is the number of samples
         and d is the number of dimensions.
     - bins: list[np.ndarray]
         The bin edges for each dimension. Each element of the list
@@ -94,12 +89,10 @@ def histogramdd(
         # get the width of each bin
         dedges[i] = np.diff(edges[i])
 
-
     m = len(bins)
     if m != d:
         raise ValueError(
-            "The dimension of bins must be equal to the dimension of the "
-            " sample x"
+            "The dimension of bins must be equal to the dimension of the " " sample x"
         )
 
     # Get the histogram counts.
