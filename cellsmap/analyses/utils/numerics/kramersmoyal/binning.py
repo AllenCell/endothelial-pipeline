@@ -65,7 +65,7 @@ def histogramdd(
     sample: np.ndarray,
     bins: list[np.ndarray],
     weights: np.ndarray | None = None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Compute the multidimensional histogram of a sample.
 
@@ -89,7 +89,8 @@ def histogramdd(
         treated equally.
 
     Outputs:
-
+    - hist: np.ndarray, shape (nbin,)
+        The histogram counts for each bin.
     """
     try:
         # Sample is an ND-array.
@@ -144,4 +145,4 @@ def histogramdd(
     # normalize the histogram
     hist = _normalize_histogram(hist, weights, dedges, d, nbin)
 
-    return hist, edges
+    return hist

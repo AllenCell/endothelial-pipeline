@@ -1,6 +1,5 @@
 import inspect
 from collections.abc import Callable
-from itertools import product
 
 import numpy as np
 from scipy.signal import convolve
@@ -235,7 +234,7 @@ def _km(
 
     # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
     # where N[i] is the number of bins in dimension i.
-    hist, edges = histogramdd(timeseries_, bins=bins, weights=weights, bw=bw)
+    hist = histogramdd(timeseries_, bins=bins, weights=weights)
 
     ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
 
@@ -251,7 +250,7 @@ def _km(
     # is compatible with the circular nature of the convolution obtained via fft.
     # (Default convolution method is 'auto', which uses
     # fft if the kernel is large enough.)
-    edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in edges]
+    edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
     kernel_ = kernel_func(cartesian_product(edges_k), bw=bw)
 
     ##### KMC computation: convolve the histogram with the kernel
