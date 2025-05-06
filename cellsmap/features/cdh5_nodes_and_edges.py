@@ -23,7 +23,7 @@ def generate_results_multiproc_wrapper(args: Dict) -> None:
     verbose = args['verbose']
     use_original_data = args['use_original_data']
     create_validation_image = args['validation_image']
-    generate_results(dataset_name, T, out_dir=out_dir, scene, position, use_original_data, img_bin_level, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
+    generate_results(dataset_name, T, out_dir, scene, position, use_original_data, img_bin_level, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
 
 # def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
 def generate_results(
