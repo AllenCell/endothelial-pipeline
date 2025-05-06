@@ -21,10 +21,6 @@ def get_pca_reference(df:pd.DataFrame,dataset_name:str) -> pd.DataFrame:
     - df: pd.DataFrame, with an additional column 'pca_ref' indicating whether the timepoint is a reference timepoint
     """
     df["pca_ref"] = False
-<<<<<<< HEAD
-    dataset_name = df.dataset.unique()[0]
-=======
->>>>>>> 29924a9ba2e569fb369bd04794e91357fa86a416
     dataset_info = get_dataset_info(dataset_name)
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = dataset_info.get("valid_timepoints")

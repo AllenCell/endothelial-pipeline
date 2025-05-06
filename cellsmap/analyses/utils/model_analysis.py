@@ -262,7 +262,7 @@ def run_fixed_point_analysis(
     - drift_function: Callable, drift function
     - shear_range: np.ndarray, shear stresses at 
         which to evaluate fixed points
-    - PCs: list of ints, indices of which PCs model 
+    - pcs: list of ints, indices of which PCs model 
         fitting was performed on
     - plt_lims: list of np.ndarrays, limits for 
         excluding fixed points outside of plotting range

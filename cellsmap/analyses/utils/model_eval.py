@@ -6,7 +6,7 @@ import pysindy as ps
 import cellsmap.analyses.utils.numerics.fp_solvers as fps
 
 
-def vector_field_function(model: ps.SINDy) -> Callable:
+def vector_field_function(sindy_model: ps.SINDy) -> Callable:
     """
     Turn fit regression model (SINDy object) into vector-valued function f that
     can be evaluated at a point x as f(x) using the model's built-in
@@ -28,9 +28,9 @@ def vector_field_function(model: ps.SINDy) -> Callable:
 
         # optionally pass control parameter u to the model
         if u is None:
-            f_out = model.predict(x_in)  # predict = evaluate the model at x
+            f_out = sindy_model.predict(x_in)  # predict = evaluate the model at x
         else:
-            f_out = model.predict(
+            f_out = sindy_model.predict(
                 x_in, u=u
             )  # predict = evaluate the model at x with control parameter u
 
