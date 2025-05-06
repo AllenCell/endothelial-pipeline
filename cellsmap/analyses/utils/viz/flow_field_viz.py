@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -47,7 +46,7 @@ def get_slice_indexes(
 
     Outputs:
     - slice_indexes: np.ndarray
-        The indexes of the grid that are closest to 
+        The indexes of the grid that are closest to
         sliced_variable_val.
     """
     # get slice closest to the prescribed value
@@ -70,7 +69,7 @@ def plot_one_slice_quiver(
     ax: plt.Axes | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
-    Plot one slice of the flow field (quiver plot) 
+    Plot one slice of the flow field (quiver plot)
     for a given slice of the grid.
     """
     if ax is None:
@@ -101,7 +100,7 @@ def plot_quiver_slices(
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
-    Plot quiver plots of the 3D flow field 
+    Plot quiver plots of the 3D flow field
     for the specified 2D slices.
     """
     # get flow field
@@ -152,7 +151,7 @@ def plot_one_slice_streamplot(
     dx1 = velocities[0][slice_indexes].reshape(x1_grid.shape)
     dx2 = velocities[1][slice_indexes].reshape(x2_grid.shape)
 
-    # transpose the grid and velocities for streamplot 
+    # transpose the grid and velocities for streamplot
     # (meshgrid generated via indexing ij)
     ax.streamplot(
         x1_grid.T, x2_grid.T, dx1.T, dx2.T, color="black", linewidth=1, density=2
@@ -212,11 +211,11 @@ def plot_flow_field_slices(
         Directory to save the figures.
         If None, no figures are saved.
     - pc_vals: tuple of floats
-        Values of the 2nd and 3rd principal components 
+        Values of the 2nd and 3rd principal components
         (2nd and 3rd variables) to slice the data.
-        If None, the mean of the data at the last 
+        If None, the mean of the data at the last
         time point is used.
-    
+
     """
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -227,13 +226,13 @@ def plot_flow_field_slices(
     zmin, zmax = zgrid[0, 0, 0], zgrid[0, 0, -1]
     bounds = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
-    # for plotting in 2D, we need to slice 
-    # the data in PC3 and PC2 to get PC1 v. PC2 
+    # for plotting in 2D, we need to slice
+    # the data in PC3 and PC2 to get PC1 v. PC2
     # and PC1 v. PC3 plots, respectively
 
     # if not specified, use mean of data at last time point
     # if data are not provided, use pc2 = pc3 = 0
-    if pc_vals is None:  
+    if pc_vals is None:
         if df_cond is None:
             pc3_val = 0
             pc2_val = 0
@@ -241,44 +240,28 @@ def plot_flow_field_slices(
             # get mean at all time points over crops
             mean_over_crops = df_cond.groupby("frame_number").mean(numeric_only=True)
             # get last time point
-            mean_over_crops = mean_over_crops.iloc[-1]  
+            mean_over_crops = mean_over_crops.iloc[-1]
             pc3_val = mean_over_crops["pc3"].mean()
             pc2_val = mean_over_crops["pc2"].mean()
     # if specified, unpack
-    else:  
+    else:
         pc3_val = pc_vals[0]
         pc2_val = pc_vals[1]
 
     # get z-slice closest to PC3 = pc3_val
-    zvalids = get_slice_indexes(zgrid, pc3_val)  
+    zvalids = get_slice_indexes(zgrid, pc3_val)
     # get y-slice closest to PC2 = pc2_val
-    yvalids = get_slice_indexes(ygrid, pc2_val)  
+    yvalids = get_slice_indexes(ygrid, pc2_val)
 
-    # plot quiver plots of these PC2 and PC3 slices 
+    # plot quiver plots of these PC2 and PC3 slices
     # overlaid on scatter plot of data
     fig, ax = vb.init_subplots(figsize=(14, 5))
     if df_cond is not None:
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(
-            df_cond.pc1, 
-            df_cond.pc2, 
-            s=0.25, 
-            color="black", 
-            alpha=0.1
-        )
-        ax[1].scatter(
-            df_cond.pc1, 
-            df_cond.pc3, 
-            s=0.25, 
-            color="black", 
-            alpha=0.1
-        )
+        ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color="black", alpha=0.1)
+        ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color="black", alpha=0.1)
     fig, ax = plot_quiver_slices(
-        flow_field_dict, 
-        (zvalids, yvalids), 
-        color=color, 
-        norm=norm, 
-        fig_ax=(fig, ax)
+        flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
 
     # set the axis limits and labels
@@ -290,10 +273,7 @@ def plot_flow_field_slices(
     plt.show()
 
     # plot streamplot of these PC2 and PC3 slices
-    fig_, ax_ = plot_streamplot_slices(
-        flow_field_dict, 
-        (zvalids, yvalids)
-    )
+    fig_, ax_ = plot_streamplot_slices(flow_field_dict, (zvalids, yvalids))
     # set the axis limits and labels
     ax_ = set_slice_plot_bounds_and_labels(ax_, bounds)
     # set titles with slice values
@@ -304,31 +284,24 @@ def plot_flow_field_slices(
 
     if fig_savedir is not None:
         # if data provided, get
-        # get the condition name 
+        # get the condition name
         # for saving the plot
         if df_cond is not None:
             condition = df_cond.description.unique()[0]
         else:
-            condition = "from_data"  
+            condition = "from_data"
         vb.save_plot(
-            fig, 
-            filename=fig_savedir + f"flow_field_{condition}",
-            dpi=300
+            fig, filename=fig_savedir + f"flow_field_{condition}", dpi=300
         )  # save the figure
         vb.save_plot(
-            fig_, 
-            filename=fig_savedir + f"flow_field_streamplot_{condition}", 
-            dpi=300
+            fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
         )  # save the figure
 
     return fig, ax
 
 
 def flow_field_viz_main(
-    flow_field_dict: dict, 
-    df_cond: pd.DataFrame, 
-    traj: np.ndarray, 
-    fig_savedir: str
+    flow_field_dict: dict, df_cond: pd.DataFrame, traj: np.ndarray, fig_savedir: str
 ) -> None:
     """
     Plot all relvant 2D summary plots
@@ -353,18 +326,13 @@ def flow_field_viz_main(
     # dataset flow condition for saving the figures
     condition = df_cond["description"].values[0]
 
-    # plot 2D slices at PC2 and PC3 values given by 
+    # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
-    pc_vals = (traj[-1, 2], traj[-1, 1])  
+    pc_vals = (traj[-1, 2], traj[-1, 1])
 
-    # baseline visualization: plot flow field slices 
+    # baseline visualization: plot flow field slices
     # (quiver plot with scatter of data, streamplot)
-    plot_flow_field_slices(
-        flow_field_dict, 
-        df_cond, 
-        fig_savedir, 
-        pc_vals=pc_vals
-    )
+    plot_flow_field_slices(flow_field_dict, df_cond, fig_savedir, pc_vals=pc_vals)
 
     ###### additional plots for visualization of flow field #######
     # 1) last point of trajectory over flow field
@@ -407,16 +375,12 @@ def flow_field_viz_main(
     plt.show()
 
     # save the figure
-    vb.save_plot(
-        fig, 
-        fig_savedir + f"flow_field_{condition}_fp", 
-        dpi=300
-    )  
+    vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids))
     # PC1 v s PC2, PC1 vs PC3
-    for j, ax_ in enumerate(ax):  
+    for j, ax_ in enumerate(ax):
         ax_.scatter(traj[:, 0], traj[:, j + 1], s=30, color="navy")
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
     plt.tight_layout()
@@ -438,9 +402,7 @@ def flow_field_viz_main(
     plt.show()
     # save the figure
     vb.save_plot(
-        fig, 
-        fig_savedir + f"flow_field_{condition}_traj_interpolated", 
-        dpi=300
-    )  
+        fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300
+    )
 
     return

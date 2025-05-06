@@ -44,7 +44,7 @@ Nbins = [
 
 bins, centers = rh.get_bins(Nbins, bin_limits=bounds)
 
-# time stepping for the flow field 
+# time stepping for the flow field
 dt = 5
 # time span for the ODE solver
 # units for time steps are in minutes
@@ -60,17 +60,13 @@ for condition, df_ in df.groupby("description"):
     # get dataset name and condition
     print(f"Computing drift flow field for {condition}")
 
-    # get list of per-crop trajectories, the corresponding 
+    # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
     traj_list, d_traj_list = rh.get_traj_and_diff(df_, feat_cols)
-    # get drift and diffusion estimates 
+    # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
     drift_km, diff_km = rh.get_kramers_moyal(
-        traj_list,
-        d_traj_list,
-        bins=bins,
-        dt=dt,
-        kernel_params=kernel_params
+        traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
     # compute interpolated flow field - drift
@@ -82,7 +78,7 @@ for condition, df_ in df.groupby("description"):
         flow_field_dict, vtk_savedir + f"flow_field_{condition}.vtk"
     )
 
-    # compute interpolated diffusion field 
+    # compute interpolated diffusion field
     # (diagonal diffusion tensor represented as 3D vector field)
     diffusion_field_dict = ddff.compute_extrapolated_vector_field(
         diff_km, centers, interpolator="nearest"

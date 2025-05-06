@@ -3,10 +3,7 @@ import vtk
 from vtkmodules.util import numpy_support as vtknp
 
 
-def save_vector_field_as_vtk(
-        vector_field_dict:dict, 
-        output_path:str
-) -> None:
+def save_vector_field_as_vtk(vector_field_dict: dict, output_path: str) -> None:
     """
     Save 3D vector field data as a VTK file.
 
@@ -26,9 +23,7 @@ def save_vector_field_as_vtk(
     return
 
 
-def get_vtk_image_data_from_vector_field(
-        vector_field_dict:dict
- ) -> vtk.vtkImageData:
+def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImageData:
     """
     Convert 3D vector field to VTK image data format.
 
@@ -85,10 +80,7 @@ def get_vtk_image_data_from_vector_field(
     return image_data
 
 
-def save_vtk_image_data(
-        img: vtk.vtkImageData, 
-        output_path: str
-) -> None:
+def save_vtk_image_data(img: vtk.vtkImageData, output_path: str) -> None:
     """
     Save VTK image data to a file.
 
@@ -106,10 +98,7 @@ def save_vtk_image_data(
     return
 
 
-def save_points_as_polydata(
-        coordinates: np.ndarray, 
-        file_name: str
-) -> None:
+def save_points_as_polydata(coordinates: np.ndarray, file_name: str) -> None:
     """
     Save 3D coordinates as VTK polydata.
 
@@ -151,9 +140,7 @@ def load_polydata(file_name: str) -> vtk.vtkPolyData:
 
 
 def convert_coordinates_from_pc_to_volume(
-    pc_coord: np.ndarray, 
-    origin: float, 
-    grid_spacing: float
+    pc_coord: np.ndarray, origin: float, grid_spacing: float
 ) -> np.ndarray:
     """
     Convert coordinates from 3D PC space to 3D volume space

@@ -22,7 +22,7 @@ vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
 # only keep the reference datasets for this workflow:
-# 48hr high flow, 48hr no flow, 48hr low flow, 
+# 48hr high flow, 48hr no flow, 48hr low flow,
 # 2 48hr intermediate flows (12 and 15 dyn)
 datasets_to_use = [
     "20241120_20X",
@@ -30,7 +30,7 @@ datasets_to_use = [
     "20250409_20X",
     "20250319_20X",
     "20250326_20X",
-]  
+]
 df = []
 # load the manifest for each dataset, add crop index column
 for name in datasets_to_use:
@@ -72,7 +72,7 @@ for pc in range(3):
 df.to_csv(output_savedir + "manifest.csv")
 # %%
 # get state space bounds from data
-# used for plotting in this file, 
+# used for plotting in this file,
 # analysis in generate_flow_field.py
 bounds = ddff.set_3d_bounds_from_data(df.pc1, df.pc2, df.pc3, excluded_fraction=0.0)
 
@@ -80,7 +80,7 @@ bounds = ddff.set_3d_bounds_from_data(df.pc1, df.pc2, df.pc3, excluded_fraction=
 fig, (ax1, ax2) = vb.init_subplots(figsize=(15, 5))
 for ds_name in datasets_to_use:
     print(f"Plotting {ds_name}")
-    # get the data for the dataset based on 
+    # get the data for the dataset based on
     # ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     alpha = 0.75
@@ -121,7 +121,7 @@ vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=7
 fig, ax = vb.init_plot(figsize=(5, 5))
 ax.scatter(df.pc1, df.pc2, s=0.1, color="black", alpha=0.05)
 for ds_name in datasets_to_use:
-    # get the data for the dataset based on 
+    # get the data for the dataset based on
     # ds_name being in the crop_index column
     dfs = df[df["crop_index"].str.contains(ds_name)]
     for _track, df_track in dfs.groupby("crop_index"):
