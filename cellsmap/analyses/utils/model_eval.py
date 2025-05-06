@@ -23,7 +23,8 @@ def vector_field_function(sindy_model: ps.SINDy) -> Callable:
 
     def f(x, u=None):
         # if x is a single point, convert to 2D array
-        # input shape has to be (n_samples, n_features), where n_features = dimension of state space
+        # input shape has to be (n_samples, n_features),
+        # where n_features = dimension of state space
         if len(x.shape) == 1:
             x_in = x[None, :]
         else:
@@ -41,7 +42,8 @@ def vector_field_function(sindy_model: ps.SINDy) -> Callable:
         if f_out.shape[0] == 1:
             f_out = f_out[0]
 
-        # SINDy model outputs its own class of arrays (AxesArray), so convert to numpy array
+        # SINDy model outputs its own class 
+        # of arrays (AxesArray), so convert to numpy array
         return np.asarray(f_out)
 
     return f  # return the the callable function f
@@ -83,7 +85,7 @@ def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
 
 def vector_field_component(f: Callable, i: int) -> Callable:
     """
-    Returns the scalar valued function corresponding to 
+    Return the scalar valued function corresponding to 
     the i-th component (indexing starting at 0)
     of the vector-valued function f(x,u), where x is 
     the state variable and u is the (optional) control parameter.
@@ -93,27 +95,32 @@ def vector_field_component(f: Callable, i: int) -> Callable:
     """
 
     def f_i(x, u=None):
-        # check input type - this is done because this component function is meant to be passed into the pplane
-        # script, which alternatively passes in a meshgrid, an array of points, or single points as tuples
+        # check input type - this is done because this 
+        # component function is meant to be passed into the pplane
+        # script, which alternatively passes in a meshgrid, 
+        # an array of points, or single points as tuples
         if isinstance(x, tuple) or isinstance(x, list):
+            # if passing in a meshgrid, make sure 
+            # to evaluate the function on the meshgrid
             if (
                 len(x[0].shape) == 2
-            ):  # if passing in a meshgrid, make sure to evaluate the function on the meshgrid
+            ):  
                 f_mesh = mesh_grid_function(f)
-                f_out = f_mesh(
-                    x, u
-                ).T  # transpose output so that the components are the first axis
+                # transpose output so that the components are the first axis
+                f_out = f_mesh(x, u).T  
             else:  # if single point in ND, convert tuple to array
+                # transpose output so that the components are the first axis
                 f_out = f(
                     np.array(x).reshape(-1, len(x)), u
-                ).T  # transpose output so that the components are the first axis
-        else:  # if passing in an array of points, evaluate the function on the array of points
-            f_out = f(
-                x, u
-            ).T  # transpose output so that the components are the first axis
-        return f_out[
-            i
-        ].T  # get the i-th component of the vector field, transpose to get correct shape (n_samples,1)
+                ).T  
+        # if passing in an array of points, 
+        # evaluate the function on the array of points
+        else:  
+            # transpose output so that the components are the first axis
+            f_out = f(x, u).T  
+        # get the i-th component of the vector field, 
+        # transpose to get correct shape (n_samples,1)
+        return f_out[i].T  
 
     return f_i  # return the the callable function f_i
 
@@ -135,12 +142,13 @@ def get_normalization_constant(p_fit: np.ndarray, dx: list) -> float:
     """
     ndim = len(dx)  # number of dimensions
 
-    c = p_fit.copy()  # copy p_fit to avoid modifying the original array
+    # copy p_fit to avoid modifying the original array
+    c = p_fit.copy()  
     for i in range(ndim):
-        # integrate over each dimension
+        # integrate over axis=0 as we marginalize over each dimension
         c = np.trapz(
             c, dx=dx[i], axis=0
-        )  # integrate over axis=0 as we marginalize over each dimension
+        )  
 
     return c
 
@@ -161,11 +169,13 @@ def get_stationary_probability(
     `cellsmap.analyses.utils.numerics.fp_solvers' module.
 
     Inputs:
-    - drift_vals: np.ndarray, values of the drift function evaluated at the bin centers
+    - drift_vals: np.ndarray, values of the drift function 
+        evaluated at the bin centers
         - if the drift function is scalar-valued, f_vals is a 1D array
         - if the drift function is vector-valued, f_vals is an 
             (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - diff_vals: np.ndarray, values of the diffusion function evaluated at the bin centers
+    - diff_vals: np.ndarray, values of the diffusion function
+        evaluated at the bin centers
         - if the diffusion function is scalar-valued, D_vals is a 1D array
         - if the diffusion function is vector-valued, D_vals is an 
             (ndim+1)D array with shape (ndim, N_x, N_y, ...)
@@ -176,7 +186,8 @@ def get_stationary_probability(
         - if the probability distribution is less than tol, it is set to tol
 
     Outputs:
-    - p_fit: np.ndarray, stationary probability distribution of the fit SDE model
+    - p_fit: np.ndarray, stationary probability 
+        distribution of the fit SDE model
     """
 
     ndim = len(bins)
@@ -194,7 +205,9 @@ def get_stationary_probability(
     p_fit[p_fit < tol] = (
         tol  # set small values to a small number to avoid numerical issues
     )
-    c = get_normalization_constant(p_fit, dx)  # integrate to get normalization constant
-    p_fit = p_fit / c  # normalize probability distribution
+    # integrate to get normalization constant
+    c = get_normalization_constant(p_fit, dx)  
+    # normalize probability distribution
+    p_fit = p_fit / c  
 
     return p_fit
