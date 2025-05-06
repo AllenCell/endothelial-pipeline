@@ -34,11 +34,9 @@ datasets_to_use = [
     "20250326_20X",
 ]  # 48hr high flow, 48hr no flow, 48hr low flow, 2 48hr intermediate flows (12 and 15 dyn)
 df = []
-# load the manifest for each dataset, add outlier column, add crop index column
+# load the manifest for each dataset, add crop index column
 for name in datasets_to_use:
     df_ = manifest_io.get_diffae_manifest(name)
-    # add outlier column
-    df_ = manifest_pca.get_outliers(df_)
     # add crop index column
     df_ = diffae_preproc.add_crop_index(df_)
     # add dataset name to crop index
@@ -126,9 +124,9 @@ for i, ds_name in enumerate(datasets_to_use):
     dfs = df[df["crop_index"].str.contains(ds_name)]
     alpha = 0.75
     if ds_name == "20241217_20X":
-        alpha=0.5
-    ax1.scatter(dfs.PC1, dfs.PC2, s=0.01, label=ds_name,alpha=alpha)
-    ax2.scatter(dfs.PC1, dfs.PC3, s=0.01, label=ds_name,alpha=alpha)
+        alpha = 0.5
+    ax1.scatter(dfs.PC1, dfs.PC2, s=0.01, label=ds_name, alpha=alpha)
+    ax2.scatter(dfs.PC1, dfs.PC3, s=0.01, label=ds_name, alpha=alpha)
     for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
         ax.set_xlabel("PC1", fontsize=14)
         ax.set_ylabel(ylab, fontsize=14)

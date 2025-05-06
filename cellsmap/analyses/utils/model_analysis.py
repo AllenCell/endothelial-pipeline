@@ -135,7 +135,7 @@ def model_data_comparison(
         print("**** Running model analysis for dataset", ds_name, "**** \n")
 
         # project data from this one dataset onto PCs as defined by fit PCA object pca
-        # load DiffAE feature data from this one dataset, with outliers labeled and features
+        # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined by fit PCA object pca
         df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
 
