@@ -108,9 +108,9 @@ def get_traj_by_flow(
         second_shear = float(flow_info[1][-1])
         shear_list.append(second_shear)
         if verbose:
-            print(f"Shear stress{first_shear} dyn/cm^2 until frame {change_frame}")
+            print(f"Shear stress {first_shear} dyn/cm^2 until frame {change_frame}")
             print(
-                f"Shear stress{second_shear} dyn/cm^2 after frame {change_frame}"
+                f"Shear stress {second_shear} dyn/cm^2 after frame {change_frame}"
             )
         # separate data into two dataframes based on
         # frame number where flow condition changes
@@ -171,7 +171,8 @@ def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list, 
         d_traj = np.diff(data_crop[feat_cols].values, axis=0)
 
         # append data to lists:
-        # trajectory, displacement vectors, time differences
+        # trajectory and displacement vectors
+        # leave off last timepoint for trajectory
         traj_list.append(data_crop[feat_cols].values)
         d_traj_list.append(d_traj)
 
