@@ -27,4 +27,4 @@ jobs:
         python-version-file: "pyproject.toml"
 
     - name: Run pytest
-      run: uv run pytest -v
+      run: uv run --locked pytest -v
