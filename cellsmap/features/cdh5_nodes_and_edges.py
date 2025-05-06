@@ -25,7 +25,6 @@ def generate_results_multiproc_wrapper(args: Dict) -> None:
     create_validation_image = args['validation_image']
     generate_results(dataset_name, T, out_dir, scene, position, use_original_data, img_bin_level, save_output=save_output, create_validation_image=create_validation_image, verbose=verbose)
 
-# def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
 def generate_results(
           dataset_name: str,
           T: int,
@@ -82,7 +81,6 @@ def generate_results(
     print(f'T={T} -- loading classic segmentation') if verbose else None
     # load the segmentation images
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
-    seg_filepaths = sorted(seg_dir.glob('*.ome.tif*'), key=lambda fp: extract_T(fp.name))
     seg_filepath_list = [fp for fp in seg_dir.glob('*.ome.tif*') if extract_T(fp.name) == T]
     assert len(seg_filepath_list) == 1, f'Found {len(seg_filepath_list)} segmentation files for T={T} in {dataset_name}. Expected 1.'
     seg_filepath = seg_filepath_list[0]

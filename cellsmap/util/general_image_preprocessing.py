@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
-from cellsmap.util.dataset_io import get_zarr_path, get_original_path, get_total_number_of_positions
+from cellsmap.util.dataset_io import get_zarr_name, get_zarr_path, get_original_path, get_total_number_of_positions
 from cellsmap.util.set_output import get_output_path
 from cellsmap.util.get_sldy_metadata import get_objective_info
 from typing import List, Any, Union, Optional
@@ -27,22 +27,28 @@ def get_chan_map(filepath: Path) -> dict:
 def build_analysis_queue(dataset_name_list: list,
                          t_start: int=0, t_final: int|None=None, t_step: int=1,
                          img_bin_level: int=0,
-                         save_output=True, overwrite=False, out_dir: str|Path|None=None,
+                         save_output:bool=True, overwrite:bool=False, out_dir: str|Path|None=None,
                          magnification: int|None=None,
                          image_validation_frequency: int|None=None,
-                         verbose=None, is_test=False, use_original_data=False) -> list:
+                         verbose: bool = False, is_test:bool=False, use_original_data:bool=False
+                         ) -> list:
     print(f'Building analysis queue for the following datasets: {dataset_name_list}')
     analysis_queue: list = []
     out_dir = Path(out_dir) if out_dir != None else Path(get_output_path('analysis_queue_output_temp', verbose=False))
     for dataset_name in tqdm(dataset_name_list, total=len(dataset_name_list), desc='Building analysis queue', unit='dataset'):
-        img_path = Path(get_zarr_path(dataset_name)) if not use_original_data else Path(get_original_path(dataset_name))
-        img = BioImage(img_path)
+        if use_original_data:
+            img_path = Path(get_original_path(dataset_name))
+            img = BioImage(img_path)
+            num_positions = get_total_number_of_positions(dataset_name)
+            num_pos_in_S = len(img.scenes)
+        else:
+            img_path_dict = get_zarr_path(dataset_name)
+            num_positions = get_total_number_of_positions(dataset_name)
+            num_pos_in_S = len(img_path_dict)
+            zarr_name_dict = {pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)}
 
-        num_positions = get_total_number_of_positions(dataset_name)
-
-        assert num_positions % len(img.scenes) == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}'
-        num_pos_in_T = num_positions // len(img.scenes)
-        num_pos_in_S = len(img.scenes)
+        assert num_positions % num_pos_in_S == 0, f'Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({num_pos_in_S}) in the image file for dataset {dataset_name}'
+        num_pos_in_T = num_positions // num_pos_in_S
 
         positions_in_T, positions_in_S = [], []
         for scene_index in range(num_pos_in_S):
@@ -50,8 +56,15 @@ def build_analysis_queue(dataset_name_list: list,
             positions_in_S += [scene_index] * num_pos_in_T
 
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
-            img.set_scene(pos_in_S)
-            scene_name = img.scenes[pos_in_S]
+            if use_original_data:
+                img.set_scene(pos_in_S)
+                scene_name = img.scenes[pos_in_S]
+            else:
+                zarr_name = zarr_name_dict[pos_in_S]
+                img_path = Path(img_path_dict[zarr_name])
+                img = BioImage(img_path)
+                img.set_scene(0)
+                scene_name = zarr_name
             if magnification !=None and get_objective_info(img.metadata)['magnification'] != magnification:
                 print(f'Position{pos} (scene {img.current_scene}) -- does not use 20X magnification, skipping...') if verbose else None
             else:
