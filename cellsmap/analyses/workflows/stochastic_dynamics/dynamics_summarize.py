@@ -41,14 +41,14 @@ def main(config_name: str = "default") -> None:
     fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 
     # get inputs for analysis/visualization from config
-    pcs = config["PCs_to_analyze"]
+    pcs = config["pcs_to_analyze"]
     ds_to_skip = config["datasets_to_skip"]
     pplane_xlim = config["plt_xlim"]["pplane"]
     pplane_ylim = config["plt_ylim"]["pplane"]
     bin_xlim = config["plt_xlim"]["hist"]
     bin_ylim = config["plt_ylim"]["hist"]
-    num_pts_pplane = config["N_pts_pplane"]
-    num_bins_hist = config["N_bins_hist"]
+    num_pts_pplane = config["num_pts_pplane"]
+    num_bins_hist = config["num_bins_hist"]
 
     # for phase plane plots, fix grid across all datasets
     pplane_xvec = np.linspace(pplane_xlim[0], pplane_xlim[1], num_pts_pplane + 1)
@@ -60,7 +60,7 @@ def main(config_name: str = "default") -> None:
     # for plotting fixed points by shear stress
     shear_range = config["shear_range"]
     shear_range_fpt = np.linspace(
-        shear_range[0], shear_range[-1], config["N_shear_fpt"]
+        shear_range[0], shear_range[-1], config["num_shear_fpt"]
     )
 
     # for plotting entropy production rate by shear stress:
@@ -73,10 +73,10 @@ def main(config_name: str = "default") -> None:
 
     # for plotting generalized potential energy landscape for various shear stresses
     bins_gp, centers_gp = rh.get_bins(
-        config["N_bins_landscape"], bin_limits=[bin_xlim, bin_ylim]
+        config["num_bins_landscape"], bin_limits=[bin_xlim, bin_ylim]
     )
     shear_range_gp = np.linspace(
-        shear_range[0], shear_range[-1], config["N_shear_landscape"]
+        shear_range[0], shear_range[-1], config["num_shear_landscape"]
     )
     downsample_quiver = config["downsample_quiver"]
     normed = config["norm_vectors"]

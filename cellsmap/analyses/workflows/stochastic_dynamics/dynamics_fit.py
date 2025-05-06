@@ -33,7 +33,7 @@ def main(config_name: str = "default") -> None:
     savedir = get_output_path(workflow_output_folder, verbose=False)
 
     # get inputs for regression from config
-    pcs = config["PCs_to_analyze"]
+    pcs = config["pcs_to_analyze"]
     dt = config["dt"]
     drift_deg = config["polynomial_lib"]["drift_feats"]
     diff_deg = config["polynomial_lib"]["diffusion_feats"]

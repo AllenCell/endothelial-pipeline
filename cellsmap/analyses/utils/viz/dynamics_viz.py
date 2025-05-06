@@ -12,9 +12,9 @@ def plot_fixed_points_by_shear(
     state space used to fit the dynamical systems model) of the system by shear stress.
 
     Input:
-    - fpt_dict_list: list of dictionaries, each containing fixed points, 
+    - fpt_dict_list: list of dictionaries, each containing fixed points,
         the corresponding types, and the shear stress value
-    - shear_range: np.ndarray, shear stress values corresponding 
+    - shear_range: np.ndarray, shear stress values corresponding
         to each dictionary in fpt_dict_list
     - PCs: list, list of principal components used to fit the dynamical systems model
     - plt_lims: list, list of tuples containing the limits for each plot
@@ -22,8 +22,8 @@ def plot_fixed_points_by_shear(
     Output:
     - figs: list of plt.Figure
     - axs: list of plt.Axes
-    The length of figs and axs is equal to the number of principal components 
-    (i.e., the dimension of the state space). Figure i in figs corresponds 
+    The length of figs and axs is equal to the number of principal components
+    (i.e., the dimension of the state space). Figure i in figs corresponds
     to the plot of the i-th component of the identified fixed points.
     """
     assert len(fpt_dict_list) == len(shear_range)
@@ -94,7 +94,7 @@ def plot_histogram_2d(
     Output:
     - ax: plt.Axes
     """
-    # plot histogram, setting origin to lower left and 
+    # plot histogram, setting origin to lower left and
     # setting the aspect ratio to be square
     ax.imshow(
         p_hist.T,
@@ -133,17 +133,17 @@ def compare_stationary_distributions(
     p_model: np.ndarray, p_hist: np.ndarray, bins
 ) -> tuple[plt.Figure, plt.Axes]:
     """
-    Side-by-side plots of the histogram of the data at steady state 
-    ("empirical PDF") and the numerical solution to the stationary 
-    Fokker-Planck equation for the fit SDE model ("model PDF"). 
+    Side-by-side plots of the histogram of the data at steady state
+    ("empirical PDF") and the numerical solution to the stationary
+    Fokker-Planck equation for the fit SDE model ("model PDF").
     The figure suptitle includes K-L divergence between the two distributions.
 
     Input:
-    - p_model: np.ndarray, model PDF (obtained from the numerical solution 
+    - p_model: np.ndarray, model PDF (obtained from the numerical solution
         to the stationary Fokker-Planck equation)
-    - p_hist: np.ndarray, empirical PDF (obtained from the data at 
+    - p_hist: np.ndarray, empirical PDF (obtained from the data at
         steady state, e.g., by histogramming)
-        - "steady state" here refers to the assumption that the 
+        - "steady state" here refers to the assumption that the
             data are stationary in some sense
     - bins: list, list of bin edges used to compute the p_hist for each dimension
         - should be the same as the bins used to compute p_model
@@ -176,10 +176,8 @@ def compare_stationary_distributions(
     kl_div = kl_divergence(p_hist, p_model, dx)
 
     fig.suptitle(
-        "$D_{KL}(p_{hist}||p_{model}) =$" + f"{kl_div:0.4f}", 
-        fontsize=16, 
-        y=1.05
-        )
+        "$D_{KL}(p_{hist}||p_{model}) =$" + f"{kl_div:0.4f}", fontsize=16, y=1.05
+    )
 
     return fig, ax
 
@@ -192,7 +190,7 @@ def plot_entropy_production_rate(
 
     Input:
     - epr: np.ndarray, entropy production rate values
-    - shear_range: np.ndarray, shear stress values corresponding 
+    - shear_range: np.ndarray, shear stress values corresponding
         to each entropy production rate value
 
     Output:
@@ -269,7 +267,7 @@ def plot_grad_flux_decomposition(
     - grad: np.ndarray, gradient part of the vector field
     - flux: np.ndarray, flux remainder part of the vector field
     - cmap: str (default='jet'), colormap to use for the plot
-    - normed: bool (default=False), whether to normalize the gradient and 
+    - normed: bool (default=False), whether to normalize the gradient and
         flux vectors in the quiver plot
     - downsample: int (default=10), downsample factor for the quiver plot
 
@@ -278,10 +276,7 @@ def plot_grad_flux_decomposition(
     - ax: plt.Axes
     """
     # contour plot of the potential energy landscape
-    fig, ax = plot_gen_potential_2d(potential, 
-                                    xvec, yvec, 
-                                    cmap=cmap, surf=False
-                                    )
+    fig, ax = plot_gen_potential_2d(potential, xvec, yvec, cmap=cmap, surf=False)
 
     # quiver plot of gradient and flux decomposition
     # normalize vectors if specified

@@ -61,16 +61,15 @@ def main(config_name: str = "default") -> None:
 
     # plot top 3 principal components of feature data vs. frame number
     fig, _ = manifest_viz.plot_top_3_pcs_alldata(pca)
-    vb.save_plot(fig, filename=fig_savedir + "top_3_PCs", format=".png", dpi=500)
+    vb.save_plot(fig, filename=fig_savedir + "top_3_pcs", format=".png", dpi=500)
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
-    pcs = config["PCs_to_analyze"]
+    pcs = config["pcs_to_analyze"]
     dt = config["dt"]
     ds_to_skip = config["datasets_to_skip"]
     kramers_moyal_config = config["kramers_moyal"]
-    num_bins = kramers_moyal_config["Nbins"]
-    km_method = kramers_moyal_config["method"]
+    num_bins = kramers_moyal_config["num_bins"]
     kernel_params = None
     if "kernel_params" in kramers_moyal_config:
         kernel_params = kramers_moyal_config["kernel_params"]
@@ -83,11 +82,10 @@ def main(config_name: str = "default") -> None:
         dt,
         ds_to_skip,
         fig_savedir,
-        method=km_method,
         kernel_params=kernel_params,
     )
 
-    ################### Save train-test data ###################
+    #### Save train-test data ####
     dynamics_io.save_train_test(train_test_dict, savedir)
 
 

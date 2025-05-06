@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import matplotlib.pyplot as plt
 import numdifftools as nd
 import numpy as np
@@ -5,283 +7,358 @@ from matplotlib.lines import Line2D
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 
-# code for phase plane analysis of 2D systems of ODEs
 
+def get_trajectories(
+    my_system: Callable, t_vec: np.ndarray, inits: list[tuple]
+) -> dict:
+    """
+    Get trajectories of a system of ODEs given by my_system
+    at initial conditions in inits and time points in t_vec.
 
-def get_trajectories(mySystem, tVec, ICs):
+    Inputs:
+    - my_system: function that takes t and x as inputs
+    - t_vec: time points at which to evaluate the solution
+    - inits: list of initial conditions
+
+    Outputs:
+    - trajectory: dictionary with keys as indices of
+        inits and values as the solution
+    """
     trajectory = {}
-    for j, ic in enumerate(ICs):
+    for j, ic in enumerate(inits):
         trajectory[j] = solve_ivp(
-            mySystem, y0=ic, t_span=(tVec.min(), tVec.max()), t_eval=tVec
+            my_system, y0=ic, t_span=(t_vec.min(), t_vec.max()), t_eval=t_vec
         ).y
     return trajectory
 
 
-def plot_trajectories(trajectory, ICs):
-    for j, ic in enumerate(ICs):
+def plot_trajectories(trajectory: dict, inits: list[tuple]) -> None:
+    """
+    Plot trajectories of a system of ODEs given in the
+    dictionary trajectory (keys are indices of inital
+    conditions in inits and values are the solution).
+
+    Inputs:
+    - trajectory: dictionary with keys as indices of
+        inits and values as the solution
+    - inits: list of initial conditions
+
+    Outputs:
+    - None (plots the trajectories)
+    """
+    for j, ic in enumerate(inits):
         plt.plot(ic[0], ic[1], "bx", markersize=8)
         plt.plot(trajectory[j][0, :], trajectory[j][1, :], "b-", linewidth=2.25)
 
 
-def plot_components(tVec, trajectory, ICs):
-    fig, ax = plt.subplots(1, 2, figsize=(20, 9))
-    for j, ic in enumerate(ICs):
-        L = ax[0].plot(tVec, trajectory[j][0, :], linewidth=2.5, label=ic)
-        ax[1].plot(
-            tVec, trajectory[j][1, :], linewidth=2.5, color=L[0].get_color(), label=ic
-        )
-    ax[0].set_xlabel(r"$t$", fontsize=16)
-    ax[0].set_ylabel(r"$x_1(t)$", fontsize=16)
-    ax[0].tick_params(labelsize=13)
-    ax[0].set_title(r"Trajectories of $x_1$", fontsize=17)
-    ax[0].legend(title="Initial conditions", title_fontsize=13, fontsize=12)
-    ax[0].set_ylim([trajectory.min() - 0.05, trajectory.max() + 0.05])
+def findroot(func: Callable, init: float | np.ndarray | tuple) -> np.ndarray:
+    """
+    Find root of nonlinear equation f(x)=0.
 
-    ax[1].set_xlabel(r"$t$", fontsize=16)
-    ax[1].set_ylabel(r"$x_2(t)$", fontsize=16)
-    ax[1].tick_params(labelsize=13)
-    ax[1].set_title(r"Trajectories of $x_2$", fontsize=17)
-    ax[1].legend(title="Initial conditions", title_fontsize=13, fontsize=12)
-    ax[1].set_ylim([trajectory.min() - 0.05, trajectory.max() + 0.05])
-    return fig, ax
+    Inputs:
+    - func: function to find root of
+    - init: initial guess for the root
+        (can be a float, np.ndarray or tuple)
+        - float if scalar function, array
+            or tuple if vector function
 
-
-def findroot(func, init):
-    """Find root of nonlinear equation f(x)=0
-    Args:
-        - the system (function),
-        - the initial values (list or np.array)
-
-    return: roots of f(x) (np.array)
-            if the numerical method converge (else, return nan)
+    Outputs:
+    - sol: root of the function
+        (if convergence == 1)
+    - np.nan: if convergence != 1
     """
     sol, _, convergence, _ = fsolve(func, init, full_output=1, xtol=1e-12)
     if convergence == 1:
         return sol
-    if init.__class__ == np.float64:
+    if init is float:
         return np.array([np.nan])
     else:
         return np.array([np.nan] * len(init))
 
 
-def get_fps(myFlow, ICs):
-    """Return the list of unique fixed points of the system x' = myFlow(x) starting around ICs"""
-    fpts = []
-    # find each of the fixed points near the starting points numerically using the function findroot
-    roots = [findroot(myFlow, ic) for ic in ICs]
-    # Only keep unique fixed points and throw away 'nan' entries (findroot did not converge)
-    for r in roots:
-        if not any(np.isnan(r)) and not any([all(np.isclose(r, x)) for x in fpts]):
-            fpts.append(r)
-    return list(
-        set(map(tuple, np.round(fpts, 4)))
-    )  # round to 4 decimal places, get unique elements of list
-
-
-def find_stability(J, ndim=2):
-    """Determines stability of a fixed point of dx/dt = f(x).
-
-    Args:
-        J (float or np.array 2x2): the derivative (1d) or the Jacobian matrix of the function f(x) at the fixed point.
-
-    Return:
-        (string) classification of equilibrium point
+def get_fps(my_flow: Callable, inits: list[tuple]) -> list[tuple]:
     """
-    if ndim == 2:
-        detJ = np.linalg.det(J)
-        trJ = np.trace(J)
-        if np.isclose(trJ, 0) and detJ > 0:
-            nature = "Indeterminate stability"
-        elif detJ < 0:
-            nature = "Saddle point"
-        else:
-            nature = "Stable" if trJ < 0 else "Unstable"
-            nature += " spiral" if (trJ**2 < 4 * detJ) else " node"
+    Return the list of unique fixed points of
+    the system x' = my_flow(x) starting around
+    initial conditions inits.
+
+    Inputs:
+    - my_flow: function that takes x as input
+    - inits: list of initial conditions
+
+    Outputs:
+    - fpts: list of unique fixed points
+        (tuples of floats)
+    """
+    fpts = []
+    # find each of the fixed points near the starting
+    # points numerically using the function findroot
+    roots = [findroot(my_flow, ic) for ic in inits]
+    # Only keep unique fixed points and throw
+    # away 'nan' entries (findroot did not converge)
+    for r in roots:
+        # check if the root is not nan and not already in the list
+        if not np.isnan(r).any() and r not in fpts:
+            fpts.append(r)
+    # round to 4 decimal places, get unique elements of list
+    return list(set(map(tuple, np.round(fpts, 4))))
+
+
+def find_stability(jacobian: np.ndarray) -> str:
+    """
+    Determine stability of a fixed point of dx/dt = f(x).
+
+    Inputs:
+    - jacobian: Jacobian matrix at the fixed point
+        (can be a float or np.ndarray)
+    - ndim: dimensionality of the system (1 or 2)
+
+    Outputs:
+    - stability: string describing the stability of the fixed point
+        (e.g. "stable", "unstable", "indeterminate")
+    """
+    # get eigenvalues of the Jacobian
+    # via trace and determinant
+    det_jac = np.linalg.det(jacobian)
+    tr_jac = np.trace(jacobian)
+    if np.isclose(tr_jac, 0) and det_jac > 0:
+        stability = "Indeterminate stability"
+    elif det_jac < 0:
+        stability = "Saddle point"
     else:
-        if J < 0:
-            nature = "Stable"
-        elif J > 0:
-            nature = "Unstable"
-        else:
-            nature = "Semi-stable"
-    return nature
+        stability = "Stable" if tr_jac < 0 else "Unstable"
+        stability += " spiral" if (tr_jac**2 < 4 * det_jac) else " node"
+    return stability
 
 
-def classify_fps(myFlow, fpts, x, unique=True, ndim=2, ax=None, verbose=True):
+def classify_fps(
+    my_flow: Callable,
+    fpts: list[tuple],
+    x: tuple[np.ndarray] | np.ndarray,
+    unique: bool = True,
+    ax: plt.Axes | None = None,
+    verbose: bool = True,
+) -> tuple[list[str], list[float] | list[tuple], plt.Axes | None]:
+    """
+    Classify fixed points of a system of ODEs given by my_flow.
+
+    To do: can break this function up into smaller functions.
+
+    Inputs:
+    - my_flow: 2D function that takes x (2D) as input
+    - fpts: list of fixed points to classify
+    - x: tuple of numpy arrays (or a single array)
+        representing the range of x values in
+        each dimension of the state space
+    - unique: boolean (default=True)
+        If True, list of stability types will only
+        contain unique values (this is used for plotting)
+    - ax: matplotlib axes object (default=None)
+        If provided, fixed points will be plotted on this axis
+    - verbose: boolean (default=True)
+        If True, fixed points and their stability will be printed
+
+    Outputs:
+    - fpt_types: list of strings describing the stability
+        of each fixed point given in fpts that is
+        within the bounds of the plot window (x)
+        - If unique is True, only unique values will be
+            included in the list (so it will not be
+            1-1 with the returned fpts_new)
+    - fpts_new: list of fixed points that are within
+        the bounds of the plot window (x)
+    - ax: matplotlib axes object (if None was provided,
+        return None)
+    """
     fpts_new = []
     fpt_types = []
-    if ndim == 1:  # 1D system
+    # unpack x into x1 and x2
+    x1, x2 = x
+    # define Jacobian as a function of x - for getting stability:
+    flow_jacobian = nd.Jacobian(my_flow)
+    if verbose:
+        print("Fixed points:")
+    for fpt in fpts:
+        # if far out of bounds of the plot window, don't report it
+        if (
+            fpt[0] < x1[0] - 0.5 * abs(x1[0])
+            or fpt[0] > x1[-1] + 0.5 * abs(x1[-1])
+            or fpt[1] < x2[0] - 0.5 * abs(x2[0])
+            or fpt[1] > x2[-1] + 0.5 * abs(x2[-1])
+        ):
+            continue
+        # get stability of the fixed point
+        fpt_stability = find_stability(flow_jacobian(fpt))
+        # if verbose, print the point and its stability
         if verbose:
-            print("Fixed points:")
-        flowDerivative = nd.Derivative(myFlow)
-        for fpt in fpts:
-            # if far out of bounds of the plot window, don't report it
-            if fpt[0] < x[0] - 0.5 * abs(x[0]) or fpt[0] > x[-1] + 0.5 * abs(x[-1]):
-                continue
-            fptStability = find_stability(flowDerivative(fpt), ndim=1)
-            if verbose:
-                print("  • " + fptStability + " at x = %5.3f" % fpt)
-            # if out of bounds of the plot window, don't plot it
-            if fpt[0] < x[0] or fpt[0] > x[-1]:
-                continue
-            if "Stable" in fptStability:
-                if ax is not None:
-                    ax.plot(fpt, 0, "g.", markersize=15)
-                if unique and "stable" not in fpt_types:
-                    fpt_types.append("stable")
-                elif not unique:
-                    fpt_types.append("stable")
-            elif "Unstable" in fptStability:  # unstable
-                if ax is not None:
-                    ax.plot(fpt, 0, "rs", markersize=8)
-                if unique and "unstable" not in fpt_types:
-                    fpt_types.append("unstable")
-                elif not unique:
-                    fpt_types.append("unstable")
-            else:  # indeterminate
-                if ax is not None:
-                    ax.plot(fpt, 0, "P", color="tab:purple", markersize=8)
-                if unique and "semi-stable" not in fpt_types:
-                    fpt_types.append("semi-stable")
-                elif not unique:
-                    fpt_types.append("semi-stable")
-            fpts_new.append(
-                fpt
-            )  # build list of only those fixed points that are plotted
-    else:  # 2D system
-        x1, x2 = x
-        # define Jacobian as a function of x - for getting stability:
-        flowJacobian = nd.Jacobian(myFlow)
-        if verbose:
-            print("Fixed points:")
-        for fpt in fpts:
-            # if far out of bounds of the plot window, don't report it
-            if (
-                fpt[0] < x1[0] - 0.5 * abs(x1[0])
-                or fpt[0] > x1[-1] + 0.5 * abs(x1[-1])
-                or fpt[1] < x2[0] - 0.5 * abs(x2[0])
-                or fpt[1] > x2[-1] + 0.5 * abs(x2[-1])
-            ):
-                continue
-            fptStability = find_stability(flowJacobian(fpt))
-            if verbose:
-                print(
-                    "  • " + fptStability + " at x = (%5.3f,%5.3f)" % (fpt[0], fpt[1])
-                )
-            # if out of bounds of the plot window, don't plot it
-            if fpt[0] < x1[0] or fpt[0] > x1[-1] or fpt[1] < x2[0] or fpt[1] > x2[-1]:
-                continue
-            if "Stable" in fptStability:
-                if ax is not None:
-                    ax.plot(fpt[0], fpt[1], "g.", markersize=15)
-                if unique and "stable" not in fpt_types:
-                    fpt_types.append("stable")
-                elif not unique:
-                    fpt_types.append("stable")
-            elif "Saddle" in fptStability:
-                if ax is not None:
-                    ax.plot(fpt[0], fpt[1], "P", color="tab:purple", markersize=8)
-                if unique and "saddle" not in fpt_types:
-                    fpt_types.append("saddle")
-                elif not unique:
-                    fpt_types.append("saddle")
-            elif "Unstable" in fptStability:  # unstable
-                if ax is not None:
-                    ax.plot(fpt[0], fpt[1], "rs", markersize=8)
-                if unique and "unstable" not in fpt_types:
-                    fpt_types.append("unstable")
-                elif not unique:
-                    fpt_types.append("unstable")
-            else:  # indeterminate
-                if ax is not None:
-                    ax.plot(fpt[0], fpt[1], "p", color="darkgoldenrod", markersize=8)
-                if unique and "indeterminate" not in fpt_types:
-                    fpt_types.append("indeterminate")
-                elif not unique:
-                    fpt_types.append("indeterminate")
-            fpts_new.append(fpt)
+            print(f"  • {fpt_stability} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
+        # if out of bounds of the plot window, don't plot it
+        if fpt[0] < x1[0] or fpt[0] > x1[-1] or fpt[1] < x2[0] or fpt[1] > x2[-1]:
+            continue
+        # plot the fixed point, if ax is not None
+        # append the type of fixed point to the
+        # list of fixed point types
+        # if unique, only append if not already in the list
+        if "Stable" in fpt_stability:
+            if ax is not None:
+                ax.plot(fpt[0], fpt[1], "g.", markersize=15)
+            if unique and "stable" not in fpt_types:
+                fpt_types.append("stable")
+            elif not unique:
+                fpt_types.append("stable")
+        elif "Saddle" in fpt_stability:
+            if ax is not None:
+                ax.plot(fpt[0], fpt[1], "P", color="tab:purple", markersize=8)
+            if unique and "saddle" not in fpt_types:
+                fpt_types.append("saddle")
+            elif not unique:
+                fpt_types.append("saddle")
+        elif "Unstable" in fpt_stability:  # unstable
+            if ax is not None:
+                ax.plot(fpt[0], fpt[1], "rs", markersize=8)
+            if unique and "unstable" not in fpt_types:
+                fpt_types.append("unstable")
+            elif not unique:
+                fpt_types.append("unstable")
+        else:  # indeterminate
+            if ax is not None:
+                ax.plot(fpt[0], fpt[1], "p", color="darkgoldenrod", markersize=8)
+            if unique and "indeterminate" not in fpt_types:
+                fpt_types.append("indeterminate")
+            elif not unique:
+                fpt_types.append("indeterminate")
+        fpts_new.append(fpt)
 
     return fpt_types, fpts_new, ax
 
 
-def plot_null(ax, f1, f2, x1, x2, params=None):
-    X1, X2 = np.meshgrid(x1, x2)
+def plot_null(
+    ax: plt.Axes,
+    f1: Callable,
+    f2: Callable,
+    x1: np.ndarray,
+    x2: np.ndarray,
+    params=None,
+) -> plt.Axes:
+    """
+    Plot the nullclines of a system of ODEs given by f1 and f2.
+
+    Inputs:
+    - ax: matplotlib axes object
+    - f1: function that takes x1 and x2 as inputs
+    - f2: function that takes x1 and x2 as inputs
+    - x1: numpy array of x1 values
+    - x2: numpy array of x2 values
+    - params: parameters to pass to f1 and f2 (default=None)
+        - If None, f1 and f2 are assumed to be functions
+            of x1 and x2 only
+        - If not None, f1 and f2 are assumed to be functions
+            of x1, x2 and params
+
+    Outputs:
+    - ax: matplotlib axes object with nullclines plotted
+    """
+    x_1, x_2 = np.meshgrid(x1, x2)
     if params is None:
-        ax.contour(
-            X1,
-            X2,
-            f1(X1, X2),
-            [0],
-            colors="black",
-            linestyles="dashed",
-            linewidths=1.75,
-        )
-        ax.contour(
-            X1, X2, f2(X1, X2), [0], colors="black", linestyles="dashed", linewidths=1.5
-        )
+        f_1 = f1(x_1, x_2)
+        f_2 = f2(x_1, x_2)
     else:
-        ax.contour(
-            X1,
-            X2,
-            f1(X1, X2, **params),
-            [0],
-            colors="black",
-            linestyles="dashed",
-            linewidths=1.75,
-        )
-        ax.contour(
-            X1,
-            X2,
-            f2(X1, X2, **params),
-            [0],
-            colors="black",
-            linestyles="dashed",
-            linewidths=1.75,
-        )
+        f_1 = f1(x_1, x_2, **params)
+        f_2 = f2(x_1, x_2, **params)
+    # plot contour f1 = 0
+    ax.contour(
+        x_1,
+        x_2,
+        f_1,
+        [0],
+        colors="black",
+        linestyles="dashed",
+        linewidths=1.75,
+    )
+    # plot contour f2 = 0
+    ax.contour(x_1, x_2, f_2, [0], colors="black", linestyles="dashed", linewidths=1.5)
+
     return ax
 
 
-def plot_flow(ax, myFlow, x, numGrid=15, ndim=2):
-    if ndim == 1:  # 1D system
-        f = myFlow(x)
-        ax.plot(x, 0 * x, "k--", linewidth=1.5, alpha=0.5)
-        ax.plot(x, f, "k-", linewidth=2)
-        f_sgn = np.sign(f)  # get sign of f, used for drawing arrows
-        if len(f_sgn.shape) > 1:
-            if f_sgn.shape[0] > 1:
-                f_sgn = f_sgn[:, 0]
-            else:
-                f_sgn = f_sgn.T[:, 0]
-        # x_coarse = np.linspace(x[0],x[-1],numGrid)
-        # for i in range(len(x_coarse)):
-        #     ax.add_patch(FancyArrow(x_coarse[i],0,0.1*f_sgn[i],0,width=0.01,head_width=0.03,head_length=0.5,color='red'))
-    else:
-        x1, x2 = x
-        X1, X2 = np.meshgrid(
-            np.linspace(x1.min(), x1.max(), numGrid),
-            np.linspace(x2.min(), x2.max(), numGrid),
-        )
-        f = myFlow([X1, X2])
-        f = f / np.sqrt(f[0] ** 2 + f[1] ** 2)  # normalize vectors
-        ax.quiver(X1, X2, f[0], f[1], width=0.003, alpha=0.5)
+def plot_flow(
+    ax: plt.Axes, my_flow: Callable, x: tuple[np.ndarray], num_grid: int = 15
+) -> plt.Axes:
+    """
+    Plot flow field of a system of ODEs given by my_flow.
+
+    Inputs:
+    - ax: matplotlib axes object
+    - my_flow: function that takes x as input
+        This is f(x) = dx/dt
+    - x: tuple of numpy arrays
+        Grid points at which to evaluate the flow
+    - num_grid: number of grid points to use (default=15)
+        for plotting the flow field
+    
+    Outputs:
+    - ax: matplotlib axes object with flow field plotted
+    """
+    x1, x2 = x
+    x_1, x_2 = np.meshgrid(
+        np.linspace(x1.min(), x1.max(), num_grid),
+        np.linspace(x2.min(), x2.max(), num_grid),
+    )
+    f = my_flow([x_1, x_2])
+    # normalize vectors for quiver plot
+    f = f / np.sqrt(f[0] ** 2 + f[1] ** 2)
+    ax.quiver(x_1, x_2, f[0], f[1], width=0.003, alpha=0.5)
     return ax
 
 
 def phase_portrait(
-    f1,
-    f2,
-    x1,
-    x2,
-    fig_ax=None,
-    ICs=None,
-    tVec=None,
-    N1_coarse=10,
-    N2_coarse=None,
-    params=None,
-    nullclines=True,
-):
-    # define function x' = [f1(x),f2(x)] for rest of code (does not need t as variable)
-    def myFlow(x):
+    f1: Callable,
+    f2: Callable,
+    x1: np.ndarray,
+    x2: np.ndarray,
+    fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
+    inits: list[tuple] | None = None,
+    t_vec: np.ndarray | None = None,
+    n1_coarse: int = 10,
+    n2_coarse: int | None = None,
+    params: dict | None = None,
+    nullclines: bool = True,
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot the phase portrait of a system of ODEs given by f1 and f2.
+
+    Inputs:
+    - f1: function that takes x1 and x2 as inputs
+    - f2: function that takes x1 and x2 as inputs
+    - x1: numpy array of x1 values
+    - x2: numpy array of x2 values
+    - fig_ax: tuple of matplotlib Figure and Axes objects
+        (default=None)
+        If None, a new figure and axes will be created
+    - inits: list of initial conditions (default=None)
+        If None, no trajectories will be plotted
+    - t_vec: numpy array of time points (default=None)
+        If None, a default time vector will be used
+    - n1_coarse: number of points in x1 for coarse grid
+        (default=10)
+    - n2_coarse: number of points in x2 for coarse grid
+        (default=None)
+        If None, n2_coarse will be set to n1_coarse
+    - params: parameters to pass to f1 and f2 (default=None)
+        If None, f1 and f2 are assumed to be functions
+            of x1 and x2 only
+        If not None, f1 and f2 are assumed to be functions
+            of x1, x2 and params
+    - nullclines: boolean (default=True)
+        If True, nullclines will be plotted
+    
+    Outputs:
+    - fig: matplotlib Figure object
+    - ax: matplotlib Axes object
+    """
+    # define function x' = [f1(x),f2(x)] for rest
+    # of code (does not need t as variable)
+    def my_flow(x):
         if params is None:
             return np.array([f1(x[0], x[1]), f2(x[0], x[1])])
         else:
@@ -296,30 +373,39 @@ def phase_portrait(
         ax = plot_null(ax, f1, f2, x1, x2, params)
 
     # plot direction field given by myFlow
-    ax = plot_flow(ax, myFlow, [x1, x2])
+    ax = plot_flow(ax, my_flow, [x1, x2])
 
-    if ICs is not None:
-        # define function x' = [f1(x),f2(x)] for ODE solver: needs to have t as variable
-        def mySystem(t, x):
-            return myFlow(x)
+    # if given initial conditions, plot trajectories
+    if inits is not None:
+        # define function x' = [f1(x),f2(x)] for
+        # ODE solver: needs to have t as first variable
+        def my_system(t, x):
+            return my_flow(x)
 
-        if tVec is None:
-            tVec = np.linspace(0, 50, 100)
+        # if t_vec is not given, use default
+        if t_vec is None:
+            t_vec = np.linspace(0, 50, 100)
         # plot trajectories with initial conditions ICs
-        trajectory = get_trajectories(mySystem, tVec, ICs)
-        plot_trajectories(trajectory, ICs)
+        trajectory = get_trajectories(my_system, t_vec, inits)
+        plot_trajectories(trajectory, inits)
 
-    x1_coarse = np.linspace(x1[0], x1[-1], N1_coarse)
-    if N2_coarse is None:
-        N2_coarse = N1_coarse
-    x2_coarse = np.linspace(x2[0], x2[-1], N2_coarse)
+    # sub-sample the grid to get initial guesses
+    # for fixed points (coarse grid)
+    x1_coarse = np.linspace(x1[0], x1[-1], n1_coarse)
+    # default is to use same number of points in x2
+    if n2_coarse is None:
+        n2_coarse = n1_coarse
+    x2_coarse = np.linspace(x2[0], x2[-1], n2_coarse)
     init_coarse = [
-        (x1_coarse[i], x2_coarse[j]) for i in range(N1_coarse) for j in range(N2_coarse)
+        (x1_coarse[i], x2_coarse[j]) for i in range(n1_coarse) for j in range(n2_coarse)
     ]
-    fpts = get_fps(myFlow, init_coarse)  # get fixed points
+    # get fixed points of the system
+    fpts = get_fps(my_flow, init_coarse)
 
+    # if fixed points are found, classify them
+    # and plot them
     if len(fpts) > 0:
-        fpt_types, _, ax = classify_fps(myFlow, fpts, [x1, x2], ax=ax)
+        fpt_types, _, ax = classify_fps(my_flow, fpts, [x1, x2], ax=ax)
     else:
         print("No fixed points found.")
         fpt_types = []
@@ -329,6 +415,11 @@ def phase_portrait(
     ax.set_xlim([x1.min(), x1.max()])
     ax.set_ylim([x2.min(), x2.max()])
 
+    # build custom legend with
+    # fixed point types
+    # as reported by classify_fps
+    # this might be something
+    # to write as a separate function
     my_handles = []
     if "stable" in fpt_types:
         my_handles.append(
@@ -384,78 +475,9 @@ def phase_portrait(
             Line2D([], [], label="nullclines", color="black", linestyle="dashed")
         )
 
-    if ICs is not None:
+    if inits is not None:
         my_handles.append(
             Line2D([], [], label="trajectories", color="blue", linestyle="-")
-        )
-
-    if len(my_handles) > 0:
-        ax.legend(handles=my_handles, bbox_to_anchor=(1.02, 1.01), loc="upper left")
-
-    return fig, ax
-
-
-def phase_line(f, x, params=None):
-    """Plot phase line diagram of 1D vector field f(x)"""
-
-    def myFlow(x):
-        if params is None:
-            return f(x)
-        else:
-            return f(x, **params)
-
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax = plot_flow(ax, myFlow, x, ndim=1)
-
-    init_coarse = np.linspace(x[0], x[-1], 20)
-    fpts = get_fps(myFlow, init_coarse)  # get fixed points
-    if len(fpts) > 0:
-        fpt_types, _, ax = classify_fps(myFlow, fpts, x, ndim=1, ax=ax)
-    else:
-        print("No fixed points found.")
-        fpt_types = []
-
-    ax.set_xlabel("$x$", fontsize=14)
-    ax.set_ylabel("$f(x)$", fontsize=14)
-    ax.set_xlim([x.min(), x.max()])
-    ax.set_ylim([myFlow(x).min(), myFlow(x).max()])
-
-    my_handles = []
-    if "stable" in fpt_types:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="stable",
-                marker="o",
-                markerfacecolor="g",
-                markeredgecolor="g",
-                linestyle="",
-            )
-        )
-    if "unstable" in fpt_types:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="unstable",
-                marker="s",
-                markerfacecolor="r",
-                markeredgecolor="r",
-                linestyle="",
-            )
-        )
-    if "semi-stable" in fpt_types:
-        my_handles.append(
-            Line2D(
-                [],
-                [],
-                label="semi-stable",
-                marker="P",
-                markerfacecolor="tab:purple",
-                markeredgecolor="tab:purple",
-                linestyle="",
-            )
         )
 
     if len(my_handles) > 0:

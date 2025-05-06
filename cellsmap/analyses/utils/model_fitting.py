@@ -5,23 +5,23 @@ def build_drift_lib(
     ndim: int, drift_deg: int = 3, param_deg: int = 3
 ) -> ps.ParameterizedLibrary:
     """
-    Build library of polynomial basis functions for 
+    Build library of polynomial basis functions for
     SINDy-based regression on Kramers-Moyal averages
-    to get drift term of SDE model as a function of 
+    to get drift term of SDE model as a function of
     the state variables and control parameter (shear stress).
 
     Inputs:
-    - ndim: int, number of dimensions of the SDE model 
+    - ndim: int, number of dimensions of the SDE model
         (passed into the ParameterizedLibrary object as num_features)
-    - drift_deg: int, degree of polynomial basis functions 
+    - drift_deg: int, degree of polynomial basis functions
         for the drift term of the SDE model
-    - param_deg: int, degree of polynomial basis functions 
-        for the dependence of the drift term 
+    - param_deg: int, degree of polynomial basis functions
+        for the dependence of the drift term
         on the control parameter (shear stress)
 
     Outputs:
-    - drift_lib: ps.ParameterizedLibrary object, 
-        library of polynomial basis functions 
+    - drift_lib: ps.ParameterizedLibrary object,
+        library of polynomial basis functions
         for the drift term of the SDE model
     """
     # build set of basis functions for regression model for drift term of SDE model
@@ -47,23 +47,23 @@ def build_diff_lib(
     ndim: int, diff_deg: int = 0, param_deg=3
 ) -> ps.ParameterizedLibrary:
     """
-    Build library of polynomial basis functions for 
+    Build library of polynomial basis functions for
     SINDy-based regression on Kramers-Moyal averages
     to get diffusion term of SDE model as a function of
     the state variables and control parameter (shear stress).
 
     Inputs:
-    - ndim: int, number of dimensions of the SDE model 
+    - ndim: int, number of dimensions of the SDE model
         (passed into the ParameterizedLibrary object as num_features)
-    - diff_deg: int, degree of polynomial basis functions 
+    - diff_deg: int, degree of polynomial basis functions
         for the diffusion term of the SDE model
-    - param_deg: int, degree of polynomial basis functions 
-        for the dependence of the diffusion term 
+    - param_deg: int, degree of polynomial basis functions
+        for the dependence of the diffusion term
         on the control parameter (shear stress)
 
     Outputs:
-    - diff_lib: ps.ParameterizedLibrary object, 
-        library of polynomial basis functions 
+    - diff_lib: ps.ParameterizedLibrary object,
+        library of polynomial basis functions
         for the diffusion term of the SDE model
     """
 

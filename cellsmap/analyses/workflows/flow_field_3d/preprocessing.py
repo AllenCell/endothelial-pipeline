@@ -10,9 +10,7 @@ from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from cellsmap.util.manifest_preprocessing import (
-    manifest_pca,
-)
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%

@@ -19,7 +19,6 @@ def kramers_moyal_train_test_one_dataset(
     dt: float,
     train_frac: float,
     fig_savedir: str,
-    method: str = "kernel",
     kernel_params: dict | None = None,
 ) -> tuple[
     np.ndarray,
@@ -32,30 +31,30 @@ def kramers_moyal_train_test_one_dataset(
     np.ndarray,
 ]:
     """
-    Generate train test sets for Kramers-Moyal coefficients 
+    Generate train test sets for Kramers-Moyal coefficients
     (drift and diffusion estimates) for one dataset.
-    This function is called by build_kramers_moyal_train_test 
+    This function is called by build_kramers_moyal_train_test
     in a loop over all datasets in the dataframe.
 
     Inputs:
-    - df_proj: pandas dataframe containing the dataset of interest, 
-        projected onto all principal component axes 
+    - df_proj: pandas dataframe containing the dataset of interest,
+        projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-    - ds_name: name of the dataset (used to split out data by 
+    - ds_name: name of the dataset (used to split out data by
         flow condition, acessed via data_config.yaml)
-    - pcs: list of principal component axes to project data onto for 
+    - pcs: list of principal component axes to project data onto for
         Kramers-Moyal analysis (e.g., [0,1] for first two principal components)
-    - num_bins: list of number of bins to use for histogramming 
-        data to compute the Kramers-Moyal coefficients 
+    - num_bins: list of number of bins to use for histogramming
+        data to compute the Kramers-Moyal coefficients
         (conditional averages computed in each bin)
-    - dt: time step between data points 
+    - dt: time step between data points
         (used to compute Kramers-Moyal coefficients)
     - train_frac: fraction of data to use for training
-    - method: method to use for computing Kramers-Moyal 
+    - method: method to use for computing Kramers-Moyal
         coefficients ('kernel' or 'histogram', default is 'kernel')
 
     Outputs:
-    - x_train: training data for Kramers-Moyal coefficients 
+    - x_train: training data for Kramers-Moyal coefficients
         (drift and diffusion estimates) from the given dataset
     - x_test: test data for Kramers-Moyal coefficients from the given dataset
     - y_train: training data for drift estimates from the given dataset
@@ -66,9 +65,9 @@ def kramers_moyal_train_test_one_dataset(
     - u_test: test flow conditions from the given dataset
     """
 
-    # for extracting just the axes (specified via PCs) 
+    # for extracting just the axes (specified via PCs)
     # we want from the resulting dataframe
-    # e.g., if we are just analyzing the first two PCs, 
+    # e.g., if we are just analyzing the first two PCs,
     # we want to extract columns 'feat_0' and 'feat_1'
     feat_cols_all = mio.get_feature_cols(df_proj)
     feat_cols = [feat_cols_all[i] for i in pcs]
@@ -83,24 +82,23 @@ def kramers_moyal_train_test_one_dataset(
     x_pts = []
 
     for j in range(num_flow):
-        # get list of per-crop trajectories, the corresponding 
+        # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
         traj_list, d_traj_list = rh.get_traj_and_diff(
             df_by_flow[j], feat_cols=feat_cols
         )
 
-        # get bins for histogramming 
+        # get bins for histogramming
         # (for drift and diffusion estimates)
         bins, centers = rh.get_bins(num_bins, data=traj_list)
 
-        # get drift and diffusion estimates 
+        # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
         drift_km_, diff_km_ = rh.get_kramers_moyal(
             traj_list,
             d_traj_list,
             bins,
             dt,
-            method=method,
             kernel_params=kernel_params,
         )
 
@@ -116,9 +114,7 @@ def kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = mv.plot_km_drift_2d(
-                centers, kmc, pcs, shear_list[j]
-            )[0]
+            fig = mv.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             vb.save_plot(
                 fig,
                 filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",
@@ -126,11 +122,12 @@ def kramers_moyal_train_test_one_dataset(
                 dpi=500,
             )
 
-        # remove NaNs from drift and diffusion estimates 
+        # remove NaNs from drift and diffusion estimates
         # (bins with no data), get corresponding bin centers as well
-        drift_km_masked, x_pts_, = rh.masked_vector_field(
-            drift_km_, np.array(np.meshgrid(*centers)).T
-        )
+        (
+            drift_km_masked,
+            x_pts_,
+        ) = rh.masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
         diff_km_masked, _ = rh.masked_vector_field(
             diff_km_, np.array(np.meshgrid(*centers)).T
         )
@@ -140,7 +137,7 @@ def kramers_moyal_train_test_one_dataset(
 
     del df_by_flow  # free up memory
 
-    # get train test split of Kramers-Moyal 
+    # get train test split of Kramers-Moyal
     # estimates for each flow condition
     x_train, x_test, y_train, y_test, v_train, v_test = rh.train_test_all(
         x_pts, drift_km, diff_km, train_frac, seed=47
@@ -172,42 +169,41 @@ def build_kramers_moyal_train_test(
     ds_to_skip: list[str],
     fig_savedir: str,
     train_frac: float = 0.8,
-    method: str = "kernel",
     kernel_params: dict | None = None,
 ) -> dict:
     """
-    Build train test sets for Kramers-Moyal coefficients 
+    Build train test sets for Kramers-Moyal coefficients
     (drift and diffusion estimates) for all datasets in the dataframe df.
 
     Inputs:
-    - df: pandas dataframe containing all datasets 
+    - df: pandas dataframe containing all datasets
         (loaded manifest file with DiffAE output)
-    - pca: PCA object used to project data onto principal component axes 
+    - pca: PCA object used to project data onto principal component axes
         (sklearn.pipeline.Pipeline, can include scaling as pre-processing step)
     - PCs: list of principal component axes to use for Kramers-Moyal analysis
-    - Nbins: list of number of bins to use for histogramming data to compute 
-        the Kramers-Moyal coefficients 
+    - Nbins: list of number of bins to use for histogramming data to compute
+        the Kramers-Moyal coefficients
         (conditional averages computed in each bin)
-    - dt: time step between data points 
+    - dt: time step between data points
         (used to compute Kramers-Moyal coefficients)
-    - ds_to_skip: list of dataset names to skip when building 
+    - ds_to_skip: list of dataset names to skip when building
         train test sets (e.g., if a dataset is known to be problematic)
     - train_frac: fraction of data to use for training (default is 0.8)
-    - method: method to use for computing Kramers-Moyal coefficients 
+    - method: method to use for computing Kramers-Moyal coefficients
         ('kernel' or 'histogram', default is 'kernel')
-    - kernel_params: dictionary of parameters for kernel method 
+    - kernel_params: dictionary of parameters for kernel method
         (default is None, which uses default parameters if method is 'kernel')
 
     Outputs:
     - out_dict: dictionary containing the following keys:
-        - 'X_train': training data for Kramers-Moyal coefficients 
+        - 'X_train': training data for Kramers-Moyal coefficients
             (drift and diffusion estimates)
         - 'X_test': test data for Kramers-Moyal coefficients
         - 'Y_train': training data for drift estimates
         - 'Y_test': test data for drift estimates
         - 'V_train': training data for diffusion estimates
         - 'V_test': test data for diffusion estimates
-        - 'u_train': training flow conditions (shear rates) 
+        - 'u_train': training flow conditions (shear rates)
             - passed in as control variable
         - 'u_test': test flow conditions
     The train test sets are concatenated across all datasets in the dataframe.
@@ -249,7 +245,6 @@ def build_kramers_moyal_train_test(
                 dt,
                 train_frac,
                 fig_savedir,
-                method=method,
                 kernel_params=kernel_params,
             )
         )
