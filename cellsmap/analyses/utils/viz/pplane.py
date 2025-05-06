@@ -97,7 +97,7 @@ def get_fps(my_flow: Callable, inits: list[tuple]) -> list[tuple]:
     # Only keep unique fixed points and throw
     # away 'nan' entries (findroot did not converge)
     for r in roots:
-        # check if the root is not nan 
+        # check if the root is not nan
         if not np.isnan(r).any():
             fpts.append(r)
     # round to 4 decimal places, get unique elements of list
