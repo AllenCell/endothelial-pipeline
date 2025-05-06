@@ -8,13 +8,13 @@ For example, suppose we have data that are 8 features for each crop of the image
 
 ## Environment variables and management
 
-Install `pdm` and configure project at the root of the `cellsmap` repository.
+Install `uv` and configure project at the root of the `cellsmap` repository.
 
 ## Running SDE model fitting and analysis
 
 Set working directory to be the head of the `cellsmap` repository.
 
-`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py [config_name]`
+`uv run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py [config_name]`
 * Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space.
 * Get one time step displacements of crops over time, train/test split for fitting drift
  $$\mathbf{f}(\mathbf{x})$$
@@ -22,10 +22,10 @@ Set working directory to be the head of the `cellsmap` repository.
  $$D(\mathbf{x})$$
  coefficients from these displacements.
 
-`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_fit.py [config_name]`
+`uv run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_fit.py [config_name]`
 * Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
 
-`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_summarize.py [config_name]`
+`uv run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_summarize.py [config_name]`
 * Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
 $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t)$$
 

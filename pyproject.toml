@@ -88,8 +88,8 @@ types = [
 ]
 
 [build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.uv]
 default-groups = ["dev", "lint", "test", "docs", "types"]
