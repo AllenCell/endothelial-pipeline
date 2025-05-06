@@ -683,6 +683,8 @@ def calculate_labeled_image_metrics(
     region_area = []
     region_perimeter = []
     region_solidity = []
+    region_major_axis_length = []
+    region_minor_axis_length = []
     region_eccentricity = []
     region_orientation = []
     region_fluor_mean = []
@@ -704,6 +706,8 @@ def calculate_labeled_image_metrics(
         region_area.append(prop.area)
         region_perimeter.append(prop.perimeter)
         region_solidity.append(prop.solidity)
+        region_major_axis_length.append(prop.major_axis_length)
+        region_minor_axis_length.append(prop.minor_axis_length)
         region_eccentricity.append(prop.eccentricity)
         region_orientation.append(prop.orientation)
         region_fluor_mean.append(prop.intensity_mean)
@@ -725,6 +729,8 @@ def calculate_labeled_image_metrics(
                'cell_area (px**2)': region_area,
                'cell_perimeter (px)': region_perimeter,
                'cell_solidity': region_solidity,
+               'major_axis_length': region_major_axis_length,
+               'minor_axis_length': region_minor_axis_length,
                'cell_eccentricity': region_eccentricity,
                'cell_orientation': region_orientation,
                'cell_fluorescence_mean (au)': region_fluor_mean,
