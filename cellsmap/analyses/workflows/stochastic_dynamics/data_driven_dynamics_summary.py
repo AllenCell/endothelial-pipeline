@@ -1,16 +1,11 @@
 import fire
 import numpy as np
 
-from cellsmap.analyses.utils import ddff_main
-from cellsmap.analyses.utils import regression_helper as rh
+from cellsmap.analyses.utils import ddd_main
 from cellsmap.analyses.utils.io import dynamics_io
-from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
-from cellsmap.util.manifest_preprocessing import (
-    diffae_feature_preprocessing as diffae_preproc,
-)
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
@@ -80,7 +75,7 @@ def main(config_name: str = "default") -> None:
             continue
         print(f"Computing drift and diffusion fields for dataset {name}")
         
-        ddff_main.get_and_analyze_ddff(
+        ddd_main.get_and_analyze_ddd(
             name,pca,kernel_params,fig_savedir,config
         )
 

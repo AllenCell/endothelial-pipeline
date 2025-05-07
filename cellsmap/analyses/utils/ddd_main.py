@@ -1,7 +1,4 @@
-from typing import Tuple
-
 import numpy as np
-import matplotlib.pyplot as plt
 
 from cellsmap.analyses.utils import model_analysis, regression_helper as rh
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
@@ -11,7 +8,7 @@ from cellsmap.util.manifest_preprocessing import (
 )
 from cellsmap.util import manifest_io
 
-def ddff_model_analysis(
+def ddd_model_analysis(
         name, model, data, shear, pcs, bins, fig_savedir, config
 ) -> None:
     # for phase plane plots, grid is fixed and
@@ -54,10 +51,14 @@ def ddff_model_analysis(
     )
     return
 
-def get_and_analyze_ddff(
+def get_and_analyze_ddd(
         name,pca,kernel_params,fig_savedir,config
 ) -> None:
-    
+    """
+    Get and analyze data-driven dynamics for a given dataset.
+
+
+    """
     # unpack relevant parameters from config:
 
     # which PCs to analyze (2D)
