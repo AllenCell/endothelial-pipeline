@@ -77,7 +77,7 @@ def main(config_name: str = "default") -> None:
     bin_xlim = config["plt_xlim"]["hist"]
     bin_ylim = config["plt_ylim"]["hist"]
     num_pts_pplane = config["num_pts_pplane"]
-    num_bins_hist = config["N_bins_hist"]
+    num_bins_hist = config["num_bins_hist"]
 
     # for phase plane plots, fix grid across all datasets
     pplane_xvec = np.linspace(pplane_xlim[0], pplane_xlim[1], num_pts_pplane + 1)
