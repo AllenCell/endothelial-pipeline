@@ -615,7 +615,15 @@ def reassign_track_ids_from_matches(recent_track_ids: pd.DataFrame, new_track_id
     # 2. a single matched label from recent_track_ids points to multiple labels in new_track_ids (track splitting event)
     # 3. no match in recent_track_ids was found (i.e. new track was born)
     # in all 3 scenarios we should start new track_ids for affected labels
+
+    # remove lost tracks
     filtered_recent_track_ids = recent_track_ids[recent_track_ids['match_at_current_image_index'].transform(lambda x: not np.ma.is_masked(x))].reset_index(drop=False)
+
+    # for tracks with a viable matches in matched_query_label,
+    # keep only the most recent image_index
+    most_recent_track_id_records = filtered_recent_track_ids.groupby('track_id')['image_index_relative'].transform(lambda x: x == x.max())
+    filtered_recent_track_ids = filtered_recent_track_ids[most_recent_track_id_records].reset_index(drop=True)
+
     merged_tracks = filtered_recent_track_ids.groupby(['index', 'image_index', 'label']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
     split_tracks = filtered_recent_track_ids.groupby(['index', 'image_index', 'match_at_current_image_index']).size().reset_index(name='count')['count'] > 1#.query('count > 1')
     new_tracks = new_track_ids[~new_track_ids['label'].isin(filtered_recent_track_ids['match_at_current_image_index'])]['label']
@@ -629,7 +637,13 @@ def reassign_track_ids_from_matches(recent_track_ids: pd.DataFrame, new_track_id
 
     # check that we are not overwriting any existing track ids
     assert all([lab not in existing_track_reassignments for lab in new_tracks_reassignments]), 'new track ids are overwriting existing track ids'
+    # add the 2 dicts together to get a master reassignment dict
     track_id_reassignments = {**existing_track_reassignments, **new_tracks_reassignments}
+
+    # check that all reassignments are unique
+    assert len(track_id_reassignments) == len(set(track_id_reassignments.values())), 'track id reassignments are not unique'
+    assert len(new_tracks_reassignments) == len(set(new_tracks_reassignments.values())), 'track id reassignments for new tracks are not unique'
+    assert len(existing_track_reassignments) == len(set(existing_track_reassignments.values())), 'track id reassignments for existing tracks are not unique'
 
     # complete the track_id reassignments
     new_track_ids['track_id'] = new_track_ids['label'].transform(lambda x: track_id_reassignments[x] if x in track_id_reassignments else x)
