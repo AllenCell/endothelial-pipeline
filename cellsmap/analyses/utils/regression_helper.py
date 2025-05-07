@@ -328,47 +328,44 @@ def train_test_all(
 
 
 def get_stationary_hist(
-    data: pd.DataFrame, feat_cols: list, bins: list, frame_index: int = -100
+    stationary_data: pd.DataFrame, 
+    feat_cols: list, 
+    bins: list, 
 ) -> np.ndarray:
     """
     Get stationary histogram of data.
 
     Inputs:
-    - data: pandas DataFrame containing the dataset of interest
+    - stationary_data: pandas DataFrame containing the 
+        dataset of interest restricted to stationary frames
     - feat_cols: list of feature column names
         (used to extract feature data from the dataframe data)
     - bins: list of number of bins in each dimension
         (list of length ndim, where ndim is the
         number of dimensions of the feature space)
-    - frame_index: index of the time point (frame number)
-        to use as the reference point for reaching stationarity
-        (default is 100 timepoints before the last frame)
 
     Outputs:
     - p_hist: numpy array, stationary histogram
         of the data in feature space
     """
     ndim = len(feat_cols)
-    frame_max = data["frame_number"].max()
-    if frame_index < 0:  # if negative, frame_index is relative to the last frame
-        frame_index = frame_max + frame_index
 
     # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
         # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
         p_hist, _, _ = np.histogram2d(
-            data[data["frame_number"] > frame_index][feat_cols[0]],
-            data[data["frame_number"] > frame_index][feat_cols[1]],
+            stationary_data[feat_cols[0]],
+            stationary_data[feat_cols[1]],
             bins,
             density=True,
         )
     elif ndim == 1:
         p_hist, _ = np.histogram(
-            data[data["frame_number"] > frame_index][feat_cols[0]],
+            stationary_data[feat_cols[0]],
             bins[0],
             density=True,
         )
     else:
-        raise ValueError("Only 1D or 2D data supported.")
+        raise ValueError("Only 1D or 2D data currently supported.")
 
     return p_hist

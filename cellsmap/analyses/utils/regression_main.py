@@ -40,6 +40,9 @@ def kramers_moyal_train_test_one_dataset(
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
+        - if stationary_frames was specified in the config,
+            then this dataframe is already restricted to only 
+            those frames
     - ds_name: name of the dataset (used to split out data by
         flow condition, acessed via data_config.yaml)
     - pcs: list of principal component axes to project data onto for
@@ -82,10 +85,23 @@ def kramers_moyal_train_test_one_dataset(
     x_pts = []
 
     for j in range(num_flow):
+        # if multiple flow conditions, 
+        # we want to restrict data to 
+        # only the last 100 frames of
+        # that flow condition as our
+        # cutoff for stationary data
+        if num_flow > 1:
+            frame_max = df_by_flow[j]["frame_number"].max()
+            frame_cutoff = frame_max - 100
+            stationary_data = df_by_flow[j][df_by_flow[j]["frame_number"] > frame_cutoff]
+        # else, it is just the whole dataset
+        else:
+            stationary_data = df_by_flow[j]
+
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
         traj_list, d_traj_list = rh.get_traj_and_diff(
-            df_by_flow[j], feat_cols=feat_cols
+            stationary_data, feat_cols = feat_cols
         )
 
         # get bins for histogramming
@@ -99,7 +115,7 @@ def kramers_moyal_train_test_one_dataset(
             d_traj_list,
             bins,
             dt,
-            kernel_params=kernel_params,
+            kernel_params = kernel_params,
         )
 
         # plot drift and diffusion estimates
@@ -170,6 +186,7 @@ def build_kramers_moyal_train_test(
     fig_savedir: str,
     train_frac: float = 0.8,
     kernel_params: dict | None = None,
+    stationary_frames: list[int] | None = None,
 ) -> dict:
     """
     Build train test sets for Kramers-Moyal coefficients
@@ -188,11 +205,18 @@ def build_kramers_moyal_train_test(
         (used to compute Kramers-Moyal coefficients)
     - ds_to_skip: list of dataset names to skip when building
         train test sets (e.g., if a dataset is known to be problematic)
+    - fig_savedir: directory to save figures
     - train_frac: fraction of data to use for training (default is 0.8)
     - method: method to use for computing Kramers-Moyal coefficients
         ('kernel' or 'histogram', default is 'kernel')
     - kernel_params: dictionary of parameters for kernel method
         (default is None, which uses default parameters if method is 'kernel')
+    - stationary_frames: list of int, optional, if provided,
+        restrict data to only these frames
+        (e.g., last 100 frames of each flow condition)
+        as our cutoff for stationary data
+        - if None, use all frames in data
+        - this may be hardcoded in the data config in the future
 
     Outputs:
     - out_dict: dictionary containing the following keys:
@@ -232,8 +256,11 @@ def build_kramers_moyal_train_test(
         print("**** Generating train/test sets for dataset", ds_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
-        # projected onto principal component axes as defined by fit PCA object pca
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
+        # projected onto principal component axes as defined 
+        # by fit PCA object pca. Restrict to stationary frames if provided
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(
+            ds_name, pca = pca, stationary_frames = stationary_frames
+        )
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (

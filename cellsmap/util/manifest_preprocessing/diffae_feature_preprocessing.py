@@ -155,7 +155,11 @@ def project_manifest_to_pcs(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
     return df_
 
 
-def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataFrame:
+def get_manifest_for_dynamics_workflows(
+        ds_name: str, 
+        pca: Pipeline | None = None, 
+        stationary_frames: list[int,int] | None = None
+) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
     in the stochastic dynamics workflow. Adds crop index column to DataFrame,
@@ -168,15 +172,30 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
     - pca: Pipeline or None
         - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
         - if None, do not project feature data onto PCA axes
+    - stationary_frames: list[int] or None
+        - THIS MAY BE HARDCODED IN THE DATA CONFIG IN THE FUTURE
+        - if list of 2 integers, range of frame numbers to use as
+            definition of data being stationary; data is then
+            restricted to only these frames
+        - if None, return all data
 
     Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
+    - df: pd.DataFrame, DataFrame of feature data for crops 
+        from dataset ds_name 
+        - projected onto PC axes if pca is not None
+        - restricted to stationary frames if 
+            stationary_frames is not None
     """
     # load manifest data for dataset ds_name
     df = manifest_io.get_diffae_manifest(ds_name)
 
     # add crop index column
     df = add_crop_index(df)
+
+    # if stationary_frames is not None, 
+    # restrict data to only these frames
+    if stationary_frames is not None:
+        df = df[df["frame_number"].between(stationary_frames[0], stationary_frames[1])]
 
     if pca is None:
         return df
