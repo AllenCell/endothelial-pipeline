@@ -327,6 +327,15 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
     print(f"Frame {frame} not found in flow list.")
     return None
 
+def get_stationary_frames(dataset_name: str) -> List[int,int]:
+    """
+    Get the stationary frames for a given dataset.
+    These are determined by an experimentalist by eye
+    and are added to the dataset config file.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info["stationary_frames"]
+
 
 def get_dim_map(dim_order: str) -> dict:
 

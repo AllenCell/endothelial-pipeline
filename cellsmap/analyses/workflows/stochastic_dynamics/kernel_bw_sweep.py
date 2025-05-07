@@ -53,7 +53,8 @@ def main(config_name: str = "default") -> None:
 
     # load inputs from dynamics_config.yaml
     ds_to_skip = config["datasets_to_skip"]
-
+    stationary_frames = config["stationary_frames"]
+    
     # set kernel type
     kernel_type = "gaussian"
 
@@ -83,9 +84,14 @@ def main(config_name: str = "default") -> None:
                 continue
             print(f"Computing drift and diffusion fields for dataset {name}")
 
-            ddd_main.get_and_analyze_ddd(
-                name, pca, kernel_params, fig_savedir_kernel, config
-            )
+        ddd_main.get_and_analyze_ddd(
+            name, 
+            pca, 
+            kernel_params, 
+            fig_savedir_kernel, 
+            config, 
+            stationary_frames=stationary_frames
+        )
 
 
 if __name__ == "__main__":
