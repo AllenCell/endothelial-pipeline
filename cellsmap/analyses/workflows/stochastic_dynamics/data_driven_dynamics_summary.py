@@ -1,5 +1,4 @@
 import fire
-import numpy as np
 
 from cellsmap.analyses.utils import ddd_main
 from cellsmap.analyses.utils.io import dynamics_io
@@ -64,7 +63,6 @@ def main(config_name: str = "default") -> None:
     if "kernel_params" in kramers_moyal_config:
         kernel_params = kramers_moyal_config["kernel_params"]
 
-
     # loop through datasets, get flow field
     # estimates, and save out figures
     list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
@@ -74,10 +72,9 @@ def main(config_name: str = "default") -> None:
             print(f"**** Skipping dataset {name}, **** \n")
             continue
         print(f"Computing drift and diffusion fields for dataset {name}")
-        
-        ddd_main.get_and_analyze_ddd(
-            name,pca,kernel_params,fig_savedir,config
-        )
+
+        ddd_main.get_and_analyze_ddd(name, pca, kernel_params, fig_savedir, config)
+
 
 if __name__ == "__main__":
     fire.Fire(main)

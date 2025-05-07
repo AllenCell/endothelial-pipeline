@@ -788,7 +788,10 @@ def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
 
 
 def process_and_plot_tracking_data(
-    dataset_name: str, out_dir: str | Path, verbose: bool = False, plot_figures: bool = False
+    dataset_name: str,
+    out_dir: str | Path,
+    verbose: bool = False,
+    plot_figures: bool = False,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

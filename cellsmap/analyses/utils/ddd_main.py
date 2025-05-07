@@ -4,23 +4,25 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.analyses.utils import model_analysis, regression_helper as rh
+from cellsmap.analyses.utils import model_analysis
+from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from cellsmap.util import manifest_io
+
 
 def ddd_model_analysis(
-        name:str, 
-        model:list[Callable], 
-        data:pd.DataFrame, 
-        shear:float, 
-        pcs:list[int], 
-        bins:list[np.ndarray], 
-        fig_savedir:str, 
-        config:dict
+    name: str,
+    model: list[Callable],
+    data: pd.DataFrame,
+    shear: float,
+    pcs: list[int],
+    bins: list[np.ndarray],
+    fig_savedir: str,
+    config: dict,
 ) -> None:
     """
     Generate and save figures analyzing the data-driven dynamics model.
@@ -59,14 +61,14 @@ def ddd_model_analysis(
 
     # call main model analysis function
     fig1, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(
-            model,
-            data,
-            shear,
-            pcs,
-            bins,
-            pplane_xvec,
-            pplane_yvec,
-        )
+        model,
+        data,
+        shear,
+        pcs,
+        bins,
+        pplane_xvec,
+        pplane_yvec,
+    )
 
     # add title to histogram plots
     sup_title = fig2._suptitle.get_text()
@@ -74,31 +76,18 @@ def ddd_model_analysis(
     fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(), y=1.15)
 
     # save figures
-    vb.save_plot(
-        fig1,
-        fig_savedir
-        + name
-        + f"_ddff_phase_portrait_shear_{int(shear)}"
-    )
-    vb.save_plot(
-        fig2,
-        fig_savedir
-        + name
-        + f"_ddff_stationary_dist_shear_{int(shear)}"
-    )
+    vb.save_plot(fig1, fig_savedir + name + f"_ddff_phase_portrait_shear_{int(shear)}")
+    vb.save_plot(fig2, fig_savedir + name + f"_ddff_stationary_dist_shear_{int(shear)}")
     return
 
+
 def get_and_analyze_ddd(
-        name:str,
-        pca:Pipeline,
-        kernel_params:dict,
-        fig_savedir:str,
-        config:dict
+    name: str, pca: Pipeline, kernel_params: dict, fig_savedir: str, config: dict
 ) -> None:
     """
     Get and analyze data-driven dynamics for a given dataset.
 
-    Inputs: 
+    Inputs:
     - name (str): name of dataset
     - pca (Pipeline): fit PCA object
         Used to project data into PCA space
@@ -175,9 +164,7 @@ def get_and_analyze_ddd(
         # have to have shear as a parameter
         # (dummy variable)
         drift_ = lambda x, u: drift(x)
-        diffusion = ddff.get_callable_vector_field(
-            diffusion_dict, for_solve_ivp=False
-        )
+        diffusion = ddff.get_callable_vector_field(diffusion_dict, for_solve_ivp=False)
         diffusion_ = lambda x, u: diffusion(x)
 
         # call main model analysis function
@@ -190,8 +177,6 @@ def get_and_analyze_ddd(
             pcs,
             bins,
             fig_savedir,
-            config
+            config,
         )
     return
-
-        

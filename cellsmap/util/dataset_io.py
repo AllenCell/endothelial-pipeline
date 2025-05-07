@@ -432,7 +432,9 @@ def get_tracking_data_raws(
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
     if tracking_data_list:
-        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
+        tracking_dataframe = table_reader.concat(
+            tracking_data_list, axis=0, ignore_index=True
+        )
     else:  # create an empty dataframe
         tracking_dataframe = table_reader.DataFrame.from_dict({})
     return tracking_dataframe
@@ -467,7 +469,9 @@ def get_tracking_data_filtered(
             print(f"No filtered tracking data found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
+    tracking_dataframe = table_reader.concat(
+        tracking_data_list, axis=0, ignore_index=True
+    )
     return tracking_dataframe
 
 
