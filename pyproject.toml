@@ -3,7 +3,7 @@ name = "cellsmap"
 version = "0.1.0"
 description = ""
 authors = [
-    { name = "", email = "" },
+    { name = "Allen Institute for Cell Science", email = "cellscience@alleninstitute.org" },
 ]
 
 dependencies = [
