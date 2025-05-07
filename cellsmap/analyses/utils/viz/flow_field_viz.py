@@ -64,7 +64,7 @@ def plot_one_slice_quiver(
     velocities: tuple,
     grid: tuple,
     slice_indexes: np.ndarray,
-    color: str = "mediumturquoise",
+    color: str = "cornflowerblue",
     norm: bool = True,
     ax: plt.Axes | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
@@ -95,7 +95,7 @@ def plot_one_slice_quiver(
 def plot_quiver_slices(
     flow_field_dict: dict,
     slice_indexes: tuple[np.ndarray],
-    color: str = "mediumturquoise",
+    color: str = "cornflowerblue",
     norm: bool = True,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
@@ -189,7 +189,7 @@ def plot_flow_field_slices(
     df_cond: pd.DataFrame | None,
     fig_savedir: str | None,
     pc_vals: tuple[float] | None = None,
-    color: str = "mediumturquoise",
+    color: str = "cornflowerblue",
     norm: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
