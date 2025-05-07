@@ -149,6 +149,9 @@ extend-ignore = [
     "D416", # Section name should end with a colon
 ]
 
+[tool.ruff.lint.mccabe]
+max-complexity = 20 # Adjust maximum McCabe complexity (C901)
+
 [tool.mypy]
 ignore_missing_imports = true
 disallow_untyped_defs = true
