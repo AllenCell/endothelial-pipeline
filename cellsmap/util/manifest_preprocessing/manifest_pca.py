@@ -28,9 +28,11 @@ def get_pca_reference(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     if valid_timepoints is None:
         df["pca_ref"] = True
     else:
+        print(f"Reference timepoints for PCA from dataset {dataset_name}: ")
         tps = []
         for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
             tps.extend(list(range(start, stop + 1)))
+            print(f"   - {start} to {stop}")
         valid_subset = df.frame_number.isin(tps)
         df["pca_ref"] = valid_subset
     return df[df.pca_ref]
