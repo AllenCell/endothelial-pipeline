@@ -495,7 +495,7 @@
   shear_stress_regime: 24hr_low-to-24hr_high
   use_cases: [feasibility]
   pixel_size_xy_in_um: 0.392
-  duration: 577
+  duration: 97
   time_interval_in_minutes: 5.0
   flow: [[0, 277, 5.62], [278, 576, 25.91]]
   egfp_channel_index: 0
