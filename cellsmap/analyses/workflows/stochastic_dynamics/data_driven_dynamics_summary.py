@@ -145,7 +145,6 @@ def main(config_name: str = "default") -> None:
                 bins,
                 pplane_xvec,
                 pplane_yvec,
-                use_fipy=False,
             )
 
             sup_title = fig2._suptitle.get_text()
