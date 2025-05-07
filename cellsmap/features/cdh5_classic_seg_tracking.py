@@ -4,7 +4,7 @@ from cellsmap.util import dataset_io, cdh5_preprocessing as preproc
 import numpy as np
 from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.set_output import get_output_path
-from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute, get_cdh5_classic_segmentation_path, extract_T
+from cellsmap.util.dataset_io import load_config, ipython_cli_flexecute, get_cdh5_classic_segmentation_path, extract_T, get_available_datasets
 from cellsmap.util.general_image_preprocessing import build_analysis_queue
 from cellsmap.util.get_sldy_metadata import get_voxel_size
 from multiprocessing import Pool
@@ -68,7 +68,7 @@ def run_workflow(queue: Sequence) -> None:
         return
 
 def main(n_proc: int = 1,
-         dataset_name: str|Sequence|None = '20241016_20X',
+         dataset_name: str|Sequence|None = None,
          save_output: bool = True,
          is_test: bool = False,
          verbose: bool = False
@@ -76,17 +76,19 @@ def main(n_proc: int = 1,
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
-
     if dataset_name == None:
-        dataset_name_list = [config_data['name']
-                            for config_data in load_config(config_type='data')
+        config_data = load_config(config_type='data')
+        dataset_name_list = [dataset_name
+                            for dataset_name, config_data in config_data.items()
                             if (config_data['microscope'] == '3i'
                                 and config_data['live_or_fixed_sample'] == 'live')
+                                and 'cell_lines' in config_data
                                 and 'AICS-126' in config_data['cell_lines']
                                 and config_data['duration'] > 1]
-    else:
+    elif isinstance(dataset_name, str) or isinstance(dataset_name, Sequence):
         dataset_name_list = [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
+    else:
+        raise ValueError(f'Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}.')
 
     analysis_queue = build_analysis_queue(dataset_name_list,
                                           save_output=save_output,
