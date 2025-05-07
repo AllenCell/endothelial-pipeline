@@ -58,8 +58,8 @@ def main(config_name: str = "default") -> None:
     kernel_type = "gaussian"
 
     # range of bandwidths to test
-    # log scale between 0.05 and 0.5
-    logspace_bw = np.logspace(np.log10(0.05), np.log10(0.5), num=10)
+    # log scale between 0.025 and 0.25
+    logspace_bw = np.logspace(np.log10(0.025), np.log10(0.25), num=10)
 
     # loop over bandwidths
     for j, bw in enumerate(logspace_bw):
@@ -74,7 +74,7 @@ def main(config_name: str = "default") -> None:
         # to 3 decimal places
         # and get only the decimal part
         bw_str = f"{bw:.3f}".split(".")[1]
-        fig_savedir_kernel = get_output_path(fig_savedir + f"bw_{bw_str}/")
+        fig_savedir_kernel = get_output_path(fig_savedir + f"bw_{bw_str}")
         # loop through datasets, get flow field
         # estimates, and save out figures
         for name in list_of_datasets:
