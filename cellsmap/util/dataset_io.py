@@ -550,30 +550,24 @@ def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
 
 
 # model methods
-def get_available_models() -> None:
+def get_available_models() -> List[str]:
     model_info = load_config("model")
-    model_names = [model["name"] for model in model_info]
+    model_names = list(model_info.keys())
     for name in model_names:
         print(name)
+    return model_names
+
+
+def get_model_info(model_name: str) -> Dict[str, Any]:
+    config = load_config("model")
+    if model_name not in config:
+        raise ValueError(f"Model {model_name} not found in config file")
+    return config[model_name]
 
 
 def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
     dataset_info = get_dataset_info(dataset_name)
     return pd.read_csv(dataset_info["features"][model_name])
-
-
-def get_model_info(model_name: str) -> dict:
-    config = load_config("model")
-    for model in config:
-        if model["name"] == model_name:
-            return model
-    raise ValueError(f"Model {model_name} not found in config file")
-
-
-def get_model_config_path(model_name: str, task: str = "eval") -> str:
-    assert task in ["train", "eval"], 'Invalid task. Must be either "train" or "eval"'
-    model_info = get_model_info(model_name)
-    return model_info[f"{task}_config_path"]
 
 
 # Other miscellaneous methods

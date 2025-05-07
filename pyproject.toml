@@ -3,7 +3,13 @@ name = "cellsmap"
 version = "0.1.0"
 description = ""
 authors = [
-    { name = "", email = "" },
+    { name = "Erin Angelini", email = "erin.angelini@alleninstitute.org"},
+    { name = "Philip Garrison", email = "philip.garrison@alleninstitute.org"},
+    { name = "Chantelle Leveille", email = "chantelle.leveille@alleninstitute.org" },
+    { name = "Benjamin Morris", email = "benjamin.morris@alleninstitute.org"},
+    { name = "Serge Parent", email = "serge.parent@alleninstitute.org"},
+    { name = "Matheus Viana", email = "matheus.viana@alleninstitute.org"},
+    { name = "Jessica Yu", email = "jessica.yu@alleninstitute.org"},
 ]
 
 dependencies = [

@@ -1,8 +1,8 @@
-- name: diffae_04_10
+diffae_04_10:
   mlflow_run_id: ae7f25b4109c47809d3e2ed1b7120e50
-- name: nuc_pred_labelfree
+nuc_pred_labelfree:
   model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess
-- name: nuc_pred_labelfree_retrained_20250327
+nuc_pred_labelfree_retrained_20250327:
   model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250327/bf_std_model_no_preprocess_retrained
-- name: nuc_pred_labelfree_retrained_20250419-18_13
+nuc_pred_labelfree_retrained_20250419-18_13:
   model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250419-18_13/CellPose_default_nuclei_model_finetuning/models/labelfree_nuc_pred_20250419-18_13
