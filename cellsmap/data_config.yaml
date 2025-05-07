@@ -111,6 +111,9 @@
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X
   nuclear_seg_manifest_fmsid: a9ef7c8557334f1fb36393f79b582609
   diffae_manifest_fmsid: 3ce3dedd56a54b48a544c99dc61a2fe1
+  valid_timepoints:
+    start: [230]
+    stop: [450]
   is_reference: true
 20241203_20X:
   original_path: //allen/programs/allencell/data/proj0/a61/b0d/e86/6b6/175/2b9/745/3da/73b/b61/9d/20241203_GE00007661_20X_timelapse_sldy/20241203_GE00007661_20X_timelapse_SLDY.sldy
@@ -821,4 +824,7 @@
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 2979ed0ac60c492db40511ea0b0bef6b
+  valid_timepoints:
+    start: [190]
+    stop: [410]
   is_reference: true
