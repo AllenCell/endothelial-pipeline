@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from typing import Literal
 
+from cellsmap.util.dataset_io import ipython_cli_flexecute
 from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
 
 """
@@ -37,3 +38,7 @@ def main(dataset_name: str, env: Literal["stg", "prod"]) -> None:
         misc_notes=notes,
         env=env,
     )
+
+
+if __name__ == "__main__":
+    ipython_cli_flexecute(main)
