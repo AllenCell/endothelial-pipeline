@@ -15,7 +15,6 @@ dependencies = [
     "bioio-sldy>=1.0.3",
     "bioio-tifffile>=1.0.1",
     "colorcet>=3.1.0",
-    "colorizer_data @ git+https://github.com/allen-cell-animated/colorizer-data.git@v1.6.1",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",
@@ -87,18 +86,6 @@ types = [
     "types-tqdm>=4.67.0.20250301",
     "types-seaborn>=0.13.2.20250111",
 ]
-cellpose = [
-    "cellpose==3.0.11",
-    "torch==1.13.1",
-    "torchvision==0.14.1",
-    "torchaudio==0.13.1",
-]
-
-[[tool.pdm.source]]
-name = "cellpose-a100"
-url = "https://download.pytorch.org/whl/cu116"
-verify_ssl = true
-include_packages = ["torch", "torchvision", "torchaudio"]
 
 [build-system]
 requires = ["hatchling"]
