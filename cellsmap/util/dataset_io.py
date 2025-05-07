@@ -406,6 +406,7 @@ def get_tracking_data_raws(
     # get all the filepaths and check that none of the requested
     # datasets-position-kind combinations are missing data paths
     # first before opening them
+    table_reader = dd if as_dask else pd
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         position_list = (
@@ -420,7 +421,7 @@ def get_tracking_data_raws(
                 continue
             else:
                 # open the data tables
-                tracking_data = dd.read_csv(data_path, sep="\t")
+                tracking_data = table_reader.read_csv(data_path, sep="\t")
                 # the tracking data by default does not have the
                 # dataset name or the position, so add those in
                 tracking_data["dataset_name"] = dataset_name
@@ -431,10 +432,10 @@ def get_tracking_data_raws(
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
     if tracking_data_list:
-        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
+        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     else:  # create an empty dataframe
-        tracking_dataframe = dd.DataFrame.from_dict({})
-    return tracking_dataframe if as_dask else tracking_dataframe.compute()
+        tracking_dataframe = table_reader.DataFrame.from_dict({})
+    return tracking_dataframe
 
 
 def get_tracking_data_filtered(
@@ -449,6 +450,7 @@ def get_tracking_data_filtered(
     function get_tracking_data_filtered is called outside of
     multiprocessing.
     """
+    table_reader = dd if as_dask else pd
     base_path = Path(
         "//allen/aics/endothelial/morphological_features/analysis/track_filtering"
     )
@@ -457,10 +459,7 @@ def get_tracking_data_filtered(
         data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
         if data_path.exists():
             # open the data tables
-            if as_dask:
-                tracking_data = dd.read_csv(data_path, sep="\t")
-            else:
-                tracking_data = pd.read_csv(data_path, sep="\t")
+            tracking_data = table_reader.read_csv(data_path, sep="\t")
             # include path to file that this data was loaded from
             tracking_data["source_filtered_tracking_table_path"] = data_path.as_posix()
             tracking_data_list.append(tracking_data)
@@ -468,10 +467,7 @@ def get_tracking_data_filtered(
             print(f"No filtered tracking data found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    if as_dask:
-        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
-    else:
-        tracking_dataframe = pd.concat(tracking_data_list, axis=0, ignore_index=True)
+    tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe
 
 
@@ -494,6 +490,7 @@ def get_measurement_data_raws(
     kind: Literal["alignments", "segmentation_properties"],
     as_dask: bool = True,
 ) -> pd.DataFrame:
+    table_reader = dd if as_dask else pd
     measurement_data_list = []
     # get all the filepaths and check that none of the requested
     # datasets-position-kind combinations are missing data paths
@@ -504,17 +501,17 @@ def get_measurement_data_raws(
             print(f"No {kind} tracking data found for {dataset_name}. Skipping...")
             continue
         else:
-            measurement_data = dd.read_csv(data_path)
+            measurement_data = table_reader.read_csv(data_path)
             measurement_data["source_measurement_table_path"] = data_path.as_posix()
             measurement_data_list.append(measurement_data)
     # open the files and concatenate them into a single dataframe
     if measurement_data_list:
-        measurement_dataframe = dd.concat(
+        measurement_dataframe = table_reader.concat(
             measurement_data_list, axis=0, ignore_index=True
         )
     else:  # create an empty dataframe
-        measurement_dataframe = dd.DataFrame.from_dict({})
-    return measurement_dataframe if as_dask else measurement_dataframe.compute()
+        measurement_dataframe = table_reader.DataFrame.from_dict({})
+    return measurement_dataframe
 
 
 def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
