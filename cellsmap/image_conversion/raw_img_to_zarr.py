@@ -34,7 +34,12 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20241022_20X_mito 20241022
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20250122_SMAD1 20250122 --channel_names "EGFP,BF,DAPI,FarRed"
+
+  dapi_channel_index: 0
+  egfp_channel_index: 1
+  farred_channel_index: 2
+  brightfield_channel_index: 3
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -49,7 +54,7 @@ def convert_dataset(
     output_dataset_name: str,  # barcode_date
     output_path: str = DEFAULT_OUTPUT_PATH,
     channel_names: list[str] = ["EGFP", "BF"],
-):
+) -> None:
     img = BioImage(get_original_path(dataset))
     if get_microscope(dataset) == "3i":
         physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)

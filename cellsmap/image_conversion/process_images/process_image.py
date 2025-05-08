@@ -41,14 +41,19 @@ def get_delayed_array_for_position(
     number_positions = get_total_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
-    gfp_index, bf_index, index_405 = get_specific_channel_order(dataset_name)
+    gfp_index, bf_index, index_405, index_647 = get_specific_channel_order(dataset_name)
     
     channels = [gfp_index, bf_index]
     if index_405 is not None:
         channels.append(index_405)
+    if index_647 is not None:
+        channels.append(index_647)
     
-    assert len(channels) == len(channel_names), \
-        f"Number of channels ({len(channels)}) does not match number of channel names ({len(channel_names)})"    
+    assert len(channels) == len(channel_names), (
+        f"Number of channels ({len(channels)}) does not match number of channel names ({len(channel_names)})\n"
+        f"Channels: {channels}\n"
+        f"Channel Names: {channel_names}"
+    )
         
     # Get the delayed arrays for each timepoint at the specified position
     # with the channels in the following order: (GFP, brightfield)
