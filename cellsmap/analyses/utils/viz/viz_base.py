@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 
 # set default plot parameters
@@ -16,7 +14,7 @@ plt_params = {
 plt.rcParams.update(plt_params)
 
 
-def init_plot(figsize: tuple = (7, 6)) -> Tuple[plt.Figure, plt.Axes]:
+def init_plot(figsize: tuple = (7, 6)) -> tuple[plt.Figure, plt.Axes]:
     """
     Initialize a matplotlib figure and axes with default settings.
 
@@ -33,7 +31,7 @@ def init_plot(figsize: tuple = (7, 6)) -> Tuple[plt.Figure, plt.Axes]:
 
 def init_subplots(
     nrows: int = 1, ncols: int = 2, figsize: tuple = (14, 6)
-) -> Tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Initialize matplotlib figure with multiple subplots.
 
@@ -58,9 +56,11 @@ def save_plot(
 
     Input:
     - fig: plt.Figure, the figure to save
-    - filename: str, the filepath to save the figure (includes file name, but NOT the file extension)
+    - filename: str, the filepath to save the figure
+        (includes file name, but NOT the file extension)
     - format: str (default='.png'), the file format to save the figure
-    - dpi: int (default=450), the resolution of the figure in dots per inch (dpi) if format is .png
+    - dpi: int (default=450), the resolution of the figure in
+        dots per inch (dpi) if format is .png
 
     Output:
     - None, saves the figure to the specified file

@@ -1,49 +1,61 @@
-import yaml
+from pathlib import Path
+
 import dask
+import dask.array
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
-from pathlib import Path
+import yaml
 from bioio import BioImage
-import dask.array
+
 try:
     from IPython import get_ipython
 except ModuleNotFoundError:
     pass
-import fire
-from typing import List, Dict, Any, Union, Tuple, Callable, Optional, Literal
 import re
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
+import fire
 
 
 # model methods
-def load_config(config_type: str = 'data') -> List[Dict[str, Any]]:
-    if config_type not in ['data', 'model','dynamics']:
-        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
+def load_config(config_type: str = "data") -> List[Dict[str, Any]]:
+    if config_type not in ["data", "model", "dynamics"]:
+        raise ValueError(
+            'Invalid config type. Must be either "data", "model", or "dynamics."'
+        )
     parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f'{config_type}_config.yaml'
-    with open(config_file, 'r') as file:
+    config_file = parent_folder.parent / f"{config_type}_config.yaml"
+    with open(config_file, "r") as file:
         config_data = yaml.safe_load(file)
     return config_data
 
-def write_config(config: List[Dict[str, Any]], config_type: str = 'data') -> None:
-    if config_type not in ['data', 'model', 'dynamics']:
-        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
+
+def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> None:
+    if config_type not in ["data", "model", "dynamics"]:
+        raise ValueError(
+            'Invalid config type. Must be either "data", "model", or "dynamics."'
+        )
     parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f'{config_type}_config.yaml'
+    config_file = parent_folder.parent / f"{config_type}_config.yaml"
 
     # Write lists with brackets, not dashes
     def represent_list(dumper, data):
-        return dumper.represent_sequence('tag:yaml.org,2002:seq', data, flow_style=True)
+        return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
+
     yaml.add_representer(list, represent_list)
 
-    with open(config_file, 'w') as file:
+    with open(config_file, "w") as file:
         #                        one key per line            keep ordering    wrap lines
-        yaml.dump(config, file, default_flow_style=False, sort_keys=False, width=80, indent=2)
+        yaml.dump(
+            config, file, default_flow_style=False, sort_keys=False, width=80, indent=2
+        )
+
 
 def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None:
     """
     Update the dataset config file with new values.
-    
+
     Parameters
     ----------
     dataset_name: str
@@ -51,29 +63,38 @@ def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None
     new_config: dict
         Dictionary with new values to update in the config file.
     """
-    cfg = load_config('data')
+    cfg = load_config("data")
     cfg[dataset_name].update(new_config)
-    write_config(cfg, 'data')
+    write_config(cfg, "data")
+
 
 # dataset methods
 def get_available_datasets(verbose: bool = True) -> List[str]:
-    cfg = load_config('data')
+    cfg = load_config("data")
     datasets = list(cfg.keys())
     if verbose:
         print("\n".join(datasets))
     return datasets
 
+
 def get_reference_datasets() -> List[str]:
-    return [name for name in get_available_datasets(verbose=False) if get_dataset_info(name).get('is_reference', False)]
+    return [
+        name
+        for name in get_available_datasets(verbose=False)
+        if get_dataset_info(name).get("is_reference", False)
+    ]
+
 
 def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
     config = load_config()
     if dataset_name not in config:
-        raise ValueError('Dataset name not found in config file')
+        raise ValueError(f"Dataset {dataset_name} not found in config file")
     return config[dataset_name]
 
+
 def get_frame(filename: str) -> int:
-    return int(str(filename).split('.')[0][-4:])
+    return int(str(filename).split(".")[0][-4:])
+
 
 def get_flow(dataset_name: str, T: float) -> Union[int, float]:
     """
@@ -85,36 +106,51 @@ def get_flow(dataset_name: str, T: float) -> Union[int, float]:
         flow: the flow value at time T in dyn/cm^2.
     """
     dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info['flow']
+    flow_info = dataset_info["flow"]
     flows = [flow for t_start, t_stop, flow in flow_info if t_start <= T < t_stop]
     return int(flows[0]) if flows else np.nan
 
+
 def get_flow_in_frames(dataset_name: str) -> List[Tuple[Any, Any, Any]]:
     dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info['flow']
-    flow_in_frames = [(round(t_start * 60 / dataset_info['time_interval_in_minutes']), round(t_stop * 60 / dataset_info['time_interval_in_minutes']), flow) for t_start, t_stop, flow in flow_info]
+    flow_info = dataset_info["flow"]
+    flow_in_frames = [
+        (
+            round(t_start * 60 / dataset_info["time_interval_in_minutes"]),
+            round(t_stop * 60 / dataset_info["time_interval_in_minutes"]),
+            flow,
+        )
+        for t_start, t_stop, flow in flow_info
+    ]
     return flow_in_frames
+
 
 def get_zarr_dir(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['zarr_path']
+    return dataset_info["zarr_path"]
 
-def get_zarr_path(dataset_name: str, zarr_name: Optional[str|None]=None) -> Dict[str, str]:
+
+def get_zarr_path(
+    dataset_name: str, zarr_name: Optional[str | None] = None
+) -> Dict[str, str]:
     data_dir = get_zarr_dir(dataset_name)
     zarr_paths = {}
     if zarr_name:
         filepath = Path(data_dir) / zarr_name
-        assert filepath.exists(), f'Zarr file {filepath} does not exist.'
+        assert filepath.exists(), f"Zarr file {filepath} does not exist."
         filepath_list = [filepath]
     else:
-        filepath_list = [fp for fp in Path(data_dir).glob('*.zarr')]
+        filepath_list = [fp for fp in Path(data_dir).glob("*.zarr")]
 
     for filepath in filepath_list:
         zarr_paths[filepath.name] = str(filepath)
 
     return zarr_paths
 
-def get_available_channels(dataset_name:str, zarr_name: Optional[str|None]=None) -> Dict[str, List[str]]:
+
+def get_available_channels(
+    dataset_name: str, zarr_name: Optional[str | None] = None
+) -> Dict[str, List[str]]:
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_names = {}
     for filename, filepath in zarr_paths.items():
@@ -122,44 +158,69 @@ def get_available_channels(dataset_name:str, zarr_name: Optional[str|None]=None)
         channel_names[filename] = reader.channel_names
     return channel_names
 
-def get_channel_index(dataset_name: str, channel_names: List[str], zarr_name: Optional[str|None]=None) -> Dict[str, List[int|None]]:
+
+def get_channel_index(
+    dataset_name: str, channel_names: List[str], zarr_name: Optional[str | None] = None
+) -> Dict[str, List[int | None]]:
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_indices = {}
     for filename in zarr_paths.keys():
         available_channels = get_available_channels(dataset_name, filename)
         # available_channels[filename].update([available_channels.index(channel) if channel in available_channels else None for channel in channel_names])
-        channel_indices[filename] = [available_channels[filename].index(channel) if channel in available_channels[filename] else None for channel in channel_names]
+        channel_indices[filename] = [
+            (
+                available_channels[filename].index(channel)
+                if channel in available_channels[filename]
+                else None
+            )
+            for channel in channel_names
+        ]
     return channel_indices
+
 
 def get_zarr_name(dataset_name: str, position: int) -> str:
     """
     Get the zarr name for a given dataset and position.
     """
     zarr_paths = get_zarr_path(dataset_name)
-    zarr_found_for_position = position in [extract_P(zarr_name) for zarr_name in zarr_paths.keys()]
-    assert zarr_found_for_position, f'Zarr file for position {position} not found in dataset {dataset_name}.'
+    zarr_found_for_position = position in [
+        extract_P(zarr_name) for zarr_name in zarr_paths.keys()
+    ]
+    assert (
+        zarr_found_for_position
+    ), f"Zarr file for position {position} not found in dataset {dataset_name}."
     for zarr_name in zarr_paths.keys():
         if position == extract_P(zarr_name):
             break
     return zarr_name
 
-def get_specific_channel_order(dataset_name:str) -> tuple[Any, Any, Any, Any]:
+
+def get_specific_channel_order(dataset_name: str) -> tuple[Any, Any, Any, Any]:
     dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get('egfp_channel_index')
-    bf_index = dataset_info.get('brightfield_channel_index')
-    index_405 = dataset_info.get('405_channel_index', None)
-    index_647 = dataset_info.get('647_channel_index', None)
-    
+    gfp_index = dataset_info.get("egfp_channel_index")
+    bf_index = dataset_info.get("brightfield_channel_index")
+    index_405 = dataset_info.get("405_channel_index", None)
+    index_647 = dataset_info.get("647_channel_index", None)
+
     return gfp_index, bf_index, index_405, index_647
 
-def get_total_number_of_positions(dataset_name:str) -> int:
+
+def get_total_number_of_positions(dataset_name: str) -> int:
     """
     n positions is the product of n_scenes x n_positions_per_scene
     """
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['n_total_positions']
+    return dataset_info["n_total_positions"]
 
-def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0, zarr_name:Optional[str]=None) -> dict[str, dask.array.Array]:
+
+def load_dataset(
+    dataset_name: str,
+    channels: List = ["EGFP", "BF"],
+    time_start: int = 0,
+    time_end: int = -1,
+    level: int = 0,
+    zarr_name: Optional[str] = None,
+) -> dict[str, dask.array.Array]:
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     dataset = {}
 
@@ -167,15 +228,27 @@ def load_dataset(dataset_name:str, channels:List=["EGFP", "BF"], time_start:int=
         reader = BioImage(filepath)
         available_channels = reader.channel_names
         channels_index = [available_channels.index(c) for c in channels]
-        assert level in reader.resolution_levels, f'Invalid resolution level {level}. Available levels are {reader.resolution_levels}'
+        assert (
+            level in reader.resolution_levels
+        ), f"Invalid resolution level {level}. Available levels are {reader.resolution_levels}"
         reader.set_resolution_level(level)
         if time_end < 0:
-            time_end = get_dataset_duration_in_frames(dataset_name)-1
-        img = reader.get_image_dask_data("TCZYX", T=range(time_start, time_end+1), C=channels_index)
+            time_end = get_dataset_duration_in_frames(dataset_name) - 1
+        img = reader.get_image_dask_data(
+            "TCZYX", T=range(time_start, time_end + 1), C=channels_index
+        )
         dataset[filename] = img
     return dataset
 
-def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, channels:List=["EGFP", "BF"], time_start:int=0, time_end:int=-1, level:int=0) -> dask.array.Array:
+
+def load_dataset_position_as_dask_array(
+    dataset_name: str,
+    position: int | str,
+    channels: List = ["EGFP", "BF"],
+    time_start: int = 0,
+    time_end: int = -1,
+    level: int = 0,
+) -> dask.array.Array:
     """
     position can be either an integer or a string.
     If it is a string then it must the name of a zarr file found in
@@ -186,47 +259,58 @@ def load_dataset_position_as_dask_array(dataset_name:str, position:int|str, chan
     zarr_path_list = get_zarr_path(dataset_name)
     if isinstance(position, int):
         if position >= len(zarr_path_list):
-            raise ValueError(f"Position {position} is out of range. There are only {len(zarr_path_list)} zarr files in the dataset.")
+            raise ValueError(
+                f"Position {position} is out of range. There are only {len(zarr_path_list)} zarr files in the dataset."
+            )
         zarr_name = list(zarr_path_list.keys())[position]
         for zarr_name in zarr_path_list.keys():
             if position == extract_P(zarr_name):
                 break
     elif isinstance(position, str):
         if position not in zarr_path_list:
-            raise ValueError(f"Zarr file {position} not found in dataset {dataset_name}.")
+            raise ValueError(
+                f"Zarr file {position} not found in dataset {dataset_name}."
+            )
         zarr_name = position
 
-    img_dict = load_dataset(dataset_name, channels, time_start, time_end, level, zarr_name=zarr_name)
+    img_dict = load_dataset(
+        dataset_name, channels, time_start, time_end, level, zarr_name=zarr_name
+    )
     img_dask_arr = img_dict[zarr_name]
     return img_dask_arr
 
+
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['duration']
+    return dataset_info["duration"]
+
 
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['pixel_size_xy_in_um']
+    return dataset_info["pixel_size_xy_in_um"]
+
 
 def get_time_interval_in_minutes(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['time_interval_in_minutes']
+    return dataset_info["time_interval_in_minutes"]
+
 
 def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['flow']
+    return dataset_info["flow"]
 
-def get_flow_change_frame(dataset_name:str) -> int:
-    '''
+
+def get_flow_change_frame(dataset_name: str) -> int:
+    """
     Get frame number at which flow changes in dataset ds_name.
-    
+
     Inputs:
     - dataset_name: str, name of dataset to get flow change frame for
         - This string must match the dataset name in data_config.yaml
-    
+
     Outputs:
     - change_frame: int, frame number at which flow changes in dataset dataset_name
-    '''
+    """
     # load config for dataset from data_config.yaml
     flow_info = get_flow_info(dataset_name)
 
@@ -234,6 +318,7 @@ def get_flow_change_frame(dataset_name:str) -> int:
     change_frame = flow_info[0][1]
 
     return change_frame
+
 
 def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
     flow_list = get_flow_info(dataset_name)
@@ -243,6 +328,7 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
     print(f"Frame {frame} not found in flow list.")
     return None
 
+
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
@@ -251,37 +337,45 @@ def get_dim_map(dim_order: str) -> dict:
 
     return dim_map
 
+
 def get_original_path(dataset_name: str) -> Path:
     """
     Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
     """
     dataset_info = get_dataset_info(dataset_name)
-    return Path(dataset_info['original_path'])
+    return Path(dataset_info["original_path"])
+
 
 def get_barcode(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['barcode']
+    return dataset_info["barcode"]
+
 
 def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['microscope']
+    return dataset_info["microscope"]
+
 
 def get_fmsid(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info['fmsid']
+    return dataset_info["fmsid"]
+
 
 def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
     dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info['nuclear_label_free_seg_path']
+    base_path = dataset_info["nuclear_label_free_seg_path"]
     position_path = f"{base_path}/P{position}/"
     return position_path
+
 
 def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     # NOTE at some point the cdh5 classic segmentation paths
     # will probably be added to the dataconfig.yaml file
     # for the base_path, but until then I will hardcode the
     # path here
-    base_path = Path('//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg')
+    base_path = Path(
+        "//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg"
+    )
     base_path = base_path / dataset_name
     # NOTE this is what the code is expected to be when the
     # path is added to the dataconfig.yaml file:
@@ -289,51 +383,67 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     position_path = f"{base_path}/P{position}/"
     return position_path
 
-def get_tracking_data_paths(dataset_name: str,
-                            position: int,
-                            ) -> Path:
+
+def get_tracking_data_paths(
+    dataset_name: str,
+    position: int,
+) -> Path:
     # NOTE the tracking paths should probably be added to some
     # sort of config file at some point, but in the interest of
     # going fast they are hardcoded here for now
-    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking')
-    base_path = base_path / f'{dataset_name}/P{position}'
+    base_path = Path(
+        "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
+    )
+    base_path = base_path / f"{dataset_name}/P{position}"
     data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
     return data_path
 
-def get_tracking_data_raws(dataset_name_list: List,
-                           position: int|None=None,
-                           as_dask: bool=True,
-                           ) -> pd.DataFrame:
+
+def get_tracking_data_raws(
+    dataset_name_list: List,
+    position: int | None = None,
+    as_dask: bool = True,
+) -> pd.DataFrame:
     # get all the filepaths and check that none of the requested
     # datasets-position-kind combinations are missing data paths
     # first before opening them
+    table_reader = dd if as_dask else pd
     tracking_data_list = []
     for dataset_name in dataset_name_list:
-        position_list = range(get_total_number_of_positions(dataset_name)) if position==None else [position]
+        position_list = (
+            range(get_total_number_of_positions(dataset_name))
+            if position == None
+            else [position]
+        )
         for pos in position_list:
             data_path = Path(get_tracking_data_paths(dataset_name, pos))
             if not data_path.exists():
-                print(f'No tracking data found for {dataset_name} P{pos}. Skipping...')
+                print(f"No tracking data found for {dataset_name} P{pos}. Skipping...")
                 continue
             else:
                 # open the data tables
-                tracking_data = dd.read_csv(data_path, sep='\t')
+                tracking_data = table_reader.read_csv(data_path, sep="\t")
                 # the tracking data by default does not have the
                 # dataset name or the position, so add those in
-                tracking_data['dataset_name'] = dataset_name
-                tracking_data['position'] = pos
+                tracking_data["dataset_name"] = dataset_name
+                tracking_data["position"] = pos
                 # also include the path to the table that this
                 # part of the dataframe was loaded from
-                tracking_data['source_tracking_table_path'] = data_path.as_posix()
+                tracking_data["source_tracking_table_path"] = data_path.as_posix()
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
     if tracking_data_list:
-        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
-    else: # create an empty dataframe
-        tracking_dataframe = dd.DataFrame.from_dict({})
-    return tracking_dataframe if as_dask else tracking_dataframe.compute()
+        tracking_dataframe = table_reader.concat(
+            tracking_data_list, axis=0, ignore_index=True
+        )
+    else:  # create an empty dataframe
+        tracking_dataframe = table_reader.DataFrame.from_dict({})
+    return tracking_dataframe
 
-def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> pd.DataFrame:
+
+def get_tracking_data_filtered(
+    dataset_name_list: List, as_dask: bool = False
+) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
     same script that a multiprocessing workflow that later uses
@@ -343,44 +453,49 @@ def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool=False) -> 
     function get_tracking_data_filtered is called outside of
     multiprocessing.
     """
-    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/track_filtering')
+    table_reader = dd if as_dask else pd
+    base_path = Path(
+        "//allen/aics/endothelial/morphological_features/analysis/track_filtering"
+    )
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
         if data_path.exists():
             # open the data tables
-            if as_dask:
-                tracking_data = dd.read_csv(data_path, sep='\t')
-            else:
-                tracking_data = pd.read_csv(data_path, sep='\t')
+            tracking_data = table_reader.read_csv(data_path, sep="\t")
             # include path to file that this data was loaded from
-            tracking_data['source_filtered_tracking_table_path'] = data_path.as_posix()
+            tracking_data["source_filtered_tracking_table_path"] = data_path.as_posix()
             tracking_data_list.append(tracking_data)
         else:
-            print(f'No filtered tracking data found for {dataset_name}. Skipping...')
+            print(f"No filtered tracking data found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    if as_dask:
-        tracking_dataframe = dd.concat(tracking_data_list, axis=0, ignore_index=True)
-    else:
-        tracking_dataframe = pd.concat(tracking_data_list, axis=0, ignore_index=True)
+    tracking_dataframe = table_reader.concat(
+        tracking_data_list, axis=0, ignore_index=True
+    )
     return tracking_dataframe
 
-def get_measurement_data_paths(dataset_name: str,
-                               kind: Literal['alignments', 'segmentation_properties']
-                               ) -> Path:
+
+def get_measurement_data_paths(
+    dataset_name: str, kind: Literal["alignments", "segmentation_properties"]
+) -> Path:
     # NOTE the tracking paths should probably be added to some
     # sort of config file at some point, but in the interest of
     # going fast they are hardcoded here for now
-    base_path = Path('//allen/aics/endothelial/morphological_features/analysis/cdh5_nodes_and_edges')
+    base_path = Path(
+        "//allen/aics/endothelial/morphological_features/analysis/cdh5_nodes_and_edges"
+    )
     base_path = base_path / dataset_name
     data_path = base_path / f"{dataset_name}_{kind}.csv"
     return data_path
 
-def get_measurement_data_raws(dataset_name_list: List,
-                              kind: Literal['alignments', 'segmentation_properties'],
-                              as_dask: bool=True,
-                              ) -> pd.DataFrame:
+
+def get_measurement_data_raws(
+    dataset_name_list: List,
+    kind: Literal["alignments", "segmentation_properties"],
+    as_dask: bool = True,
+) -> pd.DataFrame:
+    table_reader = dd if as_dask else pd
     measurement_data_list = []
     # get all the filepaths and check that none of the requested
     # datasets-position-kind combinations are missing data paths
@@ -388,18 +503,21 @@ def get_measurement_data_raws(dataset_name_list: List,
     for dataset_name in dataset_name_list:
         data_path = Path(get_measurement_data_paths(dataset_name, kind))
         if not data_path.exists():
-            print(f'No {kind} tracking data found for {dataset_name}. Skipping...')
+            print(f"No {kind} tracking data found for {dataset_name}. Skipping...")
             continue
         else:
-            measurement_data = dd.read_csv(data_path)
-            measurement_data['source_measurement_table_path'] = data_path.as_posix()
+            measurement_data = table_reader.read_csv(data_path)
+            measurement_data["source_measurement_table_path"] = data_path.as_posix()
             measurement_data_list.append(measurement_data)
     # open the files and concatenate them into a single dataframe
     if measurement_data_list:
-        measurement_dataframe = dd.concat(measurement_data_list, axis=0, ignore_index=True)
-    else: # create an empty dataframe
-        measurement_dataframe = dd.DataFrame.from_dict({})
-    return measurement_dataframe if as_dask else measurement_dataframe.compute()
+        measurement_dataframe = table_reader.concat(
+            measurement_data_list, axis=0, ignore_index=True
+        )
+    else:  # create an empty dataframe
+        measurement_dataframe = table_reader.DataFrame.from_dict({})
+    return measurement_dataframe
+
 
 def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
     """
@@ -410,11 +528,14 @@ def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
     These datasets are raw / unfiltered.
     """
     dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info['segmentation_features_manifest_fmsid']
+    base_path = dataset_info["segmentation_features_manifest_fmsid"]
     manifest_path = Path(base_path) / f"{dataset_name}_segmentation_features.tsv"
     if not manifest_path.exists():
-        raise FileNotFoundError(f"Segmentation features manifest not found at {manifest_path}.")
-    return pd.read_csv(manifest_path, sep='\t')
+        raise FileNotFoundError(
+            f"Segmentation features manifest not found at {manifest_path}."
+        )
+    return pd.read_csv(manifest_path, sep="\t")
+
 
 def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
     """
@@ -424,38 +545,43 @@ def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
     of the tracked segmentations of a dataset.
     """
     dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info['cell_track_integration_manifest_fmsid']
+    base_path = dataset_info["cell_track_integration_manifest_fmsid"]
     integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
     if not integration_path.exists():
-        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
-    return pd.read_csv(integration_path, sep='\t')
+        raise FileNotFoundError(
+            f"Cell track integration dataset not found at {integration_path}."
+        )
+    return pd.read_csv(integration_path, sep="\t")
+
 
 # model methods
-def get_available_models() -> None:
-    model_info = load_config('model')
-    model_names = [model['name'] for model in model_info]
+def get_available_models() -> List[str]:
+    model_info = load_config("model")
+    model_names = list(model_info.keys())
     for name in model_names:
         print(name)
+    return model_names
 
-def load_precomputed_features(dataset_name:str, model_name:str) -> pd.DataFrame:
+
+def get_model_info(model_name: str) -> Dict[str, Any]:
+    config = load_config("model")
+    if model_name not in config:
+        raise ValueError(f"Model {model_name} not found in config file")
+    return config[model_name]
+
+
+def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
     dataset_info = get_dataset_info(dataset_name)
     return pd.read_csv(dataset_info["features"][model_name])
 
-def get_model_info(model_name: str) -> dict:
-    config = load_config('model')
-    for model in config:
-        if model['name'] == model_name:
-            return model
-    raise ValueError(f'Model {model_name} not found in config file')
-
-def get_model_config_path(model_name: str, task: str = 'eval') -> str:
-    assert task in ['train', 'eval'], 'Invalid task. Must be either "train" or "eval"'
-    model_info = get_model_info(model_name)
-    return model_info[f'{task}_config_path']
-
 
 # Other miscellaneous methods
-def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = False, *args: Any, **kwargs: Any) -> Any:
+def ipython_cli_flexecute(
+    function: Callable[..., Any],
+    return_results: bool = False,
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
     """
     Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
     """
@@ -467,17 +593,24 @@ def ipython_cli_flexecute(function: Callable[..., Any], return_results: bool = F
         # otherwise raises NameError since get_ipython is not imported from IPython
         # or returns None if get_ipython is present but script is being executed
         # from a non-interactive shell
-        if get_ipython().__class__.__name__ != 'NoneType':
-            print(f'Using interactive shell {get_ipython().__class__.__name__}.')
+        if get_ipython().__class__.__name__ != "NoneType":
+            print(f"Using interactive shell {get_ipython().__class__.__name__}.")
             results = function(*args, **kwargs)
-        else: raise NameError
+        else:
+            raise NameError
     except NameError:
-        print('Using non-interactive shell.')
+        print("Using non-interactive shell.")
         results = fire.Fire(function)
 
     return results if return_results else None
 
-def extract_T(fp_as_string: Union[str, Path], int_only: bool=True, use_last_match: bool=True, default_if_not_found: int|str='') -> str|int:
+
+def extract_T(
+    fp_as_string: Union[str, Path],
+    int_only: bool = True,
+    use_last_match: bool = True,
+    default_if_not_found: int | str = "",
+) -> str | int:
     """
     Extract the timepoint value from a string or Path.name.
     Searches for the pattern "T[0-9]+" to find the timepoint.
@@ -512,14 +645,20 @@ def extract_T(fp_as_string: Union[str, Path], int_only: bool=True, use_last_matc
         fp_as_string = str(fp_as_string)
 
     index = -1 if use_last_match else 0
-    t = re.findall('T[0-9]+', fp_as_string)
-    t_value = int(t[index].split('T')[-1]) if t else default_if_not_found
+    t = re.findall("T[0-9]+", fp_as_string)
+    t_value = int(t[index].split("T")[-1]) if t else default_if_not_found
     if not t:
         print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
 
-    return t_value if int_only else f'T{t_value}'
+    return t_value if int_only else f"T{t_value}"
 
-def extract_P(fp_as_string: Union[str, Path], int_only: bool=True, use_last_match: bool=True, default_if_not_found: int|str='') -> str|int:
+
+def extract_P(
+    fp_as_string: Union[str, Path],
+    int_only: bool = True,
+    use_last_match: bool = True,
+    default_if_not_found: int | str = "",
+) -> str | int:
     """
     Extract the position value from a string or Path.name.
     Searches for the pattern "P[0-9]+" to find the position.
@@ -554,9 +693,9 @@ def extract_P(fp_as_string: Union[str, Path], int_only: bool=True, use_last_matc
         fp_as_string = str(fp_as_string)
 
     index = -1 if use_last_match else 0
-    p = re.findall('P[0-9]+', fp_as_string)
-    position_value = int(p[index].split('P')[-1]) if p else default_if_not_found
+    p = re.findall("P[0-9]+", fp_as_string)
+    position_value = int(p[index].split("P")[-1]) if p else default_if_not_found
     if not p:
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
-    return position_value if int_only else f'P{position_value}'
+    return position_value if int_only else f"P{position_value}"

@@ -1,10 +1,13 @@
 import numpy as np
 from cyto_dl.api import CytoDLModel
 from cyto_dl.utils import extract_array_predictions
+
 from cellsmap.util import dataset_io
 
 model = CytoDLModel()
-model.load_config_from_file("//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/array_eval_config.yaml")
+model.load_config_from_file(
+    "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/vicreg_no_rot_cdh5/array_eval_config.yaml"
+)
 
 # NOTE: data must be CYX and shape (1, 512, 512)
 data = [np.random.rand(1, 512, 512), np.random.rand(1, 512, 512)]

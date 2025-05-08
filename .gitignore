@@ -1,4 +1,4 @@
-# PDM dependencies directory
+# dependencies directory
 __pypackages__/
 
 # Python cache files
@@ -10,12 +10,7 @@ __pycache__/
 *.mypy_cache/
 *.ipynb_checkpoints/
 
-# PDM virtual environment directory
-.pdm-python
 .python-version
-
-# PDM config file
-.pdm.toml
 
 # uv cache
 .cache/uv
