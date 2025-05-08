@@ -336,7 +336,7 @@ def get_valid_timepoints(dataset_name: str) -> dict:
     and are added to the dataset config file.
     """
     dataset_info = get_dataset_info(dataset_name)
-    return dataset_info["valid_timepoints"]
+    return dataset_info.get("valid_timepoints")
 
 
 def get_dim_map(dim_order: str) -> dict:

@@ -58,7 +58,6 @@ def main(config_name: str = "default") -> None:
     #### Get data driven flow fields (kernel method) ####
     # load inputs from dynamics_config.yaml
     ds_to_skip = config["datasets_to_skip"]
-    stationary_frames = config["stationary_frames"]
     kramers_moyal_config = config["kramers_moyal"]
     kernel_params = None
     if "kernel_params" in kramers_moyal_config:
@@ -70,17 +69,16 @@ def main(config_name: str = "default") -> None:
 
     for name in list_of_datasets:
         if name in ds_to_skip:
-            print(f"**** Skipping dataset {name}, **** \n")
+            print(f"**** Skipping dataset {name} **** \n")
             continue
         print(f"Computing drift and diffusion fields for dataset {name}")
 
         ddd_main.get_and_analyze_ddd(
-            name, 
-            pca, 
-            kernel_params, 
-            fig_savedir, 
-            config, 
-            stationary_frames=stationary_frames
+            name,
+            pca,
+            kernel_params,
+            fig_savedir,
+            config,
         )
 
 

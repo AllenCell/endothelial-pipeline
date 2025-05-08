@@ -32,7 +32,7 @@ def ddd_model_analysis(
     - model (list[Callable]): list of callable functions
         representing the drift and diffusion estimates
         for the data-driven dynamics model
-    - stationary_data: DataFrame, feature data for one dataset 
+    - stationary_data: DataFrame, feature data for one dataset
         at one flow condition within that dataset, restricted to
         only the frames where the data are stationary
     - shear (float): shear stress value for the dataset
@@ -90,12 +90,7 @@ def ddd_model_analysis(
 
 
 def get_and_analyze_ddd(
-    name: str, 
-    pca: Pipeline, 
-    kernel_params: dict, 
-    fig_savedir: str, 
-    config: dict,
-    stationary_frames: list[int] | None = None
+    name: str, pca: Pipeline, kernel_params: dict, fig_savedir: str, config: dict
 ) -> None:
     """
     Get and analyze data-driven dynamics for a given dataset.
@@ -141,9 +136,7 @@ def get_and_analyze_ddd(
 
     # load the data for the given name
     # and preprocess it
-    df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(
-        name, pca = pca, stationary_frames = stationary_frames
-    )
+    df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca=pca)
 
     # just get PCs of interest
     feat_cols_all = manifest_io.get_feature_cols(df_proj)
