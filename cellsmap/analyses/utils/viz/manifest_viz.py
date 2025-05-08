@@ -459,7 +459,7 @@ def plot_km(
 def plot_km_drift_2D(
     centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
 ) -> Tuple:
-    X_1, X_2 = np.meshgrid(*centers)
+    x_1, x_2 = np.meshgrid(*centers)
 
     fig, ax = vb.init_subplots()
     ax[0].quiver(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
