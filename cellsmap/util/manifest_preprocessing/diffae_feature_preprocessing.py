@@ -192,8 +192,7 @@ def get_manifest_for_dynamics_workflows(
 
     # load data config for dataset ds_name
     # see if stationary frames are defined in data config
-    dataset_info = dataset_io.get_dataset_info(ds_name)
-    valid_timepoints = dataset_info.get("valid_timepoints")
+    valid_timepoints = dataset_io.get_valid_timepoints(ds_name)
     # if valid_timepoints is None, use all timepoints
     if valid_timepoints is None:
         # no change made to DataFrame
