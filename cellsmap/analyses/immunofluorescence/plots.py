@@ -1,8 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
 from typing import List
-from matplotlib.colors import Normalize
-from matplotlib.cm import ScalarMappable
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 
@@ -109,7 +108,7 @@ def plot_intensity_distribution(
     xlabel: str,
     ylabel: str = "Frequency",
 ) -> None:
-    
+
     plt.figure(figsize=(10, 10))
     plt.hist(df[xlabel].to_numpy(), bins=50, alpha=0.7, edgecolor="black")
     plt.xlabel(xlabel)

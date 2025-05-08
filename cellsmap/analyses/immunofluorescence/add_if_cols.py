@@ -1,17 +1,19 @@
 # %%
-from cellsmap.analyses.immunofloursecence.if_feature_extraction import (
-    get_raw_intensity_crop,
-    get_segmentation_mask_crop,
-    background_subtract,
-    total_intensity,
-    sum_projection,
-    sum_in_mask,
-    sum_not_in_mask,
-)
+from typing import Tuple
+
+import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-import numpy as np
-from typing import Tuple
+
+from cellsmap.analyses.immunofluorescence.if_feature_extraction import (
+    background_subtract,
+    get_raw_intensity_crop,
+    get_segmentation_mask_crop,
+    sum_in_mask,
+    sum_not_in_mask,
+    sum_projection,
+    total_intensity,
+)
 
 
 def process_channel(

@@ -1,21 +1,20 @@
 # %%
-from cellsmap.util import manifest_io, set_output
-from cellsmap.analyses.immunofloursecence.if_feature_extraction import (
+from cellsmap.analyses.immunofluorescence.add_if_cols import add_if_cols_to_df
+from cellsmap.analyses.immunofluorescence.if_feature_extraction import (
+    background_subtract,
     get_raw_intensity_crop,
     get_segmentation_mask_crop,
-    background_subtract,
     sum_projection,
     sum_projection_in_mask,
     sum_projection_not_in_mask,
 )
-from cellsmap.analyses.immunofloursecence.plots import (
-    histogram_intensity_per_slice,
-    projection_image,
+from cellsmap.analyses.immunofluorescence.plots import (
     plot_intensity_distribution,
+    projection_image,
 )
-import pandas as pd
-from cellsmap.analyses.immunofloursecence.add_if_cols import add_if_cols_to_df
-# %% 
+from cellsmap.util import manifest_io, set_output
+
+# %%
 DATASET = "20250122_SMAD1"
 MARKER = "SMAD1"
 VISUALIZATION = False

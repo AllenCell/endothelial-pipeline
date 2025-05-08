@@ -1,12 +1,14 @@
+from pathlib import Path
+from typing import Union
+
+import numpy as np
+import pandas as pd
+from bioio import BioImage
+from skimage import img_as_ubyte
+from skimage.transform import pyramid_reduce
+
 from cellsmap.util import dataset_io
 from cellsmap.vis import get_images
-import numpy as np
-from bioio import BioImage
-from skimage.transform import pyramid_reduce
-import pandas as pd
-from skimage import img_as_ubyte
-from typing import Union
-from pathlib import Path
 
 
 def get_raw_intensity_crop(
@@ -63,9 +65,11 @@ def get_segmentation_mask_crop(
 ) -> np.ndarray:
 
     # Construct the full path to the segmentation mask
-    path_to_nuc_seg = Path(dataset_io.get_nuclear_prediction_path(
-        row.dataset, dataset_io.extract_P(row.position)
-    ))
+    path_to_nuc_seg = Path(
+        dataset_io.get_nuclear_prediction_path(
+            row.dataset, dataset_io.extract_P(row.position)
+        )
+    )
     fname = f"{row.dataset}_{row.position}_T{row.frame_number}_cellpose.ome.tiff"
     full_path = path_to_nuc_seg / fname
 
@@ -127,4 +131,3 @@ def sum_projection_not_in_mask(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     Create an image within intensity values only not in the masked region.
     """
     return img * ~mask
-
