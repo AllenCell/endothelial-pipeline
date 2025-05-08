@@ -108,7 +108,9 @@ def plot_intensity_distribution(
     xlabel: str,
     ylabel: str = "Frequency",
 ) -> None:
-
+    """
+    Plot the distribution of a specified intensity feature from the DataFrame.
+    """
     plt.figure(figsize=(10, 10))
     plt.hist(df[xlabel].to_numpy(), bins=50, alpha=0.7, edgecolor="black")
     plt.xlabel(xlabel)

@@ -35,9 +35,8 @@ def get_raw_intensity_crop(
 
 
 def background_subtract(img: np.ndarray, camera_offset: int = 100) -> np.ndarray:
-    img = img.astype(np.float32)
-    img = img - camera_offset
-    img = np.clip(img, 0, None)  # Set any negative values to zero
+    img = np.clip(img, camera_offset, None)
+    img = img - camera_offset  # Set any negative values to zero
     return img
 
 

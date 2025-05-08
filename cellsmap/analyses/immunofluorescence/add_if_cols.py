@@ -42,6 +42,27 @@ def process_channel(
     return total, in_mask, out_mask
 
 
+def get_feature_columns(marker: str, total: float, nuc: float, cyto: float) -> dict:
+    """
+    Generate a dictionary of feature columns for a given marker.
+
+    Args:
+        marker (str): The marker name.
+        total (float): Total intensity value.
+        nuc (float): Nuclear intensity value.
+        cyto (float): Cytoplasmic intensity value.
+
+    Returns:
+        dict: A dictionary containing feature columns.
+    """
+    return {
+        f"crop_intensity_{marker}": total,
+        f"nuc_intensity_{marker}": nuc,
+        f"cyto_intensity_{marker}": cyto,
+        f"nuc_to_cyto_ratio_{marker}": nuc / (cyto + 1e-6),  # avoid division by zero
+    }
+
+
 # Define the row processing function
 def process_row(
     row: pd.Series,
@@ -51,7 +72,24 @@ def process_row(
     dapi_channel: int,
     resolution_level: int = 0,
     camera_offset: int = 100,
+    add_dapi: bool = False,
 ) -> dict:
+    """
+    Processes a single row of data to calculate intensity metrics for a given marker.
+
+    Args:
+        row (pd.Series): A row of data from a DataFrame.
+        antibody_channel (str): The channel name for the antibody marker.
+        seg_mask (np.ndarray): The segmentation mask for identifying regions of interest.
+        camera_offset (float): The camera offset value to adjust intensity calculations.
+        marker (str): The name of the marker being processed.
+        add_dapi (bool, optional): Whether to process the DAPI channel. Defaults to False.
+        dapi_channel (str, optional): The channel name for DAPI, required if `add_dapi` is True.
+
+    Returns:
+        dict: A dictionary containing intensity metrics for the marker (and DAPI if applicable),
+              including total, nuclear, cytoplasmic intensities, and nuclear-to-cytoplasmic ratio.
+    """
     # Nuclear segmentation mask
     seg_mask = get_segmentation_mask_crop(
         row, resolution_level=resolution_level, channel=nuclear_seg_channel
@@ -61,25 +99,15 @@ def process_row(
     crop_total, crop_nuc, crop_cyto = process_channel(
         row, channel=antibody_channel, seg_mask=seg_mask, camera_offset=camera_offset
     )
+    result = get_feature_columns(marker, crop_total, crop_nuc, crop_cyto)
 
-    # DAPI control channel
-    dapi_total, dapi_nuc, dapi_cyto = process_channel(
-        row, channel=dapi_channel, seg_mask=seg_mask, camera_offset=camera_offset
-    )
+    if add_dapi:
+        dapi_total, dapi_nuc, dapi_cyto = process_channel(
+            row, channel=dapi_channel, seg_mask=seg_mask, camera_offset=camera_offset
+        )
+        result.update(get_feature_columns("dapi", dapi_total, dapi_nuc, dapi_cyto))
 
-    # Normalized values
-    epsilon = 1e-6  # add small factor so we don't divide by zero
-    norm_crop = crop_total / (dapi_total + epsilon)
-    norm_nuc = crop_nuc / (dapi_nuc + epsilon)
-    norm_cyto = crop_cyto / (dapi_cyto + epsilon)
-    norm_ratio = norm_nuc / (norm_cyto + epsilon)
-
-    return {
-        f"norm_crop_intensity_{marker}": norm_crop,
-        f"norm_nuc_intensity_{marker}": norm_nuc,
-        f"norm_cyto_intensity_{marker}": norm_cyto,
-        f"norm_nuc_to_cyto_ratio_{marker}": norm_ratio,
-    }
+    return result
 
 
 def add_if_cols_to_df(
@@ -95,6 +123,9 @@ def add_if_cols_to_df(
     Args:
         df (pd.DataFrame): The DataFrame to which the columns will be added.
         marker (str): The marker name.
+        nuclear_seg_channel (int): The channel for nuclear segmentation.
+        antibody_channel (int): The channel for the antibody marker.
+        dapi_channel (int): The channel for DAPI.
 
     Returns:
         pd.DataFrame: The updated DataFrame with new columns.

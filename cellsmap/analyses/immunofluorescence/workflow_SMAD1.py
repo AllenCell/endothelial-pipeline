@@ -36,7 +36,7 @@ df = add_if_cols_to_df(
 )
 
 # Filter crop with bright puncta
-df = df[df["norm_cyto_intensity_SMAD1"] < 5]
+df = df[df["cyto_intensity_SMAD1"] < 1.75e8]
 
 # # Save the updated DataFrame to a new CSV file
 if SAVE_MANIFEST:
@@ -45,42 +45,44 @@ if SAVE_MANIFEST:
 
 
 # %% Visualize resulting images and features
-if VISUALIZATION:
-    # Plot the distribution for each feature
-    for feature in [
-        f"norm_crop_intensity_{MARKER}",
-        f"norm_nuc_intensity_{MARKER}",
-        f"norm_cyto_intensity_{MARKER}",
-        f"norm_nuc_to_cyto_ratio_{MARKER}",
-    ]:
-        plot_intensity_distribution(df, feature)
+# if VISUALIZATION:
+# Plot the distribution for each feature
+for feature in [
+    f"crop_intensity_{MARKER}",
+    f"nuc_intensity_{MARKER}",
+    f"cyto_intensity_{MARKER}",
+    f"nuc_to_cyto_ratio_{MARKER}",
+]:
+    plot_intensity_distribution(df, feature)
+# %% what smad antibody, was it phosphorylated?
+# Plot the sum projections for a row of the DataFrame
+# resegment using dapi
 
-    # Plot the sum projections for a row of the DataFrame
-    row = df.iloc[0]
+row = df.iloc[2]
 
-    seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=2)
+seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=2)
 
-    dapi_crop = get_raw_intensity_crop(row, resolution_level=0, channel=2)
-    background_subtracted_dapi_crop = background_subtract(dapi_crop, camera_offset=100)
-    sum_proj_dapi_img = sum_projection(background_subtracted_dapi_crop)
-    sum_projection_dapi_in_nuclei = sum_projection_in_mask(sum_proj_dapi_img, seg_mask)
-    sum_projection_dapi_not_in_nuclei = sum_projection_not_in_mask(
-        sum_proj_dapi_img, seg_mask
-    )
+dapi_crop = get_raw_intensity_crop(row, resolution_level=0, channel=2)
+background_subtracted_dapi_crop = background_subtract(dapi_crop, camera_offset=100)
+sum_proj_dapi_img = sum_projection(background_subtracted_dapi_crop)
+sum_projection_dapi_in_nuclei = sum_projection_in_mask(sum_proj_dapi_img, seg_mask)
+sum_projection_dapi_not_in_nuclei = sum_projection_not_in_mask(
+    sum_proj_dapi_img, seg_mask
+)
 
-    raw_crop = get_raw_intensity_crop(row, resolution_level=0, channel=3)
-    background_subtracted_crop = background_subtract(raw_crop, camera_offset=100)
-    sum_proj_img = sum_projection(background_subtracted_crop)
-    sum_proj_img_in_nuclei = sum_projection_in_mask(sum_proj_img, seg_mask)
-    sum_projection_not_in_nuclei = sum_projection_not_in_mask(sum_proj_img, seg_mask)
+raw_crop = get_raw_intensity_crop(row, resolution_level=0, channel=3)
+background_subtracted_crop = background_subtract(raw_crop, camera_offset=100)
+sum_proj_img = sum_projection(background_subtracted_crop)
+sum_proj_img_in_nuclei = sum_projection_in_mask(sum_proj_img, seg_mask)
+sum_projection_not_in_nuclei = sum_projection_not_in_mask(sum_proj_img, seg_mask)
 
-    projection_image(
-        sum_proj_img, seg_mask, sum_proj_img_in_nuclei, sum_projection_not_in_nuclei
-    )
-    projection_image(
-        sum_proj_dapi_img,
-        seg_mask,
-        sum_projection_dapi_in_nuclei,
-        sum_projection_dapi_not_in_nuclei,
-    )
+projection_image(
+    sum_proj_img, seg_mask, sum_proj_img_in_nuclei, sum_projection_not_in_nuclei
+)
+projection_image(
+    sum_proj_dapi_img,
+    seg_mask,
+    sum_projection_dapi_in_nuclei,
+    sum_projection_dapi_not_in_nuclei,
+)
 # %%
