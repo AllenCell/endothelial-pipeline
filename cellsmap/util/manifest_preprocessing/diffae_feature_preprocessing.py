@@ -170,12 +170,6 @@ def get_manifest_for_dynamics_workflows(
     - pca: Pipeline or None
         - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
         - if None, do not project feature data onto PCA axes
-    - stationary_frames: list[int] or None
-        - THIS MAY BE HARDCODED IN THE DATA CONFIG IN THE FUTURE
-        - if list of 2 integers, range of frame numbers to use as
-            definition of data being stationary; data is then
-            restricted to only these frames
-        - if None, return all data
 
     Outputs:
     - df: pd.DataFrame, DataFrame of feature data for crops

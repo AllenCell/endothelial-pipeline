@@ -136,6 +136,8 @@ extend-select = [
     "RUF100", # Unused noqa directive
 ]
 extend-ignore = [
+    "D100", # Undocumented public module
+    "D104", # Undocumented public package
     "D105", # Missing docstring in magic method
     "D107", # Missing docstring in __init__
     "D202", # Blank lines between the function body and the function docstring
@@ -146,6 +148,9 @@ extend-ignore = [
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
 ]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20 # Adjust maximum McCabe complexity (C901)
 
 [tool.mypy]
 ignore_missing_imports = true
