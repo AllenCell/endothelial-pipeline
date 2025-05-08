@@ -788,7 +788,7 @@ def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
 
 
 def process_and_plot_tracking_data(
-    dataset_name: str, out_dir: str | Path, verbose: bool = False
+    dataset_name: str, out_dir: str | Path, verbose: bool = False, plot_figures: bool = False
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -887,22 +887,23 @@ def process_and_plot_tracking_data(
         return_df=False,
     )
 
-    print("Plotting features...") if verbose else None
-    # make basic plots for each dataset
-    out_dir_plots = Path(out_dir) / f"cdh5_classic_seg_plots/"
-    out_dir_plots.mkdir(parents=True, exist_ok=True)
-    for (dataset_nm, pos), df_group in tqdm(
-        big_table_filtered.groupby(["dataset_name", "position"]),
-        total=len(big_table_filtered.groupby(["dataset_name", "position"])),
-        desc="Plotting features",
-        unit="positions",
-    ):
-        plot_tracking_data(
-            df_group,
-            dataset_name=dataset_nm,
-            position=pos,
-            out_dir=out_dir_plots,
-        )
+    if plot_figures:
+        print("Plotting features...") if verbose else None
+        # make basic plots for each dataset
+        out_dir_plots = Path(out_dir) / f"cdh5_classic_seg_plots/"
+        out_dir_plots.mkdir(parents=True, exist_ok=True)
+        for (dataset_nm, pos), df_group in tqdm(
+            big_table_filtered.groupby(["dataset_name", "position"]),
+            total=len(big_table_filtered.groupby(["dataset_name", "position"])),
+            desc="Plotting features",
+            unit="positions",
+        ):
+            plot_tracking_data(
+                df_group,
+                dataset_name=dataset_nm,
+                position=pos,
+                out_dir=out_dir_plots,
+            )
 
 
 def main(
