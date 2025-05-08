@@ -11,8 +11,8 @@ from cellsmap.model_features.utils.mlflow_utils import download_model
 from cellsmap.util.dataset_io import (
     extract_P,
     get_dataset_info,
-    get_fmsid,
     get_model_info,
+    update_dataset_config,
 )
 from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
@@ -89,7 +89,7 @@ def centroid_to_bbox(df: pd.DataFrame):
 
 
 def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
-    fms_id = get_dataset_info(dataset_name)["tracking_fms_id"]
+    fms_id = get_dataset_info(dataset_name)["tracking_integration_fmsid"]
     df = get_dataframe_by_fmsid(fms_id)
     # convert centroids to bounding boxes
     df = centroid_to_bbox(df)
@@ -202,6 +202,10 @@ def apply_model_single(
             commit_hash,
             misc_notes="",
             mlflow_run_id=mlflow_id,
+        )
+        update_dataset_config(
+            dataset_name,
+            {"diffae_tracking_integration_fmsid": file_id},
         )
 
     return prediction_path
