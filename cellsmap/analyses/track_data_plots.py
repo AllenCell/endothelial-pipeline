@@ -273,7 +273,9 @@ def calculate_derived_data_dynamics_independent(
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     print("Calculating nematic order and aspect ratio...") if verbose else None
-    big_table["nematic_order"] = big_table["orientation"].transform(get_nematic_order)
+    big_table["nematic_order"] = big_table["orientation"].transform(
+        lambda x: get_nematic_order(x - np.pi / 2)
+    )
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
     # dimensionalize the area
@@ -788,7 +790,10 @@ def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
 
 
 def process_and_plot_tracking_data(
-    dataset_name: str, out_dir: str | Path, verbose: bool = False, plot_figures: bool = False
+    dataset_name: str,
+    out_dir: str | Path,
+    verbose: bool = False,
+    plot_figures: bool = False,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
