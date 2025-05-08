@@ -26,7 +26,7 @@ pca = manifest_pca.fit_pca()
 list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
 
 Nbins = [40, 40, 40]
-bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.8]]
+bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]
 bins = rh.get_bins(Nbins, bin_limits=bin_limits_pcs)[0]
 
 # %%
