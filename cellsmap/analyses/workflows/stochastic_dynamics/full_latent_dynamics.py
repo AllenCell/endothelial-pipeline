@@ -1,5 +1,6 @@
 # %%
 from cellsmap.analyses.utils import regression_helper as rh
+from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
@@ -50,3 +51,5 @@ for ds_name in list_of_datasets:
     fig, ax = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
     fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)
     vb.save_plot(fig, f"{fig_savedir}/{ds_name}_PC_histogram")
+
+# %%
