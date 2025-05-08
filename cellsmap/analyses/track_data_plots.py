@@ -44,7 +44,7 @@ def merge_segprops_and_track_data(
 
 def filter_seg_feature_table(
     big_table: pd.DataFrame,
-    out_dir: Path,
+    out_dir: Path | None,
     min_num_points_per_track: int = 20,
 ) -> pd.DataFrame:
 
@@ -112,82 +112,87 @@ def filter_seg_feature_table(
         ].transform(lambda x: x.nunique())
     )
 
-    # save a log file of the filtering that was done
-    timestamp = pd.Timestamp.now()
-    out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
-    out_dir_logs.mkdir(parents=True, exist_ok=True)
-    with open(
-        out_dir_logs
-        / f'{timestamp.strftime("%Y%m%d_%H%M")}_filtered_tracking_results_run_log.txt',
-        "w",
-    ) as f:
-        f.write(
-            f"""
-                Date run: {str(timestamp)}\n
-                Datasets analyzed: {big_table_filtered["dataset_name"].unique()}\n
-                Fold change used for filtering: {fold_change}\n
-                Fold change of area difference for filtering? {area_change_allowed}\n
-                Smoothing kernel used: gaussian with sigma={sigma}\n
-                Number of rows before filtering: {num_rows_before_filtering}\n
-                Number of rows after filtering: {num_rows_after_filtering}\n
-                Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n
-                Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n"""
-        )
+    # save a log file of the filtering that was done if saving the results
+    if out_dir:
+        timestamp = pd.Timestamp.now()
+        out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
+        out_dir_logs.mkdir(parents=True, exist_ok=True)
+        with open(
+            out_dir_logs
+            / f'{timestamp.strftime("%Y%m%d_%H%M")}_filtered_tracking_results_run_log.txt',
+            "w",
+        ) as f:
+            f.write(
+                f"""
+                    Date run: {str(timestamp)}\n
+                    Datasets analyzed: {big_table_filtered["dataset_name"].unique()}\n
+                    Fold change used for filtering: {fold_change}\n
+                    Fold change of area difference for filtering? {area_change_allowed}\n
+                    Smoothing kernel used: gaussian with sigma={sigma}\n
+                    Number of rows before filtering: {num_rows_before_filtering}\n
+                    Number of rows after filtering: {num_rows_after_filtering}\n
+                    Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n
+                    Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n"""
+            )
 
-    # create some validation plots
-    for (dataset_nm, position), df in big_table_filtered.groupby(
-        ["dataset_name", "position"]
-    ):
-        summary = df.groupby("T")[
-            [
-                "T",
-                "num_unique_tracks_before_filtering_at_T",
-                "num_unique_tracks_after_filtering_at_T",
+        # create some validation plots
+        for (dataset_nm, position), df in big_table_filtered.groupby(
+            ["dataset_name", "position"]
+        ):
+            summary = df.groupby("T")[
+                [
+                    "T",
+                    "num_unique_tracks_before_filtering_at_T",
+                    "num_unique_tracks_after_filtering_at_T",
+                ]
+            ].agg("median")
+            timelapse_duration = get_dataset_info(dataset_nm)["duration"]
+            # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
+            out_dir_plots = out_dir / "num_tracks_plots" / dataset_nm
+            out_dir_plots.mkdir(parents=True, exist_ok=True)
+
+            fig, ax = plt.subplots()
+            ax.set_title(f"Dataset {dataset_nm} P{position}")
+            ax.set_xlabel("Timepoint")
+            ax.set_ylabel("Number of unique tracks")
+            sns.lineplot(
+                x="T",
+                y="num_unique_tracks_before_filtering_at_T",
+                data=summary,
+                ax=ax,
+                label="Before filtering",
+            )
+            sns.lineplot(
+                x="T",
+                y="num_unique_tracks_after_filtering_at_T",
+                data=summary,
+                ax=ax,
+                label="After filtering",
+            )
+            ax.set_ylim(0)
+            left_of_boxes = [
+                (0, 0),
+                (
+                    timelapse_duration - min_num_points_per_track,
+                    timelapse_duration - min_num_points_per_track,
+                ),
             ]
-        ].agg("median")
-        timelapse_duration = get_dataset_info(dataset_nm)["duration"]
-        # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
-        out_dir_plots = out_dir / "num_tracks_plots" / dataset_nm
-        out_dir_plots.mkdir(parents=True, exist_ok=True)
-
-        fig, ax = plt.subplots()
-        ax.set_title(f"Dataset {dataset_nm} P{position}")
-        ax.set_xlabel("Timepoint")
-        ax.set_ylabel("Number of unique tracks")
-        sns.lineplot(
-            x="T",
-            y="num_unique_tracks_before_filtering_at_T",
-            data=summary,
-            ax=ax,
-            label="Before filtering",
-        )
-        sns.lineplot(
-            x="T",
-            y="num_unique_tracks_after_filtering_at_T",
-            data=summary,
-            ax=ax,
-            label="After filtering",
-        )
-        ax.set_ylim(0)
-        left_of_boxes = [
-            (0, 0),
-            (
-                timelapse_duration - min_num_points_per_track,
-                timelapse_duration - min_num_points_per_track,
-            ),
-        ]
-        right_of_boxes = [
-            (min_num_points_per_track, min_num_points_per_track),
-            (timelapse_duration, timelapse_duration),
-        ]
-        top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
-        ax.set_xlim(0, timelapse_duration)
-        [ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey") for y, x1, x2 in boxes]
-        fig.savefig(
-            out_dir_plots / f"{dataset_nm}_P{position}_num_tracks_over_time.png", dpi=80
-        )
-        plt.close(fig)
+            right_of_boxes = [
+                (min_num_points_per_track, min_num_points_per_track),
+                (timelapse_duration, timelapse_duration),
+            ]
+            top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
+            boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
+            ax.set_xlim(0, timelapse_duration)
+            [
+                ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey")
+                for y, x1, x2 in boxes
+            ]
+            fig.savefig(
+                out_dir_plots / f"{dataset_nm}_P{position}_num_tracks_over_time.png",
+                dpi=80,
+            )
+            plt.close(fig)
     return big_table_filtered
 
 
@@ -273,7 +278,9 @@ def calculate_derived_data_dynamics_independent(
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
     print("Calculating nematic order and aspect ratio...") if verbose else None
-    big_table["nematic_order"] = big_table["orientation"].transform(get_nematic_order)
+    big_table["nematic_order"] = big_table["orientation"].transform(
+        lambda x: get_nematic_order(x - np.pi / 2)
+    )
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
     # dimensionalize the area
@@ -788,7 +795,10 @@ def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
 
 
 def process_and_plot_tracking_data(
-    dataset_name: str, out_dir: str | Path, verbose: bool = False, plot_figures: bool = False
+    dataset_name: str,
+    out_dir: str | Path,
+    verbose: bool = False,
+    plot_figures: bool = False,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -907,12 +917,14 @@ def process_and_plot_tracking_data(
 
 
 def main(
-    dataset_name: str | None = None, n_proc: int = 1, verbose: bool = True
+    dataset_name: str | None = None,
+    n_proc: int = 1,
+    verbose: bool = True,
+    make_plots: bool = False,
 ) -> None:
 
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
 
-    dataset_name = None
     if dataset_name == None:
         config_data = load_config(config_type="data")
         dataset_name_list = [
@@ -954,7 +966,9 @@ def main(
             desc="Processing datasets (1P)",
             unit="datasets",
         ):
-            process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
+            process_and_plot_tracking_data(
+                dataset_name, out_dir, verbose=verbose, plot_figures=make_plots
+            )
 
 
 if __name__ == "__main__":
