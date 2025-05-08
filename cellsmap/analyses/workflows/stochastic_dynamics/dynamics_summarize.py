@@ -43,7 +43,6 @@ def main(config_name: str = "default") -> None:
     # get inputs for analysis/visualization from config
     pcs = config["pcs_to_analyze"]
     ds_to_skip = config["datasets_to_skip"]
-    stationary_frames = config["stationary_frames"]
 
     pplane_xlim = config["plt_xlim"]["pplane"]
     pplane_ylim = config["plt_ylim"]["pplane"]
@@ -100,15 +99,14 @@ def main(config_name: str = "default") -> None:
     # run comparison of model and data for each dataset
     pca = manifest_io.load_pca_model(savedir)
     model_analysis.model_data_comparison(
-        my_model, 
-        fig_savedir, 
-        pca, 
-        pcs, 
-        bins, 
-        ds_to_skip, 
-        pplane_xvec, 
+        my_model,
+        fig_savedir,
+        pca,
+        pcs,
+        bins,
+        ds_to_skip,
+        pplane_xvec,
         pplane_yvec,
-        stationary_frames=stationary_frames
     )
 
     #### Fixed point analysis ####
