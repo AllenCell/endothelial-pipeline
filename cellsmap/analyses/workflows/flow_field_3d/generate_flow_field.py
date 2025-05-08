@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from cellsmap.analyses.utils import regression_helper as rh
-from cellsmap.analyses.utils.io import vtk_io
+from cellsmap.analyses.utils.io import dynamics_io, vtk_io
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import flow_field_viz as ffv
 from cellsmap.util import manifest_io
@@ -26,7 +26,8 @@ df = pd.read_csv(output_savedir + "manifest.csv")
 # %%
 # hardcoded for now, would be great to get these into a config file
 # Create flow field dx/dt = f(x)
-kernel_params = {"bandwidth": 0.09, "kernel": "gaussian"}
+config = dynamics_io.load_dynamics_config("default")
+kernel_params = config["kramers_moyal"]["kernel_params"]
 
 feat_cols = [f"pc{i+1}" for i in range(3)]
 
