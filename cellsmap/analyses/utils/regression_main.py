@@ -40,9 +40,6 @@ def kramers_moyal_train_test_one_dataset(
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-        - if stationary_frames was specified in the config,
-            then this dataframe is already restricted to only
-            those frames
     - ds_name: name of the dataset (used to split out data by
         flow condition, acessed via data_config.yaml)
     - pcs: list of principal component axes to project data onto for
@@ -212,12 +209,6 @@ def build_kramers_moyal_train_test(
         ('kernel' or 'histogram', default is 'kernel')
     - kernel_params: dictionary of parameters for kernel method
         (default is None, which uses default parameters if method is 'kernel')
-    - stationary_frames: list of int, optional, if provided,
-        restrict data to only these frames
-        (e.g., last 100 frames of each flow condition)
-        as our cutoff for stationary data
-        - if None, use all frames in data
-        - this may be hardcoded in the data config in the future
 
     Outputs:
     - out_dict: dictionary containing the following keys:
