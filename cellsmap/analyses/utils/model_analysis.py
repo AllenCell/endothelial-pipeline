@@ -127,12 +127,6 @@ def model_data_comparison(
         in analysis (also skipped in fitting model)
     - pplane_xvec: np.ndarray, x values for phase portrait
     - pplane_yvec: np.ndarray, y values for phase portrait
-    - stationary_frames: list of int, optional, if provided,
-        restrict data to only these frames
-        (e.g., last 100 frames of each flow condition)
-        as our cutoff for stationary data
-        - if None, return all data
-        - this may be hardcoded in the data config in the future
 
     Outputs:
     - None, saves figures to fig_savedir
