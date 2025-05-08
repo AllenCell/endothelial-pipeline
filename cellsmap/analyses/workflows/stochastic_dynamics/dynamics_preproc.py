@@ -67,7 +67,6 @@ def main(config_name: str = "default") -> None:
     # load inputs from dynamics_config.yaml
     pcs = config["pcs_to_analyze"]
     dt = config["dt"]
-    stationary_frames = config["stationary_frames"]
     ds_to_skip = config["datasets_to_skip"]
     kramers_moyal_config = config["kramers_moyal"]
     num_bins = kramers_moyal_config["num_bins"]
@@ -84,7 +83,6 @@ def main(config_name: str = "default") -> None:
         ds_to_skip,
         fig_savedir,
         kernel_params=kernel_params,
-        stationary_frames=stationary_frames,
     )
 
     #### Save train-test data ####

@@ -3,7 +3,6 @@
   pcs_to_analyze: [0,1],
   datasets_to_skip: ['20241022_20X_mito','20241203_20X','20241217_20X','20250402_20X','20250122_SMAD1'],
   dt: 5,
-  stationary_frames: [230,410],
   kramers_moyal: {"num_bins": [75,60],
                   "kernel_params": {"bandwidth": 0.095,
                                     "kernel": 'gaussian',

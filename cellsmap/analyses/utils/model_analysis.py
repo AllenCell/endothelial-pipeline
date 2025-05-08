@@ -38,7 +38,7 @@ def model_data_comparison_one_dataset(
 
     Inputs:
     - model: list of Callable functions, [drift, diffusion]
-    - stationary_data: DataFrame, feature data for one dataset 
+    - stationary_data: DataFrame, feature data for one dataset
         at one flow condition within that dataset, restricted to
         only the frames where the data are stationary
     - u: float, shear stress at which to evaluate model
@@ -107,7 +107,6 @@ def model_data_comparison(
     ds_to_skip: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
-    stationary_frames: list[int,int] | None = None,
 ) -> None:
     """
     Compare model fit to data for all datasets in manifest,
@@ -154,30 +153,36 @@ def model_data_comparison(
         # with outliers labeled and features
         # projected onto principal component axes
         # as defined by fit PCA object pca
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(
-            ds_name, pca = pca, stationary_frames=stationary_frames
-        )
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
 
         # split out data by flow condition
         df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, ds_name, verbose=False)
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
-        for j in range(num_flow):  
-            # if multiple flow conditions, 
-            # we want to restrict data to 
+        for j in range(num_flow):
+            # if multiple flow conditions,
+            # we want to restrict data to
             # only the last 100 frames of
             # that flow condition as our
             # cutoff for stationary data
             if num_flow > 1:
                 frame_max = df_by_flow[j]["frame_number"].max()
                 frame_cutoff = frame_max - 100
-                stationary_data = df_by_flow[j][df_by_flow[j]["frame_number"] > frame_cutoff]
+                stationary_data = df_by_flow[j][
+                    df_by_flow[j]["frame_number"] > frame_cutoff
+                ]
             # else, it is just the whole dataset
             else:
                 stationary_data = df_by_flow[j]
             fig1, _, fig2, _ = model_data_comparison_one_dataset(
-                model, df_by_flow[j], stationary_data, pcs, bins, pplane_xvec, pplane_yvec
+                model,
+                df_by_flow[j],
+                stationary_data,
+                pcs,
+                bins,
+                pplane_xvec,
+                pplane_yvec,
             )
 
             # add dataset name and shear stress to figure
