@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.pipeline import Pipeline
 
+import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
 from cellsmap.util.manifest_preprocessing import (
