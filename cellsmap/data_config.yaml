@@ -679,6 +679,9 @@
   notes: Stopped imaging prior to 48 hours because cells were very packed
   nuclear_label_free_seg_path: ''
   diffae_manifest_fmsid: f68469a1a7f948dc92d20693a59b1aeb
+  valid_timepoints:
+    start: [117]
+    stop: [336]
 20250326_20X:
   original_path: //allen/programs/allencell/data/proj0/353/acc/1d4/7ad/611/c5a/c44/262/ddf/97a/eb/20250326_GE00007488_20X_timelapse_sldy/20250326_GE00007488_20X_timelapse_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250326_eb97addf262c44c5a6117ad1d4acc353
@@ -700,6 +703,9 @@
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 5b56ac5942f74709af9b79c56ffb21c3
+  valid_timepoints:
+    start: [129]
+    stop: [345]
 20250331_20X:
   original_path: //allen/programs/allencell/data/proj0/edc/ed9/2ac/52b/a30/c1a/b40/027/33e/c86/92/20250331_GE00007559_20X_timelapse_sldy/20250331_GE00007559_20X_timelapse_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250331_92c8633e027b40c1aa3052b2aced9edc
