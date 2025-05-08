@@ -21,7 +21,7 @@ from cellsmap.util.manifest_preprocessing import (
 
 def model_data_comparison_one_dataset(
     model: list[Callable],
-    data: pd.DataFrame,
+    stationary_data: pd.DataFrame,
     u: float,
     pcs: list,
     bins: list,
@@ -38,8 +38,9 @@ def model_data_comparison_one_dataset(
 
     Inputs:
     - model: list of Callable functions, [drift, diffusion]
-    - data: DataFrame, feature data for one dataset at one
-        flow condition within that dataset
+    - stationary_data: DataFrame, feature data for one dataset
+        at one flow condition within that dataset, restricted to
+        only the frames where the data are stationary
     - u: float, shear stress at which to evaluate model
         (this is the shear stress from the data)
     - PCs: list of ints, indices of which PCs model
@@ -80,13 +81,13 @@ def model_data_comparison_one_dataset(
     p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
 
     # get "stationary" distribution from data
-    # for extracting just the axes (specified via PCs) we want
+    # for extracting just the axes (specified via pcs) we want
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
     # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = mio.get_feature_cols(data)
+    feat_cols_all = mio.get_feature_cols(stationary_data)
     feat_cols = [feat_cols_all[i] for i in pcs]
-    p_hist = rh.get_stationary_hist(data, feat_cols, bins)
+    p_hist = rh.get_stationary_hist(stationary_data, feat_cols, bins)
 
     fig2, ax2 = dviz.compare_stationary_distributions(p_fit, p_hist, bins)
 
@@ -146,16 +147,36 @@ def model_data_comparison(
         # with outliers labeled and features
         # projected onto principal component axes
         # as defined by fit PCA object pca
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
 
         # split out data by flow condition
         df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, ds_name, verbose=False)
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
-        for j in range(num_flow):  # get bins and centers for data at high and low flow
+        for j in range(num_flow):
+            # if multiple flow conditions,
+            # we want to restrict data to
+            # only the last 100 frames of
+            # that flow condition as our
+            # cutoff for stationary data
+            if num_flow > 1:
+                frame_max = df_by_flow[j]["frame_number"].max()
+                frame_cutoff = frame_max - 100
+                stationary_data = df_by_flow[j][
+                    df_by_flow[j]["frame_number"] > frame_cutoff
+                ]
+            # else, it is just the whole dataset
+            else:
+                stationary_data = df_by_flow[j]
             fig1, _, fig2, _ = model_data_comparison_one_dataset(
-                model, df_by_flow[j], shear_list[j], pcs, bins, pplane_xvec, pplane_yvec
+                model,
+                df_by_flow[j],
+                stationary_data,
+                pcs,
+                bins,
+                pplane_xvec,
+                pplane_yvec,
             )
 
             # add dataset name and shear stress to figure

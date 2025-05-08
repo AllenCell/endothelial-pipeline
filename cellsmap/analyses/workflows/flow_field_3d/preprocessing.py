@@ -34,9 +34,7 @@ datasets_to_use = [
 df = []
 # load the manifest for each dataset, add crop index column
 for name in datasets_to_use:
-    df_ = manifest_io.get_diffae_manifest(name)
-    # add crop index column
-    df_ = diffae_preproc.add_crop_index(df_)
+    df_ = diffae_preproc.get_manifest_for_dynamics_workflows(name)
     # add dataset name to crop index
     # this is to make the crop index unique across datasets
     df_["crop_index"] = f"{name}_" + df_["crop_index"].astype(

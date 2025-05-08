@@ -319,7 +319,7 @@ def phase_portrait(
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
     inits: list[tuple] | None = None,
     t_vec: np.ndarray | None = None,
-    n1_coarse: int = 10,
+    n1_coarse: int = 15,
     n2_coarse: int | None = None,
     params: dict | None = None,
     nullclines: bool = True,
