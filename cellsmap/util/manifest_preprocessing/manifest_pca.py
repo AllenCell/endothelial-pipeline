@@ -11,59 +11,7 @@ from cellsmap.util.dataset_io import get_dataset_info, get_reference_datasets
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
-    """
-    Simple linear classifier to identify outliers based on the following rule:
-        Z = 3/2 * X - 0.6
-        Outlier if Z > Y
-    where X is the first latent dimension and Y is the fourth latent dimension of
-    the 8-dimensional latent space of the Diffusion Autoencoder model.
-
-    This was a simple rule that was found to work well for the datasets with persistent bubbles.
-
-    Inputs:
-    - X: pd.Series (column of pd.DataFrame), first latent dimension of the 8-dimensional latent space
-    - Y: pd.Series (column of pd.DataFrame), fourth latent dimension of the 8-dimensional latent space
-
-    Outputs:
-    - Z>Y: pd.Series, boolean column indicating whether the point is an outlier
-    """
-    Z = 3 / 2.0 * X - 0.6
-    return Z > Y
-
-
-def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
-    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space
-    (indexing starts at 0).
-
-    Inputs:
-    - data: pd.DataFrame, containing the 8-dimensional latent space
-
-    Outputs:
-    - data: pd.DataFrame, with an additional column 'outlier' indicating whether the crop is an outlier
-    """
-    data["outlier"] = simple_linear_classifier(data["feat_1"], data["feat_4"])
-    return data
-
-
-def remove_outliers(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Remove outlier crops from the dataset.
-
-    Inputs:
-    - data: pd.DataFrame, containing the 8-dimensional latent space
-        - must have a column 'outlier' indicating whether the crop is an outlier
-
-    Outputs:
-    - data: pd.DataFrame, with the outliers removed
-    """
-    data = data[~data.outlier]
-    return data
-
-
-def get_pca_reference(df: pd.DataFrame) -> pd.DataFrame:
+def get_pca_reference(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     """
     Select reference timepoints for fitting PCA based on the dataset annotations
 
@@ -73,19 +21,19 @@ def get_pca_reference(df: pd.DataFrame) -> pd.DataFrame:
     Outputs:
     - df: pd.DataFrame, with an additional column 'pca_ref' indicating whether the timepoint is a reference timepoint
     """
-    if "dataset" not in df.columns:
-        raise ValueError("Data must have a column for dataset")
     df["pca_ref"] = False
-    dataset_name = df.dataset.unique()
     dataset_info = get_dataset_info(dataset_name)
     # check that the necessary datasets are present for fitting PCA
     valid_timepoints = dataset_info.get("valid_timepoints")
     if valid_timepoints is None:
+        print(f"Using all timepoints from dataset {dataset_name} for PCA")
         df["pca_ref"] = True
     else:
+        print(f"Reference timepoints for PCA from dataset {dataset_name}: ")
         tps = []
         for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
             tps.extend(list(range(start, stop + 1)))
+            print(f"   - {start} to {stop}")
         valid_subset = df.frame_number.isin(tps)
         df["pca_ref"] = valid_subset
     return df[df.pca_ref]
@@ -105,27 +53,17 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     """
     # first, get list of reference datasets to use for PCA
     reference_datasets = get_reference_datasets()
-    if verbose:
-        print(f"Reference datasets for PCA:")
     data_ref = []
     for name in reference_datasets:
-        if name == "20250402_20X":
-            continue  # skip this dataset, it is not a reference dataset
-        if verbose:
-            print(f"- {name}")
         df_ = manifest_io.get_diffae_manifest(name)  # get the manifest for the dataset
         df_ = get_pca_reference(
-            df_
+            df_, name
         )  # get df with only the reference timepoints for fitting PCA
         data_ref.append(df_)  # append the reference timepoints to the list
 
     data_ref = pd.concat(
         data_ref, ignore_index=True
     )  # concatenate the reference timepoints into a single dataframe
-    # remove outliers
-    if "outlier" not in data_ref.columns:
-        data_ref = get_outliers(data_ref)
-    data_ref = remove_outliers(data_ref)
 
     # fit PCA
     if scale:  # scale the data before fitting PCA

@@ -176,9 +176,6 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
     # load manifest data for dataset ds_name
     df = manifest_io.get_diffae_manifest(ds_name)
 
-    # add outlier column
-    df = manifest_pca.get_outliers(df)
-
     # add crop index column
     df = add_crop_index(df)
 
