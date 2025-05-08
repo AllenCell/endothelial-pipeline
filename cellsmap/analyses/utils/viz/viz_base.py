@@ -1,33 +1,38 @@
 import matplotlib.pyplot as plt
-from typing import Tuple
 
 # set default plot parameters
 global plt_params
 
-plt_params = {'legend.fontsize': 12,
-         'axes.labelsize': 16,
-         'axes.titlesize':18,
-         'xtick.labelsize':14,
-         'ytick.labelsize':14,
-         'figure.titlesize':20}
+plt_params = {
+    "legend.fontsize": 12,
+    "axes.labelsize": 16,
+    "axes.titlesize": 18,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "figure.titlesize": 20,
+}
 plt.rcParams.update(plt_params)
 
-def init_plot(figsize:tuple=(7,6)) -> Tuple[plt.Figure, plt.Axes]:
-    '''
+
+def init_plot(figsize: tuple = (7, 6)) -> tuple[plt.Figure, plt.Axes]:
+    """
     Initialize a matplotlib figure and axes with default settings.
-    
+
     Input:
     - figsize: tuple (default=(7,6)), size of the figure
 
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
-    '''
+    """
     fig, ax = plt.subplots(figsize=figsize)
     return fig, ax
 
-def init_subplots(nrows:int=1, ncols:int=2, figsize:tuple=(14,6)) -> Tuple[plt.Figure, plt.Axes]:
-    '''
+
+def init_subplots(
+    nrows: int = 1, ncols: int = 2, figsize: tuple = (14, 6)
+) -> tuple[plt.Figure, plt.Axes]:
+    """
     Initialize matplotlib figure with multiple subplots.
 
     Input:
@@ -38,24 +43,29 @@ def init_subplots(nrows:int=1, ncols:int=2, figsize:tuple=(14,6)) -> Tuple[plt.F
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
-    '''
+    """
     fig, ax = plt.subplots(nrows, ncols, figsize=figsize)
     return fig, ax
 
-def save_plot(fig:plt.Figure, filename:str, format:str='.png', dpi:int=450) -> None:
-    '''
+
+def save_plot(
+    fig: plt.Figure, filename: str, format: str = ".png", dpi: int = 450
+) -> None:
+    """
     Save a matplotlib figure to a file with the specified filename.
-    
+
     Input:
     - fig: plt.Figure, the figure to save
-    - filename: str, the filepath to save the figure (includes file name, but NOT the file extension)
+    - filename: str, the filepath to save the figure
+        (includes file name, but NOT the file extension)
     - format: str (default='.png'), the file format to save the figure
-    - dpi: int (default=450), the resolution of the figure in dots per inch (dpi) if format is .png
+    - dpi: int (default=450), the resolution of the figure in
+        dots per inch (dpi) if format is .png
 
     Output:
     - None, saves the figure to the specified file
-    '''
-    if format=='.png':
-        fig.savefig(filename+format,dpi=dpi,bbox_inches='tight')
+    """
+    if format == ".png":
+        fig.savefig(filename + format, dpi=dpi, bbox_inches="tight")
     else:
-        fig.savefig(filename+format,bbox_inches='tight')
+        fig.savefig(filename + format, bbox_inches="tight")

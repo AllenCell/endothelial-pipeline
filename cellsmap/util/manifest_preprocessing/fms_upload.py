@@ -1,4 +1,4 @@
-#%%
+# %%
 from aicsfiles import FileManagementSystem
 
 
@@ -51,5 +51,3 @@ def save_file_to_fms(
     fms_file = fms.upload_file(file_path, file_type, annotations)
     print(f"{dataset} File ID: {fms_file.id}")
     return fms_file.id
-
-

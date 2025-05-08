@@ -9,8 +9,8 @@ from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
-    manifest_pca
 )
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%
@@ -87,7 +87,7 @@ print(f"Removed {shape_init[0]-shape_post[0]} outliers from the dataset")
 # %%
 
 # fit PCA to data
-pca = manifest_pca.fit_pca(num_pcs=3) # only working with top 3 PCs
+pca = manifest_pca.fit_pca(num_pcs=3)  # only working with top 3 PCs
 
 # save out PCA object (need later for analysis and summary of fit dynamical systems model)
 manifest_io.save_pca_model(pca, output_savedir)
@@ -102,16 +102,11 @@ for pc in range(3):
 
 # %%
 # Save final manifest for creating flow fields
-df.to_csv(output_savedir+"manifest.csv")
+df.to_csv(output_savedir + "manifest.csv")
 # %%
 # get state space bounds from data between the 0.1 and 0.9 percentiles in each dimension
 # used for plotting in this file, analysis in generate_flow_field.py
-bounds = ddff.set_3D_bounds_from_data(
-    df.PC1, 
-    df.PC2, 
-    df.PC3,
-    excluded_fraction=0.0
-    ) 
+bounds = ddff.set_3D_bounds_from_data(df.PC1, df.PC2, df.PC3, excluded_fraction=0.0)
 
 # plot the PCA components
 # turn these into viz functions?
@@ -128,7 +123,7 @@ for ax, ylab in zip([ax1, ax2], ["PC2", "PC3"]):
         ax.set_ylim(bounds[2][0], bounds[2][-1])
     ax.set_aspect("equal")
 plt.tight_layout()
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_temporal", dpi=72)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_temporal", dpi=72)
 
 # %%
 # plot with example single crop tracks
@@ -145,9 +140,6 @@ ax.set_ylabel("PC2", fontsize=14)
 ax.set_xlim(bounds[0][0], bounds[0][-1])
 ax.set_ylim(bounds[1][0], bounds[1][-1])
 ax.set_aspect("equal")
-plt.legend(loc = "lower left", fontsize=8)
-vb.save_plot(fig, filename=fig_savedir+"reference_dataset_pcs_with_tracks", dpi=72)
-
-
-
+plt.legend(loc="lower left", fontsize=8)
+vb.save_plot(fig, filename=fig_savedir + "reference_dataset_pcs_with_tracks", dpi=72)
 # %%

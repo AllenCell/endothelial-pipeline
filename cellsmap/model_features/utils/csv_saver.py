@@ -1,6 +1,8 @@
-from lightning.pytorch.callbacks import Callback
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+from lightning.pytorch.callbacks import Callback
+
 
 class CSVSaver(Callback):
     def __init__(self, save_dir, meta_keys=[]):
@@ -18,17 +20,18 @@ class CSVSaver(Callback):
         for pred, meta in predictions:
             # exclude cls token
             batch_feats = self.to_dataframe(pred)
-            batch_feats['crop_index'] = range(len(batch_feats))
+            batch_feats["crop_index"] = range(len(batch_feats))
             for k in self.meta_keys:
                 batch_feats[k] = meta[k]
             feats.append(batch_feats)
-        pd.concat(feats).to_csv(self.save_dir / 'predictions.csv', index=False)
+        pd.concat(feats).to_csv(self.save_dir / "predictions.csv", index=False)
+
 
 class MAESaver(CSVSaver):
     def to_dataframe(self, x):
         return pd.DataFrame(x[1:].mean(axis=0))
-    
+
+
 class JEPASaver(CSVSaver):
     def to_dataframe(self, x):
         return pd.DataFrame(x.mean(axis=1))
-    
