@@ -165,7 +165,9 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
     - ds_name: str, name of dataset to load manifest data for
         - This string must match the dataset name in the dataset_name column of df, same
            as the name of the dataset in data_config.yaml
-    - pca: Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
+    - pca: Pipeline or None
+        - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
+        - if None, do not project feature data onto PCA axes
 
     Outputs:
     - df: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
@@ -176,10 +178,13 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
     # add crop index column
     df = add_crop_index(df)
 
-    # project feature data onto PC axes
-    df = project_manifest_to_pcs(df, pca)
+    if pca is None:
+        return df
 
-    return df
+    else:
+        # project feature data onto PC axes
+        df = project_manifest_to_pcs(df, pca)
+        return df
 
 
 def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
