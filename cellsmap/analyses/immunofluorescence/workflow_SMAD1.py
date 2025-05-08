@@ -17,8 +17,6 @@ from cellsmap.util import manifest_io, set_output
 # %%
 DATASET = "20250122_SMAD1"
 MARKER = "SMAD1"
-VISUALIZATION = False
-SAVE_MANIFEST = False
 
 df_manifest = manifest_io.get_diffae_manifest(DATASET)
 
@@ -35,18 +33,15 @@ df = add_if_cols_to_df(
     dapi_channel=2,
 )
 
-# Filter crop with bright puncta
+# Filter crop outlier with bright puncta
 df = df[df["cyto_intensity_SMAD1"] < 1.75e8]
 
 # # Save the updated DataFrame to a new CSV file
-if SAVE_MANIFEST:
-    output_dir = set_output.get_output_path("smad1_analysis")
-    df.to_csv(output_dir + f"{DATASET}_if_results.csv", index=False)
+output_dir = set_output.get_output_path("smad1_analysis")
+df.to_csv(output_dir + f"{DATASET}_IF_results.csv", index=False)
 
 
 # %% Visualize resulting images and features
-# if VISUALIZATION:
-# Plot the distribution for each feature
 for feature in [
     f"crop_intensity_{MARKER}",
     f"nuc_intensity_{MARKER}",
@@ -54,10 +49,7 @@ for feature in [
     f"nuc_to_cyto_ratio_{MARKER}",
 ]:
     plot_intensity_distribution(df, feature)
-# %% what smad antibody, was it phosphorylated?
-# Plot the sum projections for a row of the DataFrame
-# resegment using dapi
-
+# %%
 row = df.iloc[2]
 
 seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=2)
