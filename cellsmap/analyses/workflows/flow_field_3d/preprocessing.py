@@ -35,8 +35,6 @@ df = []
 # load the manifest for each dataset, add outlier column, add crop index column
 for name in datasets_to_use:
     df_ = manifest_io.get_diffae_manifest(name)
-    # add outlier column
-    df_ = manifest_pca.get_outliers(df_)
     # add crop index column
     df_ = diffae_preproc.add_crop_index(df_)
     # add dataset name to crop index
