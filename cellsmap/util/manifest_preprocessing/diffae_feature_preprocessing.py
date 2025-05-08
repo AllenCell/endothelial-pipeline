@@ -170,7 +170,8 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
         - if None, do not project feature data onto PCA axes
 
     Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
+    - df: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name (projected
+    onto PC axes if pca is not None)
     """
     # load manifest data for dataset ds_name
     df = manifest_io.get_diffae_manifest(ds_name)
