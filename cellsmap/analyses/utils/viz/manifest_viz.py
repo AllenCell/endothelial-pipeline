@@ -200,7 +200,7 @@ def plot_latent_component_mean(feats: np.ndarray) -> Tuple:
 
     # get mean and standard deviation of feature data projected onto top 3 PCs
     # mean and standard deviation taken over all crops at each timepoint
-    num_T = feats.shape[1]
+    num_frames = feats.shape[1]
     # take standard deviation and mean over all crops at each timepoint
     st_dev = np.std(feats, axis=0)
     mean_feats = np.mean(feats, axis=0)
