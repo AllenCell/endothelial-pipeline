@@ -320,7 +320,7 @@
     likely standard laser power (Check JAN QC file)
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: 9ea1801b919644628977c7be4aba1f84
+  diffae_manifest_fmsid: 17f900047bfe46cf9f34f72817f9dda8
 20250131_pairedPreFixation:
   original_path: //allen/programs/allencell/data/proj0/2af/f39/d6d/550/023/278/641/1a8/5a5/83c/87/20250131_GE00006569_20X_PreFix_sldy/20250131_GE00006569_20X_PreFix_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_8783c5a51a8641278023550d6df392af
