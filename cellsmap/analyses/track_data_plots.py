@@ -925,7 +925,6 @@ def main(
 
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
 
-    dataset_name = None
     if dataset_name == None:
         config_data = load_config(config_type="data")
         dataset_name_list = [
