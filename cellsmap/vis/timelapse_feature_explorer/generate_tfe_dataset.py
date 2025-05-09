@@ -3,7 +3,12 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from cellsmap.util import manifest_io
+from cellsmap.analyses.track_data_plots import (
+    calculate_derived_data_dynamics_dependent,
+    calculate_derived_data_dynamics_independent,
+    merge_segprops_and_track_data,
+)
+from cellsmap.util.dataset_io import get_measurement_data_raws, get_tracking_data_raws
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
 from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_fomatting import (
     update_manifest_for_tfe,
@@ -17,7 +22,6 @@ def generate_tfe_dataset(
     segmentation: str,
     output_dir: Path,
     source_dir: Path,
-    manifest_name: str,
     backdrops: bool,
 ) -> None:
     """
@@ -28,13 +32,23 @@ def generate_tfe_dataset(
         position (int): Position index.
         output_dir (Path): Directory to save the output.
         source_dir (Path): Source directory for the data.
-        manifest_name (str): Path to the manifest file.
     """
     # Ensure output directory exists
     output_dir = output_dir / f"{dataset}_P{position}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df = manifest_io.read_file_to_dataframe(manifest_name)
+    # df_tracking = manifest_io.read_file_to_dataframe(manifest_name)
+    df_tracking = get_tracking_data_raws(
+        [dataset],
+        as_dask=False,
+    )
+    df_segprops = get_measurement_data_raws(
+        [dataset], kind="segmentation_properties", as_dask=False
+    )
+    merge_features = merge_segprops_and_track_data(df_segprops, df_tracking)
+    df_position = merge_features[merge_features["position"] == position]
+    df = calculate_derived_data_dynamics_independent(df_position)
+    df = calculate_derived_data_dynamics_dependent(df)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
 
     if backdrops:
@@ -47,7 +61,7 @@ def generate_tfe_dataset(
 
     convert_colorizer_data(
         data=df,
-        output_dir=output_dir / f"{segmentation}",
+        output_dir=output_dir,
         source_dir=source_dir,
         object_id_column="label",
         times_column="image_index",
@@ -67,22 +81,17 @@ def generate_tfe_dataset(
 dataset = "20241120_20X"
 position = 0
 program_dir = Path("//allen/aics/endothelial/morphological_features/")
-# cell_seg is here
 source_dir = Path(f"{program_dir}/segmentations/cdh5_classic_seg/20241120_20X/P0")
-manifest_name = f"{program_dir}/analysis/cdh5_classic_seg_tracking/20241120_20X/P0/20241120_20X_P0_tracking.tsv"
-nifest_name = "//allen/aics/users/chantelle.leveille/repos/cellsmap2/cellsmap/results/tracking_output/20241120_20X_P0_tracking.tsv"
-# %%
+
 generate_tfe_dataset(
     dataset=dataset,
     position=position,
     segmentation="cell_seg",
-    output_dir=Path("//allen/aics/assay-dev/users/Chantelle/colorizer_data"),
+    output_dir=program_dir / "timelapse_feature_explorer",
     source_dir=source_dir,
-    manifest_name=manifest_name,
     backdrops=False,
 )
 # %%
-# %%
-# nuc
-# source_dir = Path("//allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X/P0")
-# ma
+# feature_info = {
+#   "dalignment_dt_deg_rel_to_flow": FeatureInfo(label="dalignment_dt_deg_rel_to_flow", min={some value}, max={some_value}, key="dalignment_dt_deg_rel_to_flow")
+# }
