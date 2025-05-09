@@ -82,6 +82,7 @@ def update_manifest_for_tfe(
             "centroid_y",
             "cell_centroid",
             "cell_label",
+            "dalignment_dt_deg_rel_to_flow",
         ],
         inplace=True,
     )

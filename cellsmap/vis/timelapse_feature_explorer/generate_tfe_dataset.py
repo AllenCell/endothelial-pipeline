@@ -78,20 +78,17 @@ def generate_tfe_dataset(
 
 
 # %%
-dataset = "20241120_20X"
-position = 0
-program_dir = Path("//allen/aics/endothelial/morphological_features/")
-source_dir = Path(f"{program_dir}/segmentations/cdh5_classic_seg/20241120_20X/P0")
+for dataset in ["20241217_20X", "20250409_20X"]:
+    position = 0
+    program_dir = Path("//allen/aics/endothelial/morphological_features/")
+    source_dir = Path(f"{program_dir}/segmentations/cdh5_classic_seg/{dataset}/P0")
 
-generate_tfe_dataset(
-    dataset=dataset,
-    position=position,
-    segmentation="cell_seg",
-    output_dir=program_dir / "timelapse_feature_explorer",
-    source_dir=source_dir,
-    backdrops=False,
-)
+    generate_tfe_dataset(
+        dataset=dataset,
+        position=position,
+        segmentation="cell_seg",
+        output_dir=program_dir / "timelapse_feature_explorer",
+        source_dir=source_dir,
+        backdrops=True,
+    )
 # %%
-# feature_info = {
-#   "dalignment_dt_deg_rel_to_flow": FeatureInfo(label="dalignment_dt_deg_rel_to_flow", min={some value}, max={some_value}, key="dalignment_dt_deg_rel_to_flow")
-# }
