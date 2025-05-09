@@ -328,6 +328,17 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
     return None
 
 
+def get_valid_timepoints(dataset_name: str) -> dict:
+    """
+    Get the frames marked for use in DiffAE feature
+    analysis workflows for a given dataset.
+    These are determined by an experimentalist by eye
+    and are added to the dataset config file.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info.get("valid_timepoints")
+
+
 def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
@@ -432,7 +443,9 @@ def get_tracking_data_raws(
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
     if tracking_data_list:
-        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
+        tracking_dataframe = table_reader.concat(
+            tracking_data_list, axis=0, ignore_index=True
+        )
     else:  # create an empty dataframe
         tracking_dataframe = table_reader.DataFrame.from_dict({})
     return tracking_dataframe
@@ -467,7 +480,9 @@ def get_tracking_data_filtered(
             print(f"No filtered tracking data found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
+    tracking_dataframe = table_reader.concat(
+        tracking_data_list, axis=0, ignore_index=True
+    )
     return tracking_dataframe
 
 

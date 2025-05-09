@@ -82,10 +82,25 @@ def kramers_moyal_train_test_one_dataset(
     x_pts = []
 
     for j in range(num_flow):
+        # if multiple flow conditions,
+        # we want to restrict data to
+        # only the last 100 frames of
+        # that flow condition as our
+        # cutoff for stationary data
+        if num_flow > 1:
+            frame_max = df_by_flow[j]["frame_number"].max()
+            frame_cutoff = frame_max - 100
+            stationary_data = df_by_flow[j][
+                df_by_flow[j]["frame_number"] > frame_cutoff
+            ]
+        # else, it is just the whole dataset
+        else:
+            stationary_data = df_by_flow[j]
+
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
         traj_list, d_traj_list = rh.get_traj_and_diff(
-            df_by_flow[j], feat_cols=feat_cols
+            stationary_data, feat_cols=feat_cols
         )
 
         # get bins for histogramming
@@ -188,6 +203,7 @@ def build_kramers_moyal_train_test(
         (used to compute Kramers-Moyal coefficients)
     - ds_to_skip: list of dataset names to skip when building
         train test sets (e.g., if a dataset is known to be problematic)
+    - fig_savedir: directory to save figures
     - train_frac: fraction of data to use for training (default is 0.8)
     - method: method to use for computing Kramers-Moyal coefficients
         ('kernel' or 'histogram', default is 'kernel')
@@ -232,8 +248,9 @@ def build_kramers_moyal_train_test(
         print("**** Generating train/test sets for dataset", ds_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
-        # projected onto principal component axes as defined by fit PCA object pca
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca)
+        # projected onto principal component axes as defined
+        # by fit PCA object pca. Restrict to stationary frames if provided
+        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
