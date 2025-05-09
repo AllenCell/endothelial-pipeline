@@ -62,7 +62,7 @@ def main(config_name: str = "default") -> None:
     logspace_bw = np.logspace(np.log10(0.025), np.log10(0.25), num=10)
 
     # loop over bandwidths
-    for j, bw in enumerate(logspace_bw):
+    for bw in logspace_bw:
         kernel_params = {
             "kernel": kernel_type,
             "bandwidth": bw,
@@ -90,3 +90,5 @@ def main(config_name: str = "default") -> None:
 
 if __name__ == "__main__":
     fire.Fire(main)
+
+# %%
