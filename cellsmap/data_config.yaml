@@ -21,6 +21,7 @@
   nuclear_seg_manifest_fmsid: a90e321dff584e7f95e0c5e81122c751
   diffae_manifest_fmsid: ''
   tracking_integration_fmsid: 9add4f8e00a24889bb27ac6cffc1d1d8
+  diffae_tracking_integration_fmsid: 35068038241e46b184f0aaf98d72a4ec
 20241022_20X_mito:
   original_path: //allen/programs/allencell/data/proj0/17e/558/aad/fa4/9c7/dbb/24a/ac9/f25/950/88/20241022_GE00007380_20X_timelapse_SLDY/20241022_GE00007380_20X_timelapse_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241022_88950f25ac924adbb9c7fa4aad55817e
@@ -117,6 +118,7 @@
     stop: [450]
   is_reference: true
   tracking_integration_fmsid: f053d3a12e454b109061c0e8ac891548
+  diffae_tracking_integration_fmsid: 90251a5c7c0146e58a9e7d3277be3913
 20241203_20X:
   original_path: //allen/programs/allencell/data/proj0/a61/b0d/e86/6b6/175/2b9/745/3da/73b/b61/9d/20241203_GE00007661_20X_timelapse_sldy/20241203_GE00007661_20X_timelapse_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241203_9db6173b3da7452b91756b6e86b0da61
@@ -164,6 +166,7 @@
     stop: [100, 420]
   is_reference: true
   tracking_integration_fmsid: 040858bd6672470e875180fdd5ddd556
+  diffae_tracking_integration_fmsid: 31d8da76dbda40ce8d289619a6d8643c
 20250110_paired20X:
   original_path: //allen/programs/allencell/data/proj0/030/79c/609/5c6/ec5/d9b/047/4ff/376/5cc/d9/20250110_GE00006323_20X_zstacks_SLDY/20250110_GE00006323_20X_zstacks_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250110_d95cc3764ff047d9bec55c660979c030
@@ -838,3 +841,4 @@
     stop: [410]
   is_reference: true
   tracking_integration_fmsid: 2d95d16b473d4c849c6cf744c7dc6486
+  diffae_tracking_integration_fmsid: 3e7dd9a9e4a040f8afb1bef774abb04b
