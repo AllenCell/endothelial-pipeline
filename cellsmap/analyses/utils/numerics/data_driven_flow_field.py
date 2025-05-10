@@ -3,28 +3,30 @@ from collections.abc import Callable
 import numpy as np
 from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
+from sklearn.pipeline import Pipeline
+
+import cellsmap.analyses.utils.io.vtk_io as vtk_io
+import cellsmap.analyses.utils.regression_helper as rh
+import cellsmap.analyses.utils.viz.flow_field_viz as ffv
+import cellsmap.util.manifest_io as manifest_io
+import cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing as diffae_preproc
 
 
 def set_3d_bounds_from_data(
-    x: np.array, y: np.array, z: np.array, excluded_fraction: float = 0.1
+    list_of_datasets: list[str], pca: Pipeline
 ) -> list[np.ndarray]:
-    """
-    Set the bounds for the 3D flow field based on the data
-    (leaving out a fraction of the data
-    based on the excluded_fraction parameter).
 
-    Inputs:
-    - x, y, z: 1D arrays of the data points in the three dimensions
-    - excluded_fraction: fraction of data to exclude from
-        the bounds (default is 0.1)
+    bounds = [[100, -100], [100, -100], [100, -100]]
 
-    Outputs:
-    - bounds: list of 3D arrays with the upper and
-        lower bounds for each dimension
-    """
-    bounds = []
-    for var in [x, y, z]:
-        bounds.append(np.percentile(var, [excluded_fraction, 100 - excluded_fraction]))
+    for name in list_of_datasets:
+        df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+        feat_cols = manifest_io.get_feature_cols(df)[:3]
+        for j in range(3):
+            bounds[j][0] = min(bounds[j][0], df[feat_cols[j]].min())
+            bounds[j][1] = max(bounds[j][1], df[feat_cols[j]].max())
+
+    bounds = [np.array(b) for b in bounds]
+
     return bounds
 
 
@@ -253,3 +255,105 @@ def convert_coordinates_from_volume_to_pc(
     """
     xpc = origin + xvol * grid_spacing
     return xpc
+
+
+def get_and_viz_ddff(
+    name: str,
+    pca: Pipeline,
+    kernel_params: dict,
+    dt: float,
+    bins: list[np.ndarray],
+    centers: list[np.ndarray],
+    time_span: list,
+    init: np.ndarray,
+    fig_savedir: str,
+    vtk_savedir: str,
+) -> np.ndarray:
+
+    # load dataframe and get top 3 PCs
+    df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+    feat_cols = manifest_io.get_feature_cols(df)[:3]
+
+    # get list of per-crop trajectories, the corresponding
+    # displacement vectors, and time differences
+    traj_list, d_traj_list = rh.get_traj_and_diff(df, feat_cols)
+    # get drift and diffusion estimates
+    # (Kramers-Moyal coefficients)
+    drift_km, diff_km = rh.get_kramers_moyal(
+        traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
+    )
+
+    # compute interpolated flow field - drift
+    flow_field_dict = compute_extrapolated_vector_field(
+        drift_km, centers, interpolator="nearest"
+    )
+    # save flow field as vtk image data
+    vtk_io.save_vector_field_as_vtk(
+        flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk"
+    )
+
+    # compute interpolated diffusion field
+    # (diagonal diffusion tensor represented as 3D vector field)
+    diffusion_field_dict = compute_extrapolated_vector_field(
+        diff_km, centers, interpolator="nearest"
+    )
+    # save diffusion field as vtk image data
+    vtk_io.save_vector_field_as_vtk(
+        diffusion_field_dict, vtk_savedir + f"diffusion_field_{name}.vtk"
+    )
+
+    ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
+    # with initial conditions given by init
+    # solve IVP, get back trajectory
+    traj = solve_ddff_ode(flow_field_dict, init, time_span)
+
+    # call main flow field viz function (makes and saves plots)
+    ffv.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+
+    return traj
+
+
+def ddff_main(
+    list_of_datasets: list[str],
+    pca: Pipeline,
+    kernel_params: dict,
+    dt: float,
+    time_span: list,
+    init: np.ndarray,
+    fig_savedir: str,
+    vtk_savedir: str,
+    output_savedir: str,
+) -> None:
+    # get bins for KMCs
+    bounds = set_3d_bounds_from_data(list_of_datasets, pca)
+    num_bins = [50, 50, 50]
+    bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
+
+    # get experimental condition
+    # descriptions of each dataset
+    condition_dict = diffae_preproc.get_dataset_descriptions(
+        list_of_datasets, simple=True
+    )
+
+    # initialize dict to save trajectories
+    # used for crop reconstruction
+    traj_dict = {}
+    for name in list_of_datasets:
+        traj = get_and_viz_ddff(
+            name,
+            pca,
+            kernel_params,
+            dt,
+            bins,
+            centers,
+            time_span,
+            init,
+            fig_savedir,
+            vtk_savedir,
+        )
+
+        # save out using dataset descriptions
+        condition = condition_dict[name]
+        traj_dict[condition] = traj
+
+    np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)

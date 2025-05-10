@@ -28,14 +28,14 @@ def main(config_name: str = "default") -> None:
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path
     # function will create it
-    workflow_output_folder = "stochastic_dynamics/kernel_sweep/outputs"
+    workflow_output_folder = "kernel_sweep/outputs"
     savedir = get_output_path(workflow_output_folder)
 
     # get output subdirectory for figures that workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path
     # function will create it
-    workflow_fig_folder = "stochastic_dynamics/kernel_sweep/figs"
+    workflow_fig_folder = "kernel_sweep/figs"
     fig_savedir = get_output_path(workflow_fig_folder)
 
     # fit PCA to reference timepoints of
@@ -83,8 +83,24 @@ def main(config_name: str = "default") -> None:
                 continue
             print(f"Computing drift and diffusion fields for dataset {name}")
 
+            # 2D viz outputs
             ddd_main.get_and_analyze_ddd(
                 name, pca, kernel_params, fig_savedir_kernel, config
+            )
+
+            # 3D viz outputs
+            # get list of per-crop trajectories, the corresponding
+            # displacement vectors, and time differences
+            traj_list, d_traj_list = rh.get_traj_and_diff(df_, feat_cols)
+            # get drift and diffusion estimates
+            # (Kramers-Moyal coefficients)
+            drift_km, diff_km = rh.get_kramers_moyal(
+                traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
+            )
+
+            # compute interpolated flow field - drift
+            flow_field_dict = ddff.compute_extrapolated_vector_field(
+                drift_km, centers, interpolator="nearest"
             )
 
 
