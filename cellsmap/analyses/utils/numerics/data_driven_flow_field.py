@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from typing import Callable
 
 import numpy as np
 from scipy import interpolate as spinterp

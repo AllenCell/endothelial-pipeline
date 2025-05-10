@@ -302,6 +302,7 @@ def plot_flow_field_slices(
         vb.save_plot(
             fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
         )  # save the figure
+        plt.close()  # close the figures
 
     return fig, ax
 
@@ -380,9 +381,9 @@ def flow_field_viz_main(
     ax[1].set_title(f"PC2 = {pc_vals[1]:.2f}")
     plt.tight_layout()
     plt.show()
-
     # save the figure
     vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
+    plt.close()  # close the figure
 
     # 2) plot entire trajectory over flow field
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids))
@@ -392,9 +393,9 @@ def flow_field_viz_main(
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
     plt.tight_layout()
     plt.show()
-    vb.save_plot(
-        fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300
-    )  # save the figure
+    # save the figure
+    vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
+    plt.close()  # close the figure
 
     # 3) trajectory with equally spaced interpolated points
     interpolated_points = ddff.interpolate_on_curve(traj)
@@ -411,5 +412,6 @@ def flow_field_viz_main(
     vb.save_plot(
         fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300
     )
+    plt.close()  # close the figure
 
     return
