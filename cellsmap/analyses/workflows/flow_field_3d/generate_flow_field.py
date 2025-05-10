@@ -7,7 +7,7 @@ from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 
-def main(datasets_to_use: list | None = None) -> None:
+def main(list_of_datasets: list | None = None) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the
     DiffAE crop-based features for each of the single flow datasets.
@@ -22,8 +22,8 @@ def main(datasets_to_use: list | None = None) -> None:
 
     # if not provided in command line, run
     # on default list of datasets
-    if datasets_to_use is None:
-        datasets_to_use = [
+    if list_of_datasets is None:
+        list_of_datasets = [
             "20241120_20X",
             "20241217_20X",
             "20250409_20X",
@@ -52,7 +52,7 @@ def main(datasets_to_use: list | None = None) -> None:
     init = np.array([-0.1, -0.7, -0.1])
 
     ddff.ddff_main(
-        datasets_to_use,
+        list_of_datasets,
         pca,
         kernel_params,
         dt,
