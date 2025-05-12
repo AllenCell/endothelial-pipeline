@@ -1,16 +1,23 @@
-from typing import List
+from pathlib import Path
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from skimage.color import label2rgb
+
+from cellsmap.analyses.utils.viz import viz_base as vb
 
 
 # %%
 def projection_image(
     sum_proj_img: np.ndarray,
     seg_mask: np.ndarray,
-    sum_proj_img_in_nuclei: np.ndarray,
-    sum_projection_not_in_nuclei: np.ndarray,
+    dataset: str,
+    position: str,
+    start_x: int,
+    start_y: int,
+    output_dir: str,
 ) -> None:
     """
     Display the sum projection, segmentation mask, and sum projection in nuclei
@@ -21,28 +28,28 @@ def projection_image(
         seg_mask (np.ndarray): The segmentation mask.
         sum_proj_img_in_nuclei (np.ndarray): The sum projection image within nuclei.
     """
-    images: List[np.ndarray] = [
-        sum_proj_img,
-        seg_mask,
-        sum_proj_img_in_nuclei,
-        sum_projection_not_in_nuclei,
-    ]
-    titles: List[str] = [
-        "Sum Projection",
-        "Segmentation Mask",
-        "Sum Projection in Nuclei",
-        "Sum Projection Cytoplasmic",
-    ]
 
-    # Create a figure with 1 row and 3 columns
-    fig, axes = plt.subplots(1, 4, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(10, 5))
+    colored_mask = label2rgb(seg_mask, bg_label=0, kind="overlay")
 
-    for ax, img, title in zip(axes, images, titles):
-        ax.imshow(img, cmap="gray")
-        ax.set_title(title)
+    axes[0].imshow(sum_proj_img, cmap="gray")
+    axes[0].set_title("Sum Projection")
+    axes[0].axis("off")
 
-    plt.tight_layout()  # Adjust spacing between subplots
+    axes[1].imshow(colored_mask)
+    axes[1].set_title("Nuclear Segmentation Mask")
+    axes[1].axis("off")
+
+    axes[2].imshow(sum_proj_img, cmap="gray")
+    axes[2].imshow(colored_mask, alpha=0.2)
+    axes[2].set_title("Overlay")
+    axes[2].axis("off")
+
+    plt.tight_layout()
     plt.show()
+
+    fname = f"{dataset}_{position}_crop_{start_x}_{start_y}_projection"
+    vb.save_plot(fig, output_dir + fname)
 
 
 # %%
@@ -94,11 +101,9 @@ def histogram_intensity_per_slice(
                 "Frequency" if i % num_cols == 0 else ""
             )  # Only show y-label on the first column
 
-        # Hide any unused subplots
         for j in range(num_slices, len(axes)):
             axes[j].axis("off")
 
-        # Adjust layout
         plt.tight_layout()
         plt.show()
 
@@ -106,13 +111,20 @@ def histogram_intensity_per_slice(
 def plot_intensity_distribution(
     df: pd.DataFrame,
     xlabel: str,
-    ylabel: str = "Frequency",
+    dataset: str,
+    output_dir: str,
+    xlim: Optional[int] = None,
+    ylim: Optional[int] = None,
 ) -> None:
     """
     Plot the distribution of a specified intensity feature from the DataFrame.
     """
-    plt.figure(figsize=(10, 10))
-    plt.hist(df[xlabel].to_numpy(), bins=50, alpha=0.7, edgecolor="black")
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.hist(df[xlabel].to_numpy(), bins=50, alpha=0.7, edgecolor="black")
+    ax.set_xlabel(xlabel)
+    ax.set_xlim(0, xlim)
+    ax.set_ylim(0, ylim)
+    ax.set_ylabel("Frequency")
     plt.show()
+    fname = f"{dataset}_{xlabel}_distribution"
+    vb.save_plot(fig, output_dir + fname)

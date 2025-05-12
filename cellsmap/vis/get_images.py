@@ -1,8 +1,10 @@
-from cellsmap.util import dataset_io
 from pathlib import Path
-from bioio import BioImage
 from typing import Literal
+
 import dask.array as da
+from bioio import BioImage
+
+from cellsmap.util import dataset_io
 
 
 def get_zarr_img_for_dataset(
@@ -26,7 +28,7 @@ def get_timepoint(
     """
     Get the image data for a specific timepoint.
     """
-    img_timepoint = img.get_image_dask_data("TCZYX", T=timepoint)
+    img_timepoint = img.get_image_dask_data("CZYX", T=timepoint)
     return img_timepoint
 
 
@@ -59,4 +61,3 @@ def get_crop(
     img_crop = img.get_image_dask_data("TCZYX", **kwargs)
 
     return img_crop
-
