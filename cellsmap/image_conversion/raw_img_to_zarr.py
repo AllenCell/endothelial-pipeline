@@ -38,7 +38,7 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20241022_20X_mito 20241022
+    python cellsmap/image_conversion/raw_img_to_zarr.py 20250415_SlideH_20X 20250415 --channel_names EGFP,BF,NucViolet
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -51,10 +51,10 @@ The resulting zarr contains images from one scene.
 
 def convert_dataset(
     dataset: str,
-    output_dataset_name: str,  # barcode_date
+    output_dataset_name: str,  # date
     output_path: str = DEFAULT_OUTPUT_PATH,
     channel_names: list[str] = ["EGFP", "BF"],
-):
+) -> None:
     img = BioImage(get_original_path(dataset))
     if get_microscope(dataset) == "3i":
         physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
@@ -100,7 +100,7 @@ def convert_dataset(
             count += 1
 
 
-def parse_arguments():
+def parse_arguments() -> tuple[str, str, str, list[str]]:
     parser = argparse.ArgumentParser(
         description="Process sldy or nd2 images and write to Zarr format."
     )
