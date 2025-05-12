@@ -10,7 +10,7 @@ from cellsmap.analyses.track_data_plots import (
 )
 from cellsmap.util.dataset_io import get_measurement_data_raws, get_tracking_data_raws
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
-from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_fomatting import (
+from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_formatting import (
     update_manifest_for_tfe,
 )
 
@@ -78,7 +78,7 @@ def generate_tfe_dataset(
 
 
 # %%
-for dataset in ["20241217_20X", "20250409_20X"]:
+for dataset in ["20241120_20X", "20241217_20X", "20250409_20X"]:
     position = 0
     program_dir = Path("//allen/aics/endothelial/morphological_features/")
     source_dir = Path(f"{program_dir}/segmentations/cdh5_classic_seg/{dataset}/P0")
