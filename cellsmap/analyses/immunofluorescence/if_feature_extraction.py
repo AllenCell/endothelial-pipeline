@@ -66,30 +66,6 @@ def sum_projection(img: Union[np.ndarray, da.Array]) -> np.ndarray:
     return np.array(result)
 
 
-def sum_projection_in_mask(sum_proj_img: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """
-    Create a sum projection of the image in the masked region.
-    Returns a 2D array with masked values retained and others set to zero.
-    """
-    # Create a copy of the input image and set values outside the mask to zero
-    result = np.zeros_like(sum_proj_img)
-    result[mask] = sum_proj_img[mask]
-    return result
-
-
-def sum_projection_not_in_mask(
-    sum_proj_img: np.ndarray, mask: np.ndarray
-) -> np.ndarray:
-    """
-    Create a sum projection of the image not in the masked region.
-    Returns a 2D array with non-masked values retained and others set to zero.
-    """
-    # Create a copy of the input image and set values inside the mask to zero
-    result = np.zeros_like(sum_proj_img)
-    result[~mask] = sum_proj_img[~mask]
-    return result
-
-
 def get_segmentation_mask_crop(
     row: pd.Series,
     resolution_level: int,

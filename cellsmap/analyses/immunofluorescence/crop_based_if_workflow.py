@@ -5,8 +5,6 @@ from cellsmap.analyses.immunofluorescence.if_feature_extraction import (
     get_raw_intensity_crop,
     get_segmentation_mask_crop,
     sum_projection,
-    sum_projection_in_mask,
-    sum_projection_not_in_mask,
 )
 from cellsmap.analyses.immunofluorescence.plots import (
     plot_intensity_distribution,
@@ -23,8 +21,7 @@ output_dir = set_output.get_output_path("smad1_analysis")
 df_manifest = manifest_io.get_diffae_manifest(DATASET)
 
 # %% Filter FOVs that crop nuclei in Z
-filter_positions = ["P0", "P1", "P2", "P3", "P4"]
-df_filtered = df_manifest[~df_manifest["position"].isin(filter_positions)]
+df_filtered = df_manifest[df_manifest["position"].isin(["P5", "P6", "P7", "P8", "P9"])]
 df_filtered = df_filtered.reset_index(drop=True)  # Reset the index and drop the old one
 
 # %%
@@ -34,7 +31,6 @@ df = add_if_cols_to_df(
     nuclear_seg_channel=0,
     antibody_channel=3,
     dapi_channel=2,
-    # n_jobs=32,
 )
 # %%
 # Filter crop outlier with bright puncta
@@ -56,7 +52,7 @@ for feature, xlim in [
         df, xlabel=feature, dataset=DATASET, output_dir=output_dir, xlim=xlim, ylim=13
     )
 # %%
-index = 1
+index = 2
 row = df.iloc[index]
 
 seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=0, binary=False)
