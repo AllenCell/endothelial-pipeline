@@ -33,13 +33,13 @@ df = add_if_cols_to_df(
     dapi_channel=2,
 )
 # %%
-# Filter crop outlier with bright puncta
+# Filter crop outlier with bright puncta outlier
 df = df[df[f"cyto_mean_intensity_{MARKER}"] < 3000]
 # # Save the updated DataFrame to a new CSV file
 # df.to_csv(output_dir + f"{DATASET}_IF_results.csv", index=False)
 
 
-# %% Visualize resulting images and features
+# %% Visualize the intensity distributions
 for feature, xlim in [
     (f"nuc_mean_intensity_{MARKER}", 2600),
     (f"cyto_mean_intensity_{MARKER}", 2600),
@@ -51,7 +51,7 @@ for feature, xlim in [
     plot_intensity_distribution(
         df, xlabel=feature, dataset=DATASET, output_dir=output_dir, xlim=xlim, ylim=13
     )
-# %%
+# %% Visualize resulting images and intensity
 index = 2
 row = df.iloc[index]
 
