@@ -35,8 +35,13 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     model_path: Path
         The path where the downloaded model artifacts are saved.
     """
-    artifact_path = "requirements/eval-requirements.txt"
-    download_mlflow_artifact(run_id, artifact_path, model_path)
+    try:
+        artifact_path = "requirements/train-requirements.txt"
+        download_mlflow_artifact(run_id, artifact_path, model_path)
+    except ValueError:
+        artifact_path = "requirements/eval-requirements.txt"
+        download_mlflow_artifact(run_id, artifact_path, model_path)
+
     with open(model_path / artifact_path, "r") as f:
         lines = f.readlines()
     for line in lines:
@@ -68,7 +73,12 @@ def generate_overrides(
         "callbacks.prediction_saver": {
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
             "save_dir": str(save_path),
-            "meta_keys": ["T", "start_y", "start_x", "filename_or_obj"],
+            "meta_keys": [
+                "T",
+                "start_y",
+                "start_x",
+                "filename_or_obj",
+            ],
             "save_suffix": f"{dataset_name}_{model_name}_features",
         },
     }
@@ -190,13 +200,12 @@ def apply_model_single(
         mlflow_id=mlflow_id,
         save_path=save_path,
     )
-    commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
     if upload_to_fms:
         file_id = save_file_to_fms(
             prediction_path,
             dataset_name,
-            commit_hash,
+            get_cytodl_commit_hash(mlflow_id, model_path),
             misc_notes="",
             mlflow_run_id=mlflow_id,
         )
