@@ -119,6 +119,7 @@
   is_reference: true
   tracking_integration_fmsid: f053d3a12e454b109061c0e8ac891548
   diffae_tracking_integration_fmsid: 90251a5c7c0146e58a9e7d3277be3913
+  cell_mean_features: 320cf8ae34394c72a7397d1c39b7d9e9
 20241203_20X:
   original_path: //allen/programs/allencell/data/proj0/a61/b0d/e86/6b6/175/2b9/745/3da/73b/b61/9d/20241203_GE00007661_20X_timelapse_sldy/20241203_GE00007661_20X_timelapse_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241203_9db6173b3da7452b91756b6e86b0da61
@@ -167,6 +168,7 @@
   is_reference: true
   tracking_integration_fmsid: 040858bd6672470e875180fdd5ddd556
   diffae_tracking_integration_fmsid: 31d8da76dbda40ce8d289619a6d8643c
+  cell_mean_features: 73bd4f41c6b049119b3f4688224f5edb
 20250110_paired20X:
   original_path: //allen/programs/allencell/data/proj0/030/79c/609/5c6/ec5/d9b/047/4ff/376/5cc/d9/20250110_GE00006323_20X_zstacks_SLDY/20250110_GE00006323_20X_zstacks_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250110_d95cc3764ff047d9bec55c660979c030
@@ -842,3 +844,4 @@
   is_reference: true
   tracking_integration_fmsid: 2d95d16b473d4c849c6cf744c7dc6486
   diffae_tracking_integration_fmsid: 3e7dd9a9e4a040f8afb1bef774abb04b
+  cell_mean_features: ddfe344afade4031ad4e2cff70c77748

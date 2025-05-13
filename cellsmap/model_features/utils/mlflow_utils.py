@@ -34,6 +34,18 @@ def download_mlflow_artifact(
         print(f"Artifact exists! Skipping download of {artifact_path}...")
         return
     mlflow.set_tracking_uri(tracking_uri)
+
+    available_artifacts = mlflow.artifacts.list_artifacts(
+        run_id=run_id,
+        tracking_uri=tracking_uri,
+        artifact_path=Path(artifact_path).parent,
+    )
+    available_artifacts = [obj.path for obj in available_artifacts]
+    if artifact_path not in available_artifacts:
+        raise ValueError(
+            f"Artifact {artifact_path} not found in run {run_id}. Available artifacts: {available_artifacts}"
+        )
+
     if not dst_path.exists():
         dst_path.mkdir(parents=True, exist_ok=True)
     mlflow.artifacts.download_artifacts(
