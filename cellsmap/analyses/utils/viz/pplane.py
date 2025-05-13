@@ -319,7 +319,7 @@ def phase_portrait(
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
     inits: list[tuple] | None = None,
     t_vec: np.ndarray | None = None,
-    n1_coarse: int = 10,
+    n1_coarse: int = 15,
     n2_coarse: int | None = None,
     params: dict | None = None,
     nullclines: bool = True,
@@ -361,9 +361,13 @@ def phase_portrait(
     # of code (does not need t as variable)
     def my_flow(x):
         if params is None:
-            return np.array([f1(x[0], x[1]), f2(x[0], x[1])])
+            f_out = np.array([f1(x[0], x[1]), f2(x[0], x[1])])
         else:
-            return np.array([f1(x[0], x[1], **params), f2(x[0], x[1], **params)])
+            f_out = np.array([f1(x[0], x[1], **params), f2(x[0], x[1], **params)])
+        if len(f_out.shape) > 1:
+            if f_out.shape[1] == 1:
+                f_out = f_out[:, 0]
+        return f_out
 
     if fig_ax is None:
         fig, ax = plt.subplots(figsize=(6.5, 6))

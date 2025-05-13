@@ -155,7 +155,9 @@ def project_manifest_to_pcs(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
     return df_
 
 
-def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataFrame:
+def get_manifest_for_dynamics_workflows(
+    ds_name: str, pca: Pipeline | None = None
+) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
     in the stochastic dynamics workflow. Adds crop index column to DataFrame,
@@ -165,10 +167,16 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
     - ds_name: str, name of dataset to load manifest data for
         - This string must match the dataset name in the dataset_name column of df, same
            as the name of the dataset in data_config.yaml
-    - pca: Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
+    - pca: Pipeline or None
+        - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
+        - if None, do not project feature data onto PCA axes
 
     Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
+    - df: pd.DataFrame, DataFrame of feature data for crops
+        from dataset ds_name
+        - projected onto PC axes if pca is not None
+        - restricted to stationary frames if
+            stationary_frames is not None
     """
     # load manifest data for dataset ds_name
     df = manifest_io.get_diffae_manifest(ds_name)
@@ -176,10 +184,37 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline) -> pd.DataF
     # add crop index column
     df = add_crop_index(df)
 
-    # project feature data onto PC axes
-    df = project_manifest_to_pcs(df, pca)
+    # load data config for dataset ds_name
+    # see if stationary frames are defined in data config
+    valid_timepoints = dataset_io.get_valid_timepoints(ds_name)
+    # if valid_timepoints is None, use all timepoints
+    if valid_timepoints is None:
+        # no change made to DataFrame
+        # just print that all timepoints are being used
+        print(
+            f"Using all timepoints from dataset {ds_name} for "
+            " dynamics workflow analysis"
+        )
+    else:
+        # restrict DataFrame to only the timepoints
+        # as defined by the ranges in valid_timepoints
+        print(f"Range(s) of timepoints being used from dataset {ds_name}: ")
+        df_ = []
+        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
+            print(f"   - {start} to {stop}")
+            # restrict DataFrame to only the timepoints
+            # as defined by the ranges in valid_timepoints
+            df_.append(df[(df["frame_number"] >= start) & (df["frame_number"] <= stop)])
+        df = pd.concat(df_, ignore_index=True)
 
-    return df
+    if pca is None:
+        # do not project feature data onto PCA axes
+        return df
+
+    else:
+        # project feature data onto PC axes
+        df = project_manifest_to_pcs(df, pca)
+        return df
 
 
 def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
