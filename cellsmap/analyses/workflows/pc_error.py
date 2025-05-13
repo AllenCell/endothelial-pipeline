@@ -37,7 +37,7 @@ basedir = "/allen/aics/users/benjamin.morris/cellsmap/results/models/diffae_04_1
 datasets: dict = {
     "20250214_pairedPrePostFixation_diffae_04_10_features": {
         "name": "20250214 Paired Pre/Post Fixation",
-        "x": f"{basedir}/20250214_pairedPreFixation_vs_20250214_pairedPostFixation/predict_20250214_pairedPreFixation__diffae_04_10_features.parquet",
+        "x": f"{basedir}/20250214_pairedPreFixation_vs_20250214_pairedPostFixation/predict_20250214_pairedPreFixation_diffae_04_10_features.parquet",
         "y": f"{basedir}/20250214_pairedPreFixation_vs_20250214_pairedPostFixation/predict_20250214_pairedPostFixation_diffae_04_10_features.parquet",
         "xlabel"    : "20x 3i pre-fixation",
         "ylabel"    : "20x 3i post-fixation",
@@ -106,8 +106,6 @@ def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n
     scale_y = np.sqrt(cov[1, 1]) * n_std
     mean_y: float = np.mean(y)
 
-    import pdb; pdb.set_trace()
-
     transf = transforms.Affine2D() \
         .rotate_deg(45) \
         .scale(scale_x, scale_y) \
@@ -120,7 +118,7 @@ def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n
     return ax, ellipse, yerr
 
 
-def plot_ellipse123(x: ArrayLike, y: ArrayLike, pc: int, dataset: str, name: str, xlabel: str, ylabel: str) -> None:
+def plot_ellipse123std(x: ArrayLike, y: ArrayLike, pc: int, dataset: str, name: str, xlabel: str, ylabel: str) -> None:
     """
     Create a scatter plot of the paired *pc* data given as *x* and *y* from a given
     *dataset* with a humanreadable *name*. Then calculate and overlay covariance confidence
@@ -167,10 +165,10 @@ def plot_ellipse123(x: ArrayLike, y: ArrayLike, pc: int, dataset: str, name: str
     plt.title(f"PC{pc}, Dataset: {name}")
     plt.axis("equal")
     plt.gca().set_aspect("equal", adjustable="box")
-    prj_dir = Path(__file__).parent.parent.parent
-    savedir = prj_dir / "pc_error_data_integration"
+    prj_dir = Path(__file__).parent.parent.parent.parent
+    savedir = prj_dir / "results" / "pc_error_data_integration"
     savedir.mkdir(parents=True, exist_ok=True)
-    plt.savefig(f"{prj_dir}/{dataset}_PC{pc}.png",dpi=300,)
+    plt.savefig(f"{savedir}/{dataset}_PC{pc}.png",dpi=300,)
 
 
 def run_pc_error_on_single_dataset(dataset: str, PC_list:list = [1, 2, 3]) -> None:
@@ -193,8 +191,11 @@ def run_pc_error_on_single_dataset(dataset: str, PC_list:list = [1, 2, 3]) -> No
         # the error for each PC to include in the plot legend
         for pc in PC_list:
             plt.clf()
-            x, y = pre_df[f"pc{pc}"].values, post_df[f"pc{pc}"].values
-            plot_ellipse123(x, y, pc, dataset, name, xlabel, ylabel)
+            if f"pc{pc}" not in pre_df.columns:
+                print(f"PC{pc} not found in dataset {dataset}")
+            else:
+                x, y = pre_df[f"pc{pc}"].values, post_df[f"pc{pc}"].values
+                plot_ellipse123std(x, y, pc, dataset, name, xlabel, ylabel)
 
 def run_pc_error_on_all_datasets() -> None:
     """
