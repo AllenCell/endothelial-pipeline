@@ -41,21 +41,25 @@ df = df[df[f"cyto_mean_intensity_{MARKER}"] < 3000]
 
 # %% Visualize the intensity distributions
 for feature, xlim in [
-    (f"nuc_mean_intensity_{MARKER}", 2600),
-    (f"cyto_mean_intensity_{MARKER}", 2600),
-    (f"nuc_median_intensity_{MARKER}", 2600),
-    (f"cyto_median_intensity_{MARKER}", 2600),
-    (f"nuc_to_cyto_mean_ratio_{MARKER}", 4),
-    (f"nuc_to_cyto_median_ratio_{MARKER}", 4),
+    (f"crop_nuc_mean_intensity_{MARKER}", 2600),
+    (f"crop_cyto_mean_intensity_{MARKER}", 2600),
+    (f"crop_nuc_median_intensity_{MARKER}", 2600),
+    (f"crop_cyto_median_intensity_{MARKER}", 2600),
+    (f"crop_nuc_to_cyto_mean_ratio_{MARKER}", 4),
+    (f"crop_nuc_to_cyto_median_ratio_{MARKER}", 4),
 ]:
     plot_intensity_distribution(
-        df, xlabel=feature, dataset=DATASET, output_dir=output_dir, xlim=xlim, ylim=13
+        df,
+        xlabel=feature,
+        dataset=DATASET,
+        output_dir=output_dir,
+        xlim=xlim,
     )
 # %% Visualize resulting images and intensity
 index = 2
 row = df.iloc[index]
 
-seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=0, binary=False)
+seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=0)
 
 dapi_crop = get_raw_intensity_crop(row, resolution_level=0, channel=2)
 background_subtracted_dapi_crop = background_subtract(dapi_crop, camera_offset=100)

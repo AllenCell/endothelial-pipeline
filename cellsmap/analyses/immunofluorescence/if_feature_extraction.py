@@ -53,6 +53,13 @@ def total_intensity(img: np.ndarray) -> float:
     return float(np.sum(img))
 
 
+def total_intenstiy_in_mask(img: np.ndarray, mask: np.ndarray) -> float:
+    """
+    Calculate the total intensity of the image in the masked region.
+    """
+    return float(np.sum(img[mask]))
+
+
 def sum_projection(img: Union[np.ndarray, da.Array]) -> np.ndarray:
     """
     Create a sum projection of the image.
@@ -70,7 +77,7 @@ def get_segmentation_mask_crop(
     row: pd.Series,
     resolution_level: int,
     channel: Union[int, list[int]],
-    binary: bool = True,
+    individual_nuc_seg_mask: bool = False,
 ) -> np.ndarray:
 
     # Construct the full path to the segmentation mask
@@ -108,9 +115,12 @@ def get_segmentation_mask_crop(
     if resolution_level == 1:
         mask = pyramid_reduce(mask, downscale=2)
 
-    # Apply thresholding to create a binary mask
-    if binary:
-        mask = mask >= 1
+    if individual_nuc_seg_mask:
+        id = row.img_label
+        # Create a mask for the individual nucleus
+        mask = np.where(mask == id, 1, 0)
+
+    mask = mask >= 1
 
     if hasattr(mask, "compute"):
         mask = mask.compute()

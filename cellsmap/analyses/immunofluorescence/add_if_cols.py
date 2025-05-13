@@ -1,5 +1,5 @@
 # %%
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -15,11 +15,16 @@ from cellsmap.analyses.immunofluorescence.if_feature_extraction import (
     median_intensity_not_in_mask,
     sum_projection,
     total_intensity,
+    total_intensity_in_mask,
 )
 
 
 def process_channel(
-    row: pd.Series, channel: int, seg_mask: np.ndarray, camera_offset: int = 100
+    row: pd.Series,
+    channel: int,
+    nuc_crop_seg_mask: np.ndarray,
+    individual_nuc_seg_mask: Optional[np.ndarray] = None,
+    camera_offset: int = 100,
 ) -> Tuple:
     """
     Processes a single channel of an image.
@@ -32,10 +37,22 @@ def process_channel(
     sum_proj = sum_projection(background_subtracted)
 
     total = total_intensity(sum_proj)
-    mean_int_in_mask = mean_intensity_in_mask(sum_proj, seg_mask)
-    mean_int_not_in_mask = mean_intensity_not_in_mask(sum_proj, seg_mask)
-    median_int_in_mask = median_intensity_in_mask(sum_proj, seg_mask)
-    median_int_not_in_mask = median_intensity_not_in_mask(sum_proj, seg_mask)
+    mean_int_in_mask = mean_intensity_in_mask(sum_proj, nuc_crop_seg_mask)
+    mean_int_not_in_mask = mean_intensity_not_in_mask(sum_proj, nuc_crop_seg_mask)
+    median_int_in_mask = median_intensity_in_mask(sum_proj, nuc_crop_seg_mask)
+    median_int_not_in_mask = median_intensity_not_in_mask(sum_proj, nuc_crop_seg_mask)
+
+    # Initialize nuclear-specific metrics
+    ind_nuclear_intensity = None
+    mean_int_nuclear = None
+    median_int_nuclear = None
+
+    if individual_nuc_seg_mask is not None:
+        ind_nuclear_intensity = total_intensity_in_mask(
+            sum_proj, individual_nuc_seg_mask
+        )
+        mean_int_nuclear = mean_intensity_in_mask(sum_proj, individual_nuc_seg_mask)
+        median_int_nuclear = median_intensity_in_mask(sum_proj, individual_nuc_seg_mask)
 
     return (
         total,
@@ -43,6 +60,9 @@ def process_channel(
         mean_int_not_in_mask,
         median_int_in_mask,
         median_int_not_in_mask,
+        ind_nuclear_intensity,
+        mean_int_nuclear,
+        median_int_nuclear,
     )
 
 
@@ -53,20 +73,26 @@ def get_feature_columns(
     mean_cyto: float,
     median_nuc: float,
     median_cyto: float,
+    ind_nuclear_intensity: float | None,
+    mean_int_nuclear: float | None,
+    median_int_nuclear: float | None,
 ) -> dict:
     """
     Generate a dictionary of feature columns for a given marker.
     """
     return {
         f"crop_intensity_{marker}": total,
-        f"nuc_mean_intensity_{marker}": mean_nuc,
-        f"cyto_mean_intensity_{marker}": mean_cyto,
-        f"nuc_median_intensity_{marker}": median_nuc,
-        f"cyto_median_intensity_{marker}": median_cyto,
-        f"nuc_to_cyto_mean_ratio_{marker}": mean_nuc
+        f"crop_nuc_mean_intensity_{marker}": mean_nuc,
+        f"crop_cyto_mean_intensity_{marker}": mean_cyto,
+        f"crop_nuc_median_intensity_{marker}": median_nuc,
+        f"crop_cyto_median_intensity_{marker}": median_cyto,
+        f"crop_nuc_to_cyto_mean_ratio_{marker}": mean_nuc
         / (mean_cyto + 1e-6),  # avoid zero division
-        f"nuc_to_cyto_median_ratio_{marker}": median_nuc
+        f"crop_nuc_to_cyto_median_ratio_{marker}": median_nuc
         / (median_cyto + 1e-6),  # avoid zero division
+        f"nuclear_intensity_{marker}": ind_nuclear_intensity,
+        f"nuclear_mean_intensity_{marker}": mean_int_nuclear,
+        f"nuclear_median_intensity_{marker}": median_int_nuclear,
     }
 
 
@@ -79,6 +105,7 @@ def process_row(
     resolution_level: int = 0,
     camera_offset: int = 100,
     add_dapi: bool = False,
+    nuclear_centroid_crops: bool = False,
 ) -> dict:
     """
     Processes a single row of data to calculate intensity metrics for a given marker.
@@ -86,24 +113,63 @@ def process_row(
     seg_mask = get_segmentation_mask_crop(
         row, resolution_level=resolution_level, channel=nuclear_seg_channel
     )
+    if nuclear_centroid_crops:
+        individual_nuc_seg_mask = get_segmentation_mask_crop(
+            row,
+            resolution_level=resolution_level,
+            channel=nuclear_seg_channel,
+            individual_nuc_seg_mask=True,
+        )
+    else:
+        individual_nuc_seg_mask = None
 
     # Antibody channel processing
-    crop_total, mean_nuc, mean_cyto, median_nuc, median_cyto = process_channel(
-        row, channel=antibody_channel, seg_mask=seg_mask, camera_offset=camera_offset
+    (
+        crop_total,
+        mean_nuc,
+        mean_cyto,
+        median_nuc,
+        median_cyto,
+        ind_nuclear_intensity,
+        mean_int_nuclear,
+        median_int_nuclear,
+    ) = process_channel(
+        row,
+        channel=antibody_channel,
+        nuc_crop_seg_mask=seg_mask,
+        individual_nuc_seg_mask=individual_nuc_seg_mask,
+        camera_offset=camera_offset,
     )
     result = get_feature_columns(
-        marker, crop_total, mean_nuc, mean_cyto, median_nuc, median_cyto
+        marker,
+        crop_total,
+        mean_nuc,
+        mean_cyto,
+        median_nuc,
+        median_cyto,
+        ind_nuclear_intensity,
+        mean_int_nuclear,
+        median_int_nuclear,
     )
 
     if add_dapi:
-        dapi_total, dapi_mean_nuc, dapi_mean_cyto, dapi_median_nuc, dapi_median_cyto = (
-            process_channel(
-                row,
-                channel=dapi_channel,
-                seg_mask=seg_mask,
-                camera_offset=camera_offset,
-            )
+        (
+            dapi_total,
+            dapi_mean_nuc,
+            dapi_mean_cyto,
+            dapi_median_nuc,
+            dapi_median_cyto,
+            dapi_ind_nuclear_intensity,
+            dapi_mean_int_nuclear,
+            dapi_median_int_nuclear,
+        ) = process_channel(
+            row,
+            channel=dapi_channel,
+            nuc_crop_seg_mask=seg_mask,
+            individual_nuc_seg_mask=individual_nuc_seg_mask,
+            camera_offset=camera_offset,
         )
+
         result.update(
             get_feature_columns(
                 "dapi",
@@ -112,6 +178,9 @@ def process_row(
                 dapi_mean_cyto,
                 dapi_median_nuc,
                 dapi_median_cyto,
+                dapi_ind_nuclear_intensity,
+                dapi_mean_int_nuclear,
+                dapi_median_int_nuclear,
             )
         )
 
