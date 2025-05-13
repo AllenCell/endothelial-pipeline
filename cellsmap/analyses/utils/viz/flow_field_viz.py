@@ -7,8 +7,9 @@ from cellsmap.analyses.utils.viz import viz_base as vb
 
 
 def set_slice_plot_bounds_and_labels(
-    axs: tuple[plt.Axes], bounds: list[tuple[float]]
-) -> plt.Axes:
+    axs: tuple[plt.Axes],
+    bounds: tuple[tuple[float, float], tuple[float, float], tuple[float, float]],
+) -> tuple[plt.Axes]:
     """
     Set the axis limits and labels for the plots
     of 2D slices of the 3D flow field.
@@ -67,7 +68,7 @@ def plot_one_slice_quiver(
     color: str = "cornflowerblue",
     norm: bool = True,
     ax: plt.Axes | None = None,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> plt.Axes:
     """
     Plot one slice of the flow field (quiver plot)
     for a given slice of the grid.
@@ -94,7 +95,7 @@ def plot_one_slice_quiver(
 
 def plot_quiver_slices(
     flow_field_dict: dict,
-    slice_indexes: tuple[np.ndarray],
+    slice_indexes: tuple[np.ndarray, np.ndarray],
     color: str = "cornflowerblue",
     norm: bool = True,
     fig_ax: tuple | None = None,
