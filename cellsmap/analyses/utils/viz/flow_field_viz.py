@@ -4,6 +4,9 @@ import pandas as pd
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util.manifest_preprocessing import (
+    diffae_feature_preprocessing as diffae_preproc,
+)
 
 
 def set_slice_plot_bounds_and_labels(
@@ -241,8 +244,8 @@ def plot_flow_field_slices(
             mean_over_crops = df_cond.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
-            pc3_val = mean_over_crops["pc3"].mean()
-            pc2_val = mean_over_crops["pc2"].mean()
+            pc3_val = mean_over_crops["feat_2"].mean()
+            pc2_val = mean_over_crops["feat_1"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -258,8 +261,8 @@ def plot_flow_field_slices(
     fig, ax = vb.init_subplots(figsize=(14, 5))
     if df_cond is not None:
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color="black", alpha=0.1)
-        ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color="black", alpha=0.1)
+        ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color="black", alpha=0.1)
+        ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color="black", alpha=0.1)
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -287,7 +290,10 @@ def plot_flow_field_slices(
         # get the condition name
         # for saving the plot
         if df_cond is not None:
-            condition = df_cond.description.unique()[0]
+            name = df_cond["dataset"].unique()[0]
+            condition = diffae_preproc.get_dataset_descriptions([name], simple=True)[
+                name
+            ]
         else:
             condition = "from_data"
         vb.save_plot(
@@ -324,7 +330,8 @@ def flow_field_viz_main(
         If None, no figures are saved.
     """
     # dataset flow condition for saving the figures
-    condition = df_cond["description"].values[0]
+    name = df_cond["dataset"].unique()[0]
+    condition = diffae_preproc.get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
