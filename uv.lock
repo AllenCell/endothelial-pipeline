@@ -704,7 +704,7 @@ requires-dist = [
     { name = "bioio-tifffile", specifier = ">=1.0.1" },
     { name = "cellpose", marker = "extra == 'cellpose'", specifier = ">=3.1.0" },
     { name = "colorcet", specifier = ">=3.1.0" },
-    { name = "colorizer-data", git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.1" },
+    { name = "colorizer-data", git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.2" },
     { name = "cyto-dl", marker = "extra == 'ml-workflows'", specifier = ">=0.6.1" },
     { name = "fastparquet", specifier = ">=2024.11.0" },
     { name = "fipy", specifier = ">=3.4.5" },
@@ -935,8 +935,8 @@ wheels = [
 
 [[package]]
 name = "colorizer-data"
-version = "1.6.1"
-source = { git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.1#53b4ad31a346dbad5264e0419d4dfaf8f3c5f739" }
+version = "1.6.2"
+source = { git = "https://github.com/allen-cell-animated/colorizer-data.git?rev=v1.6.2#a91de5320ad70cb25f8fa1840dcbe9e079a28332" }
 dependencies = [
     { name = "bioio" },
     { name = "bioio-ome-tiff" },

@@ -104,7 +104,7 @@ cache-dir = ".cache/uv"
 
 [tool.uv.sources]
 aicsfiles = { index = "artifactory" }
-colorizer-data = { git = "https://github.com/allen-cell-animated/colorizer-data.git", rev = "v1.6.1" }
+colorizer-data = { git = "https://github.com/allen-cell-animated/colorizer-data.git", rev = "v1.6.2" }
 
 [[tool.uv.index]]
 name = "artifactory"
