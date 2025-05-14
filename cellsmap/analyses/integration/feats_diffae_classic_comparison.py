@@ -461,7 +461,8 @@ def make_all_plots(
 
     # plot single track examples
     track_ids = sorted(big_table["track_id"].unique().tolist())
-    for tid in track_ids[::10]:  # only overlay every 10th track id to save time + space
+    track_ids = track_ids if len(track_ids[::10]) < 10 else track_ids
+    for tid in track_ids:  # only overlay every 10th track id to save time + space
         # make the plots
         fig, axs = plot_quiver_slices_from_diffae_table(
             diffae_grid_crops, traj_grids, flow_field_dict_grids
