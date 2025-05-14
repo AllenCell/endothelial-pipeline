@@ -88,6 +88,15 @@ def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
+def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name)["cell_mean_features"]
+    if fmsid == "" or fmsid is None:
+        print(f"No cell mean features manifest found for dataset {dataset_name}")
+        return None
+    df = get_dataframe_by_fmsid(fmsid)
+    return df
+
+
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
     Extract columns corresponding to DiffAE model features from dataframe (loaded DiffAE manifest).

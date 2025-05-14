@@ -9,8 +9,10 @@ from cellsmap.analyses.track_data_plots import (
     merge_segprops_and_track_data,
 )
 from cellsmap.util.dataset_io import get_measurement_data_raws, get_tracking_data_raws
+from cellsmap.util.manifest_io import get_cell_mean_features_manifest
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
 from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_formatting import (
+    add_track_duration,
     update_manifest_for_tfe,
 )
 
@@ -45,11 +47,25 @@ def generate_tfe_dataset(
     df_segprops = get_measurement_data_raws(
         [dataset], kind="segmentation_properties", as_dask=False
     )
+    df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
+    df_diffae_cell_mean = df_diffae_cell_mean[
+        df_diffae_cell_mean["position"] == f"P{position}"
+    ]
+    df_diffae_cell_mean["position"] = position
+    df_diffae_cell_mean = df_diffae_cell_mean.rename(
+        columns={"frame_number": "image_index"}
+    )
+
     merge_features = merge_segprops_and_track_data(df_segprops, df_tracking)
     df_position = merge_features[merge_features["position"] == position]
-    df = calculate_derived_data_dynamics_independent(df_position)
+    df_merge_features = df_position.merge(
+        df_diffae_cell_mean, how="inner", on=["label", "image_index", "position"]
+    )
+
+    df = calculate_derived_data_dynamics_independent(df_merge_features)
     df = calculate_derived_data_dynamics_dependent(df)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
+    df = add_track_duration(df)
 
     if backdrops:
         generate_backdrops(
@@ -89,6 +105,5 @@ for dataset in ["20241120_20X", "20241217_20X", "20250409_20X"]:
         segmentation="cell_seg",
         output_dir=program_dir / "timelapse_feature_explorer",
         source_dir=source_dir,
-        backdrops=True,
+        backdrops=False,
     )
-# %%
