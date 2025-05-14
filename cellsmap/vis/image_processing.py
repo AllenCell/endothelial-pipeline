@@ -1,15 +1,16 @@
-from bioio import BioImage
-import numpy as np
-from skimage import exposure
 from typing import Literal
+
 import dask.array as da
+import numpy as np
+from bioio import BioImage
+from skimage import exposure
 
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
     bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
     stdevs = [plane.std().compute() for plane in bf_stack.squeeze()]
     best_plane = max(0, np.argmin(stdevs) - 5)  # move 5 planes down to have contrast
-    bf_slice = img.get_image_dask_data("YX", Z=best_plane, C=1, T=0)
+    bf_slice = img.get_image_dask_data("YX", Z=best_plane, C=1, T=frame)
     return bf_slice.compute()
 
 
