@@ -103,8 +103,8 @@ def get_segmentation_mask_crop(
         timepoint=row.frame_number,
         start_x=row.start_x,
         start_y=row.start_y,
-        crop_size_x=row.crop_size_x * 2,
-        crop_size_y=row.crop_size_y * 2,
+        crop_size_x=(row.crop_size_x if resolution_level == 1 else row.crop_size_x * 2),
+        crop_size_y=(row.crop_size_y if resolution_level == 1 else row.crop_size_y * 2),
     )
 
     # # Extract channel from the crop

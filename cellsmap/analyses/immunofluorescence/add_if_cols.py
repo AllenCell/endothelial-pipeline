@@ -23,6 +23,7 @@ def process_channel(
     row: pd.Series,
     channel: int,
     nuc_crop_seg_mask: np.ndarray,
+    resolution_level: int,
     individual_nuc_seg_mask: Optional[np.ndarray] = None,
     camera_offset: int = 100,
 ) -> Tuple:
@@ -32,7 +33,9 @@ def process_channel(
     Returns:
         Tuple: Total intensity, mean/median in mask, mean/median out of mask.
     """
-    crop = get_raw_intensity_crop(row, resolution_level=0, channel=channel)
+    crop = get_raw_intensity_crop(
+        row, resolution_level=resolution_level, channel=channel
+    )
     background_subtracted = background_subtract(crop, camera_offset=camera_offset)
     sum_proj = sum_projection(background_subtracted)
 
@@ -102,7 +105,7 @@ def process_row(
     nuclear_seg_channel: int,
     antibody_channel: int,
     dapi_channel: int,
-    resolution_level: int = 0,
+    resolution_level: int,
     camera_offset: int = 100,
     add_dapi: bool = False,
     nuclear_centroid_crops: bool = False,
@@ -123,7 +126,6 @@ def process_row(
     else:
         individual_nuc_seg_mask = None
 
-    # Antibody channel processing
     (
         crop_total,
         mean_nuc,
@@ -138,6 +140,7 @@ def process_row(
         channel=antibody_channel,
         nuc_crop_seg_mask=seg_mask,
         individual_nuc_seg_mask=individual_nuc_seg_mask,
+        resolution_level=resolution_level,
         camera_offset=camera_offset,
     )
     result = get_feature_columns(
@@ -167,6 +170,7 @@ def process_row(
             channel=dapi_channel,
             nuc_crop_seg_mask=seg_mask,
             individual_nuc_seg_mask=individual_nuc_seg_mask,
+            resolution_level=resolution_level,
             camera_offset=camera_offset,
         )
 
@@ -193,6 +197,7 @@ def add_if_cols_to_df(
     nuclear_seg_channel: int,
     antibody_channel: int,
     dapi_channel: int,
+    resolution_level: int,
     n_jobs: int = -1,
 ) -> pd.DataFrame:
     """
@@ -204,6 +209,7 @@ def add_if_cols_to_df(
         nuclear_seg_channel (int): Channel index used for segmentation.
         antibody_channel (int): Channel index of the antibody.
         dapi_channel (int): Channel index for DAPI (if needed).
+        resolution_level (int): Resolution level to use for processing.
         n_jobs (int): Number of parallel workers. Default: -1 (all cores).
 
     Returns:
@@ -211,7 +217,12 @@ def add_if_cols_to_df(
     """
     results = Parallel(n_jobs=n_jobs)(
         delayed(process_row)(
-            row, marker, nuclear_seg_channel, antibody_channel, dapi_channel
+            row,
+            marker,
+            nuclear_seg_channel,
+            antibody_channel,
+            dapi_channel,
+            resolution_level,
         )
         for _, row in df.iterrows()
     )

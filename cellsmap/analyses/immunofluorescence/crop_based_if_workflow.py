@@ -17,6 +17,7 @@ from cellsmap.util import manifest_io, set_output
 # %%
 DATASET = "20250122_SMAD1"
 MARKER = "SMAD1"
+RES_LEVEL = 0
 output_dir = set_output.get_output_path("smad1_analysis")
 df_manifest = manifest_io.get_diffae_manifest(DATASET)
 
@@ -31,10 +32,11 @@ df = add_if_cols_to_df(
     nuclear_seg_channel=0,
     antibody_channel=3,
     dapi_channel=2,
+    resolution_level=RES_LEVEL,
 )
 # %%
 # Filter crop outlier with bright puncta outlier
-df = df[df[f"cyto_mean_intensity_{MARKER}"] < 3000]
+df = df[df[f"crop_cyto_mean_intensity_{MARKER}"] < 3000]
 # # Save the updated DataFrame to a new CSV file
 # df.to_csv(output_dir + f"{DATASET}_IF_results.csv", index=False)
 
@@ -59,13 +61,13 @@ for feature, xlim in [
 index = 2
 row = df.iloc[index]
 
-seg_mask = get_segmentation_mask_crop(row, resolution_level=0, channel=0)
+seg_mask = get_segmentation_mask_crop(row, resolution_level=RES_LEVEL, channel=0)
 
-dapi_crop = get_raw_intensity_crop(row, resolution_level=0, channel=2)
+dapi_crop = get_raw_intensity_crop(row, resolution_level=RES_LEVEL, channel=2)
 background_subtracted_dapi_crop = background_subtract(dapi_crop, camera_offset=100)
 sum_proj_dapi_img = sum_projection(background_subtracted_dapi_crop)
 
-raw_crop = get_raw_intensity_crop(row, resolution_level=0, channel=3)
+raw_crop = get_raw_intensity_crop(row, resolution_level=RES_LEVEL, channel=3)
 background_subtracted_crop = background_subtract(raw_crop, camera_offset=100)
 sum_proj_img = sum_projection(background_subtracted_crop)
 

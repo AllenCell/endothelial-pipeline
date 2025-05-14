@@ -89,8 +89,8 @@ def filter_centroids_near_edge(
     df: pd.DataFrame, crop_size_x: int, crop_size_y: int
 ) -> pd.DataFrame:
     """Filter out centroids near the edges of the image."""
-    buffer_x = crop_size_x // 2
-    buffer_y = crop_size_y // 2
+    buffer_x = crop_size_x * 2
+    buffer_y = crop_size_y * 2
 
     filtered_df = df[
         (df["centroid_x"] > buffer_x)
@@ -101,8 +101,24 @@ def filter_centroids_near_edge(
     return filtered_df
 
 
+def add_start_coords(
+    df: pd.DataFrame, crop_size_x: int, crop_size_y: int
+) -> pd.DataFrame:
+    """Add start coordinates to the DataFrame."""
+    shift_x = crop_size_x * 2
+    shift_y = crop_size_y * 2
+    df["start_x"] = (df["centroid_x"] - shift_x).astype(int)
+    df["start_y"] = (df["centroid_y"] + shift_y).astype(int)
+    return df
+
+
 def process_positions(
-    dataset: str, positions: list, crop_size_x: int, crop_size_y: int
+    dataset: str,
+    positions: list,
+    marker: str,
+    crop_size_x: int,
+    crop_size_y: int,
+    resolution_level: int,
 ) -> pd.DataFrame:
     """Process all positions for a given dataset."""
     all_data = []
@@ -112,6 +128,20 @@ def process_positions(
         df = extract_region_properties(seg_2d, position, frame=0, full_path=full_path)
         df = add_metadata_to_df(df, dataset, seg_2d, position)
         df = filter_centroids_near_edge(df, crop_size_x, crop_size_y)
+        df = add_start_coords(df, crop_size_x, crop_size_y)
+        df["frame_number"] = df["image_index"]
+        df["crop_size_x"] = crop_size_x
+        df["crop_size_y"] = crop_size_y
+
+        df = add_if_cols_to_df(
+            df,
+            marker=marker,
+            nuclear_seg_channel=0,
+            antibody_channel=3,
+            dapi_channel=2,
+            resolution_level=resolution_level,
+        )
+
         all_data.append(df)
     return pd.concat(all_data, ignore_index=True)
 
@@ -121,57 +151,18 @@ def main() -> None:
     dataset = "20250122_SMAD1"
     marker = "SMAD1"
     positions = ["P5", "P6", "P7", "P8", "P9"]
-    crop_size_x = 256
-    crop_size_y = 256
+    crop_size_x = 128  # diffae
+    crop_size_y = 128  # diffae
+    resolution_level = 0
 
     output_dir = set_output.get_output_path("smad1_analysis")
 
-    df_results = process_positions(dataset, positions, crop_size_x, crop_size_y)
+    df_results = process_positions(
+        dataset, positions, marker, crop_size_x, crop_size_y, resolution_level
+    )
     df_results.to_csv(output_dir + f"{dataset}_nuclear_results.csv", index=False)
 
 
 if __name__ == "__main__":
     main()
-# %%
-dataset = "20250122_SMAD1"
-output_dir = set_output.get_output_path("smad1_analysis")
-# %%
-df = pd.read_csv(output_dir + f"{dataset}_nuclear_results.csv")
-
-
-# %%
-def add_start_coords(
-    df: pd.DataFrame, crop_size_x: int, crop_size_y: int
-) -> pd.DataFrame:
-    """Add start coordinates to the DataFrame."""
-    shift_x = crop_size_x // 2
-    shift_y = crop_size_y // 2
-    df["start_x"] = df["centroid_x"] - shift_x
-    df["start_y"] = df["centroid_y"] + shift_y
-    return df
-
-
-df = add_start_coords(df, crop_size_x=256, crop_size_y=256)
-# %%
-df
-# %%
-import os
-
-import matplotlib.pyplot as plt
-import tifffile
-from cellpose import models
-from skimage.color import label2rgb
-
-from cellsmap.util import dataset_io
-from cellsmap.vis import get_images, image_processing
-
-# %%
-DATASET = "20250122_SMAD1"
-img = get_images.get_zarr_img_for_dataset(DATASET, 0, resolution_level=0)
-img_tp = img.get_image_dask_data("ZYX", T=0, C=0)
-max_int_projection = image_processing.max_proj(img_tp, axis=0)
-
-# %%
-save_path = "//allen/aics/users/chantelle.leveille/repos/cellsmap2/cellsmap/results/"
-tifffile.imwrite(save_path + f"{DATASET}_P0_T0.ome.tiff", max_int_projection)
 # %%
