@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Literal
 
 import numpy as np
 import pandas as pd
@@ -15,6 +15,7 @@ from cellsmap.analyses.track_data_plots import (
 
 # from cellsmap.analyses.utils.viz import flow_field_viz as ffv
 from cellsmap.analyses.utils import regression_helper as rh
+from cellsmap.analyses.utils.io.dynamics_io import load_dynamics_config
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz.flow_field_viz import (
     get_slice_indexes,
@@ -25,7 +26,7 @@ from cellsmap.util.dataset_io import (
     get_measurement_data_raws,
     get_reference_datasets,
     get_tracking_data_raws,
-    load_config,
+    ipython_cli_flexecute,
 )
 from cellsmap.util.manifest_io import (
     get_diffae_manifest,
@@ -35,42 +36,67 @@ from cellsmap.util.manifest_io import (
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
+from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
+    get_manifest_for_dynamics_workflows,
+)
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
+
+"""
+NOTE: I believe that the "feat_#" columns in the dataset loaded by
+get_manifest_for_dynamics_workflows are actually the PCs and thus
+do not need to have their PCs calculated here.
+The "feat_#" columns in the dataset loaded by get_track_diffae_manifest
+are the DiffAE features and do need to have their PCs calculated here.
+"""
 
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
-    num_pcs: int = 3,
+    bounds: Pipeline,
+    col_names: Literal["pc", "feat"] = "pc",
 ) -> tuple[np.ndarray, dict]:
-    assert num_pcs == 3, "Only 3D flow fields are supported"
 
-    pc_cols = [f"pc{i+1}" for i in range(num_pcs)]
-    kernel_params = {"bandwidth": 0.09, "kernel": "gaussian"}
-    # get state space bounds and grid resolution for estimating flow field
-    excluded_fraction = 0.00
-    bounds = ddff.set_3d_bounds_from_data(
-        diffae_grid_crops.pc1,
-        diffae_grid_crops.pc2,
-        diffae_grid_crops.pc3,
-        excluded_fraction=excluded_fraction,
-    )
-    # time stepping for the flow field
-    dt = 5
+    # load default config, get kernel params
+    config = load_dynamics_config("default")
+    kernel_params = config["kramers_moyal"]["kernel_params"]
+
+    # get time between frames
+    # in minutes
+    dt = config["dt"]
+
     # time span for the ODE solver
     # units for time steps are in minutes
     # 48 hours in minutes =
     # 48 * 60 = 2880 time steps
-    t_span = [0.0, 2880.0]
-    grid_spacing = 0.05
-    Nbins = [
-        int((bounds[i][1] - bounds[i][0]) / grid_spacing) + 1 for i in range(num_pcs)
-    ]
-    bins, centers = rh.get_bins(Nbins, bin_limits=bounds)
+    time_span = [0.0, 2880.0]
+
+    # initial condition for the ODE solver
+    # this is fixed across datasets /
+    # shear stress conditions
+    init = np.array([-0.1, -0.7, -0.1])
+
+    num_bins = [50, 50, 50]
+    bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
+
+    # get the columns to use for calculating trajectories
+    # and flow fields.
+    # NOTE I believe that the "features" columns in the
+    # datasets loaded by get_manifest_for_dynamics_workflows
+    # are actually the PCs
+    match col_names:
+        case "pc":
+            pc_cols = [f"pc{pc+1}" for pc in range(3)]
+            cols = pc_cols
+        case "feat":
+            feat_cols = get_feature_cols(df)[:3]
+            cols = feat_cols
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = rh.get_traj_and_diff(df, pc_cols)
+    # traj_list, d_traj_list = rh.get_traj_and_diff(df, feat_cols)
+    traj_list, d_traj_list = rh.get_traj_and_diff(df, cols)
+
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
     drift_km, diff_km = rh.get_kramers_moyal(
@@ -82,14 +108,10 @@ def get_traj_and_flowfield(
         drift_km, centers, interpolator="nearest"
     )
 
-    ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-    # with initial conditions given by the mean of the data at T=0
-
-    # get initial conditions for the ODE solver from data
-    inits_mean = df.groupby("frame_number").mean(numeric_only=True)[pc_cols].values[0]
-
     # solve IVP, get back trajectory
-    traj = ddff.solve_ddff_ode(flow_field_dict, inits_mean, t_span)
+    print("Trying to solve ODE...")
+    traj = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
+    print("ODE solved.")
 
     return traj, flow_field_dict
 
@@ -98,6 +120,7 @@ def get_valid_slice_indexes(
     df: pd.DataFrame,
     traj: np.ndarray,
     flow_field_dict: dict,
+    col_names: Literal["pc", "feat"] = "feat",
 ) -> tuple[np.ndarray, np.ndarray]:
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -117,8 +140,13 @@ def get_valid_slice_indexes(
             mean_over_crops = df.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
-            pc3_val = mean_over_crops["pc3"].mean()
-            pc2_val = mean_over_crops["pc2"].mean()
+            match col_names:
+                case "pc":
+                    pc3_val = mean_over_crops["pc3"].mean()
+                    pc2_val = mean_over_crops["pc2"].mean()
+                case "feat":
+                    pc3_val = mean_over_crops["feat2"].mean()
+                    pc2_val = mean_over_crops["feat1"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -167,14 +195,15 @@ def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
     return diffae_grid_crops
 
 
-def add_pc_cols(df: pd.DataFrame, pca_object: Pipeline) -> pd.DataFrame:
+def add_pc_cols(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
     # get column names for features 1-8
     feat_cols = get_feature_cols(df)
 
     # get the PCs
-    x_proj = pca_object.transform(df[feat_cols].values)
+    x_proj = pca.transform(df[feat_cols].values)
 
     # add PCs to dataframe
+    num_pcs = x_proj.shape[1]
     pc_cols: list = []
     for pc in range(num_pcs):
         pc_col_name = f"pc{pc+1}"
@@ -207,10 +236,12 @@ def plot_quiver_slices_from_diffae_table(
     # plot the trajectories
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
         if plot_trajectory:
-            ax.plot(traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy")
+            ax.plot(
+                traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy", zorder=1
+            )
         if plot_fixed_points:
             ax.scatter(
-                traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=9
+                traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=2
             )
 
     return fig, axs
@@ -221,9 +252,11 @@ def plot_measured_feat_overlay_on_flowfield(
     meas_feat_col: str,
     pc_cols_for_xaxis: tuple[str, ...],
     pc_cols_for_yaxis: tuple[str, ...],
-    axs: np.ndarray,
+    fig: plt.Figure | None = None,
+    axs: np.ndarray | None = None,
     track_ids: str | List[int] = "mean",
     zorder: int = 0,
+    alpha: float = 1.0,
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
@@ -235,6 +268,9 @@ def plot_measured_feat_overlay_on_flowfield(
     assert all(
         col in measured_feat_df.columns for col in pc_cols
     ), f"One or more PCs in {pc_cols} not found in measured feature dataframe columns. Check spelling and case?"
+
+    if axs is None:
+        fig, axs = plt.subplots(figsize=(14, 5), ncols=2)
 
     # plot the measured features
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
@@ -253,19 +289,13 @@ def plot_measured_feat_overlay_on_flowfield(
                 f"track_ids must be 'mean', 'all', str, or list. Got {track_ids} (type: {type(track_ids)}) instead."
             )
 
-        # sns.lineplot(
-        #     data=measured_feat_df,
-        #     x=pc_cols_for_xaxis[j],
-        #     y=pc_cols_for_yaxis[j],
-        #     color='lightgrey',
-        #     lw=1, ax=ax, zorder=max(0, zorder-1)
-        #     )
         ax.plot(
             measured_feat_df[pc_cols_for_xaxis[j]],
             measured_feat_df[pc_cols_for_yaxis[j]],
             lw=1,
             color="lightgrey",
-            zorder=max(0, zorder - 1),
+            alpha=alpha,
+            zorder=max(0, zorder),
         )
         sns.scatterplot(
             data=measured_feat_df,
@@ -276,28 +306,20 @@ def plot_measured_feat_overlay_on_flowfield(
             linewidth=0,
             marker=".",
             s=50,
+            alpha=alpha,
             ax=ax,
-            zorder=zorder,
+            zorder=zorder + 1,
         )
 
     return fig, axs
 
 
-out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
-out_dir.mkdir(parents=True, exist_ok=True)
-data_config = load_config("data")
-dataset_name_list = get_reference_datasets()
-
-for dataset_name in dataset_name_list:
-    # create a subdirectory to save the plots to
-    out_subdir = out_dir / dataset_name
-    out_subdir.mkdir(parents=True, exist_ok=True)
-
-    # read in the grid crop-based diffae features
-    diffae_grid_crops = get_and_process_diffae_data(dataset_name)
-
+def get_merged_table(dataset_name: str) -> pd.DataFrame:
     # read in the segmentation-based diffae features
+    print("loading diffae features from tracking data...")
     diffae_tracking = get_track_diffae_manifest(dataset_name)
+    if diffae_tracking is None:
+        return None
     diffae_tracking["is_unique"] = diffae_tracking.groupby(
         ["dataset", "position", "frame_number", "track_id"]
     )["frame_number"].transform(lambda t: t.nunique() == t.size)
@@ -311,11 +333,20 @@ for dataset_name in dataset_name_list:
     diffae_tracking["track_id"] = diffae_tracking["track_id"].astype(int)
 
     # load the tracking data of the measured features and merge them
+    print("loading segmentation property data...")
     seg_props_df = get_measurement_data_raws(
         [dataset_name], kind="segmentation_properties", as_dask=False
     )
+    if seg_props_df is None:
+        return None
+    print("loading tracking data...")
     tracking_df = get_tracking_data_raws([dataset_name], position=None, as_dask=False)
+    if tracking_df is None:
+        return None
+
+    print("merging segmentation properties, tracking, and track-based DiffAE data...")
     big_table = merge_segprops_and_track_data(seg_props_df, tracking_df)
+
     del seg_props_df, tracking_df  # remove unnecessary dataframes to save memory
     diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
     big_table["position_as_str"] = big_table["position"].transform(
@@ -331,29 +362,28 @@ for dataset_name in dataset_name_list:
         right_on=["dataset", "position_as_str", "frame_number", "track_id"],
         validate="one_to_one",
     )
-    big_table.dropna(axis=0, how="any", subset="is_unique", inplace=True)
-    big_table = calculate_derived_data_dynamics_independent(big_table)
-    big_table = filter_seg_feature_table(
-        big_table,
-        out_dir=None,
-        min_num_points_per_track=120,
-    )
 
-    # fit the PCA (uses the reference datasets)
-    num_pcs = 3
-    pc_cols = [f"pc{i+1}" for i in range(num_pcs)]
-    pca = fit_pca(num_pcs=num_pcs)  # (only working with top 3 PCs)
+    return big_table
 
-    # get PCs from the tracking and grid crop dataframes
-    diffae_grid_crops = add_pc_cols(diffae_grid_crops, pca)
-    big_table = add_pc_cols(big_table, pca)
 
-    # get the trajectories and flow fields for the grip crops
-    # and the track-centered crops
-    traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-        diffae_grid_crops, num_pcs
-    )
-    traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(big_table, num_pcs)
+def make_all_plots(
+    out_dir: Path,
+    dataset_name: str,
+    diffae_grid_crops: pd.DataFrame,
+    traj_grids: np.ndarray,
+    flow_field_dict_grids: dict,
+    big_table: pd.DataFrame,
+    traj_tracks: np.ndarray,
+) -> None:
+
+    # create a subdirectory to save the plots to
+    out_subdir = out_dir / dataset_name
+    out_subdir.mkdir(parents=True, exist_ok=True)
+
+    # create subdirectory to save individual track overlay
+    # examples to
+    out_subdir_indiv = out_subdir / "individual_track_overlays"
+    out_subdir_indiv.mkdir(parents=True, exist_ok=True)
 
     # plot the flow field and the trajectories
     fig, axs = plot_quiver_slices_from_diffae_table(
@@ -371,6 +401,7 @@ for dataset_name in dataset_name_list:
         )
     plt.tight_layout()
     fig.savefig(out_subdir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
+    plt.close(fig)
 
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -381,11 +412,14 @@ for dataset_name in dataset_name_list:
         pc_cols_for_xaxis=("pc1", "pc1"),
         pc_cols_for_yaxis=("pc2", "pc3"),
         track_ids="mean",
+        fig=fig,
         axs=axs,
-        zorder=1,
+        zorder=5,
+        alpha=0.5,
     )
     plt.tight_layout()
     fig.savefig(out_subdir / f"{dataset_name}_timeAvgTracks_timeHue.png", dpi=300)
+    plt.close(fig)
 
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -396,11 +430,14 @@ for dataset_name in dataset_name_list:
         pc_cols_for_xaxis=("pc1", "pc1"),
         pc_cols_for_yaxis=("pc2", "pc3"),
         track_ids="mean",
+        fig=fig,
         axs=axs,
-        zorder=1,
+        zorder=5,
+        alpha=0.5,
     )
     plt.tight_layout()
     fig.savefig(out_subdir / f"{dataset_name}_timeAvgTracks_alignmentHue.png", dpi=300)
+    plt.close(fig)
 
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -411,47 +448,105 @@ for dataset_name in dataset_name_list:
         pc_cols_for_xaxis=("pc1", "pc1"),
         pc_cols_for_yaxis=("pc2", "pc3"),
         track_ids="mean",
+        fig=fig,
         axs=axs,
-        zorder=1,
+        zorder=5,
+        alpha=0.5,
     )
     plt.tight_layout()
     fig.savefig(
         out_subdir / f"{dataset_name}_timeAvgTracks_eccentricityHue.png", dpi=300
     )
+    plt.close(fig)
 
-    # plot a single track examples
-    # get the first track id
-    track_ids = big_table["track_id"].unique().tolist()[:1]
+    # plot single track examples
+    track_ids = sorted(big_table["track_id"].unique().tolist())
+    for tid in track_ids[::10]:  # only overlay every 10th track id to save time + space
+        # make the plots
+        fig, axs = plot_quiver_slices_from_diffae_table(
+            diffae_grid_crops, traj_grids, flow_field_dict_grids
+        )
+        fig, axs = plot_measured_feat_overlay_on_flowfield(
+            measured_feat_df=big_table,
+            meas_feat_col="alignment_deg_rel_to_flow",
+            pc_cols_for_xaxis=("pc1", "pc1"),
+            pc_cols_for_yaxis=("pc2", "pc3"),
+            track_ids=[tid],
+            fig=fig,
+            axs=axs,
+            zorder=5,
+        )
+        plt.tight_layout()
+        fig.savefig(
+            out_subdir_indiv / f"{dataset_name}_tid{tid}_alignmentHue.png", dpi=300
+        )
+        plt.close(fig)
 
-    # make the plots
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
-    )
-    fig, axs = plot_measured_feat_overlay_on_flowfield(
-        measured_feat_df=big_table,
-        meas_feat_col="alignment_deg_rel_to_flow",
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
-        track_ids=track_ids,
-        axs=axs,
-        zorder=1,
-    )
-    plt.tight_layout()
-    fig.savefig(out_subdir / f"{dataset_name}_singleTrack_alignmentHue.png", dpi=300)
 
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
-    )
-    fig, axs = plot_measured_feat_overlay_on_flowfield(
-        measured_feat_df=big_table,
-        meas_feat_col="time_hours",
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
-        track_ids=track_ids,
-        axs=axs,
-        zorder=1,
-    )
-    plt.tight_layout()
-    fig.savefig(out_subdir / f"{dataset_name}_singleTrack_timeHue.png", dpi=300)
+def main() -> None:
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    dataset_name_list = get_reference_datasets()
 
-    # break
+    for dataset_name in dataset_name_list:
+        # create subdirectory to save track-based trajectories to
+        out_subdir_traj = out_dir / "trajectories_track_based"
+        out_subdir_traj.mkdir(parents=True, exist_ok=True)
+
+        big_table = get_merged_table(dataset_name)
+        if big_table is None:
+            print(
+                f"Dataset {dataset_name} is missing one or more data tables. Skipping..."
+            )
+            continue
+
+        print("cleaning up merged table...")
+        big_table.dropna(axis=0, how="any", subset="is_unique", inplace=True)
+        big_table = calculate_derived_data_dynamics_independent(big_table)
+        big_table = filter_seg_feature_table(
+            big_table,
+            out_dir=None,
+            min_num_points_per_track=120,
+        )
+
+        # fit the PCA (uses the reference datasets)
+        pca = fit_pca()
+
+        # read in the grid crop-based diffae features
+        diffae_grid_crops = get_manifest_for_dynamics_workflows(dataset_name, pca)
+
+        # add the PC columns to the track-based DiffAE table
+        # (the grid-based DiffAE table already has them, but
+        # but I believe that the columns are named "feat_0",
+        # "feat_1", etc. when they should be named "pc1",
+        # "pc2", etc.)
+        big_table = add_pc_cols(big_table, pca)
+
+        # use the full set of datasets to be analyzed for the bounds
+        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
+
+        print("getting trajectory and flow field for grid-based crops...")
+        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
+            diffae_grid_crops, bounds, col_names="feat"
+        )
+
+        print("getting trajectory and flow field for tracks-based crops...")
+        traj_tracks, _ = get_traj_and_flowfield(big_table, bounds, col_names="pc")
+        # save the trajectory data from the track-based crops
+        np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
+
+        # save plots of the track-based crop trajectories and PCs overlaid
+        # on the flow field and trajectories from the grid-based crops
+        make_all_plots(
+            out_dir,
+            dataset_name,
+            diffae_grid_crops,
+            traj_grids,
+            flow_field_dict_grids,
+            big_table,
+            traj_tracks,
+        )
+
+
+if __name__ == "__main__":
+    ipython_cli_flexecute(main)
