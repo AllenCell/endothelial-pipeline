@@ -231,14 +231,14 @@ def plot_quiver_slices_from_diffae_table(
     return fig, axs
 
 
-def plot_measured_feat_overlay_on_flowfield(
+def plot_measured_feat_pcs(
     measured_feat_df: pd.DataFrame,
     meas_feat_col: str,
     pc_cols_for_xaxis: tuple[str, ...],
     pc_cols_for_yaxis: tuple[str, ...],
     fig: plt.Figure | None = None,
     axs: np.ndarray | None = None,
-    track_ids: str | List[int] = "mean",
+    track_id: Literal["mean"] | int | None = "mean",
     zorder: int = 0,
     alpha: float = 1.0,
 ) -> tuple[plt.Figure, np.ndarray]:
@@ -258,27 +258,30 @@ def plot_measured_feat_overlay_on_flowfield(
 
     # plot the measured features
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-        if track_ids == "mean":
+        if track_id == "mean":
             measured_feat_df = (
                 measured_feat_df.groupby("frame_number")
                 .mean(numeric_only=True)[pc_cols + [meas_feat_col]]
                 .reset_index()
             )
-        elif isinstance(track_ids, list):
-            measured_feat_df = measured_feat_df.query("track_id in @track_ids")
+        elif isinstance(track_id, int):
+            measured_feat_df = measured_feat_df.query("track_id == @track_id")
+        elif track_id is None:
+            pass  # do not subset or aggregate the data in any way
         else:
             raise ValueError(
-                f"track_ids must be 'mean', 'all', str, or list. Got {track_ids} (type: {type(track_ids)}) instead."
+                f"track_ids must be 'mean', an integer, or None. Got {track_id} (type: {type(track_id)}) instead."
             )
 
-        ax.plot(
-            measured_feat_df[pc_cols_for_xaxis[j]],
-            measured_feat_df[pc_cols_for_yaxis[j]],
-            lw=1,
-            color="lightgrey",
-            alpha=alpha,
-            zorder=max(0, zorder),
-        )
+        if track_id is not None:
+            ax.plot(
+                measured_feat_df[pc_cols_for_xaxis[j]],
+                measured_feat_df[pc_cols_for_yaxis[j]],
+                lw=1,
+                color="lightgrey",
+                alpha=alpha,
+                zorder=max(0, zorder),
+            )
         sns.scatterplot(
             data=measured_feat_df,
             x=pc_cols_for_xaxis[j],
@@ -294,6 +297,79 @@ def plot_measured_feat_overlay_on_flowfield(
         )
 
     return fig, axs
+
+
+def plot_measured_feat_overlay_on_flowfield(
+    out_dir: Path,
+    dataset_name: str,
+    diffae_grid_crops: pd.DataFrame,
+    traj_grids: np.ndarray,
+    flow_field_dict_grids: dict,
+    diffae_measured_feat_df: pd.DataFrame,
+    meas_feat_col_name_for_color_coding: str,
+    track_id_to_plot: Literal["mean"] | int | None = "mean",
+    show_plot: bool = False,
+) -> None:
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        diffae_grid_crops, traj_grids, flow_field_dict_grids
+    )
+    fig, axs = plot_measured_feat_pcs(
+        measured_feat_df=diffae_measured_feat_df,
+        meas_feat_col=meas_feat_col_name_for_color_coding,
+        pc_cols_for_xaxis=("pc1", "pc1"),
+        pc_cols_for_yaxis=("pc2", "pc3"),
+        track_id=track_id_to_plot,
+        fig=fig,
+        axs=axs,
+        zorder=5,
+        alpha=0.5,
+    )
+    plt.tight_layout()
+    if track_id_to_plot == "mean":
+        data_subset = "_timeAvgTracks"
+    elif isinstance(track_id_to_plot, int):
+        data_subset = f"_tid{track_id_to_plot}"
+    elif track_id_to_plot is None:
+        data_subset = ""
+    else:
+        raise ValueError(
+            f"track_ids must be 'mean', an integer, or None. Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
+        )
+    fig.savefig(
+        out_dir
+        / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
+        dpi=300,
+    )
+    if not show_plot:
+        plt.close(fig)
+    return None
+
+
+def plot_new_traj_overlay_on_grid_traj_and_flowfield(
+    out_dir: Path,
+    dataset_name: str,
+    diffae_grid_crops: pd.DataFrame,
+    traj_grids: np.ndarray,
+    flow_field_dict_grids: dict,
+    traj_tracks: np.ndarray,
+) -> None:
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        diffae_grid_crops, traj_grids, flow_field_dict_grids
+    )
+    for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
+        ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
+        ax.scatter(
+            traj_tracks[-1, 0],
+            traj_tracks[-1, j + 1],
+            s=50,
+            color="black",
+            marker="*",
+            zorder=10,
+        )
+    plt.tight_layout()
+    fig.savefig(out_dir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
+    plt.close(fig)
+    return None
 
 
 def get_merged_table(dataset_name: str) -> pd.DataFrame:
@@ -368,102 +444,45 @@ def make_all_plots(
     out_subdir_indiv.mkdir(parents=True, exist_ok=True)
 
     # plot the flow field and the trajectories
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
+    plot_new_traj_overlay_on_grid_traj_and_flowfield(
+        out_subdir,
+        dataset_name,
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        traj_tracks,
     )
-    for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-        ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
-        ax.scatter(
-            traj_tracks[-1, 0],
-            traj_tracks[-1, j + 1],
-            s=50,
-            color="black",
-            marker="*",
-            zorder=10,
+
+    measured_feats_to_plot = ["time_hours", "alignment_deg_rel_to_flow", "eccentricity"]
+    for measured_feature in measured_feats_to_plot:
+        plot_measured_feat_overlay_on_flowfield(
+            out_subdir,
+            dataset_name,
+            diffae_grid_crops,
+            traj_grids,
+            flow_field_dict_grids,
+            diffae_measured_feat_df=big_table,
+            meas_feat_col_name_for_color_coding=measured_feature,
+            track_id_to_plot="mean",
+            show_plot=False,
         )
-    plt.tight_layout()
-    fig.savefig(out_subdir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
-    plt.close(fig)
-
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
-    )
-    fig, axs = plot_measured_feat_overlay_on_flowfield(
-        measured_feat_df=big_table,
-        meas_feat_col="time_hours",
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
-        track_ids="mean",
-        fig=fig,
-        axs=axs,
-        zorder=5,
-        alpha=0.5,
-    )
-    plt.tight_layout()
-    fig.savefig(out_subdir / f"{dataset_name}_timeAvgTracks_timeHue.png", dpi=300)
-    plt.close(fig)
-
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
-    )
-    fig, axs = plot_measured_feat_overlay_on_flowfield(
-        measured_feat_df=big_table,
-        meas_feat_col="alignment_deg_rel_to_flow",
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
-        track_ids="mean",
-        fig=fig,
-        axs=axs,
-        zorder=5,
-        alpha=0.5,
-    )
-    plt.tight_layout()
-    fig.savefig(out_subdir / f"{dataset_name}_timeAvgTracks_alignmentHue.png", dpi=300)
-    plt.close(fig)
-
-    fig, axs = plot_quiver_slices_from_diffae_table(
-        diffae_grid_crops, traj_grids, flow_field_dict_grids
-    )
-    fig, axs = plot_measured_feat_overlay_on_flowfield(
-        measured_feat_df=big_table,
-        meas_feat_col="eccentricity",
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
-        track_ids="mean",
-        fig=fig,
-        axs=axs,
-        zorder=5,
-        alpha=0.5,
-    )
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir / f"{dataset_name}_timeAvgTracks_eccentricityHue.png", dpi=300
-    )
-    plt.close(fig)
 
     # plot single track examples
     track_ids = sorted(big_table["track_id"].unique().tolist())
     track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
     for tid in track_ids:  # only overlay every 10th track id to save time + space
         # make the plots
-        fig, axs = plot_quiver_slices_from_diffae_table(
-            diffae_grid_crops, traj_grids, flow_field_dict_grids
+        plot_measured_feat_overlay_on_flowfield(
+            out_subdir_indiv,
+            dataset_name,
+            diffae_grid_crops,
+            traj_grids,
+            flow_field_dict_grids,
+            diffae_measured_feat_df=big_table,
+            meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
+            track_id_to_plot=tid,
+            show_plot=False,
         )
-        fig, axs = plot_measured_feat_overlay_on_flowfield(
-            measured_feat_df=big_table,
-            meas_feat_col="alignment_deg_rel_to_flow",
-            pc_cols_for_xaxis=("pc1", "pc1"),
-            pc_cols_for_yaxis=("pc2", "pc3"),
-            track_ids=[tid],
-            fig=fig,
-            axs=axs,
-            zorder=5,
-        )
-        plt.tight_layout()
-        fig.savefig(
-            out_subdir_indiv / f"{dataset_name}_tid{tid}_alignmentHue.png", dpi=300
-        )
-        plt.close(fig)
 
 
 def main() -> None:

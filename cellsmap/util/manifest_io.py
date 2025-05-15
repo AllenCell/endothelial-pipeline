@@ -90,11 +90,13 @@ def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name).get(
-        "diffae_tracking_integration_fmsid"
+        "diffae_tracking_integration_fmsid", None
     )
     if fmsid:
         return get_dataframe_by_fmsid(fmsid)
-    raise KeyError(f"No DiffAE manifest found for dataset {dataset_name}")
+    else:
+        print(f"No DiffAE manifest found for dataset {dataset_name}")
+        return None
 
 
 def get_feature_cols(df: pd.DataFrame) -> list:
