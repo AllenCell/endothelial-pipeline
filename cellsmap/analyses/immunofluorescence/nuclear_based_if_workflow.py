@@ -7,17 +7,17 @@ import pandas as pd
 from bioio import BioImage
 from skimage.measure import regionprops
 
-from cellsmap.analyses.immunofluorescence.if_analysis.add_if_cols import (
+from cellsmap.analyses.immunofluorescence.if_support.add_if_cols import (
     add_if_cols_to_df,
 )
-from cellsmap.analyses.immunofluorescence.if_analysis.if_feature_extraction import (
+from cellsmap.analyses.immunofluorescence.if_support.if_feature_extraction import (
     background_subtract,
     get_crop_size,
     get_raw_intensity_crop,
     get_segmentation_mask_crop,
     sum_projection,
 )
-from cellsmap.analyses.immunofluorescence.if_analysis.plots import (
+from cellsmap.analyses.immunofluorescence.if_support.plots import (
     plot_intensity_distribution,
     projection_image,
 )

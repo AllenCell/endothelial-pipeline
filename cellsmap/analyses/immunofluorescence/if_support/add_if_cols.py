@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
-from cellsmap.analyses.immunofluorescence.if_feature_extraction import (
+from cellsmap.analyses.immunofluorescence.if_support.if_feature_extraction import (
     background_subtract,
     get_raw_intensity_crop,
     get_segmentation_mask_crop,
