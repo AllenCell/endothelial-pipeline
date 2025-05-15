@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from cellsmap.util import manifest_io
-from cellsmap.util.dataset_io import get_dataset_info, get_reference_datasets
+from cellsmap.util.dataset_io import get_reference_datasets, get_valid_timepoints
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -22,9 +22,8 @@ def get_pca_reference(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
     - df: pd.DataFrame, with an additional column 'pca_ref' indicating whether the timepoint is a reference timepoint
     """
     df["pca_ref"] = False
-    dataset_info = get_dataset_info(dataset_name)
     # check that the necessary datasets are present for fitting PCA
-    valid_timepoints = dataset_info.get("valid_timepoints")
+    valid_timepoints = get_valid_timepoints(dataset_name)
     if valid_timepoints is None:
         print(f"Using all timepoints from dataset {dataset_name} for PCA")
         df["pca_ref"] = True

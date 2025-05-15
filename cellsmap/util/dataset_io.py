@@ -195,14 +195,15 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     return zarr_name
 
 
-def get_specific_channel_order(dataset_name: str) -> tuple[Any, Any, Any, Any]:
+def get_specific_channel_order(dataset_name: str) -> Tuple:
     dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("egfp_channel_index")
+    gfp_index = dataset_info.get("488_channel_index")
     bf_index = dataset_info.get("brightfield_channel_index")
     index_405 = dataset_info.get("405_channel_index", None)
-    index_647 = dataset_info.get("647_channel_index", None)
+    index_561 = dataset_info.get("561_channel_index", None)
+    index_640 = dataset_info.get("640_channel_index", None)
 
-    return gfp_index, bf_index, index_405, index_647
+    return gfp_index, bf_index, index_405, index_561, index_640
 
 
 def get_total_number_of_positions(dataset_name: str) -> int:
@@ -327,6 +328,17 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
             return flow
     print(f"Frame {frame} not found in flow list.")
     return None
+
+
+def get_valid_timepoints(dataset_name: str) -> dict:
+    """
+    Get the frames marked for use in DiffAE feature
+    analysis workflows for a given dataset.
+    These are determined by an experimentalist by eye
+    and are added to the dataset config file.
+    """
+    dataset_info = get_dataset_info(dataset_name)
+    return dataset_info.get("valid_timepoints")
 
 
 def get_dim_map(dim_order: str) -> dict:

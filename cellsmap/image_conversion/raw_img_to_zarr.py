@@ -38,12 +38,8 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20250122_SMAD1 20250122 --channel_names "EGFP,BF,DAPI,FarRed"
 
-  dapi_channel_index: 0
-  egfp_channel_index: 1
-  farred_channel_index: 2
-  brightfield_channel_index: 3
+python cellsmap/image_conversion/raw_img_to_zarr.py 20250509_20X_IF3 20250509 --channel_names EGFP,BF,NucViolet,SOX17,SMAD1
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
@@ -56,7 +52,7 @@ The resulting zarr contains images from one scene.
 
 def convert_dataset(
     dataset: str,
-    output_dataset_name: str,  # barcode_date
+    output_dataset_name: str,  # date
     output_path: str = DEFAULT_OUTPUT_PATH,
     channel_names: list[str] = ["EGFP", "BF"],
 ) -> None:
@@ -105,7 +101,7 @@ def convert_dataset(
             count += 1
 
 
-def parse_arguments():
+def parse_arguments() -> tuple[str, str, str, list[str]]:
     parser = argparse.ArgumentParser(
         description="Process sldy or nd2 images and write to Zarr format."
     )
