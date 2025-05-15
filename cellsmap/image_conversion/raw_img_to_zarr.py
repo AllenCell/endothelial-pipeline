@@ -38,7 +38,8 @@ Arguments:
         The path where the Zarr files will be saved.
 
 Example:
-    python cellsmap/image_conversion/raw_img_to_zarr.py 20250415_SlideH_20X 20250415 --channel_names EGFP,BF,NucViolet
+
+python cellsmap/image_conversion/raw_img_to_zarr.py 20250509_20X_IF3 20250509 --channel_names EGFP,BF,NucViolet,SOX17,SMAD1
 
 Example (using API):
     output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
