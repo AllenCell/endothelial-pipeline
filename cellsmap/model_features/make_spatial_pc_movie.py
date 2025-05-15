@@ -257,7 +257,7 @@ def generate_spatial_feature_movie(
             ]
         )
         movie = make_overlay(
-            data.zarr_path.iloc[0],
+            position_data.zarr_path.iloc[0],
             movie,
             end_y=data.end_y.max(),
             end_x=data.end_x.max(),
