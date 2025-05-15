@@ -32,12 +32,18 @@ def get_channel_crop(
 # %%
 #  Quickly visualize crop in first position, first timepoint of each zarr to confirm channel order is correct
 for dataset_name in dataset_io.get_available_datasets():
-    print(f"Dataset: {dataset_name}")
+    fmsid = dataset_io.get_fmsid(dataset_name)
+    barcode = dataset_io.get_barcode(dataset_name)
+    print(f"dataset: {dataset_name}")
+    print(f"fmsid: {fmsid}")
+    print(f"barcode: {barcode}")
+
     zarr_paths = dataset_io.get_zarr_path(dataset_name)
     for name, position_path in zarr_paths.items():
         img = BioImage(position_path)
-        print(f"Image shape: {img.shape}")
+        print(f"image shape: {img.shape}")
         n_channels = img.shape[1]
+        channel_names = img.channel_names
 
         # Compute projections for all channels
         channel_projections = []
@@ -55,7 +61,7 @@ for dataset_name in dataset_io.get_available_datasets():
             axes = [axes]  # Ensure axes is iterable for a single channel
         for c, ax in enumerate(axes):
             ax.imshow(channel_projections[c], cmap="gray")
-            ax.set_title(f"{dataset_name} - Channel {c}")
+            ax.set_title(f"{dataset_name} - Channel {c} ({channel_names[c]})")
         plt.show()
 
 # %%
