@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Literal, Union
 
 import dask.array as da
 import numpy as np
@@ -12,13 +12,25 @@ from cellsmap.util import dataset_io
 from cellsmap.vis import get_images
 
 
+def get_crop_size(resolution_level: Literal[0, 1]) -> int:
+    """
+    Get the crop size based on the resolution level.
+    """
+    if resolution_level == 0:
+        return 256
+    elif resolution_level == 1:
+        return 128
+    else:
+        raise ValueError(
+            f"Invalid resolution_level: {resolution_level}. Expected 0 or 1."
+        )
+
+
 def get_raw_intensity_crop(
-    row: pd.Series, resolution_level: int, channel: int
+    row: pd.Series, resolution_level: Literal[0, 1], channel: int
 ) -> np.ndarray:
     p = dataset_io.extract_P(row.position)
     img = get_images.get_zarr_img_for_dataset(row.dataset, p, resolution_level)
-    crop_size_x = row.crop_size_x if resolution_level == 1 else row.crop_size_x * 2
-    crop_size_y = row.crop_size_y if resolution_level == 1 else row.crop_size_y * 2
 
     raw_crop = get_images.get_crop(
         img=img,
@@ -26,8 +38,8 @@ def get_raw_intensity_crop(
         timepoint=row.frame_number,
         start_x=row.start_x,
         start_y=row.start_y,
-        crop_size_x=crop_size_x,
-        crop_size_y=crop_size_y,
+        crop_size_x=get_crop_size(resolution_level),
+        crop_size_y=get_crop_size(resolution_level),
     )
 
     # keep z, extract one time and one channel
@@ -75,7 +87,7 @@ def sum_projection(img: Union[np.ndarray, da.Array]) -> np.ndarray:
 
 def get_segmentation_mask_crop(
     row: pd.Series,
-    resolution_level: int,
+    resolution_level: Literal[0, 1],
     channel: Union[int, list[int]],
     individual_nuc_seg_mask: bool = False,
 ) -> np.ndarray:
@@ -103,8 +115,8 @@ def get_segmentation_mask_crop(
         timepoint=row.frame_number,
         start_x=row.start_x,
         start_y=row.start_y,
-        crop_size_x=(row.crop_size_x if resolution_level == 1 else row.crop_size_x * 2),
-        crop_size_y=(row.crop_size_y if resolution_level == 1 else row.crop_size_y * 2),
+        crop_size_x=get_crop_size(resolution_level),
+        crop_size_y=get_crop_size(resolution_level),
     )
 
     # # Extract channel from the crop

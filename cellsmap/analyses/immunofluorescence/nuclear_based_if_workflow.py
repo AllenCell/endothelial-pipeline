@@ -1,5 +1,6 @@
 # %%
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,7 @@ from skimage.measure import regionprops
 from cellsmap.analyses.immunofluorescence.add_if_cols import add_if_cols_to_df
 from cellsmap.analyses.immunofluorescence.if_feature_extraction import (
     background_subtract,
+    get_crop_size,
     get_raw_intensity_crop,
     get_segmentation_mask_crop,
     sum_projection,
@@ -86,11 +88,11 @@ def add_metadata_to_df(
 
 
 def filter_centroids_near_edge(
-    df: pd.DataFrame, crop_size_x: int, crop_size_y: int
+    df: pd.DataFrame, resolution_level: Literal[0, 1]
 ) -> pd.DataFrame:
     """Filter out centroids near the edges of the image."""
-    buffer_x = crop_size_x * 2
-    buffer_y = crop_size_y * 2
+    buffer_x = get_crop_size(resolution_level)
+    buffer_y = get_crop_size(resolution_level)
 
     filtered_df = df[
         (df["centroid_x"] > buffer_x)
@@ -101,12 +103,10 @@ def filter_centroids_near_edge(
     return filtered_df
 
 
-def add_start_coords(
-    df: pd.DataFrame, crop_size_x: int, crop_size_y: int
-) -> pd.DataFrame:
+def add_start_coords(df: pd.DataFrame, resolution_level: Literal[0, 1]) -> pd.DataFrame:
     """Add start coordinates to the DataFrame."""
-    shift_x = crop_size_x * 2
-    shift_y = crop_size_y * 2
+    shift_x = get_crop_size(resolution_level) // 2
+    shift_y = get_crop_size(resolution_level) // 2
     df["start_x"] = (df["centroid_x"] - shift_x).astype(int)
     df["start_y"] = (df["centroid_y"] + shift_y).astype(int)
     return df
@@ -116,9 +116,7 @@ def process_positions(
     dataset: str,
     positions: list,
     marker: str,
-    crop_size_x: int,
-    crop_size_y: int,
-    resolution_level: int,
+    resolution_level: Literal[0, 1],
 ) -> pd.DataFrame:
     """Process all positions for a given dataset."""
     all_data = []
@@ -127,11 +125,9 @@ def process_positions(
         full_path = get_full_segmentation_path(dataset, position)
         df = extract_region_properties(seg_2d, position, frame=0, full_path=full_path)
         df = add_metadata_to_df(df, dataset, seg_2d, position)
-        df = filter_centroids_near_edge(df, crop_size_x, crop_size_y)
-        df = add_start_coords(df, crop_size_x, crop_size_y)
+        df = filter_centroids_near_edge(df, resolution_level)
+        df = add_start_coords(df, resolution_level)
         df["frame_number"] = df["image_index"]
-        df["crop_size_x"] = crop_size_x
-        df["crop_size_y"] = crop_size_y
 
         df = add_if_cols_to_df(
             df,
@@ -151,15 +147,11 @@ def main() -> None:
     dataset = "20250122_SMAD1"
     marker = "SMAD1"
     positions = ["P5", "P6", "P7", "P8", "P9"]
-    crop_size_x = 128  # diffae
-    crop_size_y = 128  # diffae
     resolution_level = 0
 
     output_dir = set_output.get_output_path("smad1_analysis")
 
-    df_results = process_positions(
-        dataset, positions, marker, crop_size_x, crop_size_y, resolution_level
-    )
+    df_results = process_positions(dataset, positions, marker, resolution_level)
     df_results.to_csv(output_dir + f"{dataset}_nuclear_results.csv", index=False)
 
 
