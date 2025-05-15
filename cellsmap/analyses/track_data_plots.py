@@ -11,6 +11,8 @@ from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
+    extract_T,
+    get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_measurement_data_raws,
     get_original_path,
@@ -42,12 +44,117 @@ def merge_segprops_and_track_data(
     return big_table
 
 
+def write_filter_log_file(
+    out_dir: Path,
+    datasets_analyzed: Sequence[str],
+    fold_change: bool,
+    area_change_allowed: float,
+    sigma: float,
+    num_rows_before_filtering: int,
+    num_rows_after_filtering: int,
+    num_unique_tracks_before_filtering: int,
+    num_unique_tracks_after_filtering: int,
+) -> None:
+    timestamp = pd.Timestamp.now()
+    out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
+    out_dir_logs.mkdir(parents=True, exist_ok=True)
+    with open(
+        out_dir_logs
+        / f'{timestamp.strftime("%Y%m%d_%H%M")}_filtered_tracking_results_run_log.txt',
+        "w",
+    ) as f:
+        f.write(
+            f"""
+                Date run: {str(timestamp)}\n
+                Datasets analyzed: {datasets_analyzed}\n
+                Fold change used for filtering: {fold_change}\n
+                Fold change of area difference for filtering? {area_change_allowed}\n
+                Smoothing kernel used: gaussian with sigma={sigma}\n
+                Number of rows before filtering: {num_rows_before_filtering}\n
+                Number of rows after filtering: {num_rows_after_filtering}\n
+                Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n
+                Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n"""
+        )
+    return
+
+
+def save_filter_validation_plots(
+    out_dir: Path,
+    big_table_filtered: pd.DataFrame,
+    min_num_points_per_track: int = 20,
+) -> None:
+    for (dataset_nm, position), df in big_table_filtered.groupby(
+        ["dataset_name", "position"]
+    ):
+        summary = df.groupby("T")[
+            [
+                "T",
+                "num_unique_tracks_before_filtering_at_T",
+                "num_unique_tracks_after_filtering_at_T",
+            ]
+        ].agg("median")
+        timelapse_duration = get_dataset_info(dataset_nm)["duration"]
+        # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
+        out_dir_plots = out_dir / "num_tracks_plots" / dataset_nm
+        out_dir_plots.mkdir(parents=True, exist_ok=True)
+
+        fig, ax = plt.subplots()
+        ax.set_title(f"Dataset {dataset_nm} P{position}")
+        ax.set_xlabel("Timepoint")
+        ax.set_ylabel("Number of unique tracks")
+        sns.lineplot(
+            x="T",
+            y="num_unique_tracks_before_filtering_at_T",
+            data=summary,
+            ax=ax,
+            label="Before filtering",
+        )
+        sns.lineplot(
+            x="T",
+            y="num_unique_tracks_after_filtering_at_T",
+            data=summary,
+            ax=ax,
+            label="After filtering",
+        )
+        ax.set_ylim(0)
+        left_of_boxes = [
+            (0, 0),
+            (
+                timelapse_duration - min_num_points_per_track,
+                timelapse_duration - min_num_points_per_track,
+            ),
+        ]
+        right_of_boxes = [
+            (min_num_points_per_track, min_num_points_per_track),
+            (timelapse_duration, timelapse_duration),
+        ]
+        top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
+        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
+        ax.set_xlim(0, timelapse_duration)
+        [ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey") for y, x1, x2 in boxes]
+        fig.savefig(
+            out_dir_plots / f"{dataset_nm}_P{position}_num_tracks_over_time.png",
+            dpi=80,
+        )
+        plt.close(fig)
+    return
+
+
+def add_filter_columns(
+    big_table: pd.DataFrame,
+    min_num_points_per_track: int = 20,
+) -> pd.DataFrame:
+
+    return big_table
+
+
 def filter_seg_feature_table(
     big_table: pd.DataFrame,
     out_dir: Path | None,
     min_num_points_per_track: int = 20,
 ) -> pd.DataFrame:
 
+    # get the number of segmentations in total and per timepoint
     num_rows_before_filtering = len(big_table)
     num_unique_tracks_before_filtering = (
         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
@@ -59,32 +166,16 @@ def filter_seg_feature_table(
         ].transform(lambda x: x.nunique())
     )
 
-    # NOTE: UPDATE: This was fixed in the latest version of the tracking
-    # workflow, but the tracking workflow has not been re-run yet.
-    # It was fixed by taking the first region found in the event
-    # that there is a tie for the best match.
-    # UPDATE: I looked in to it and this occurs when 2 regions from a
-    # query frame (e.g. a future timeframe) are both completely
-    # overlapped by the reference frame (e.g. the current timeframe),
-    # in which case they both have equal metric values and are both
-    # included.
-    # ORIGINAL: Despite the matching method being reciprocal_matches_only, thee are some instances of track
-    # splitting. I will need to find out why this is, but for now I will filter out these tracks.
-    big_table_filtered = big_table_filtered[
-        big_table_filtered.groupby(["dataset_name", "position", "track_id"])[
-            "T"
-        ].transform(lambda t: t.nunique() == t.size)
-    ]
-
     area_change_allowed = 0.1
-    fold_change = True
+    use_fold_change = True
     sigma = 2.0
-    big_table_filtered = filter_on_fold_change(
-        big_table_filtered,
-        fold_change=area_change_allowed,
-        fold_change_of_diff=fold_change,
-        smoothing_sigma=sigma,
-    )
+    # big_table_filtered = filter_on_fold_change(
+    #     big_table_filtered,
+    #     fold_change=area_change_allowed,
+    #     fold_change_of_diff=use_fold_change,
+    # )
+
+    # remove the segmentations that touch the image border
     big_table_filtered = big_table_filtered[~big_table_filtered["touches_image_border"]]
     # NOTE that we are only dropping the segmentation that
     # touch the border from this table, not the whole track
@@ -94,12 +185,14 @@ def filter_seg_feature_table(
     # THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
     # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
     # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
+
     big_table_filtered = big_table_filtered[
         big_table_filtered.groupby(["dataset_name", "position", "track_id"])[
             "track_id"
         ].transform(lambda x: x.count() > min_num_points_per_track)
     ]
 
+    # get the number of unique tracks after filtering in total and per timepoint
     num_rows_after_filtering = len(big_table_filtered)
     num_unique_tracks_after_filtering = (
         big_table_filtered.groupby(["dataset_name", "position"])["track_id"]
@@ -114,85 +207,26 @@ def filter_seg_feature_table(
 
     # save a log file of the filtering that was done if saving the results
     if out_dir:
-        timestamp = pd.Timestamp.now()
-        out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
-        out_dir_logs.mkdir(parents=True, exist_ok=True)
-        with open(
-            out_dir_logs
-            / f'{timestamp.strftime("%Y%m%d_%H%M")}_filtered_tracking_results_run_log.txt',
-            "w",
-        ) as f:
-            f.write(
-                f"""
-                    Date run: {str(timestamp)}\n
-                    Datasets analyzed: {big_table_filtered["dataset_name"].unique()}\n
-                    Fold change used for filtering: {fold_change}\n
-                    Fold change of area difference for filtering? {area_change_allowed}\n
-                    Smoothing kernel used: gaussian with sigma={sigma}\n
-                    Number of rows before filtering: {num_rows_before_filtering}\n
-                    Number of rows after filtering: {num_rows_after_filtering}\n
-                    Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n
-                    Number of unique tracks after filtering: {num_unique_tracks_after_filtering}\n"""
-            )
-
+        # save a log file and create some plots showing number of
+        # tracks before and after filtering
+        datasets_analyzed = big_table_filtered["dataset_name"].unique().tolist()
+        write_filter_log_file(
+            out_dir,
+            datasets_analyzed,
+            use_fold_change,
+            area_change_allowed,
+            sigma,
+            num_rows_before_filtering,
+            num_rows_after_filtering,
+            num_unique_tracks_before_filtering,
+            num_unique_tracks_after_filtering,
+        )
         # create some validation plots
-        for (dataset_nm, position), df in big_table_filtered.groupby(
-            ["dataset_name", "position"]
-        ):
-            summary = df.groupby("T")[
-                [
-                    "T",
-                    "num_unique_tracks_before_filtering_at_T",
-                    "num_unique_tracks_after_filtering_at_T",
-                ]
-            ].agg("median")
-            timelapse_duration = get_dataset_info(dataset_nm)["duration"]
-            # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
-            out_dir_plots = out_dir / "num_tracks_plots" / dataset_nm
-            out_dir_plots.mkdir(parents=True, exist_ok=True)
-
-            fig, ax = plt.subplots()
-            ax.set_title(f"Dataset {dataset_nm} P{position}")
-            ax.set_xlabel("Timepoint")
-            ax.set_ylabel("Number of unique tracks")
-            sns.lineplot(
-                x="T",
-                y="num_unique_tracks_before_filtering_at_T",
-                data=summary,
-                ax=ax,
-                label="Before filtering",
-            )
-            sns.lineplot(
-                x="T",
-                y="num_unique_tracks_after_filtering_at_T",
-                data=summary,
-                ax=ax,
-                label="After filtering",
-            )
-            ax.set_ylim(0)
-            left_of_boxes = [
-                (0, 0),
-                (
-                    timelapse_duration - min_num_points_per_track,
-                    timelapse_duration - min_num_points_per_track,
-                ),
-            ]
-            right_of_boxes = [
-                (min_num_points_per_track, min_num_points_per_track),
-                (timelapse_duration, timelapse_duration),
-            ]
-            top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-            boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
-            ax.set_xlim(0, timelapse_duration)
-            [
-                ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey")
-                for y, x1, x2 in boxes
-            ]
-            fig.savefig(
-                out_dir_plots / f"{dataset_nm}_P{position}_num_tracks_over_time.png",
-                dpi=80,
-            )
-            plt.close(fig)
+        save_filter_validation_plots(
+            out_dir,
+            big_table_filtered,
+            min_num_points_per_track=min_num_points_per_track,
+        )
     return big_table_filtered
 
 
@@ -258,12 +292,36 @@ def calculate_derived_data_dynamics_independent(
     # the image index will be consistent across both
     # versions of the data)
 
+    # add a column for the number of unique tracks
+    # per dataset per position per timepoint
+    # (this should be 1 everywhere)
+    big_table["num_unique_tracks_per_timeframe"] = big_table.groupby(
+        ["dataset_name", "position", "image_index", "track_id"]
+    ).transform("size")
+
+    # add the columns for the fold change in area
+    print("Calculating locally-normalized area...") if verbose else None
+    sigma = 2.0
+    big_table["smoothed_area"] = big_table.groupby(
+        ["dataset_name", "position", "track_id"]
+    )["area"].transform(
+        lambda x: calculate_smoothed_normd_area(x, smoothing_sigma=sigma)
+    )
+    big_table["smoothed_area_normd"] = big_table.groupby(
+        ["dataset_name", "position", "track_id"]
+    )["smoothed_area"].transform(lambda x: x.diff())
+
     # add column for the number of tracks at a given
     # timepoint per dataset per position
     print("Adding number of tracks for each timepoint...") if verbose else None
     big_table["num_segmentations_at_T_before_filter"] = big_table.groupby(
         ["dataset_name", "position", "T"]
     )["label"].transform(lambda x: x.nunique())
+
+    # add the duration of each track
+    big_table["track_duration"] = big_table.groupby(
+        ["dataset_name", "position", "track_id"]
+    )["image_index"].transform(lambda t: t.max() - t.min())
 
     # add column for orientation in degrees of the
     # ellipse fitted to each segmentation in degrees
@@ -515,42 +573,57 @@ def plot_per_position(
     return
 
 
-def filter_on_fold_change(
-    tracking_results: pd.DataFrame,
-    fold_change: float = 1.5,
-    fold_change_of_diff: bool = False,
+def calculate_smoothed_normd_area(
+    area: pd.Series | np.ndarray,
     smoothing_sigma: float = 2.0,
 ) -> pd.DataFrame:
-    tracking_results = tracking_results.copy()
-    # NOTE: this method filters based on fold change of a smoothed version of the data:
-    tracking_results["smoothed_area"] = tracking_results.groupby("track_id")[
-        "area"
-    ].transform(gaussian_filter1d, sigma=smoothing_sigma)
-    tracking_results["area_normd"] = (
-        tracking_results["area"] / tracking_results["smoothed_area"]
-    )
-    tracking_results["area_normd_diff"] = tracking_results.groupby("track_id")[
-        "area_normd"
-    ].transform(lambda x: np.diff(x, prepend=np.nan))
+    smoothed_area = gaussian_filter1d(area, sigma=smoothing_sigma)
+    area_normd = area / smoothed_area
+    return area_normd
 
-    if fold_change_of_diff:
-        tracking_results = tracking_results[
-            (tracking_results["area_normd_diff"] > (-1 * fold_change))
-            + tracking_results["area_normd_diff"].transform(np.isnan)
-        ]
-        tracking_results = tracking_results[
-            (tracking_results["area_normd_diff"] < fold_change)
-            + tracking_results["area_normd_diff"].transform(np.isnan)
-        ]
-    else:
-        tracking_results = tracking_results[
-            tracking_results["area_normd"] > (1 / fold_change)
-        ]
-        tracking_results = tracking_results[
-            tracking_results["area_normd"] < fold_change
-        ]
 
-    return tracking_results
+# def calculate_area_fold_change(
+#     tracking_results: pd.DataFrame,
+#     smoothing_sigma: float = 2.0,
+# ) -> pd.DataFrame:
+
+#     tracking_results["smoothed_area"] = tracking_results.groupby(["dataset_name", "position", "track_id"])[
+#         "area"
+#     ].transform(gaussian_filter1d, sigma=smoothing_sigma)
+#     tracking_results["area_normd"] = (
+#         tracking_results["area"] / tracking_results["smoothed_area"]
+#     )
+#     tracking_results["area_normd_diff"] = tracking_results.groupby(["dataset_name", "position", "track_id"])[
+#         "area_normd"
+#     ].transform(lambda x: np.diff(x, prepend=np.nan))
+
+#     return tracking_results
+
+# def filter_on_fold_change(
+#     tracking_results: pd.DataFrame,
+#     fold_change: float = 1.5,
+#     fold_change_of_diff: bool = False,
+# ) -> pd.DataFrame:
+#     tracking_results = tracking_results.copy()
+
+#     if fold_change_of_diff:
+#         tracking_results = tracking_results[
+#             (tracking_results["area_normd_diff"] > (-1 * fold_change))
+#             + tracking_results["area_normd_diff"].transform(np.isnan)
+#         ]
+#         tracking_results = tracking_results[
+#             (tracking_results["area_normd_diff"] < fold_change)
+#             + tracking_results["area_normd_diff"].transform(np.isnan)
+#         ]
+#     else:
+#         tracking_results = tracking_results[
+#             tracking_results["area_normd"] > (1 / fold_change)
+#         ]
+#         tracking_results = tracking_results[
+#             tracking_results["area_normd"] < fold_change
+#         ]
+
+#     return tracking_results
 
 
 def filter_and_save_track_data_for_landscape_integration(
@@ -789,9 +862,50 @@ def plot_tracking_data(
     plt.close(fig)
 
 
+def add_cell_segmentation_path_column(
+    big_table: pd.DataFrame,
+) -> pd.DataFrame:
+
+    big_table.groupby(["dataset_name", "position", "image_index"]).groups.keys()
+    # big_table["cell_segmentation_path"] = big_table.groupby(['dataset_name', 'position', 'image_index']).apply(
+    #     lambda x: get_segmentation_path_at_T_wrapper(*x.name),
+    # )
+
+    # big_table["cell_segmentation_path"] = (
+    #     big_table.groupby(["dataset_name", "position", "image_index"], as_index=True)[
+    #         ["dataset_name", "position", "image_index"]
+    #     ]
+    #     .apply(
+    #         lambda df: pd.DataFrame(
+    #             columns=["cell_segmentation_path"],
+    #             data=get_segmentation_path_at_T(
+    #                 zip(
+    #                     df["dataset_name"].values,
+    #                     df["position"].values,
+    #                     df["image_index"].values,
+
+    #             ),
+    #             index=df.index,
+    #         )
+    #     )
+    #     .droplevel([0, 1, 2])
+    # )
+
+    return big_table
+
+
 def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
     dataset_name, out_dir, verbose = args
     process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
+
+
+def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
+    cdh5_seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
+    seg_path_dict = {
+        extract_T(fp.stem): fp
+        for fp in sorted(cdh5_seg_dir.glob("**/*.ome.tif*"), key=extract_T)
+    }
+    return seg_path_dict
 
 
 def process_and_plot_tracking_data(
@@ -833,6 +947,7 @@ def process_and_plot_tracking_data(
         if verbose
         else None
     )
+    big_table = add_cell_segmentation_path_column(big_table)
     big_table = calculate_derived_data_dynamics_independent(big_table, verbose)
 
     # filter the segprops data to remove regions that
