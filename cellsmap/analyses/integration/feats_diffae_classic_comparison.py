@@ -38,6 +38,7 @@ from cellsmap.util.manifest_preprocessing import (
 )
 from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     get_manifest_for_dynamics_workflows,
+    project_manifest_to_pcs,
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
@@ -195,23 +196,6 @@ def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
     return diffae_grid_crops
 
 
-def add_pc_cols(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
-    # get column names for features 1-8
-    feat_cols = get_feature_cols(df)
-
-    # get the PCs
-    x_proj = pca.transform(df[feat_cols].values)
-
-    # add PCs to dataframe
-    num_pcs = x_proj.shape[1]
-    pc_cols: list = []
-    for pc in range(num_pcs):
-        pc_col_name = f"pc{pc+1}"
-        pc_cols.append(pc_col_name)
-        df[pc_col_name] = x_proj[:, pc]
-    return df
-
-
 def plot_quiver_slices_from_diffae_table(
     diffae_df: pd.DataFrame,
     traj_grids: np.ndarray,
@@ -280,8 +264,6 @@ def plot_measured_feat_overlay_on_flowfield(
                 .mean(numeric_only=True)[pc_cols + [meas_feat_col]]
                 .reset_index()
             )
-        elif track_ids == "all":
-            pass
         elif isinstance(track_ids, list):
             measured_feat_df = measured_feat_df.query("track_id in @track_ids")
         else:
@@ -461,7 +443,7 @@ def make_all_plots(
 
     # plot single track examples
     track_ids = sorted(big_table["track_id"].unique().tolist())
-    track_ids = track_ids if len(track_ids[::10]) < 10 else track_ids
+    track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
     for tid in track_ids:  # only overlay every 10th track id to save time + space
         # make the plots
         fig, axs = plot_quiver_slices_from_diffae_table(
@@ -521,7 +503,9 @@ def main() -> None:
         # but I believe that the columns are named "feat_0",
         # "feat_1", etc. when they should be named "pc1",
         # "pc2", etc.)
-        big_table = add_pc_cols(big_table, pca)
+        big_table = project_manifest_to_pcs(
+            big_table, pca, overwrite_feature_columns=False
+        )
 
         # use the full set of datasets to be analyzed for the bounds
         bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
