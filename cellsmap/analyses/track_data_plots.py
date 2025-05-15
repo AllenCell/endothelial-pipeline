@@ -47,9 +47,6 @@ def merge_segprops_and_track_data(
 def write_filter_log_file(
     out_dir: Path,
     datasets_analyzed: Sequence[str],
-    fold_change: bool,
-    area_change_allowed: float,
-    sigma: float,
     num_rows_before_filtering: int,
     num_rows_after_filtering: int,
     num_unique_tracks_before_filtering: int,
@@ -67,9 +64,6 @@ def write_filter_log_file(
             f"""
                 Date run: {str(timestamp)}\n
                 Datasets analyzed: {datasets_analyzed}\n
-                Fold change used for filtering: {fold_change}\n
-                Fold change of area difference for filtering? {area_change_allowed}\n
-                Smoothing kernel used: gaussian with sigma={sigma}\n
                 Number of rows before filtering: {num_rows_before_filtering}\n
                 Number of rows after filtering: {num_rows_after_filtering}\n
                 Number of unique tracks before filtering: {num_unique_tracks_before_filtering}\n
@@ -81,7 +75,7 @@ def write_filter_log_file(
 def save_filter_validation_plots(
     out_dir: Path,
     big_table_filtered: pd.DataFrame,
-    min_num_points_per_track: int = 20,
+    min_track_duration: int,
 ) -> None:
     for (dataset_nm, position), df in big_table_filtered.groupby(
         ["dataset_name", "position"]
@@ -120,12 +114,12 @@ def save_filter_validation_plots(
         left_of_boxes = [
             (0, 0),
             (
-                timelapse_duration - min_num_points_per_track,
-                timelapse_duration - min_num_points_per_track,
+                timelapse_duration - min_track_duration,
+                timelapse_duration - min_track_duration,
             ),
         ]
         right_of_boxes = [
-            (min_num_points_per_track, min_num_points_per_track),
+            (min_track_duration, min_track_duration),
             (timelapse_duration, timelapse_duration),
         ]
         top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
@@ -142,16 +136,10 @@ def save_filter_validation_plots(
 
 def add_filter_columns(
     big_table: pd.DataFrame,
-    min_num_points_per_track: int = 20,
-) -> pd.DataFrame:
-
-    return big_table
-
-
-def filter_seg_feature_table(
-    big_table: pd.DataFrame,
     out_dir: Path | None,
-    min_num_points_per_track: int = 20,
+    min_track_duration: int = 24,
+    max_area_change: float = 0.1,
+    min_num_valid_points_per_track: int = 20,
 ) -> pd.DataFrame:
 
     # get the number of segmentations in total and per timepoint
@@ -159,63 +147,67 @@ def filter_seg_feature_table(
     num_unique_tracks_before_filtering = (
         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
     )
-    big_table_filtered = big_table.copy(deep=True)
-    big_table_filtered["num_unique_tracks_before_filtering_at_T"] = (
-        big_table_filtered.groupby(["dataset_name", "position", "T"])[
-            "track_id"
-        ].transform(lambda x: x.nunique())
+
+    # drop_from_track_duration
+    big_table["min_track_duration"] = min_track_duration
+    big_table["drop_from_track_duration"] = (
+        big_table["track_duration"] <= min_track_duration
     )
 
-    area_change_allowed = 0.1
-    use_fold_change = True
-    sigma = 2.0
-    # big_table_filtered = filter_on_fold_change(
-    #     big_table_filtered,
-    #     fold_change=area_change_allowed,
-    #     fold_change_of_diff=use_fold_change,
-    # )
+    # drop_from_area_change
+    big_table["max_smoothed_area_normd_change"] = max_area_change
+    big_table["drop_from_area_change"] = (
+        big_table["smoothed_area_normd_diff"].abs() >= max_area_change
+    )
 
-    # remove the segmentations that touch the image border
-    big_table_filtered = big_table_filtered[~big_table_filtered["touches_image_border"]]
-    # NOTE that we are only dropping the segmentation that
-    # touch the border from this table, not the whole track
-    # this also explains why some of the centroid speeds
-    # are still so bizarre (because those measurements are
-    # recorded prior to filtering out these segmentations)
-    # THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
-    # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
-    # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
+    # drop_from_touches_image_border
+    big_table.rename(
+        columns={"touches_image_border": "drop_from_touches_image_border"}, inplace=True
+    )
 
-    big_table_filtered = big_table_filtered[
-        big_table_filtered.groupby(["dataset_name", "position", "track_id"])[
-            "track_id"
-        ].transform(lambda x: x.count() > min_num_points_per_track)
-    ]
+    # drop_main is just all the previous filters combined
+    big_table["drop_main"] = (
+        big_table["drop_from_track_duration"]
+        + big_table["drop_from_area_change"]
+        + big_table["drop_from_touches_image_border"]
+    )
+
+    # drop_because_insufficient_valid_timepoints
+    big_table["min_num_valid_points_per_track"] = min_num_valid_points_per_track
+    big_table["valid_points"] = big_table.groupby(
+        ["dataset_name", "position", "track_id"]
+    )["image_index"].transform("nunique")
+    big_table["drop_from_insufficient_valid_points"] = (
+        big_table["valid_points"] < min_num_valid_points_per_track
+    )
+
+    # update drop_main
+    big_table["drop_main"] = (
+        big_table["drop_main"] + big_table["drop_from_insufficient_valid_points"]
+    )
 
     # get the number of unique tracks after filtering in total and per timepoint
-    num_rows_after_filtering = len(big_table_filtered)
+    num_rows_after_filtering = np.count_nonzero(~big_table["drop_main"])
     num_unique_tracks_after_filtering = (
-        big_table_filtered.groupby(["dataset_name", "position"])["track_id"]
+        big_table[~big_table["drop_main"]]
+        .groupby(["dataset_name", "position"])["track_id"]
         .nunique()
         .sum()
     )
-    big_table_filtered["num_unique_tracks_after_filtering_at_T"] = (
-        big_table_filtered.groupby(["dataset_name", "position", "T"])[
-            "track_id"
-        ].transform(lambda x: x.nunique())
+    big_table["num_unique_tracks_after_filtering_at_T"] = (
+        big_table[~big_table["drop_main"]]
+        .groupby(["dataset_name", "position", "T"])["track_id"]
+        .transform(lambda x: x.nunique())
     )
 
     # save a log file of the filtering that was done if saving the results
     if out_dir:
         # save a log file and create some plots showing number of
         # tracks before and after filtering
-        datasets_analyzed = big_table_filtered["dataset_name"].unique().tolist()
+        datasets_analyzed = big_table["dataset_name"].unique().tolist()
         write_filter_log_file(
             out_dir,
             datasets_analyzed,
-            use_fold_change,
-            area_change_allowed,
-            sigma,
             num_rows_before_filtering,
             num_rows_after_filtering,
             num_unique_tracks_before_filtering,
@@ -224,10 +216,92 @@ def filter_seg_feature_table(
         # create some validation plots
         save_filter_validation_plots(
             out_dir,
-            big_table_filtered,
-            min_num_points_per_track=min_num_points_per_track,
+            big_table[~big_table["drop_main"]],
+            min_track_duration,
         )
-    return big_table_filtered
+    return big_table
+
+
+# def filter_seg_feature_table(
+#     big_table: pd.DataFrame,
+#     out_dir: Path | None,
+#     min_num_points_per_track: int = 20,
+# ) -> pd.DataFrame:
+
+#     # get the number of segmentations in total and per timepoint
+#     num_rows_before_filtering = len(big_table)
+#     num_unique_tracks_before_filtering = (
+#         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
+#     )
+#     big_table_filtered = big_table.copy(deep=True)
+#     big_table_filtered["num_unique_tracks_before_filtering_at_T"] = (
+#         big_table_filtered.groupby(["dataset_name", "position", "T"])[
+#             "track_id"
+#         ].transform(lambda x: x.nunique())
+#     )
+
+#     area_change_allowed = 0.1
+#     use_fold_change = True
+#     sigma = 2.0
+#     # big_table_filtered = filter_on_fold_change(
+#     #     big_table_filtered,
+#     #     fold_change=area_change_allowed,
+#     #     fold_change_of_diff=use_fold_change,
+#     # )
+
+#     # remove the segmentations that touch the image border
+#     big_table_filtered = big_table_filtered[~big_table_filtered["touches_image_border"]]
+#     # NOTE that we are only dropping the segmentation that
+#     # touch the border from this table, not the whole track
+#     # this also explains why some of the centroid speeds
+#     # are still so bizarre (because those measurements are
+#     # recorded prior to filtering out these segmentations)
+#     # THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
+#     # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
+#     # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
+
+#     big_table_filtered = big_table_filtered[
+#         big_table_filtered.groupby(["dataset_name", "position", "track_id"])[
+#             "track_id"
+#         ].transform(lambda x: x.count() > min_num_points_per_track)
+#     ]
+
+#     # get the number of unique tracks after filtering in total and per timepoint
+#     num_rows_after_filtering = len(big_table_filtered)
+#     num_unique_tracks_after_filtering = (
+#         big_table_filtered.groupby(["dataset_name", "position"])["track_id"]
+#         .nunique()
+#         .sum()
+#     )
+#     big_table_filtered["num_unique_tracks_after_filtering_at_T"] = (
+#         big_table_filtered.groupby(["dataset_name", "position", "T"])[
+#             "track_id"
+#         ].transform(lambda x: x.nunique())
+#     )
+
+#     # save a log file of the filtering that was done if saving the results
+#     if out_dir:
+#         # save a log file and create some plots showing number of
+#         # tracks before and after filtering
+#         datasets_analyzed = big_table_filtered["dataset_name"].unique().tolist()
+#         write_filter_log_file(
+#             out_dir,
+#             datasets_analyzed,
+#             use_fold_change,
+#             area_change_allowed,
+#             sigma,
+#             num_rows_before_filtering,
+#             num_rows_after_filtering,
+#             num_unique_tracks_before_filtering,
+#             num_unique_tracks_after_filtering,
+#         )
+#         # create some validation plots
+#         save_filter_validation_plots(
+#             out_dir,
+#             big_table_filtered,
+#             min_num_points_per_track,
+#         )
+#     return big_table_filtered
 
 
 def calculate_derived_data_dynamics_independent(
@@ -302,14 +376,15 @@ def calculate_derived_data_dynamics_independent(
     # add the columns for the fold change in area
     print("Calculating locally-normalized area...") if verbose else None
     sigma = 2.0
-    big_table["smoothed_area"] = big_table.groupby(
+    big_table["gaussian_sigma_for_area_smoothing"] = sigma
+    big_table["smoothed_area_normd"] = big_table.groupby(
         ["dataset_name", "position", "track_id"]
     )["area"].transform(
         lambda x: calculate_smoothed_normd_area(x, smoothing_sigma=sigma)
     )
-    big_table["smoothed_area_normd"] = big_table.groupby(
+    big_table["smoothed_area_normd_diff"] = big_table.groupby(
         ["dataset_name", "position", "track_id"]
-    )["smoothed_area"].transform(lambda x: x.diff())
+    )["smoothed_area_normd"].transform(lambda x: x.diff())
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
@@ -319,6 +394,7 @@ def calculate_derived_data_dynamics_independent(
     )["label"].transform(lambda x: x.nunique())
 
     # add the duration of each track
+    print("Calculating track durations...") if verbose else None
     big_table["track_duration"] = big_table.groupby(
         ["dataset_name", "position", "track_id"]
     )["image_index"].transform(lambda t: t.max() - t.min())
@@ -411,6 +487,12 @@ def calculate_derived_data_dynamics_independent(
 def calculate_derived_data_dynamics_dependent(
     big_table: pd.DataFrame, verbose: bool = False
 ) -> pd.DataFrame:
+    """
+    NOTE: The accuracy of these metrics are affected by how
+    clean the data in the table is, therefore it should only
+    be used after filtering out incorrect segmentations from
+    the data table.
+    """
     # recalculate the centroid speeds of each track
     # after filtering
     print("Calculating centroid velocities...") if verbose else None
@@ -865,38 +947,14 @@ def plot_tracking_data(
 def add_cell_segmentation_path_column(
     big_table: pd.DataFrame,
 ) -> pd.DataFrame:
-
-    big_table.groupby(["dataset_name", "position", "image_index"]).groups.keys()
-    # big_table["cell_segmentation_path"] = big_table.groupby(['dataset_name', 'position', 'image_index']).apply(
-    #     lambda x: get_segmentation_path_at_T_wrapper(*x.name),
-    # )
-
-    # big_table["cell_segmentation_path"] = (
-    #     big_table.groupby(["dataset_name", "position", "image_index"], as_index=True)[
-    #         ["dataset_name", "position", "image_index"]
-    #     ]
-    #     .apply(
-    #         lambda df: pd.DataFrame(
-    #             columns=["cell_segmentation_path"],
-    #             data=get_segmentation_path_at_T(
-    #                 zip(
-    #                     df["dataset_name"].values,
-    #                     df["position"].values,
-    #                     df["image_index"].values,
-
-    #             ),
-    #             index=df.index,
-    #         )
-    #     )
-    #     .droplevel([0, 1, 2])
-    # )
-
+    seg_path_per_pos_dict = {
+        pos: get_segmentation_path_dict(ds_nm, pos)
+        for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys()
+    }
+    big_table["cdh5_classic_segmentation_path"] = big_table.apply(
+        lambda df: (seg_path_per_pos_dict[df["position"]][df["T"]].as_posix()), axis=1
+    )
     return big_table
-
-
-def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
-    dataset_name, out_dir, verbose = args
-    process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
@@ -906,6 +964,11 @@ def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
         for fp in sorted(cdh5_seg_dir.glob("**/*.ome.tif*"), key=extract_T)
     }
     return seg_path_dict
+
+
+def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
+    dataset_name, out_dir, verbose = args
+    process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
 
 
 def process_and_plot_tracking_data(
@@ -960,15 +1023,10 @@ def process_and_plot_tracking_data(
         if verbose
         else None
     )
-    big_table_filtered = filter_seg_feature_table(
-        big_table, out_dir, min_num_points_per_track=20
+    big_table = add_filter_columns(
+        big_table, out_dir, min_track_duration=24, max_area_change=0.1
     )
-
-    # add a column to the raw data table that indicates which rows
-    # were discarded during the filtering process
-    big_table["data_in_cleaned_manifest"] = np.isin(
-        big_table.index, big_table_filtered.index
-    )
+    big_table_filtered = big_table[~big_table["drop_main"]]
 
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
