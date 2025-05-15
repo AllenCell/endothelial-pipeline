@@ -866,7 +866,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF1
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -891,7 +891,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF2
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -916,7 +916,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF3
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -941,7 +941,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF4
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -966,7 +966,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF5
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -991,7 +991,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF6
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -1016,7 +1016,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF7
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -1041,7 +1041,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF8
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -1066,7 +1066,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF9
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -1091,7 +1091,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF10
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -1116,7 +1116,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: Secondary only immunofluorescence control
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF11
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
@@ -1141,7 +1141,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF12
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
   diffae_tracking_integration_fmsid: ''
