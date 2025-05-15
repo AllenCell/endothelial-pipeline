@@ -13,8 +13,11 @@ from cellsmap.vis import get_images, image_processing
 OUTPUT_DIR = (
     f"//allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/"
 )
-DATASET = "20250122_SMAD1"
-# %%
+DATASET = "20250509_20X_IF2"
+NUC_STAIN = "NucViolet"
+
+print(f"Processing {DATASET}...")
+
 info = dataset_io.get_dataset_info(DATASET)
 n_positions = dataset_io.get_total_number_of_positions(DATASET)
 
@@ -24,7 +27,11 @@ for position in range(n_positions):
     print(f"Position {position}")
 
     img = get_images.get_zarr_img_for_dataset(DATASET, position, resolution_level=0)
-    img_tp = img.get_image_dask_data("ZYX", T=0, C=2)
+
+    channel_names = img.channel_names
+    nuc_stain_channel = channel_names.index(NUC_STAIN)
+
+    img_tp = img.get_image_dask_data("ZYX", T=0, C=nuc_stain_channel)
     max_int_projection = image_processing.max_proj(img_tp, axis=0)
     max_int_projections.append(max_int_projection)
 
