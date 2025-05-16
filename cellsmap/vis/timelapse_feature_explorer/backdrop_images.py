@@ -1,20 +1,20 @@
-from cellsmap.util import dataset_io
-from pathlib import Path
-from bioio import BioImage
-import numpy as np
-from bioio import BioImage
-from skimage import exposure
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Callable, List
+
 import imageio.v3 as iio
+import numpy as np
+import pandas as pd
+from bioio import BioImage
+from tqdm import tqdm
+
+from cellsmap.util import dataset_io
 from cellsmap.vis.image_processing import (
-    contrast_stretching,
     bf_slice,
     bf_std_dev,
+    contrast_stretching,
     gfp_max_proj,
 )
-from typing import Callable, List
-import pandas as pd
 
 
 def process_frame(
@@ -26,9 +26,7 @@ def process_frame(
     backdrop: str,
     output_dir: Path,
 ) -> None:
-    # Get timepoint image data
-    img_timepoint = img.get_image_dask_data("CZYX", T=frame)
-    
+
     # Run the specific image processing function
     image_to_save = func(img, frame)
 

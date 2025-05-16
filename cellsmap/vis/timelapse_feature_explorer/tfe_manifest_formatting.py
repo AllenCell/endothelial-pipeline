@@ -5,7 +5,6 @@ import pandas as pd
 
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
-    generate_backdrops,
 )
 
 
@@ -24,13 +23,6 @@ def update_manifest_for_tfe(
     Returns:
         pd.DataFrame: The updated manifest DataFrame.
     """
-    # Ensure 'centroid' column is properly parsed
-    # df["centroid"] = df["centroid"].apply(
-    #     lambda x: ast.literal_eval(x) if isinstance(x, str) else x
-    # )
-    # df["centroid_x"] = df["centroid"].apply(lambda x: x[1] if x else None)
-    # df["centroid_y"] = df["centroid"].apply(lambda x: x[0] if x else None)
-
     # Add dataset and position columns
     df["dataset"] = dataset
     df["position"] = position

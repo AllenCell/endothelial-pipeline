@@ -21,7 +21,6 @@ from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_formatting import (
 def generate_tfe_dataset(
     dataset: str,
     position: int,
-    segmentation: str,
     output_dir: Path,
     source_dir: Path,
     backdrops: bool,
@@ -104,7 +103,6 @@ for dataset in ["20241120_20X", "20241217_20X", "20250409_20X"]:
     generate_tfe_dataset(
         dataset=dataset,
         position=position,
-        segmentation="cell_seg",
         output_dir=program_dir / "timelapse_feature_explorer",
         source_dir=source_dir,
         backdrops=True,
