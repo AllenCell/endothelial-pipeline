@@ -868,7 +868,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 26c99fb5bd194280be13cb78561fb5d6
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF2:
   original_path: //allen/programs/allencell/data/proj0/cb6/ba2/cb5/e9d/ebb/9fb/947/6e1/736/d87/82/20250509_GE00007808_20X_sldy/20250509_GE00007808_20X_sldy.sldy
@@ -893,7 +893,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 8ce1d2ba8c7a41ac914dca2f1ca28a8f
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF3:
   original_path: //allen/programs/allencell/data/proj0/2e3/bbb/8a1/840/3ab/929/846/318/ae1/38e/f1/20250509_GE00007874_20X_sldy/20250509_GE00007874_20X_sldy.sldy
@@ -918,7 +918,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: c787f7ee2d18419e895dc487f9ea1349
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF4:
   original_path: //allen/programs/allencell/data/proj0/686/cdc/936/d32/2f4/139/a4b/bdd/b5f/9ce/b2/20250509_GE00007875_20X_sldy/20250509_GE00007875_20X_sldy.sldy
@@ -943,7 +943,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 5b877dd11b69479daa5d6f51a5f9d1e8
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF5:
   original_path: //allen/programs/allencell/data/proj0/71b/f0f/663/abd/a7b/fbb/a43/e66/fe1/439/5b/20250509_GE00007876_20X_sldy/20250509_GE00007876_20X_sldy.sldy
@@ -968,7 +968,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 6fcebb0b0a5a4a108bba0620a4860848
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF6:
   original_path: //allen/programs/allencell/data/proj0/650/03c/090/038/d21/7eb/742/89d/ca2/c9f/b5/20250509_GE00007877_20X_sldy/20250509_GE00007877_20X_sldy.sldy
@@ -993,7 +993,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 1130e27b36fb467aab6d0f17d6efd102
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF7:
   original_path: //allen/programs/allencell/data/proj0/6ce/a46/c2b/993/e1f/d8b/749/b24/18b/a62/c9/20250509_GE00007878_20X_sldy/20250509_GE00007878_20X_sldy.sldy
@@ -1018,7 +1018,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: e14b9497286d47c595921767e52f19e9
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF8:
   original_path: //allen/programs/allencell/data/proj0/769/598/cd5/148/2e1/099/945/d93/157/64e/8f/20250509_GE00007879_20X_sldy/20250509_GE00007879_20X_sldy.sldy
@@ -1043,7 +1043,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 61e57753a9fa4c63903791346c399e9a
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF9:
   original_path: //allen/programs/allencell/data/proj0/e87/a08/4a2/26b/5a6/4fa/548/53e/cd1/418/af/20250509_GE00007880_20X_sldy/20250509_GE00007880_20X_sldy.sldy
@@ -1068,7 +1068,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: f5d7a1bb5c74430bbb0d6217076dfa81
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF10:
   original_path: //allen/programs/allencell/data/proj0/d16/695/e41/afb/adf/21b/e43/497/3c6/75c/89/20250509_GE00007881_20X_sldy/20250509_GE00007881_20X_sldy.sldy
@@ -1093,7 +1093,7 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 9de17f3de1c641ed88ea4cd4e3e04fe4
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF11:
   original_path: //allen/programs/allencell/data/proj0/c49/e0a/d24/790/d6e/f5b/44d/1bf/7a5/378/1d/20250509_GE00007882_20X_sldy/20250509_GE00007882_20X_sldy.sldy
@@ -1118,7 +1118,7 @@
   notes: Secondary only immunofluorescence control
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: fb35d1ad725f46fe99ff959fea7c4e52
   diffae_tracking_integration_fmsid: ''
 20250509_20X_IF12:
   original_path: //allen/programs/allencell/data/proj0/b7c/31f/492/453/0be/f3b/54a/f74/4f8/688/d8/20250509_GE00007806_20X_sldy_/20250509_GE00007806_20X_sldy.sldy
@@ -1143,5 +1143,5 @@
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
   nuclear_label_free_seg_path: ''
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: b6b36ad33d6647bda3ff4e4e4a0f7f86
   diffae_tracking_integration_fmsid: ''
