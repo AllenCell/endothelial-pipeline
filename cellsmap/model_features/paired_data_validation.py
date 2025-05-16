@@ -541,15 +541,15 @@ def plot_paired_features(
 
     fig, ax = plt.subplots(1, n_pcs, figsize=(n_pcs * 4, 4))
     for i in range(n_pcs):
-        r = np.corrcoef(fixed_features[f"pc{i}"], moving_features[f"pc{i}"])[0, 1]
+        r = np.corrcoef(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"])[0, 1]
         ax[i].scatter(
-            fixed_features[f"pc{i}"], moving_features[f"pc{i}"], alpha=0.1, s=3
+            fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"], alpha=0.1, s=3
         )
         ax[i].set_xlabel(fixed_name)
         ax[i].set_ylabel(moving_name)
-        ax[i].set_title(f"PC{i} r^2: {r**2:.2f}", fontsize=6)
-        min_ = min(fixed_features[f"pc{i}"].min(), moving_features[f"pc{i}"].min())
-        max_ = max(fixed_features[f"pc{i}"].max(), moving_features[f"pc{i}"].max())
+        ax[i].set_title(f"PC{i+1} r^2: {r**2:.2f}", fontsize=6)
+        min_ = min(fixed_features[f"pc{i+1}"].min(), moving_features[f"pc{i+1}"].min())
+        max_ = max(fixed_features[f"pc{i+1}"].max(), moving_features[f"pc{i+1}"].max())
         ax[i].plot([min_, max_], [min_, max_], "r--")
         ax[i].set_xlim(min_, max_)
         ax[i].set_ylim(min_, max_)
