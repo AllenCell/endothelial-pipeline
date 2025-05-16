@@ -85,7 +85,7 @@ def generate_results(
         scene_list = scene_list if scene_list else img_dict.keys()
 
     dim_map = get_dim_map("TCZYX")
-    egfp_index = get_dataset_info(dataset_name)["egfp_channel_index"]
+    egfp_index = get_dataset_info(dataset_name)["488_channel_index"]
 
     for scene in scene_list:
         position_name = scene if position_name == None else position_name

@@ -195,13 +195,15 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     return zarr_name
 
 
-def get_specific_channel_order(dataset_name: str) -> tuple[Any, Any, Any]:
+def get_specific_channel_order(dataset_name: str) -> Tuple:
     dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("egfp_channel_index")
+    gfp_index = dataset_info.get("488_channel_index")
     bf_index = dataset_info.get("brightfield_channel_index")
     index_405 = dataset_info.get("405_channel_index", None)
+    index_561 = dataset_info.get("561_channel_index", None)
+    index_640 = dataset_info.get("640_channel_index", None)
 
-    return gfp_index, bf_index, index_405
+    return gfp_index, bf_index, index_405, index_561, index_640
 
 
 def get_total_number_of_positions(dataset_name: str) -> int:

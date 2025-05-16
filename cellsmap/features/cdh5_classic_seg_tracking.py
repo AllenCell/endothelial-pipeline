@@ -45,9 +45,7 @@ def run_workflow(queue):
     if seg_filepaths:
         # get the raw cadherin channel from either original data or the zarr version
         if use_original_data:
-            raw_channel = dataset_io.get_dataset_info(dataset_name)[
-                "egfp_channel_index"
-            ]
+            raw_channel = dataset_io.get_dataset_info(dataset_name)["488_channel_index"]
             raw_filepath = Path(dataset_io.get_original_path(dataset_name))
             img = BioImage(raw_filepath)
             img.set_scene(scene_index)
