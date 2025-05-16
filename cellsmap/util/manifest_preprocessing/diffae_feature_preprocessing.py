@@ -128,7 +128,11 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def project_manifest_to_pcs(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
+def project_manifest_to_pcs(
+    df: pd.DataFrame,
+    pca: Pipeline,
+    overwrite_feature_columns: bool = True,
+) -> pd.DataFrame:
     """
     Project feature data for crops from one dataset onto principal component axes of fit PCA model.
 
@@ -150,7 +154,11 @@ def project_manifest_to_pcs(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, replace feature columns with features projected onto PCA axes
-    df_.loc[:, feat_cols] = pca.transform(df_[feat_cols].values)
+    if overwrite_feature_columns:
+        df_.loc[:, feat_cols] = pca.transform(df_[feat_cols].values)
+    else:
+        pc_cols = [f"pc{pc+1}" for pc in range(len(feat_cols))]
+        df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
 
