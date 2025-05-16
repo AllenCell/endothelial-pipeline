@@ -82,7 +82,7 @@ def generate_and_save_validation_images(dframe):
         # print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
-        cdh5_channel = int(get_dataset_info(dataset_name)["egfp_channel_index"])
+        cdh5_channel = int(get_dataset_info(dataset_name)["488_channel_index"])
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
         img_arr = img_dask.max(axis=dim_map["Z"], keepdims=True).squeeze().compute()
 

@@ -105,7 +105,7 @@ def generate_results(
     print(f"T={T} -- loading dataset") if verbose else None
     # load the raw cdh5 image data
     if use_original_data:
-        cdh5_chan_index = get_dataset_info(dataset_name)["egfp_channel_index"]
+        cdh5_chan_index = get_dataset_info(dataset_name)["488_channel_index"]
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
         img.set_scene(scene)

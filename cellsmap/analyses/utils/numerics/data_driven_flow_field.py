@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Literal
 
 import numpy as np
 from scipy import interpolate as spinterp
@@ -13,17 +14,34 @@ import cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing as diff
 
 
 def set_3d_bounds_from_data(
-    list_of_datasets: list[str], pca: Pipeline
+    list_of_datasets: list[str],
+    pca: Pipeline,
+    col_names: Literal["pc", "feat"] = "pc",
 ) -> list[np.ndarray]:
 
+    num_dims = 3
     bounds = [[100, -100], [100, -100], [100, -100]]
 
     for name in list_of_datasets:
         df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
-        feat_cols = manifest_io.get_feature_cols(df)[:3]
-        for j in range(3):
-            bounds[j][0] = min(bounds[j][0], df[feat_cols[j]].min())
-            bounds[j][1] = max(bounds[j][1], df[feat_cols[j]].max())
+        # get column names for features
+        feat_cols = manifest_io.get_feature_cols(df)
+        match col_names:
+            case "pc":
+                # get the PCs
+                x_proj = pca.transform(df[feat_cols].values)
+                # add PCs to dataframe
+                num_pcs = x_proj.shape[1]
+                pc_cols: list = []
+                for pc in range(num_pcs):
+                    pc_col_name = f"pc{pc+1}"
+                    pc_cols.append(pc_col_name)
+                cols = pc_cols
+            case "feat":
+                cols = feat_cols
+        for j in range(num_dims):
+            bounds[j][0] = min(bounds[j][0], df[cols[j]].min())
+            bounds[j][1] = max(bounds[j][1], df[cols[j]].max())
 
     bounds = [np.array(b) for b in bounds]
 

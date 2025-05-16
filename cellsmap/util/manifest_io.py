@@ -88,6 +88,17 @@ def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
+def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name).get(
+        "diffae_tracking_integration_fmsid", None
+    )
+    if fmsid:
+        return get_dataframe_by_fmsid(fmsid)
+    else:
+        print(f"No DiffAE manifest found for dataset {dataset_name}")
+        return None
+
+
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
     Extract columns corresponding to DiffAE model features from dataframe (loaded DiffAE manifest).
