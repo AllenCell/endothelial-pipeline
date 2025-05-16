@@ -389,9 +389,9 @@ def calculate_derived_data_dynamics_independent(
     # add column for the number of tracks at a given
     # timepoint per dataset per position
     print("Adding number of tracks for each timepoint...") if verbose else None
-    big_table["num_segmentations_at_T_before_filter"] = big_table.groupby(
+    big_table["num_unique_tracks_before_filtering_at_T"] = big_table.groupby(
         ["dataset_name", "position", "T"]
-    )["label"].transform(lambda x: x.nunique())
+    )["track_id"].transform(lambda x: x.nunique())
 
     # add the duration of each track
     print("Calculating track durations...") if verbose else None
@@ -977,6 +977,8 @@ def process_and_plot_tracking_data(
     verbose: bool = False,
     plot_figures: bool = False,
 ) -> None:
+
+    # make the output directory
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1028,6 +1030,7 @@ def process_and_plot_tracking_data(
     )
     big_table_filtered = big_table[~big_table["drop_main"]]
 
+    # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
     out_dir_raw = out_dir / f"segmentation_features_manifests/"
