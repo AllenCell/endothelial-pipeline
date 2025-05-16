@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
+from tqdm import tqdm
 
 from cellsmap.analyses.track_data_plots import (
     calculate_derived_data_dynamics_independent,
@@ -95,7 +96,6 @@ def get_traj_and_flowfield(
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    # traj_list, d_traj_list = rh.get_traj_and_diff(df, feat_cols)
     traj_list, d_traj_list = rh.get_traj_and_diff(df, cols)
 
     # get drift and diffusion estimates
@@ -239,6 +239,7 @@ def plot_measured_feat_pcs(
     fig: plt.Figure | None = None,
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
+    hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
     alpha: float = 1.0,
 ) -> tuple[plt.Figure, np.ndarray]:
@@ -287,6 +288,7 @@ def plot_measured_feat_pcs(
             x=pc_cols_for_xaxis[j],
             y=pc_cols_for_yaxis[j],
             hue=meas_feat_col,
+            hue_norm=hue_norm,
             palette="flare",
             linewidth=0,
             marker=".",
@@ -308,6 +310,8 @@ def plot_measured_feat_overlay_on_flowfield(
     diffae_measured_feat_df: pd.DataFrame,
     meas_feat_col_name_for_color_coding: str,
     track_id_to_plot: Literal["mean"] | int | None = "mean",
+    hue_norm: tuple[float, float] | None = None,
+    alpha: float = 0.7,
     show_plot: bool = False,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
@@ -321,8 +325,9 @@ def plot_measured_feat_overlay_on_flowfield(
         track_id=track_id_to_plot,
         fig=fig,
         axs=axs,
+        hue_norm=hue_norm,
         zorder=5,
-        alpha=0.5,
+        alpha=alpha,
     )
     plt.tight_layout()
     if track_id_to_plot == "mean":
@@ -464,25 +469,36 @@ def make_all_plots(
             diffae_measured_feat_df=big_table,
             meas_feat_col_name_for_color_coding=measured_feature,
             track_id_to_plot="mean",
+            alpha=0.8,
             show_plot=False,
         )
 
     # plot single track examples
-    track_ids = sorted(big_table["track_id"].unique().tolist())
-    track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
-    for tid in track_ids:  # only overlay every 10th track id to save time + space
-        # make the plots
-        plot_measured_feat_overlay_on_flowfield(
-            out_subdir_indiv,
-            dataset_name,
-            diffae_grid_crops,
-            traj_grids,
-            flow_field_dict_grids,
-            diffae_measured_feat_df=big_table,
-            meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
-            track_id_to_plot=tid,
-            show_plot=False,
-        )
+    for pos, grp_df in big_table.groupby("position_as_str"):
+        out_subdir_indiv_pos = out_subdir_indiv / pos
+        out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
+
+        track_ids = sorted(grp_df["track_id"].unique().tolist())
+        # only overlay every 10th track id if there are a lot
+        # of tracks to save time + space
+        track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
+        for tid in tqdm(
+            track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}"
+        ):
+            # make the plots
+            plot_measured_feat_overlay_on_flowfield(
+                out_subdir_indiv_pos,
+                dataset_name,
+                diffae_grid_crops,
+                traj_grids,
+                flow_field_dict_grids,
+                diffae_measured_feat_df=grp_df,
+                meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
+                track_id_to_plot=tid,
+                hue_norm=(0, 90),
+                alpha=0.8,
+                show_plot=False,
+            )
 
 
 def main() -> None:
