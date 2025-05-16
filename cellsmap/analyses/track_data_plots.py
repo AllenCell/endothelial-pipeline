@@ -148,28 +148,29 @@ def add_filter_columns(
         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
     )
 
-    # drop_from_track_duration
+    # drop_because_track_duration
     big_table["min_track_duration"] = min_track_duration
-    big_table["drop_from_track_duration"] = (
+    big_table["drop_because_track_duration"] = (
         big_table["track_duration"] <= min_track_duration
     )
 
-    # drop_from_area_change
+    # drop_because_area_change
     big_table["max_smoothed_area_normd_change"] = max_area_change
-    big_table["drop_from_area_change"] = (
+    big_table["drop_because_area_change"] = (
         big_table["smoothed_area_normd_diff"].abs() >= max_area_change
     )
 
-    # drop_from_touches_image_border
+    # drop_because_touches_image_border
     big_table.rename(
-        columns={"touches_image_border": "drop_from_touches_image_border"}, inplace=True
+        columns={"touches_image_border": "drop_because_touches_image_border"},
+        inplace=True,
     )
 
     # drop_main is just all the previous filters combined
     big_table["drop_main"] = (
-        big_table["drop_from_track_duration"]
-        + big_table["drop_from_area_change"]
-        + big_table["drop_from_touches_image_border"]
+        big_table["drop_because_track_duration"]
+        + big_table["drop_because_area_change"]
+        + big_table["drop_because_touches_image_border"]
     )
 
     # drop_because_insufficient_valid_timepoints
@@ -177,13 +178,13 @@ def add_filter_columns(
     big_table["valid_points"] = big_table.groupby(
         ["dataset_name", "position", "track_id"]
     )["image_index"].transform("nunique")
-    big_table["drop_from_insufficient_valid_points"] = (
+    big_table["drop_because_insufficient_valid_points"] = (
         big_table["valid_points"] < min_num_valid_points_per_track
     )
 
     # update drop_main
     big_table["drop_main"] = (
-        big_table["drop_main"] + big_table["drop_from_insufficient_valid_points"]
+        big_table["drop_main"] + big_table["drop_because_insufficient_valid_points"]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
@@ -1049,7 +1050,7 @@ def process_and_plot_tracking_data(
         else None
     )
     big_table_filtered = calculate_derived_data_dynamics_dependent(
-        big_table_filtered, verbose
+        big_table_filtered.copy(deep=True), verbose
     )
 
     # create a subset of the data that is used for cell track integration
