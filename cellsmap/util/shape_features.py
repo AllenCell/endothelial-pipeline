@@ -1,21 +1,19 @@
+from typing import Any, List, Literal, Optional, Tuple, Union
+
 import numpy as np
-from skimage import filters
-from skimage import measure
-from skimage import draw
-from skimage import morphology
-from skimage import segmentation
-from skimage import graph
+from skimage import draw, filters, graph, measure, morphology, segmentation
 from skimage.exposure import rescale_intensity
-from typing import Optional, Tuple, List, Dict, Any, Union, Literal
 
 
-def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def arr2graph(
+    arr: np.ndarray, closing_step=True
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Will take a binary image array showing a network-like structure
     and return the labeled versions of the nodes, edges, skeletons and
     pixel connectivity in that order. The connectivity equal to the
     dimensionality of arr (if 2D then a connectivity of 2 or a 3x3 square
     is used, if 3D then a connectivity of 3 or a 3x3x3 cube is used).
-    
+
     Parameters
     ----------
     arr: np.ndarray
@@ -51,7 +49,7 @@ def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, n
     """
 
     ## Make sure that the array is either 2D or 3D
-    assert(arr.ndim == 2 or arr.ndim == 3), 'Input array must be 2D or 3D.'
+    assert arr.ndim == 2 or arr.ndim == 3, "Input array must be 2D or 3D."
 
     if arr.ndim == 2:
         footprint = morphology.square(3)
@@ -65,15 +63,15 @@ def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, n
     ## will make True == 255, but I want it to be 1, so I will
     ## force it to be bool, hence the .astype above.
 
-    ## Converting the bool to int now does not make 
+    ## Converting the bool to int now does not make
     ## True -> 255, instead True -> 1 (which is what I want):
     ## Transform the skeletonized array into one where each
-    ## pixel has a value equal to the number of non-zero 
+    ## pixel has a value equal to the number of non-zero
     ## immediate neighbors plus itself
     ## the * skel is to re-skeletonize the rank sum
-    conn = filters.rank.pop(skel.astype(np.uint8), 
-                            footprint=footprint,
-                            mask=skel) * skel
+    conn = (
+        filters.rank.pop(skel.astype(np.uint8), footprint=footprint, mask=skel) * skel
+    )
     # This produces an array with the following values
     # (which is why I insisted on having the skeletonized array
     # have only 0s and 1s as values):
@@ -84,8 +82,8 @@ def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, n
 
     ## Label those endpoints, edges, and branchpoints (this is
     ## to get the connections between edges and nodes later on):
-    edges_arr = (conn == 3)
-    nodes_arr = ((conn == 1) + (conn == 2) + (conn >= 4))
+    edges_arr = conn == 3
+    nodes_arr = (conn == 1) + (conn == 2) + (conn >= 4)
 
     ## There can be both isolated nodes (a single pixel in space)
     ## and isolated edges (a closed loop in space)
@@ -98,13 +96,17 @@ def arr2graph(arr: np.ndarray, closing_step: bool = True) -> Tuple[np.ndarray, n
     return nodes_lab, edges_lab, skels_lab, conn
 
 
-def get_neighboring_labels(home_img: np.ndarray, labeled_neighbors_img: np.ndarray, bad_neighbors:  Optional[List[Any]] = None) -> tuple:
+def get_neighboring_labels(
+    home_img: np.ndarray,
+    labeled_neighbors_img: np.ndarray,
+    bad_neighbors: Optional[List[Any]] = None,
+) -> tuple:
     """
     home_img will be made binary (can be an image where only a particular label was
     chosen by home_img == lab)
     bad_neighbors argument lets you choose labels in labeled_neighbors_img to exclude
     from result (e.g. 0 is often background, so may want to exclude 0).
-    
+
     Parameters
     ----------
     home_img: np.ndarray
@@ -129,7 +131,12 @@ def get_neighboring_labels(home_img: np.ndarray, labeled_neighbors_img: np.ndarr
         footprint = morphology.square(3)
     elif home_img.ndim == 3:
         footprint = morphology.cube(3)
-    neighbors = [*np.unique(morphology.binary_dilation(home_img, footprint=footprint) * labeled_neighbors_img)]
+    neighbors = [
+        *np.unique(
+            morphology.binary_dilation(home_img, footprint=footprint)
+            * labeled_neighbors_img
+        )
+    ]
     if bad_neighbors:
         # neighbors = [tuple([n for n in ns if n not in np.unique(bad_neighbors)]) for ns in neighbors]
         neighbors = [n for n in neighbors if n not in np.unique(bad_neighbors)]
@@ -156,12 +163,15 @@ def expand_bbox(bbox: tuple, ndim: int) -> tuple:
         The bbox expanded by 1 pixel. Has the same form as bbox.
     """
 
-    big_bbox = (tuple((np.array(bbox[0:ndim]) - 0.5).astype(int)), tuple(np.array(bbox[ndim:2*ndim]) + 1))
+    big_bbox = (
+        tuple((np.array(bbox[0:ndim]) - 0.5).astype(int)),
+        tuple(np.array(bbox[ndim : 2 * ndim]) + 1),
+    )
 
     return big_bbox
 
 
-def get_windows(img_lab: np.ndarray) -> zip: #labeled_img
+def get_windows(img_lab: np.ndarray) -> zip:  # labeled_img
     """
     Takes a labeled image in the form of a numpy array and returns a zip of
     (labels, windows), where "labels" are labels in the labeled image and
@@ -187,7 +197,7 @@ def get_windows(img_lab: np.ndarray) -> zip: #labeled_img
     # Apparently Python now allows your upper slice range to exceed bounds, and instead
     # will just return the values within range.
     # Grab a bbox that is 1 pixel wider on each edge of each axis:
-    lab_bbox_big = [expand_bbox(bbox, ndim) for bbox in lab_bbox]   
+    lab_bbox_big = [expand_bbox(bbox, ndim) for bbox in lab_bbox]
 
     # Create slicing windows of these expanded bboxes:
     windows = [[slice(*i) for i in list(zip(*bb))] for bb in lab_bbox_big]
@@ -198,13 +208,18 @@ def get_windows(img_lab: np.ndarray) -> zip: #labeled_img
     return lab_windows
 
 
-def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, bad_neighbors: list=[0], as_dict: bool=False) -> Tuple:
+def get_neighbor_nodes_and_edges(
+    nodes_lab: np.ndarray,
+    edges_lab: np.ndarray,
+    bad_neighbors: list = [0],
+    as_dict: bool = False,
+) -> Tuple:
     """
     Takes a labeled array of nodes and a labeled array of edges and returns
     a list or dict of which nodes neighbor each node, which edges neighbor each node,
     and which nodes neighbor each edge.
     The reason both lists of nodes and lists of edges are returned is because it is
-    possible for a node or edge to have no neighbors. 
+    possible for a node or edge to have no neighbors.
     This function is designed to work with the output of the arr2graph function.
 
     Parameters
@@ -256,9 +271,24 @@ def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, b
     ## we are ensuring that only one node shows up when querying for neighbors in a
     ## window by setting nodes_lab == l (i.e. only show pixels that equal the label
     ## associated with the window)
-    node_neighbors_edgelabs = [(l, get_neighboring_labels(nodes_lab[(*w,)]==l, edges_lab[(*w,)], bad_neighbors=bad_neighbors)) for l,w in nodes_lab_windows]
-    edge_neighbors_nodelabs = [(l, get_neighboring_labels(edges_lab[(*w,)]==l, nodes_lab[(*w,)], bad_neighbors=bad_neighbors)) for l,w in edges_lab_windows]
-
+    node_neighbors_edgelabs = [
+        (
+            l,
+            get_neighboring_labels(
+                nodes_lab[(*w,)] == l, edges_lab[(*w,)], bad_neighbors=bad_neighbors
+            ),
+        )
+        for l, w in nodes_lab_windows
+    ]
+    edge_neighbors_nodelabs = [
+        (
+            l,
+            get_neighboring_labels(
+                edges_lab[(*w,)] == l, nodes_lab[(*w,)], bad_neighbors=bad_neighbors
+            ),
+        )
+        for l, w in edges_lab_windows
+    ]
 
     ## Use the combination of node_neighbors_edgelabs and edge_neighbors_nodelabs to
     ## find which nodes neighbor each other:
@@ -270,34 +300,56 @@ def get_neighbor_nodes_and_edges(nodes_lab: np.ndarray, edges_lab: np.ndarray, b
         node, edges = x
         # Iterate through the edge_neighbors and look for connected nodes
         # in the edge_neighbors_nodelabs list:
-        node_neighbors_nodelabs.append((node, [n for e,n in edge_neighbors_nodelabs if e in edges]))
+        node_neighbors_nodelabs.append(
+            (node, [n for e, n in edge_neighbors_nodelabs if e in edges])
+        )
     # Clean up the node list with node neighbors so that  there are no repeating node labels
-    node_neighbors_nodelabs_unique = [(node, tuple(np.unique([n for ns in n_neighbors for n in ns]))) for node, n_neighbors in node_neighbors_nodelabs]
+    node_neighbors_nodelabs_unique = [
+        (node, tuple(np.unique([n for ns in n_neighbors for n in ns])))
+        for node, n_neighbors in node_neighbors_nodelabs
+    ]
     # and also remove the "home node" from the node neighbors list to get the final cleaned up list:
-    node_neighbors_nodelabs_clean = [(node, tuple([n for n in n_neighbors if n != node])) for node, n_neighbors in node_neighbors_nodelabs_unique]
+    node_neighbors_nodelabs_clean = [
+        (node, tuple([n for n in n_neighbors if n != node]))
+        for node, n_neighbors in node_neighbors_nodelabs_unique
+    ]
 
     if not as_dict:
-        return node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs_clean
+        return (
+            node_neighbors_edgelabs,
+            edge_neighbors_nodelabs,
+            node_neighbors_nodelabs_clean,
+        )
     else:
-        node_neighbors_edgelabs_dict = dict(node_neighbors_edgelabs) 
+        node_neighbors_edgelabs_dict = dict(node_neighbors_edgelabs)
         edge_neighbors_nodelabs_dict = dict(edge_neighbors_nodelabs)
         node_neighbors_nodelabs_dict = dict(node_neighbors_nodelabs_clean)
-        return node_neighbors_edgelabs_dict, edge_neighbors_nodelabs_dict, node_neighbors_nodelabs_dict
+        return (
+            node_neighbors_edgelabs_dict,
+            edge_neighbors_nodelabs_dict,
+            node_neighbors_nodelabs_dict,
+        )
 
-def numpy_mesh_coords(coord1_ls: Union[List[Any], Tuple[Any]], coord2_ls: Union[List[Any], Tuple[Any]], indexing: Literal['xy', 'ij']='ij', return_indiv_coord_meshes: bool=False) -> list:
+
+def numpy_mesh_coords(
+    coord1_ls: Union[List[Any], Tuple[Any]],
+    coord2_ls: Union[List[Any], Tuple[Any]],
+    indexing: Literal["xy", "ij"] = "ij",
+    return_indiv_coord_meshes: bool = False,
+) -> list:
     """
     Performs a numpy meshgrid operation for coordinate points.
 
     Coordinate lists are lists of tuples, e.g.
     [(z1, y1, x1), (z2, y2, x2), ...]
-    
+
     Parameters
     ----------
     coord1_ls: list of tuples
         Coordinate points to mesh with coord2_ls.
         e.g. [(z1, y1, x1), (z2, y2, x2), ...]
 
-    coord2_ls: list of tuples 
+    coord2_ls: list of tuples
         Coordinate points to mesh with coord1_ls.
 
     indexing: can be 'ij' or 'xy'.
@@ -319,10 +371,20 @@ def numpy_mesh_coords(coord1_ls: Union[List[Any], Tuple[Any]], coord2_ls: Union[
         List of numpy arrays representing the meshed coordinates.
     """
 
-    assert np.array(coord1_ls).ndim == np.array(coord2_ls).ndim <= 2, 'Coordinate lists must be 2D or 1D and have same dimensions.'
+    assert (
+        np.array(coord1_ls).ndim == np.array(coord2_ls).ndim <= 2
+    ), "Coordinate lists must be 2D or 1D and have same dimensions."
 
-    coord1_array = np.array(coord1_ls) if np.array(coord1_ls).ndim == 2 else np.array(coord1_ls, ndmin=2).T
-    coord2_array = np.array(coord2_ls) if np.array(coord2_ls).ndim == 2 else np.array(coord2_ls, ndmin=2).T 
+    coord1_array = (
+        np.array(coord1_ls)
+        if np.array(coord1_ls).ndim == 2
+        else np.array(coord1_ls, ndmin=2).T
+    )
+    coord2_array = (
+        np.array(coord2_ls)
+        if np.array(coord2_ls).ndim == 2
+        else np.array(coord2_ls, ndmin=2).T
+    )
 
     coords1 = zip(*coord1_array)
     coords2 = zip(*coord2_array)
@@ -335,13 +397,11 @@ def numpy_mesh_coords(coord1_ls: Union[List[Any], Tuple[Any]], coord2_ls: Union[
 
     return coord_meshes
 
+
 def get_angle(
-    vec1: np.ndarray, 
-    vec2: np.ndarray, 
-    in_deg: bool = False, 
-    axis: Optional[int] = None
+    vec1: np.ndarray, vec2: np.ndarray, in_deg: bool = False, axis: Optional[int] = None
 ) -> np.ndarray:
-    """ Get the angle between two vectors vec1 and vec2.
+    """Get the angle between two vectors vec1 and vec2.
     Both vec1 and vec2 must start at the origin (0,0).
 
     Parameters
@@ -366,14 +426,19 @@ def get_angle(
 
     ## a dot b = mag(a) * mag(b) * cos(theta)
     if axis == None:
-        with np.errstate(invalid='raise'):
+        with np.errstate(invalid="raise"):
             try:
-                rad = np.arccos(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
+                rad = np.arccos(
+                    np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+                )
             except FloatingPointError:
                 rad = np.pi
     else:
-        with np.errstate(invalid='ignore'):
-            rad = np.arccos(np.sum(vec1 * vec2, axis=axis) / (np.linalg.norm(vec1, axis=axis) * np.linalg.norm(vec2, axis=axis)))
+        with np.errstate(invalid="ignore"):
+            rad = np.arccos(
+                np.sum(vec1 * vec2, axis=axis)
+                / (np.linalg.norm(vec1, axis=axis) * np.linalg.norm(vec2, axis=axis))
+            )
             rad[np.isnan(rad)] = np.pi
     ## note that this requires both of your vectors to start at the origin (i.e. (0,0)).
     ## also note that an invalid value runtimewarning is returned when two lines are
@@ -392,7 +457,9 @@ def get_angle(
     return np.rad2deg(rad) if in_deg else rad
 
 
-def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool=False) -> Tuple[np.ndarray, Dict|None]:
+def rasterize_edges_between_nodes(
+    node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool = False
+) -> Tuple[np.ndarray, dict | None]:
     """
     Takes a list of paired coordinates and an array and draws rasterized versions of
     the lines between the paired coordinates.
@@ -426,7 +493,10 @@ def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.nda
     is returned.
     """
 
-    lines = {i+1: draw.line_nd(*node_coord_pairs[i], endpoint=True) for i in range(len(node_coord_pairs))}
+    lines = {
+        i + 1: draw.line_nd(*node_coord_pairs[i], endpoint=True)
+        for i in range(len(node_coord_pairs))
+    }
 
     label_dict = {}
     ## We sort lines from largest to smallest so that the smaller ones are not completely overwritten
@@ -439,17 +509,17 @@ def rasterize_edges_between_nodes(node_coord_pairs: list, arr_to_draw_on: np.nda
 
     return (arr_to_draw_on, label_dict) if label_lines else (arr_to_draw_on, None)
 
-def build_vector(stop_position: np.ndarray,
-                 start_position: np.ndarray
-                 ) -> np.ndarray:
+
+def build_vector(stop_position: np.ndarray, start_position: np.ndarray) -> np.ndarray:
     vec = stop_position - start_position
     return vec
 
+
 def calculate_region_border_metrics(
-    binary_image: np.ndarray, 
-    intensity_image: Optional[np.ndarray] = None, 
-    labeled_image: Optional[np.ndarray] = None, 
-    verbose: bool = True
+    binary_image: np.ndarray,
+    intensity_image: Optional[np.ndarray] = None,
+    labeled_image: Optional[np.ndarray] = None,
+    verbose: bool = True,
 ) -> List:
     """
     Takes a binary image representation of one or more structures that look
@@ -463,12 +533,12 @@ def calculate_region_border_metrics(
     If labeled_image is provided then metrics for each region in labeled_image
     will be returned as a second dictionary of lists, including associated
     node labels, edge labels, and paired node labels.
-    
+
     Parameters
     ----------
     binary_image: np.ndarray
         The binary array to be converted into an array of labeled nodes and labeled edges.
-    
+
     intensity_image: np.ndarray (optional)
         If provided, this image will be passed to 'skimage.measure.regionprops' and used when
         measuring fluorescence intensities. If None, returned fluorescence lists will contain
@@ -511,27 +581,36 @@ def calculate_region_border_metrics(
             node_pair_labels: The labels of the node pairs that are at the end of each edge label
                 that touches each region in labeled_image.
 
-    NOTE: The lists in each 'metrics' dict have the same indexing order (i.e. you can build a table directly 
+    NOTE: The lists in each 'metrics' dict have the same indexing order (i.e. you can build a table directly
           from this dict via a pandas DataFrame).
     """
 
     ## if intensity_image is not provided then make a dummy channel full of np.nans
-    intensity_image = intensity_image if isinstance(intensity_image, np.ndarray) else np.full(binary_image.shape, np.nan)
+    intensity_image = (
+        intensity_image
+        if isinstance(intensity_image, np.ndarray)
+        else np.full(binary_image.shape, np.nan)
+    )
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
     nodes, edges, skel, conn = arr2graph(binary_image, closing_step=False)
-    del skel, conn # remove unused images to save on memory
+    del skel, conn  # remove unused images to save on memory
 
     ## calculate neighbor node angles and distances
-    neighbor_node_metrics = calculate_neighbor_node_metrics(binary_image, nodes, edges, intensity_image, verbose) # -> list of dictionaries(?)
+    neighbor_node_metrics = calculate_neighbor_node_metrics(
+        binary_image, nodes, edges, intensity_image, verbose
+    )  # -> list of dictionaries(?)
 
     ## associate edges with the labeled_image
     if isinstance(labeled_image, np.ndarray):
-        labeled_image_metrics = calculate_labeled_image_metrics(binary_image, labeled_image, nodes, edges, intensity_image, verbose)
+        labeled_image_metrics = calculate_labeled_image_metrics(
+            binary_image, labeled_image, nodes, edges, intensity_image, verbose
+        )
     else:
         labeled_image_metrics = None
 
     return [neighbor_node_metrics, labeled_image_metrics]
+
 
 def calculate_labeled_image_metrics(
     binary_image: np.ndarray,
@@ -539,13 +618,13 @@ def calculate_labeled_image_metrics(
     nodes: Optional[np.ndarray] = None,
     edges: Optional[np.ndarray] = None,
     intensity_image: Optional[np.ndarray] = None,
-    verbose: bool = True
+    verbose: bool = True,
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
     approximately dendritic, filamentous, or network-like and its node and
     edge representation (a representation will be created from binary_image
-    if they are not provided) to generate region properties from 
+    if they are not provided) to generate region properties from
     skimage.measure.regionprops and associate them with the node labels,
     edge labels, and node pairs that surround each region in labeled_image.
     Ideally labeled_image is a confluent or space-filling segmentation and
@@ -559,13 +638,13 @@ def calculate_labeled_image_metrics(
     ----------
     binary_image: np.ndarray
         The binary array to be converted into an array of labeled nodes and labeled edges.
-    
+
     labeled_image: np.ndarray
         If provided, measurements using 'skimage.measure' of labeled_image will be made and
         associated with the node labels and edge labels arguments. If no node labels and edge
         labels arguments are provided a node and edge representation of binary_image will be
         created.
-    
+
     nodes: np.ndarray (optional)
         An array of labeled nodes produced from binary_image using arr2graph.
         Will be generated from binary_image if not provided.
@@ -602,7 +681,9 @@ def calculate_labeled_image_metrics(
     """
 
     # ensure that binary_image is a boolean array
-    assert binary_image.dtype == np.dtype(bool), 'dtype of binary_image array must be bool.'
+    assert binary_image.dtype == np.dtype(
+        bool
+    ), "dtype of binary_image array must be bool."
 
     # remove any regions in seeds that overlap with the binary image
     # that is used to generate the nodes and edges representation
@@ -610,28 +691,44 @@ def calculate_labeled_image_metrics(
     seeds *= ~binary_image
 
     # create the nodes and edges arrays if they were not provided
-    print(f'    -- getting node and edge labels') if verbose else None
-    nodes, edges, skel, conn = (nodes, edges, None, None) if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray)) else arr2graph(binary_image, closing_step=False)
-    del skel, conn # remove unused images to save on memory
+    print(f"    -- getting node and edge labels") if verbose else None
+    nodes, edges, skel, conn = (
+        (nodes, edges, None, None)
+        if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray))
+        else arr2graph(binary_image, closing_step=False)
+    )
+    del skel, conn  # remove unused images to save on memory
 
     # if intensity_image is not provided then make a dummy channel full of np.nans
     # so that measure.regionprops doesn't return an error when trying to measure
     # the fluorescence
-    intensity_image = intensity_image if isinstance(intensity_image, np.ndarray) else np.full(binary_image.shape, np.nan)
+    intensity_image = (
+        intensity_image
+        if isinstance(intensity_image, np.ndarray)
+        else np.full(binary_image.shape, np.nan)
+    )
 
     # get the node labels that define each edge
-    print(f'    -- getting neighboring node information') if verbose else None
-    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
+    print(f"    -- getting neighboring node information") if verbose else None
+    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
+        get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
+    )
 
     # run a watershed using the labeled (minus any regions that overlap with binary_image)
     # image as seeds to find which parts of labels touch which edges
-    print(f'    -- expanding labels in labeled_image to be adjacent to edges') if verbose else None
-    regions = segmentation.watershed(np.logical_or(nodes, edges),
-                                     markers=seeds,
-                                     connectivity=1,#labeled_image.ndim,
-                                     mask=~np.logical_or(nodes, edges)).astype(np.int32)
+    (
+        print(f"    -- expanding labels in labeled_image to be adjacent to edges")
+        if verbose
+        else None
+    )
+    regions = segmentation.watershed(
+        np.logical_or(nodes, edges),
+        markers=seeds,
+        connectivity=1,  # labeled_image.ndim,
+        mask=~np.logical_or(nodes, edges),
+    ).astype(np.int32)
     # make the labeling of regions start after the biggest edge label
-    print(f'    -- relabeling labeled_image') if verbose else None
+    print(f"    -- relabeling labeled_image") if verbose else None
     regions_offset = regions.copy()
     regions_offset[regions.astype(bool)] += edges.max()
     # combine the edges labels and the offset regions labels
@@ -639,45 +736,88 @@ def calculate_labeled_image_metrics(
 
     # create a RAG from the regions and find out which edge labels and connected to which
     # region labels
-    print(f'    -- finding which edge labels touch which labeled_image regions') if verbose else None
+    (
+        print(f"    -- finding which edge labels touch which labeled_image regions")
+        if verbose
+        else None
+    )
     # rag = graph.RAG(regions_offset)
-    rag = graph.rag_boundary(regions_offset, np.zeros(labeled_image.shape, dtype=float), connectivity=1)
+    rag = graph.rag_boundary(
+        regions_offset, np.zeros(labeled_image.shape, dtype=float), connectivity=1
+    )
     # remove any connections to background (the background in this case would be any nodes
     # or unreachable areas)
     rag.remove_node(0) if 0 in rag.nodes else None
 
-    print(f'    -- finding which region labels are neighbors') if verbose else None
-    rag_of_labeled_image = graph.rag_boundary(labeled_image, np.zeros(labeled_image.shape, dtype=float), connectivity=1)
+    print(f"    -- finding which region labels are neighbors") if verbose else None
+    rag_of_labeled_image = graph.rag_boundary(
+        labeled_image, np.zeros(labeled_image.shape, dtype=float), connectivity=1
+    )
     # rag_of_labeled_image = graph.RAG(labeled_image)
     # remove any connections to background (the background in this case would be any nodes
     # or unreachable areas)
     rag_of_labeled_image.remove_node(0) if 0 in rag_of_labeled_image.nodes else None
 
     # map the labels in regions_offset to their original labels
-    region_map = dict(zip(regions[regions.astype(bool)], regions_offset[regions.astype(bool)]))
+    region_map = dict(
+        zip(regions[regions.astype(bool)], regions_offset[regions.astype(bool)])
+    )
 
     # get the region properties of the labels in regions
-    print(f'    -- getting labeled_image region properties') if verbose else None
-    extra_region_props = (intensity_std, intensity_median, intensity_pct25, intensity_pct75)
-    region_props = measure.regionprops(regions, intensity_image=intensity_image, extra_properties=extra_region_props)
+    print(f"    -- getting labeled_image region properties") if verbose else None
+    extra_region_props = (
+        intensity_std,
+        intensity_median,
+        intensity_pct25,
+        intensity_pct75,
+    )
+    region_props = measure.regionprops(
+        regions, intensity_image=intensity_image, extra_properties=extra_region_props
+    )
 
     # add the neighbors of each region in regions
-    print(f'    -- adding node label and edge label information to region labeled_image properties') if verbose else None
-    print(f'    -- adding neighboring region information to labeled_image properties') if verbose else None
+    (
+        print(
+            f"    -- adding node label and edge label information to region labeled_image properties"
+        )
+        if verbose
+        else None
+    )
+    (
+        print(
+            f"    -- adding neighboring region information to labeled_image properties"
+        )
+        if verbose
+        else None
+    )
     for region in region_props:
         # include the neighbor labels if the label is an edge label (but not if it happens to
         # a label originating from labeled_image)
-        neighbors = tuple([neigh for neigh in rag.neighbors(region_map[region.label]) if neigh not in region_map.values()])
+        neighbors = tuple(
+            [
+                neigh
+                for neigh in rag.neighbors(region_map[region.label])
+                if neigh not in region_map.values()
+            ]
+        )
         region.neighbors = neighbors
         # add the neighboring region labels of each region in the labeled_image
-        region_neighbors = tuple([neigh for neigh in rag_of_labeled_image.neighbors(region.label) if neigh != region.label])
+        region_neighbors = tuple(
+            [
+                neigh
+                for neigh in rag_of_labeled_image.neighbors(region.label)
+                if neigh != region.label
+            ]
+        )
         region.region_neighbors = region_neighbors
 
     # get the labels of the regions that touch the image borders
-    border_labels = np.unique(~segmentation.clear_border(labeled_image).astype(bool) * labeled_image)
+    border_labels = np.unique(
+        ~segmentation.clear_border(labeled_image).astype(bool) * labeled_image
+    )
 
     # create the output lists
-    print(f'    -- generating dictionary of lists output') if verbose else None
+    print(f"    -- generating dictionary of lists output") if verbose else None
     region_label = []
     region_centroid = []
     region_area = []
@@ -719,43 +859,52 @@ def calculate_labeled_image_metrics(
         region_fluor_max.append(prop.intensity_max)
         neighboring_regions.append(prop.region_neighbors)
         edge_labels.append(prop.neighbors)
-        node_labels.append(set([node for edge in prop.neighbors for node in edge_neighbors_nodelabs[edge]]))
+        node_labels.append(
+            set(
+                [
+                    node
+                    for edge in prop.neighbors
+                    for node in edge_neighbors_nodelabs[edge]
+                ]
+            )
+        )
         node_pairs.append([edge_neighbors_nodelabs[edge] for edge in prop.neighbors])
         is_border_region.append(prop.label in border_labels)
 
     # create the output dictionary of lists
-    metrics = {'cell_label': region_label,
-               'cell_centroid': region_centroid,
-               'cell_area (px**2)': region_area,
-               'cell_perimeter (px)': region_perimeter,
-               'cell_solidity': region_solidity,
-               'major_axis_length': region_major_axis_length,
-               'minor_axis_length': region_minor_axis_length,
-               'cell_eccentricity': region_eccentricity,
-               'cell_orientation': region_orientation,
-               'cell_fluorescence_mean (au)': region_fluor_mean,
-               'cell_fluorescence_std (au)': region_fluor_std,
-               'cell_fluorescence_median (au)': region_fluor_median,
-               'cell_fluorescence_min (au)': region_fluor_min,
-               'cell_fluorescence_pct25 (au)': region_fluor_pct25,
-               'cell_fluorescence_pct75 (au)': region_fluor_pct75,
-               'cell_fluorescence_max (au)': region_fluor_max,
-               'neighboring_cell_labels': neighboring_regions,
-               'edge_labels': edge_labels,
-               'node_labels': node_labels,
-               'node_pair_labels': node_pairs,
-               'touches_image_border': is_border_region,
-               }
+    metrics = {
+        "cell_label": region_label,
+        "cell_centroid": region_centroid,
+        "cell_area (px**2)": region_area,
+        "cell_perimeter (px)": region_perimeter,
+        "cell_solidity": region_solidity,
+        "major_axis_length": region_major_axis_length,
+        "minor_axis_length": region_minor_axis_length,
+        "cell_eccentricity": region_eccentricity,
+        "cell_orientation": region_orientation,
+        "cell_fluorescence_mean (au)": region_fluor_mean,
+        "cell_fluorescence_std (au)": region_fluor_std,
+        "cell_fluorescence_median (au)": region_fluor_median,
+        "cell_fluorescence_min (au)": region_fluor_min,
+        "cell_fluorescence_pct25 (au)": region_fluor_pct25,
+        "cell_fluorescence_pct75 (au)": region_fluor_pct75,
+        "cell_fluorescence_max (au)": region_fluor_max,
+        "neighboring_cell_labels": neighboring_regions,
+        "edge_labels": edge_labels,
+        "node_labels": node_labels,
+        "node_pair_labels": node_pairs,
+        "touches_image_border": is_border_region,
+    }
 
     return metrics
 
 
 def calculate_neighbor_node_metrics(
-    binary_image: np.ndarray, 
-    nodes: Optional[np.ndarray] = None, 
-    edges: Optional[np.ndarray] = None, 
-    intensity_image: Optional[np.ndarray] = None, 
-    verbose: bool = True
+    binary_image: np.ndarray,
+    nodes: Optional[np.ndarray] = None,
+    edges: Optional[np.ndarray] = None,
+    intensity_image: Optional[np.ndarray] = None,
+    verbose: bool = True,
 ) -> dict:
     """
     Takes a binary image representation of one or more structures that look
@@ -772,7 +921,7 @@ def calculate_neighbor_node_metrics(
     binary_image: np.ndarray
         The binary array to be converted into an array of labeled nodes and labeled edges
         if 'nodes' argument and 'edges' argument are not provided.
-    
+
     nodes: np.ndarray (optional)
         An array of labeled nodes produced from binary_image using arr2graph.
         Default is None.
@@ -802,34 +951,58 @@ def calculate_neighbor_node_metrics(
     """
 
     # create the nodes and edges arrays if they were not provided
-    nodes, edges, skel, conn = (nodes, edges, None, None) if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray)) else arr2graph(binary_image, closing_step=False)
-    del skel, conn # remove unused images to save on memory
+    nodes, edges, skel, conn = (
+        (nodes, edges, None, None)
+        if (isinstance(nodes, np.ndarray) and isinstance(edges, np.ndarray))
+        else arr2graph(binary_image, closing_step=False)
+    )
+    del skel, conn  # remove unused images to save on memory
 
     # if intensity_image is not provided then make a dummy channel full of np.nans
     # so that measure.regionprops doesn't return an error when trying to measure
     # the fluorescence
-    intensity_image = intensity_image if isinstance(intensity_image, np.ndarray) else np.full(binary_image.shape, np.nan)
+    intensity_image = (
+        intensity_image
+        if isinstance(intensity_image, np.ndarray)
+        else np.full(binary_image.shape, np.nan)
+    )
 
     ## construct lines between all nodes
     node_props = measure.regionprops(nodes)
     node_labels, node_centroids = zip(*[(n.label, n.centroid) for n in node_props])
 
-    print(f'    -- getting home node and neighboring node centroids') if verbose else None
-    node_label_grid1, node_label_grid2 = np.meshgrid(node_labels, node_labels, indexing='ij')
+    (
+        print(f"    -- getting home node and neighboring node centroids")
+        if verbose
+        else None
+    )
+    node_label_grid1, node_label_grid2 = np.meshgrid(
+        node_labels, node_labels, indexing="ij"
+    )
     ## construct vectors from the node centroids
-    vec_nodes = build_vector(*numpy_mesh_coords(node_centroids, node_centroids, indexing='ij'))
+    vec_nodes = build_vector(
+        *numpy_mesh_coords(node_centroids, node_centroids, indexing="ij")
+    )
     node_labels_index_dict = dict(zip(node_labels, range(len(node_labels))))
-    print(f'    -- array shape = {vec_nodes.shape}') if verbose else None
+    print(f"    -- array shape = {vec_nodes.shape}") if verbose else None
 
-    print(f'    -- calculating distances of lines between neighboring nodes') if verbose else None
+    (
+        print(f"    -- calculating distances of lines between neighboring nodes")
+        if verbose
+        else None
+    )
     dists = np.linalg.norm(vec_nodes, axis=2)
 
-    print(f'    -- calculating angles of lines between neighboring nodes') if verbose else None
+    (
+        print(f"    -- calculating angles of lines between neighboring nodes")
+        if verbose
+        else None
+    )
     ## determine angle of these lines relative to the horizontal
     ## (fluid flow direction is horizontal)
     ## construct a horizontal vector for reference
     ## indexing is ij, not xy, therefore (0,1) is horizontal
-    vec_horizontal = np.array((0,1), ndmin=3)
+    vec_horizontal = np.array((0, 1), ndmin=3)
     ## calculate angles between node-node lines and the horizontal line
     angles = get_angle(vec_horizontal, vec_nodes, in_deg=False, axis=2)
 
@@ -837,19 +1010,28 @@ def calculate_neighbor_node_metrics(
     ## connection is parallel or perpendicular, we need to fold all angles into the range
     ## 0-90. Currently the angles range from 0-180. This should reflect angles between
     ## 90-180 to be between 0-90
-    angles[angles > np.pi/2] = abs(angles[angles > np.pi/2] - np.pi)
+    angles[angles > np.pi / 2] = abs(angles[angles > np.pi / 2] - np.pi)
 
-    print(f'    -- getting node neighbors') if verbose else None
+    print(f"    -- getting node neighbors") if verbose else None
     ## get the node neighbors
-    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges)
-    del node_neighbors_edgelabs # remove unused images to save on memory
+    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
+        get_neighbor_nodes_and_edges(nodes, edges)
+    )
+    del node_neighbors_edgelabs  # remove unused images to save on memory
 
     ## create a connectivity matrix mask
-    print(f'    -- creating node connectivity mask') if verbose else None
+    print(f"    -- creating node connectivity mask") if verbose else None
     neighbors_mask = np.zeros(dists.shape, dtype=bool)
     ## node == i, neighbor == j
-    node_neighbors_labels_list = [(node, neigh) for node, neighbors in node_neighbors_nodelabs for neigh in neighbors]
-    node_neighbors_indices_list = [(node_labels_index_dict[node], node_labels_index_dict[neigh]) for node, neigh in node_neighbors_labels_list]
+    node_neighbors_labels_list = [
+        (node, neigh)
+        for node, neighbors in node_neighbors_nodelabs
+        for neigh in neighbors
+    ]
+    node_neighbors_indices_list = [
+        (node_labels_index_dict[node], node_labels_index_dict[neigh])
+        for node, neigh in node_neighbors_labels_list
+    ]
     neighbors_mask[tuple(zip(*node_neighbors_indices_list))] = True
 
     ## remove the top right diagonal half of the mask since they are just duplicates
@@ -857,7 +1039,7 @@ def calculate_neighbor_node_metrics(
     neighbors_mask_oneway = np.tril(neighbors_mask)
 
     ## filter the node-node distance and angle arrays so that only connected nodes are finite
-    print(f'    -- filtering out unconnected node pairs') if verbose else None
+    print(f"    -- filtering out unconnected node pairs") if verbose else None
     home_nodes_filtered = node_label_grid1[neighbors_mask_oneway]
     neighbor_nodes_filtered = node_label_grid2[neighbors_mask_oneway]
     dists_filtered = dists[neighbors_mask_oneway]
@@ -869,9 +1051,19 @@ def calculate_neighbor_node_metrics(
     # node_coord_pairs = [(node_lab_coord_dict[node], node_lab_coord_dict[neigh]) for node, neigh in node_label_pairs]
 
     ## calculate edge metrics
-    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
-    extra_region_props = (get_length, intensity_std, intensity_median, intensity_pct25, intensity_pct75)
-    edge_props = measure.regionprops(edges, intensity_image, extra_properties=extra_region_props)
+    node_neighbors_edgelabs, edge_neighbors_nodelabs, node_neighbors_nodelabs = (
+        get_neighbor_nodes_and_edges(nodes, edges, as_dict=True)
+    )
+    extra_region_props = (
+        get_length,
+        intensity_std,
+        intensity_median,
+        intensity_pct25,
+        intensity_pct75,
+    )
+    edge_props = measure.regionprops(
+        edges, intensity_image, extra_properties=extra_region_props
+    )
     for prop in edge_props:
         try:
             prop.node_pair = edge_neighbors_nodelabs[prop.label]
@@ -879,7 +1071,10 @@ def calculate_neighbor_node_metrics(
             print(prop.label)
 
     node_pairs_filtered = list(zip(home_nodes_filtered, neighbor_nodes_filtered))
-    edge_props_filtered = [[prop for prop in edge_props if set(prop.node_pair) == set(pair)] for pair in node_pairs_filtered]
+    edge_props_filtered = [
+        [prop for prop in edge_props if set(prop.node_pair) == set(pair)]
+        for pair in node_pairs_filtered
+    ]
 
     node_pair_labels = []
     node_pair_coords = []
@@ -895,7 +1090,12 @@ def calculate_neighbor_node_metrics(
     edge_fluorescence_max = []
     for edge_props in edge_props_filtered:
         node_pair_labels.append([prop.node_pair for prop in edge_props])
-        node_pair_coords.append([tuple([node_lab_coord_dict[node] for node in prop.node_pair]) for prop in edge_props])
+        node_pair_coords.append(
+            [
+                tuple([node_lab_coord_dict[node] for node in prop.node_pair])
+                for prop in edge_props
+            ]
+        )
         connecting_edge_labels.append([prop.label for prop in edge_props])
         edge_num_pixels.append([prop.num_pixels for prop in edge_props])
         edge_length.append([prop.get_length for prop in edge_props])
@@ -907,23 +1107,25 @@ def calculate_neighbor_node_metrics(
         edge_fluorescence_pct75.append([prop.intensity_pct75 for prop in edge_props])
         edge_fluorescence_max.append([prop.intensity_max for prop in edge_props])
 
-    metrics = {'node_pair_labels': node_pair_labels,
-               'node_pair_centroids': node_pair_coords,
-               'distances': dists_filtered,
-               'angles': angles_filtered,
-               'edge_labels': connecting_edge_labels,
-               'edge_num_pixels': edge_num_pixels,
-               'length (px)': edge_length,
-               'fluor_mean (au)': edge_fluorescence_mean,
-               'fluor_std (au)': edge_fluorescence_std,
-               'fluor_median (au)': edge_fluorescence_median,
-               'fluor_min (au)': edge_fluorescence_min,
-               'fluor_pct25 (au)': edge_fluorescence_pct25,
-               'fluor_pct75 (au)': edge_fluorescence_pct75,
-               'fluor_max (au)': edge_fluorescence_max,
-               }
+    metrics = {
+        "node_pair_labels": node_pair_labels,
+        "node_pair_centroids": node_pair_coords,
+        "distances": dists_filtered,
+        "angles": angles_filtered,
+        "edge_labels": connecting_edge_labels,
+        "edge_num_pixels": edge_num_pixels,
+        "length (px)": edge_length,
+        "fluor_mean (au)": edge_fluorescence_mean,
+        "fluor_std (au)": edge_fluorescence_std,
+        "fluor_median (au)": edge_fluorescence_median,
+        "fluor_min (au)": edge_fluorescence_min,
+        "fluor_pct25 (au)": edge_fluorescence_pct25,
+        "fluor_pct75 (au)": edge_fluorescence_pct75,
+        "fluor_max (au)": edge_fluorescence_max,
+    }
 
     return metrics
+
 
 def intensity_std(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
@@ -933,6 +1135,7 @@ def intensity_std(region_mask: np.ndarray, intensity_image: np.ndarray) -> float
     region_intensity_std = np.std(intensity_image[region_mask])
     return region_intensity_std
 
+
 def intensity_median(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
     of skimage.measure.regionprops.
@@ -940,6 +1143,7 @@ def intensity_median(region_mask: np.ndarray, intensity_image: np.ndarray) -> fl
     of the region."""
     region_intensity_median = np.median(intensity_image[region_mask])
     return region_intensity_median
+
 
 def intensity_pct25(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
@@ -949,6 +1153,7 @@ def intensity_pct25(region_mask: np.ndarray, intensity_image: np.ndarray) -> flo
     region_intensity_pct25 = np.percentile(intensity_image[region_mask], q=25)
     return region_intensity_pct25
 
+
 def intensity_pct75(region_mask: np.ndarray, intensity_image: np.ndarray) -> float:
     """This function is designed to be passed to the extra_properties argument
     of skimage.measure.regionprops.
@@ -957,7 +1162,10 @@ def intensity_pct75(region_mask: np.ndarray, intensity_image: np.ndarray) -> flo
     region_intensity_pct75 = np.percentile(intensity_image[region_mask], q=75)
     return region_intensity_pct75
 
-def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidirectional: bool = True) -> tuple:
+
+def walk_the_line(
+    skel: np.ndarray, max_num_pixels: Optional[int] = None, bidirectional: bool = True
+) -> tuple:
     """
     Takes a thinned or skeletonized binary line with 2 ends and no branches
     and returns the coordinates of the line ordered from endpoint to endpoint
@@ -979,7 +1187,7 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
     ----------
     skel: np.ndarray
         A thinned or skeletonized binary line with 2 ends and no branches.
-    
+
     max_num_pixels: int
         How many pixels to move from a start point if specified. Useful for
         walking a defined number of pixels away from the ends of the lines
@@ -996,7 +1204,7 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
         a starting point. Calculating the order of the coordinates using both
         endpoints as starting points takes twice as long as calculating only one.
         Default is True.
-        
+
     Returns
     -------
     (line1, line2) or (line1,): tuple
@@ -1016,51 +1224,75 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
     coords = list(zip(*np.where(skel)))
 
     if len(coords) < 2:
-        line1: Dict = {(coords)[-1]: {}}
+        line1: dict = {(coords)[-1]: {}}
         if bidirectional:
-            line2: Dict = {(coords)[-1]: {}}
+            line2: dict = {(coords)[-1]: {}}
         else:
             pass
         pass
 
     else:
-        coords1, coords2 = numpy_mesh_coords(coords, coords, indexing='xy')
+        coords1, coords2 = numpy_mesh_coords(coords, coords, indexing="xy")
         dists = np.linalg.norm(coords2 - coords1, axis=2)
 
         # conn1 = dists == 1
         # conn2 = dists == np.sqrt(2)
         # # conn3 = dists == np.sqrt(3)
         # conn_all = conn1 + conn2
-        conns = [dists == np.sqrt(dim) for dim in range(1, img_dim+1)]
+        conns = [dists == np.sqrt(dim) for dim in range(1, img_dim + 1)]
         conn_all = sum(conns).astype(bool)
 
         ## now mask the array
-        dists = np.ma.masked_array(data=dists, mask=dists==0)
+        dists = np.ma.masked_array(data=dists, mask=dists == 0)
 
-        edges_from_dist_ls = [np.all(dists[(conn_all[i,:] * (conn_all[i,:] + conn_all)) * (conn_all[i,:] * (conn_all[i,:] + conn_all)).T] > np.sqrt(img_dim)) for i in range(len(conn_all))]
+        edges_from_dist_ls = [
+            np.all(
+                dists[
+                    (conn_all[i, :] * (conn_all[i, :] + conn_all))
+                    * (conn_all[i, :] * (conn_all[i, :] + conn_all)).T
+                ]
+                > np.sqrt(img_dim)
+            )
+            for i in range(len(conn_all))
+        ]
 
         edges_from_dist = np.array([x if x else False for x in edges_from_dist_ls])
 
+        edge_conn = np.array(
+            [np.count_nonzero(conn_arr, axis=1) == 2 for conn_arr in conns]
+        )
+        edge_anticonn = np.array(
+            [np.count_nonzero(conn_arr, axis=1) == 0 for conn_arr in conns]
+        )
 
-        edge_conn = np.array([np.count_nonzero(conn_arr, axis=1) == 2 for conn_arr in conns])
-        edge_anticonn = np.array([np.count_nonzero(conn_arr, axis=1) == 0 for conn_arr in conns])
-
-        edges_from_conn = sum([edge_conn[i,:] * ~(sum([~edge_anticonn[j] for j in range(len(edge_anticonn)) if j != i]).astype(bool)) for i in range(len(conns))]).astype(bool)
-        edges_from_conn = edges_from_conn + (np.count_nonzero(conn_all, axis=1) > img_dim)
+        edges_from_conn = sum(
+            [
+                edge_conn[i, :]
+                * ~(
+                    sum(
+                        [~edge_anticonn[j] for j in range(len(edge_anticonn)) if j != i]
+                    ).astype(bool)
+                )
+                for i in range(len(conns))
+            ]
+        ).astype(bool)
+        edges_from_conn = edges_from_conn + (
+            np.count_nonzero(conn_all, axis=1) > img_dim
+        )
 
         ## this line of code will check the connectivity of the pixels
         ## connected to those found in maybe_nodes and if any of these
         ## connected pixels have both of THEIR neighbors in conn1, then
         ## we can safely say that the original pixel in maybe_nodes in
         ## question is in fact a node. This is because an edge pixel
-        ## can't be only connected to 2 other pixels without one of 
+        ## can't be only connected to 2 other pixels without one of
         ## those connected neighbors being an edge pixel connected to
         ## two other pixels in the shape of an "L"
 
         edges = edges_from_dist + edges_from_conn
         nodes = ~edges
 
-        assert(np.count_nonzero(nodes) == 2)
+        assert np.count_nonzero(nodes) == 2
 
         ## now that we know which coordinates are nodes or edges,
         ## we can spatially order them (i.e. walk from one node
@@ -1069,10 +1301,16 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
         ## starting from one node, move to the closest neighbour
         ## create a dictionary of which coordinates are next to which
 
-        conns_dict = {tuple(coords2[i,0].tolist()):
-                    dict(zip([tuple(x) for x in coords1[i, conn_all[i]].tolist()], dists[i, conn_all[i]].tolist()))
-                    for i in range(len(conn_all))}
-        node_coords = [tuple(c) for c in np.asarray(coords)[nodes,:]]
+        conns_dict = {
+            tuple(coords2[i, 0].tolist()): dict(
+                zip(
+                    [tuple(x) for x in coords1[i, conn_all[i]].tolist()],
+                    dists[i, conn_all[i]].tolist(),
+                )
+            )
+            for i in range(len(conn_all))
+        }
+        node_coords = [tuple(c) for c in np.asarray(coords)[nodes, :]]
 
         ## pick a starting position from one of the 2 endpoints of the coordinates
         ## (the choice is arbitrary)
@@ -1081,9 +1319,20 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
         line1 = {}
 
         for count in range(max_num_pixels):
-            line1[curr_node] = {n: conns_dict[curr_node][n] for n in conns_dict[curr_node]
-                                if conns_dict[curr_node][n] == min([conns_dict[curr_node][k] for k in conns_dict[curr_node].keys() if k not in visited_coords], default=[])
-                                and n not in visited_coords}
+            line1[curr_node] = {
+                n: conns_dict[curr_node][n]
+                for n in conns_dict[curr_node]
+                if conns_dict[curr_node][n]
+                == min(
+                    [
+                        conns_dict[curr_node][k]
+                        for k in conns_dict[curr_node].keys()
+                        if k not in visited_coords
+                    ],
+                    default=[],
+                )
+                and n not in visited_coords
+            }
             if line1[curr_node]:
                 curr_node = tuple(line1[curr_node].keys())[-1]
                 visited_coords.append(curr_node)
@@ -1096,9 +1345,20 @@ def walk_the_line(skel: np.ndarray, max_num_pixels: Optional[int] = None, bidire
             line2 = {}
 
             for count in range(max_num_pixels):
-                line2[curr_node] = {n: conns_dict[curr_node][n] for n in conns_dict[curr_node]
-                                if conns_dict[curr_node][n] == min([conns_dict[curr_node][k] for k in conns_dict[curr_node].keys() if k not in visited_coords], default=[])
-                                and n not in visited_coords}
+                line2[curr_node] = {
+                    n: conns_dict[curr_node][n]
+                    for n in conns_dict[curr_node]
+                    if conns_dict[curr_node][n]
+                    == min(
+                        [
+                            conns_dict[curr_node][k]
+                            for k in conns_dict[curr_node].keys()
+                            if k not in visited_coords
+                        ],
+                        default=[],
+                    )
+                    and n not in visited_coords
+                }
                 if line2[curr_node]:
                     curr_node = tuple(line2[curr_node].keys())[-1]
                     visited_coords.append(curr_node)
@@ -1128,7 +1388,7 @@ def get_length(skel: np.ndarray, max_num_pixels: Optional[int] = None) -> float:
     ----------
     skel: np.ndarray
         A thinned or skeletonized binary line with 2 ends and no branches.
-    
+
     max_num_pixels: int
         How many pixels to move from a start point if specified. Useful for
         walking a defined number of pixels away from the ends of the lines
@@ -1145,9 +1405,13 @@ def get_length(skel: np.ndarray, max_num_pixels: Optional[int] = None) -> float:
     """
     # get the coordinates of the line ordered from end to end and the
     # distances from one coordinate to the next
-    line, = walk_the_line(skel, max_num_pixels, bidirectional=False)
+    (line,) = walk_the_line(skel, max_num_pixels, bidirectional=False)
     # get a list of the distances from one coordinate to the next
-    dists = [line[startpoints][endpoints] for startpoints in line for endpoints in line[startpoints]]
+    dists = [
+        line[startpoints][endpoints]
+        for startpoints in line
+        for endpoints in line[startpoints]
+    ]
     # return the total of the distances as the length
     length = sum(dists)
 

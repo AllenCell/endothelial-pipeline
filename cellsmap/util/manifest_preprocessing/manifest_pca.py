@@ -1,69 +1,18 @@
 import numpy as np
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from cellsmap.util import manifest_io
-from cellsmap.util.dataset_io import get_reference_datasets, get_dataset_info
+from cellsmap.util.dataset_io import get_reference_datasets, get_valid_timepoints
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def simple_linear_classifier(X: pd.Series, Y: pd.Series) -> pd.Series:
-    '''
-    Simple linear classifier to identify outliers based on the following rule:
-        Z = 3/2 * X - 0.6
-        Outlier if Z > Y
-    where X is the first latent dimension and Y is the fourth latent dimension of
-    the 8-dimensional latent space of the Diffusion Autoencoder model.
-
-    This was a simple rule that was found to work well for the datasets with persistent bubbles.
-
-    Inputs:
-    - X: pd.Series (column of pd.DataFrame), first latent dimension of the 8-dimensional latent space
-    - Y: pd.Series (column of pd.DataFrame), fourth latent dimension of the 8-dimensional latent space
-
-    Outputs:
-    - Z>Y: pd.Series, boolean column indicating whether the point is an outlier
-    '''
-    Z = 3/2. * X - 0.6
-    return Z > Y
-
-
-def get_outliers(data: pd.DataFrame) -> pd.DataFrame:
-    '''
-    Find outlier crops based on a linear classifier (detection of bubbles in low flow datasets).
-    The classifier is based on the first and fourth latent dimensions of the 8-dimensional latent space
-    (indexing starts at 0).
-
-    Inputs:
-    - data: pd.DataFrame, containing the 8-dimensional latent space
-
-    Outputs:
-    - data: pd.DataFrame, with an additional column 'outlier' indicating whether the crop is an outlier
-    '''
-    data['outlier'] = simple_linear_classifier(data['feat_1'], data['feat_4'])
-    return data
-
-
-def remove_outliers(data:pd.DataFrame) -> pd.DataFrame:
-    '''
-    Remove outlier crops from the dataset.
-
-    Inputs:
-    - data: pd.DataFrame, containing the 8-dimensional latent space
-        - must have a column 'outlier' indicating whether the crop is an outlier
-    
-    Outputs:
-    - data: pd.DataFrame, with the outliers removed
-    '''
-    data = data[~data.outlier]
-    return data
-
-def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
-    '''
+def get_pca_reference(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
+    """
     Select reference timepoints for fitting PCA based on the dataset annotations
 
     Inputs:
@@ -71,25 +20,25 @@ def get_pca_reference(df:pd.DataFrame) -> pd.DataFrame:
 
     Outputs:
     - df: pd.DataFrame, with an additional column 'pca_ref' indicating whether the timepoint is a reference timepoint
-    '''
-    if 'dataset' not in df.columns:
-        raise ValueError('Data must have a column for dataset')
-    df['pca_ref'] = False
-    dataset_name = df.dataset.unique()
-    dataset_info = get_dataset_info(dataset_name)
+    """
+    df["pca_ref"] = False
     # check that the necessary datasets are present for fitting PCA
-    valid_timepoints = dataset_info.get('valid_timepoints')
+    valid_timepoints = get_valid_timepoints(dataset_name)
     if valid_timepoints is None:
-        df['pca_ref'] = True
+        print(f"Using all timepoints from dataset {dataset_name} for PCA")
+        df["pca_ref"] = True
     else:
-        tps  = []
-        for start, stop in zip(valid_timepoints['start'], valid_timepoints['stop']):
+        print(f"Reference timepoints for PCA from dataset {dataset_name}: ")
+        tps = []
+        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
             tps.extend(list(range(start, stop + 1)))
+            print(f"   - {start} to {stop}")
         valid_subset = df.frame_number.isin(tps)
-        df['pca_ref'] = valid_subset
+        df["pca_ref"] = valid_subset
     return df[df.pca_ref]
 
-def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
+
+def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipeline:
     """
     Helper function for fitting PCA pipeline.
 
@@ -100,37 +49,41 @@ def fit_pca(num_pcs:int=8,scale:bool=False,verbose:bool=True) -> Pipeline:
 
     Returns:
         pipe (Pipeline): Fitted PCA pipeline (may include scaling)
-    """    
+    """
     # first, get list of reference datasets to use for PCA
     reference_datasets = get_reference_datasets()
+    if verbose:
+        print(f"Reference datasets for PCA:")
     data_ref = []
     for name in reference_datasets:
-        df_ = manifest_io.get_diffae_manifest(name) # get the manifest for the dataset
-        df_ = get_pca_reference(df_) # get df with only the reference timepoints for fitting PCA
-        data_ref.append(df_) # append the reference timepoints to the list
+        df_ = manifest_io.get_diffae_manifest(name)  # get the manifest for the dataset
+        df_ = get_pca_reference(
+            df_, name
+        )  # get df with only the reference timepoints for fitting PCA
+        data_ref.append(df_)  # append the reference timepoints to the list
 
-    data_ref = pd.concat(data_ref, ignore_index=True) # concatenate the reference timepoints into a single dataframe
-    # remove outliers
-    if 'outlier' not in data_ref.columns:
-        data_ref = get_outliers(data_ref)
-    data_ref = remove_outliers(data_ref)
+    data_ref = pd.concat(
+        data_ref, ignore_index=True
+    )  # concatenate the reference timepoints into a single dataframe
 
     # fit PCA
-    if scale: # scale the data before fitting PCA
-        pipe = Pipeline([
-            ('scaler', StandardScaler()),
-            ('pca', PCA(n_components=num_pcs, svd_solver='full'))
-        ])
-    else: # don't scale the data before fitting PCA
-        pipe = Pipeline([
-            ('pca', PCA(n_components=num_pcs, svd_solver='full'))
-        ])
+    if scale:  # scale the data before fitting PCA
+        pipe = Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                ("pca", PCA(n_components=num_pcs, svd_solver="full")),
+            ]
+        )
+    else:  # don't scale the data before fitting PCA
+        pipe = Pipeline([("pca", PCA(n_components=num_pcs, svd_solver="full"))])
     # get the feature columns from the data, these are the columns that start with 'feat_'
     feature_cols = manifest_io.get_feature_cols(data_ref)
-    pipe.fit(data_ref[feature_cols].values) # fit PCA
+    pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
-    if verbose: # print explained variance ratios
-        print(f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}')
+    if verbose:  # print explained variance ratios
+        print(
+            f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}'
+        )
 
     # return the fit PCA pipeline
     return pipe

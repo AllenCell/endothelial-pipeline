@@ -1,14 +1,15 @@
-import pandas as pd
-from sklearn.pipeline import Pipeline
 import os
 import pickle
-from cellsmap.util import dataset_io
 import platform
 
+import pandas as pd
+from sklearn.pipeline import Pipeline
+
+from cellsmap.util import dataset_io
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
-    from aicsfiles import fms, FileLevelMetadataKeys
+    from aicsfiles import FileLevelMetadataKeys, fms
 except ImportError:
     fms = None
 
@@ -16,21 +17,23 @@ except ImportError:
 def replace_base_url(file_path: str) -> str:
     """
     Replace the base URL 'production.files.allencell.org' with '/allen/programs/allencell/data/proj0/' in the given file path.
-    
+
     Parameters:
     file_path (str): The original file path.
-    
+
     Returns:
     str: The modified file path.
     """
     base_url = "production.files.allencell.org"
     new_base_path = "/allen/programs/allencell/data/proj0/"
-    
+
     if base_url in file_path:
         modified_path = file_path.replace(base_url, new_base_path)
         return modified_path
     else:
-        raise ValueError(f"The base URL '{base_url}' was not found in the provided file path.")
+        raise ValueError(
+            f"The base URL '{base_url}' was not found in the provided file path."
+        )
 
 
 def get_valid_path(fpath) -> str:
@@ -79,31 +82,44 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
     if fmsid == "" or fmsid is None:
-        print(f'No DiffAE manifest found for dataset {dataset_name}')
+        print(f"No DiffAE manifest found for dataset {dataset_name}")
         return None
     df = get_dataframe_by_fmsid(fmsid)
     return df
+
+
+def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name).get(
+        "diffae_tracking_integration_fmsid", None
+    )
+    if fmsid:
+        return get_dataframe_by_fmsid(fmsid)
+    else:
+        print(f"No DiffAE manifest found for dataset {dataset_name}")
+        return None
 
 
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
     Extract columns corresponding to DiffAE model features from dataframe (loaded DiffAE manifest).
     """
-    feat_cols = [c for c in df.columns if c.startswith('feat_')]
-    feat_cols = sorted(feat_cols, key=lambda x: int(x.split('_')[1]))
+    feat_cols = [c for c in df.columns if c.startswith("feat_")]
+    feat_cols = sorted(feat_cols, key=lambda x: int(x.split("_")[1]))
     return feat_cols
 
 
-def list_datasets_with_manifest(manifest_name: str, verbose:bool=False) -> list:
+def list_datasets_with_manifest(manifest_name: str, verbose: bool = False) -> list:
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
-    all_datasets = (
-        dataset_io.get_available_datasets(verbose = False)
-    ) 
+    all_datasets = dataset_io.get_available_datasets(verbose=False)
 
     if verbose:
-        manifest_type = "nuclear segmentation" if manifest_name == "nuclear_seg_manifest_fmsid" else "DiffAE"
+        manifest_type = (
+            "nuclear segmentation"
+            if manifest_name == "nuclear_seg_manifest_fmsid"
+            else "DiffAE"
+        )
         print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
     for dataset_name in all_datasets:
@@ -115,8 +131,8 @@ def list_datasets_with_manifest(manifest_name: str, verbose:bool=False) -> list:
     return dataset_list
 
 
-def save_pca_model(pca:Pipeline,savedir:str) -> None:
-    '''
+def save_pca_model(pca: Pipeline, savedir: str) -> None:
+    """
     Save fit PCA model to file using pickle.
 
     Inputs:
@@ -126,25 +142,25 @@ def save_pca_model(pca:Pipeline,savedir:str) -> None:
 
     Outputs:
     - None, saves PCA model to file
-    '''
-    if not savedir.endswith('/'):
-        savedir += '/'
-    with open(savedir+'pca_model.pkl','wb') as f:
-        pickle.dump(pca,f)
+    """
+    if not savedir.endswith("/"):
+        savedir += "/"
+    with open(savedir + "pca_model.pkl", "wb") as f:
+        pickle.dump(pca, f)
 
 
-def load_pca_model(savedir:str) -> Pipeline:
-    '''
+def load_pca_model(savedir: str) -> Pipeline:
+    """
     Load PCA model from file.
-    
+
     Inputs:
     - savedir: str, directory to load PCA model from
 
     Outputs:
     - pca: Pipeline, fit PCA model loaded from file
-    '''
-    if not savedir.endswith('/'):
-        savedir += '/'
-    with open(savedir+'pca_model.pkl','rb') as f:
+    """
+    if not savedir.endswith("/"):
+        savedir += "/"
+    with open(savedir + "pca_model.pkl", "rb") as f:
         pca = pickle.load(f)
     return pca

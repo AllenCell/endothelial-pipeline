@@ -8,25 +8,25 @@ For example, suppose we have data that are 8 features for each crop of the image
 
 ## Environment variables and management
 
-Install `pdm` and configure project at the root of the `cellsmap` repository.
+Install `uv` and configure project at the root of the `cellsmap` repository.
 
 ## Running SDE model fitting and analysis
 
 Set working directory to be the head of the `cellsmap` repository.
 
-`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py [config_name]`
-* Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space. 
+`uv run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py [config_name]`
+* Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space.
 * Get one time step displacements of crops over time, train/test split for fitting drift
- $$\mathbf{f}(\mathbf{x})$$ 
- and diffusion 
- $$D(\mathbf{x})$$ 
+ $$\mathbf{f}(\mathbf{x})$$
+ and diffusion
+ $$D(\mathbf{x})$$
  coefficients from these displacements.
 
-`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_fit.py [config_name]`
+`uv run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_fit.py [config_name]`
 * Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
 
-`pdm run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_summarize.py [config_name]`
-* Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model 
+`uv run cellsmap/analyses/workflows/stochastic_dynamics/dynamics_summarize.py [config_name]`
+* Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
 $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 D(\mathbf{x})} \xi(t)$$
 
 * Analyses include:
@@ -41,7 +41,7 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 ### Config file documentation
 - `name` (type: `str`): Name of this set of config variables. This is what gets passed in as `[config_name]` via command line.
 - `PCs_to_analyze` (type `list[int]`): Which two of the principal component axes to project data onto and analyze trajectories from there.
-- `datasets_to_skip` (type `list[str]`): Datasets to skip when fitting drift and diffusion models. 
+- `datasets_to_skip` (type `list[str]`): Datasets to skip when fitting drift and diffusion models.
     - *NOTE:* This will probably be depreciated in the future, as one of the datasets being skipped (`20241016_20X`) will be recollected and we will replace that dataset with the replicate in the config. The other datasets to skip are the no flow datasets (not being used to fit the SDE model, are being used to generate principal component axes), and that can be checked without needing to specify datasets here.
 - `N_bins_kramers_moyal` (type `list`): Number of bins to use in each dimension when computing the Kramers-Moyal estimates of the drift and diffusion coefficients. These averages are what get passed into the SINDy regression script to learn the drift and diffusion as functions of the state variables (i.e., the coordinates as specified by `PCs`) and the shear stress level.
 - `dt` (type `int` or `float`): Time interval between frames in minutes. I am hardcoding this here because it is the same for all timelapse datasets we are collecting to be passed into the Diffusion AE model.
@@ -49,7 +49,7 @@ For each workflow, `[config_name]` is an optional command line input to specify 
     - `drift_feats` (type `int`): Polynomial order in powers of the state variables (i.e., the "features") for estimate of drift.
     - `drift_param` (type `int`): Polynomial order in powers of shear stress (dynamical systems model parameter) for estimate of drift.
     - `diffusion_feats` (type `int`): Polynomial order in powers of the state variables (i.e., the "features") for estimate of diffusion.
-        - Default is 0, i.e., additive noise / D is assumed constant over state space. If 
+        - Default is 0, i.e., additive noise / D is assumed constant over state space. If
         $$>0$$
         , then we are assuming multiplicative noise.
     - `diffusion_param` (type `int`): Polynomial order in powers of shear stress (dynamical systems model parameter) for estimate of diffusion.
@@ -67,7 +67,7 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 - `norm_vectors` (type `bool`): Whether or not to normalize the gradient and flux vector fields when plotting (sometimes looks better when vectors are unit vectors).
 
 ### Acessing and interpreting outputs
-Intermediate workflow outputs (e.g., train/test sets) are saved to `cellsmap/results/stochastic_dynamics/[config_name]/outputs`. Figures are saved to `cellsmap/results/stochastic_dynamics/[config_name]/figs`. If they do not already exist, these directories are created automatically. 
+Intermediate workflow outputs (e.g., train/test sets) are saved to `cellsmap/results/stochastic_dynamics/[config_name]/outputs`. Figures are saved to `cellsmap/results/stochastic_dynamics/[config_name]/figs`. If they do not already exist, these directories are created automatically.
 
 Intermediate outputs:
 * fit PCA model (`sklearn.pipeline.Pipeline` object)
@@ -76,4 +76,3 @@ Intermediate outputs:
 
 Figures:
 * summary figures for data, PCA, and SDE model
-

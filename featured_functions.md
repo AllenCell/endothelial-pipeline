@@ -4,7 +4,7 @@ This document contains functions that were requested by others on the team (and 
 ## Functions
 
 ### `get_classic_segmentation`
-- DESCRIPTION - 
+- DESCRIPTION -
 Takes an image with a membrane-labeled structure and returns an instance segmentation as an array with the same shape as 'image'.
 - USE CASE - You've loaded the Cdh5 channel from one of the timepoints in one of the datasets and want to recreate the instance segmentations.
 - LOCATION - `cellsmap/util/cdh5_preprocessing.py`

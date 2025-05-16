@@ -1,20 +1,22 @@
+from pathlib import Path
+from typing import Dict, Union
+
 import mlflow
 import yaml
 from hydra.utils import get_class
-from pathlib import Path
-from typing import Union, Dict
 
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
 DEFAULT_CHECKPOINT_PATH = "checkpoints/val/loss/best.ckpt"
 DEFAULT_CONFIG_PATH = "config/eval.yaml"
 
+
 def download_mlflow_artifact(
-    run_id: str, 
+    run_id: str,
     artifact_path: str,
     dst_path: Union[str, Path],
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> None:
-    """"
+    """ "
     Download an artifact from MLflow given a run ID and artifact path."
     Parameters
     ----------
@@ -22,7 +24,7 @@ def download_mlflow_artifact(
         The run ID of the MLflow run.
     artifact_path: str
         The path of the artifact to download.
-    dst_path: str or Path   
+    dst_path: str or Path
         The destination path where the artifact will be downloaded.
     tracking_uri: str
         The tracking URI of the MLflow server.
@@ -32,6 +34,18 @@ def download_mlflow_artifact(
         print(f"Artifact exists! Skipping download of {artifact_path}...")
         return
     mlflow.set_tracking_uri(tracking_uri)
+
+    available_artifacts = mlflow.artifacts.list_artifacts(
+        run_id=run_id,
+        tracking_uri=tracking_uri,
+        artifact_path=Path(artifact_path).parent,
+    )
+    available_artifacts = [obj.path for obj in available_artifacts]
+    if artifact_path not in available_artifacts:
+        raise ValueError(
+            f"Artifact {artifact_path} not found in run {run_id}. Available artifacts: {available_artifacts}"
+        )
+
     if not dst_path.exists():
         dst_path.mkdir(parents=True, exist_ok=True)
     mlflow.artifacts.download_artifacts(
@@ -40,6 +54,7 @@ def download_mlflow_artifact(
         artifact_path=artifact_path,
         dst_path=dst_path,
     )
+
 
 def download_model(
     run_id: str,
@@ -67,9 +82,10 @@ def download_model(
     download_mlflow_artifact(run_id, config_path, save_path, tracking_uri)
 
     return {
-        'checkpoint_path': save_path / checkpoint_path,
-        'config_path': save_path / config_path,
+        "checkpoint_path": save_path / checkpoint_path,
+        "config_path": save_path / config_path,
     }
+
 
 def load_mlflow_model(
     run_id: str,
@@ -96,9 +112,9 @@ def load_mlflow_model(
     save_path = Path(save_path)
     download_model(run_id, save_path, checkpoint_path, config_path, tracking_uri)
 
-    with open (save_path / config_path, 'r') as f:
+    with open(save_path / config_path, "r") as f:
         config = yaml.safe_load(f)
 
-    model_class = get_class(config['model']['_target_'])
+    model_class = get_class(config["model"]["_target_"])
     model = model_class.load_from_checkpoint(save_path / checkpoint_path)
     return model
