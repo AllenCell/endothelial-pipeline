@@ -95,9 +95,11 @@ def generate_tfe_dataset(
 
 # %%
 for dataset in ["20241120_20X", "20241217_20X", "20250409_20X"]:
-    position = 0
+    position = 5
     program_dir = Path("//allen/aics/endothelial/morphological_features/")
-    source_dir = Path(f"{program_dir}/segmentations/cdh5_classic_seg/{dataset}/P0")
+    source_dir = Path(
+        f"{program_dir}/segmentations/cdh5_classic_seg/{dataset}/P{position}"
+    )
 
     generate_tfe_dataset(
         dataset=dataset,
@@ -105,5 +107,7 @@ for dataset in ["20241120_20X", "20241217_20X", "20250409_20X"]:
         segmentation="cell_seg",
         output_dir=program_dir / "timelapse_feature_explorer",
         source_dir=source_dir,
-        backdrops=False,
+        backdrops=True,
     )
+
+# %%
