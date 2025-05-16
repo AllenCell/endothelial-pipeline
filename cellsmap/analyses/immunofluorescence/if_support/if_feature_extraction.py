@@ -27,14 +27,21 @@ def get_crop_size(resolution_level: Literal[0, 1]) -> int:
 
 
 def get_raw_intensity_crop(
-    row: pd.Series, resolution_level: Literal[0, 1], channel: int
+    row: pd.Series, resolution_level: Literal[0, 1], channel_name: str
 ) -> np.ndarray:
     p = dataset_io.extract_P(row.position)
     img = get_images.get_zarr_img_for_dataset(row.dataset, p, resolution_level)
+    channel_names = img.channel_names
+    try:
+        channel_index = channel_names.index(channel_name)
+    except ValueError:
+        raise ValueError(
+            f"Channel name '{channel_name}' not found in image channels: {channel_names}"
+        )
 
     raw_crop = get_images.get_crop(
         img=img,
-        channel=channel,
+        channel=channel_index,
         timepoint=row.frame_number,
         start_x=row.start_x,
         start_y=row.start_y,
@@ -43,7 +50,7 @@ def get_raw_intensity_crop(
     )
 
     # keep z, extract one time and one channel
-    raw_crop_channel = raw_crop[0, channel, :, :]
+    raw_crop_channel = raw_crop[0, channel_index, :, :]
     return raw_crop_channel
 
 

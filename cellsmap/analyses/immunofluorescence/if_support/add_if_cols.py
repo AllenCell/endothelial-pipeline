@@ -1,5 +1,5 @@
 # %%
-from typing import Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ from cellsmap.analyses.immunofluorescence.if_support.if_feature_extraction impor
 
 def process_channel(
     row: pd.Series,
-    channel: int,
+    channel_name: str,
     nuc_crop_seg_mask: np.ndarray,
     resolution_level: int,
     individual_nuc_seg_mask: Optional[np.ndarray] = None,
@@ -34,7 +34,7 @@ def process_channel(
         Tuple: Total intensity, mean/median in mask, mean/median out of mask.
     """
     crop = get_raw_intensity_crop(
-        row, resolution_level=resolution_level, channel=channel
+        row, resolution_level=resolution_level, channel_name=channel_name
     )
     background_subtracted = background_subtract(crop, camera_offset=camera_offset)
     sum_proj = sum_projection(background_subtracted)
@@ -70,7 +70,7 @@ def process_channel(
 
 
 def get_feature_columns(
-    marker: str,
+    channel_name: str,
     total: float,
     mean_nuc: float,
     mean_cyto: float,
@@ -84,30 +84,27 @@ def get_feature_columns(
     Generate a dictionary of feature columns for a given marker.
     """
     return {
-        f"crop_intensity_{marker}": total,
-        f"crop_nuc_mean_intensity_{marker}": mean_nuc,
-        f"crop_cyto_mean_intensity_{marker}": mean_cyto,
-        f"crop_nuc_median_intensity_{marker}": median_nuc,
-        f"crop_cyto_median_intensity_{marker}": median_cyto,
-        f"crop_nuc_to_cyto_mean_ratio_{marker}": mean_nuc
+        f"crop_intensity_{channel_name}": total,
+        f"crop_nuc_mean_intensity_{channel_name}": mean_nuc,
+        f"crop_cyto_mean_intensity_{channel_name}": mean_cyto,
+        f"crop_nuc_median_intensity_{channel_name}": median_nuc,
+        f"crop_cyto_median_intensity_{channel_name}": median_cyto,
+        f"crop_nuc_to_cyto_mean_ratio_{channel_name}": mean_nuc
         / (mean_cyto + 1e-6),  # avoid zero division
-        f"crop_nuc_to_cyto_median_ratio_{marker}": median_nuc
+        f"crop_nuc_to_cyto_median_ratio_{channel_name}": median_nuc
         / (median_cyto + 1e-6),  # avoid zero division
-        f"nuclear_intensity_{marker}": ind_nuclear_intensity,
-        f"nuclear_mean_intensity_{marker}": mean_int_nuclear,
-        f"nuclear_median_intensity_{marker}": median_int_nuclear,
+        f"nuclear_intensity_{channel_name}": ind_nuclear_intensity,
+        f"nuclear_mean_intensity_{channel_name}": mean_int_nuclear,
+        f"nuclear_median_intensity_{channel_name}": median_int_nuclear,
     }
 
 
 def process_row(
     row: pd.Series,
-    marker: str,
-    nuclear_seg_channel: int,
-    antibody_channel: int,
-    dapi_channel: int,
-    resolution_level: int,
+    channel_name: str,
+    resolution_level: Literal[0, 1],
+    nuclear_seg_channel: int = 0,  # nuclear stain segmenations only have one channel
     camera_offset: int = 100,
-    add_dapi: bool = False,
     nuclear_centroid_crops: bool = False,
 ) -> dict:
     """
@@ -137,14 +134,14 @@ def process_row(
         median_int_nuclear,
     ) = process_channel(
         row,
-        channel=antibody_channel,
+        channel_name,
         nuc_crop_seg_mask=seg_mask,
         individual_nuc_seg_mask=individual_nuc_seg_mask,
         resolution_level=resolution_level,
         camera_offset=camera_offset,
     )
     result = get_feature_columns(
-        marker,
+        channel_name,
         crop_total,
         mean_nuc,
         mean_cyto,
@@ -155,48 +152,12 @@ def process_row(
         median_int_nuclear,
     )
 
-    if add_dapi:
-        (
-            dapi_total,
-            dapi_mean_nuc,
-            dapi_mean_cyto,
-            dapi_median_nuc,
-            dapi_median_cyto,
-            dapi_ind_nuclear_intensity,
-            dapi_mean_int_nuclear,
-            dapi_median_int_nuclear,
-        ) = process_channel(
-            row,
-            channel=dapi_channel,
-            nuc_crop_seg_mask=seg_mask,
-            individual_nuc_seg_mask=individual_nuc_seg_mask,
-            resolution_level=resolution_level,
-            camera_offset=camera_offset,
-        )
-
-        result.update(
-            get_feature_columns(
-                "dapi",
-                dapi_total,
-                dapi_mean_nuc,
-                dapi_mean_cyto,
-                dapi_median_nuc,
-                dapi_median_cyto,
-                dapi_ind_nuclear_intensity,
-                dapi_mean_int_nuclear,
-                dapi_median_int_nuclear,
-            )
-        )
-
     return result
 
 
 def add_if_cols_to_df(
     df: pd.DataFrame,
-    marker: str,
-    nuclear_seg_channel: int,
-    antibody_channel: int,
-    dapi_channel: int,
+    channel_name: str,
     resolution_level: int,
     n_jobs: int = -1,
 ) -> pd.DataFrame:
@@ -205,10 +166,8 @@ def add_if_cols_to_df(
 
     Args:
         df (pd.DataFrame): Input DataFrame.
-        marker (str): Marker name for the antibody.
-        nuclear_seg_channel (int): Channel index used for segmentation.
+        channel_name (str): Marker name for the antibody or stain.
         antibody_channel (int): Channel index of the antibody.
-        dapi_channel (int): Channel index for DAPI (if needed).
         resolution_level (int): Resolution level to use for processing.
         n_jobs (int): Number of parallel workers. Default: -1 (all cores).
 
@@ -218,10 +177,7 @@ def add_if_cols_to_df(
     results = Parallel(n_jobs=n_jobs)(
         delayed(process_row)(
             row,
-            marker,
-            nuclear_seg_channel,
-            antibody_channel,
-            dapi_channel,
+            channel_name,
             resolution_level,
         )
         for _, row in df.iterrows()
