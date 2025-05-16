@@ -1,6 +1,7 @@
 # %%
 from cellsmap.analyses.immunofluorescence.if_support.add_if_cols import (
     add_if_cols_to_df,
+    get_channels_for_if_processing,
 )
 from cellsmap.analyses.immunofluorescence.if_support.if_feature_extraction import (
     background_subtract,
@@ -20,8 +21,9 @@ RES_LEVEL = 0
 output_dir = set_output.get_output_path("immunoflourescence_analysis")
 df = manifest_io.get_diffae_manifest(DATASET)
 
-
-for channel in ["NucViolet", "SMAD1", "SOX17"]:  # "NR2F2", "DAPI"
+channels = get_channels_for_if_processing(DATASET)
+# %%
+for channel in channels:
     df = add_if_cols_to_df(
         df,
         channel_name=channel,

@@ -17,6 +17,7 @@ from cellsmap.analyses.immunofluorescence.if_support.if_feature_extraction impor
     total_intensity,
     total_intensity_in_mask,
 )
+from cellsmap.vis import get_images
 
 
 def process_channel(
@@ -153,6 +154,14 @@ def process_row(
     )
 
     return result
+
+
+def get_channels_for_if_processing(dataset_name: str) -> list[str]:
+    img = get_images.get_zarr_img_for_dataset(dataset_name, 0, 1)
+    channel_names = img.channel_names
+    channel_names = [name for name in channel_names if name not in ["EGFP", "BF"]]
+    print(f"{dataset_name} channels processing: {channel_names}")
+    return channel_names
 
 
 def add_if_cols_to_df(
