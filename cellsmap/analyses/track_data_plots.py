@@ -11,6 +11,7 @@ from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
+    get_available_datasets,
     get_dataset_info,
     get_measurement_data_raws,
     get_original_path,
@@ -938,6 +939,10 @@ def main(
             and "AICS-126" in config_data["cell_lines"]
             and config_data["duration"] > 1
         ]
+    elif isinstance(dataset_name, str) or isinstance(dataset_name, Sequence):
+        dataset_name_list = (
+            [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
+        )
     else:
         raise ValueError(
             f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
