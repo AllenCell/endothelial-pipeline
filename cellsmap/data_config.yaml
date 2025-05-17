@@ -189,7 +189,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 5a971ac162194b8490f7119c04488b0f
 20250110_paired40X:
   original_path: //allen/programs/allencell/data/proj0/093/f29/5ce/e2f/dc7/fab/845/8b0/b10/74f/0b/20250110_GE00006323_40X_zstacks_SLDY/20250110_GE00006323_40X_zstacks_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250110_0b74fb108b0845fabdc7e2f5cef29093
@@ -210,7 +210,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 2365c8dcc36e4edc9ffd58e7c956c144
 20250115_paired3iNikon_3i1st:
   original_path: //allen/programs/allencell/data/proj0/61a/26d/0a1/572/3e8/f08/14d/4b7/926/e36/51/20250115_GE00006392_20X_pairedNikon_sldy/20250115_GE00006392_20X_paired_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_51e369264b714df083e85720a126d61a
@@ -427,7 +427,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: c6676d68995844ed9eae3275c4f24078
 20250214_pairedPostFixation:
   original_path: //allen/programs/allencell/data/proj0/0b2/e40/73a/e23/5da/718/e42/278/9ec/a3a/30/20250219_GE00006747_20X_POST_FIX_sldy/20250219_GE00006747_20X_POST_FIX_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250219_30a3a9ec278e427185dae2373ae400b2
@@ -451,7 +451,7 @@
     which had to be washed out first.
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 6a9682a9ebbe472383a9dffe686f062c
 20250219_40X:
   original_path: //allen/programs/allencell/data/proj0/cdd/e37/8a2/ad3/52d/75b/a48/3ce/9a7/6c9/57/20250219_GE00006885_40X_sldy/20250219_GE00006885_40X_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250219_576c99a73cea4875b52dad38a2e37cdd
@@ -536,7 +536,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/image_data/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: fd79709d90864162b2aef5817946a9d4
 20250227_paired40X:
   original_path: //allen/programs/allencell/data/proj0/508/752/011/de2/c25/46a/84f/fe2/278/535/1b/20250227_GE00007101_40X_ZSTACK_SLDY/20250227_GE00007101_40X_zstacks_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250227_1b535278fe284f46ac25de2011752508
@@ -557,7 +557,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: ea1973c83b5c4436a5324bbef1186a64
 20250227_40X:
   original_path: //allen/programs/allencell/data/proj0/f44/fef/364/e57/2ea/148/c4b/d74/165/d49/0e/20250227_GE00007101_40X_timelapse_sldy/20250227_GE00007101_40X_timelapse_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250227_0ed49165d74c4b1482eae57364feff44
@@ -599,7 +599,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: 65f32e5cfda940b497453940d00396f4
 20250228_paired40X:
   original_path: //allen/programs/allencell/data/proj0/895/4eb/115/475/4b1/ddb/547/c1f/7ff/851/54/20250228_GE00006610_ZSTACK_40X/20250228_GE00006610_40x_zstacks_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250228_548517ffc1f547ddb4b14751154eb895
@@ -620,7 +620,7 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: ''
+  diffae_manifest_fmsid: e8966eb09ff045db9c4aba00e0e039e0
 20250304_paired3iNikon_3i1st:
   original_path: //allen/programs/allencell/data/proj0/83d/701/9bb/733/bbd/b6a/047/d43/787/5c7/d5/20250304_GE00006610_20X_SLDY/20250304_GE00006610_20X_pairedNikon.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250304_d55c7787d43047b6abbd7339bb70183d
@@ -735,7 +735,7 @@
 20250415_SlideA_20X:
   original_path: //allen/programs/allencell/data/proj0/af5/a86/27d/d28/ffd/319/b4d/ee9/0b6/9a4/80/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_809a40b6ee9b4d319ffdd2827da86af5
-  fmsid: '809a40b6ee9b4d319ffdd2827da86af5'
+  fmsid: 809a40b6ee9b4d319ffdd2827da86af5
   barcode: GE00007488
   cell_lines: [AICS-126]
   live_or_fixed_sample: fixed
@@ -756,7 +756,7 @@
 20250415_SlideE_20X:
   original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_dbcfe826507e465aa33fda2f43104653
-  fmsid: 'dbcfe826507e465aa33fda2f43104653'
+  fmsid: dbcfe826507e465aa33fda2f43104653
   barcode: GE00007101
   cell_lines: [AICS-126]
   live_or_fixed_sample: fixed
@@ -777,7 +777,7 @@
 20250415_SlideH_20X:
   original_path: //allen/programs/allencell/data/proj0/655/ee7/c58/80c/e02/60a/c44/308/307/a3c/eb/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_eba3c307308c4460ae0280cc58ee7655
-  fmsid: 'eba3c307308c4460ae0280cc58ee7655'
+  fmsid: eba3c307308c4460ae0280cc58ee7655
   barcode: GE00006885
   cell_lines: [AICS-126]
   live_or_fixed_sample: fixed
