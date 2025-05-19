@@ -60,7 +60,7 @@ datasets: dict = {
 
 # %% Define functions
 
-def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n_std: float=3.0, facecolor: str ='none', **kwargs: Any)-> tuple[plt.Axes, Ellipse, float]:
+def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n_std: float=3.0, facecolor: str ='none', **kwargs: Any)-> tuple[plt.Axes, Ellipse, float, float]:
     """
     Create a plot of the covariance confidence ellipse of *x* and *y* and caluclate the
     associated PC error (the y-axis projection of the ellipse height.
@@ -69,7 +69,9 @@ def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n
     Parameters
     ----------
     x, y : array-like, shape (n, )
-        Input data from paired experiments.
+        Input data from paired experiments. These should be the PC values for
+        one given PC, calculated for two paired experiments (for example,
+        PC1 values for pre-fixation and post-fixation).
 
     ax : matplotlib.axes.Axes
         The Axes object to draw the ellipse into.
@@ -82,7 +84,17 @@ def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n
 
     Returns
     -------
-    matplotlib.patches.Ellipse
+    ax: matplotlib.axes.Axes
+        The Axes object with the ellipse drawn on it.
+    
+    ellipse: matplotlib.patches.Ellipse
+        Ellipse object drawn on the Axes.
+    
+    yerr: float
+        The y-axis projection of the ellipse height, representing the PC error.
+    
+    mean_y: float
+        The mean of the y data.
     """
     if len(x) != len(y):
         raise ValueError("x and y must be the same size")
@@ -114,8 +126,8 @@ def pc_error_from_confidence_ellipse(x: ArrayLike, y: ArrayLike, ax: plt.Axes, n
     ellipse.set_transform(transf + ax.transData)
     yerr = ellipse.height * scale_y *np.sin(45)
     ax.add_patch(ellipse)
-    ellipse.set_label(rf'${n_std}\sigma$, y_err: {yerr:.2f}')
-    return ax, ellipse, yerr
+    ellipse.set_label(rf'${n_std}\sigma$, y_err: {yerr:.3f}')
+    return ax, ellipse, yerr, mean_y
 
 
 def plot_ellipse123std(x: ArrayLike, y: ArrayLike, pc: int, dataset: str, name: str, xlabel: str, ylabel: str) -> None:
@@ -156,13 +168,13 @@ def plot_ellipse123std(x: ArrayLike, y: ArrayLike, pc: int, dataset: str, name: 
     # and project the height of the ellipses onto the y-axis to get an error value
     # for each ellipse which is provided in the figure legend
     for n_std, c in zip([1, 2, 3], "firebrick fuchsia blue".split()):
-        pc_error_from_confidence_ellipse(x, y, ax, n_std=n_std, edgecolor=c)
+        _, _, _, mean_y = pc_error_from_confidence_ellipse(x, y, ax, n_std=n_std, edgecolor=c)
 
     # Format, label, and save the figure
     plt.legend(loc='upper left')
     plt.xlabel(f"PC{pc} {xlabel}")
     plt.ylabel(f"PC{pc} {ylabel}")
-    plt.title(f"PC{pc}, Dataset: {name}")
+    plt.title(f"PC{pc}, Mean Y Offset: {mean_y:.3f}, Dataset: {name}")
     plt.axis("equal")
     plt.gca().set_aspect("equal", adjustable="box")
     prj_dir = Path(__file__).parent.parent.parent.parent
