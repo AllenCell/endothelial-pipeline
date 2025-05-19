@@ -89,85 +89,85 @@ def get_training_data_output_dirs(
         return [out_dirs[training_data_kind] for training_data_kind in kind]
 
 
-def get_old_cellpose_train_test_losses(
-    cellpose_model_dir: Path | str, model_name_list: List
-) -> tuple:
-    """
-    This function extracts the training and test losses from the run.log file
-    produced during the training of a Cellpose model.
-    It is only useful for cellpose < 3.1 as newer versions of cellpose
-    return the train and test losses along with the model path when
-    using the cellpose.train.train_seg function.
-    """
-    # copy the log file to the model directory and rename it according to model_name
-    # print(f'extracting training and test losses from run.log for {model_name}...')
-    print(f"extracting training and test losses from run.log...")
-    # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-    # run_log_filepath_new = Path(cell_cellpose_model_dir)/f'{model_name}_run.log'
-    # shutil.move(run_log_filepath, run_log_filepath_new)
+# def get_old_cellpose_train_test_losses(
+#     cellpose_model_dir: Path | str, model_name_list: List
+# ) -> tuple:
+#     """
+#     This function extracts the training and test losses from the run.log file
+#     produced during the training of a Cellpose model.
+#     It is only useful for cellpose < 3.1 as newer versions of cellpose
+#     return the train and test losses along with the model path when
+#     using the cellpose.train.train_seg function.
+#     """
+#     # copy the log file to the model directory and rename it according to model_name
+#     # print(f'extracting training and test losses from run.log for {model_name}...')
+#     print(f"extracting training and test losses from run.log...")
+#     # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
+#     # run_log_filepath_new = Path(cell_cellpose_model_dir)/f'{model_name}_run.log'
+#     # shutil.move(run_log_filepath, run_log_filepath_new)
 
-    run_log_filepath = Path(cellpose_model_dir) / "run.log"
+#     run_log_filepath = Path(cellpose_model_dir) / "run.log"
 
-    pages = {}
-    with open(run_log_filepath) as run_log:
-        pg: dict = {}
-        for line in run_log:
-            for model_name in model_name_list:
-                if model_name in line:
-                    if model_name and pg:
-                        pages[model_name] = pg
-                    model_name = model_name
-                    pg = {
-                        "train_losses": [],
-                        "test_losses": [],
-                        "time_list": [],
-                        "epochs": [],
-                    }
-                else:
-                    pass
+#     pages = {}
+#     with open(run_log_filepath) as run_log:
+#         pg: dict = {}
+#         for line in run_log:
+#             for model_name in model_name_list:
+#                 if model_name in line:
+#                     if model_name and pg:
+#                         pages[model_name] = pg
+#                     model_name = model_name
+#                     pg = {
+#                         "train_losses": [],
+#                         "test_losses": [],
+#                         "time_list": [],
+#                         "epochs": [],
+#                     }
+#                 else:
+#                     pass
 
-                if "train_loss" in line:
-                    if pg:
-                        train_loss = re.findall("train_loss=\d+\.\d+", line)
-                        test_loss = re.findall("test_loss=\d+\.\d+", line)
-                        time = re.findall("time \d+\.\d+", line)
-                        epochs = re.findall("\[INFO\] \d+", line)
-                        if train_loss:
-                            pg["train_losses"].append(
-                                [
-                                    float(loss.split("train_loss=")[1])
-                                    for loss in train_loss
-                                ][0]
-                            )
-                        if test_loss:
-                            pg["test_losses"].append(
-                                [
-                                    float(loss.split("test_loss=")[1])
-                                    for loss in test_loss
-                                ][0]
-                            )
-                        if time:
-                            pg["time_list"].append(
-                                [float(t.split("time ")[1]) for t in time][0]
-                            )
-                        if epochs:
-                            pg["epochs"].append(
-                                [int(epoch.split(" ")[-1]) for epoch in epochs][0]
-                            )
-            if model_name and pg:
-                pages[model_name] = pg
+#                 if "train_loss" in line:
+#                     if pg:
+#                         train_loss = re.findall("train_loss=\d+\.\d+", line)
+#                         test_loss = re.findall("test_loss=\d+\.\d+", line)
+#                         time = re.findall("time \d+\.\d+", line)
+#                         epochs = re.findall("\[INFO\] \d+", line)
+#                         if train_loss:
+#                             pg["train_losses"].append(
+#                                 [
+#                                     float(loss.split("train_loss=")[1])
+#                                     for loss in train_loss
+#                                 ][0]
+#                             )
+#                         if test_loss:
+#                             pg["test_losses"].append(
+#                                 [
+#                                     float(loss.split("test_loss=")[1])
+#                                     for loss in test_loss
+#                                 ][0]
+#                             )
+#                         if time:
+#                             pg["time_list"].append(
+#                                 [float(t.split("time ")[1]) for t in time][0]
+#                             )
+#                         if epochs:
+#                             pg["epochs"].append(
+#                                 [int(epoch.split(" ")[-1]) for epoch in epochs][0]
+#                             )
+#             if model_name and pg:
+#                 pages[model_name] = pg
 
-    train_losses = {}
-    test_losses = {}
-    time_list = {}
-    epoch_list = {}
-    for model_name in model_name_list:
-        train_losses[model_name] = pages[model_name]["train_losses"]
-        test_losses[model_name] = pages[model_name]["test_losses"]
-        time_list[model_name] = pages[model_name]["time_list"]
-        epoch_list[model_name] = pages[model_name]["epochs"]
+#     train_losses = {}
+#     test_losses = {}
+#     time_list = {}
+#     epoch_list = {}
+#     for model_name in model_name_list:
+#         train_losses[model_name] = pages[model_name]["train_losses"]
+#         test_losses[model_name] = pages[model_name]["test_losses"]
+#         time_list[model_name] = pages[model_name]["time_list"]
+#         epoch_list[model_name] = pages[model_name]["epochs"]
 
-    return train_losses, test_losses, time_list, epoch_list
+#     return train_losses, test_losses, time_list, epoch_list
 
 
 def get_image_data_from_original(
@@ -196,16 +196,16 @@ def get_image_data_from_original(
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-def get_image_data_from_zarr(dataset_name: str) -> None:
-    # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
-    print(f"Zarrs not yet implemented. Skipping {dataset_name}.")
-    return
-    # for zarr_name in get_zarr_path(dataset_name):
-    #     img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
-    #     img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
-    #     img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
-    #     img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
-    #     yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
+# def get_image_data_from_zarr(dataset_name: str) -> None:
+#     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
+#     print(f"Zarrs not yet implemented. Skipping {dataset_name}.")
+#     return
+#     for zarr_name in get_zarr_path(dataset_name):
+#         img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
+#         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
+#         img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
+#         img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
+#         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
 
 
 def save_overlay(
