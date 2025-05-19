@@ -213,7 +213,9 @@ def plot_quiver_slices_from_diffae_table(
     bounds = get_grid_bounds(flow_field_dict_grids)
 
     # plot the flow field
-    fig, axs = plot_quiver_slices(flow_field_dict_grids, (zvalids_grids, yvalids_grids))
+    fig, axs = plot_quiver_slices(
+        flow_field_dict_grids, (zvalids_grids, yvalids_grids), color="#08b4bc"
+    )
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
 
@@ -447,6 +449,14 @@ def make_all_plots(
     # examples to
     out_subdir_indiv = out_subdir / "individual_track_overlays"
     out_subdir_indiv.mkdir(parents=True, exist_ok=True)
+
+    # plot just the flow field
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        diffae_grid_crops, traj_grids, flow_field_dict_grids
+    )
+    plt.tight_layout()
+    fig.savefig(out_subdir / f"{dataset_name}_flow_field.png", dpi=300)
+    plt.close(fig)
 
     # plot the flow field and the trajectories
     plot_new_traj_overlay_on_grid_traj_and_flowfield(
