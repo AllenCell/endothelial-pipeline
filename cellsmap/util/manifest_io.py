@@ -79,6 +79,15 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
+def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
+    if fmsid == "" or fmsid is None:
+        print(f"No DiffAE manifest found for dataset {dataset_name}")
+        return None
+    df = get_dataframe_by_fmsid(fmsid)
+    return df
+
+
 def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name).get(
         "diffae_tracking_integration_fmsid", None
