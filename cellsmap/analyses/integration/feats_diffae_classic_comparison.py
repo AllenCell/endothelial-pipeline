@@ -485,7 +485,7 @@ def make_all_plots(
 
     # plot single track examples
     for pos, grp_df in big_table.groupby("position_as_str"):
-        out_subdir_indiv_pos = out_subdir_indiv / pos
+        out_subdir_indiv_pos = out_subdir_indiv / str(pos)
         out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
 
         track_ids = sorted(grp_df["track_id"].unique().tolist())
