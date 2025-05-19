@@ -132,6 +132,7 @@ def project_manifest_to_pcs(
     df: pd.DataFrame,
     pca: Pipeline,
     overwrite_feature_columns: bool = True,
+    feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Project feature data for crops from one dataset onto principal component axes of fit PCA model.
@@ -143,13 +144,15 @@ def project_manifest_to_pcs(
     - ds_name: str, name of dataset to project feature data for
         - This string must match the dataset name in the dataset_name column of df, same
            as the name of the dataset in data_config.yaml
+    - feature_cols: list, custom list of feature columns to project onto PCA axes
 
     Outputs:
     - df_: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
     """
     # feature columns to project onto PCA axes, currently all columns except metadata columns
     # this is assuming that there are 8 feature columns, will need to change if this is not the case
-    feat_cols = manifest_io.get_feature_cols(df)
+    if feat_cols is None:
+        feat_cols = manifest_io.get_feature_cols(df)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 

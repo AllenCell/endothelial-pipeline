@@ -3,6 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
+    project_manifest_to_pcs,
+)
+from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
@@ -96,3 +100,31 @@ def add_track_duration(df: pd.DataFrame) -> pd.DataFrame:
         "max"
     ) - df.groupby("track_id")["image_index"].transform("min")
     return df
+
+
+def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Perform PCA on the intensity mean features and add the projected features to the DataFrame.
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+    Returns:
+        pd.DataFrame: The updated DataFrame with PCA features.
+    """
+
+    feat_cols = [f"intensity_mean_feat_{i}" for i in range(8)]
+
+    nan_rows = df[df[feat_cols].isna().any(axis=1)]  # drop nans in order to run the pca
+    df_cleaned = df.dropna(subset=feat_cols)
+
+    pca = fit_pca()
+    df_projected = project_manifest_to_pcs(
+        df_cleaned, pca, overwrite_feature_columns=False, feat_cols=feat_cols
+    )
+
+    df_result = pd.concat([df_projected, nan_rows], ignore_index=True)
+
+    assert (
+        df.shape[0] == df_result.shape[0]
+    ), "Shape mismatch dropping and merging back NaN rows"
+
+    return df_result

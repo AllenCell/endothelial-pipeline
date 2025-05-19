@@ -1,6 +1,7 @@
 # %%
 from pathlib import Path
 
+import pandas as pd
 from colorizer_data import convert_colorizer_data
 
 from cellsmap.analyses.track_data_plots import (
@@ -12,6 +13,7 @@ from cellsmap.util.dataset_io import get_measurement_data_raws, get_tracking_dat
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
 from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_formatting import (
+    add_intensity_mean_pcs,
     add_track_duration,
     update_manifest_for_tfe,
 )
@@ -24,7 +26,7 @@ def generate_tfe_dataset(
     output_dir: Path,
     source_dir: Path,
     backdrops: bool,
-) -> None:
+) -> pd.DataFrame:
     """
     Generates a TFE dataset by updating the manifest and generating backdrops.
 
@@ -65,6 +67,7 @@ def generate_tfe_dataset(
     df = calculate_derived_data_dynamics_dependent(df)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
     df = add_track_duration(df)
+    df = add_intensity_mean_pcs(df)
 
     if backdrops:
         generate_backdrops(
@@ -91,21 +94,23 @@ def generate_tfe_dataset(
         ],
     )
 
+    return df
+
 
 # %%
-for dataset in ["20241120_20X", "20241217_20X", "20250409_20X"]:
-    position = 5
-    program_dir = Path("//allen/aics/endothelial/morphological_features/")
-    source_dir = Path(
-        f"{program_dir}/segmentations/cdh5_classic_seg/{dataset}/P{position}"
-    )
+for dataset in ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"]:
+    for position in [0, 3, 5]:
+        program_dir = Path("//allen/aics/endothelial/morphological_features/")
+        source_dir = Path(
+            f"{program_dir}/segmentations/cdh5_classic_seg/{dataset}/P{position}"
+        )
 
-    generate_tfe_dataset(
-        dataset=dataset,
-        position=position,
-        output_dir=program_dir / "timelapse_feature_explorer",
-        source_dir=source_dir,
-        backdrops=True,
-    )
+        df = generate_tfe_dataset(
+            dataset=dataset,
+            position=position,
+            output_dir=program_dir / "timelapse_feature_explorer",
+            source_dir=source_dir,
+            backdrops=False,  # for new dataset set to True
+        )
 
 # %%
