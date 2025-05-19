@@ -91,7 +91,9 @@ def generate_overrides(
 
 def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int = 0):
     # generate csv with paths to zarr files
-    df = pd.DataFrame({"path": sorted(get_zarr_path(dataset_name).values())})
+    df = pd.DataFrame(
+        {"path": sorted(get_zarr_path(dataset_name, filter_scenes=True).values())}
+    )
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
     data_path = str(save_path / "dataset.csv")

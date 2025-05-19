@@ -503,8 +503,12 @@ def align_all_positions(
         DataFrame containing the paths to the aligned images.
     """
     savedir.mkdir(parents=True, exist_ok=True)
-    moving_zarr_files = sorted(get_zarr_path(moving_dataset_name).values())
-    fixed_zarr_files = sorted(get_zarr_path(fixed_dataset_name).values())
+    moving_zarr_files = sorted(
+        get_zarr_path(moving_dataset_name, filter_scenes=True).values()
+    )
+    fixed_zarr_files = sorted(
+        get_zarr_path(fixed_dataset_name, filter_scenes=True).values()
+    )
     data = pd.concat(
         [
             align(
