@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Dict, Sequence, Union
 
@@ -13,7 +14,9 @@ from cellsmap.model_features.utils.mlflow_utils import (
 )
 from cellsmap.util.dataset_io import (
     extract_P,
+    get_available_datasets,
     get_model_info,
+    get_reference_datasets,
     get_zarr_path,
     update_dataset_config,
 )
@@ -220,7 +223,8 @@ def apply_model_single(
 
 def apply_model(
     model_name: str,
-    dataset_names: Sequence[str],
+    dataset_names: str | Sequence[str] = [],
+    regex: str = None,
     resolution_level: int = 0,
     upload_to_fms: bool = True,
     save_path: Union[str, Path] = None,
@@ -235,8 +239,10 @@ def apply_model(
     ----------
     model_name: str
         Name of the model from `model_config.yaml` to apply.
-    dataset_name: str
-        Name of the dataset from `data_config.yaml` to apply the model to.
+    dataset_names: str
+        Names of the datasets from `data_config.yaml` to apply the model to. If "reference", all reference datasets will be used.
+    regex: str
+        Regex to filter datasets by name. If provided, only datasets matching the regex will be used.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
@@ -246,8 +252,18 @@ def apply_model(
     overrides: str or dict
         Overrides to apply to the model config. By default, no overrides are applied
     """
-    if isinstance(dataset_names, str):
-        dataset_names = [dataset_names]
+    if regex:
+        dataset_names = [
+            name
+            for name in get_available_datasets(verbose=False)
+            if re.search(regex, name)
+        ]
+        print(f"Found {dataset_names} matching regex '{regex}'")
+    else:
+        if dataset_names == "reference":
+            dataset_names = get_reference_datasets()
+        elif isinstance(dataset_names, str):
+            dataset_names = [dataset_names]
     for name in dataset_names:
         apply_model_single(
             model_name=model_name,

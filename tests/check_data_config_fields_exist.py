@@ -15,7 +15,7 @@ CONFIG_DATA_FIELDS = [
     "duration",
     "time_interval_in_minutes",
     "flow",
-    "egfp_channel_index",
+    "488_channel_index",
     "brightfield_channel_index",
     "n_total_positions",
     "notes",

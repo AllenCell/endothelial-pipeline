@@ -12,7 +12,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 244, 22.35], [245, 576, 5.62]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This is a high-to-low flow dataset. There is some cell debris in the CDH5
@@ -36,7 +36,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 263, 25.13], [264, 576, 6.24]]
-  egfp_channel_index: 1
+  488_channel_index: 1
   brightfield_channel_index: 0
   n_total_positions: 6
   notes: ''
@@ -57,7 +57,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 13.5]]
-  egfp_channel_index: 5
+  488_channel_index: 5
   brightfield_channel_index: 2
   405_channel_index: 1
   n_total_positions: 10
@@ -82,7 +82,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 5
+  488_channel_index: 5
   brightfield_channel_index: 4
   405_channel_index: 1
   n_total_positions: 10
@@ -106,7 +106,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 576, 28.83]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This is a nice 48hr high flow dataset.
@@ -134,7 +134,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 576, 5.88]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This timelapse has not yet been converted to ZARR.
@@ -155,7 +155,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 576, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
@@ -183,7 +183,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.02], [289, 576, 35.0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -204,7 +204,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.02], [289, 576, 35.0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -225,7 +225,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 12
   notes: Due to complications with Z focus when trying to get a 4x3 tiled region,
@@ -247,7 +247,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 12
   notes: Due to complications with Z focus when trying to get a 4x3 tiled region,
@@ -269,7 +269,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 1
   notes: ''
@@ -290,7 +290,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 1
   notes: ''
@@ -311,9 +311,9 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.0], [289, 576, 28.93]]
-  dapi_channel_index: 0
-  egfp_channel_index: 1
-  farred_channel_index: 2
+  405_channel_index: 0
+  488_channel_index: 1
+  640_channel_index: 2
   brightfield_channel_index: 3
   n_total_positions: 10
   notes: This sample (barcode GE00006322) was PFA-fixed on 01/10/2025, and the flow
@@ -337,7 +337,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 6.0], [289, 576, 28.93]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
@@ -358,7 +358,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 576, 6.23]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
@@ -379,7 +379,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 5.71]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -400,7 +400,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, 288, 5.71]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -421,7 +421,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -442,7 +442,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: These cells were fed about 2 hours before fixation (previously the cells
@@ -466,7 +466,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 32
   notes: 48 hour timelapse flow was 5.6 but then slowly dropped to 3 did not keep
@@ -488,7 +488,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 262, 5.83], [263, 576, 22.0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: ''
@@ -509,7 +509,7 @@
   duration: 97
   time_interval_in_minutes: 5.0
   flow: [[0, 277, 5.62], [278, 576, 25.91]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: ''
@@ -530,7 +530,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -551,7 +551,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -572,7 +572,7 @@
   duration: 481
   time_interval_in_minutes: 1.0
   flow: [[0, 30, 6.16], [31, 480, 21.7]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 1
   notes: USE WITH CAUTION, cell health concern
@@ -593,7 +593,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -614,7 +614,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
@@ -635,7 +635,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 50
   notes: ''
@@ -656,7 +656,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 50
   notes: ''
@@ -677,7 +677,7 @@
   duration: 542
   time_interval_in_minutes: 5.0
   flow: [[0, 576, 12.2]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_nuclear_seg_manifest_fmsid: ''
   n_total_positions: 6
@@ -687,6 +687,7 @@
   valid_timepoints:
     start: [117]
     stop: [336]
+  cell_mean_features: c79efb6d0f754e719b71221d7ea3c17f
 20250326_20X:
   original_path: //allen/programs/allencell/data/proj0/353/acc/1d4/7ad/611/c5a/c44/262/ddf/97a/eb/20250326_GE00007488_20X_timelapse_sldy/20250326_GE00007488_20X_timelapse_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250326_eb97addf262c44c5a6117ad1d4acc353
@@ -701,7 +702,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 576, 15.74]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: ''
@@ -725,7 +726,7 @@
   duration: 577
   time_interval_in_minutes: 5.0
   flow: [[0, 275, 24.39], [276, 577, 5.83]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: Frame of flow switch was ~275.
@@ -734,8 +735,8 @@
   diffae_manifest_fmsid: 3221e4f0a473402db6c95e26b5219707
 20250415_SlideA_20X:
   original_path: //allen/programs/allencell/data/proj0/af5/a86/27d/d28/ffd/319/b4d/ee9/0b6/9a4/80/20250415_GE00007488_slideA_20X_sldy/20250415_GE00007488_slideA_20X_sldy.sldy
-  zarr_path: None
-  fmsid: ''
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_809a40b6ee9b4d319ffdd2827da86af5
+  fmsid: 809a40b6ee9b4d319ffdd2827da86af5
   barcode: GE00007488
   cell_lines: [AICS-126]
   live_or_fixed_sample: fixed
@@ -746,7 +747,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 1
+  488_channel_index: 1
   brightfield_channel_index: 2
   405_channel_index: 0
   nuclear_seg_manifest_fmsid: ''
@@ -755,8 +756,8 @@
   diffae_manifest_fmsid: ''
 20250415_SlideE_20X:
   original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy
-  zarr_path: None
-  fmsid: ''
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_dbcfe826507e465aa33fda2f43104653
+  fmsid: dbcfe826507e465aa33fda2f43104653
   barcode: GE00007101
   cell_lines: [AICS-126]
   live_or_fixed_sample: fixed
@@ -767,7 +768,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 1
+  488_channel_index: 1
   brightfield_channel_index: 2
   405_channel_index: 0
   nuclear_seg_manifest_fmsid: ''
@@ -776,8 +777,8 @@
   diffae_manifest_fmsid: ''
 20250415_SlideH_20X:
   original_path: //allen/programs/allencell/data/proj0/655/ee7/c58/80c/e02/60a/c44/308/307/a3c/eb/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy
-  zarr_path: None
-  fmsid: ''
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_eba3c307308c4460ae0280cc58ee7655
+  fmsid: eba3c307308c4460ae0280cc58ee7655
   barcode: GE00006885
   cell_lines: [AICS-126]
   live_or_fixed_sample: fixed
@@ -788,7 +789,7 @@
   duration: 1
   time_interval_in_minutes: -1.0
   flow: [[0, -1, 0]]
-  egfp_channel_index: 1
+  488_channel_index: 1
   brightfield_channel_index: 2
   405_channel_index: 0
   nuclear_seg_manifest_fmsid: ''
@@ -809,7 +810,7 @@
   duration: 571
   time_interval_in_minutes: 5.0
   flow: [[0, 570, 5.85]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: cells become extremely crowded at end of video
@@ -831,7 +832,7 @@
   duration: 544
   time_interval_in_minutes: 5.0
   flow: [[0, 543, 5.24]]
-  egfp_channel_index: 0
+  488_channel_index: 0
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: cells become very crowded near end of timelapse
@@ -845,3 +846,303 @@
   tracking_integration_fmsid: 2d95d16b473d4c849c6cf744c7dc6486
   diffae_tracking_integration_fmsid: 3e7dd9a9e4a040f8afb1bef774abb04b
   cell_mean_features: ddfe344afade4031ad4e2cff70c77748
+20250509_20X_IF1:
+  original_path: //allen/programs/allencell/data/proj0/c9e/b8e/a12/f7a/386/5fa/648/04e/3c7/9e4/62/20250509_GE00007807_20X_sldy/20250509_GE00007807_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_629e43c704e6485fa386f7aa12b8ec9e
+  fmsid: 629e43c704e6485fa386f7aa12b8ec9e
+  barcode: GE00007807
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_high
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 20.8]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 26c99fb5bd194280be13cb78561fb5d6
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF2:
+  original_path: //allen/programs/allencell/data/proj0/cb6/ba2/cb5/e9d/ebb/9fb/947/6e1/736/d87/82/20250509_GE00007808_20X_sldy/20250509_GE00007808_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_82d877366e19479fbebbe9dcb5ba2cb6
+  fmsid: 82d877366e19479fbebbe9dcb5ba2cb6
+  barcode: GE00007808
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_no_flow
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 0]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 8ce1d2ba8c7a41ac914dca2f1ca28a8f
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF3:
+  original_path: //allen/programs/allencell/data/proj0/2e3/bbb/8a1/840/3ab/929/846/318/ae1/38e/f1/20250509_GE00007874_20X_sldy/20250509_GE00007874_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_f138eae13188469293ab8408a1bbb2e3
+  fmsid: f138eae13188469293ab8408a1bbb2e3
+  barcode: GE00007874
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_no_flow
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 0]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: c787f7ee2d18419e895dc487f9ea1349
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF4:
+  original_path: //allen/programs/allencell/data/proj0/686/cdc/936/d32/2f4/139/a4b/bdd/b5f/9ce/b2/20250509_GE00007875_20X_sldy/20250509_GE00007875_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b29ceb5fbdda4b1392f4d32936cdc686
+  fmsid: b29ceb5fbdda4b1392f4d32936cdc686
+  barcode: GE00007875
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_no_flow
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 0]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 5b877dd11b69479daa5d6f51a5f9d1e8
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF5:
+  original_path: //allen/programs/allencell/data/proj0/71b/f0f/663/abd/a7b/fbb/a43/e66/fe1/439/5b/20250509_GE00007876_20X_sldy/20250509_GE00007876_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_5b439fe1e66a43fbba7babd663f0f71b
+  fmsid: 5b439fe1e66a43fbba7babd663f0f71b
+  barcode: GE00007876
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_low
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 5.98]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 6fcebb0b0a5a4a108bba0620a4860848
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF6:
+  original_path: //allen/programs/allencell/data/proj0/650/03c/090/038/d21/7eb/742/89d/ca2/c9f/b5/20250509_GE00007877_20X_sldy/20250509_GE00007877_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b5c9fca289d7427ebd2103809003c650
+  fmsid: b5c9fca289d7427ebd2103809003c650
+  barcode: GE00007877
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_low
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 5.98]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 1130e27b36fb467aab6d0f17d6efd102
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF7:
+  original_path: //allen/programs/allencell/data/proj0/6ce/a46/c2b/993/e1f/d8b/749/b24/18b/a62/c9/20250509_GE00007878_20X_sldy/20250509_GE00007878_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_c9a6218bb24749d8be1f993c2ba466ce
+  fmsid: c9a6218bb24749d8be1f993c2ba466ce
+  barcode: GE00007878
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_intermediate
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 10.96]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: e14b9497286d47c595921767e52f19e9
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF8:
+  original_path: //allen/programs/allencell/data/proj0/769/598/cd5/148/2e1/099/945/d93/157/64e/8f/20250509_GE00007879_20X_sldy/20250509_GE00007879_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_8f64e157d939450992e1148cd5598769
+  fmsid: 8f64e157d939450992e1148cd5598769
+  barcode: GE00007879
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: intermediate
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 10.96]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 61e57753a9fa4c63903791346c399e9a
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF9:
+  original_path: //allen/programs/allencell/data/proj0/e87/a08/4a2/26b/5a6/4fa/548/53e/cd1/418/af/20250509_GE00007880_20X_sldy/20250509_GE00007880_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_af418cd153e5484fa5a626b4a2a08e87
+  fmsid: af418cd153e5484fa5a626b4a2a08e87
+  barcode: GE00007880
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_high
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 23.67]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: f5d7a1bb5c74430bbb0d6217076dfa81
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF10:
+  original_path: //allen/programs/allencell/data/proj0/d16/695/e41/afb/adf/21b/e43/497/3c6/75c/89/20250509_GE00007881_20X_sldy/20250509_GE00007881_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_8975c3c6497e4321badfafbe41695d16
+  fmsid: 8975c3c6497e4321badfafbe41695d16
+  barcode: GE00007881
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_high
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 23.67]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: 9de17f3de1c641ed88ea4cd4e3e04fe4
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF11:
+  original_path: //allen/programs/allencell/data/proj0/c49/e0a/d24/790/d6e/f5b/44d/1bf/7a5/378/1d/20250509_GE00007882_20X_sldy/20250509_GE00007882_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_1d3787a51bf44df5bd6e790d24e0ac49
+  fmsid: 1d3787a51bf44df5bd6e790d24e0ac49
+  barcode: GE00007882
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_no_flow
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 0]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: Secondary only immunofluorescence control
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: fb35d1ad725f46fe99ff959fea7c4e52
+  diffae_tracking_integration_fmsid: ''
+20250509_20X_IF12:
+  original_path: //allen/programs/allencell/data/proj0/b7c/31f/492/453/0be/f3b/54a/f74/4f8/688/d8/20250509_GE00007806_20X_sldy_/20250509_GE00007806_20X_sldy.sldy
+  zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_d86884f8f7454af3b0be45349231fb7c
+  fmsid: d86884f8f7454af3b0be45349231fb7c
+  barcode: GE00007806
+  cell_lines: [AICS-126]
+  live_or_fixed_sample: fixed
+  microscope: 3i
+  shear_stress_regime: 24hr_low
+  use_cases: [immunofluorescence]
+  pixel_size_xy_in_um: 0.382
+  duration: 1
+  time_interval_in_minutes: -1.0
+  flow: [[0, -1, 5.82]]
+  405_channel_index: 0
+  488_channel_index: 1
+  561_channel_index: 2
+  640_channel_index: 3
+  brightfield_channel_index: 4
+  n_total_positions: 2
+  notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
+  nuclear_label_free_seg_path: ''
+  nuclear_seg_manifest_fmsid: ''
+  diffae_manifest_fmsid: b6b36ad33d6647bda3ff4e4e4a0f7f86
+  diffae_tracking_integration_fmsid: ''
