@@ -41,7 +41,9 @@ FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
 
 
-def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str):
+def visualize_keypoints(
+    image: np.ndarray, keypoints: np.ndarray, savepath: str
+) -> None:
     """
     Visualizes the detected keypoints on the image.
 
@@ -113,7 +115,7 @@ def template_registration(
     image_fixed: np.ndarray,
     image_moving: np.ndarray,
     scale: int = 3,
-    template_shape: None | list[int] = None,
+    template_shape: None | Sequence[int] = None,
 ) -> tf.SimilarityTransform:
     """
     Registers a moving image to a fixed image using template matching
@@ -134,7 +136,7 @@ def template_registration(
     )
     # Register each template to the fixed image
     best_transform = None
-    best_score = 0
+    best_score = 0.0
     for template in tqdm(splitter(torch.from_numpy(image_moving[None, None]))):
         transform, score = template_matching(
             image_fixed, template[0].numpy().squeeze(), scale=scale
@@ -150,7 +152,7 @@ def template_registration(
 
 def _get_sift(
     image: np.ndarray, upsampling: int = 1, sigma_min: int = 2
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
     """
     Detects SIFT keypoints and descriptors in the given image.
     Parameters
@@ -249,7 +251,9 @@ def sift_registration(
     return model_robust
 
 
-def warp(model, image_fixed: np.ndarray, image_moving: np.ndarray) -> np.ndarray:
+def warp(
+    model: tf.ProjectiveTransform, image_fixed: np.ndarray, image_moving: np.ndarray
+) -> np.ndarray:
     """
     Warps the moving image to align with the fixed image using the provided transformation model.
     Parameters
@@ -276,7 +280,7 @@ def warp(model, image_fixed: np.ndarray, image_moving: np.ndarray) -> np.ndarray
 
 
 def resize_moving(
-    image_moving: np.ndarray, resize_factor: Sequence[float]
+    image_moving: np.ndarray, resize_factor: float | Sequence[float]
 ) -> np.ndarray:
     """
     Resizes the moving image to match the fixed image dimensions.
@@ -322,7 +326,7 @@ def overlay_normalize(img: np.ndarray) -> np.ndarray:
     return proj
 
 
-def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str):
+def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) -> None:
     """
     Save overlay of aligned moving and fixed fluorescent images.
     """
@@ -381,7 +385,7 @@ def align(
         "template": template_registration,
     }[alignment_method]
 
-    aligned_files = {"fixed": [], "moving": []}
+    aligned_files: Dict[str, list[str]] = {"fixed": [], "moving": []}
 
     if align_fluo:
         aligned_files["fixed_fluo"] = []
@@ -403,7 +407,7 @@ def align(
                 moving_fluo = moving_fluo.std(0)
 
             # assume isotropic in xy
-            rescale_factor = (
+            rescale_factor: float = (
                 image_moving.physical_pixel_sizes.X / image_fixed.physical_pixel_sizes.X
             )
             print(f"Rescale factor: {rescale_factor}")
@@ -431,11 +435,11 @@ def align(
                 moving_fluo, fixed_fluo = crop_to_overlap(moving_fluo, fixed_fluo)
 
                 # Save the aligned images
-                moving_save_path = (
+                moving_save_path = str(
                     savedir
                     / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_fluo.ome.tiff"
                 )
-                fixed_save_path = (
+                fixed_save_path = str(
                     savedir
                     / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_fluo.ome.tiff"
                 )
@@ -453,11 +457,11 @@ def align(
             aligned_moving = warp(model, fixed_bf, moving_bf)
             aligned_moving, fixed_bf = crop_to_overlap(aligned_moving, fixed_bf)
             # Save the aligned images
-            moving_save_path = (
+            moving_save_path = str(
                 savedir
                 / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_bf.ome.tiff"
             )
-            fixed_save_path = (
+            fixed_save_path = str(
                 savedir / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_bf.ome.tiff"
             )
             OmeTiffWriter.save(uri=moving_save_path, data=aligned_moving)
@@ -523,12 +527,12 @@ def plot_paired_features(
     moving_features: pd.DataFrame,
     moving_name: str,
     save_path: Path,
-    pca_dir: Union[str, Path],
-):
+    pca_dir: None | Union[str, Path],
+) -> None:
     """
     Plot the PCA features of the fixed and moving images
     """
-    pca = load_pca_model(pca_dir) if pca_dir else fit_pca()
+    pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
 
     fixed_features = project_manifest_to_pcs(
         fixed_features, pca, overwrite_feature_columns=False
@@ -561,8 +565,8 @@ def plot_paired_features(
 
 
 def add_fmsid_to_config(
-    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: str | Path
-):
+    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
+) -> None:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for the given dataset.
 
@@ -574,7 +578,7 @@ def add_fmsid_to_config(
         Name of the dataset to update in config
     mlflow_id : str
         MLflow ID of the model used for prediction.
-    model_path : str | Path
+    model_path : Path
         Path to the model directory. Used for extracting the commit hash.
     """
     file_id = save_file_to_fms(
@@ -600,7 +604,7 @@ def compare_paired_features(
     align_fluo: bool = True,
     overrides: Dict[str, Any] = {},
     **alignment_kwargs: Dict[str, Any],
-):
+) -> None:
     """
     Compare the features of two paired datasets using a trained model through registration, crop extraction, and PCA
 
@@ -653,8 +657,8 @@ def compare_paired_features(
     )
     fixed_overrides = generate_overrides(
         fixed_overrides,
-        save_path=save_path,
-        data_path=data_save_path,
+        save_path=str(save_path),
+        data_path=str(data_save_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=fixed_dataset_name,
         model_name=model_name,
@@ -670,8 +674,8 @@ def compare_paired_features(
     overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
     overrides = generate_overrides(
         overrides,
-        save_path=save_path,
-        data_path=data_save_path,
+        save_path=str(save_path),
+        data_path=str(data_save_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=moving_dataset_name,
         model_name=model_name,
@@ -680,7 +684,7 @@ def compare_paired_features(
     model.predict()
 
     # compare paired features
-    fixed_features_path = (
+    fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
     add_fmsid_to_config(
@@ -689,7 +693,7 @@ def compare_paired_features(
         mlflow_id,
         model_path,
     )
-    moving_features_path = (
+    moving_features_path = str(
         save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
     )
     add_fmsid_to_config(
@@ -703,7 +707,7 @@ def compare_paired_features(
     fixed_features = pd.read_parquet(fixed_features_path)
     moving_features = pd.read_parquet(moving_features_path)
 
-    fixed_features, moving_features = plot_paired_features(
+    plot_paired_features(
         fixed_features,
         fixed_dataset_name,
         moving_features,
@@ -713,7 +717,7 @@ def compare_paired_features(
     )
 
 
-def main(pca_dir: str | None = None):
+def main(pca_dir: str | None = None) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
     Parameters
