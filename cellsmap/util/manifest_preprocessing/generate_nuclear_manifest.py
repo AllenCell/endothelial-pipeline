@@ -1,19 +1,23 @@
 # %%
+import argparse
 import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 import pandas as pd
 from bioio import BioImage
-from cellsmap.util import dataset_io, set_output
 from skimage.measure import label, regionprops
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
+
+from cellsmap.util import dataset_io, set_output
 from cellsmap.util.cdh5_preprocessing import extract_T
-import argparse
 
 """
 python generate_nuclear_manifest.py my_dataset_name
 
 path to nuclear segmentation images must be prepopulated in the data_config.yaml file
 """
+
+
 # %%
 def process_frame(frame, img_name, dataset_position_path, position):
     fov_path = os.path.join(dataset_position_path, img_name)
@@ -108,9 +112,12 @@ def parse_arguments():
     """
     Parse command-line arguments.
     """
-    parser = argparse.ArgumentParser(description="Generate nuclear manifest for a dataset.")
+    parser = argparse.ArgumentParser(
+        description="Generate nuclear manifest for a dataset."
+    )
     parser.add_argument("dataset", type=str, help="The name of the dataset.")
     return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = parse_arguments()

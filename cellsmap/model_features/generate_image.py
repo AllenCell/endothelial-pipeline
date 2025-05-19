@@ -1,13 +1,20 @@
-import torch
-from typing import List
 from pathlib import Path
-import numpy as np
+from typing import List
 
-from cellsmap.util.dataset_io import get_model_info
+import numpy as np
+import torch
+
 from cellsmap.model_features.utils.mlflow_utils import load_mlflow_model
+from cellsmap.util.dataset_io import get_model_info
 from cellsmap.util.set_output import get_output_path
 
-def generate_from_coords(model_name: str, coords:List[List[float]], n_noise_samples:int=1, average:bool=False) -> np.ndarray:
+
+def generate_from_coords(
+    model_name: str,
+    coords: List[List[float]],
+    n_noise_samples: int = 1,
+    average: bool = False,
+) -> np.ndarray:
     """
     Generates a synthetic image from a list of coordinates in the latent space of a model.
     Parameters
@@ -22,16 +29,18 @@ def generate_from_coords(model_name: str, coords:List[List[float]], n_noise_samp
         Whether to average the generated images.
     """
     coords = np.array(coords)
-    mlflow_id = get_model_info(model_name)['mlflow_run_id']
-    model_path = Path(get_output_path(f'models/{model_name}'))
+    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
+    model_path = Path(get_output_path(f"models/{model_name}"))
     model = load_mlflow_model(mlflow_id, save_path=model_path)
 
-    coords  = torch.from_numpy(coords).float()
+    coords = torch.from_numpy(coords).float()
 
     # move model and inputs to gpu if available
     if torch.cuda.is_available():
         coords = coords.to("cuda")
         model = model.to("cuda")
 
-    walk_img = model.generate_from_latent(coords, n_noise_samples=n_noise_samples, average=average, save=False)
+    walk_img = model.generate_from_latent(
+        coords, n_noise_samples=n_noise_samples, average=average, save=False
+    )
     return walk_img
