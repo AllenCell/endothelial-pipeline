@@ -16,6 +16,7 @@ from cellsmap.util.dataset_io import (
     get_dataset_info,
     get_measurement_data_raws,
     get_original_path,
+    get_reference_datasets,
     get_tracking_data_raws,
     get_zarr_name,
     get_zarr_path,
@@ -1103,18 +1104,7 @@ def main(
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
 
     if dataset_name == None:
-        config_data = load_config(config_type="data")
-        dataset_name_list = [
-            dataset_name
-            for dataset_name, config_data in config_data.items()
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "cell_lines" in config_data
-            and "AICS-126" in config_data["cell_lines"]
-            and config_data["duration"] > 1
-        ]
+        dataset_name_list = get_reference_datasets() + ["20250319_20X"]
     else:
         dataset_name_list = [dataset_name]
 
