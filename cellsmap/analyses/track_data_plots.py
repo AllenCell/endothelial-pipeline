@@ -21,7 +21,6 @@ from cellsmap.util.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    load_config,
 )
 from cellsmap.util.set_output import get_output_path
 
@@ -222,88 +221,6 @@ def add_filter_columns(
             min_track_duration,
         )
     return big_table
-
-
-# def filter_seg_feature_table(
-#     big_table: pd.DataFrame,
-#     out_dir: Path | None,
-#     min_num_points_per_track: int = 20,
-# ) -> pd.DataFrame:
-
-#     # get the number of segmentations in total and per timepoint
-#     num_rows_before_filtering = len(big_table)
-#     num_unique_tracks_before_filtering = (
-#         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
-#     )
-#     big_table_filtered = big_table.copy(deep=True)
-#     big_table_filtered["num_unique_tracks_before_filtering_at_T"] = (
-#         big_table_filtered.groupby(["dataset_name", "position", "T"])[
-#             "track_id"
-#         ].transform(lambda x: x.nunique())
-#     )
-
-#     area_change_allowed = 0.1
-#     use_fold_change = True
-#     sigma = 2.0
-#     # big_table_filtered = filter_on_fold_change(
-#     #     big_table_filtered,
-#     #     fold_change=area_change_allowed,
-#     #     fold_change_of_diff=use_fold_change,
-#     # )
-
-#     # remove the segmentations that touch the image border
-#     big_table_filtered = big_table_filtered[~big_table_filtered["touches_image_border"]]
-#     # NOTE that we are only dropping the segmentation that
-#     # touch the border from this table, not the whole track
-#     # this also explains why some of the centroid speeds
-#     # are still so bizarre (because those measurements are
-#     # recorded prior to filtering out these segmentations)
-#     # THEREFORE YOU SHOULD RECALCULATE THE SPEEDS AND ETC
-#     # BASED ON ONLY THE GOOD SEGMENTATIONS, AND DISCARD
-#     # THE EXISITNG MEASUREMENTS THAT ARE TIME-DEPENDENT
-
-#     big_table_filtered = big_table_filtered[
-#         big_table_filtered.groupby(["dataset_name", "position", "track_id"])[
-#             "track_id"
-#         ].transform(lambda x: x.count() > min_num_points_per_track)
-#     ]
-
-#     # get the number of unique tracks after filtering in total and per timepoint
-#     num_rows_after_filtering = len(big_table_filtered)
-#     num_unique_tracks_after_filtering = (
-#         big_table_filtered.groupby(["dataset_name", "position"])["track_id"]
-#         .nunique()
-#         .sum()
-#     )
-#     big_table_filtered["num_unique_tracks_after_filtering_at_T"] = (
-#         big_table_filtered.groupby(["dataset_name", "position", "T"])[
-#             "track_id"
-#         ].transform(lambda x: x.nunique())
-#     )
-
-#     # save a log file of the filtering that was done if saving the results
-#     if out_dir:
-#         # save a log file and create some plots showing number of
-#         # tracks before and after filtering
-#         datasets_analyzed = big_table_filtered["dataset_name"].unique().tolist()
-#         write_filter_log_file(
-#             out_dir,
-#             datasets_analyzed,
-#             use_fold_change,
-#             area_change_allowed,
-#             sigma,
-#             num_rows_before_filtering,
-#             num_rows_after_filtering,
-#             num_unique_tracks_before_filtering,
-#             num_unique_tracks_after_filtering,
-#         )
-#         # create some validation plots
-#         save_filter_validation_plots(
-#             out_dir,
-#             big_table_filtered,
-#             min_num_points_per_track,
-#         )
-#     return big_table_filtered
 
 
 def calculate_derived_data_dynamics_independent(
@@ -664,50 +581,6 @@ def calculate_smoothed_normd_area(
     smoothed_area = gaussian_filter1d(area, sigma=smoothing_sigma)
     area_normd = area / smoothed_area
     return area_normd
-
-
-# def calculate_area_fold_change(
-#     tracking_results: pd.DataFrame,
-#     smoothing_sigma: float = 2.0,
-# ) -> pd.DataFrame:
-
-#     tracking_results["smoothed_area"] = tracking_results.groupby(["dataset_name", "position", "track_id"])[
-#         "area"
-#     ].transform(gaussian_filter1d, sigma=smoothing_sigma)
-#     tracking_results["area_normd"] = (
-#         tracking_results["area"] / tracking_results["smoothed_area"]
-#     )
-#     tracking_results["area_normd_diff"] = tracking_results.groupby(["dataset_name", "position", "track_id"])[
-#         "area_normd"
-#     ].transform(lambda x: np.diff(x, prepend=np.nan))
-
-#     return tracking_results
-
-# def filter_on_fold_change(
-#     tracking_results: pd.DataFrame,
-#     fold_change: float = 1.5,
-#     fold_change_of_diff: bool = False,
-# ) -> pd.DataFrame:
-#     tracking_results = tracking_results.copy()
-
-#     if fold_change_of_diff:
-#         tracking_results = tracking_results[
-#             (tracking_results["area_normd_diff"] > (-1 * fold_change))
-#             + tracking_results["area_normd_diff"].transform(np.isnan)
-#         ]
-#         tracking_results = tracking_results[
-#             (tracking_results["area_normd_diff"] < fold_change)
-#             + tracking_results["area_normd_diff"].transform(np.isnan)
-#         ]
-#     else:
-#         tracking_results = tracking_results[
-#             tracking_results["area_normd"] > (1 / fold_change)
-#         ]
-#         tracking_results = tracking_results[
-#             tracking_results["area_normd"] < fold_change
-#         ]
-
-#     return tracking_results
 
 
 def filter_and_save_track_data_for_landscape_integration(
