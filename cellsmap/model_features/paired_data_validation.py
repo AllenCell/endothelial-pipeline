@@ -558,7 +558,6 @@ def plot_paired_features(
     fig.savefig(save_path / f"paired_features.png", dpi=300)
     fig.clf()
     plt.close(fig)
-    return fixed_features, moving_features
 
 
 def add_fmsid_to_config(
@@ -712,10 +711,6 @@ def compare_paired_features(
         save_path,
         pca_dir,
     )
-
-    # re-save with PCs
-    fixed_features.to_parquet(fixed_features_path)
-    moving_features.to_parquet(moving_features_path)
 
 
 def main(pca_dir: str | None = None):
