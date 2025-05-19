@@ -28,8 +28,8 @@ def set_slice_plot_bounds_and_labels(
         ax.set_ylim(qmin, qmax)
         ax.set_aspect("equal")
         # set number of x ticks = number of y ticks = 5
-        ax.set_xticks(np.linspace(xmin + 0.05, xmax - 0.05, 5))
-        ax.set_yticks(np.linspace(qmin + 0.05, qmax - 0.05, 5))
+        ax.set_xticks(np.round(np.linspace(xmin + 0.05, xmax - 0.05, 5), 1))
+        ax.set_yticks(np.round(np.linspace(qmin + 0.05, qmax - 0.05, 5), 1))
         # set aspect
         ax.set_aspect("auto", adjustable="box")
     return axs
@@ -99,7 +99,7 @@ def plot_one_slice_quiver(
 def plot_quiver_slices(
     flow_field_dict: dict,
     slice_indexes: tuple[np.ndarray, np.ndarray],
-    color: str = "cornflowerblue",
+    color: str = "#08b4bc",
     norm: bool = True,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
