@@ -410,17 +410,17 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame:
         return None
 
     print("merging segmentation properties, tracking, and track-based DiffAE data...")
-    big_table = merge_segprops_and_track_data(seg_props_df, tracking_df)
+    df_all_positions = merge_segprops_and_track_data(seg_props_df, tracking_df)
 
     del seg_props_df, tracking_df  # remove unnecessary dataframes to save memory
     diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
-    big_table["position_as_str"] = big_table["position"].transform(
+    df_all_positions["position_as_str"] = df_all_positions["position"].transform(
         lambda x: "P" + str(x)
     )
-    big_table["track_id"] = big_table["track_id"].astype(int)
+    df_all_positions["track_id"] = df_all_positions["track_id"].astype(int)
 
-    big_table = pd.merge(
-        left=big_table,
+    df_all_positions = pd.merge(
+        left=df_all_positions,
         right=diffae_tracking,
         how="left",
         left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
@@ -428,7 +428,7 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame:
         validate="one_to_one",
     )
 
-    return big_table
+    return df_all_positions
 
 
 def make_all_plots(
@@ -437,7 +437,7 @@ def make_all_plots(
     diffae_grid_crops: pd.DataFrame,
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
-    big_table: pd.DataFrame,
+    df_all_positions: pd.DataFrame,
     traj_tracks: np.ndarray,
 ) -> None:
 
@@ -476,7 +476,7 @@ def make_all_plots(
             diffae_grid_crops,
             traj_grids,
             flow_field_dict_grids,
-            diffae_measured_feat_df=big_table,
+            diffae_measured_feat_df=df_all_positions,
             meas_feat_col_name_for_color_coding=measured_feature,
             track_id_to_plot="mean",
             alpha=0.8,
@@ -484,11 +484,11 @@ def make_all_plots(
         )
 
     # plot single track examples
-    for pos, grp_df in big_table.groupby("position_as_str"):
+    for pos, df_one_position in df_all_positions.groupby("position_as_str"):
         out_subdir_indiv_pos = out_subdir_indiv / str(pos)
         out_subdir_indiv_pos.mkdir(parents=True, exist_ok=True)
 
-        track_ids = sorted(grp_df["track_id"].unique().tolist())
+        track_ids = sorted(df_one_position["track_id"].unique().tolist())
         # only overlay every 10th track id if there are a lot
         # of tracks to save time + space
         track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
@@ -502,7 +502,7 @@ def make_all_plots(
                 diffae_grid_crops,
                 traj_grids,
                 flow_field_dict_grids,
-                diffae_measured_feat_df=grp_df,
+                diffae_measured_feat_df=df_one_position,
                 meas_feat_col_name_for_color_coding="alignment_deg_rel_to_flow",
                 track_id_to_plot=tid,
                 hue_norm=(0, 90),
@@ -521,18 +521,18 @@ def main() -> None:
         out_subdir_traj = out_dir / "trajectories_track_based"
         out_subdir_traj.mkdir(parents=True, exist_ok=True)
 
-        big_table = get_merged_table(dataset_name)
-        if big_table is None:
+        df_all_positions = get_merged_table(dataset_name)
+        if df_all_positions is None:
             print(
                 f"Dataset {dataset_name} is missing one or more data tables. Skipping..."
             )
             continue
 
         print("cleaning up merged table...")
-        big_table.dropna(axis=0, how="any", subset="is_unique", inplace=True)
-        big_table = calculate_derived_data_dynamics_independent(big_table)
-        big_table = filter_seg_feature_table(
-            big_table,
+        df_all_positions.dropna(axis=0, how="any", subset="is_unique", inplace=True)
+        df_all_positions = calculate_derived_data_dynamics_independent(df_all_positions)
+        df_all_positions = filter_seg_feature_table(
+            df_all_positions,
             out_dir=None,
             min_num_points_per_track=120,
         )
@@ -548,8 +548,8 @@ def main() -> None:
         # but I believe that the columns are named "feat_0",
         # "feat_1", etc. when they should be named "pc1",
         # "pc2", etc.)
-        big_table = project_manifest_to_pcs(
-            big_table, pca, overwrite_feature_columns=False
+        df_all_positions = project_manifest_to_pcs(
+            df_all_positions, pca, overwrite_feature_columns=False
         )
 
         # use the full set of datasets to be analyzed for the bounds
@@ -561,7 +561,9 @@ def main() -> None:
         )
 
         print("getting trajectory and flow field for tracks-based crops...")
-        traj_tracks, _ = get_traj_and_flowfield(big_table, bounds, col_names="pc")
+        traj_tracks, _ = get_traj_and_flowfield(
+            df_all_positions, bounds, col_names="pc"
+        )
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
 
@@ -573,7 +575,7 @@ def main() -> None:
             diffae_grid_crops,
             traj_grids,
             flow_field_dict_grids,
-            big_table,
+            df_all_positions,
             traj_tracks,
         )
 
