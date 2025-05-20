@@ -531,7 +531,9 @@ def get_measurement_data_raws(
     return measurement_dataframe
 
 
-def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
+def get_segmentation_features_manifest(
+    dataset_name_list: List, as_dask: bool = False
+) -> pd.DataFrame:
     """
     NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
     Get the segmentation features manifest for a given dataset.
@@ -539,14 +541,29 @@ def get_segmentation_features_manifest(dataset_name: str) -> pd.DataFrame:
     from the tracked segmentations of a dataset.
     These datasets are raw / unfiltered.
     """
-    dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info["segmentation_features_manifest_fmsid"]
-    manifest_path = Path(base_path) / f"{dataset_name}_segmentation_features.tsv"
-    if not manifest_path.exists():
-        raise FileNotFoundError(
-            f"Segmentation features manifest not found at {manifest_path}."
-        )
-    return pd.read_csv(manifest_path, sep="\t")
+    table_reader = dd if as_dask else pd
+    base_path = Path(
+        "//allen/aics/endothelial/morphological_features/analysis/segmentation_features"
+    )
+    seg_feat_data_list = []
+    for dataset_name in dataset_name_list:
+        data_path = base_path / f"{dataset_name}_segmentation_features.tsv"
+        if data_path.exists():
+            # open the data tables
+            seg_feat_data = table_reader.read_csv(data_path, sep="\t")
+            # include path to file that this data was loaded from
+            seg_feat_data["source_filtered_tracking_table_path"] = data_path.as_posix()
+            seg_feat_data_list.append(seg_feat_data)
+        else:
+            print(
+                f"No segmentation feature manifest found for {dataset_name}. Skipping..."
+            )
+            continue
+    # concatenate the dataframes into a single dataframe and return it
+    seg_feat_dataframe = table_reader.concat(
+        seg_feat_data_list, axis=0, ignore_index=True
+    )
+    return seg_feat_dataframe
 
 
 def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
