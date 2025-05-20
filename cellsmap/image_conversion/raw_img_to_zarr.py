@@ -4,7 +4,6 @@ import argparse
 from bioio import BioImage
 
 from cellsmap.image_conversion.process_images.process_image import (
-    custom_scene_list,
     get_delayed_array_for_position,
 )
 from cellsmap.image_conversion.process_images.write_zarr import (
@@ -13,6 +12,7 @@ from cellsmap.image_conversion.process_images.write_zarr import (
 )
 from cellsmap.util.dataset_io import (
     get_fmsid,
+    get_included_scenes,
     get_microscope,
     get_original_path,
     get_time_interval_in_minutes,
@@ -76,11 +76,8 @@ def convert_dataset(
 
     count = 0
     for scene_index in range(num_pos_in_S):
-        subset_scene_list = custom_scene_list(dataset)
-        if (
-            subset_scene_list is not None
-            and img.scenes[scene_index] not in subset_scene_list
-        ):
+        subset_scene_list = get_included_scenes(dataset)
+        if scene_index not in subset_scene_list:
             continue
         else:
             print(f"Processing scene {img.scenes[scene_index]}")

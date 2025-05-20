@@ -61,8 +61,7 @@
   brightfield_channel_index: 2
   405_channel_index: 1
   n_total_positions: 10
-  scene_list: [20240328_T02_001-1711659785-  8, 20240328_T02_001-1711659785- 24, 20240328_T02_001-1711659785-990,
-    20240328_T02_001-1711659785- 39]
+  include_scenes: [0,1,2,4]
   notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
     prior to fix.
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
@@ -86,8 +85,7 @@
   brightfield_channel_index: 4
   405_channel_index: 1
   n_total_positions: 10
-  scene_list: [20240328_T01_001-1711663662-276, 20240328_T01_001-1711663662-293, 20240328_T01_001-1711663662-307,
-    20240328_T01_001-1711663662-322, 20240328_T01_001-1711663662-337]
+  include_scenes: [5,6,7,8,9]
   notes: no flow dataset (24 hours)
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''

@@ -67,11 +67,3 @@ def get_delayed_array_for_position(
     scene = da.stack(results, axis=0)  # TCZYX
     print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
-
-
-def custom_scene_list(dataset_name: str) -> list | None:
-    dataset_info = get_dataset_info(dataset_name)
-    if "scene_list" in dataset_info:
-        return dataset_info["scene_list"]
-    else:
-        return None
