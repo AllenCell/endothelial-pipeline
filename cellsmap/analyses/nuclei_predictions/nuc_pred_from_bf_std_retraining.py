@@ -55,13 +55,13 @@ def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
             "20240328_T01_001-1711663662-337",
         ],
         "20250415_SlideA_20X": [
-            "20250415_GE0000XXXX_slideA_20X - Position 1 [50]-1744838244-103"
+            "20250415_GE00007488_slideA_20X - Position 1 [50]-1745428788-773"
         ],
         "20250415_SlideE_20X": [
-            "20250416_GE0000XXXX_slideE_20X - Position 1 [50]-1744838492-691"
+            "20250416_GE00007101_slideE_20X - Position 1 [50]-1745428816-305"
         ],
         "20250415_SlideH_20X": [
-            "20250415_GE0000XXXX_slideH_20X - Position 1 [50]-1744838353-891"
+            "20250415_GE00006885_slideH_20X - Position 1 [50]-1745428734-340"
         ],
     }
     if dataset_name == None:
@@ -233,6 +233,7 @@ def save_overlay(
 
 
 def generate_training_data(analysis_args: dict) -> None:
+    use_gpu = analysis_args["gpu"]
     use_original_data = analysis_args["use_original_data"]
     dataset_name = analysis_args["dataset_name"]
     scene_name = analysis_args["scene_name"]
@@ -254,7 +255,7 @@ def generate_training_data(analysis_args: dict) -> None:
     verbose = analysis_args["verbose"]
 
     print("loading CellPose model...") if verbose else None
-    nuc_model = models.CellposeModel(gpu=False, model_type="nuclei")
+    nuc_model = models.CellposeModel(gpu=use_gpu, model_type="nuclei")
 
     if scene_name in get_scenes_to_use()[dataset_name]:
         (
@@ -372,12 +373,18 @@ def generate_training_data(analysis_args: dict) -> None:
 
 
 def get_training_data(
-    analysis_queue: List, create_training_data: bool = False, n_proc: int = 1
+    analysis_queue: List,
+    create_training_data: bool = False,
+    n_proc: int = 1,
+    gpu: bool = False,
 ) -> tuple:
+
+    # add the whether or not to use the GPU to the analysis queue
+    analysis_queue = [arg.update({"gpu": gpu}) for arg in analysis_queue]
 
     if create_training_data:
         if __name__ == "__main__":
-            if n_proc > 1:
+            if n_proc > 1 and gpu == False:
                 with Pool(processes=n_proc) as pool:
                     print("Starting multiprocessing...")
                     list(
@@ -391,7 +398,7 @@ def get_training_data(
                     pool.join()
                     print("Done multiprocessing.")
             else:
-                print("Starting single processing...")
+                print(f"Starting {'gpu' if gpu else 'single core'} processing...")
                 for analysis_args in tqdm(
                     analysis_queue,
                     total=len(analysis_queue),
@@ -418,6 +425,7 @@ def get_training_data(
 
 def main(
     n_proc: int = 1,
+    gpu: bool = False,
     create_training_data: bool = False,
     retrain_Gouthams_model: bool = False,
     train_from_base_cellpose_nuclei_model: bool = True,
