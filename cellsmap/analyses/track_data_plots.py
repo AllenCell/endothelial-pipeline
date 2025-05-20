@@ -148,55 +148,56 @@ def add_filter_columns(
         big_table.groupby(["dataset_name", "position"])["track_id"].nunique().sum()
     )
 
-    # drop_because_track_duration
+    # drop because min_track_duration not exceeded
     big_table["min_track_duration"] = min_track_duration
-    big_table["drop_because_track_duration"] = (
+    big_table[f"filter_min_track_duration_{min_track_duration}"] = (
         big_table["track_duration"] <= min_track_duration
     )
 
-    # drop_because_area_change
+    # drop because area_change is too large
     big_table["max_smoothed_area_normd_change"] = max_area_change
-    big_table["drop_because_area_change"] = (
+    big_table[f"filter_max_smoothed_area_normd_change_{max_area_change}"] = (
         big_table["smoothed_area_normd_diff"].abs() >= max_area_change
     )
 
-    # drop_because_touches_image_border
+    # drop because segmentation touches_image_border
     big_table.rename(
-        columns={"touches_image_border": "drop_because_touches_image_border"},
+        columns={"touches_image_border": "filter_edge_FOV"},
         inplace=True,
     )
 
-    # drop_main is just all the previous filters combined
-    big_table["drop_main"] = (
-        big_table["drop_because_track_duration"]
-        + big_table["drop_because_area_change"]
-        + big_table["drop_because_touches_image_border"]
+    # filter_global is just all the previous filters combined
+    big_table["filter_global"] = (
+        big_table[f"filter_min_track_duration_{min_track_duration}"]
+        + big_table[f"filter_max_smoothed_area_normd_change_{max_area_change}"]
+        + big_table["filter_edge_FOV"]
     )
 
-    # drop_because_insufficient_valid_timepoints
+    # drop because there are insufficient valid timepoints
     big_table["min_num_valid_points_per_track"] = min_num_valid_points_per_track
     big_table["valid_points"] = big_table.groupby(
         ["dataset_name", "position", "track_id"]
     )["image_index"].transform("nunique")
-    big_table["drop_because_insufficient_valid_points"] = (
+    big_table[f"filter_valid_points_{min_num_valid_points_per_track}"] = (
         big_table["valid_points"] < min_num_valid_points_per_track
     )
 
-    # update drop_main
-    big_table["drop_main"] = (
-        big_table["drop_main"] + big_table["drop_because_insufficient_valid_points"]
+    # update filter_global
+    big_table["filter_global"] = (
+        big_table["filter_global"]
+        + big_table[f"filter_valid_points_{min_num_valid_points_per_track}"]
     )
 
     # get the number of unique tracks after filtering in total and per timepoint
-    num_rows_after_filtering = np.count_nonzero(~big_table["drop_main"])
+    num_rows_after_filtering = np.count_nonzero(~big_table["filter_global"])
     num_unique_tracks_after_filtering = (
-        big_table[~big_table["drop_main"]]
+        big_table[~big_table["filter_global"]]
         .groupby(["dataset_name", "position"])["track_id"]
         .nunique()
         .sum()
     )
     big_table["num_unique_tracks_after_filtering_at_T"] = (
-        big_table[~big_table["drop_main"]]
+        big_table[~big_table["filter_global"]]
         .groupby(["dataset_name", "position", "T"])["track_id"]
         .transform(lambda x: x.nunique())
     )
@@ -217,7 +218,7 @@ def add_filter_columns(
         # create some validation plots
         save_filter_validation_plots(
             out_dir,
-            big_table[~big_table["drop_main"]],
+            big_table[~big_table["filter_global"]],
             min_track_duration,
         )
     return big_table
@@ -903,7 +904,7 @@ def process_and_plot_tracking_data(
     big_table = add_filter_columns(
         big_table, out_dir, min_track_duration=24, max_area_change=0.1
     )
-    big_table_filtered = big_table[~big_table["drop_main"]]
+    big_table_filtered = big_table[~big_table["filter_global"]]
 
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
