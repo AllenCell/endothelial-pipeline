@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
@@ -87,87 +86,6 @@ def get_training_data_output_dirs(
         return list(out_dirs.values())
     else:
         return [out_dirs[training_data_kind] for training_data_kind in kind]
-
-
-# def get_old_cellpose_train_test_losses(
-#     cellpose_model_dir: Path | str, model_name_list: List
-# ) -> tuple:
-#     """
-#     This function extracts the training and test losses from the run.log file
-#     produced during the training of a Cellpose model.
-#     It is only useful for cellpose < 3.1 as newer versions of cellpose
-#     return the train and test losses along with the model path when
-#     using the cellpose.train.train_seg function.
-#     """
-#     # copy the log file to the model directory and rename it according to model_name
-#     # print(f'extracting training and test losses from run.log for {model_name}...')
-#     print(f"extracting training and test losses from run.log...")
-#     # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-#     # run_log_filepath_new = Path(cell_cellpose_model_dir)/f'{model_name}_run.log'
-#     # shutil.move(run_log_filepath, run_log_filepath_new)
-
-#     run_log_filepath = Path(cellpose_model_dir) / "run.log"
-
-#     pages = {}
-#     with open(run_log_filepath) as run_log:
-#         pg: dict = {}
-#         for line in run_log:
-#             for model_name in model_name_list:
-#                 if model_name in line:
-#                     if model_name and pg:
-#                         pages[model_name] = pg
-#                     model_name = model_name
-#                     pg = {
-#                         "train_losses": [],
-#                         "test_losses": [],
-#                         "time_list": [],
-#                         "epochs": [],
-#                     }
-#                 else:
-#                     pass
-
-#                 if "train_loss" in line:
-#                     if pg:
-#                         train_loss = re.findall("train_loss=\d+\.\d+", line)
-#                         test_loss = re.findall("test_loss=\d+\.\d+", line)
-#                         time = re.findall("time \d+\.\d+", line)
-#                         epochs = re.findall("\[INFO\] \d+", line)
-#                         if train_loss:
-#                             pg["train_losses"].append(
-#                                 [
-#                                     float(loss.split("train_loss=")[1])
-#                                     for loss in train_loss
-#                                 ][0]
-#                             )
-#                         if test_loss:
-#                             pg["test_losses"].append(
-#                                 [
-#                                     float(loss.split("test_loss=")[1])
-#                                     for loss in test_loss
-#                                 ][0]
-#                             )
-#                         if time:
-#                             pg["time_list"].append(
-#                                 [float(t.split("time ")[1]) for t in time][0]
-#                             )
-#                         if epochs:
-#                             pg["epochs"].append(
-#                                 [int(epoch.split(" ")[-1]) for epoch in epochs][0]
-#                             )
-#             if model_name and pg:
-#                 pages[model_name] = pg
-
-#     train_losses = {}
-#     test_losses = {}
-#     time_list = {}
-#     epoch_list = {}
-#     for model_name in model_name_list:
-#         train_losses[model_name] = pages[model_name]["train_losses"]
-#         test_losses[model_name] = pages[model_name]["test_losses"]
-#         time_list[model_name] = pages[model_name]["time_list"]
-#         epoch_list[model_name] = pages[model_name]["epochs"]
-
-#     return train_losses, test_losses, time_list, epoch_list
 
 
 def get_image_data_from_original(
@@ -380,7 +298,8 @@ def get_training_data(
 ) -> tuple:
 
     # add the whether or not to use the GPU to the analysis queue
-    analysis_queue = [arg.update({"gpu": gpu}) for arg in analysis_queue]
+    for arg in analysis_queue:
+        arg.update({"gpu": gpu})
 
     if create_training_data:
         if __name__ == "__main__":
@@ -425,7 +344,6 @@ def get_training_data(
 
 def main(
     n_proc: int = 1,
-    gpu: bool = False,
     create_training_data: bool = False,
     retrain_Gouthams_model: bool = False,
     train_from_base_cellpose_nuclei_model: bool = True,
@@ -446,10 +364,16 @@ def main(
         verbose=verbose,
     )
 
+    # return whether or not to use a gpu with CellPose
+    gpu = core.use_gpu()
+
     # Generate ground truths from nuclei labeled with DAPI
     # using the Cellpose base nuclei model
     images_paths, labels_paths = get_training_data(
-        analysis_queue, create_training_data=create_training_data, n_proc=n_proc
+        analysis_queue,
+        create_training_data=create_training_data,
+        n_proc=n_proc,
+        gpu=gpu,
     )
 
     # split the images and labels into training and testing sets
@@ -477,7 +401,6 @@ def main(
     learning_rate = 0.1
     weight_decay = 1e-4
     n_epochs = 300  # 100#300
-    gpu = core.use_gpu()
 
     # create a timestamp for when this workflow was run
     timestamp = datetime.today().strftime("%Y%m%d-%H_%M")
