@@ -71,6 +71,8 @@ def plot_one_slice_quiver(
     color: str = "#08b4bc",
     norm: bool = True,
     ax: plt.Axes | None = None,
+    ds: int = 3,
+    scale: int | float = 30,
 ) -> plt.Axes:
     """
     Plot one slice of the flow field (quiver plot)
@@ -80,10 +82,23 @@ def plot_one_slice_quiver(
         _, ax = vb.init_subplots()
 
     # slice the grid to get the points in the slice
-    x1_grid = grid[0][slice_indexes]
-    x2_grid = grid[1][slice_indexes]
-    dx1 = velocities[0][slice_indexes]
-    dx2 = velocities[1][slice_indexes]
+    # and reshape to 2d array
+    my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
+
+    x1_grid = grid[0][slice_indexes].reshape(my_shape)
+    x2_grid = grid[1][slice_indexes].reshape(my_shape)
+    dx1 = velocities[0][slice_indexes].reshape(my_shape)
+    dx2 = velocities[1][slice_indexes].reshape(my_shape)
+
+    # flatten down to 2D depending on which axis has shape == 1
+    which_idx = np.where(np.array(my_shape) == 1)[0][0]
+    # get xi_grid[... 0 ...] where 0 is taken from the axis with shape == 1
+    # and same for dx1 and dx2
+    x1_grid = np.take(x1_grid, 0, axis=which_idx)
+    x2_grid = np.take(x2_grid, 0, axis=which_idx)
+    dx1 = np.take(dx1, 0, axis=which_idx)
+    dx2 = np.take(dx2, 0, axis=which_idx)
+
     if norm:  # norm in 2D
         dx1_ = dx1 / np.sqrt(dx1**2 + dx2**2)
         dx2_ = dx2 / np.sqrt(dx1**2 + dx2**2)
@@ -91,7 +106,15 @@ def plot_one_slice_quiver(
         dx1_ = dx1.copy()
         dx2_ = dx2.copy()
 
-    ax.quiver(x1_grid, x2_grid, dx1_, dx2_, color=color, scale=50)
+    # downsample the grid: every 5th point
+    x1_grid_ = x1_grid[::ds, ::ds]
+    x2_grid_ = x2_grid[::ds, ::ds]
+    dx1_ = dx1_[::ds, ::ds]
+    dx2_ = dx2_[::ds, ::ds]
+
+    # transpose the grid and velocities for quiver plot
+    # (meshgrid generated via indexing ij)
+    ax.quiver(x1_grid_.T, x2_grid_.T, dx1_.T, dx2_.T, color=color, scale=scale)
 
     return ax
 
