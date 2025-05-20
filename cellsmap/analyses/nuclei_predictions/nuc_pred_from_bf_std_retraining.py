@@ -476,11 +476,9 @@ def main(
 
     # get the nuclei model path from the config file
     model_config = load_config(config_type="model")
-    nuclei_models = [
-        model for model in model_config if model["name"] == "nuc_pred_labelfree"
-    ]
+    nuclei_models = model_config.get("nuc_pred_labelfree")
     assert len(nuclei_models) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
-    model_path = Path(nuclei_models[0]["model_path"])
+    model_path = Path(nuclei_models.get("model_path"))
 
     # create a directory to save the models
     # and their losses and a test image
