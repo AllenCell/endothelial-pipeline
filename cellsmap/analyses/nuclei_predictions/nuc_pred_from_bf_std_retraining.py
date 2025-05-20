@@ -114,16 +114,20 @@ def get_image_data_from_original(
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-# def get_image_data_from_zarr(dataset_name: str) -> None:
-#     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
-#     print(f"Zarrs not yet implemented. Skipping {dataset_name}.")
-#     return
-#     for zarr_name in get_zarr_path(dataset_name):
-#         img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=['DAPI'])
-#         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=['BF'])
-#         img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map['Z'], keepdims=True)
-#         img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map['Z'], keepdims=True)
-#         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
+def get_image_data_from_zarr(dataset_name: str) -> None:
+    # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
+    print(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
+    return
+    for zarr_name in get_zarr_path(dataset_name):
+        img_dict_nuc = load_dataset(
+            dataset_name, zarr_name=zarr_name, channels=["DAPI"]
+        )
+        img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=["BF"])
+        img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map["Z"], keepdims=True)
+        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(
+            axis=dim_map["Z"], keepdims=True
+        )
+        yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
 
 
 def save_overlay(
@@ -484,12 +488,6 @@ def main(
             "train_losses": train_losses,
             "test_losses": test_losses,
         }
-
-    # move the run.log file to the model directory for record keeping purposes
-    # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-    # assert model_dir.exists(), f"Cellpose model directory {model_dir} does not exist"
-    # run_log_filepath_new = Path(model_dir) / 'run.log'
-    # shutil.move(run_log_filepath, run_log_filepath_new)
 
     # generate plots of the training and test losses
     if any(run_record):
