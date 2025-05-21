@@ -4,36 +4,38 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
-from bioio import BioImage
 from tqdm import tqdm
 
 from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.dataset_io import (
     extract_T,
-    get_available_datasets,
+    fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    load_config,
 )
-from cellsmap.util.general_image_preprocessing import build_analysis_queue
-from cellsmap.util.get_sldy_metadata import get_voxel_size
+from cellsmap.util.general_image_preprocessing import (
+    build_analysis_queue,
+    sequence_to_scalar,
+)
 from cellsmap.util.set_output import get_output_path
 
 
 def run_workflow(queue: Sequence) -> None:
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df["T"].tolist()
-    position = queue_df["position"].unique()[0]
-    image_validation_frequency = queue_df["image_validation_frequency"].unique()[0]
-    validation_image = queue_df["validation_image"].unique()[0]
-    verbose = queue_df["verbose"].unique()[0]
-    out_dir = queue_df["output_dir"].unique()[0] / f"{dataset_name}/P{position}"
+    position = sequence_to_scalar(queue_df["position"])
+    image_validation_frequency = sequence_to_scalar(
+        queue_df["image_validation_frequency"]
+    )
+    validation_image = sequence_to_scalar(queue_df["validation_image"])
+    verbose = sequence_to_scalar(queue_df["verbose"])
+    out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
     out_filename_prefix = f"{dataset_name}_P{position}"
-    use_original_data = queue_df["use_original_data"].unique()[0]
+    use_original_data = sequence_to_scalar(queue_df["use_original_data"])
 
     # get the segmentation images
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position=position))
@@ -96,27 +98,7 @@ def main(
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
-    if dataset_name == None:
-        config_data = load_config(config_type="data")
-        dataset_name_list = [
-            dataset_name
-            for dataset_name, config_data in config_data.items()
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "cell_lines" in config_data
-            and "AICS-126" in config_data["cell_lines"]
-            and config_data["duration"] > 1
-        ]
-    elif isinstance(dataset_name, str) or isinstance(dataset_name, Sequence):
-        dataset_name_list = (
-            [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
-        )
-    else:
-        raise ValueError(
-            f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
-        )
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     analysis_queue = build_analysis_queue(
         dataset_name_list,

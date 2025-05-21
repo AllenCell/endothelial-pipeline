@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
 from cellsmap.util.dataset_io import (
-    get_available_datasets,
+    fire_parse_generate_dataset_name_list,
     get_dataset_info,
     load_config,
 )
@@ -147,25 +147,7 @@ def main(
     # NOTE there is a userwarning error popping up when I read .nd2 files in dask
     # so I will only analyze .sldy files for now out of an abundance of caution
     # until .ome.zarr files are available
-    if dataset_name == None:
-        config_data = load_config(config_type="data")
-        dataset_name_list = [
-            dataset_name
-            for dataset_name, config_data in config_data.items()
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "AICS-126" in config_data["cell_lines"]
-        ]
-    elif isinstance(dataset_name, str) or isinstance(dataset_name, Sequence):
-        dataset_name_list = (
-            [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
-        )
-    else:
-        raise ValueError(
-            f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
-        )
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)

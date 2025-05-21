@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 from bioio import BioImage
@@ -164,6 +164,38 @@ def build_analysis_queue(
                             }
                         )
     return analysis_queue
+
+
+def sequence_to_scalar(sequence_like: Sequence) -> Any:
+    """
+    Takes a sequence-like object and returns the sole element if
+    there is only one unique element in the sequence, else raises
+    an error.
+    Useful for turning a list with only 1 unique element into that
+    element.
+    Beware that this will return the key, not the value, if a
+    dictionary is passed in.
+
+    Example 1:
+        >>> sequence_to_scalar([1])
+        1
+    Example 2:
+        >>> sequence_to_scalar(np.array(['a', 'a', 'a'])
+        'a'
+    Example 3:
+        >>> sequence_to_scalar([1.0, 1.1])
+        ValueError: Sequence must have only one unique element.
+    """
+    unique_elements = set(sequence_like)
+    if len(unique_elements) == 1:
+        element = unique_elements.pop()
+    else:
+        raise ValueError(
+            "Sequence must have only one unique element. "
+            f"Unique elements: {unique_elements}"
+        )
+
+    return element
 
 
 def restore_full_dims(
