@@ -1321,9 +1321,6 @@ def run_tracking(
     dim_order = "TCZYX"
     dim_map = get_dim_map(dim_order)
 
-    dim_order = "TCZYX"
-    dim_map = get_dim_map(dim_order)
-
     for fps in [in_dir, out_dir]:
         assert (
             isinstance(fps, (tuple, list, Path, str)) or fps == None
