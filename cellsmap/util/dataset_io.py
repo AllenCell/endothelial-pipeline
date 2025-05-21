@@ -131,7 +131,8 @@ def get_zarr_dir(dataset_name: str) -> str:
 
 
 def get_zarr_path(
-    dataset_name: str, zarr_name: Optional[str | None] = None
+    dataset_name: str,
+    zarr_name: Optional[str | None] = None,
 ) -> Dict[str, str]:
     data_dir = get_zarr_dir(dataset_name)
     zarr_paths = {}
@@ -140,7 +141,7 @@ def get_zarr_path(
         assert filepath.exists(), f"Zarr file {filepath} does not exist."
         filepath_list = [filepath]
     else:
-        filepath_list = [fp for fp in Path(data_dir).glob("*.zarr")]
+        filepath_list = list(Path(data_dir).glob("*.zarr"))
 
     for filepath in filepath_list:
         zarr_paths[filepath.name] = str(filepath)
