@@ -503,12 +503,8 @@ def align_all_positions(
         DataFrame containing the paths to the aligned images.
     """
     savedir.mkdir(parents=True, exist_ok=True)
-    moving_zarr_files = sorted(
-        get_zarr_path(moving_dataset_name, filter_scenes=True).values()
-    )
-    fixed_zarr_files = sorted(
-        get_zarr_path(fixed_dataset_name, filter_scenes=True).values()
-    )
+    moving_zarr_files = sorted(get_zarr_path(moving_dataset_name).values())
+    fixed_zarr_files = sorted(get_zarr_path(fixed_dataset_name).values())
     data = pd.concat(
         [
             align(
@@ -752,19 +748,19 @@ def main(pca_dir: str | None = None) -> None:
             overrides=overrides,
         )
 
-    datasets_20x_40x = {
-        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
-        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
-    }
-    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
-        compare_paired_features(
-            "diffae_04_10",
-            fixed,
-            moving,
-            alignment_method="template",
-            pca_dir=pca_dir,
-            overrides=overrides,
-        )
+    # datasets_20x_40x = {
+    #     "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
+    #     "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
+    # }
+    # for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
+    #     compare_paired_features(
+    #         "diffae_04_10",
+    #         fixed,
+    #         moving,
+    #         alignment_method="template",
+    #         pca_dir=pca_dir,
+    #         overrides=overrides,
+    #     )
 
 
 if __name__ == "__main__":

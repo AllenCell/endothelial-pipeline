@@ -11,8 +11,8 @@ from cellsmap.image_conversion.process_images.write_zarr import (
     write_scene,
 )
 from cellsmap.util.dataset_io import (
+    get_dataset_info,
     get_fmsid,
-    get_included_scenes,
     get_microscope,
     get_original_path,
     get_time_interval_in_minutes,
@@ -49,6 +49,17 @@ Example (using API):
 This will process the dataset '20240305_T01_001' and save the output to the specified directory.
 The resulting zarr contains images from one scene.
 """
+
+
+def get_included_scenes(dataset_name: str) -> list:
+    dataset_info = get_dataset_info(dataset_name)
+    include_scenes = dataset_info.get("include_scenes")
+
+    # by default, include all scenes
+    if include_scenes is None:
+        include_scenes = range(len(BioImage(dataset_info["original_path"]).scenes))
+
+    return include_scenes
 
 
 def convert_dataset(

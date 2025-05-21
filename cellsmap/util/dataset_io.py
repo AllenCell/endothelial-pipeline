@@ -130,21 +130,9 @@ def get_zarr_dir(dataset_name: str) -> str:
     return dataset_info["zarr_path"]
 
 
-def get_included_scenes(dataset_name: str) -> list | None:
-    dataset_info = get_dataset_info(dataset_name)
-    include_scenes = dataset_info.get("include_scenes")
-
-    # by default, include all scenes
-    if include_scenes is None:
-        include_scenes = range(len(BioImage(dataset_info["original_path"]).scenes))
-
-    return include_scenes
-
-
 def get_zarr_path(
     dataset_name: str,
     zarr_name: Optional[str | None] = None,
-    filter_scenes: bool = False,
 ) -> Dict[str, str]:
     data_dir = get_zarr_dir(dataset_name)
     zarr_paths = {}
@@ -154,13 +142,6 @@ def get_zarr_path(
         filepath_list = [filepath]
     else:
         filepath_list = list(Path(data_dir).glob("*.zarr"))
-        if filter_scenes:
-            include_scenes = get_included_scenes(dataset_name)
-            filepath_list = [
-                filepath
-                for filepath in filepath_list
-                if extract_P(filepath.name) in include_scenes
-            ]
 
     for filepath in filepath_list:
         zarr_paths[filepath.name] = str(filepath)
