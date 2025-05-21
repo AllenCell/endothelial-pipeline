@@ -5,16 +5,16 @@ import pandas as pd
 from colorizer_data import convert_colorizer_data
 
 from cellsmap.analyses.track_data_plots import (
-    calculate_derived_data_dynamics_dependent,
     calculate_derived_data_dynamics_independent,
-    merge_segprops_and_track_data,
 )
-from cellsmap.util.dataset_io import get_measurement_data_raws, get_tracking_data_raws
+from cellsmap.util.dataset_io import get_segmentation_features_manifest
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
+from cellsmap.vis.timelapse_feature_explorer.feature_info import LABEL_MAP
 from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_formatting import (
+    add_dynamic_features_with_filtering,
+    add_feauture_metadata,
     add_intensity_mean_pcs,
-    add_track_duration,
     update_manifest_for_tfe,
 )
 
@@ -40,14 +40,9 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # df_tracking = manifest_io.read_file_to_dataframe(manifest_name)
-    df_tracking = get_tracking_data_raws(
-        [dataset],
-        as_dask=False,
-    )
-    df_segprops = get_measurement_data_raws(
-        [dataset], kind="segmentation_properties", as_dask=False
-    )
+    df_tracks = get_segmentation_features_manifest([dataset])
+    df_position = df_tracks[df_tracks["position"] == position]
+
     df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
     df_diffae_cell_mean = df_diffae_cell_mean[
         df_diffae_cell_mean["position"] == f"P{position}"
@@ -57,16 +52,13 @@ def generate_tfe_dataset(
         columns={"frame_number": "image_index"}
     )
 
-    merge_features = merge_segprops_and_track_data(df_segprops, df_tracking)
-    df_position = merge_features[merge_features["position"] == position]
     df_merge_features = df_position.merge(
         df_diffae_cell_mean, how="inner", on=["label", "image_index", "position"]
     )
 
     df = calculate_derived_data_dynamics_independent(df_merge_features)
-    df = calculate_derived_data_dynamics_dependent(df)
+    df = add_dynamic_features_with_filtering(df_merge_features)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
-    df = add_track_duration(df)
     df = add_intensity_mean_pcs(df)
 
     if backdrops:
@@ -76,6 +68,8 @@ def generate_tfe_dataset(
             ["bf_slice", "bf_std_dev", "gfp_max_proj"],
             output_dir=output_dir / "backdrops",
         )
+
+    feature_info = add_feauture_metadata(df)
 
     convert_colorizer_data(
         data=df,
@@ -92,6 +86,8 @@ def generate_tfe_dataset(
             "bf_std_dev_backdrop",
             "gfp_max_proj_backdrop",
         ],
+        feature_column_names=LABEL_MAP.keys(),
+        feature_info=feature_info,
     )
 
     return df
