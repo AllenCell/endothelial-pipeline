@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
     extract_T,
+    get_available_datasets,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_measurement_data_raws,
@@ -979,6 +980,10 @@ def main(
 
     if dataset_name == None:
         dataset_name_list = get_reference_datasets() + ["20250319_20X"]
+    elif isinstance(dataset_name, str) or isinstance(dataset_name, Sequence):
+        dataset_name_list = (
+            [dataset_name] if isinstance(dataset_name, str) else list(dataset_name)
+        )
     else:
         raise ValueError(
             f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
