@@ -103,8 +103,11 @@ def main() -> None:
     Testing:
     python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py --backdrops
 
-    To replace the current set of features.
-    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py --datasets ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"] --positions [0, 3, 5]
+    To overwrite the shared copy use:
+    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py \
+        --datasets '["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"]' \
+        --positions '[0, 3, 5]' \
+        --output_dir "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
 
     Command-line Arguments:
     -----------------------
@@ -160,7 +163,7 @@ def main() -> None:
     parser.add_argument(
         "--backdrops",
         action="store_true",
-        help="Enable backdrops for new datasets (default: False).",
+        help="Generate backdrop images for new datasets (default: False).",
     )
     args = parser.parse_args()
 
