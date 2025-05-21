@@ -57,37 +57,8 @@ def update_manifest_for_tfe(
         output_dir=output_dir / "backdrops",
     )
 
-    # Add track ID and drop unnecessary columns
+    # Add track ID as a feature
     df["tid"] = df["track_id"]
-    df.drop(
-        columns=[
-            "centroid",
-            "T",
-            "reference_index",
-            "matched_query_label",
-            "optimized_metric_value",
-            "matching_method",
-            "source_tracking_table_path",
-            "filepath_raw_image",
-            "scene_index",
-            "neighboring_cell_labels",
-            "edge_labels",
-            "node_labels",
-            "node_pair_labels",
-            "zarr_path",
-            "image_size_x",
-            "image_size_y",
-            "EGFP_channel_index_zarr",
-            "brightfield_channel_index_zarr",
-            "num_tracks_at_T",
-            "centroid_x",
-            "centroid_y",
-            "cell_centroid",
-            "cell_label",
-            "dalignment_dt_deg_rel_to_flow",
-        ],
-        inplace=True,
-    )
 
     return df
 

@@ -86,7 +86,7 @@ def generate_tfe_dataset(
             "bf_std_dev_backdrop",
             "gfp_max_proj_backdrop",
         ],
-        feature_column_names=LABEL_MAP.keys(),
+        feature_column_names=LABEL_MAP.keys(),  # only these features will get colorized
         feature_info=feature_info,
     )
 
