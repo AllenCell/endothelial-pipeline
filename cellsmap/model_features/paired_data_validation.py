@@ -631,7 +631,7 @@ def compare_paired_features(
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
+    save_path = model_path / "TEST"  # f"{fixed_dataset_name}_vs_{moving_dataset_name}"
     save_path.mkdir(parents=True, exist_ok=True)
     data_save_path = (
         save_path / f"aligned_{moving_dataset_name}_vs_{fixed_dataset_name}.csv"
@@ -687,21 +687,21 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
-        fixed_features_path,
-        fixed_dataset_name,
-        mlflow_id,
-        model_path,
-    )
+    # add_fmsid_to_config(
+    #     fixed_features_path,
+    #     fixed_dataset_name,
+    #     mlflow_id,
+    #     model_path,
+    # )
     moving_features_path = str(
         save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
-        moving_features_path,
-        moving_dataset_name,
-        mlflow_id,
-        model_path,
-    )
+    # add_fmsid_to_config(
+    #     moving_features_path,
+    #     moving_dataset_name,
+    #     mlflow_id,
+    #     model_path,
+    # )
 
     # load features for comparison
     fixed_features = pd.read_parquet(fixed_features_path)
@@ -748,19 +748,21 @@ def main(pca_dir: str | None = None) -> None:
             overrides=overrides,
         )
 
-    # datasets_20x_40x = {
-    #     "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
-    #     "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
-    # }
-    # for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
-    #     compare_paired_features(
-    #         "diffae_04_10",
-    #         fixed,
-    #         moving,
-    #         alignment_method="template",
-    #         pca_dir=pca_dir,
-    #         overrides=overrides,
-    #     )
+    datasets_20x_40x = {
+        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"][:1],
+        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"][
+            :1
+        ],
+    }
+    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
+        compare_paired_features(
+            "diffae_04_10",
+            fixed,
+            moving,
+            alignment_method="template",
+            pca_dir=pca_dir,
+            overrides=overrides,
+        )
 
 
 if __name__ == "__main__":
