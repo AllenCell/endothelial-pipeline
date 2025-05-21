@@ -116,8 +116,9 @@ def get_image_data_from_original(
 
 def get_image_data_from_zarr(dataset_name: str) -> None:
     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
-    print(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
-    return
+    raise NotImplementedError(
+        f"Zarrs not yet implemented yet. Skipping {dataset_name}."
+    )
     for zarr_name in get_zarr_path(dataset_name):
         img_dict_nuc = load_dataset(
             dataset_name, zarr_name=zarr_name, channels=["DAPI"]
