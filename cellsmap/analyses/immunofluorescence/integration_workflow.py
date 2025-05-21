@@ -1,0 +1,147 @@
+# %%
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from cellsmap.analyses.immunofluorescence.if_support.add_if_cols import (
+    add_if_cols_to_df,
+    get_channels_for_if_processing,
+)
+from cellsmap.analyses.integration.feats_diffae_classic_comparison import (
+    get_traj_and_flowfield,
+    plot_measured_feat_overlay_on_flowfield,
+)
+from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
+from cellsmap.util import manifest_io
+from cellsmap.util.dataset_io import get_reference_datasets
+from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
+    get_manifest_for_dynamics_workflows,
+    project_manifest_to_pcs,
+)
+from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
+from cellsmap.util.set_output import get_output_path
+
+# %% get all if datasets
+all_results = []
+all_columns = set()  # To track all unique columns across DataFrames
+
+# First pass: Collect all unique columns
+for n in range(1, 13):
+    dataset_name = f"20250509_20X_IF{n}"
+    df = manifest_io.get_diffae_manifest(dataset_name)
+    channels = get_channels_for_if_processing(dataset_name)
+    print(f"Processing {dataset_name}")
+
+    for channel in channels:
+        if channel == "NucViolet":
+            continue
+        df = add_if_cols_to_df(
+            df,
+            channel_name=channel,
+            resolution_level=0,
+        )
+
+    all_columns.update(df.columns)  # Add columns to the set
+    all_results.append(df)
+
+# Standardize columns across all DataFrames
+all_columns = list(all_columns)  # Convert to a list for consistent ordering
+standardized_results = []
+
+for df in all_results:
+    # Reindex each DataFrame to ensure it has all columns
+    standardized_df = df.reindex(columns=all_columns, fill_value=np.nan)
+    standardized_results.append(standardized_df)
+
+# Concatenate standardized DataFrames
+df_if = pd.concat(standardized_results, ignore_index=True)
+
+# %% Calculate PCA and bounds for the reference dataset
+pca = fit_pca()
+reference_datasets = get_reference_datasets()
+bounds = ddff.set_3d_bounds_from_data(reference_datasets, pca, col_names="feat")
+# %%
+conditions = [
+    {
+        "ref_dataset_name": "20241120_20X",  # 48 hour high flow
+        "flow_regime": "high_flow",
+        "corresponding_if_datasets": [
+            "20250509_20X_IF1",
+            "20250509_20X_IF9",
+            "20250509_20X_IF10",
+        ],
+    },
+    {
+        "ref_dataset_name": "20250409_20X",  # low flow
+        "flow_regime": "low_flow",
+        "corresponding_if_datasets": [
+            "20250509_20X_IF5",
+            "20250509_20X_IF6",
+            "20250509_20X_IF12",
+        ],
+    },
+    {
+        "ref_dataset_name": "20241217_20X",  # no flow
+        "flow_regime": "no_flow",
+        "corresponding_if_datasets": [
+            "20250509_20X_IF2",
+            "20250509_20X_IF3",
+            "20250509_20X_IF4",
+        ],
+    },
+]
+# %%
+for condition in conditions:
+    dataset_name = condition["ref_dataset_name"]
+    flow_regime = condition["flow_regime"]
+    corresponding_if_datasets = condition["corresponding_if_datasets"]
+
+    print(f"Processing dataset: {dataset_name}, Flow regime: {flow_regime}")
+
+    output_dir = get_output_path(
+        f"immunoflourescence_analysis_integration/{dataset_name}_{flow_regime}"
+    )
+    diffae_grid_crops = get_manifest_for_dynamics_workflows(dataset_name, pca)
+    print("getting trajectory and flow field for grid-based crops...")
+    traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
+        diffae_grid_crops, bounds, col_names="feat"
+    )
+
+    for if_dataset_name in corresponding_if_datasets:
+
+        df_condition = df_if[df_if["dataset"].isin(corresponding_if_datasets)]
+
+        df_if_dataset = df_if[df_if["dataset"] == if_dataset_name]
+
+        df_if_dataset = project_manifest_to_pcs(
+            df_if_dataset, pca, overwrite_feature_columns=False
+        )
+
+        # this is where we would apply a PC correction to PC1, 2 and 3
+
+        channels = get_channels_for_if_processing(if_dataset_name)
+        print(f"Plotting {if_dataset_name}")
+
+        for channel in channels:
+            if channel == "NucViolet":
+                continue
+
+            feature = f"crop_nuc_median_intensity_{channel}"
+            hue_min = df_condition[feature].min()
+            hue_max = df_condition[feature].max()
+
+            plot_measured_feat_overlay_on_flowfield(
+                Path(output_dir),
+                if_dataset_name,
+                diffae_grid_crops,
+                traj_grids,
+                flow_field_dict_grids,
+                diffae_measured_feat_df=df_if_dataset,
+                meas_feat_col_name_for_color_coding=feature,
+                track_id_to_plot=None,
+                show_plot=True,
+                alpha=1.0,
+                hue_min_max=None,
+            )
+    # %%

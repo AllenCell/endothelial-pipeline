@@ -243,7 +243,8 @@ def plot_measured_feat_pcs(
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
-    alpha: float = 1.0,
+    alpha: float = 0.5,
+    hue_min_max: tuple[float, float] | None = None,
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
@@ -290,7 +291,11 @@ def plot_measured_feat_pcs(
             x=pc_cols_for_xaxis[j],
             y=pc_cols_for_yaxis[j],
             hue=meas_feat_col,
+<<<<<<< HEAD
             hue_norm=hue_norm,
+=======
+            hue_norm=hue_min_max,
+>>>>>>> smad1
             palette="flare",
             linewidth=0,
             marker=".",
@@ -315,6 +320,8 @@ def plot_measured_feat_overlay_on_flowfield(
     hue_norm: tuple[float, float] | None = None,
     alpha: float = 0.7,
     show_plot: bool = False,
+    alpha: float = 0.5,
+    hue_min_max: tuple[float, float] | None = None,
 ) -> None:
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -330,6 +337,10 @@ def plot_measured_feat_overlay_on_flowfield(
         hue_norm=hue_norm,
         zorder=5,
         alpha=alpha,
+<<<<<<< HEAD
+=======
+        hue_min_max=hue_min_max,
+>>>>>>> smad1
     )
     plt.tight_layout()
     if track_id_to_plot == "mean":
