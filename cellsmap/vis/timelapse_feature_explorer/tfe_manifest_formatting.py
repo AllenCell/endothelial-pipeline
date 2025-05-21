@@ -92,7 +92,6 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
-    df = add_filter_columns(df, out_dir=None)
     df_filtered_rows = df[df["filter_global"] == True]
     df_keep = df[df["filter_global"] == False]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)

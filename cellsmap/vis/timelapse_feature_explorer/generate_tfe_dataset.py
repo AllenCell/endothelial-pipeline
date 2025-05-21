@@ -57,7 +57,6 @@ def generate_tfe_dataset(
         df_diffae_cell_mean, how="inner", on=["label", "image_index", "position"]
     )
 
-    df = calculate_derived_data_dynamics_independent(df_merge_features)
     df = add_dynamic_features_with_filtering(df_merge_features)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
     df = add_intensity_mean_pcs(df)
@@ -101,10 +100,14 @@ def main() -> None:
     command-line arguments.
 
     Testing:
-    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py --backdrops
+    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py
 
     To overwrite the shared copy use:
-    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py --datasets ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"] --positions [0, 3, 5] --output_dir "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
+    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py
+    --datasets ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"]
+    --positions [0, 3, 5]
+    --output_dir "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
+    --no_backdrops
 
     Command-line Arguments:
     -----------------------
@@ -125,8 +128,8 @@ def main() -> None:
         Defaults to: "//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/".
         The function appends the dataset name and position to this path.
 
-    --backdrops : flag
-        Must enable backdrops for new datasets. Defaults to False.
+    --no_backdrops : flag
+       By default, the script generates backdrops. Use this flag to skip that step.
     """
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
@@ -158,9 +161,9 @@ def main() -> None:
         help="Base directory for program files (default: predefined path).",
     )
     parser.add_argument(
-        "--backdrops",
-        action="store_true",
-        help="Generate backdrop images for new datasets (default: False).",
+        "--no_backdrops",
+        action="store_false",
+        help="Default without the flag will generate the backdrops. Adding --no_backdrops will skip that step",
     )
     args = parser.parse_args()
 
@@ -178,7 +181,7 @@ def main() -> None:
                 position=position,
                 output_dir=output_dir,
                 source_dir=source_dir,
-                backdrops=args.backdrops,
+                backdrops=args.no_backdrops,
             )
             print(f"Processed dataset: {dataset}, position: {position}")
 
