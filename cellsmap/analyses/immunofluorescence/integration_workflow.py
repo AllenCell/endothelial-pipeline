@@ -118,6 +118,8 @@ for condition in conditions:
             df_if_dataset, pca, overwrite_feature_columns=False
         )
 
+        # this is where we would apply a PC correction to PC1, 2 and 3
+
         channels = get_channels_for_if_processing(if_dataset_name)
         print(f"Plotting {if_dataset_name}")
 
