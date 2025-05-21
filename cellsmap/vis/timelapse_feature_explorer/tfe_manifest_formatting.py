@@ -63,22 +63,6 @@ def update_manifest_for_tfe(
     return df
 
 
-def add_track_duration(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add track duration to the DataFrame.
-
-    Args:
-        df (pd.DataFrame): The input DataFrame.
-
-    Returns:
-        pd.DataFrame: The updated DataFrame with track duration in frames.
-    """
-    df["track_duration"] = df.groupby("track_id")["image_index"].transform(
-        "max"
-    ) - df.groupby("track_id")["image_index"].transform("min")
-    return df
-
-
 def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     """
     Perform PCA on the intensity mean features and add the projected features to the DataFrame.
