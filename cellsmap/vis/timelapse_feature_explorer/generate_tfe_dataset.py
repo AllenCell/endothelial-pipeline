@@ -104,10 +104,7 @@ def main() -> None:
     python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py --backdrops
 
     To overwrite the shared copy use:
-    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py \
-        --datasets '["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"]' \
-        --positions '[0, 3, 5]' \
-        --output_dir "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
+    python cellsmap/vis/timelapse_feature_explorer/generate_tfe_dataset.py --datasets ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"] --positions [0, 3, 5] --output_dir "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
 
     Command-line Arguments:
     -----------------------
