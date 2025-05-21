@@ -22,6 +22,8 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
 
+# %%
+
 # %% get all if datasets
 all_results = []
 all_columns = set()  # To track all unique columns across DataFrames
@@ -127,7 +129,7 @@ for condition in conditions:
             if channel == "NucViolet":
                 continue
 
-            feature = f"crop_nuc_median_intensity_{channel}"
+            feature = f"crop_nuc_mean_intensity_{channel}"
             hue_min = df_condition[feature].min()
             hue_max = df_condition[feature].max()
 
