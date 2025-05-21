@@ -61,7 +61,7 @@
   brightfield_channel_index: 2
   405_channel_index: 1
   n_total_positions: 10
-  include_scenes: [0,1,2,4]
+  include_scenes: [0, 1, 2, 4]
   notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
     prior to fix.
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
@@ -85,7 +85,7 @@
   brightfield_channel_index: 4
   405_channel_index: 1
   n_total_positions: 10
-  include_scenes: [5,6,7,8,9]
+  include_scenes: [5, 6, 7, 8, 9]
   notes: no flow dataset (24 hours)
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
@@ -187,7 +187,8 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: 5a971ac162194b8490f7119c04488b0f
+  diffae_manifest_fmsid: e7f3e9715e254bd7a89b956d7db304d2
+  include_scenes: [1, 2, 3, 4, 5, 6, 7, 8, 9]
 20250110_paired40X:
   original_path: //allen/programs/allencell/data/proj0/093/f29/5ce/e2f/dc7/fab/845/8b0/b10/74f/0b/20250110_GE00006323_40X_zstacks_SLDY/20250110_GE00006323_40X_zstacks_SLDY.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250110_0b74fb108b0845fabdc7e2f5cef29093
@@ -208,7 +209,8 @@
   notes: ''
   nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
   nuclear_seg_manifest_fmsid: ''
-  diffae_manifest_fmsid: 2365c8dcc36e4edc9ffd58e7c956c144
+  diffae_manifest_fmsid: bf2005ff545d4602b4f8fa21b895c970
+  include_scenes: [1, 2, 3, 4, 5, 6, 7, 8, 9]
 20250115_paired3iNikon_3i1st:
   original_path: //allen/programs/allencell/data/proj0/61a/26d/0a1/572/3e8/f08/14d/4b7/926/e36/51/20250115_GE00006392_20X_pairedNikon_sldy/20250115_GE00006392_20X_paired_sldy.sldy
   zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_51e369264b714df083e85720a126d61a
