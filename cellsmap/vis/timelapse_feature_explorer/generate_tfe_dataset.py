@@ -1,13 +1,12 @@
 import argparse
 from pathlib import Path
 
-import pandas as pd
 from colorizer_data import convert_colorizer_data
 
-from cellsmap.analyses.track_data_plots import (
-    calculate_derived_data_dynamics_independent,
+from cellsmap.util.dataset_io import (
+    get_cdh5_classic_segmentation_path,
+    get_segmentation_features_manifest,
 )
-from cellsmap.util.dataset_io import get_segmentation_features_manifest
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
 from cellsmap.util.set_output import get_output_path
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
@@ -123,15 +122,13 @@ def main() -> None:
         To replace the data in the shared program directory set to
         "//allen/aics/endothelial/morphological_features/".
 
-    --segmentation_dir : str
-        Base directory for the segmentation images.
-        Defaults to: "//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/".
-        The function appends the dataset name and position to this path.
+    --segmentation : str
+        Select segmenation. Currently we only support "CDH5".
+        In the future we can add the nuclei segmentation.
 
     --no_backdrops : flag
        By default, the script generates backdrops. Use this flag to skip that step.
     """
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(
         description="Generate TFE datasets for specified datasets and positions."
     )
@@ -155,9 +152,9 @@ def main() -> None:
         help="Directory to save the output (default: current directory).",
     )
     parser.add_argument(
-        "--segmentation_dir",
+        "--segmentation",
         type=str,
-        default="//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/",
+        default="CDH5",
         help="Base directory for program files (default: predefined path).",
     )
     parser.add_argument(
@@ -167,20 +164,21 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    segmentation_dir = Path(args.segmentation_dir)
     output_dir = Path(args.output_dir)
 
     # Iterate through datasets and positions
     for dataset in args.datasets:
         for position in args.positions:
-            source_dir = segmentation_dir / f"{dataset}/P{position}"
+            if args.segmentation == "CDH5":
+                source_dir = get_cdh5_classic_segmentation_path(dataset, position)
+                source_dir_path = Path(source_dir)
 
             # Generate the TFE dataset
             generate_tfe_dataset(
                 dataset=dataset,
                 position=position,
                 output_dir=output_dir,
-                source_dir=source_dir,
+                source_dir=source_dir_path,
                 backdrops=args.no_backdrops,
             )
             print(f"Processed dataset: {dataset}, position: {position}")
