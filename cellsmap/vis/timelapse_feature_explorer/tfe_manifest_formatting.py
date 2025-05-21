@@ -92,6 +92,11 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Dynamic features can only be calculated on longer tracks that are filtered.
+    For TFE we need to preserve the rows that are filtered out, so we filter them
+    and then calculate the features and then merge them back in!
+    """
     df_filtered_rows = df[df["filter_global"] == True]
     df_keep = df[df["filter_global"] == False]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)
@@ -105,6 +110,11 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_feauture_metadata(df: pd.DataFrame) -> dict:
+    """
+    Only the features specified in the LABEL_MAP are added to TFE.
+    Metadata right now is just the label for the feature, but this can
+    be built out in the future.
+    """
     feature_info = {}
 
     # Iterate through the label_map to populate feature_info
