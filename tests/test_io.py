@@ -1,48 +1,101 @@
+from pathlib import Path
+
+import pytest
+
 from cellsmap.util import dataset_io
+
 
 def test_load_config():
     # check if the config file is loaded correctly
     config = dataset_io.load_config()
-    assert config[0]['name'] == '20240305_T01_001'
+    assert "20241016_20X" in config
 
-def test_load_all_datasets():
-    for ds in dataset_io.get_available_datasets():
-        channels = dataset_io.get_available_channels(ds)
-        data = dataset_io.load_dataset(ds, channels)
-        assert data is not None, f"Dataset {ds} returned None"
-        assert data.shape[0] > 0, f"Dataset {ds} has an unexpected shape: {data.shape}"
-        assert all(dim > 0 for dim in data.shape), f"Dataset {ds} has invalid dimensions: {data.shape}"
+
+@pytest.mark.parametrize(
+    "dataset_name", dataset_io.get_available_datasets(verbose=False)
+)
+def test_load_all_datasets(dataset_name: str):
+    channels = dataset_io.get_available_channels(dataset_name)
+    # channels should be a per-position dictionary
+    assert isinstance(channels, dict), "Channels should be a dictionary"
+    if len(channels) == 0:
+        print(f"Dataset {dataset_name} has no channels")
+        return
+    # choose one position to get channels
+    test_key = list(channels.keys())[0]
+    channels = channels[test_key]
+    assert isinstance(channels, list)
+
+    data = dataset_io.load_dataset(dataset_name, channels)
+    for k, v in data.items():
+        assert v is not None, f"Dataset {dataset_name} {k} returned None"
+        assert (
+            v.shape[0] > 0
+        ), f"Dataset {dataset_name} {k} has an unexpected shape: {v.shape}"
+        assert all(
+            dim > 0 for dim in v.shape
+        ), f"Dataset {dataset_name} {k} has invalid dimensions: {v.shape}"
+
 
 def test_get_dataset_info():
     # check if the dataset info is returned correctly
-    dataset_info = dataset_io.get_dataset_info('20240305_T01_001')
-    assert dataset_info['zarr_path'] == '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
+    dataset_info = dataset_io.get_dataset_info("20241016_20X")
+    assert (
+        dataset_info["zarr_path"]
+        == "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241016_230d119061e749d98c1abde77f2f4fa3"
+    )
+
 
 def test_get_zarr_path():
-    path = dataset_io.get_zarr_path('20240305_T01_001')
-    assert path == '//allen/aics/assay-dev/computational/data/holistic/endos/feasibility/20240305_T01_001.ome.zarr'
+    path = dataset_io.get_zarr_path("20241016_20X")
+    for name, path in path.items():
+        print(Path(path).parent)
+        assert (
+            str(Path(path).parent)
+            == "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241016_230d119061e749d98c1abde77f2f4fa3"
+        )
+
 
 def test_load_dataset():
     # check end point specification
-    movie = dataset_io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin"], time_end = 2)
-    assert movie.shape == (3, 1, 1712, 9592)
-    # check start point specification
-    movie = dataset_io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin"], time_start=1, time_end = 2)
-    assert movie.shape == (2, 1, 1712, 9592)
-    # check resolution specification
-    movie = dataset_io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin"], time_start=1, time_end=2, level=1)
-    assert movie.shape == (2, 1, 856, 4796)
-    movie = dataset_io.load_dataset('20240305_T01_001', channels=["CDH5_Tubulin", "Nuc_Seg"], time_start=1, time_end=2, level=1)
-    assert movie.shape == (2, 2, 856, 4796)
+    movie = dataset_io.load_dataset("20241016_20X", channels=["BF"], time_end=2)
+    for position_data in movie.values():
+        assert position_data.shape == (3, 1, 25, 1712, 1744)
 
-def test_get_available_models(capsys):
+    # check start point specification
+    movie = dataset_io.load_dataset(
+        "20241016_20X", channels=["BF"], time_start=1, time_end=2
+    )
+    for position_data in movie.values():
+        assert position_data.shape == (2, 1, 25, 1712, 1744)
+
+    # check resolution specification
+    movie = dataset_io.load_dataset(
+        "20241016_20X", channels=["BF"], time_start=1, time_end=2, level=1
+    )
+    for position_data in movie.values():
+        assert position_data.shape == (2, 1, 25, 856, 872)
+
+    movie = dataset_io.load_dataset(
+        "20241016_20X",
+        channels=["BF", "EGFP"],
+        time_start=1,
+        time_end=2,
+        level=1,
+    )
+    for position_data in movie.values():
+        assert position_data.shape == (2, 2, 25, 856, 872)
+
+
+def test_get_available_models():
     # check if the available models are printed correctly
-    dataset_io.get_available_models()
-    captured = capsys.readouterr()
-    assert captured.out == 'mae_cdh5\nvicreg_cdh5\nvicreg_no_rot_cdh5\njepa_cdh5\nmae_std_bf\n'
+    models = dataset_io.get_available_models()
+    assert "diffae_04_10" in models
+
 
 def test_get_model_info():
     # check if the model info is returned correctly
-    model_info = dataset_io.get_model_info('mae_cdh5')
-    assert model_info['name'] == 'mae_cdh5'
-    assert model_info['eval_config_path'] == "//allen/aics/assay-dev/users/Benji/cellsmap/cellsmap/model_features/configs/mae_cdh5/eval_config.yaml"
+    model_info = dataset_io.get_model_info("diffae_04_10")
+
+    assert "mlflow_run_id" in model_info
+    assert model_info["mlflow_run_id"] == "ae7f25b4109c47809d3e2ed1b7120e50"

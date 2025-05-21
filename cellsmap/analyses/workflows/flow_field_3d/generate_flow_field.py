@@ -1,33 +1,68 @@
-# Exploring the pre-computed features generated in the endo project by the diffusion autoencoder.
-# This code generates the figures presented APS March Meeting 2025
-# %%
-import pandas as pd
+import fire
+import numpy as np
 
+from cellsmap.analyses.utils.io import dynamics_io
+from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
-from cellsmap.analyses.utils.io import vtk_tools
-# %%
-# Create output folder if does not exist yet
-workflow_fig_folder = "flow_field_3d/figs"
-workflow_output_folder = "flow_field_3d/outputs"
-workflow_vtk_folder = "flow_field_3d/outputs/vtks"
-output_savedir = get_output_path(workflow_output_folder, verbose=False)
-fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
-vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
-# Load manifest created at preprocessing step
-df = pd.read_csv(output_savedir+"manifest.csv")
 
-# Create flow field dx/dt = f(x)
-DDFF = vtk_tools.DataDrivenFlowField3D(verbose=True)
-DDFF.set_output_folders(fig_output_folder=fig_savedir, vtk_output_folder=vtk_savedir)
-DDFF.set_dataframe(df, identifier="crop_index")
-DDFF.set_state_space_variables(["PC1", "PC2", "PC3"])
-DDFF.build()
+def main(datasets_to_use: list | None = None) -> None:
+    """
+    Visualize 3D (drift) flow fields for the dynamics of the
+    DiffAE crop-based features for each of the single flow datasets.
+    """
+    # Create output folder if does not exist yet
+    workflow_fig_folder = "flow_field_3d/figs"
+    workflow_output_folder = "flow_field_3d/outputs"
+    workflow_vtk_folder = "flow_field_3d/outputs/vtks"
+    output_savedir = get_output_path(workflow_output_folder, verbose=False)
+    fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
+    vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
-# %%
-for condition in df.description.unique():
-    DDFF.compute_flow_field(condition=condition)
-    DDFF.simulate_particles_in_flow_field(condition=condition)
-DDFF.simulate_particles_in_flow_field(condition=["48hr_High"]*50+["48hr_Low"]*50, filename_prefix="High_to_Low")
-DDFF.simulate_particles_in_flow_field(condition=["48hr_Low"]*50+["48hr_High"]*50, filename_prefix="Low_to_High")
-# %%
+    # if not provided in command line, run
+    # on default list of datasets
+    if datasets_to_use is None:
+        datasets_to_use = [
+            "20241120_20X",
+            "20241217_20X",
+            "20250409_20X",
+            "20250319_20X",
+            "20250326_20X",
+        ]
+    pca = manifest_pca.fit_pca()
+
+    # load default config, get kernel params
+    config = dynamics_io.load_dynamics_config("default")
+    kernel_params = config["kramers_moyal"]["kernel_params"]
+
+    # get time between frames
+    # in minutes
+    dt = config["dt"]
+
+    # time span for the ODE solver
+    # units for time steps are in minutes
+    # 48 hours in minutes =
+    # 48 * 60 = 2880 time steps
+    time_span = [0, 2880]
+
+    # initial condition for the ODE solver
+    # this is fixed across datasets /
+    # shear stress conditions
+    init = np.array([-0.1, -0.7, -0.1])
+
+    ddff.ddff_main(
+        datasets_to_use,
+        pca,
+        kernel_params,
+        dt,
+        time_span,
+        init,
+        fig_savedir,
+        vtk_savedir,
+        output_savedir,
+    )
+
+
+if __name__ == "__main__":
+    fire.Fire(main)
