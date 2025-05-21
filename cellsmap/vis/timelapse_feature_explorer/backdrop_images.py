@@ -26,6 +26,9 @@ def process_frame(
     backdrop: str,
     output_dir: Path,
 ) -> None:
+    """
+    For an individual frame in the dataset, create and save the desired backdrop image formatted as 8-bit image contrast stretched to 0-255.
+    """
 
     # Run the specific image processing function
     image_to_save = func(img, frame)
@@ -51,6 +54,10 @@ def generate_backdrops(
     backdrops: List[str],
     output_dir: Path,
 ) -> None:
+    """
+    Generates and saves backdrop images to be viewable together with the colorized segmentations in the TFE viewer.
+    """
+
     zarr_name = dataset_io.get_zarr_name(dataset, position)
     zarr_path = dataset_io.get_zarr_dir(dataset)
     filepath = Path(zarr_path) / zarr_name
