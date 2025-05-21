@@ -27,7 +27,7 @@ LABEL_MAP = {
     "track_id": "Track ID",
     "smoothed_area_normd_diff": "Smoothed Area Difference (Normalized)",
     "track_duration": "Track Duration",
-    "valid_points": "Number of Valid Points",
+    "valid_points": "Number of Valid Timepoints",
     "number_of_neighbors": "Number of Neighbors",
     # filters
     "filter_edge_FOV": "Filter: Touches Edge of Field of View",
