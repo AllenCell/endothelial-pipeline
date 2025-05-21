@@ -1,9 +1,7 @@
-import re
-import shutil
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Any, Dict, List, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,10 +18,8 @@ from cellsmap.util import get_sldy_metadata as sldmd
 from cellsmap.util.dataset_io import (
     get_dataset_info,
     get_original_path,
-    get_zarr_path,
     ipython_cli_flexecute,
     load_config,
-    load_dataset,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
@@ -58,13 +54,13 @@ def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
             "20240328_T01_001-1711663662-337",
         ],
         "20250415_SlideA_20X": [
-            "20250415_GE0000XXXX_slideA_20X - Position 1 [50]-1744838244-103"
+            "20250415_GE00007488_slideA_20X - Position 1 [50]-1745428788-773"
         ],
         "20250415_SlideE_20X": [
-            "20250416_GE0000XXXX_slideE_20X - Position 1 [50]-1744838492-691"
+            "20250416_GE00007101_slideE_20X - Position 1 [50]-1745428816-305"
         ],
         "20250415_SlideH_20X": [
-            "20250415_GE0000XXXX_slideH_20X - Position 1 [50]-1744838353-891"
+            "20250415_GE00006885_slideH_20X - Position 1 [50]-1745428734-340"
         ],
     }
     if dataset_name == None:
@@ -92,88 +88,9 @@ def get_training_data_output_dirs(
         return [out_dirs[training_data_kind] for training_data_kind in kind]
 
 
-def get_old_cellpose_train_test_losses(
-    cellpose_model_dir: str | Path, model_name_list: List
+def get_image_data_from_original(
+    dataset_name: str, scene: str | int, T: int, verbose: bool = False
 ) -> tuple:
-    """
-    This function extracts the training and test losses from the run.log file
-    produced during the training of a Cellpose model.
-    It is only useful for cellpose < 3.1 as newer versions of cellpose
-    return the train and test losses along with the model path when
-    using the cellpose.train.train_seg function.
-    """
-    # copy the log file to the model directory and rename it according to model_name
-    # print(f'extracting training and test losses from run.log for {model_name}...')
-    print(f"extracting training and test losses from run.log...")
-    # run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-    # run_log_filepath_new = Path(cell_cellpose_model_dir)/f'{model_name}_run.log'
-    # shutil.move(run_log_filepath, run_log_filepath_new)
-
-    run_log_filepath = Path(cellpose_model_dir) / "run.log"
-
-    pages = {}
-    with open(run_log_filepath) as run_log:
-        pg: dict = {}
-        for line in run_log:
-            for model_name in model_name_list:
-                if model_name in line:
-                    if model_name and pg:
-                        pages[model_name] = pg
-                    model_name = model_name
-                    pg = {
-                        "train_losses": [],
-                        "test_losses": [],
-                        "time_list": [],
-                        "epochs": [],
-                    }
-                else:
-                    pass
-
-                if "train_loss" in line:
-                    if pg:
-                        train_loss = re.findall("train_loss=\d+\.\d+", line)
-                        test_loss = re.findall("test_loss=\d+\.\d+", line)
-                        time = re.findall("time \d+\.\d+", line)
-                        epochs = re.findall("\[INFO\] \d+", line)
-                        if train_loss:
-                            pg["train_losses"].append(
-                                [
-                                    float(loss.split("train_loss=")[1])
-                                    for loss in train_loss
-                                ][0]
-                            )
-                        if test_loss:
-                            pg["test_losses"].append(
-                                [
-                                    float(loss.split("test_loss=")[1])
-                                    for loss in test_loss
-                                ][0]
-                            )
-                        if time:
-                            pg["time_list"].append(
-                                [float(t.split("time ")[1]) for t in time][0]
-                            )
-                        if epochs:
-                            pg["epochs"].append(
-                                [int(epoch.split(" ")[-1]) for epoch in epochs][0]
-                            )
-            if model_name and pg:
-                pages[model_name] = pg
-
-    train_losses = {}
-    test_losses = {}
-    time_list = {}
-    epoch_list = {}
-    for model_name in model_name_list:
-        train_losses[model_name] = pages[model_name]["train_losses"]
-        test_losses[model_name] = pages[model_name]["test_losses"]
-        time_list[model_name] = pages[model_name]["time_list"]
-        epoch_list[model_name] = pages[model_name]["epochs"]
-
-    return train_losses, test_losses, time_list, epoch_list
-
-
-def get_image_data_from_original(dataset_name, scene, T, verbose=False):
 
     dim_order = get_default_dim_order()
     dim_map = get_dim_map(dim_order)
@@ -197,10 +114,11 @@ def get_image_data_from_original(dataset_name, scene, T, verbose=False):
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-def get_image_data_from_zarr(dataset_name):
+def get_image_data_from_zarr(dataset_name: str) -> None:
     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
-    print(f"Zarrs not yet implemented. Skipping {dataset_name}.")
-    return
+    raise NotImplementedError(
+        f"Zarrs not yet implemented yet. Skipping {dataset_name}."
+    )
     for zarr_name in get_zarr_path(dataset_name):
         img_dict_nuc = load_dataset(
             dataset_name, zarr_name=zarr_name, channels=["DAPI"]
@@ -213,7 +131,13 @@ def get_image_data_from_zarr(dataset_name):
         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
 
 
-def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
+def save_overlay(
+    labels: np.ndarray,
+    bg_img: np.ndarray,
+    out_name: Path | str,
+    outlines: bool = True,
+    face: bool = True,
+) -> None:
     seg_outlines = find_boundaries(labels)
     if outlines and face:
         labels[seg_outlines] = 0
@@ -231,7 +155,8 @@ def save_overlay(labels, bg_img, out_name, outlines=True, face=True):
     plt.close(fig)
 
 
-def generate_training_data(analysis_args):
+def generate_training_data(analysis_args: dict) -> None:
+    use_gpu = analysis_args["gpu"]
     use_original_data = analysis_args["use_original_data"]
     dataset_name = analysis_args["dataset_name"]
     scene_name = analysis_args["scene_name"]
@@ -253,7 +178,7 @@ def generate_training_data(analysis_args):
     verbose = analysis_args["verbose"]
 
     print("loading CellPose model...") if verbose else None
-    nuc_model = models.CellposeModel(gpu=False, model_type="nuclei")
+    nuc_model = models.CellposeModel(gpu=use_gpu, model_type="nuclei")
 
     if scene_name in get_scenes_to_use()[dataset_name]:
         (
@@ -370,11 +295,20 @@ def generate_training_data(analysis_args):
     return
 
 
-def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
+def get_training_data(
+    analysis_queue: List,
+    create_training_data: bool = False,
+    n_proc: int = 1,
+    gpu: bool = False,
+) -> tuple:
+
+    # add the whether or not to use the GPU to the analysis queue
+    for arg in analysis_queue:
+        arg.update({"gpu": gpu})
 
     if create_training_data:
         if __name__ == "__main__":
-            if n_proc > 1:
+            if n_proc > 1 and gpu == False:
                 with Pool(processes=n_proc) as pool:
                     print("Starting multiprocessing...")
                     list(
@@ -388,7 +322,7 @@ def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
                     pool.join()
                     print("Done multiprocessing.")
             else:
-                print("Starting single processing...")
+                print(f"Starting {'gpu' if gpu else 'single core'} processing...")
                 for analysis_args in tqdm(
                     analysis_queue,
                     total=len(analysis_queue),
@@ -414,13 +348,13 @@ def get_training_data(analysis_queue, create_training_data=False, n_proc=1):
 
 
 def main(
-    n_proc=1,
-    create_training_data=False,
-    retrain_Gouthams_model=False,
-    train_from_base_cellpose_nuclei_model=True,
-    use_original_data=True,
-    verbose=False,
-):
+    n_proc: int = 1,
+    create_training_data: bool = False,
+    retrain_Gouthams_model: bool = False,
+    train_from_base_cellpose_nuclei_model: bool = True,
+    use_original_data: bool = True,
+    verbose: bool = False,
+) -> None:
 
     datasets_to_use = list(get_scenes_to_use().keys())
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
@@ -435,10 +369,16 @@ def main(
         verbose=verbose,
     )
 
+    # return whether or not to use a gpu with CellPose
+    gpu = core.use_gpu()
+
     # Generate ground truths from nuclei labeled with DAPI
     # using the Cellpose base nuclei model
     images_paths, labels_paths = get_training_data(
-        analysis_queue, create_training_data=create_training_data, n_proc=n_proc
+        analysis_queue,
+        create_training_data=create_training_data,
+        n_proc=n_proc,
+        gpu=gpu,
     )
 
     # split the images and labels into training and testing sets
@@ -466,27 +406,27 @@ def main(
     learning_rate = 0.1
     weight_decay = 1e-4
     n_epochs = 300  # 100#300
-    gpu = core.use_gpu()
 
-    # initiate the cellpose logger so that we
-    # can extract the training and test losses
-    logger_setup()
+    # create a timestamp for when this workflow was run
     timestamp = datetime.today().strftime("%Y%m%d-%H_%M")
 
     # get the nuclei model path from the config file
     model_config = load_config(config_type="model")
-    nuclei_models = [
-        model for model in model_config if model["name"] == "nuc_pred_labelfree"
-    ]
+    nuclei_models = model_config.get("nuc_pred_labelfree")
     assert len(nuclei_models) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
-    model_path = Path(nuclei_models[0]["model_path"])
+    model_path = Path(nuclei_models.get("model_path"))
 
     # create a directory to save the models
     # and their losses and a test image
     model_dir = model_path.parent / timestamp
     model_dir.mkdir(exist_ok=True, parents=True)
 
-    model_name_list = []  # will populate this as we go
+    # initiate the cellpose logger so that we
+    # can extract the training and test losses
+    logger_setup(cp_path=model_dir, logfile_name=f"{timestamp}_run.log")
+
+    # will populate this dictionary as we go
+    run_record: dict[str, Any] = {}
 
     if retrain_Gouthams_model:
         # retrain Goutham's Cellpose model
@@ -494,12 +434,11 @@ def main(
         Goutham_finetuned_model_name = (
             f"bf_std_model_no_preprocess_retrained_{timestamp}"
         )
-        model_name_list.append(Goutham_finetuned_model_name)
 
         model_bf_stdproject = models.CellposeModel(
             gpu=gpu, pretrained_model=str(model_path)
         )
-        model_path = train.train_seg(
+        model_path, train_losses, test_losses = train.train_seg(
             model_bf_stdproject.net,
             train_data=images_training,
             train_labels=labels_training,
@@ -515,16 +454,21 @@ def main(
             model_name=Goutham_finetuned_model_name,
         )
 
+        run_record[Goutham_finetuned_model_name] = {
+            "model_path": model_path,
+            "train_losses": train_losses,
+            "test_losses": test_losses,
+        }
+
     if train_from_base_cellpose_nuclei_model:
         # fine-tune the basic CellPose nuclei model
         model_dir_from_default = model_dir / "CellPose_default_nuclei_model_finetuning"
         model_dir_from_default.mkdir(exist_ok=True)
         labelfree_nuc_pred_from_default_model_name = f"labelfree_nuc_pred_{timestamp}"
-        model_name_list.append(labelfree_nuc_pred_from_default_model_name)
 
         model_nuclei_original = models.CellposeModel(gpu=gpu, model_type="nuclei")
 
-        model_path = train.train_seg(
+        model_path, train_losses, test_losses = train.train_seg(
             model_nuclei_original.net,
             train_data=images_training,
             train_labels=labels_training,
@@ -540,26 +484,33 @@ def main(
             model_name=labelfree_nuc_pred_from_default_model_name,
         )
 
-    # move the run.log file to the model directory for record keeping purposes
-    run_log_filepath = Path.home().joinpath(".cellpose").joinpath("run.log")
-    assert model_dir.exists(), f"Cellpose model directory {model_dir} does not exist"
-    run_log_filepath_new = Path(model_dir) / "run.log"
-    shutil.move(run_log_filepath, run_log_filepath_new)
+        run_record[labelfree_nuc_pred_from_default_model_name] = {
+            "model_path": model_path,
+            "train_losses": train_losses,
+            "test_losses": test_losses,
+        }
 
     # generate plots of the training and test losses
-    if any(model_name_list):
+    if any(run_record):
         # load the training and test losses from the run.log file
-        train_losses, test_losses, time_list, epoch_list = (
-            get_old_cellpose_train_test_losses(model_dir, model_name_list)
-        )
+        # train_losses, test_losses, time_list, epoch_list = get_old_cellpose_train_test_losses(model_dir, model_name_list)
 
         # save the training and test losses to a file
-        for model_name in model_name_list:
+        for model_name in run_record:
+            train_losses = run_record[model_name]["train_losses"]
+            test_losses = run_record[model_name]["test_losses"]
+
             fig, ax = plt.subplots(nrows=1, ncols=1)
             ax.plot(
-                epoch_list[model_name], train_losses[model_name], label="train_loss"
+                np.where(train_losses)[0],
+                train_losses[np.where(train_losses)],
+                label="train_loss",
             )
-            ax.plot(epoch_list[model_name], test_losses[model_name], label="test_loss")
+            ax.plot(
+                np.where(test_losses)[0],
+                test_losses[np.where(test_losses)],
+                label="test_loss",
+            )
             ax.set_title(f"{model_name} training and test losses")
             ax.set_xlabel("epoch")
             ax.set_ylabel("loss")
@@ -602,7 +553,7 @@ def main(
     )
 
     # plot and save the resulting nuclei prediction
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+    fig, (ax0, ax1, ax2) = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     image_rescaled = rescale_intensity(
         np.clip(
             test_img_arr,
@@ -611,13 +562,13 @@ def main(
         ),
         out_range=(0, 1),
     )
-    ax[0].imshow(image_rescaled, cmap="gray")
-    ax[0].set_title("BF STD")
-    ax[1].imshow(label2rgb(test_prediction))
-    ax[1].set_title("Nuclei Predictions")
+    ax0.imshow(image_rescaled, cmap="gray")
+    ax0.set_title("BF STD")
+    ax1.imshow(label2rgb(test_prediction))
+    ax1.set_title("Nuclei Predictions")
     overlay = label2rgb(label=test_prediction, image=image_rescaled, bg_label=0)
-    ax[2].imshow(overlay)
-    [ax.set_axis_off() for ax in ax]
+    ax2.imshow(overlay)
+    [ax.set_axis_off() for ax in (ax0, ax1, ax2)]
     plt.tight_layout()
     fig.savefig(
         model_dir / f"{model_name}_test_image.png", bbox_inches="tight", dpi=180
@@ -627,23 +578,3 @@ def main(
 
 if __name__ == "__main__":
     ipython_cli_flexecute(main)
-
-
-# MIGHT DELETE THIS BLOCK LATER
-
-# if show_watershed_segmentations:
-#     for i in range(len(images)):
-#         fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
-#         image_rescaled = rescale_intensity(np.clip(images[i],
-#                                                 a_min=np.percentile(images[i], 1),
-#                                                 a_max=np.percentile(images[i], 99)),
-#                                         out_range=(0,1))
-#         ax[0].imshow(image_rescaled, cmap='gray')
-#         ax[0].set_title('BF STD')
-#         ax[1].imshow(label2rgb(labels[i]))
-#         ax[1].set_title('Watershed')
-#         overlay = label2rgb(label=labels[i], image=image_rescaled, bg_label=0)
-#         ax[2].imshow(overlay)
-#         [ax.set_axis_off() for ax in ax]
-#         plt.tight_layout()
-#         plt.show()
