@@ -19,7 +19,7 @@ import fire
 
 
 # model methods
-def load_config(config_type: str = "data") -> List[Dict[str, Any]]:
+def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError(
             'Invalid config type. Must be either "data", "model", or "dynamics."'
