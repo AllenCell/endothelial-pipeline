@@ -1,7 +1,7 @@
 import subprocess
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -80,6 +80,35 @@ def build_measured_features_tables(
     (a validation image has segmentation borders, nodes, edges, and
     the straight lines connecting nodes as channels in a single
     .tiff image).
+
+    Parameters
+    ----------
+    dataset_name: str
+        The name of the dataset to process.
+    T: int
+        The timepoint to process.
+    out_dir: str | Path
+        The output directory to save the tables and validation images to.
+    scene: str | int
+        The scene index to process (only used if use_original_data = True).
+    position: int
+        The position to process (this will be equal to the scene index).
+    use_original_data: bool | None
+        Whether to use the original data or the zarr data.
+    img_bin_level: int
+        The binning level to use when loading an image (only used if use_original_data = False).
+        Currently not implemented.
+    save_output: bool | None
+        Whether to save the output tables (and validation images if selected).
+    create_validation_image: bool
+        Whether to create a validation image.
+    verbose: bool
+        Whether to print progress messages.
+
+    Returns
+    -------
+    This function will only save tables and images,
+    it does not return anything.
 
     The tables contain the following information:
     segmentation properties table:

@@ -48,7 +48,7 @@ def run_workflow(queue: Sequence) -> None:
     if seg_filepaths:
         if validation_image:
             # get the raw cadherin channel from either original data or the zarr version
-            scene_index = int(queue_df["scene_index"].unique()[0])
+            scene_index = int(sequence_to_scalar(queue_df["scene_index"]))
             if use_original_data:
                 raw_channel = get_dataset_info(dataset_name)["488_channel_index"]
                 raw_filepath = Path(get_original_path(dataset_name))
