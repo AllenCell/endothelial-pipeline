@@ -12,11 +12,11 @@ from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
     extract_T,
+    fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_measurement_data_raws,
     get_original_path,
-    get_reference_datasets,
     get_tracking_data_raws,
     get_zarr_name,
     get_zarr_path,
@@ -977,10 +977,7 @@ def main(
 
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
 
-    if dataset_name == None:
-        dataset_name_list = get_reference_datasets() + ["20250319_20X"]
-    else:
-        dataset_name_list = [dataset_name]
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     if n_proc > 1:
         n_proc = min(n_proc, len(dataset_name_list))
