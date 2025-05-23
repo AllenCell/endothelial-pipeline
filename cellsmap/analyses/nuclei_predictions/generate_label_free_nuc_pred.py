@@ -1,6 +1,6 @@
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List, Sequence
+from typing import List
 
 import numpy as np
 from bioio import BioImage
