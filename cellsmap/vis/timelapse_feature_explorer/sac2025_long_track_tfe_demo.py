@@ -199,7 +199,7 @@ def generate_crop_outline_images() -> None:
             # )
 
         # save the image
-        image_name = f"{dataset_name}_P{position}_T{tp}_track_{track_id}"
+        image_name = f"{dataset_name}_P{position}_T{tp}"
         out_filename = f"{image_name}.ome.tif"
         out_path = out_dir_seg_and_box / out_filename
         save_image_output(
@@ -228,6 +228,8 @@ def generate_crop_outline_images() -> None:
         )
 
 
+generate_crop_outline_images()
+
 out_dir_tfe = (
     "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
 )
@@ -238,4 +240,5 @@ generate_tfe_dataset(
     output_dir=out_dir,
     source_dir=out_dir_box_only,
     backdrops=True,
+    output_dir_suffix="tid1852",
 )
