@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 from bioio import BioImage
+from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import get_segmentation_features_manifest
@@ -15,8 +16,6 @@ from cellsmap.util.set_output import get_output_path
 from cellsmap.vis.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
-
-# from skimage.morphology import dilation, disk
 
 
 def get_crop_bounds(
@@ -132,7 +131,15 @@ def generate_crop_outline_images() -> None:
 
     # get the image pixel sizes
     img = BioImage(seg_feat_df_subset.iloc[0]["cdh5_classic_segmentation_path"])
+    img_arr = img.get_image_data(dim_order)
     phys_px_sizes = img.physical_pixel_sizes
+
+    # when saving the image I need to know what the dimensions of
+    # the array being passed to save_imgage_output are, so I will
+    # get those from the squeezed image with the line below
+    squeezed_img_dim_order = "".join(
+        [dim_order[i] for i in range(img_arr.ndim) if img_arr.shape[i] > 1]
+    )
 
     for tp in tqdm(timepoints):
         # TODO def draw_crop_bounds_around_segmentation_of_interest(): everything below
@@ -149,8 +156,8 @@ def generate_crop_outline_images() -> None:
         # this timepoint, then the table will be empty, so make an
         # array of zeros
         if seg_feat_df_at_T.empty:
-            example_track_img_arr
-            crop_box_img_arr = example_track_img_arr.copy()
+            example_track_img_arr = example_track_img_arr.squeeze()
+            crop_box_img_arr = example_track_img_arr.copy().squeeze()
         else:
             # load the segmentation image
             fp = Path(
@@ -180,23 +187,20 @@ def generate_crop_outline_images() -> None:
             seg_id = sequence_to_scalar(seg_feat_df_at_T["label"])
 
             # draw the crop bounds on the initially blank image
-            example_track_img_arr = draw_crop_bounds(
-                example_track_img_arr,
-                crop_bounds,
-                bounds_value=seg_id,
+            example_track_img_arr = dilation(
+                draw_crop_bounds(
+                    example_track_img_arr,
+                    crop_bounds,
+                    bounds_value=seg_id,
+                ).squeeze(),
+                footprint=disk(3),
             )
             # save 2 images: one with just the crop bounds and another
             # with both the crop bounds and the segmentation
             crop_box_img_arr = example_track_img_arr.copy()
 
             # draw the segmentation on the image with the crop bounds
-            example_track_img_arr[(img_arr == seg_id)] = seg_id
-            # when saving the image I need to know what the dimensions of
-            # the array being passed to save_imgage_output are, so I will
-            # get those from the squeezed image with the line below
-            # squeezed_img_dim_order = "".join(
-            #     [dim_order[i] for i in range(img_arr.ndim) if img_arr.shape[i] > 1]
-            # )
+            example_track_img_arr[(img_arr.squeeze() == seg_id)] = seg_id
 
         # save the image
         image_name = f"{dataset_name}_P{position}_T{tp}"
@@ -207,7 +211,7 @@ def generate_crop_outline_images() -> None:
             images=[example_track_img_arr],
             images_metadata={
                 "image_name": image_name,
-                "dim_order": dim_order,
+                "dim_order": squeezed_img_dim_order,
                 "channel_names": ["segmentation"],
                 "channel_colors": [(255, 255, 255)],
                 "physical_pixel_sizes": phys_px_sizes,
@@ -220,7 +224,7 @@ def generate_crop_outline_images() -> None:
             images=[crop_box_img_arr],
             images_metadata={
                 "image_name": image_name,
-                "dim_order": dim_order,
+                "dim_order": squeezed_img_dim_order,
                 "channel_names": ["segmentation"],
                 "channel_colors": [(255, 255, 255)],
                 "physical_pixel_sizes": phys_px_sizes,
