@@ -237,5 +237,5 @@ generate_tfe_dataset(
     position=position,
     output_dir=out_dir,
     source_dir=out_dir_box_only,
-    backdrops=False,
+    backdrops=True,
 )
