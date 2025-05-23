@@ -200,7 +200,7 @@ def generate_crop_outline_images() -> None:
 
         # save the image
         image_name = f"{dataset_name}_P{position}_T{tp}"
-        out_filename = f"{image_name}.ome.tif"
+        out_filename = f"{image_name}.ome.tiff"
         out_path = out_dir_seg_and_box / out_filename
         save_image_output(
             out_path=out_path,
