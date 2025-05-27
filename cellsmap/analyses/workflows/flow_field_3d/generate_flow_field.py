@@ -37,12 +37,12 @@ def main(datasets_to_use: list | None = None) -> None:
     # plot scatter of PCA components
     # for a) just the datasets used to fit PCA
     # and b) all datasets including intermediate shear stress
-    fig, _ = manifest_viz.plot_pca_scatter(
+    fig, _ = manifest_viz.plot_pc_scatter(
         pca,
         datasets_to_use[:3],  # first three datasets
     )
     vb.save_plot(fig, fig_savedir + "/pca_scatter_ref")
-    fig, _ = manifest_viz.plot_pca_scatter(
+    fig, _ = manifest_viz.plot_pc_scatter(
         pca,
         datasets_to_use,  # last two datasets
     )
