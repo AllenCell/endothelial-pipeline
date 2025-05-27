@@ -54,7 +54,7 @@ def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
     - ax: plt.Axes
     """
 
-    fig, ax = vb.init_subplots()
+    fig, ax = vb.init_subplots(figsize=(15, 5))
 
     for name in datasets_to_use:
         # load dataframe and get top 3 PCs
