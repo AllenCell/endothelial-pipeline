@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-# from cellsmap.analyses.utils.viz import flow_field_viz as ffv
 from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.io.dynamics_io import load_dynamics_config
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
@@ -18,10 +17,8 @@ from cellsmap.analyses.utils.viz.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 from cellsmap.util.dataset_io import (
-    get_measurement_data_raws,
     get_reference_datasets,
     get_segmentation_features_manifest,
-    get_tracking_data_raws,
     ipython_cli_flexecute,
 )
 from cellsmap.util.manifest_io import (
@@ -374,56 +371,45 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     return None
 
 
-# def get_merged_table(dataset_name: str) -> pd.DataFrame:
-#     # read in the segmentation-based diffae features
-#     print("loading diffae features from tracking data...")
-#     diffae_tracking = get_track_diffae_manifest(dataset_name)
-#     if diffae_tracking is None:
-#         return None
-#     diffae_tracking["is_unique"] = diffae_tracking.groupby(
-#         ["dataset", "position", "frame_number", "track_id"]
-#     )["frame_number"].transform(lambda t: t.nunique() == t.size)
-#     diffae_tracking = diffae_tracking[diffae_tracking["is_unique"]]
+def get_merged_table(dataset_name: str) -> pd.DataFrame:
+    # read in the segmentation-based diffae features
+    print("loading diffae features from tracking data...")
+    diffae_tracking = get_track_diffae_manifest(dataset_name)
+    if diffae_tracking is None:
+        return None
+    diffae_tracking["is_unique"] = diffae_tracking.groupby(
+        ["dataset", "position", "frame_number", "track_id"]
+    )["frame_number"].transform(lambda t: t.nunique() == t.size)
+    diffae_tracking = diffae_tracking[diffae_tracking["is_unique"]]
 
-#     # give the crop_index column the same value as the track_ids
-#     diffae_tracking["crop_index"] = diffae_tracking["track_id"]
-#     diffae_tracking = diffae_preproc.add_description_column(
-#         diffae_tracking, dataset_name, simple=True
-#     )  # add description column (e.g., 48hr_High)
-#     diffae_tracking["track_id"] = diffae_tracking["track_id"].astype(int)
+    # give the crop_index column the same value as the track_ids
+    diffae_tracking["crop_index"] = diffae_tracking["track_id"]
+    diffae_tracking = diffae_preproc.add_description_column(
+        diffae_tracking, dataset_name, simple=True
+    )  # add description column (e.g., 48hr_High)
+    diffae_tracking["track_id"] = diffae_tracking["track_id"].astype(int)
 
-#     # load the tracking data of the measured features and merge them
-#     print("loading segmentation property data...")
-#     seg_props_df = get_measurement_data_raws(
-#         [dataset_name], kind="segmentation_properties", as_dask=False
-#     )
-#     if seg_props_df is None:
-#         return None
-#     print("loading tracking data...")
-#     tracking_df = get_tracking_data_raws([dataset_name], position=None, as_dask=False)
-#     if tracking_df is None:
-#         return None
+    # load the tracking data of the measured features and merge them
+    print("loading segmentation property data...")
+    df_all_positions = get_segmentation_features_manifest([dataset_name])
 
-#     print("merging segmentation properties, tracking, and track-based DiffAE data...")
-#     df_all_positions = merge_segprops_and_track_data(seg_props_df, tracking_df)
+    print("merging segmentation properties and track-based DiffAE data...")
+    diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
+    df_all_positions["position_as_str"] = df_all_positions["position"].transform(
+        lambda x: "P" + str(x)
+    )
+    df_all_positions["track_id"] = df_all_positions["track_id"].astype(int)
 
-#     del seg_props_df, tracking_df  # remove unnecessary dataframes to save memory
-#     diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
-#     df_all_positions["position_as_str"] = df_all_positions["position"].transform(
-#         lambda x: "P" + str(x)
-#     )
-#     df_all_positions["track_id"] = df_all_positions["track_id"].astype(int)
+    df_all_positions = pd.merge(
+        left=df_all_positions,
+        right=diffae_tracking,
+        how="left",
+        left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
+        right_on=["dataset", "position_as_str", "frame_number", "track_id"],
+        validate="one_to_one",
+    )
 
-#     df_all_positions = pd.merge(
-#         left=df_all_positions,
-#         right=diffae_tracking,
-#         how="left",
-#         left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
-#         right_on=["dataset", "position_as_str", "frame_number", "track_id"],
-#         validate="one_to_one",
-#     )
-
-#     return df_all_positions
+    return df_all_positions
 
 
 def make_all_plots(
@@ -516,8 +502,7 @@ def main() -> None:
         out_subdir_traj = out_dir / "trajectories_track_based"
         out_subdir_traj.mkdir(parents=True, exist_ok=True)
 
-        # df_all_positions = get_merged_table(dataset_name)
-        df_all_positions = get_segmentation_features_manifest([dataset_name])
+        df_all_positions = get_merged_table(dataset_name)
         if df_all_positions is None:
             print(
                 f"Dataset {dataset_name} is missing one or more data tables. Skipping..."
@@ -525,14 +510,10 @@ def main() -> None:
             continue
 
         print("cleaning up merged table...")
-        # df_all_positions.dropna(axis=0, how="any", subset="is_unique", inplace=True)
-        # df_all_positions = calculate_derived_data_dynamics_independent(df_all_positions)
-        # df_all_positions = filter_seg_feature_table(
-        #     df_all_positions,
-        #     out_dir=None,
-        #     min_num_points_per_track=120,
-        # )
         df_all_positions = df_all_positions.query("valid_points >= 120")
+        df_all_positions.dropna(
+            axis="index", how="any", subset="is_unique", inplace=True
+        )
 
         # fit the PCA (uses the reference datasets)
         pca = fit_pca()
