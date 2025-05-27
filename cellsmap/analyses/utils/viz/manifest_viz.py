@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.pipeline import Pipeline
 
+import cellsmap.analyses.utils.numerics.data_driven_flow_field as ddff
 import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
@@ -37,6 +38,32 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     ax.set_title("Explained variance ratio of PCA components")
 
     return fig, ax
+
+
+def get_dataset_color(name: str) -> str:
+    """
+    Get standard color for a dataset based on its name.
+    Uses the matplotlib tableau color palette.
+
+    Input:
+    - name: str, name of the dataset
+    Output:
+    - color: str, color for the dataset
+    """
+
+    # hard coded colors for specific datasets
+    dataset_to_color = {
+        "20241120_20X": "tab:blue",
+        "20250409_20X": "tab:orange",
+        "20241217_20X": "tab:green",
+        "20250319_20X": "tab:purple",
+        "20250326_20X": "tab:cyan",
+    }
+
+    # default to gray if not found
+    color = dataset_to_color.get(name, "tab:gray")
+
+    return color
 
 
 def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:

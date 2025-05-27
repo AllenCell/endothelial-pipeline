@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
+from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
@@ -68,7 +69,7 @@ def plot_one_slice_quiver(
     velocities: tuple,
     grid: tuple,
     slice_indexes: np.ndarray,
-    color: str = "#08b4bc",
+    color: str = "dimgrey",
     norm: bool = True,
     ax: plt.Axes | None = None,
     ds: int = 3,
@@ -122,7 +123,7 @@ def plot_one_slice_quiver(
 def plot_quiver_slices(
     flow_field_dict: dict,
     slice_indexes: tuple[np.ndarray, np.ndarray],
-    color: str = "#08b4bc",
+    color: str = "dimgrey",
     norm: bool = True,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
@@ -216,7 +217,7 @@ def plot_flow_field_slices(
     df_cond: pd.DataFrame | None,
     fig_savedir: str | None,
     pc_vals: tuple[float] | None = None,
-    color: str = "#08b4bc",
+    color: str = "black",
     norm: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
@@ -284,9 +285,16 @@ def plot_flow_field_slices(
     # overlaid on scatter plot of data
     fig, ax = vb.init_subplots(figsize=(14, 5))
     if df_cond is not None:
+        # get the color for the scatter plot
+        dataset_name = df_cond["dataset"].unique()[0]
+        scatter_color = manifest_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color="black", alpha=0.1)
-        ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color="black", alpha=0.1)
+        ax[0].scatter(
+            df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.15
+        )
+        ax[1].scatter(
+            df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.15
+        )
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -394,10 +402,34 @@ def flow_field_viz_main(
     bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
     # 1) plot last point of trajectory over flow field
-    fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids))
+    fig, ax = vb.init_subplots(figsize=(14, 5))
+
+    # get the color for the scatter plot
+    scatter_color = manifest_viz.get_dataset_color(name)
+    # plot scatter of data overlaid on quiver plot
+    ax[0].scatter(
+        df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.05
+    )
+    ax[1].scatter(
+        df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.05
+    )
+    fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
+
     # plot last point of trajectory
+    # hack-y work around for intermediate shear stress
+    # simulate second trajectory to get second stable point
+    if name == "20250319_20X" or name == "20250326_20X":
+        init = np.array([1.0, -0.7, -0.1])
+        time_span = [0, 2880]
+        traj_2 = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
+
     for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
-        ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=200, color="black")
+        ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
+        # hack-y work around for intermediate shear stress
+        # simulate second trajectory to get second stable point
+        if name == "20250319_20X" or name == "20250326_20X":
+            ax_.scatter(traj_2[-1, 0], traj_2[-1, j + 1], s=100, color="black")
+    # plot second stable point
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
     # set titles with slice values
     ax[0].set_title(f"PC3 = {pc_vals[0]:.2f}")
@@ -409,11 +441,9 @@ def flow_field_viz_main(
     vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
-    fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids))
     # PC1 v s PC2, PC1 vs PC3
     for j, ax_ in enumerate(ax):
-        ax_.scatter(traj[:, 0], traj[:, j + 1], s=30, color="navy")
-    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
+        ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
     plt.tight_layout()
     plt.show()
     vb.save_plot(
@@ -427,7 +457,7 @@ def flow_field_viz_main(
             interpolated_points[:, 0],
             interpolated_points[:, j + 1],
             s=10,
-            color="springgreen",
+            color="red",
         )
     plt.tight_layout()
     plt.show()
