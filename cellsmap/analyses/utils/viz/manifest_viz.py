@@ -60,10 +60,16 @@ def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
         # load dataframe and get top 3 PCs
         df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
         feat_cols = mio.get_feature_cols(df)[:3]
-        for j in range(2):
-            ax[j].scatter(df[feat_cols[j]], df[feat_cols[j + 1]])
-            ax[j].set_xlabel(f"PC{j+1}")
-            ax[j].set_ylabel(f"PC{j+2}")
+
+        # first plot: PC1 v PC2
+        ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01)
+        ax[0].set_xlabel(f"PC1")
+        ax[0].set_ylabel(f"PC2")
+
+        # second plot: PC1 v PC3
+        ax[1].scatter(df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01)
+        ax[1].set_xlabel(f"PC1")
+        ax[1].set_ylabel(f"PC3")
 
     return fig, ax
 

@@ -27,8 +27,8 @@ def main(datasets_to_use: list | None = None) -> None:
     if datasets_to_use is None:
         datasets_to_use = [
             "20241120_20X",
-            "20241217_20X",
             "20250409_20X",
+            "20241217_20X",
             "20250319_20X",
             "20250326_20X",
         ]
