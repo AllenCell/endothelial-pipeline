@@ -98,7 +98,7 @@ conditions = [
 ]
 # %%
 for condition in conditions:
-    dataset_name = condition["ref_dataset_name"]
+    dataset_name = str(condition["ref_dataset_name"])
     flow_regime = condition["flow_regime"]
     corresponding_if_datasets = condition["corresponding_if_datasets"]
 
@@ -147,11 +147,13 @@ for condition in conditions:
                 track_id_to_plot=None,
                 show_plot=True,
                 alpha=1.0,
-                hue_min_max=None,
+                hue_norm=None,
             )
 
 # %%
 # generate plots for the SAC-2025 slides
+# NOTE I (SERGE) WROTE THIS SHORTLY BEFORE SAC SLIDES WERE DUE;
+# IT NEEDS TO BE REFACTORED AND BETTER INTEGRATED WITH OTHER CODE
 for condition in conditions:
     if "20250509_20X_IF9" in condition["corresponding_if_datasets"]:
         break
@@ -196,6 +198,7 @@ Path(output_dir).mkdir(exist_ok=True, parents=True)
 fig, axs = plot_quiver_slices_from_diffae_table(
     diffae_grid_crops, traj_grids, flow_field_dict_grids
 )
+plt.tight_layout()
 fig.savefig(
     Path(output_dir) / f"{dataset_name}_flow_field_quiver.png",
     dpi=300,
@@ -214,7 +217,7 @@ plot_measured_feat_overlay_on_flowfield(
     track_id_to_plot=None,
     show_plot=True,
     alpha=1.0,
-    hue_min_max=None,
+    hue_norm=None,
 )
 plt.close(fig)
 
