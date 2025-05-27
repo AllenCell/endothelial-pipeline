@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 from bioio import BioImage
@@ -9,6 +9,7 @@ from tqdm import tqdm
 from cellsmap.util.dataset_io import (
     get_original_path,
     get_total_number_of_positions,
+    get_zarr_name,
     get_zarr_path,
 )
 from cellsmap.util.get_sldy_metadata import get_objective_info
@@ -39,14 +40,14 @@ def build_analysis_queue(
     t_final: int | None = None,
     t_step: int = 1,
     img_bin_level: int = 0,
-    save_output=True,
-    overwrite=False,
+    save_output: bool = True,
+    overwrite: bool = False,
     out_dir: str | Path | None = None,
     magnification: int | None = None,
     image_validation_frequency: int | None = None,
-    verbose=None,
-    is_test=False,
-    use_original_data=False,
+    verbose: bool = False,
+    is_test: bool = False,
+    use_original_data: bool = False,
 ) -> list:
     print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
@@ -61,20 +62,23 @@ def build_analysis_queue(
         desc="Building analysis queue",
         unit="dataset",
     ):
-        img_path = (
-            Path(get_zarr_path(dataset_name))
-            if not use_original_data
-            else Path(get_original_path(dataset_name))
-        )
-        img = BioImage(img_path)
-
-        num_positions = get_total_number_of_positions(dataset_name)
+        if use_original_data:
+            img_path = Path(get_original_path(dataset_name))
+            img = BioImage(img_path)
+            num_positions = get_total_number_of_positions(dataset_name)
+            num_pos_in_S = len(img.scenes)
+        else:
+            img_path_dict = get_zarr_path(dataset_name)
+            num_positions = get_total_number_of_positions(dataset_name)
+            num_pos_in_S = len(img_path_dict)
+            zarr_name_dict = {
+                pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)
+            }
 
         assert (
-            num_positions % len(img.scenes) == 0
-        ), f"Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({len(img.scenes)}) in the image file for dataset {dataset_name}"
-        num_pos_in_T = num_positions // len(img.scenes)
-        num_pos_in_S = len(img.scenes)
+            num_positions % num_pos_in_S == 0
+        ), f"Number of positions ({num_positions}) in data_config.yaml must be divisible by number of scenes ({num_pos_in_S}) in the image file for dataset {dataset_name}"
+        num_pos_in_T = num_positions // num_pos_in_S
 
         positions_in_T, positions_in_S = [], []
         for scene_index in range(num_pos_in_S):
@@ -82,8 +86,15 @@ def build_analysis_queue(
             positions_in_S += [scene_index] * num_pos_in_T
 
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
-            img.set_scene(pos_in_S)
-            scene_name = img.scenes[pos_in_S]
+            if use_original_data:
+                img.set_scene(pos_in_S)
+                scene_name = img.scenes[pos_in_S]
+            else:
+                zarr_name = zarr_name_dict[pos_in_S]
+                img_path = Path(img_path_dict[zarr_name])
+                img = BioImage(img_path)
+                img.set_scene(0)
+                scene_name = zarr_name
             if (
                 magnification != None
                 and get_objective_info(img.metadata)["magnification"] != magnification
@@ -153,6 +164,38 @@ def build_analysis_queue(
                             }
                         )
     return analysis_queue
+
+
+def sequence_to_scalar(sequence_like: Sequence) -> Any:
+    """
+    Takes a sequence-like object and returns the sole element if
+    there is only one unique element in the sequence, else raises
+    an error.
+    Useful for turning a list with only 1 unique element into that
+    element.
+    Beware that this will return the key, not the value, if a
+    dictionary is passed in.
+
+    Example 1:
+        >>> sequence_to_scalar([1])
+        1
+    Example 2:
+        >>> sequence_to_scalar(np.array(['a', 'a', 'a'])
+        'a'
+    Example 3:
+        >>> sequence_to_scalar([1.0, 1.1])
+        ValueError: Sequence must have only one unique element.
+    """
+    unique_elements = set(sequence_like)
+    if len(unique_elements) == 1:
+        element = unique_elements.pop()
+    else:
+        raise ValueError(
+            "Sequence must have only one unique element. "
+            f"Unique elements: {unique_elements}"
+        )
+
+    return element
 
 
 def restore_full_dims(

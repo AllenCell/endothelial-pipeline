@@ -11,6 +11,17 @@ from cellsmap.util.dataset_io import (
 )
 
 
+def get_included_scenes(dataset_name: str) -> list:
+    dataset_info = get_dataset_info(dataset_name)
+    include_scenes = dataset_info.get("include_scenes")
+
+    # by default, include all scenes
+    if include_scenes is None:
+        include_scenes = range(len(BioImage(dataset_info["original_path"]).scenes))
+
+    return include_scenes
+
+
 def get_delayed_array_for_position(
     pos: int,
     dataset_name: str,
@@ -69,11 +80,3 @@ def get_delayed_array_for_position(
     scene = da.stack(results, axis=0)  # TCZYX
     print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
-
-
-def custom_scene_list(dataset_name: str) -> list | None:
-    dataset_info = get_dataset_info(dataset_name)
-    if "scene_list" in dataset_info:
-        return dataset_info["scene_list"]
-    else:
-        return None

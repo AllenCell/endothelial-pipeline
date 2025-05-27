@@ -21,6 +21,7 @@ dependencies = [
     "bioio-sldy>=1.0.3",
     "bioio-tifffile>=1.0.1",
     "colorcet>=3.1.0",
+    "colorizer-data",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",
@@ -31,6 +32,7 @@ dependencies = [
     "notebook==7.2.1",
     "numdifftools==0.9.41",
     "numpy>=1.2.3",
+    "opencv-python>=4.11.0",
     "pandas==2.2.2",
     "pathlib>=1.0.1",
     "pyarrow<=19.0.1",
@@ -103,6 +105,7 @@ cache-dir = ".cache/uv"
 
 [tool.uv.sources]
 aicsfiles = { index = "artifactory" }
+colorizer-data = { git = "https://github.com/allen-cell-animated/colorizer-data.git", rev = "v1.6.3" }
 
 [[tool.uv.index]]
 name = "artifactory"
