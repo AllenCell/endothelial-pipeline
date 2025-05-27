@@ -39,6 +39,35 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
+def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
+    """
+    Plot scatter plot of PCA components for a list of datasets.
+
+    Input:
+    - pca: Pipeline, the PCA model used to project the
+        feature data onto the PCA space
+        - can include any preprocessing steps before PCA, such as scaling
+    - datasets_to_use: list[str], list of dataset names to plot
+        - each dataset should have a DiffAE manifest file
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    """
+
+    fig, ax = vb.init_subplots()
+
+    for name in datasets_to_use:
+        # load dataframe and get top 3 PCs
+        df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+        feat_cols = mio.get_feature_cols(df)[:3]
+        for j in range(2):
+            ax[j].scatter(df[feat_cols[j]], df[feat_cols[j + 1]])
+            ax[j].set_xlabel(f"PC{j+1}")
+            ax[j].set_ylabel(f"PC{j+2}")
+
+    return fig, ax
+
+
 def plot_top_3_pcs(feats_proj: np.ndarray, fig_ax: tuple | None = None) -> tuple:
     """
     Plot Diffusion AE feature data from a dataset along
