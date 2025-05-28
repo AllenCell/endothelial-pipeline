@@ -814,7 +814,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: cells become extremely crowded at end of video
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250402_20X
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ef883577f6014f8cab3452cf2205864d
   is_reference: true
@@ -836,7 +836,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: cells become very crowded near end of timelapse
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250409_20X
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 2979ed0ac60c492db40511ea0b0bef6b
   valid_timepoints:
