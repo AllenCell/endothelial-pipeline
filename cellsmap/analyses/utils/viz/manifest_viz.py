@@ -116,9 +116,9 @@ def plot_top_3_pcs_alldata(pca: Pipeline) -> tuple:
     - fig: plt.Figure
     - ax: plt.Axes
     """
-    # plot top 3 PCs for each live dataset in one figure (each row is a dataset)
+    # plot top 3 PCs for each dataset in one figure (each row is a dataset)
     list_of_datasets = mio.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", verbose=True, timelapse_only=True
+        "diffae_manifest_fmsid", verbose=True
     )  # get all datasets with DiffAE manifest data
     title_dict = diffae_preproc.get_dataset_descriptions(
         list_of_datasets, simple=True
@@ -378,12 +378,12 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
 
 
 def plot_km(
-    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
+    centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
 ) -> Tuple:
     """
     Plot Kramers-Moyal coefficients.
     """
-    ndim = len(pcs)
+    ndim = len(PCs)
     if ndim == 2:
         x_1, x_2 = np.meshgrid(*centers)
         fig = plt.figure(figsize=(12, 8))
@@ -457,7 +457,7 @@ def plot_km(
 
 
 def plot_km_drift_2D(
-    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
+    centers: list[np.ndarray], kmc: np.ndarray, PCs: list[int], shear_stress: float
 ) -> Tuple:
     x_1, x_2 = np.meshgrid(*centers)
 
