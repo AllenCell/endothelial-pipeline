@@ -5,6 +5,7 @@ import pandas as pd
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util.general_image_preprocessing import sequence_to_scalar
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
@@ -286,7 +287,7 @@ def plot_flow_field_slices(
     fig, ax = vb.init_subplots(figsize=(14, 5))
     if df_cond is not None:
         # get the color for the scatter plot
-        dataset_name = df_cond["dataset"].unique()[0]
+        dataset_name = sequence_to_scalar(df_cond["dataset"])
         scatter_color = manifest_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
         ax[0].scatter(

@@ -5,6 +5,7 @@ from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
@@ -36,15 +37,16 @@ def main(datasets_to_use: list | None = None) -> None:
 
     # plot scatter of PCA components
     # for a) just the datasets used to fit PCA
-    # and b) all datasets including intermediate shear stress
+    # and b) all datasets specified in the command line
+    #   (or default list, if not specified)
     fig, _ = manifest_viz.plot_pc_scatter(
         pca,
-        datasets_to_use[:3],  # first three datasets
+        get_reference_datasets(),  # pca reference datasets
     )
     vb.save_plot(fig, fig_savedir + "/pca_scatter_ref")
     fig, _ = manifest_viz.plot_pc_scatter(
         pca,
-        datasets_to_use,  # last two datasets
+        datasets_to_use,  # all datasets specified
     )
     vb.save_plot(fig, fig_savedir + "/pca_scatter_all")
 
