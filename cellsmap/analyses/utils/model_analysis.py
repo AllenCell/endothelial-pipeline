@@ -43,7 +43,7 @@ def model_data_comparison_one_dataset(
         only the frames where the data are stationary
     - u: float, shear stress at which to evaluate model
         (this is the shear stress from the data)
-    - PCs: list of ints, indices of which PCs model
+    - pcs: list of ints, indices of which PCs model
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
     - pplane_xvec: np.ndarray, x values for phase portrait
@@ -132,8 +132,10 @@ def model_data_comparison(
     - None, saves figures to fig_savedir
     """
 
-    # get list of datasets with DiffAE manifest data
-    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid")
+    # get list of timelapse datasets with DiffAE manifest data
+    list_of_datasets = mio.list_datasets_with_manifest(
+        "diffae_manifest_fmsid", timelapse_only=True
+    )
 
     for ds_name in list_of_datasets:
         # if we don't want to fit model using this dataset, skip it
@@ -169,10 +171,12 @@ def model_data_comparison(
             # else, it is just the whole dataset
             else:
                 stationary_data = df_by_flow[j]
+
+            # call function to compare model and data
             fig1, _, fig2, _ = model_data_comparison_one_dataset(
                 model,
-                df_by_flow[j],
                 stationary_data,
+                shear_list[j],
                 pcs,
                 bins,
                 pplane_xvec,

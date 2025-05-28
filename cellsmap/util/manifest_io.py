@@ -154,7 +154,11 @@ def get_feature_cols(df: pd.DataFrame) -> list:
     return feat_cols
 
 
-def list_datasets_with_manifest(manifest_name: str, verbose: bool = False) -> list:
+def list_datasets_with_manifest(
+    manifest_name: str,
+    verbose: bool = False,
+    timelapse_only: bool = False,
+) -> list:
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
@@ -166,10 +170,19 @@ def list_datasets_with_manifest(manifest_name: str, verbose: bool = False) -> li
             if manifest_name == "nuclear_seg_manifest_fmsid"
             else "DiffAE"
         )
-        print(f"Available datasets with {manifest_type} manifest data: ")
+        if timelapse_only:
+            print(f"Available timelapse datasets with {manifest_type} manifest data: ")
+        else:
+            print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
     for dataset_name in all_datasets:
         dataset_info = dataset_io.get_dataset_info(dataset_name)
+        # get time_interval_in_minutes - any dataset
+        # that is fixed or is a 20X/40X pair has default
+        # time_interval_in_minutes of -1.0, so we skip
+        time_interval_in_minutes = dataset_info.get("time_interval_in_minutes", -1.0)
+        if timelapse_only and time_interval_in_minutes < 0:
+            continue
         if manifest_name in dataset_info and dataset_info[manifest_name] != "":
             dataset_list.append(dataset_name)
             if verbose:
