@@ -343,7 +343,7 @@ def ddff_main(
     output_savedir: str,
 ) -> None:
     # get bins for KMCs
-    bounds = set_3d_bounds_from_data(list_of_datasets, pca)
+    bounds = set_3d_bounds_from_data(list_of_datasets, pca, col_names="feat")
     num_bins = [50, 50, 50]
     bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
 
