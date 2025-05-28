@@ -5,37 +5,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from cellsmap.util import manifest_io
-from cellsmap.util.dataset_io import get_reference_datasets, get_valid_timepoints
+from cellsmap.util.dataset_io import get_reference_datasets
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
-
-
-def get_pca_reference(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
-    """
-    Select reference timepoints for fitting PCA based on the dataset annotations
-
-    Inputs:
-    - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
-
-    Outputs:
-    - df: pd.DataFrame, with an additional column 'pca_ref' indicating whether the timepoint is a reference timepoint
-    """
-    df["pca_ref"] = False
-    # check that the necessary datasets are present for fitting PCA
-    valid_timepoints = get_valid_timepoints(dataset_name)
-    if valid_timepoints is None:
-        print(f"Using all timepoints from dataset {dataset_name} for PCA")
-        df["pca_ref"] = True
-    else:
-        print(f"Reference timepoints for PCA from dataset {dataset_name}: ")
-        tps = []
-        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
-            tps.extend(list(range(start, stop + 1)))
-            print(f"   - {start} to {stop}")
-        valid_subset = df.frame_number.isin(tps)
-        df["pca_ref"] = valid_subset
-    return df[df.pca_ref]
 
 
 def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipeline:
@@ -54,18 +27,13 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     reference_datasets = get_reference_datasets()
     if verbose:
         print(f"Reference datasets for PCA:")
-        print(reference_datasets)
-    data_ref = []
-    for name in reference_datasets:
-        df_ = manifest_io.get_diffae_manifest(name)  # get the manifest for the dataset
-        df_ = get_pca_reference(
-            df_, name
-        )  # get df with only the reference timepoints for fitting PCA
-        data_ref.append(df_)  # append the reference timepoints to the list
-
     data_ref = pd.concat(
-        data_ref, ignore_index=True
-    )  # concatenate the reference timepoints into a single dataframe
+        [
+            manifest_io.get_diffae_manifest(name, filter_to_valid=True)
+            for name in reference_datasets
+        ],
+        ignore_index=True,
+    )
 
     # fit PCA
     if scale:  # scale the data before fitting PCA
