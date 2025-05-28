@@ -102,7 +102,7 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     assert "start_x" in df.columns, "Data must have a column for start_x"
     assert "start_y" in df.columns, "Data must have a column for start_y"
-    assert "position" in df.columns, "Data must have a column for FOV_ID"
+    assert "position" in df.columns, f"Data must have a column for position"
 
     # get list of unique starting positions and FOV_IDs (position column in DiffAE manifest)
     start_x = df[df["frame_number"] == df["frame_number"].min()][
@@ -190,33 +190,11 @@ def get_manifest_for_dynamics_workflows(
             stationary_frames is not None
     """
     # load manifest data for dataset ds_name
-    df = manifest_io.get_diffae_manifest(ds_name)
+    # and filter to only valid timepoints
+    df = manifest_io.get_diffae_manifest(ds_name, filter_to_valid=True)
 
     # add crop index column
     df = add_crop_index(df)
-
-    # load data config for dataset ds_name
-    # see if stationary frames are defined in data config
-    valid_timepoints = dataset_io.get_valid_timepoints(ds_name)
-    # if valid_timepoints is None, use all timepoints
-    if valid_timepoints is None:
-        # no change made to DataFrame
-        # just print that all timepoints are being used
-        print(
-            f"Using all timepoints from dataset {ds_name} for "
-            " dynamics workflow analysis"
-        )
-    else:
-        # restrict DataFrame to only the timepoints
-        # as defined by the ranges in valid_timepoints
-        print(f"Range(s) of timepoints being used from dataset {ds_name}: ")
-        df_ = []
-        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
-            print(f"   - {start} to {stop}")
-            # restrict DataFrame to only the timepoints
-            # as defined by the ranges in valid_timepoints
-            df_.append(df[(df["frame_number"] >= start) & (df["frame_number"] <= stop)])
-        df = pd.concat(df_, ignore_index=True)
 
     if pca is None:
         # do not project feature data onto PCA axes
