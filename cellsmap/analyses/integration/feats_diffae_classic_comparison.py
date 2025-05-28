@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -7,12 +7,6 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
-
-from cellsmap.analyses.track_data_plots import (
-    calculate_derived_data_dynamics_independent,
-    filter_seg_feature_table,
-    merge_segprops_and_track_data,
-)
 
 # from cellsmap.analyses.utils.viz import flow_field_viz as ffv
 from cellsmap.analyses.utils import regression_helper as rh
@@ -24,9 +18,8 @@ from cellsmap.analyses.utils.viz.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 from cellsmap.util.dataset_io import (
-    get_measurement_data_raws,
     get_reference_datasets,
-    get_tracking_data_raws,
+    get_segmentation_features_manifest,
     ipython_cli_flexecute,
 )
 from cellsmap.util.manifest_io import (
@@ -243,7 +236,8 @@ def plot_measured_feat_pcs(
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
-    alpha: float = 1.0,
+    alpha: float = 0.5,
+    hue_min_max: tuple[float, float] | None = None,
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
@@ -399,20 +393,7 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame:
 
     # load the tracking data of the measured features and merge them
     print("loading segmentation property data...")
-    seg_props_df = get_measurement_data_raws(
-        [dataset_name], kind="segmentation_properties", as_dask=False
-    )
-    if seg_props_df is None:
-        return None
-    print("loading tracking data...")
-    tracking_df = get_tracking_data_raws([dataset_name], position=None, as_dask=False)
-    if tracking_df is None:
-        return None
-
-    print("merging segmentation properties, tracking, and track-based DiffAE data...")
-    df_all_positions = merge_segprops_and_track_data(seg_props_df, tracking_df)
-
-    del seg_props_df, tracking_df  # remove unnecessary dataframes to save memory
+    df_all_positions = get_segmentation_features_manifest([dataset_name])
     diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
     df_all_positions["position_as_str"] = df_all_positions["position"].transform(
         lambda x: "P" + str(x)
@@ -529,13 +510,7 @@ def main() -> None:
             continue
 
         print("cleaning up merged table...")
-        df_all_positions.dropna(axis=0, how="any", subset="is_unique", inplace=True)
-        df_all_positions = calculate_derived_data_dynamics_independent(df_all_positions)
-        df_all_positions = filter_seg_feature_table(
-            df_all_positions,
-            out_dir=None,
-            min_num_points_per_track=120,
-        )
+        df_all_positions = df_all_positions[df_all_positions["filter_global"] == False]
 
         # fit the PCA (uses the reference datasets)
         pca = fit_pca()

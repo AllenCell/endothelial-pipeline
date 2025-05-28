@@ -66,9 +66,11 @@ def get_delayed_array_for_position(
     if index_640 is not None:
         channels.append(index_640)
 
-    assert len(channels) == len(
-        channel_names
-    ), f"Number of channels ({len(channels)}) does not match number of channel names ({len(channel_names)})"
+    assert len(channels) == len(channel_names), (
+        f"Number of channels ({len(channels)}) does not match number of channel names ({len(channel_names)})\n"
+        f"Channels: {channels}\n"
+        f"Channel Names: {channel_names}"
+    )
 
     # Get the delayed arrays for each timepoint at the specified position
     # with the channels in the following order: (GFP, brightfield)

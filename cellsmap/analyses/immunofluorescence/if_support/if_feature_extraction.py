@@ -1,0 +1,201 @@
+from pathlib import Path
+from typing import Literal, Union
+
+import dask.array as da
+import numpy as np
+import pandas as pd
+from bioio import BioImage
+from skimage import img_as_ubyte
+from skimage.transform import pyramid_reduce
+
+from cellsmap.util import dataset_io
+from cellsmap.vis import get_images
+
+
+def get_crop_size(resolution_level: Literal[0, 1]) -> int:
+    """
+    Get the crop size based on the resolution level.
+    """
+    if resolution_level == 0:
+        return 256
+    elif resolution_level == 1:
+        return 128
+    else:
+        raise ValueError(
+            f"Invalid resolution_level: {resolution_level}. Expected 0 or 1."
+        )
+
+
+def get_raw_intensity_crop(
+    row: pd.Series, resolution_level: Literal[0, 1], channel_name: str
+) -> np.ndarray:
+    p = dataset_io.extract_P(row.position)
+    img = get_images.get_zarr_img_for_dataset(row.dataset, p, resolution_level)
+    channel_names = img.channel_names
+    try:
+        channel_index = channel_names.index(channel_name)
+    except ValueError:
+        raise ValueError(
+            f"Channel name '{channel_name}' not found in image channels: {channel_names}"
+        )
+
+    raw_crop = get_images.get_crop(
+        img=img,
+        channel=channel_index,
+        timepoint=row.frame_number,
+        start_x=row.start_x,
+        start_y=row.start_y,
+        crop_size_x=get_crop_size(resolution_level),
+        crop_size_y=get_crop_size(resolution_level),
+    )
+
+    # keep z, extract one time and one channel
+    raw_crop_channel = raw_crop[0, channel_index, :, :]
+    return raw_crop_channel
+
+
+def background_subtract(img: np.ndarray, camera_offset: int = 100) -> np.ndarray:
+    img = np.clip(img, camera_offset, None)
+    img = img - camera_offset  # Set any negative values to zero
+    return img
+
+
+def normalize_img(img: np.ndarray) -> np.ndarray:
+    # make 8-bit
+    return img_as_ubyte(img)
+
+
+def total_intensity(img: np.ndarray) -> float:
+    """
+    Calculate the total intensity of the image.
+    """
+    return float(np.sum(img))
+
+
+def total_intenstiy_in_mask(img: np.ndarray, mask: np.ndarray) -> float:
+    """
+    Calculate the total intensity of the image in the masked region.
+    """
+    return float(np.sum(img[mask]))
+
+
+def sum_projection(img: Union[np.ndarray, da.Array]) -> np.ndarray:
+    """
+    Create a sum projection of the image.
+    Works with both NumPy and Dask arrays and returns a NumPy array.
+    """
+    result = (
+        np.sum(img, axis=0)
+        if not hasattr(img, "compute")
+        else img.sum(axis=0).compute()
+    )
+    return np.array(result)
+
+
+def get_segmentation_mask_crop(
+    row: pd.Series,
+    resolution_level: Literal[0, 1],
+    channel: Union[int, list[int]],
+    individual_nuc_seg_mask: bool = False,
+) -> np.ndarray:
+
+    # Construct the full path to the segmentation mask
+    path_to_nuc_seg = Path(
+        dataset_io.get_nuclear_prediction_path(
+            row.dataset, dataset_io.extract_P(row.position)
+        )
+    )
+    fname = f"{row.dataset}_{row.position}_T{row.frame_number}.ome.tiff"
+    full_path = path_to_nuc_seg / fname
+
+    # Check if the file exists
+    if not full_path.exists():
+        raise FileNotFoundError(f"Segmentation mask file not found: {full_path}")
+
+    # Load the segmentation image
+    seg_img = BioImage(str(full_path))
+
+    # Get the crop from the segmentation image
+    seg_crop = get_images.get_crop(
+        img=seg_img,
+        channel=channel,
+        timepoint=row.frame_number,
+        start_x=row.start_x,
+        start_y=row.start_y,
+        crop_size_x=get_crop_size(resolution_level),
+        crop_size_y=get_crop_size(resolution_level),
+    )
+
+    # # Extract channel from the crop
+    seg_crop_channel = seg_crop[0, channel, 0]
+    # # Remove timepoint and channel dimensions
+    mask = np.squeeze(seg_crop_channel)
+    # Downsample if resolution level is 1
+    if resolution_level == 1:
+        mask = pyramid_reduce(mask, downscale=2)
+
+    if individual_nuc_seg_mask:
+        id = row.img_label
+        # Create a mask for the individual nucleus
+        mask = np.where(mask == id, 1, 0)
+
+    mask = mask >= 1
+
+    if hasattr(mask, "compute"):
+        mask = mask.compute()
+
+    return np.array(mask)
+
+
+def total_intensity_in_mask(
+    img: Union[np.ndarray, da.Array], mask: Union[np.ndarray, da.Array]
+) -> float:
+    """
+    Calculate the sum of pixel values in the masked region.
+    """
+    return float(
+        np.sum(img[mask]).compute() if hasattr(img, "compute") else np.sum(img[mask])
+    )
+
+
+def total_intensity_not_in_mask(
+    img: Union[np.ndarray, da.Array], mask: Union[np.ndarray, da.Array]
+) -> float:
+    """
+    Calculate the sum of pixel values not in the masked region.
+    """
+    return float(
+        np.sum(img[~mask]).compute() if hasattr(img, "compute") else np.sum(img[~mask])
+    )
+
+
+def mean_intensity_in_mask(img: np.ndarray, mask: np.ndarray) -> float:
+    """
+    Calculate the mean intensity of the image in the masked region.
+    """
+    region = img[mask]
+    return float(np.mean(region))
+
+
+def mean_intensity_not_in_mask(img: np.ndarray, mask: np.ndarray) -> float:
+    """
+    Calculate the mean intensity of the image not in the masked region.
+    """
+    region = img[~mask]
+    return float(np.mean(region))
+
+
+def median_intensity_in_mask(img: np.ndarray, mask: np.ndarray) -> float:
+    """
+    Calculate the median intensity of the image in the masked region.
+    """
+    region = img[mask]
+    return float(np.median(region))
+
+
+def median_intensity_not_in_mask(img: np.ndarray, mask: np.ndarray) -> float:
+    """
+    Calculate the median intensity of the image outside the masked region.
+    """
+    region = img[~mask]
+    return float(np.median(region))
