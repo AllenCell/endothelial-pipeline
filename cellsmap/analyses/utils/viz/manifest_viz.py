@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.pipeline import Pipeline
 
+import cellsmap.analyses.utils.numerics.data_driven_flow_field as ddff
 import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
@@ -35,6 +36,67 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     ax.set_xlabel("Number of components")
     ax.set_ylabel("Cumulative explained variance")
     ax.set_title("Explained variance ratio of PCA components")
+
+    return fig, ax
+
+
+def get_dataset_color(name: str) -> str:
+    """
+    Get standard color for a dataset based on its name.
+    Uses the matplotlib tableau color palette.
+
+    Input:
+    - name: str, name of the dataset
+    Output:
+    - color: str, color for the dataset
+    """
+
+    # hard coded colors for specific datasets
+    dataset_to_color = {
+        "20241120_20X": "tab:blue",
+        "20250409_20X": "tab:orange",
+        "20241217_20X": "tab:green",
+        "20250319_20X": "tab:purple",
+        "20250326_20X": "tab:cyan",
+    }
+
+    # default to gray if not found
+    color = dataset_to_color.get(name, "tab:gray")
+
+    return color
+
+
+def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
+    """
+    Plot scatter plot of PCA components for a list of datasets.
+
+    Input:
+    - pca: Pipeline, the PCA model used to project the
+        feature data onto the PCA space
+        - can include any preprocessing steps before PCA, such as scaling
+    - datasets_to_use: list[str], list of dataset names to plot
+        - each dataset should have a DiffAE manifest file
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    """
+
+    fig, ax = vb.init_subplots(figsize=(15, 5))
+
+    for name in datasets_to_use:
+        # load dataframe and get top 3 PCs
+        df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+        feat_cols = mio.get_feature_cols(df)[:3]
+
+        # first plot: PC1 v PC2
+        ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01)
+        ax[0].set_xlabel(f"PC1")
+        ax[0].set_ylabel(f"PC2")
+
+        # second plot: PC1 v PC3
+        ax[1].scatter(df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01)
+        ax[1].set_xlabel(f"PC1")
+        ax[1].set_ylabel(f"PC3")
 
     return fig, ax
 
