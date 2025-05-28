@@ -122,6 +122,7 @@ def generate_latent_walk(
     n_steps: int = 10,
     use_pcs: bool = True,
     show_coords: bool = True,
+    n_noise_samples: int = 1,
 ):
     """
     Create latent walk for a given model using PCA or model features
@@ -146,8 +147,12 @@ def generate_latent_walk(
     save_dir = get_output_path(f"models/{model_name}")
 
     reference_manifests = pd.concat(
-        [get_diffae_manifest(name) for name in get_reference_datasets()]
+        [
+            get_diffae_manifest(name, filter_to_valid=True)
+            for name in get_reference_datasets()
+        ]
     )
+
     feature_cols = get_feature_cols(reference_manifests)
     data = reference_manifests[feature_cols].values
     if use_pcs:
@@ -161,14 +166,14 @@ def generate_latent_walk(
     else:
         walk, ranges = get_latent_coords(data, sigma, n_steps)
 
-    walk_img = generate_from_coords(model_name, walk)
+    walk_img = generate_from_coords(model_name, walk, n_noise_samples=n_noise_samples)
 
     # vertically stack multi-channel generations
     walk_img = walk_img.reshape(walk_img.shape[0], -1, walk_img.shape[-1])
     if show_coords:
         walk_img = write_pc_vals(walk_img, ranges)
 
-    save_path = Path(save_dir) / f"latent_walk_sigma_{sigma}_use_pcs_{use_pcs}_new.tif"
+    save_path = Path(save_dir) / f"latent_walk_sigma_{sigma}_use_pcs_{use_pcs}.tif"
     OmeTiffWriter.save(
         uri=save_path,
         data=walk_img,

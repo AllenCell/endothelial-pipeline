@@ -79,12 +79,49 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
-def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+def get_valid_subset(
+    df: pd.DataFrame, dataset_name: str, verbose: bool = True
+) -> pd.DataFrame:
+    """
+    Select timepoints from a dataframe annotated as valid if annotation is present, otherwise use all teimpoints
+
+    Inputs:
+    - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
+    - dataset_name: str, name of the dataset to get valid timepoints for
+
+    Outputs:
+    - df: pd.DataFrame, subset of the input dataframe containing only the valid timepoints
+    """
+    df["valid"] = False
+    # check that the necessary datasets are present for fitting PCA
+    valid_timepoints = dataset_io.get_valid_timepoints(dataset_name)
+    if valid_timepoints is None:
+        if verbose:
+            print(f"Using all timepoints from dataset {dataset_name} for PCA")
+        df["valid"] = True
+    else:
+        if verbose:
+            print(f"Valid timepoints for dataset {dataset_name}: ")
+        tps = []
+        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
+            tps.extend(list(range(start, stop + 1)))
+            if verbose:
+                print(f"   - {start} to {stop}")
+        valid_subset = df.frame_number.isin(tps)
+        df["valid"] = valid_subset
+    return df[df.valid]
+
+
+def get_diffae_manifest(
+    dataset_name: str, filter_to_valid: bool = False
+) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
     if fmsid == "" or fmsid is None:
         print(f"No DiffAE manifest found for dataset {dataset_name}")
         return None
     df = get_dataframe_by_fmsid(fmsid)
+    if filter_to_valid:
+        df = get_valid_subset(df, dataset_name)
     return df
 
 
