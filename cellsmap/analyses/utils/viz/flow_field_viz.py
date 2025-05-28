@@ -419,8 +419,8 @@ def flow_field_viz_main(
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
     if name == "20250319_20X" or name == "20250326_20X":
-        init = np.array([1.0, -0.7, -0.1])
-        time_span = [0, 2880]
+        init = np.array([1.1, 0.0, -0.2])
+        time_span = [0, 5000]
         traj_2 = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
 
     for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
