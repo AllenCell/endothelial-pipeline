@@ -1,6 +1,7 @@
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any
 
+import networkx
 import numpy as np
 import yaml
 from bioio import BioImage
@@ -18,7 +19,11 @@ from cellsmap.util.dataset_io import extract_T
 from cellsmap.util.general_image_preprocessing import get_dim_map
 
 
-def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
+def preprocess(
+    raw_arr: np.ndarray,
+    sigma: int = 3,
+    radius: int = 20,
+) -> np.ndarray:
     """
     Takes an image and returns a processed version after performing a gaussian blur,
     intensity rescaling to uint16, and then rolling-ball background subtraction.
@@ -44,8 +49,10 @@ def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
 
 
 def get_noodly_regions(
-    binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidity_filter=0.6
-):
+    binary_img_arr: np.ndarray,
+    axis_ratio_filter: float = 2.5,
+    solidity_filter: float = 0.6,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     A function to divide a binary image into filamentous regions and round regions.
     The binary image is labeled first and then the labeled regions are classified as
@@ -122,7 +129,9 @@ def get_noodly_regions(
     return img_arr_noodly, img_arr_round
 
 
-def get_thresholds(processed_img: np.ndarray):
+def get_thresholds(
+    processed_img: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Performs a hysteresis threshold on processed_img and returns the threshold,
     the regions in the thresholded image that are considered noodly and the
@@ -187,7 +196,9 @@ def get_classic_segmentation(image: np.ndarray) -> np.ndarray:
     return seg_image
 
 
-def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int = 50):
+def get_watershed_seeds_and_basins(
+    binary_img_arr: np.ndarray, min_dist: int = 50
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Performs a distance transform on a binary image array and finds the peaks
     and inverse of the distance transform in order to get the seeds and basins
@@ -233,7 +244,7 @@ def clean_labeled_img(
     eccentricity_filter: float = 0.5,
     size_filter_conditional: int = 2000,
     size_filter_strict: int = 500,
-):
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Removes small, round objects from a labeled image.
 
@@ -295,8 +306,10 @@ def clean_labeled_img(
 
 
 def initialize_rag(
-    labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool = False
-):
+    labeled_image: np.ndarray,
+    intensity_image: np.ndarray,
+    as_directed: bool = False,
+) -> networkx.Graph:
     """
     Creates a region-adjacency graph (RAG) using a labeled image and an
     intensity image.
@@ -350,11 +363,20 @@ def initialize_rag(
 ## hierarchical merging were taken directly from the example
 ## provided in the scikit-image docs:
 ## https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_boundary_merge.html#sphx-glr-auto-examples-segmentation-plot-boundary-merge-py
-def dummy_func(graph, src, dst):
+def dummy_func(
+    graph: networkx.Graph,
+    src: int,
+    dst: int,
+) -> None:
     pass
 
 
-def weight_boundary(graph, src, dst, n):
+def weight_boundary(
+    graph: networkx.Graph,
+    src: int,
+    dst: int,
+    n: int,
+) -> dict:
     """
     Handle merging of nodes of a region boundary region adjacency graph.
 
@@ -399,7 +421,7 @@ def generate_segmentations(
     hyst: np.ndarray,
     hyst_clean: np.ndarray,
     hyst_removed: np.ndarray,
-):
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Create segmentations from processed_img with the help of the original
     threshold "hyst", the cleaned threshold "hyst_clean", and the regions from
@@ -606,7 +628,9 @@ def generate_segmentations(
     return seg2_lab_no_mask_merge, seg2_lab
 
 
-def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> list:
+def get_cdh5_classic_segmentation_paths(
+    dataset_name: str, sort_paths: bool = True
+) -> list:
     """
     Return the filepaths to the cdh5 classic segmentations (segmentations are saved
     as individual timepoints).
@@ -645,11 +669,11 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
 def get_cdh5_classic_segmentation(
     dataset_name: str,
     T: int,
-    channels: Optional[List[str]] = None,
-    crop_y: Optional[slice] = None,
-    crop_x: Optional[slice] = None,
+    channels: list[str] | None = None,
+    crop_y: slice | None = None,
+    crop_x: slice | None = None,
     as_dask: bool = False,
-) -> List[Any]:
+) -> list[Any]:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.

@@ -14,6 +14,7 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
+    load_nuclei_prediction,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
@@ -103,29 +104,6 @@ def generate_results(
             level=img_bin_level,
         )
 
-    import numpy as np
-
-    from cellsmap.util.dataset_io import extract_T, get_nuclear_prediction_path
-
-    def load_nuclei_prediction(
-        dataset_name: str,
-        position: int,
-        T: int,
-        dim_order: str = "ZYX",
-    ) -> np.ndarray:  # da.Array:
-        """
-        Load the nuclei prediction for a given dataset, position, and timepoint.
-        """
-        nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position))
-        nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
-
-        if nuc_path.exists():
-            # Load the nuclei prediction as a Dask array
-            nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=T)
-            return nuc_dask_arr.compute()
-
-        return np.zeros()
-
     raw_arr_MIP = raw_dask_arr.max(axis=dim_map["Z"], keepdims=True).compute().squeeze()
 
     print(f"T={T} -- preprocessing image") if verbose else None
@@ -138,7 +116,51 @@ def generate_results(
     seg2_lab_no_mask_merge, seg2_lab = preproc.generate_segmentations(
         processed_img, hyst, hyst_clean, hyst_removed
     )
-    seg2_lab_no_mask_merge_bounds = find_boundaries(seg2_lab_no_mask_merge)
+
+    nuc_pred = (
+        load_nuclei_prediction(
+            dataset_name=dataset_name,
+            position=position,
+            T=T,
+        )
+        .squeeze()
+        .compute()
+    )
+
+    # NOTE THIS BLOCK FOR AUGMENTING SEGMENTATIONS NEEDS TO BE
+    # MOVED TO A SEPARATE FUNCTION IN `cdh5_preprocessing.py`
+    # def segmentation_augmentation(segmentation, helper_seeds) -> np.ndarray:
+    # segmentation = seg2_lab_no_mask_merge
+    # helper_seeds = nuc_pred
+    import numpy as np
+    from skimage.measure import label, regionprops
+    from skimage.morphology import skeletonize
+    from skimage.segmentation import relabel_sequential, watershed
+
+    nuc_pred_skels = skeletonize(nuc_pred) * nuc_pred
+    reg_props = regionprops(
+        label_image=seg2_lab_no_mask_merge, intensity_image=nuc_pred_skels
+    )
+    num_nuclei_per_label = {
+        prop.label: np.count_nonzero(np.unique(prop.intensity_image))
+        for prop in reg_props
+    }
+    anucleate_regions = [
+        lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] == 0
+    ]
+    # multinucleate_regions = [lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] > 1]
+    anucleate_reg_arr = (
+        np.isin(seg2_lab_no_mask_merge, anucleate_regions) * seg2_lab_no_mask_merge
+    )
+    anucleate_reg_skels = skeletonize(anucleate_reg_arr) * anucleate_reg_arr
+    # relabel the skeletonized anucleate regions and nuclei to use
+    # as seeds watershed
+    nuc_pred_skels = label(nuc_pred_skels)
+    anucleate_reg_skels, _, _ = relabel_sequential(
+        anucleate_reg_skels, offset=1 + nuc_pred_skels.max()
+    )
+    seeds = label(nuc_pred_skels + anucleate_reg_skels)
+    seg_aug = watershed(image=processed_img, markers=seeds)
 
     if save_output:
         # save every nth image for validation
@@ -151,15 +173,19 @@ def generate_results(
                 / f"{dataset_name}_P{position}_T{T}.ome.tiff"
             )
             Path.mkdir(val_path.parent, exist_ok=True, parents=True)
-            # out_path = seg_dir / dataset_name / f'{dataset_name}_T{T}.ome.tiff'
-            # Path.mkdir(seg_dir / dataset_name, exist_ok=True, parents=True)
+
+            seg2_lab_no_mask_merge_bounds = find_boundaries(seg2_lab_no_mask_merge)
+            seg_aug_bounds = find_boundaries(seg_aug)
+
             images_out = [
                 raw_arr_MIP,
                 processed_img,
                 hyst_clean,
                 seg2_lab,
                 seg2_lab_no_mask_merge,
-                seg2_lab_no_mask_merge_bounds,
+                nuc_pred,
+                seg_aug,  # add the augmented segmentation
+                seg_aug_bounds,  # add the augmented segmentation boundaries
             ]
             images_out_metadata = {
                 "image_name": dataset_name,
@@ -169,7 +195,9 @@ def generate_results(
                     "hysteresis_threshold",
                     "segmentations_initial",
                     "segmentations_merged",
-                    "segmentations_merged_borders",
+                    "nuclei_predictions",
+                    "segmentations_augmented",  # name for the augmented segmentation
+                    "segmentations_augmented_borders",  # name for the augmented segmentation boundaries
                 ],
                 "channel_colors": [
                     (255, 255, 255),
@@ -177,7 +205,9 @@ def generate_results(
                     (0, 255, 255),
                     (255, 0, 255),
                     (255, 0, 255),
-                    (255, 255, 0),
+                    (255, 0, 0),  # color for the nuclei predictions
+                    (0, 255, 0),  # color for the augmented segmentation
+                    (0, 0, 255),  # color for the augmented segmentation boundaries
                 ],
                 "physical_pixel_sizes": img.physical_pixel_sizes,  # img_metadata['physical_pixel_sizes'],
                 "dim_order": "YX",

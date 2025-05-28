@@ -381,6 +381,30 @@ def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
     return position_path
 
 
+def load_nuclei_prediction(
+    dataset_name: str,
+    position: int,
+    T: int,
+    dim_order: str = "ZYX",
+) -> dask.array.Array:
+    """
+    Load the nuclei prediction for a given dataset, position, and timepoint.
+    """
+    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position))
+    nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
+    nuc_path = nuc_path_dict[T]
+
+    if nuc_path.exists():
+        # Load the nuclei prediction as a Dask array
+        nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=T)
+        return nuc_dask_arr
+    else:
+        print(
+            f"Nuclei prediction file not found for T={T} in {nuc_dir}, returning empty dask array."
+        )
+        return dask.array.empty(shape=[0] * len(dim_order))
+
+
 def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     # NOTE at some point the cdh5 classic segmentation paths
     # will probably be added to the dataconfig.yaml file
