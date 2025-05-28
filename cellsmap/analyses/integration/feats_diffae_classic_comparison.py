@@ -212,17 +212,6 @@ def plot_quiver_slices_from_diffae_table(
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
 
-    # plot the trajectories
-    for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-        if plot_trajectory:
-            ax.plot(
-                traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy", zorder=1
-            )
-        if plot_fixed_points:
-            ax.scatter(
-                traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=2
-            )
-
     return fig, axs
 
 
@@ -237,7 +226,6 @@ def plot_measured_feat_pcs(
     hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
     alpha: float = 0.5,
-    hue_min_max: tuple[float, float] | None = None,
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
