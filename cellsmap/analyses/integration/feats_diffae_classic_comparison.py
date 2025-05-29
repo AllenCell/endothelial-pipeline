@@ -328,7 +328,7 @@ def plot_measured_feat_overlay_on_flowfield(
     # simplify legend title
     new_title = f"Mean {meas_feat_col_name_for_color_coding} intensity"
     for ax in axs:
-        ax.get_legend().set_title("title")
+        ax.get_legend().set_title(new_title)
 
     plt.tight_layout()
     if track_id_to_plot == "mean":
