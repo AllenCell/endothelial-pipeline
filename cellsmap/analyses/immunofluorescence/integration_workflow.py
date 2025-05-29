@@ -25,7 +25,7 @@ from cellsmap.util.set_output import get_output_path
 # %%
 # load output from preprocessing step
 # dataframe of all if datasets
-df_if = pd.load_csv(
+df_if = pd.read_csv(
     "immunoflourescence_analysis_integration/outputs/immunofluorescence_manifest.csv"
 )
 # %% Calculate PCA and bounds for the reference dataset
