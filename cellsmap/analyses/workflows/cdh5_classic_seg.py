@@ -133,9 +133,12 @@ def generate_results(
     # segmentation = seg2_lab_no_mask_merge
     # helper_seeds = nuc_pred
     import numpy as np
+    from matplotlib import pyplot as plt
     from skimage.measure import label, regionprops
     from skimage.morphology import skeletonize
     from skimage.segmentation import relabel_sequential, watershed
+
+    from cellsmap.util.cdh5_preprocessing import get_watershed_seeds_and_basins
 
     nuc_pred_skels = skeletonize(nuc_pred) * nuc_pred
     reg_props = regionprops(
@@ -145,14 +148,28 @@ def generate_results(
         prop.label: np.count_nonzero(np.unique(prop.intensity_image))
         for prop in reg_props
     }
-    anucleate_regions = [
+
+    seg_skels = (
+        skeletonize(~find_boundaries(seg2_lab_no_mask_merge) * seg2_lab_no_mask_merge)
+        * seg2_lab_no_mask_merge
+    )
+    anucleate_region_labels = [
         lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] == 0
     ]
-    # multinucleate_regions = [lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] > 1]
-    anucleate_reg_arr = (
-        np.isin(seg2_lab_no_mask_merge, anucleate_regions) * seg2_lab_no_mask_merge
-    )
-    anucleate_reg_skels = skeletonize(anucleate_reg_arr) * anucleate_reg_arr
+    anucleate_reg_skels = np.isin(seg_skels, anucleate_region_labels) * seg_skels
+
+    multinucleate_region_labels = [
+        lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] > 1
+    ]
+    # multinucleate_reg_kels = (
+    #     np.isin(seg_skels, multinucleate_region_labels) * seg_skels
+    # )
+
+    mononucleate_region_labels = [
+        lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] == 1
+    ]
+    mononucleate_reg_skels = np.isin(seg_skels, mononucleate_region_labels) * seg_skels
+
     # relabel the skeletonized anucleate regions and nuclei to use
     # as seeds watershed
     nuc_pred_skels = label(nuc_pred_skels)
@@ -161,6 +178,26 @@ def generate_results(
     )
     seeds = label(nuc_pred_skels + anucleate_reg_skels)
     seg_aug = watershed(image=processed_img, markers=seeds)
+
+    # alt approach to segmentation
+    nuc_pred_relab, _, _ = relabel_sequential(nuc_pred)
+    anucleate_reg_skels, _, _ = relabel_sequential(
+        anucleate_reg_skels, offset=1 + nuc_pred_relab.max()
+    )
+    seeds, basins = get_watershed_seeds_and_basins(~hyst)
+    seeds = label(nuc_pred_relab + anucleate_reg_skels)
+    seg_aug = watershed(image=basins, markers=seeds, mask=~hyst_clean)
+    seg_aug = watershed(image=basins, markers=seg_aug)
+
+    # use the skeletonized regions as seed points for mononucleate
+    # and anucleate regions
+    seeds = anucleate_reg_skels + mononucleate_reg_skels
+    # use the nuclei as seed points for the multinucleate regions
+    # seeds =
+
+    # NOTE TRY OUT THE VESSELNESS EDGE ENHANCEMENT OR DIFFERENCE OF
+    # GAUSSIANS APPROACHES TO CDH5 FLUORESCENCE IMAGE PREPROCESSING
+    # FROM SECOND_DATASET_SEGMENTATION_IMPROVEMENT_EFFORTS BRANCH??
 
     if save_output:
         # save every nth image for validation
@@ -182,7 +219,8 @@ def generate_results(
                 processed_img,
                 hyst_clean,
                 seg2_lab,
-                seg2_lab_no_mask_merge,
+                # seg2_lab_no_mask_merge,
+                seg2_lab_no_mask_merge_bounds,
                 nuc_pred,
                 seg_aug,  # add the augmented segmentation
                 seg_aug_bounds,  # add the augmented segmentation boundaries
