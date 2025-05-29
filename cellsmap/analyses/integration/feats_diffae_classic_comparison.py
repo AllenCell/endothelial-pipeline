@@ -288,7 +288,7 @@ def plot_measured_feat_pcs(
             palette="flare",
             linewidth=0,
             marker=".",
-            s=75,
+            s=95,
             alpha=alpha,
             ax=ax,
             zorder=zorder + 1,

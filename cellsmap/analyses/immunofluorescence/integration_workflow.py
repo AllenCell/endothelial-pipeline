@@ -1,13 +1,11 @@
 # %%
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
 from cellsmap.analyses.immunofluorescence.if_support.add_if_cols import (
-    add_if_cols_to_df,
     get_channels_for_if_processing,
 )
 from cellsmap.analyses.integration.feats_diffae_classic_comparison import (
@@ -16,7 +14,6 @@ from cellsmap.analyses.integration.feats_diffae_classic_comparison import (
     plot_quiver_slices_from_diffae_table,
 )
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.util import manifest_io
 from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     get_manifest_for_dynamics_workflows,
@@ -26,42 +23,11 @@ from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%
-
-# %% get all if datasets
-all_results = []
-all_columns = set()  # To track all unique columns across DataFrames
-
-# First pass: Collect all unique columns
-for n in range(1, 13):
-    dataset_name = f"20250509_20X_IF{n}"
-    df = manifest_io.get_diffae_manifest(dataset_name)
-    channels = get_channels_for_if_processing(dataset_name)
-    print(f"Processing {dataset_name}")
-
-    for channel in channels:
-        if channel == "NucViolet":
-            continue
-        df = add_if_cols_to_df(
-            df,
-            channel_name=channel,
-            resolution_level=0,
-        )
-
-    all_columns.update(df.columns)  # Add columns to the set
-    all_results.append(df)
-
-# Standardize columns across all DataFrames
-all_columns = list(all_columns)  # Convert to a list for consistent ordering
-standardized_results = []
-
-for df in all_results:
-    # Reindex each DataFrame to ensure it has all columns
-    standardized_df = df.reindex(columns=all_columns, fill_value=np.nan)
-    standardized_results.append(standardized_df)
-
-# Concatenate standardized DataFrames
-df_if = pd.concat(standardized_results, ignore_index=True)
-
+# load output from preprocessing step
+# dataframe of all if datasets
+df_if = pd.load_csv(
+    "immunoflourescence_analysis_integration/outputs/immunofluorescence_manifest.csv"
+)
 # %% Calculate PCA and bounds for the reference dataset
 pca = fit_pca()
 reference_datasets = get_reference_datasets()
@@ -221,10 +187,9 @@ plot_measured_feat_overlay_on_flowfield(
 )
 plt.close(fig)
 
-# lastly save the quiver slices with the measured feature overlay
-# in grey with a single crop highlighted
-index = 5
-chosen_datapoint = df_if_dataset.iloc[index]
+# lastly save the quiver slices with just
+# the diffae scatter points overlayed
+# this is the same as the above, but without the measured feature overlay
 
 fig, axs = plot_quiver_slices_from_diffae_table(
     diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -237,26 +202,16 @@ for i, ax in enumerate(axs):
         data=df_if_dataset,
         x=pc_x[i],
         y=pc_y[i],
-        color="grey",
+        color="navy",
         linewidth=0,
         marker=".",
-        s=50,
+        s=75,
         alpha=1.0,
-        ax=ax,
-    )
-    sns.scatterplot(
-        data=chosen_datapoint.to_frame().T,
-        x=pc_x[i],
-        y=pc_y[i],
-        color="red",
-        linewidth=0,
-        marker="o",
-        s=50,
         ax=ax,
     )
 plt.tight_layout()
 fig.savefig(
-    Path(output_dir) / f"{dataset_name}_flow_field_{channel}_iloc{index}.png",
+    Path(output_dir) / f"{dataset_name}_flow_field_{channel}.png",
     dpi=300,
 )
 plt.close(fig)
