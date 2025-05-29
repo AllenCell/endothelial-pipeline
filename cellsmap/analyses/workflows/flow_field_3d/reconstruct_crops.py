@@ -5,7 +5,10 @@ import pandas as pd
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.model_features.generate_image import generate_from_coords
+from cellsmap.model_features.generate_image import (
+    generate_from_coords,
+    generate_from_coords_batch,
+)
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 
@@ -41,34 +44,72 @@ traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
 # (e.g. pytorch, diffae, etc.).
 # See the README.md for more details on creating
 # an environment with the ML dependencies.
-for condition in df.description.unique():
-    print("Reconstructing crops for condition: ", condition)
+run_batch = True
 
-    # get full mean trajectory
-    coords = traj_dict[condition]
+if run_batch:
+    latent_coords_batch = []
+    for condition in df.description.unique():
+        print("Reconstructing crops for condition: ", condition)
 
-    # interpolate points evenly spaced along the trajectory
-    interpolated_points = ddff.interpolate_on_curve(coords)
+        # get full mean trajectory
+        coords = traj_dict[condition]
 
-    # save interpolated points
-    # reconstruct latent space coordinates from PC coordinates
-    latent = reducer.inverse_transform(interpolated_points)
+        # interpolate points evenly spaced along the trajectory
+        interpolated_points = ddff.interpolate_on_curve(coords)
 
-    # save out latent coordinates of mean trajectory
-    df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
-    df.to_csv(csv_savedir + f"{condition}_interpolated_trajectory.csv")
+        # save interpolated points
+        # reconstruct latent space coordinates from PC coordinates
+        latent = reducer.inverse_transform(interpolated_points)
 
-    num_coords = latent.shape[0]
-    # turn coordinate array into list of lists
-    latent_coords = []
-    for i in range(num_coords):
-        latent_coords.append(latent[i].tolist())
+        # save out latent coordinates of mean trajectory
+        df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
+        df.to_csv(csv_savedir + f"{condition}_interpolated_trajectory.csv")
+
+        num_coords = latent.shape[0]
+        # turn coordinate array into list of lists
+        latent_coords = []
+        for i in range(num_coords):
+            latent_coords.append(latent[i].tolist())
+
+        latent_coords_batch.append(latent_coords)
 
     # pass into DiffAE model to generate reconstructed crops
-    # output is a numpy array:
-    # (num_coords x 128 x 128), greyscale image
-    walk_img = generate_from_coords(model_name, latent_coords)
+    walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
 
-    # save out stack of images as tif
-    tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
-    OmeTiffWriter.save(walk_img, crop_savedir + tif_name, overwrite=True)
+    for walk_img, condition in zip(walk_imgs, df.description.unique()):
+        # save out stack of images as tif
+        print("Saving reconstructed crops for condition: ", condition)
+        tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
+        OmeTiffWriter.save(walk_img, crop_savedir + tif_name, overwrite=True)
+else:
+    for condition in df.description.unique():
+        print("Reconstructing crops for condition: ", condition)
+
+        # get full mean trajectory
+        coords = traj_dict[condition]
+
+        # interpolate points evenly spaced along the trajectory
+        interpolated_points = ddff.interpolate_on_curve(coords)
+
+        # save interpolated points
+        # reconstruct latent space coordinates from PC coordinates
+        latent = reducer.inverse_transform(interpolated_points)
+
+        # save out latent coordinates of mean trajectory
+        df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
+        df.to_csv(csv_savedir + f"{condition}_interpolated_trajectory.csv")
+
+        num_coords = latent.shape[0]
+        # turn coordinate array into list of lists
+        latent_coords = []
+        for i in range(num_coords):
+            latent_coords.append(latent[i].tolist())
+
+        # pass into DiffAE model to generate reconstructed crops
+        # output is a numpy array:
+        # (num_coords x 128 x 128), greyscale image
+        walk_img = generate_from_coords(model_name, latent_coords)
+
+        # save out stack of images as tif
+        tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
+        OmeTiffWriter.save(walk_img, crop_savedir + tif_name, overwrite=True)
