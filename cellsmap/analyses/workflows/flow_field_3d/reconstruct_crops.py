@@ -49,8 +49,6 @@ run_batch = True
 if run_batch:
     latent_coords_batch = []
     for condition in df.description.unique():
-        print("Reconstructing crops for condition: ", condition)
-
         # get full mean trajectory
         coords = traj_dict[condition]
 
@@ -62,8 +60,8 @@ if run_batch:
         latent = reducer.inverse_transform(interpolated_points)
 
         # save out latent coordinates of mean trajectory
-        df = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
-        df.to_csv(csv_savedir + f"{condition}_interpolated_trajectory.csv")
+        df_ = pd.DataFrame(latent, columns=[f"mu{i}" for i in range(latent.shape[1])])
+        df_.to_csv(csv_savedir + f"{condition}_interpolated_trajectory.csv")
 
         num_coords = latent.shape[0]
         # turn coordinate array into list of lists
