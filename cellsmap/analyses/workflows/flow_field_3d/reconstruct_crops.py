@@ -92,7 +92,7 @@ for condition in df.description.unique():
 # pass into DiffAE model to generate reconstructed crops
 walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
 
-for walk_img, condition in zip(walk_imgs, condition):
+for walk_img, condition in zip(walk_imgs, condition_list):
     # save out stack of images as tif
     print("Saving reconstructed crops for condition: ", condition)
     tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
