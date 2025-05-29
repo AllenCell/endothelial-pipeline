@@ -286,7 +286,7 @@ def get_and_viz_ddff(
     init: np.ndarray,
     fig_savedir: str,
     vtk_savedir: str,
-) -> np.ndarray:
+) -> np.ndarray | list[np.ndarray]:
 
     # load dataframe and get top 3 PCs
     df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
@@ -327,6 +327,14 @@ def get_and_viz_ddff(
 
     # call main flow field viz function (makes and saves plots)
     ffv.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+
+    # hack-y work around for intermediate shear stress
+    # simulate second trajectory to get second stable point
+    if name == "20250319_20X" or name == "20250326_20X":
+        init = np.array([1.1, 0.0, -0.2])
+        time_span = [0, 5000]
+        traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
+        traj = [traj, traj_2]  # return both trajectories
 
     return traj
 
