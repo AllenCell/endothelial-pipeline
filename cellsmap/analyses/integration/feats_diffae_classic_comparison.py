@@ -193,7 +193,7 @@ def plot_quiver_slices_from_diffae_table(
     diffae_df: pd.DataFrame,
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
-    plot_trajectory: bool = True,
+    plot_trajectory: bool = False,
     plot_fixed_points: bool = True,
 ) -> tuple[plt.Figure, np.ndarray]:
 
@@ -207,10 +207,22 @@ def plot_quiver_slices_from_diffae_table(
 
     # plot the flow field
     fig, axs = plot_quiver_slices(
-        flow_field_dict_grids, (zvalids_grids, yvalids_grids), color="#08b4bc"
+        flow_field_dict_grids,
+        (zvalids_grids, yvalids_grids),
     )
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
+
+    # plot the trajectories
+    for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
+        if plot_trajectory:
+            ax.plot(
+                traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy", zorder=1
+            )
+        if plot_fixed_points:
+            ax.scatter(
+                traj_grids[-1, 0], traj_grids[-1, j + 1], s=100, color="black", zorder=2
+            )
 
     return fig, axs
 
@@ -276,7 +288,7 @@ def plot_measured_feat_pcs(
             palette="flare",
             linewidth=0,
             marker=".",
-            s=50,
+            s=75,
             alpha=alpha,
             ax=ax,
             zorder=zorder + 1,
@@ -313,6 +325,11 @@ def plot_measured_feat_overlay_on_flowfield(
         zorder=5,
         alpha=alpha,
     )
+    # simplify legend title
+    new_title = f"Mean {meas_feat_col_name_for_color_coding} intensity"
+    for ax in axs:
+        ax.get_legend().set_title("title")
+
     plt.tight_layout()
     if track_id_to_plot == "mean":
         data_subset = "_timeAvgTracks"
