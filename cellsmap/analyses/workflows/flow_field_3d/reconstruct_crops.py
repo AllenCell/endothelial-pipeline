@@ -38,6 +38,7 @@ traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
 
 
 # %%
+# need to put this in a separate file
 def coords_to_latent(coords, reducer):
     """
     Convert coordinates to latent space using the PCA model.
