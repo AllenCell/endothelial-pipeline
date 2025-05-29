@@ -326,7 +326,8 @@ def plot_measured_feat_overlay_on_flowfield(
         alpha=alpha,
     )
     # simplify legend title
-    new_title = f"Mean {meas_feat_col_name_for_color_coding} intensity"
+    marker_name = meas_feat_col_name_for_color_coding.split("_")[-1]
+    new_title = f"Mean {marker_name} intensity"
     for ax in axs:
         ax.get_legend().set_title(new_title)
 
