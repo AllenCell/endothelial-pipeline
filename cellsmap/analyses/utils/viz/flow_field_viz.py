@@ -339,8 +339,86 @@ def plot_flow_field_slices(
     return fig, ax
 
 
+def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> None:
+    """
+    Generate plot of fixed points of the low,
+    high, and intermediate (12dyn) shear stress conditions
+    on the same plot.
+    """
+
+    traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
+
+    list_of_datasets = [
+        "20250409_20X",
+        "20241120_20X",
+        "20250319_20X",
+    ]
+
+    conditions = diffae_preproc.get_dataset_descriptions(list_of_datasets, simple=True)
+
+    # initialize plots
+    fig, ax = vb.init_subplots(figsize=(14, 5))
+
+    # get bounds of the grid - load one of the flow field objects
+    # saved in main function
+    flow_field_dict = np.load(
+        output_savedir + f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
+    ).item()
+    xmin, xmax = (
+        flow_field_dict["grid"][0][0, 0, 0],
+        flow_field_dict["grid"][0][-1, 0, 0],
+    )
+    ymin, ymax = (
+        flow_field_dict["grid"][1][0, 0, 0],
+        flow_field_dict["grid"][1][0, -1, 0],
+    )
+    zmin, zmax = (
+        flow_field_dict["grid"][2][0, 0, 0],
+        flow_field_dict["grid"][2][0, 0, -1],
+    )
+    bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
+
+    # loop through the datasets and plot the fixed points
+    for name in list_of_datasets:
+        condition = conditions[name]
+        coords = traj_dict[condition]
+        scatter_color = manifest_viz.get_dataset_color(name)
+
+        if type(coords) is np.ndarray:  # single attractor
+            # get last point of trajectory
+            fp = coords[-1, :]
+            # plot fixed point
+            # PC1 vs PC2, PC1 vs PC3
+            ax[0].scatter(fp[0], fp[1], s=100, color=scatter_color, edgecolor="black")
+            ax[1].scatter(fp[0], fp[2], s=100, color=scatter_color, edgecolor="black")
+        elif type(coords) is list:  # multiple attractors
+            for coord in coords:
+                # get last point of trajectory
+                fp = coord[-1, :]
+                # plot fixed point
+                # PC1 vs PC2, PC1 vs PC3
+                ax[0].scatter(
+                    fp[0], fp[1], s=100, color=scatter_color, edgecolor="black"
+                )
+                ax[1].scatter(
+                    fp[0], fp[2], s=100, color=scatter_color, edgecolor="black"
+                )
+
+    # set the axis limits and labels
+    ax = set_slice_plot_bounds_and_labels(ax, bounds_)
+    # set titles with slice values
+    plt.tight_layout()
+    plt.show()
+
+    # save the figure
+    vb.save_plot(fig, fig_savedir + f"fixed_points_plot", dpi=300)
+
+
 def flow_field_viz_main(
-    flow_field_dict: dict, df_cond: pd.DataFrame, traj: np.ndarray, fig_savedir: str
+    flow_field_dict: dict,
+    df_cond: pd.DataFrame,
+    traj: np.ndarray,
+    fig_savedir: str,
 ) -> None:
     """
     Plot all relvant 2D summary plots
@@ -360,7 +438,6 @@ def flow_field_viz_main(
         Shape: (n_points, n_dimensions)
     - fig_savedir: str
         Directory to save the figures.
-        If None, no figures are saved.
     """
     # dataset flow condition for saving the figures
     name = df_cond["dataset"].unique()[0]
@@ -466,5 +543,4 @@ def flow_field_viz_main(
     vb.save_plot(
         fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300
     )
-
     return

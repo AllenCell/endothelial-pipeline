@@ -286,6 +286,7 @@ def get_and_viz_ddff(
     init: np.ndarray,
     fig_savedir: str,
     vtk_savedir: str,
+    output_savedir: str,
 ) -> np.ndarray | list[np.ndarray]:
 
     # load dataframe and get top 3 PCs
@@ -305,6 +306,12 @@ def get_and_viz_ddff(
     flow_field_dict = compute_extrapolated_vector_field(
         drift_km, centers, interpolator="nearest"
     )
+    # save flow field dictionary as npy
+    np.save(
+        output_savedir + f"flow_field_dict_{name}.npy",
+        flow_field_dict,
+        allow_pickle=True,
+    )
     # save flow field as vtk image data
     vtk_io.save_vector_field_as_vtk(
         flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk"
@@ -314,6 +321,12 @@ def get_and_viz_ddff(
     # (diagonal diffusion tensor represented as 3D vector field)
     diffusion_field_dict = compute_extrapolated_vector_field(
         diff_km, centers, interpolator="nearest"
+    )
+    # save diffusion field dictionary as npy
+    np.save(
+        output_savedir + f"diffusion_field_dict_{name}.npy",
+        diffusion_field_dict,
+        allow_pickle=True,
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
@@ -376,6 +389,7 @@ def ddff_main(
             init,
             fig_savedir,
             vtk_savedir,
+            output_savedir,
         )
 
         # save out using dataset descriptions
@@ -383,3 +397,7 @@ def ddff_main(
         traj_dict[condition] = traj
 
     np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)
+
+    # generate plot of stable fixed points
+    # for low, high, and 12dyn datasets
+    ffv.plot_stable_fixed_points_together(fig_savedir, output_savedir)
