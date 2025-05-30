@@ -273,9 +273,8 @@ def convert_coordinates_from_pc_to_latent(coords, reducer):
     latent = reducer.inverse_transform(coords)
     num_coords = latent.shape[0]
     # turn coordinate array into list of lists
-    latent_coords = []
-    for i in range(num_coords):
-        latent_coords.append(latent[i].tolist())
+    latent_coords = [l.tolist() for l in latent]
+
     return latent_coords
 
 
