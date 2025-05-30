@@ -25,9 +25,8 @@ from cellsmap.util.set_output import get_output_path
 # %%
 # load output from preprocessing step
 # dataframe of all if datasets
-df_if = pd.read_csv(
-    "immunoflourescence_analysis_integration/outputs/immunofluorescence_manifest.csv"
-)
+output_path = get_output_path("immunoflourescence_analysis_integration/outputs")
+df_if = pd.read_csv(output_path + "immunofluorescence_manifest.csv")
 # %% Calculate PCA and bounds for the reference dataset
 pca = fit_pca()
 reference_datasets = get_reference_datasets()
@@ -187,9 +186,12 @@ plot_measured_feat_overlay_on_flowfield(
 )
 plt.close(fig)
 
-# lastly save the quiver slices with just
-# the diffae scatter points overlayed
-# this is the same as the above, but without the measured feature overlay
+
+# %%
+# lastly save the quiver slices with the measured feature overlay
+# in grey with a single crop highlighted
+index = 7
+chosen_datapoint = df_if_dataset.iloc[index]
 
 fig, axs = plot_quiver_slices_from_diffae_table(
     diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -205,16 +207,25 @@ for i, ax in enumerate(axs):
         color="navy",
         linewidth=0,
         marker=".",
-        s=75,
-        alpha=1.0,
+        s=70,
+        alpha=0.5,
+        ax=ax,
+    )
+    sns.scatterplot(
+        data=chosen_datapoint.to_frame().T,
+        x=pc_x[i],
+        y=pc_y[i],
+        color="red",
+        linewidth=0,
+        marker="o",
+        s=80,
         ax=ax,
     )
 plt.tight_layout()
 fig.savefig(
-    Path(output_dir) / f"{dataset_name}_flow_field_{channel}.png",
-    dpi=300,
+    Path(output_dir) / f"{dataset_name}_flow_field_{channel}_iloc{index}.png",
+    dpi=400,
 )
 plt.close(fig)
-
 
 # %%

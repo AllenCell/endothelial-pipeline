@@ -288,7 +288,7 @@ def plot_measured_feat_pcs(
             palette="flare",
             linewidth=0,
             marker=".",
-            s=95,
+            s=115,
             alpha=alpha,
             ax=ax,
             zorder=zorder + 1,
@@ -343,7 +343,7 @@ def plot_measured_feat_overlay_on_flowfield(
     fig.savefig(
         out_dir
         / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
-        dpi=300,
+        dpi=400,
     )
     if not show_plot:
         plt.close(fig)
