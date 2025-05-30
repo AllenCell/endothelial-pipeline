@@ -5,7 +5,7 @@ from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.util.dataset_io import get_reference_datasets
+from cellsmap.util.dataset_io import get_reference_datasets, get_valid_timepoints
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
@@ -39,14 +39,42 @@ def main(datasets_to_use: list | None = None) -> None:
     # for a) just the datasets used to fit PCA
     # and b) all datasets specified in the command line
     #   (or default list, if not specified)
+    # get timepoints to use for scatter plots
+    # all timepoints except no flow
+    pca_refs = get_reference_datasets()
+    restrict_no_flow = True  # restrict plot to subset of no flow timepoints
+
+    # get timepoints to use for scatter plots
+    # this can definitely be written into a wrapper function
+    # maybe make a dictionary instead of a list?
+    timepoints_refs = []
+    for ref in pca_refs:
+        timepoint_dict = get_valid_timepoints(ref)
+        starts = timepoint_dict.get("start", 0)
+        stops = timepoint_dict.get("stop", 0)
+        timepoints_list = []
+        for start, stop in zip(starts, stops):
+            # shouldn't be hard coded, will fix eventually
+            if ref == "20241217_20X" and restrict_no_flow:
+                # restrict to only first set of no flow timepoints
+                if start == 0:
+                    timepoints_list.append([start, stop])
+                else:
+                    continue
+            else:
+                timepoints_list.append([start, stop])
+        timepoints_refs.append(timepoints_list)
+
+    # scatter plot of pca reference datasets
     fig, _ = manifest_viz.plot_pc_scatter(
-        pca,
-        get_reference_datasets(),  # pca reference datasets
+        pca, pca_refs, timepoints_to_use=timepoints_refs  # pca reference datasets
     )
     vb.save_plot(fig, fig_savedir + "/pca_scatter_ref")
+
+    # scatter plot of all datasets specified in command line
     fig, _ = manifest_viz.plot_pc_scatter(
         pca,
-        datasets_to_use,  # all datasets specified
+        datasets_to_use,  # all datasets specified and all timepoints
     )
     vb.save_plot(fig, fig_savedir + "/pca_scatter_all")
 
