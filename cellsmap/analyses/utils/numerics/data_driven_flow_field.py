@@ -264,6 +264,21 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     return interpolated_points
 
 
+def convert_coordinates_from_pc_to_latent(coords, reducer):
+    """
+    Convert coordinates in PCA-based feature space
+    to latent space using the PCA model.
+    """
+    coords = np.array(coords)
+    latent = reducer.inverse_transform(coords)
+    num_coords = latent.shape[0]
+    # turn coordinate array into list of lists
+    latent_coords = []
+    for i in range(num_coords):
+        latent_coords.append(latent[i].tolist())
+    return latent_coords
+
+
 def convert_coordinates_from_volume_to_pc(
     xvol: np.array, grid_spacing: float, origin: float
 ) -> np.array:

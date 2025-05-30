@@ -5,10 +5,7 @@ import pandas as pd
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.model_features.generate_image import (
-    generate_from_coords,
-    generate_from_coords_batch,
-)
+from cellsmap.model_features.generate_image import generate_from_coords_batch
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 
@@ -38,22 +35,6 @@ traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
 
 
 # %%
-# need to put this in a separate file
-def coords_to_latent(coords, reducer):
-    """
-    Convert coordinates to latent space using the PCA model.
-    """
-    coords = np.array(coords)
-    latent = reducer.inverse_transform(coords)
-    num_coords = latent.shape[0]
-    # turn coordinate array into list of lists
-    latent_coords = []
-    for i in range(num_coords):
-        latent_coords.append(latent[i].tolist())
-    return latent_coords
-
-
-# %%
 # Reconstruction of crops from latent space
 # coordinates via DiffAE model
 # To note: you should run this script on
@@ -74,7 +55,9 @@ for condition in df.description.unique():
         interpolated_points = ddff.interpolate_on_curve(coords)
 
         # transform interpolated points to full latent space
-        latent_coords = coords_to_latent(interpolated_points, reducer)
+        latent_coords = ddff.convert_coordinates_from_pc_to_latent(
+            interpolated_points, reducer
+        )
         latent_coords_batch.append(latent_coords)
         condition_list.append(condition)
 
@@ -84,12 +67,15 @@ for condition in df.description.unique():
             interpolated_points = ddff.interpolate_on_curve(coord)
 
             # transform interpolated points to full latent space
-            latent_coords = coords_to_latent(interpolated_points, reducer)
+            latent_coords = ddff.convert_coordinates_from_pc_to_latent(
+                interpolated_points, reducer
+            )
             latent_coords_batch.append(latent_coords)
             condition_list.append(f"{condition}_{jj}")
 
 # %%
 # pass into DiffAE model to generate reconstructed crops
+# using single noise input (generate images in batch)
 walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
 
 for walk_img, condition in zip(walk_imgs, condition_list):
