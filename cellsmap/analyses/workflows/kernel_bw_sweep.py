@@ -96,25 +96,26 @@ def main(
         # loop through datasets, get flow field
         # estimates, and save out figures
         for name in list_of_datasets:
-            print(f"\nComputing drift and diffusion fields for dataset {name}")
+            print(f"\nComputing 2D drift and diffusion fields for dataset {name}")
 
             # 2D viz outputs
             ddd_main.get_and_analyze_ddd(
                 name, pca, kernel_params, fig_savedir_kernel, config
             )
 
-            # 3D viz outputs
-            ddff.ddff_main(
-                list_of_datasets,
-                pca,
-                kernel_params,
-                dt,
-                time_span,
-                init,
-                fig_savedir_kernel,
-                vtk_savedir_kernel,
-                output_savedir_kernel,
-            )
+        print(f"\nRunning 3D flow field estimation workflow for all datasets. \n")
+        # 3D viz outputs
+        ddff.ddff_main(
+            list_of_datasets,
+            pca,
+            kernel_params,
+            dt,
+            time_span,
+            init,
+            fig_savedir_kernel,
+            vtk_savedir_kernel,
+            output_savedir_kernel,
+        )
 
 
 if __name__ == "__main__":
