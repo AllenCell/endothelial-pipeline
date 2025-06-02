@@ -193,7 +193,7 @@ def plot_quiver_slices_from_diffae_table(
     diffae_df: pd.DataFrame,
     traj_grids: np.ndarray,
     flow_field_dict_grids: dict,
-    plot_trajectory: bool = True,
+    plot_trajectory: bool = False,
     plot_fixed_points: bool = True,
 ) -> tuple[plt.Figure, np.ndarray]:
 
@@ -207,7 +207,8 @@ def plot_quiver_slices_from_diffae_table(
 
     # plot the flow field
     fig, axs = plot_quiver_slices(
-        flow_field_dict_grids, (zvalids_grids, yvalids_grids), color="#08b4bc"
+        flow_field_dict_grids,
+        (zvalids_grids, yvalids_grids),
     )
     [ax.set_zorder(0) for ax in axs]
     axs = set_slice_plot_bounds_and_labels(axs, bounds)
@@ -220,7 +221,7 @@ def plot_quiver_slices_from_diffae_table(
             )
         if plot_fixed_points:
             ax.scatter(
-                traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=2
+                traj_grids[-1, 0], traj_grids[-1, j + 1], s=100, color="black", zorder=2
             )
 
     return fig, axs
@@ -237,7 +238,6 @@ def plot_measured_feat_pcs(
     hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
     alpha: float = 0.5,
-    hue_min_max: tuple[float, float] | None = None,
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
@@ -288,7 +288,7 @@ def plot_measured_feat_pcs(
             palette="flare",
             linewidth=0,
             marker=".",
-            s=50,
+            s=115,
             alpha=alpha,
             ax=ax,
             zorder=zorder + 1,
@@ -325,6 +325,10 @@ def plot_measured_feat_overlay_on_flowfield(
         zorder=5,
         alpha=alpha,
     )
+    # remove legend
+    for ax in axs:
+        ax.get_legend().remove()
+
     plt.tight_layout()
     if track_id_to_plot == "mean":
         data_subset = "_timeAvgTracks"
@@ -339,7 +343,7 @@ def plot_measured_feat_overlay_on_flowfield(
     fig.savefig(
         out_dir
         / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
-        dpi=300,
+        dpi=400,
     )
     if not show_plot:
         plt.close(fig)

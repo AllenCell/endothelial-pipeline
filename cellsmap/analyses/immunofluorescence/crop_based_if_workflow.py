@@ -52,7 +52,7 @@ for marker in ["SMAD1"]:  # "SOX17" "NR2F2"
             xlim=xlim,
         )
 # %%
-index = 5
+index = 7
 row = df.iloc[index]
 
 seg_mask = get_segmentation_mask_crop(row, resolution_level=RES_LEVEL, channel=0)
@@ -146,6 +146,26 @@ fig.savefig(
     pad_inches=0,
 )
 plt.close(fig)
+
+gfp_crop = get_raw_intensity_crop(row, resolution_level=RES_LEVEL, channel_name="EGFP")
+max_proj_gfp = np.max(gfp_crop, axis=0)
+# normalize the max projection for better visualization
+max_proj_gfp_ = rescale_intensity(
+    max_proj_gfp,
+    in_range=(
+        np.percentile(max_proj_gfp.compute(), 2),
+        np.percentile(max_proj_gfp.compute(), 98),
+    ),
+)
+fig, ax = plt.subplots()
+ax.imshow(max_proj_gfp_, cmap="gray")
+ax.axis("off")
+fig.savefig(
+    Path(output_dir_SAC) / f"GFP_max_projection_index{index}.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0,
+)
 
 
 # %%
