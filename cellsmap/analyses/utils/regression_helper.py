@@ -218,7 +218,7 @@ def get_kramers_moyal(
         print("No kernel parameters provided, using default parameters: ")
         kernel_params = {"bandwidth": 0.1, "kernel": "gaussian"}
         print(
-            f"bandwidth = {kernel_params['bandwidth']},"
+            f"bandwidth = {kernel_params['bandwidth']:.3f},"
             f"kernel = {kernel_params['kernel']}"
         )
     drift_km, diff_km = km.get_km_kernel(

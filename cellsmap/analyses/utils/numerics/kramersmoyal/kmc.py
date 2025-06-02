@@ -166,7 +166,9 @@ def km(
     # convert specified kernel to callable
     kernel_func = string_to_kernel(kernel)
 
-    print(f"Using bandwidth {bw} for kernel {kernel}.")
+    print(
+        f"Computing Kramers-Moyal coefficients using bandwidth {bw:.3f} for kernel {kernel}."
+    )
 
     # This is where the calculations take place
     kmc = _km(timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method)
