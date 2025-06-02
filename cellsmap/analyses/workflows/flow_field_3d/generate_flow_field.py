@@ -54,7 +54,11 @@ def main(datasets_to_use: list | None = None) -> None:
         stops = timepoint_dict.get("stop", 0)
         timepoints_list = []
         for start, stop in zip(starts, stops):
-            # shouldn't be hard coded, will fix eventually
+            # hard coded because this is the no-flow dataset that
+            # we are using for fitting the PCs, and specifically
+            # the one with the two sets of timepoints
+            # if this changes, we can updated this to not be
+            # hardcoded (i.e., check if shear stress is 0 in config)
             if ref == "20241217_20X" and restrict_no_flow:
                 # restrict to only first set of no flow timepoints
                 if start == 0:
