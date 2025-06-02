@@ -109,7 +109,7 @@ def get_traj_by_flow(
         shear_list.append(second_shear)
         if verbose:
             print(f"Shear stress {first_shear} dyn/cm^2 until frame {change_frame}")
-            print(f"Shear stress {second_shear} dyn/cm^2 after frame {change_frame}")
+            print(f"Shear stress {second_shear} dyn/cm^2 after frame {change_frame} \n")
         # separate data into two dataframes based on
         # frame number where flow condition changes
         data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
@@ -119,7 +119,7 @@ def get_traj_by_flow(
     # else, there is only one flow condition
     else:
         if verbose:
-            print("Constant shear stress at", first_shear, "dyn/cm^2")
+            print("Constant shear stress at", first_shear, "dyn/cm^2 \n")
         # list of dataframes for one flow condition
         # = list containing the original dataframe
         data_all = [df_proj.copy()]

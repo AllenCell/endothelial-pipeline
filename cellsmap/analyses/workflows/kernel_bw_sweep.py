@@ -96,7 +96,7 @@ def main(
         # loop through datasets, get flow field
         # estimates, and save out figures
         for name in list_of_datasets:
-            print(f"Computing drift and diffusion fields for dataset {name}")
+            print(f"\nComputing drift and diffusion fields for dataset {name}")
 
             # 2D viz outputs
             ddd_main.get_and_analyze_ddd(
