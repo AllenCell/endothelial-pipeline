@@ -3,11 +3,14 @@ import numpy as np
 
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
+from cellsmap.analyses.utils.viz import manifest_viz
+from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 
-def main(list_of_datasets: list | None = None) -> None:
+def main(datasets_to_use: list | None = None) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the
     DiffAE crop-based features for each of the single flow datasets.
@@ -22,15 +25,30 @@ def main(list_of_datasets: list | None = None) -> None:
 
     # if not provided in command line, run
     # on default list of datasets
-    if list_of_datasets is None:
-        list_of_datasets = [
+    if datasets_to_use is None:
+        datasets_to_use = [
             "20241120_20X",
-            "20241217_20X",
             "20250409_20X",
+            "20241217_20X",
             "20250319_20X",
             "20250326_20X",
         ]
     pca = manifest_pca.fit_pca()
+
+    # plot scatter of PCA components
+    # for a) just the datasets used to fit PCA
+    # and b) all datasets specified in the command line
+    #   (or default list, if not specified)
+    fig, _ = manifest_viz.plot_pc_scatter(
+        pca,
+        get_reference_datasets(),  # pca reference datasets
+    )
+    vb.save_plot(fig, fig_savedir + "/pca_scatter_ref")
+    fig, _ = manifest_viz.plot_pc_scatter(
+        pca,
+        datasets_to_use,  # all datasets specified
+    )
+    vb.save_plot(fig, fig_savedir + "/pca_scatter_all")
 
     # load default config, get kernel params
     config = dynamics_io.load_dynamics_config("default")
@@ -52,7 +70,7 @@ def main(list_of_datasets: list | None = None) -> None:
     init = np.array([-0.1, -0.7, -0.1])
 
     ddff.ddff_main(
-        list_of_datasets,
+        datasets_to_use,
         pca,
         kernel_params,
         dt,

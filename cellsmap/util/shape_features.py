@@ -213,7 +213,7 @@ def get_neighbor_nodes_and_edges(
     edges_lab: np.ndarray,
     bad_neighbors: list = [0],
     as_dict: bool = False,
-):
+) -> Tuple:
     """
     Takes a labeled array of nodes and a labeled array of edges and returns
     a list or dict of which nodes neighbor each node, which edges neighbor each node,
@@ -459,7 +459,7 @@ def get_angle(
 
 def rasterize_edges_between_nodes(
     node_coord_pairs: list, arr_to_draw_on: np.ndarray, label_lines: bool = False
-):
+) -> Tuple[np.ndarray, dict | None]:
     """
     Takes a list of paired coordinates and an array and draws rasterized versions of
     the lines between the paired coordinates.
@@ -507,10 +507,10 @@ def rasterize_edges_between_nodes(
         arr_to_draw_on[(*locs,)] = label if label_lines else True
     label_dict = {label: label_dict[label] for label in sorted(label_dict.keys())}
 
-    return (arr_to_draw_on, label_dict) if label_lines else arr_to_draw_on
+    return (arr_to_draw_on, label_dict) if label_lines else (arr_to_draw_on, None)
 
 
-def build_vector(stop_position, start_position):
+def build_vector(stop_position: np.ndarray, start_position: np.ndarray) -> np.ndarray:
     vec = stop_position - start_position
     return vec
 
@@ -823,6 +823,8 @@ def calculate_labeled_image_metrics(
     region_area = []
     region_perimeter = []
     region_solidity = []
+    region_major_axis_length = []
+    region_minor_axis_length = []
     region_eccentricity = []
     region_orientation = []
     region_fluor_mean = []
@@ -844,6 +846,8 @@ def calculate_labeled_image_metrics(
         region_area.append(prop.area)
         region_perimeter.append(prop.perimeter)
         region_solidity.append(prop.solidity)
+        region_major_axis_length.append(prop.major_axis_length)
+        region_minor_axis_length.append(prop.minor_axis_length)
         region_eccentricity.append(prop.eccentricity)
         region_orientation.append(prop.orientation)
         region_fluor_mean.append(prop.intensity_mean)
@@ -874,6 +878,8 @@ def calculate_labeled_image_metrics(
         "cell_area (px**2)": region_area,
         "cell_perimeter (px)": region_perimeter,
         "cell_solidity": region_solidity,
+        "major_axis_length": region_major_axis_length,
+        "minor_axis_length": region_minor_axis_length,
         "cell_eccentricity": region_eccentricity,
         "cell_orientation": region_orientation,
         "cell_fluorescence_mean (au)": region_fluor_mean,
@@ -1218,9 +1224,9 @@ def walk_the_line(
     coords = list(zip(*np.where(skel)))
 
     if len(coords) < 2:
-        line1 = {(coords)[-1]: {}}
+        line1: dict = {(coords)[-1]: {}}
         if bidirectional:
-            line2 = {(coords)[-1]: {}}
+            line2: dict = {(coords)[-1]: {}}
         else:
             pass
         pass

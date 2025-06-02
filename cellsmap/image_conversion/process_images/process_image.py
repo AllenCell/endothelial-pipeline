@@ -11,6 +11,17 @@ from cellsmap.util.dataset_io import (
 )
 
 
+def get_included_scenes(dataset_name: str) -> list:
+    dataset_info = get_dataset_info(dataset_name)
+    include_scenes = dataset_info.get("include_scenes")
+
+    # by default, include all scenes
+    if include_scenes is None:
+        include_scenes = range(len(BioImage(dataset_info["original_path"]).scenes))
+
+    return include_scenes
+
+
 def get_delayed_array_for_position(
     pos: int,
     dataset_name: str,
@@ -43,11 +54,17 @@ def get_delayed_array_for_position(
     number_positions = get_total_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
-    gfp_index, bf_index, index_405 = get_specific_channel_order(dataset_name)
+    index_488, bf_index, index_405, index_561, index_640 = get_specific_channel_order(
+        dataset_name
+    )
 
-    channels = [gfp_index, bf_index]
+    channels = [index_488, bf_index]
     if index_405 is not None:
         channels.append(index_405)
+    if index_561 is not None:
+        channels.append(index_561)
+    if index_640 is not None:
+        channels.append(index_640)
 
     assert len(channels) == len(
         channel_names
@@ -61,11 +78,3 @@ def get_delayed_array_for_position(
     scene = da.stack(results, axis=0)  # TCZYX
     print(f"finished processing {len(timepoints)} timepoints for position {pos}")
     return scene
-
-
-def custom_scene_list(dataset_name: str) -> list | None:
-    dataset_info = get_dataset_info(dataset_name)
-    if "scene_list" in dataset_info:
-        return dataset_info["scene_list"]
-    else:
-        return None

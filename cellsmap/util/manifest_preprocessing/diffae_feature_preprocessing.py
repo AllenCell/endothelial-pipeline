@@ -102,7 +102,7 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     assert "start_x" in df.columns, "Data must have a column for start_x"
     assert "start_y" in df.columns, "Data must have a column for start_y"
-    assert "position" in df.columns, "Data must have a column for FOV_ID"
+    assert "position" in df.columns, f"Data must have a column for position"
 
     # get list of unique starting positions and FOV_IDs (position column in DiffAE manifest)
     start_x = df[df["frame_number"] == df["frame_number"].min()][
@@ -128,7 +128,12 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def project_manifest_to_pcs(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
+def project_manifest_to_pcs(
+    df: pd.DataFrame,
+    pca: Pipeline,
+    overwrite_feature_columns: bool = True,
+    feat_cols: list[str] | None = None,
+) -> pd.DataFrame:
     """
     Project feature data for crops from one dataset onto principal component axes of fit PCA model.
 
@@ -139,18 +144,24 @@ def project_manifest_to_pcs(df: pd.DataFrame, pca: Pipeline) -> pd.DataFrame:
     - ds_name: str, name of dataset to project feature data for
         - This string must match the dataset name in the dataset_name column of df, same
            as the name of the dataset in data_config.yaml
+    - feature_cols: list, custom list of feature columns to project onto PCA axes
 
     Outputs:
     - df_: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
     """
     # feature columns to project onto PCA axes, currently all columns except metadata columns
     # this is assuming that there are 8 feature columns, will need to change if this is not the case
-    feat_cols = manifest_io.get_feature_cols(df)
+    if feat_cols is None:
+        feat_cols = manifest_io.get_feature_cols(df)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, replace feature columns with features projected onto PCA axes
-    df_.loc[:, feat_cols] = pca.transform(df_[feat_cols].values)
+    if overwrite_feature_columns:
+        df_.loc[:, feat_cols] = pca.transform(df_[feat_cols].values)
+    else:
+        pc_cols = [f"pc{pc+1}" for pc in range(len(feat_cols))]
+        df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
 
@@ -179,33 +190,11 @@ def get_manifest_for_dynamics_workflows(
             stationary_frames is not None
     """
     # load manifest data for dataset ds_name
-    df = manifest_io.get_diffae_manifest(ds_name)
+    # and filter to only valid timepoints
+    df = manifest_io.get_diffae_manifest(ds_name, filter_to_valid=True)
 
     # add crop index column
     df = add_crop_index(df)
-
-    # load data config for dataset ds_name
-    # see if stationary frames are defined in data config
-    valid_timepoints = dataset_io.get_valid_timepoints(ds_name)
-    # if valid_timepoints is None, use all timepoints
-    if valid_timepoints is None:
-        # no change made to DataFrame
-        # just print that all timepoints are being used
-        print(
-            f"Using all timepoints from dataset {ds_name} for "
-            " dynamics workflow analysis"
-        )
-    else:
-        # restrict DataFrame to only the timepoints
-        # as defined by the ranges in valid_timepoints
-        print(f"Range(s) of timepoints being used from dataset {ds_name}: ")
-        df_ = []
-        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
-            print(f"   - {start} to {stop}")
-            # restrict DataFrame to only the timepoints
-            # as defined by the ranges in valid_timepoints
-            df_.append(df[(df["frame_number"] >= start) & (df["frame_number"] <= stop)])
-        df = pd.concat(df_, ignore_index=True)
 
     if pca is None:
         # do not project feature data onto PCA axes

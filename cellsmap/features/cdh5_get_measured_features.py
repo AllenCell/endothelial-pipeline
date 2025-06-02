@@ -1,6 +1,7 @@
 import subprocess
 from multiprocessing import Pool
 from pathlib import Path
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,12 +12,13 @@ from tqdm import tqdm
 from cellsmap.util import shape_features as feat
 from cellsmap.util.dataset_io import (
     extract_T,
+    fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_original_path,
+    get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    load_config,
     load_dataset_position_as_dask_array,
 )
 from cellsmap.util.general_image_preprocessing import (
@@ -27,7 +29,7 @@ from cellsmap.util.general_image_preprocessing import (
 from cellsmap.util.set_output import get_output_path
 
 
-def generate_results_multiproc_wrapper(args):
+def build_measured_features_tables_multiproc_wrapper(args: Dict) -> None:
     dataset_name = args["dataset_name"]
     scene = args["scene_index"]
     position = args["position"]
@@ -38,33 +40,138 @@ def generate_results_multiproc_wrapper(args):
     verbose = args["verbose"]
     use_original_data = args["use_original_data"]
     create_validation_image = args["validation_image"]
-    generate_results(
+    build_measured_features_tables(
         dataset_name,
         T,
+        out_dir,
         scene,
         position,
         use_original_data,
         img_bin_level,
-        out_dir=out_dir,
         save_output=save_output,
         create_validation_image=create_validation_image,
         verbose=verbose,
     )
 
 
-# def generate_results(dataset_name, crop, img_bin_level, save_output=True, is_test=False, verbose=True):
-def generate_results(
-    dataset_name,
-    T,
-    scene=None,
-    position=None,
-    use_original_data=False,
-    img_bin_level=0,
-    out_dir=None,
-    save_output=True,
-    create_validation_image=False,
-    verbose=True,
-):
+def build_measured_features_tables(
+    dataset_name: str,
+    T: int,
+    out_dir: str | Path,
+    scene: str | int = 0,
+    position: int = 0,
+    use_original_data: bool | None = False,
+    img_bin_level: int = 0,
+    save_output: bool | None = True,
+    create_validation_image: bool = False,
+    verbose: bool = True,
+) -> None:
+    """
+    Builds tables of measured features from the segmentation images
+    and the raw cdh5 images.
+    The segmentation properties tables is
+    a table of measured features extracted from the cdh5 segmentations
+    using skimage.regionprops.
+    The edge alignments table contains measured features that were
+    determined based on a thresholded image of the cdh5 signal
+    (i.e. they don't require the cdh5 segmentations).
+
+    Also produces a validation image if requested
+    (a validation image has segmentation borders, nodes, edges, and
+    the straight lines connecting nodes as channels in a single
+    .tiff image).
+
+    Parameters
+    ----------
+    dataset_name: str
+        The name of the dataset to process.
+    T: int
+        The timepoint to process.
+    out_dir: str | Path
+        The output directory to save the tables and validation images to.
+    scene: str | int
+        The scene index to process (only used if use_original_data = True).
+    position: int
+        The position to process (this will be equal to the scene index).
+    use_original_data: bool | None
+        Whether to use the original data or the zarr data.
+    img_bin_level: int
+        The binning level to use when loading an image (only used if use_original_data = False).
+        Currently not implemented.
+    save_output: bool | None
+        Whether to save the output tables (and validation images if selected).
+    create_validation_image: bool
+        Whether to create a validation image.
+    verbose: bool
+        Whether to print progress messages.
+
+    Returns
+    -------
+    This function will only save tables and images,
+    it does not return anything.
+
+    The tables contain the following information:
+    segmentation properties table:
+    - filepath_raw_image
+    - filepath_segmentation_image
+    - dataset_name
+    - scene_index
+    - position
+    - T
+    - cell_label
+    - cell_centroid
+    - cell_area (px**2)
+    - cell_perimeter (px)
+    - cell_perimeter (px)
+    - cell_solidity
+    - major_axis_length
+    - minor_axis_length
+    - cell_eccentricity
+    - cell_orientation
+    - cell_fluorescence_mean (a.u.)
+    - cell_fluorescence_std (a.u.)
+    - cell_fluorescence_median (a.u.)
+    - cell_fluoresnce_min (a.u.)
+    - cell_fluorescence_pct25 (a.u.)
+    - cell_fluorescence_pct75 (a.u.)
+    - cell_fluorescence_max (a.u.)
+    - neighboring_cell_labels
+    - edge_labels
+    - node_labels
+    - node_pair_labels
+    - touches_image_border
+    - measurement_timestamp
+    - git_branch_name
+    - git_commit_hash
+    - git_uncommitted_changes
+
+    edge alignments table:
+    - filepath_raw_image
+    - filepath_raw_image
+    - filepath_segmentation_image
+    - dataset_name
+    - scene_index
+    - position
+    - T
+    - node_pair_labels
+    - node_pair_centroids
+    - node_to_node_distance
+    - angle_relative_to_horizontal
+    - connecting_edges
+    - edge_num_pixels
+    - edge_length (px)
+    - edge_fluorescence_mean (a.u.)
+    - edge_fluorescence_std (a.u.)
+    - edge_fluorescence_median (a.u.)
+    - edge_fluoresnce_min (a.u.)
+    - edge_fluorescence_pct25 (a.u.)
+    - edge_fluorescence_pct75 (a.u.)
+    - edge_fluorescence_max (a.u.)
+    - measurement_timestamp
+    - git_branch_name
+    - git_commit_hash
+    - git_uncommitted_changes
+    """
 
     # get some versioning info about when this script was run and
     # what version of the script was used to produce the output
@@ -94,6 +201,7 @@ def generate_results(
     dim_order = "TCZYX"
     dim_map = get_dim_map(dim_order)
 
+    out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
     tables_out_dir_alignments = (
         out_dir / f"{dataset_name}/P{position}/tables_alignments"
@@ -102,10 +210,10 @@ def generate_results(
         out_dir / f"{dataset_name}/P{position}/tables_segmentation_properties"
     )
 
-    print(f"T={T} -- loading dataset") if verbose else None
+    print(f"T={T} -- loading imaging datasets") if verbose else None
     # load the raw cdh5 image data
     if use_original_data:
-        cdh5_chan_index = get_dataset_info(dataset_name)["egfp_channel_index"]
+        cdh5_chan_index = get_dataset_info(dataset_name)["488_channel_index"]
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
         img.set_scene(scene)
@@ -118,20 +226,20 @@ def generate_results(
             dataset_name, position, channels=["EGFP"]
         )
         raw_arr = raw_arr.max(axis=dim_map["Z"]).squeeze()
-        image_path = Path(get_zarr_path(dataset_name))
+        zarr_name = get_zarr_name(dataset_name, position)
+        image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
 
     print(f"T={T} -- loading classic segmentation") if verbose else None
     # load the segmentation images
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
-    seg_filepaths = sorted(
-        seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name)
-    )
-    seg_filepath = [fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T]
+    seg_filepath_list = [
+        fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T
+    ]
     assert (
-        len(seg_filepath) == 1
-    ), f"Found {len(seg_filepath)} segmentation files for T={T} in {dataset_name}. Expected 1."
-    seg_filepath = seg_filepath[0]
+        len(seg_filepath_list) == 1
+    ), f"Found {len(seg_filepath_list)} segmentation files for T={T} in {dataset_name}. Expected 1."
+    seg_filepath = seg_filepath_list[0]
     seg = BioImage(seg_filepath)
     seg_arr = seg.get_image_dask_data(dim_order).compute().squeeze()
     # NOTE: the segmentation images are stored as a single channel and single timepoint
@@ -263,6 +371,8 @@ def generate_results(
                         "cell_perimeter (px)"
                     ],
                     "cell_solidity": labeled_region_metrics["cell_solidity"],
+                    "major_axis_length": labeled_region_metrics["major_axis_length"],
+                    "minor_axis_length": labeled_region_metrics["minor_axis_length"],
                     "cell_eccentricity": labeled_region_metrics["cell_eccentricity"],
                     "cell_orientation": labeled_region_metrics["cell_orientation"],
                     "cell_fluorescence_mean (a.u.)": labeled_region_metrics[
@@ -308,14 +418,13 @@ def generate_results(
             )
 
 
-def concatenate_tables(dataset_name, out_dir):
+def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
     print(f"- {dataset_name}")
     # get the alignment table paths and segmentation properties
     # table paths for each dataset
-    tables_alignments = Path(out_dir).glob(
-        f"**/{dataset_name}/*/tables_alignments/*.csv"
-    )
-    tables_segprops = Path(out_dir).glob(
+    out_dir = Path(out_dir)
+    tables_alignments = out_dir.glob(f"**/{dataset_name}/*/tables_alignments/*.csv")
+    tables_segprops = out_dir.glob(
         f"**/{dataset_name}/*/tables_segmentation_properties/*.csv"
     )
 
@@ -334,26 +443,22 @@ def concatenate_tables(dataset_name, out_dir):
     )
 
 
-def concatenate_tables_multiproc(queue_group):
+def concatenate_tables_multiproc(queue_group: Tuple) -> None:
     dataset_name, queue_df = queue_group
     out_dir = queue_df["output_dir"].iloc[0]
     concatenate_tables(dataset_name, out_dir)
 
 
-def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=False):
+def main(
+    n_proc: int = 1,
+    dataset_name: str | None = None,
+    save_output: bool = True,
+    is_test: bool = False,
+    verbose: bool = False,
+    use_original_data: bool = True,
+) -> None:
 
-    if dataset_name == None:
-        dataset_name_list = [
-            config_data["name"]
-            for config_data in load_config(config_type="data")
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "AICS-126" in config_data["cell_lines"]
-        ]
-    else:
-        dataset_name_list = [dataset_name]
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     print("Building analysis queue...")
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
@@ -365,7 +470,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=True,
+        use_original_data=use_original_data,
     )
 
     if n_proc > 1:
@@ -375,7 +480,7 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
                 list(
                     tqdm(
                         pool.imap(
-                            generate_results_multiproc_wrapper,
+                            build_measured_features_tables_multiproc_wrapper,
                             analysis_queue,
                             chunksize=2,
                         ),
@@ -388,11 +493,11 @@ def main(n_proc=1, dataset_name=None, save_output=True, is_test=False, verbose=F
     else:
         print("Running workflow with single process...")
         for dataset_name_and_args in analysis_queue:
-            generate_results_multiproc_wrapper(dataset_name_and_args)
+            build_measured_features_tables_multiproc_wrapper(dataset_name_and_args)
         print("Done single-processing.")
 
     # lastly, for each dataset concatenate the tables from each timepoint
-    # into a single output table for dataset
+    # into a single output table for that dataset
     analysis_queue_df = pd.DataFrame(analysis_queue)
     analysis_queue_per_dataset = analysis_queue_df.groupby("dataset_name")
 

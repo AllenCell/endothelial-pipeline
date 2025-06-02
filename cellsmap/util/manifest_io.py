@@ -79,13 +79,70 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
-def get_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+def get_valid_subset(
+    df: pd.DataFrame, dataset_name: str, verbose: bool = True
+) -> pd.DataFrame:
+    """
+    Select timepoints from a dataframe annotated as valid if annotation is present, otherwise use all teimpoints
+
+    Inputs:
+    - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
+    - dataset_name: str, name of the dataset to get valid timepoints for
+
+    Outputs:
+    - df: pd.DataFrame, subset of the input dataframe containing only the valid timepoints
+    """
+    df["valid"] = False
+    # check that the necessary datasets are present for fitting PCA
+    valid_timepoints = dataset_io.get_valid_timepoints(dataset_name)
+    if valid_timepoints is None:
+        if verbose:
+            print(f"Using all timepoints from dataset {dataset_name} for PCA")
+        df["valid"] = True
+    else:
+        if verbose:
+            print(f"Valid timepoints for dataset {dataset_name}: ")
+        tps = []
+        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
+            tps.extend(list(range(start, stop + 1)))
+            if verbose:
+                print(f"   - {start} to {stop}")
+        valid_subset = df.frame_number.isin(tps)
+        df["valid"] = valid_subset
+    return df[df.valid]
+
+
+def get_diffae_manifest(
+    dataset_name: str, filter_to_valid: bool = False
+) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
     if fmsid == "" or fmsid is None:
         print(f"No DiffAE manifest found for dataset {dataset_name}")
         return None
     df = get_dataframe_by_fmsid(fmsid)
+    if filter_to_valid:
+        df = get_valid_subset(df, dataset_name)
     return df
+
+
+def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name).get(
+        "diffae_tracking_integration_fmsid", None
+    )
+    if fmsid:
+        return get_dataframe_by_fmsid(fmsid)
+    else:
+        print(f"No DiffAE manifest found for dataset {dataset_name}")
+        return None
+
+
+def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
+    fmsid = dataset_io.get_dataset_info(dataset_name).get("cell_mean_features", None)
+    if fmsid:
+        return get_dataframe_by_fmsid(fmsid)
+    else:
+        print(f"No cell mean features manifest found for dataset {dataset_name}")
+        return None
 
 
 def get_feature_cols(df: pd.DataFrame) -> list:
@@ -97,7 +154,11 @@ def get_feature_cols(df: pd.DataFrame) -> list:
     return feat_cols
 
 
-def list_datasets_with_manifest(manifest_name: str, verbose: bool = False) -> list:
+def list_datasets_with_manifest(
+    manifest_name: str,
+    verbose: bool = False,
+    timelapse_only: bool = False,
+) -> list:
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
@@ -109,10 +170,19 @@ def list_datasets_with_manifest(manifest_name: str, verbose: bool = False) -> li
             if manifest_name == "nuclear_seg_manifest_fmsid"
             else "DiffAE"
         )
-        print(f"Available datasets with {manifest_type} manifest data: ")
+        if timelapse_only:
+            print(f"Available timelapse datasets with {manifest_type} manifest data: ")
+        else:
+            print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
     for dataset_name in all_datasets:
         dataset_info = dataset_io.get_dataset_info(dataset_name)
+        # get time_interval_in_minutes - any dataset
+        # that is fixed or is a 20X/40X pair has default
+        # time_interval_in_minutes of -1.0, so we skip
+        time_interval_in_minutes = dataset_info.get("time_interval_in_minutes", -1.0)
+        if timelapse_only and time_interval_in_minutes < 0:
+            continue
         if manifest_name in dataset_info and dataset_info[manifest_name] != "":
             dataset_list.append(dataset_name)
             if verbose:

@@ -1,6 +1,6 @@
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
 import numpy as np
 from bioio import BioImage
@@ -8,9 +8,8 @@ from cellpose import models
 from tqdm import tqdm
 
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
-from cellsmap.util import get_sldy_metadata as sldmd
 from cellsmap.util.dataset_io import (
-    get_available_datasets,
+    fire_parse_generate_dataset_name_list,
     get_dataset_info,
     load_config,
 )
@@ -24,7 +23,7 @@ from cellsmap.util.set_output import get_output_path
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model
-def generate_results(args: dict):
+def generate_results(args: dict) -> None:
     print(
         f'Working on dataset {args["dataset_name"]}, T = {args["T"]}, scene = {args["scene_index"]}...'
     )
@@ -39,9 +38,7 @@ def generate_results(args: dict):
     )
     out_dir_validation.mkdir(exist_ok=True, parents=True)
 
-    out_path = (
-        out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose.ome.tiff'
-    )
+    out_path = out_dir / f'{dataset_name}_P{args["position"]}_T{args["T"]}.ome.tiff'
     out_path_validation = (
         out_dir_validation
         / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose_overlay.ome.tiff'
@@ -134,11 +131,11 @@ def generate_results(args: dict):
 
 def main(
     dataset_name: str | List | None = None,
-    n_proc=1,
-    save_output=True,
-    overwrite=True,
-    is_test=False,
-):
+    n_proc: int = 1,
+    save_output: bool = True,
+    overwrite: bool = True,
+    is_test: bool = False,
+) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
     '\"20241016_20X\",\"20241120_20X\"'
@@ -150,44 +147,7 @@ def main(
     # NOTE there is a userwarning error popping up when I read .nd2 files in dask
     # so I will only analyze .sldy files for now out of an abundance of caution
     # until .ome.zarr files are available
-    if dataset_name == None:
-        dataset_name_list = [
-            config_data["name"]
-            for config_data in load_config(config_type="data")
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "AICS-126" in config_data["cell_lines"]
-        ]
-    elif dataset_name == "live":
-        dataset_name_list = [
-            config_data["name"]
-            for config_data in load_config(config_type="data")
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "AICS-126" in config_data["cell_lines"]
-            and config_data["duration"] > 1
-        ]
-    elif type(dataset_name) == str:
-        dataset_name_list = [dataset_name]
-        assert all(
-            [dataset_name in get_available_datasets(verbose=False)]
-        ), f"Dataset {dataset_name} not found in data_config.yaml"
-    elif type(dataset_name) == list:
-        dataset_name_list = dataset_name
-        assert all(
-            [
-                dataset_name in get_available_datasets(verbose=False)
-                for dataset_name in dataset_name_list
-            ]
-        ), f"All datasets in {dataset_name_list} must be found in the available datasets {get_available_datasets()}"
-    else:
-        raise ValueError(
-            f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
-        )
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)
