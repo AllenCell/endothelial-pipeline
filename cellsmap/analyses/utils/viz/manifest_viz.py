@@ -90,13 +90,13 @@ def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
 
         # first plot: PC1 v PC2
         ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01)
-        ax[0].set_xlabel(f"PC1")
-        ax[0].set_ylabel(f"PC2")
+        ax[0].set_xlabel("PC1")
+        ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
         ax[1].scatter(df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01)
-        ax[1].set_xlabel(f"PC1")
-        ax[1].set_ylabel(f"PC3")
+        ax[1].set_xlabel("PC1")
+        ax[1].set_ylabel("PC3")
 
     return fig, ax
 

@@ -26,7 +26,17 @@ from cellsmap.util.set_output import get_output_path
 # load output from preprocessing step
 # dataframe of all if datasets
 output_path = get_output_path("immunoflourescence_analysis_integration/outputs")
-df_if = pd.read_csv(output_path + "immunofluorescence_manifest.csv")
+try:
+    print("Loading pre-processed immunofluorescence manifest from: \n")
+    print(output_path + "immunofluorescence_manifest.csv")
+    print(
+        "If anything upstream of this step has changed, please re-run the preprocessing step."
+    )
+    df_if = pd.read_csv(output_path + "immunofluorescence_manifest.csv")
+except FileNotFoundError:
+    raise FileNotFoundError(
+        "Please run the immunofluorescence preprocessing step first to generate the manifest."
+    )
 # %% Calculate PCA and bounds for the reference dataset
 pca = fit_pca()
 reference_datasets = get_reference_datasets()
