@@ -134,70 +134,123 @@ def generate_results(
     # helper_seeds = nuc_pred
     import numpy as np
     from matplotlib import pyplot as plt
+    from skimage.color import label2rgb
+    from skimage.exposure import rescale_intensity
     from skimage.measure import label, regionprops
-    from skimage.morphology import skeletonize
+    from skimage.morphology import dilation, disk, skeletonize
     from skimage.segmentation import relabel_sequential, watershed
 
     from cellsmap.util.cdh5_preprocessing import get_watershed_seeds_and_basins
 
-    nuc_pred_skels = skeletonize(nuc_pred) * nuc_pred
+    # if nuclei with different labels are touching then separate them
+    # only if a segmentation boundary or the cdh5 threshold would have
+    # separated them
+    nuc_pred_merge_adjacent = label((nuc_pred * ~hyst_clean).astype(bool))
+    nuc_pred_skels = skeletonize(nuc_pred_merge_adjacent) * nuc_pred_merge_adjacent
+    # nuc_pred_skels = label(nuc_pred_merge_adjacent)
     reg_props = regionprops(
         label_image=seg2_lab_no_mask_merge, intensity_image=nuc_pred_skels
     )
-    num_nuclei_per_label = {
+    nuclei_labels_per_region = {
+        prop.label: np.unique(prop.intensity_image)[
+            np.unique(prop.intensity_image).nonzero()
+        ]
+        for prop in reg_props
+    }
+    num_nuclei_per_region = {
         prop.label: np.count_nonzero(np.unique(prop.intensity_image))
         for prop in reg_props
     }
 
     seg_skels = (
-        skeletonize(~find_boundaries(seg2_lab_no_mask_merge) * seg2_lab_no_mask_merge)
+        # skeletonize(~find_boundaries(seg2_lab_no_mask_merge) * seg2_lab_no_mask_merge)
+        skeletonize(~find_boundaries(seg2_lab_no_mask_merge))
         * seg2_lab_no_mask_merge
     )
     anucleate_region_labels = [
-        lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] == 0
+        lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 0
     ]
     anucleate_reg_skels = np.isin(seg_skels, anucleate_region_labels) * seg_skels
 
     multinucleate_region_labels = [
-        lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] > 1
+        lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] > 1
     ]
-    # multinucleate_reg_kels = (
-    #     np.isin(seg_skels, multinucleate_region_labels) * seg_skels
-    # )
 
     mononucleate_region_labels = [
-        lab for lab in num_nuclei_per_label if num_nuclei_per_label[lab] == 1
+        lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 1
     ]
     mononucleate_reg_skels = np.isin(seg_skels, mononucleate_region_labels) * seg_skels
 
-    # relabel the skeletonized anucleate regions and nuclei to use
-    # as seeds watershed
-    nuc_pred_skels = label(nuc_pred_skels)
-    anucleate_reg_skels, _, _ = relabel_sequential(
-        anucleate_reg_skels, offset=1 + nuc_pred_skels.max()
-    )
-    seeds = label(nuc_pred_skels + anucleate_reg_skels)
-    seg_aug = watershed(image=processed_img, markers=seeds)
-
-    # alt approach to segmentation
-    nuc_pred_relab, _, _ = relabel_sequential(nuc_pred)
-    anucleate_reg_skels, _, _ = relabel_sequential(
-        anucleate_reg_skels, offset=1 + nuc_pred_relab.max()
-    )
-    seeds, basins = get_watershed_seeds_and_basins(~hyst)
-    seeds = label(nuc_pred_relab + anucleate_reg_skels)
-    seg_aug = watershed(image=basins, markers=seeds, mask=~hyst_clean)
-    seg_aug = watershed(image=basins, markers=seg_aug)
+    # get basins for performing watershed segmentation
+    _, basins = get_watershed_seeds_and_basins(~hyst)
+    # these basins are based on the geometry of the threshold image
+    # so add info about the intensity image to make a
+    # "ridges and basins" image for watershed to work on
+    ridges = processed_img * hyst
+    min_val_in_ridges = ridges[np.nonzero(ridges)].min()
+    ridges = np.clip(ridges, min_val_in_ridges, None)
+    basins_and_ridges = (basins + rescale_intensity(ridges, out_range=(0, 1))) / 2
 
     # use the skeletonized regions as seed points for mononucleate
     # and anucleate regions
     seeds = anucleate_reg_skels + mononucleate_reg_skels
     # use the nuclei as seed points for the multinucleate regions
-    # seeds =
+    # multinuc_seeds = np.isin(seg2_lab_no_mask_merge, multinucleate_region_labels) * nuc_pred_skels
+    multinuc_seeds = (
+        np.isin(seg2_lab_no_mask_merge, multinucleate_region_labels)
+        * nuc_pred_merge_adjacent
+    )
+    multinuc_seeds, _, _ = relabel_sequential(multinuc_seeds, offset=1 + seeds.max())
+    seeds = seeds + multinuc_seeds
+
+    # segment cells with watershed
+    seg_aug = watershed(image=basins_and_ridges, markers=seeds, mask=~hyst_clean)
+    seg_aug = watershed(image=basins_and_ridges, markers=seg_aug)
 
     # NOTE TRY OUT THE VESSELNESS EDGE ENHANCEMENT OR DIFFERENCE OF
     # GAUSSIANS APPROACHES TO CDH5 FLUORESCENCE IMAGE PREPROCESSING
     # FROM SECOND_DATASET_SEGMENTATION_IMPROVEMENT_EFFORTS BRANCH??
+
+    crop = slice(200, 600), slice(1000, 1400)
+    raw_clip_norm = rescale_intensity(
+        np.clip(
+            raw_arr_MIP, np.percentile(raw_arr_MIP, 3), np.percentile(raw_arr_MIP, 97)
+        )
+    )
+    overlay = label2rgb(
+        label=dilation(find_boundaries(seg_aug), disk(3)) * 1
+        + nuc_pred_merge_adjacent.astype(bool) * 2,
+        image=raw_clip_norm,
+        bg_label=0,
+        colors=["magenta", "cyan", "yellow"],
+        alpha=0.5,
+    )
+    plt.imshow(overlay)
+    # plt.imshow(overlay[crop])
+
+    overlay = label2rgb(
+        label=dilation(
+            find_boundaries(seg_aug) * 1 + ~hyst_clean * seeds.astype(bool) * 2, disk(3)
+        ),
+        image=raw_clip_norm,
+        bg_label=0,
+        colors=["magenta", "cyan", "yellow"],
+        alpha=0.5,
+    )
+    plt.imshow(overlay[crop])
+
+    overlay = label2rgb(
+        label=dilation(hyst * 1 + ~hyst_clean * seeds.astype(bool) * 2, disk(3)),
+        image=basins_and_ridges,
+        bg_label=0,
+        colors=["magenta", "cyan", "yellow"],
+        alpha=0.5,
+    )
+    plt.imshow(overlay[crop])
+
+    # overlay = label2rgb(label=dilation(find_boundaries(seg2_lab_no_mask_merge)*1 + ~hyst_clean * seeds.astype(bool)*2, disk(3)),
+    #                     image=basins_and_ridges, bg_label=0, colors=["magenta", "cyan", "yellow"], alpha=0.5)
+    # plt.imshow(overlay[crop])
 
     if save_output:
         # save every nth image for validation
