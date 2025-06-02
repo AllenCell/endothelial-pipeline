@@ -323,6 +323,7 @@ def phase_portrait(
     n2_coarse: int | None = None,
     params: dict | None = None,
     nullclines: bool = True,
+    verbose: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot the phase portrait of a system of ODEs given by f1 and f2.
@@ -351,6 +352,8 @@ def phase_portrait(
             of x1, x2 and params
     - nullclines: boolean (default=True)
         If True, nullclines will be plotted
+    - verbose: boolean (default=True)
+        If True, fixed points and their stability will be printed
 
     Outputs:
     - fig: matplotlib Figure object
@@ -410,9 +413,10 @@ def phase_portrait(
     # if fixed points are found, classify them
     # and plot them
     if len(fpts) > 0:
-        fpt_types, _, ax = classify_fps(my_flow, fpts, [x1, x2], ax=ax)
+        fpt_types, _, ax = classify_fps(my_flow, fpts, [x1, x2], ax=ax, verbose=verbose)
     else:
-        print("No fixed points found.")
+        if verbose:
+            print("No fixed points found.")
         fpt_types = []
 
     ax.set_xlabel("$x_1$", fontsize=14)

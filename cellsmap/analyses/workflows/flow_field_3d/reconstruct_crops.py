@@ -50,7 +50,7 @@ for condition in df.description.unique():
     # get full mean trajectory
     coords = traj_dict[condition]
 
-    if type(coords) is np.ndarray:
+    if isinstance(coords, np.ndarray):
         # interpolate points evenly spaced along the trajectory
         interpolated_points = ddff.interpolate_on_curve(coords)
 
@@ -61,7 +61,7 @@ for condition in df.description.unique():
         latent_coords_batch.append(latent_coords)
         condition_list.append(condition)
 
-    elif type(coords) is list:
+    elif isinstance(coords, list):
         for jj, coord in enumerate(coords):
             # interpolate points evenly spaced along the trajectory
             interpolated_points = ddff.interpolate_on_curve(coord)
