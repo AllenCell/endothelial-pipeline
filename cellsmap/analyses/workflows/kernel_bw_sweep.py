@@ -93,6 +93,7 @@ def main(
         fig_savedir_kernel = get_output_path(savedir + f"bw_{bw_str}/figs")
         output_savedir_kernel = get_output_path(savedir + f"bw_{bw_str}/outputs")
         vtk_savedir_kernel = get_output_path(savedir + f"bw_{bw_str}/outputs/vtks")
+
         # loop through datasets, get flow field
         # estimates, and save out figures
         for name in list_of_datasets:

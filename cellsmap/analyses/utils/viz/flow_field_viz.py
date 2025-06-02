@@ -335,7 +335,6 @@ def plot_flow_field_slices(
         vb.save_plot(
             fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
         )  # save the figure
-        plt.close()  # close the figures
 
     return fig, ax
 
@@ -431,6 +430,7 @@ def flow_field_viz_main(
         # simulate second trajectory to get second stable point
         if name == "20250319_20X" or name == "20250326_20X":
             ax_.scatter(traj_2[-1, 0], traj_2[-1, j + 1], s=100, color="black")
+
     # plot second stable point
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
     # set titles with slice values
@@ -440,7 +440,6 @@ def flow_field_viz_main(
     plt.show()
     # save the figure
     vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
-    plt.close()  # close the figure
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
@@ -450,7 +449,6 @@ def flow_field_viz_main(
     plt.show()
     # save the figure
     vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
-    plt.close()  # close the figure
 
     # 3) trajectory with equally spaced interpolated points
     interpolated_points = ddff.interpolate_on_curve(traj)
@@ -467,6 +465,5 @@ def flow_field_viz_main(
     vb.save_plot(
         fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300
     )
-    plt.close()  # close the figure
 
     return
