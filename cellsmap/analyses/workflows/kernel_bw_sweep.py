@@ -11,7 +11,9 @@ from cellsmap.util.set_output import get_output_path
 
 
 # %%
-def main(list_of_datasets: list[str] | None = None) -> None:
+def main(
+    list_of_datasets: list[str] | None = None, bw_range: list[float] | None = None
+) -> None:
     """
     Get and visualize data-driven flow fields for
     all datasets in the manifest using various kernel bandwidths.
@@ -65,8 +67,15 @@ def main(list_of_datasets: list[str] | None = None) -> None:
     kernel_type = "gaussian"
 
     # range of bandwidths to test
-    # log scale between 0.025 and 0.25
-    logspace_bw = np.logspace(np.log10(0.025), np.log10(0.15), num=7)
+    # optional command line argument
+    # if not provided, use default
+    # default: log scale between 0.025 and 0.25
+    if bw_range is not None:
+        if len(bw_range) != 2:
+            raise ValueError("bw_range must be a list of two floats.")
+        logspace_bw = np.logspace(np.log10(bw_range[0]), np.log10(bw_range[1]), num=7)
+    else:
+        logspace_bw = np.logspace(np.log10(0.025), np.log10(0.15), num=7)
 
     # loop over bandwidths
     for bw in logspace_bw:
