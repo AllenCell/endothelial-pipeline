@@ -26,7 +26,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     # first, get list of reference datasets to use for PCA
     reference_datasets = get_reference_datasets()
     if verbose:
-        print(f"Reference datasets for PCA:")
+        print(f"\nReference datasets for PCA: {reference_datasets}")
     data_ref = pd.concat(
         [
             manifest_io.get_diffae_manifest(name, filter_to_valid=True)
@@ -52,7 +52,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
 
     if verbose:  # print explained variance ratios
         print(
-            f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)}'
+            f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)} \n'
         )
 
     # return the fit PCA pipeline

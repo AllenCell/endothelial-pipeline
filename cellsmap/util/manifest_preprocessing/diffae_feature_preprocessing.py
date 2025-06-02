@@ -3,7 +3,6 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import dataset_io, manifest_io
-from cellsmap.util.manifest_preprocessing import manifest_pca
 
 
 def add_description_column(
