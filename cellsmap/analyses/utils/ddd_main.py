@@ -87,7 +87,6 @@ def ddd_model_analysis(
     # save figures
     vb.save_plot(fig1, fig_savedir + name + f"_ddff_phase_portrait_shear_{int(shear)}")
     vb.save_plot(fig2, fig_savedir + name + f"_ddff_stationary_dist_shear_{int(shear)}")
-    plt.close()  # close figures
     return
 
 
