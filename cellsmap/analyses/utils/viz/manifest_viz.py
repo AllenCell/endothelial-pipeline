@@ -69,7 +69,7 @@ def get_dataset_color(name: str) -> str:
 def plot_pc_scatter(
     pca: Pipeline,
     datasets_to_use: list[str],
-    timepoints_to_use: list[list[list]] | None = None,
+    timepoints_to_use: dict[list[list]] | None = None,
 ) -> tuple:
     """
     Plot scatter plot of PCA components for a list of datasets.
@@ -80,8 +80,8 @@ def plot_pc_scatter(
         - can include any preprocessing steps before PCA, such as scaling
     - datasets_to_use: list[str], list of dataset names to plot
         - each dataset should have a DiffAE manifest file
-    - timepoints_to_use: list[list[list]] | None, optional
-        - list of lists of timepoint ranges to use for each dataset
+    - timepoints_to_use: dict[list[list]] | None, optional
+        - dictionary of lists of timepoint ranges to use for each dataset
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
@@ -89,14 +89,14 @@ def plot_pc_scatter(
 
     fig, ax = vb.init_subplots(figsize=(15, 5))
 
-    for index, name in enumerate(datasets_to_use):
+    for name in datasets_to_use:
         # load dataframe and get top 3 PCs
         df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
         feat_cols = mio.get_feature_cols(df)[:3]
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:
-            frame_ranges = timepoints_to_use[index]
+            frame_ranges = timepoints_to_use.get(name, [0, 0])
             timepoints = []
             for frame_range in frame_ranges:
                 timepoints.extend(list(range(frame_range[0], frame_range[1] + 1)))
