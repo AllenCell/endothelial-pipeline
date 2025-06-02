@@ -5,10 +5,7 @@ import pandas as pd
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.model_features.generate_image import (
-    generate_from_coords,
-    generate_from_coords_batch,
-)
+from cellsmap.model_features.generate_image import generate_from_coords_batch
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 
@@ -69,7 +66,7 @@ for condition in df.description.unique():
     # get full mean trajectory
     coords = traj_dict[condition]
 
-    if type(coords) is np.ndarray:
+    if isinstance(coords, np.ndarray):
         # interpolate points evenly spaced along the trajectory
         interpolated_points = ddff.interpolate_on_curve(coords)
 
@@ -78,7 +75,7 @@ for condition in df.description.unique():
         latent_coords_batch.append(latent_coords)
         condition_list.append(condition)
 
-    elif type(coords) is list:
+    elif isinstance(coords, list):
         for jj, coord in enumerate(coords):
             # interpolate points evenly spaced along the trajectory
             interpolated_points = ddff.interpolate_on_curve(coord)

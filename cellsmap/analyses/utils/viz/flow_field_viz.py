@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.ticker import MaxNLocator
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import manifest_viz
@@ -30,8 +31,8 @@ def set_slice_plot_bounds_and_labels(
         ax.set_ylim(qmin, qmax)
         ax.set_aspect("equal")
         # set number of x ticks = number of y ticks = 5
-        ax.set_xticks(np.round(np.linspace(xmin + 0.05, xmax - 0.05, 5), 1))
-        ax.set_yticks(np.round(np.linspace(qmin + 0.05, qmax - 0.05, 5), 1))
+        ax.xaxis.set_major_locator(MaxNLocator(5))
+        ax.yaxis.set_major_locator(MaxNLocator(5))
         # set aspect
         ax.set_aspect("auto", adjustable="box")
     return axs
