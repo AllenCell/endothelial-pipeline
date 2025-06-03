@@ -5,7 +5,7 @@ from bioio.writers import OmeTiffWriter
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.model_features.generate_image import generate_from_coords_batch
-from cellsmap.util import manifest_io
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%
@@ -17,7 +17,7 @@ crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
 
 # %%
 # Load PCA model
-reducer = manifest_io.load_pca_model(output_savedir)
+reducer = manifest_pca.fit_pca()
 
 # Model we want to use to generate reconstructed crops
 model_name = "diffae_04_10"
