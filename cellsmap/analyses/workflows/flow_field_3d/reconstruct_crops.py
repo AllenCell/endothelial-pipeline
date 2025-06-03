@@ -17,7 +17,7 @@ crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
 
 # %%
 # Load PCA model
-reducer = manifest_pca.fit_pca()
+reducer = manifest_pca.fit_pca(num_pcs=3)
 
 # Model we want to use to generate reconstructed crops
 model_name = "diffae_04_10"
