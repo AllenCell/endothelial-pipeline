@@ -66,6 +66,7 @@ def model_data_comparison_one_dataset(
         lambda x1, x2: f2([x1, x2], u),
         pplane_xvec,
         pplane_yvec,
+        verbose=False,
     )
 
     ax1.set_xlabel(f"PC{pcs[0] + 1}")
