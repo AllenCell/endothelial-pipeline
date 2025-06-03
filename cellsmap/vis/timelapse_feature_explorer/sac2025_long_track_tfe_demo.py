@@ -287,6 +287,7 @@ def generate_TFE_dataset_of_single_track(
         prefix, so position 0 will be saved in a folder called "P0".
     track_id : int
         The track ID to generate the TFE dataset for.
+        The TFE dataset folder name will be `"{dataset}_P{position}_tid{track_id}"`.
     crop_size : int
         The size of the crop to generate around the track.
         The default is 256 (a square with side length of 256px)
