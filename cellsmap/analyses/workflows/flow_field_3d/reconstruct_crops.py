@@ -10,16 +10,10 @@ from cellsmap.util.set_output import get_output_path
 
 # %%
 # Create output folder if does not exist yet
-workflow_fig_folder = "flow_field_3d/figs"
 workflow_crop_folder = "flow_field_3d/figs/crops"
 workflow_output_folder = "flow_field_3d/outputs"
-workflow_csv_folder = "flow_field_3d/outputs/csvs"
-workflow_vtk_folder = "flow_field_3d/outputs/vtks"
 output_savedir = get_output_path(workflow_output_folder, verbose=False)
-csv_savedir = get_output_path(workflow_csv_folder, verbose=False)
-fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
-vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
 # Load PCA model
