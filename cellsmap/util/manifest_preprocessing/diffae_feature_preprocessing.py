@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import dataset_io, manifest_io
+from cellsmap.util.dataset_io import get_valid_timepoints
 
 
 def add_description_column(
@@ -240,3 +241,44 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
     assert feats.shape == (num_crop, num_T, len(feat_cols))
 
     return feats
+
+
+def get_timepoints_for_plotting_pcs(
+    list_of_datasets: list[str],
+    restrict_no_flow: bool = True,
+    no_flow_name: str = "20241217_20X",
+) -> dict:
+    """
+    Get timepoints for plotting scatter plot in PC
+    space of data used to fit PCA.
+
+    Used to remove later block of timepoints from the
+    20241217_20X no flow dataset for generating "simplified"
+    scatter plots for the 2025 SAC presentation.
+    """
+    # initialize dictionary to store timepoints for each dataset
+    timepoints_to_use = {}
+
+    for name in list_of_datasets:
+        # get range of valid timepoints for each dataset
+        # loaded from data_config.yaml
+        timepoint_dict = get_valid_timepoints(name)
+        starts = timepoint_dict.get("start", 0)
+        stops = timepoint_dict.get("stop", 0)
+        timepoints_list = []
+        for start, stop in zip(starts, stops):
+            # hard coded because this is the no-flow dataset that
+            # we are using for fitting the PCs, and specifically
+            # the one with the two sets of timepoints
+            # if this changes, we can updated this to not be
+            # hardcoded (i.e., check if shear stress is 0 in config)
+            if name == no_flow_name and restrict_no_flow:
+                # restrict to only first set of no flow timepoints
+                if start == 0:
+                    timepoints_list.append([start, stop])
+                else:
+                    continue
+            else:
+                timepoints_list.append([start, stop])
+        timepoints_to_use[name] = timepoints_list
+    return timepoints_to_use

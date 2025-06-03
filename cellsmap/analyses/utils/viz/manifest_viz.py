@@ -66,7 +66,11 @@ def get_dataset_color(name: str) -> str:
     return color
 
 
-def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
+def plot_pc_scatter(
+    pca: Pipeline,
+    datasets_to_use: list[str],
+    timepoints_to_use: dict[str, list[list]] | None = None,
+) -> tuple:
     """
     Plot scatter plot of PCA components for a list of datasets.
 
@@ -76,6 +80,8 @@ def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
         - can include any preprocessing steps before PCA, such as scaling
     - datasets_to_use: list[str], list of dataset names to plot
         - each dataset should have a DiffAE manifest file
+    - timepoints_to_use: dict[list[list]] | None, optional
+        - dictionary of lists of timepoint ranges to use for each dataset
     Output:
     - fig: plt.Figure
     - ax: plt.Axes
@@ -88,13 +94,30 @@ def plot_pc_scatter(pca: Pipeline, datasets_to_use: list[str]) -> tuple:
         df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
         feat_cols = mio.get_feature_cols(df)[:3]
 
+        # if timepoints_to_use is provided, restrict to those timepoints
+        if timepoints_to_use is not None:
+            frame_ranges = timepoints_to_use.get(name, [0, 0])
+            timepoints = []
+            for frame_range in frame_ranges:
+                timepoints.extend(list(range(frame_range[0], frame_range[1] + 1)))
+            valid_subset = df.frame_number.isin(timepoints)
+            df["valid"] = valid_subset
+            df = df[df["valid"]]
+
+        # get color for the dataset
+        color = get_dataset_color(name)
+
         # first plot: PC1 v PC2
-        ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01)
+        ax[0].scatter(
+            df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01, color=color
+        )
         ax[0].set_xlabel(f"PC1")
         ax[0].set_ylabel(f"PC2")
 
         # second plot: PC1 v PC3
-        ax[1].scatter(df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01)
+        ax[1].scatter(
+            df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01, color=color
+        )
         ax[1].set_xlabel(f"PC1")
         ax[1].set_ylabel(f"PC3")
 
