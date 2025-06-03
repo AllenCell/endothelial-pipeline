@@ -1,7 +1,6 @@
 # Reconstruct crops along mean trajectories
 # %%
 import numpy as np
-import pandas as pd
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
