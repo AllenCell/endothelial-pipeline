@@ -69,7 +69,7 @@ def get_dataset_color(name: str) -> str:
 def plot_pc_scatter(
     pca: Pipeline,
     datasets_to_use: list[str],
-    timepoints_to_use: dict[list[list]] | None = None,
+    timepoints_to_use: dict[str, list[list]] | None = None,
 ) -> tuple:
     """
     Plot scatter plot of PCA components for a list of datasets.
