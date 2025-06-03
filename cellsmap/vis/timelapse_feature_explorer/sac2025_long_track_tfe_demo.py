@@ -1,4 +1,3 @@
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -6,7 +5,10 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import get_segmentation_features_manifest
+from cellsmap.util.dataset_io import (
+    get_segmentation_features_manifest,
+    ipython_cli_flexecute,
+)
 from cellsmap.util.general_image_preprocessing import (
     get_default_dim_order,
     save_image_output,
@@ -88,26 +90,52 @@ def draw_crop_bounds(
     return img_arr
 
 
-# define list of datasets, position, and track id to process
-dataset_name = "20241120_20X"
-position = 0
-track_id = 1852
-verbose = False
-dim_order = get_default_dim_order()
-crop_size = 256
+def get_out_subdirs(
+    out_dir: Path, dataset_name: str, position: int
+) -> tuple[Path, Path]:
+    """
+    Get the output subdirectories for fluorescence images overlain
+    with segmentation and crop box, and crop box only output images.
 
-out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    Parameters
+    ----------
+    out_dir : Path
+        The output directory that the subdirectories should be put in.
 
-out_dir_seg_and_box = out_dir / "tfe_example_track" / dataset_name / f"P{position}"
-out_dir_seg_and_box.mkdir(exist_ok=True, parents=True)
+    Returns
+    -------
+    tuple[Path, Path]
+        The output directories for segmentation and box only images.
+    """
+    out_dir_seg_and_box = out_dir / "tfe_example_track" / dataset_name / f"P{position}"
+    out_dir_seg_and_box.mkdir(exist_ok=True, parents=True)
 
-out_dir_box_only = (
-    out_dir / "tfe_example_track_box_only" / dataset_name / f"P{position}"
-)
-out_dir_box_only.mkdir(exist_ok=True, parents=True)
+    out_dir_box_only = (
+        out_dir / "tfe_example_track_box_only" / dataset_name / f"P{position}"
+    )
+    out_dir_box_only.mkdir(exist_ok=True, parents=True)
+
+    return out_dir_seg_and_box, out_dir_box_only
 
 
-def generate_crop_outline_images() -> None:
+def generate_crop_outline_images(
+    out_dir: Path,
+    dataset_name: str = "20241120_20X",
+    position: int = 0,
+    track_id: int = 1852,
+    crop_size: int = 256,
+    dim_order: str = "TCZYX",
+) -> None:
+
+    # create the output directories
+    dim_order = get_default_dim_order()
+
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+
+    out_dir_seg_and_box, out_dir_box_only = get_out_subdirs(
+        out_dir, dataset_name, position
+    )
+
     # load segmentation features table associated with the track id
     # and subset the position of interest
     seg_feat_df = get_segmentation_features_manifest([dataset_name]).query(
@@ -141,8 +169,11 @@ def generate_crop_outline_images() -> None:
         [dim_order[i] for i in range(img_arr.ndim) if img_arr.shape[i] > 1]
     )
 
-    for tp in tqdm(timepoints):
-        # TODO def draw_crop_bounds_around_segmentation_of_interest(): everything below
+    for tp in tqdm(
+        timepoints,
+        desc=f"{dataset_name} P{position} saving images",
+        unit="timepoint",
+    ):
         # load_segmentation_image(dataset_name, position, timepoint)
         seg_feat_df_at_T = seg_feat_df_subset.query("T == @tp")
 
@@ -232,17 +263,58 @@ def generate_crop_outline_images() -> None:
         )
 
 
-generate_crop_outline_images()
+def generate_TFE_dataset_of_single_track(
+    out_dir: Path | None = None,
+    dataset_name: str = "20241120_20X",
+    position: int = 0,
+    track_id: int = 1852,
+    crop_size: int = 256,
+    verbose: bool = True,
+) -> None:
+    """Generate a TFE dataset for a single track in a specified dataset and position.
+    Parameters
+    ----------
+    out_dir : Path | None
+        The output directory to save the TFE dataset. If None, uses the
+        default output path for the `cellsmap` project based on the
+        script name (`./cellsmap/results/sac2025_long_track_tfe_demo`
+        if your current working directory is the `cellsmap` repo).
+    dataset_name : str
+        The name of the dataset to generate the TFE dataset for.
+    position : int
+        The position within the dataset to generate the TFE dataset for.
+        Note that this takes an integer but the folder itself has a "P"
+        prefix, so position 0 will be saved in a folder called "P0".
+    track_id : int
+        The track ID to generate the TFE dataset for.
+    crop_size : int
+        The size of the crop to generate around the track.
+        The default is 256 (a square with side length of 256px)
+        and works on images at full resolution (i.e. bin_level 0).
+    verbose : bool
+        Whether or not to print the output directory.
 
-out_dir_tfe = (
-    "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
-)
+    Returns
+    -------
+    Nothing; saves the TFE dataset to the specified output directory.
+    This function will take about 20 minutes to complete.
+    """
+    if out_dir is None:
+        out_dir = Path(get_output_path(Path(__file__).stem, verbose=verbose))
 
-generate_tfe_dataset(
-    dataset=dataset_name,
-    position=position,
-    output_dir=out_dir,
-    source_dir=out_dir_box_only,
-    backdrops=True,
-    output_dir_suffix="tid1852",
-)
+    generate_crop_outline_images(out_dir, dataset_name, position, track_id, crop_size)
+
+    _, out_dir_box_only = get_out_subdirs(out_dir, dataset_name, position)
+
+    generate_tfe_dataset(
+        dataset=dataset_name,
+        position=position,
+        output_dir=out_dir,
+        source_dir=out_dir_box_only,
+        backdrops=True,
+        output_dir_suffix=f"tid{track_id}",
+    )
+
+
+if __name__ == "__main__":
+    ipython_cli_flexecute(generate_TFE_dataset_of_single_track)
