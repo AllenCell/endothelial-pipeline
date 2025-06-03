@@ -23,8 +23,6 @@ crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
 vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
-df = pd.read_csv(output_savedir + "manifest.csv")
-
 # Load PCA model
 reducer = manifest_io.load_pca_model(output_savedir)
 
@@ -46,7 +44,7 @@ traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
 
 latent_coords_batch = []
 condition_list = []
-for condition in df.description.unique():
+for condition in traj_dict.keys():
     # get full mean trajectory
     coords = traj_dict[condition]
 
