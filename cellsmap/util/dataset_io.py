@@ -13,7 +13,7 @@ try:
 except ModuleNotFoundError:
     pass
 import re
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import fire
 
@@ -582,6 +582,46 @@ def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
             f"Cell track integration dataset not found at {integration_path}."
         )
     return pd.read_csv(integration_path, sep="\t")
+
+
+# fire argparsing methods
+def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> List[str]:
+    if isinstance(fire_str_or_list_like_input, str):
+        list_of_strings = [fire_str_or_list_like_input]
+    elif isinstance(fire_str_or_list_like_input, Sequence):
+        list_of_strings = list(fire_str_or_list_like_input)
+    else:
+        raise ValueError(
+            f"Invalid input {fire_str_or_list_like_input}. Must be a string or list of strings."
+        )
+    return list_of_strings
+
+
+def fire_parse_generate_dataset_name_list(
+    fire_dataset_name_input: Sequence | None,
+) -> List[str]:
+    """
+    Parse a list of dataset names from the command line.
+    The input can be a string or a list of strings.
+    If it is a string, it will be turned into a list of strings.
+    If it is a list of strings, it will be returned as is.
+
+    To enter a list of datasets to analyze, use the following format:
+    '\"20241016_20X\",\"20241120_20X\"'
+    """
+    if fire_dataset_name_input is None:
+        dataset_name_list = get_reference_datasets()
+    else:
+        dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
+
+    # check that the dataset names are valid
+    available_datasets = get_available_datasets(verbose=False)
+    for dataset_name in dataset_name_list:
+        assert (
+            dataset_name in available_datasets
+        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
+
+    return dataset_name_list
 
 
 # model methods

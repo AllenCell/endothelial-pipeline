@@ -1,8 +1,9 @@
-from bioio import BioImage
-import numpy as np
-from skimage import exposure
 from typing import Literal
+
 import dask.array as da
+import numpy as np
+from bioio import BioImage
+from skimage import exposure
 
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
