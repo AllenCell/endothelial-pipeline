@@ -1,53 +1,28 @@
 # Reconstruct crops along mean trajectories
 # %%
 import numpy as np
-import pandas as pd
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.model_features.generate_image import generate_from_coords_batch
-from cellsmap.util import manifest_io
+from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%
 # Create output folder if does not exist yet
-workflow_fig_folder = "flow_field_3d/figs"
 workflow_crop_folder = "flow_field_3d/figs/crops"
 workflow_output_folder = "flow_field_3d/outputs"
-workflow_csv_folder = "flow_field_3d/outputs/csvs"
-workflow_vtk_folder = "flow_field_3d/outputs/vtks"
 output_savedir = get_output_path(workflow_output_folder, verbose=False)
-csv_savedir = get_output_path(workflow_csv_folder, verbose=False)
-fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
 crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
-vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
 # %%
-df = pd.read_csv(output_savedir + "manifest.csv")
-
-# Load PCA model
-reducer = manifest_io.load_pca_model(output_savedir)
+# Get fit (3D) PCA object from manifest
+reducer = manifest_pca.fit_pca(num_pcs=3)
 
 # Model we want to use to generate reconstructed crops
 model_name = "diffae_04_10"
 
 traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
-
-
-# %%
-# need to put this in a separate file
-def coords_to_latent(coords, reducer):
-    """
-    Convert coordinates to latent space using the PCA model.
-    """
-    coords = np.array(coords)
-    latent = reducer.inverse_transform(coords)
-    num_coords = latent.shape[0]
-    # turn coordinate array into list of lists
-    latent_coords = []
-    for i in range(num_coords):
-        latent_coords.append(latent[i].tolist())
-    return latent_coords
 
 
 # %%
@@ -62,7 +37,7 @@ def coords_to_latent(coords, reducer):
 
 latent_coords_batch = []
 condition_list = []
-for condition in df.description.unique():
+for condition in traj_dict.keys():
     # get full mean trajectory
     coords = traj_dict[condition]
 
@@ -71,7 +46,9 @@ for condition in df.description.unique():
         interpolated_points = ddff.interpolate_on_curve(coords)
 
         # transform interpolated points to full latent space
-        latent_coords = coords_to_latent(interpolated_points, reducer)
+        latent_coords = ddff.convert_coordinates_from_pc_to_latent(
+            interpolated_points, reducer
+        )
         latent_coords_batch.append(latent_coords)
         condition_list.append(condition)
 
@@ -81,12 +58,15 @@ for condition in df.description.unique():
             interpolated_points = ddff.interpolate_on_curve(coord)
 
             # transform interpolated points to full latent space
-            latent_coords = coords_to_latent(interpolated_points, reducer)
+            latent_coords = ddff.convert_coordinates_from_pc_to_latent(
+                interpolated_points, reducer
+            )
             latent_coords_batch.append(latent_coords)
             condition_list.append(f"{condition}_{jj}")
 
 # %%
 # pass into DiffAE model to generate reconstructed crops
+# using single noise input (generate images in batch)
 walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
 
 for walk_img, condition in zip(walk_imgs, condition_list):
