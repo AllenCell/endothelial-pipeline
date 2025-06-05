@@ -18,6 +18,49 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple
 import fire
 
 
+def get_config_dir() -> Path:
+    """Get path to the config directory."""
+
+    return Path(__file__).resolve().parents[1] / "configs"
+
+
+def save_to_yaml(object: dict, path: Path) -> None:
+    """Save dictionary object to YAML at given path."""
+
+    yaml.SafeDumper.add_representer(list, lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True))
+    yaml_content = yaml.safe_dump(object, default_flow_style=False, sort_keys=False, width=80, indent=2)
+    path.open("w").write(yaml_content)
+
+
+def separate_data_config() -> None:
+    """Separate combined dataset configs into individual dataset configs."""
+
+    separated_path = get_config_dir() / "datasets"
+    combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
+
+    combined_data_config = yaml.safe_load(combined_path.open())
+
+    for index, (dataset, contents) in enumerate(combined_data_config.items()):
+        data_config_path = separated_path / f"{index:02d}_{dataset}.yaml"
+        single_data_config = {"name": dataset}
+        single_data_config.update(contents)
+        save_to_yaml(single_data_config, data_config_path)
+
+
+def combine_data_config(save: bool = False) -> dict:
+    """Combine individual dataset configs into combined dataset keyed by name."""
+
+    separated_path = get_config_dir() / "datasets"
+    combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
+
+    separate_data_configs = [yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))]
+    combined_data_config = { config["name"]: config for config in separate_data_configs }
+
+    if save:
+        save_to_yaml(combined_data_config, combined_path)
+
+    return combined_data_config
+
 # model methods
 def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     if config_type not in ["data", "model", "dynamics"]:
