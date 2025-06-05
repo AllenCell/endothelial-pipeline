@@ -50,7 +50,7 @@ def run_workflow(queue: Sequence) -> None:
             # get the raw cadherin channel from either original data or the zarr version
             scene_index = int(sequence_to_scalar(queue_df["scene_index"]))
             if use_original_data:
-                raw_channel = get_dataset_info(dataset_name)["488_channel_index"]
+                raw_channel = get_dataset_info(dataset_name)["channel_488_index"]
                 raw_filepath = Path(get_original_path(dataset_name))
             else:
                 raw_channel = 0  # zarr files are created such that the first channel is always Cdh5
