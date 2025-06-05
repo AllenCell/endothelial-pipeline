@@ -11,7 +11,13 @@ from skimage.feature import peak_local_max
 from skimage.filters import apply_hysteresis_threshold, gaussian, sato
 from skimage.graph import merge_hierarchical, rag_boundary
 from skimage.measure import label, regionprops
-from skimage.morphology import binary_dilation, disk, remove_small_objects, skeletonize
+from skimage.morphology import (
+    binary_dilation,
+    binary_erosion,
+    disk,
+    remove_small_objects,
+    skeletonize,
+)
 from skimage.restoration import rolling_ball
 from skimage.segmentation import (
     clear_border,
@@ -656,101 +662,206 @@ def split_multinucleate_regions(
     # separated them
     # nuc_seg_merge_adjacent = label((nuclei_segmentations * ~cell_boundary_thresh).astype(bool))
     nuc_seg_merge_adjacent = label(nuclei_segmentations.astype(bool))
-    nuc_seg_skels = skeletonize(nuc_seg_merge_adjacent) * nuc_seg_merge_adjacent
-    reg_props = regionprops(
-        label_image=cell_segmentations,
-        intensity_image=nuc_seg_skels,
-        # label_image=cell_segmentations, intensity_image=nuc_seg_merge_adjacent
+    # remove any nuclei do not have more than half their area in
+    # a single segmented region
+    nuc_props = regionprops(
+        label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations
     )
-    num_nuclei_per_region = {
-        prop.label: np.count_nonzero(np.unique(prop.intensity_image))
-        for prop in reg_props
-    }
+    nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
+    # nuclei_label_fractions_per_region = {}
+    # for prop in nuc_seg_merge_adjacent_props:
+    #     nuclei_label_fractions_per_region[prop.label] = 0
+    # nuclei_label_fractions_per_region = {
+    #     prop.label: float(np.count_nonzero(prop.intensity_image) / prop.area)
+    #     for prop in nuc_seg_merge_adjacent_props
+    # }
+    # unambiguous_nuclei_labels = [
+    #     lab for lab in nuclei_label_fractions_per_region if nuclei_label_fractions_per_region[lab] > 0.5]
+    # nuc_seg_skels = skeletonize(nuc_seg_merge_adjacent) * nuc_seg_merge_adjacent
+    reg_props = regionprops(
+        # label_image=cell_segmentations,
+        # intensity_image=nuc_seg_skels,
+        label_image=cell_segmentations,
+        # intensity_image=nuc_seg_merge_adjacent
+        intensity_image=nuc_seg_merge_adjacent * ~cell_boundary_thresh,
+    )
+    # num_nuclei_per_region = {
+    #     prop.label: np.count_nonzero(np.unique(prop.intensity_image))
+    #     for prop in reg_props
+    # }
+    nuclei_ambiguity_threshold = 0.5
+    nuclei_labels_per_region = dict()
+    # nuclei_label_fractions_per_region = {}
+    for prop in reg_props:
+        nuc_prop_sizes
+        nuc_labels = []
+        for nuc_lab in np.unique(prop.intensity_image):
+            if nuc_lab != 0:
+                nuc_frac = (
+                    np.count_nonzero(prop.intensity_image == nuc_lab)
+                    / nuc_prop_sizes[nuc_lab]
+                )
+                if nuc_frac > nuclei_ambiguity_threshold:
+                    nuc_labels.append(nuc_lab)
+        nuclei_labels_per_region[prop.label] = np.array(nuc_labels)
+        # nuclei_labels_per_region[prop.label] = np.unique(prop.intensity_image).tolist()
 
-    anucleate_region_labels = [
-        lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 0
-    ]
-    mononucleate_region_labels = [
-        lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 1
-    ]
-    multinucleate_region_labels = [
-        lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] > 1
-    ]
+    # anucleate_region_labels = [
+    #     lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 0
+    # ]
+    anucleate_regions = {
+        lab: nuclei_labels_per_region[lab]
+        for lab in nuclei_labels_per_region
+        if np.count_nonzero(nuclei_labels_per_region[lab]) == 0
+    }
+    # mononucleate_region_labels = [
+    #     lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 1
+    # ]
+    mononucleate_regions = {
+        lab: nuclei_labels_per_region[lab]
+        for lab in nuclei_labels_per_region
+        if np.count_nonzero(nuclei_labels_per_region[lab]) == 1
+    }
+    # multinucleate_region_labels = [
+    #     lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] > 1
+    # ]
+    multinucleate_regions = {
+        lab: nuclei_labels_per_region[lab]
+        for lab in nuclei_labels_per_region
+        if np.count_nonzero(nuclei_labels_per_region[lab]) > 1
+    }
 
     # use the skeletonized regions as seed points for mononucleate
     # and anucleate regions
     seg_skels = skeletonize(~find_boundaries(cell_segmentations)) * cell_segmentations
-    anucleate_reg_skels = np.isin(seg_skels, anucleate_region_labels) * seg_skels
-    mononucleate_reg_skels = np.isin(seg_skels, mononucleate_region_labels) * seg_skels
-    seeds = anucleate_reg_skels + mononucleate_reg_skels
+    anucleate_skels = (
+        np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
+    )
+    mononucleate_skels = (
+        np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
+    )
+    mononucleate_nuclei_labels = set(
+        [
+            lab
+            for nuc_labs in mononucleate_regions.values()
+            for lab in nuc_labs
+            if lab != 0
+        ]
+    )
+    mononucleate_seeds = (
+        np.isin(cell_segmentations, list(mononucleate_regions.keys()))
+        * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
+        * cell_segmentations
+    )
+    # mononucleate_seeds_and_skels = ((
+    #     np.isin(cell_segmentations, list(mononucleate_regions.keys()))
+    #     * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
+    #     + np.isin(seg_skels, list(mononucleate_regions.keys()))
+    # ) * cell_segmentations
+    # )
+    seeds = anucleate_skels + mononucleate_skels
+    # seeds = anucleate_skels + mononucleate_seeds_and_skels
+    # seeds = anucleate_skels + mononucleate_seeds
+    # seeds_edges = anucleate_skels + mononucleate_seeds
     # use the nuclei as seed points for the multinucleate regions
     # multinuc_seeds = np.isin(cell_segmentations, multinucleate_region_labels) * nuc_seg_skels
-    multinuc_seeds = (
-        np.isin(cell_segmentations, multinucleate_region_labels)
+    multinucleate_nuclei_labels = set(
+        [
+            lab
+            for nuc_labs in multinucleate_regions.values()
+            for lab in nuc_labs
+            if lab != 0
+        ]
+    )
+    multinucleate_seeds = (
+        np.isin(cell_segmentations, list(multinucleate_regions.keys()))
+        * np.isin(nuc_seg_merge_adjacent, list(multinucleate_nuclei_labels))
         * nuc_seg_merge_adjacent
+        # * nuc_seg_skels
     )
-    multinuc_seeds, _, _ = relabel_sequential(multinuc_seeds, offset=1 + seeds.max())
-    seeds = seeds + multinuc_seeds
+    multinucleate_seeds, _, _ = relabel_sequential(
+        multinucleate_seeds, offset=1 + seeds.max()
+    )
+    seeds = seeds + multinucleate_seeds
+    # seeds_edges = seeds_edges + multinucleate_seeds
 
-    # thresh_inv = label(~cell_boundary_thresh)
-    # unreachable_regions, _, _ = relabel_sequential(thresh_inv * ~seg.astype(bool), offset=1 + seeds.max())
-    # NOTE THE SEG AND EDGE_REGIONS BELOW ARE TO TRY
-    # AND RESOLVE CELLS THAT ARE VERY CLOSE TO THE EDGE
-    # BUT NOT TOUCHING IT
-    # get basins for performing watershed segmentation
-    seeds, basins = get_watershed_seeds_and_basins(~cell_boundary_thresh)
+    # # NOTE THE SEG AND EDGE_REGIONS BELOW ARE TO TRY
+    # # AND RESOLVE CELLS THAT ARE VERY CLOSE TO THE EDGE
+    # # BUT NOT TOUCHING IT
+    # # get basins for performing watershed segmentation
+    # seeds, basins = get_watershed_seeds_and_basins(~cell_boundary_thresh)
+    # seg = watershed(
+    #     image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh
+    # )
+    # edge_regions = ~clear_border(seg).astype(bool) * seg
+    # seeds_edges = skeletonize(edge_regions.astype(bool))
+    # # exclude seeds if they overlap with regions that touched the image border
+    # seeds = seeds * ~edge_regions.astype(bool)
+    # # edge_regions, _, _ = relabel_sequential(edge_regions, offset=1 + seeds.max())
+    # # seeds += edge_regions
+    # # add the skeletons of the regions touching the image edge as seeds
+    # # after labeling them
+
+    # seeds_edges = label(seeds * ~cell_boundary_thresh)
+    seeds_edges = anucleate_skels + mononucleate_seeds + multinucleate_seeds
     seg = watershed(
-        image=cell_boundary_image, markers=seeds, mask=~cell_boundary_thresh
+        image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh
     )
-    edge_regions = ~clear_border(seg).astype(bool) * seg
-    seeds = seeds * ~edge_regions.astype(bool)
-    edge_regions, _, _ = relabel_sequential(edge_regions, offset=1 + seeds.max())
-    seeds += edge_regions
+    unreachable_edges = np.logical_xor(seg, ~cell_boundary_thresh)
+    unreachable_edges = ~clear_border(unreachable_edges) * unreachable_edges
 
-    # from skimage.color import label2rgb
-    # overlay = label2rgb(label=seg_sato, image=sato_filt, bg_label=0, alpha=0.5)
-    # plt.imshow((find_boundaries(seg_sato)*1 + seeds.astype(bool)*2)[:500,:500])
+    # remove the unreachable regions from the seeds
+    seeds_cleaned = seeds * ~binary_dilation(unreachable_edges, disk(2))
+    seeds_cleaned = label(seeds_cleaned)
+    # seeds_edges[seeds_edges > 0] += seeds.max() + 1
+    # seeds += seeds_edges
+    seeds_edges = label(unreachable_edges)
+    seeds_edges[seeds_edges > 0] += seeds_cleaned.max() + 1
+    seeds_edges = skeletonize(seeds_edges) * seeds_edges
+    seeds_cleaned += seeds_edges
 
-    # NOTE USE SEEDS + EDGE_REGIONS OR JUST SEEDS???
-    # WANT TO IMPROVE RESOLUTION OF SEGMENTATIONS NEAR
-    # THE EDGES OF THE IMAGE
+    # segment cells with watershed
+    # seg_mask_final = ~(find_boundaries(cell_segmentations)+cell_boundary_thresh)
+    seg_mask_final = ~find_boundaries(cell_segmentations)
+    # seg_mask_final = ~cell_boundary_thresh
+    # use a sato filter to enhance the cell boundaries
     sato_filt = rescale_intensity(
         sato(cell_boundary_image, black_ridges=False), out_range=(0, 1)
     )
-    # seg_sato = watershed(image=sato_filt, markers=seeds, mask=~cell_boundary_thresh)
-    seg = watershed(image=sato_filt, markers=seeds)
-    # seg = watershed(image=sato_filt*basins, markers=seeds)
-    # seg = watershed(image=rescale_intensity(cell_boundary_image, out_range=(0,1))*basins, markers=seeds)
-    # seg = watershed(image=rescale_intensity(cell_boundary_image, out_range=(0,1)), markers=seeds)
-    # NOTE SATO_FILT BASED SEGMENTATION LOOKS PROMISING
-    # NOTE COULD ALSO REFINE THE BOUNDARY ACCURACY BY
-    # USING INVERSE OF FIND_BOUNDARIES(SEG_SATO) AND
-    # RE-RUNNING WATERSHED WITH THAT AS THE SEEDS
-    # AND CELL_BOUNDARY_IMAGE AS THE IMAGE / EDGEMAP
-    # NOTE MAYBE REPLACE SEG (BELOW) WITH SEG_SATO
-    # NOTE ALSO MAYBE USE MASK=~CELL_BOUNDARY_THRESH
-    # IN SEG_SATO = WATERSHED(...)
+    seg = watershed(image=sato_filt, markers=seeds_cleaned, mask=seg_mask_final)
+    seg = watershed(image=sato_filt, markers=seg)
 
-    # segment cells with watershed
-    # seg = watershed(image=basins_and_ridges, markers=seeds, mask=~cell_boundary_thresh)
-    # seg = watershed(image=basins_and_ridges, markers=seg)
+    # refine the accuracy of the segmentation by re-running watershed
+    # on the cell boundary image using eroded versions of the existing
+    # regions as seeds
+    seg_inner = seg * binary_erosion(~find_boundaries(seg), disk(3))
+    seg = watershed(image=cell_boundary_image, markers=seg_inner)
 
-    # NOTE THESE TWO LINES WERE BETTER THAN THE ONE BELOW
-    # AND THE TWO ABOVE; BUT MAYBE REPLACE WITH SEG_SATO
-    # seg = watershed(image=cell_boundary_image, markers=seeds, mask=~cell_boundary_thresh)
+    # # NOTE MAYBE REPLACE THESE 2 LINES WITH SEG ON SATO FILTER ABOVE
+    # seg = watershed(image=cell_boundary_image, markers=seeds_cleaned, mask=seg_mask_final)
     # seg = watershed(image=cell_boundary_image, markers=seg)
 
-    # seg = watershed(image=cell_boundary_image, markers=seeds)
-
     # remove small regions and segment one last time
-    seg_clean, seg_removed = remove_small_objects(seg, 500)
-    seg_clean = watershed(image=cell_boundary_image, markers=seg_clean)
-    edge_regions, _, _ = relabel_sequential(edge_regions, offset=1 + seeds.max())
+    seg = remove_small_objects(seg, min_size=500)
+    seg = watershed(image=cell_boundary_image, markers=seg)
+    # edge_regions, _, _ = relabel_sequential(edge_regions, offset=1 + seeds.max())
 
     # remove the seeds that were removed from the segmentation
-    seeds_clean = seg_clean * seeds.astype(bool)
+    # seeds = seg * seeds.astype(bool)
+    seeds = seg * seeds_cleaned.astype(bool) * seg_mask_final
+    seeds = (
+        seeds_cleaned
+        * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)]))
+        * seg_mask_final
+    )
 
-    return seg, seeds_clean
+    # from matplotlib import pyplot as plt
+    # from skimage.color import label2rgb
+    # clipped_img = rescale_intensity(np.clip(sato_filt, a_min=np.percentile(sato_filt, 2), a_max=np.percentile(sato_filt, 98)))
+    # overlay = label2rgb(label=find_boundaries(seg)*1 + seeds.astype(bool)*2, image=clipped_img, bg_label=0, alpha=0.5)
+    # plt.imshow(overlay[:500,:500])
+
+    return seg, seeds
 
 
 def get_cdh5_classic_segmentation_paths(
