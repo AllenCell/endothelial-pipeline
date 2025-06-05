@@ -67,6 +67,12 @@ def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
         raise ValueError(
             'Invalid config type. Must be either "data", "model", or "dynamics."'
         )
+
+    # If loading the data config, load combined from all individual dataset
+    # configs. This is part of a change to manage datasets with dataclasses.
+    if config_type == "data":
+        return combine_data_config()
+
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f"{config_type}_config.yaml"
     with open(config_file, "r") as file:
@@ -93,6 +99,13 @@ def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> Non
         yaml.dump(
             config, file, default_flow_style=False, sort_keys=False, width=80, indent=2
         )
+
+    # If writing the data config, split the combined data config file that was
+    # saved above into individual dataset config files (and delete the combined
+    # config file).
+    if config_type == "data":
+        separate_data_config()
+        config_file.unlink()
 
 
 def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None:
