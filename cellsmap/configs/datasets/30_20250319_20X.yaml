@@ -14,7 +14,7 @@ time_interval_in_minutes: 5.0
 flow: [[0, 576, 12.2]]
 channel_488_index: 0
 brightfield_channel_index: 1
-n_nuclear_seg_manifest_fmsid: ''
+nuclear_seg_manifest_fmsid: ''
 n_total_positions: 6
 notes: Stopped imaging prior to 48 hours because cells were very packed
 nuclear_label_free_seg_path: null
