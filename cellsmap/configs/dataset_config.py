@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
+from mashumaro.codecs.yaml import YAMLDecoder
 from mashumaro.config import BaseConfig
 
 
@@ -116,3 +118,15 @@ class DatasetConfig:
 
     class Config(BaseConfig):
         forbid_extra_keys = True
+
+
+def validate_dataset_configs() -> None:
+    config_dir = Path(__file__).resolve().parents[1] / "configs"
+
+    for dataset_config in (config_dir / "datasets").iterdir():
+        print(f"Validating config [ {dataset_config} ]")
+        YAMLDecoder(DatasetConfig).decode(dataset_config.read_text())
+
+
+if __name__ == "__main__":
+    validate_dataset_configs()
