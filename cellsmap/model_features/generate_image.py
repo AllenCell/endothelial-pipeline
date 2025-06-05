@@ -44,3 +44,23 @@ def generate_from_coords(
         coords, n_noise_samples=n_noise_samples, average=average, save=False
     )
     return walk_img
+
+
+def generate_from_coords_batch(
+    model_name: str, coords_batch: List[List[List[float]]]
+) -> tuple[np.ndarray]:
+    """
+    Generates synthetic images from a batch of coordinates in the latent space of a model.
+    Parameters
+    ----------
+    model_name: str
+        The name of the model to use for generation.
+    coords_batch: List[List[List[float]]]
+        A batch of lists of coordinates in the latent space of the model.
+    """
+
+    coords_concat = np.concatenate(coords_batch, axis=0)
+    img = generate_from_coords(model_name, coords=coords_concat)
+    walk_imgs = np.split(img, len(coords_batch))
+
+    return walk_imgs

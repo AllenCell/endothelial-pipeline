@@ -3,6 +3,12 @@ import numpy as np
 
 from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
+from cellsmap.analyses.utils.viz import manifest_viz
+from cellsmap.analyses.utils.viz import viz_base as vb
+from cellsmap.util.dataset_io import get_reference_datasets
+from cellsmap.util.manifest_preprocessing import (
+    diffae_feature_preprocessing as diffae_preproc,
+)
 from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
@@ -25,12 +31,41 @@ def main(datasets_to_use: list | None = None) -> None:
     if datasets_to_use is None:
         datasets_to_use = [
             "20241120_20X",
-            "20241217_20X",
             "20250409_20X",
+            "20241217_20X",
             "20250319_20X",
             "20250326_20X",
         ]
     pca = manifest_pca.fit_pca()
+
+    # plot scatter of PCA components
+    # for a) just the datasets used to fit PCA
+    # and b) all datasets specified in the command line
+    #   (or default list, if not specified)
+    # get timepoints to use for scatter plots
+    # all timepoints except no flow
+    pca_refs = get_reference_datasets()
+    restrict_no_flow = True  # restrict plot to subset of no flow timepoints
+
+    # get timepoints to use for scatter plots
+    # this can definitely be written into a wrapper function
+    # maybe make a dictionary instead of a list?
+    timepoints_refs = diffae_preproc.get_timepoints_for_plotting_pcs(
+        pca_refs, restrict_no_flow=restrict_no_flow
+    )
+
+    # scatter plot of pca reference datasets
+    fig, _ = manifest_viz.plot_pc_scatter(
+        pca, pca_refs, timepoints_to_use=timepoints_refs  # pca reference datasets
+    )
+    vb.save_plot(fig, fig_savedir + "/pca_scatter_ref")
+
+    # scatter plot of all datasets specified in command line
+    fig, _ = manifest_viz.plot_pc_scatter(
+        pca,
+        datasets_to_use,  # all datasets specified and all timepoints
+    )
+    vb.save_plot(fig, fig_savedir + "/pca_scatter_all")
 
     # load default config, get kernel params
     config = dynamics_io.load_dynamics_config("default")
