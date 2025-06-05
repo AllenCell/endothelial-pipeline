@@ -1,0 +1,21 @@
+name: 20250415_SlideE_20X
+original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250415_dbcfe826507e465aa33fda2f43104653
+fmsid: dbcfe826507e465aa33fda2f43104653
+barcode: GE00007101
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+microscope: 3i
+shear_stress_regime: low-to-high
+use_cases: []
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, -1, 0]]
+488_channel_index: 1
+brightfield_channel_index: 2
+405_channel_index: 0
+nuclear_seg_manifest_fmsid: ''
+n_total_positions: 50
+nuclear_label_free_seg_path: null
+diffae_manifest_fmsid: ''

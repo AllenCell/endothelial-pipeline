@@ -1,0 +1,21 @@
+name: 20250131_pairedPostFixation
+original_path: //allen/programs/allencell/data/proj0/f29/cf2/6d9/fb5/b26/9fb/24e/c6e/419/d7a/39/20250131_GE00006569_20X_PostFix_sldy/20250131_GE00006569_20X_PostFix_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_39d7a419c6e24e9fbb26fb56d9cf2f29
+fmsid: 39d7a419c6e24e9fbb26fb56d9cf2f29
+barcode: GE00006569
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed-methanol
+microscope: 3i
+shear_stress_regime: 48hr_low
+use_cases: [model_training]
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, 576, 6.23]]
+488_channel_index: 0
+brightfield_channel_index: 1
+n_total_positions: 10
+notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: ''
