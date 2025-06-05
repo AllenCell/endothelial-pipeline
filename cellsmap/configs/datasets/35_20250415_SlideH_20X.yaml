@@ -12,9 +12,9 @@ pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: -1.0
 flow: [[0, -1, 0]]
-488_channel_index: 1
+channel_488_index: 1
 brightfield_channel_index: 2
-405_channel_index: 0
+channel_405_index: 0
 nuclear_seg_manifest_fmsid: ''
 n_total_positions: 50
 nuclear_label_free_seg_path: null
