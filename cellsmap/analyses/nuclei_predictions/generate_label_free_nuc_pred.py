@@ -4,7 +4,7 @@ from typing import List
 
 import numpy as np
 from bioio import BioImage
-from cellpose import models
+from cellpose import core, models
 from tqdm import tqdm
 
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
@@ -68,9 +68,12 @@ def generate_results(args: dict) -> None:
         model_config = load_config(config_type="model")
         nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
 
+        gpu = core.use_gpu()
+        print(f" - using device: {gpu or 'CPU'}") if verbose else None
+
         model_path = Path(nuclei_model["model_path"])
         model_bf_stdproject = models.CellposeModel(
-            gpu=False, pretrained_model=str(model_path)
+            gpu=gpu, pretrained_model=str(model_path)
         )
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
@@ -139,6 +142,7 @@ def main(
     overwrite: bool = True,
     is_test: bool = False,
     use_original_data: bool = False,
+    verbose: bool = True,
 ) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
@@ -160,6 +164,7 @@ def main(
         is_test=is_test,
         image_validation_frequency=48,
         use_original_data=use_original_data,
+        verbose=verbose,
     )
 
     if n_proc > 1:
@@ -167,7 +172,7 @@ def main(
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
-                        pool.imap(generate_results, analysis_queue, chunksize=1),
+                        pool.imap(generate_results, analysis_queue, chunksize=5),
                         total=len(analysis_queue),
                         desc="Predicting nuclei (MP)",
                     )
