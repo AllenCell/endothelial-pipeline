@@ -60,7 +60,9 @@ def generate_results(args: dict) -> None:
 
         img = BioImage(img_path)
         img.set_scene(args["scene_index"])
-        img_arr = img.get_image_dask_data(dim_order)
+
+        brightfield_index = get_dataset_info(dataset_name)["brightfield_channel_index"]
+        img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
         model_config = load_config(config_type="model")
@@ -72,11 +74,8 @@ def generate_results(args: dict) -> None:
         )
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
-        brightfield_index = get_dataset_info(dataset_name)["brightfield_channel_index"]
-        bf_std_dask_arr = img_arr[
-            :, brightfield_index : brightfield_index + 1, ...
-        ].std(axis=dim_map["Z"], keepdims=True)
-        bf_std_arr = bf_std_dask_arr[args["T"], ...].squeeze().compute()
+        bf_std_dask_arr = img_arr.std(axis=dim_map["Z"], keepdims=True)
+        bf_std_arr = bf_std_dask_arr.squeeze().compute()
 
         # Predict nuclei from brightfield images
         (
@@ -109,16 +108,13 @@ def generate_results(args: dict) -> None:
         if create_validation:
             # Find a brightfield plane with enough contrast to see
             # nuclei by eye
-            bf_dask_arr = img_arr[
-                args["T"], brightfield_index : brightfield_index + 1, ...
-            ]
-            plane_stdevs = [arr.std().compute() for arr in bf_dask_arr.squeeze()]
+            plane_stdevs = [arr.std().compute() for arr in img_arr.squeeze()]
             # don't allow the possible good contrast plane to be less than 0 (i.e. the bottom of the Z-stack)
             possible_good_contrast_brightfield_plane = max(
                 0, np.argmin([plane for plane in plane_stdevs]) - 6
             )
             bf_good_contrast_arr = (
-                bf_dask_arr.squeeze()[[possible_good_contrast_brightfield_plane]]
+                img_arr.squeeze()[[possible_good_contrast_brightfield_plane]]
                 .squeeze()
                 .compute()
             )
@@ -168,22 +164,21 @@ def main(
 
     if n_proc > 1:
         if __name__ == "__main__":
-            print("Starting multiprocessing...")
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
-                        pool.imap(generate_results, analysis_queue, chunksize=5),
+                        pool.imap(generate_results, analysis_queue, chunksize=1),
                         total=len(analysis_queue),
+                        desc="Predicting nuclei (MP)",
                     )
                 )
                 pool.close()
                 pool.join()
-            print("Done multiprocessing.")
     else:
-        print("Starting single-core processing...")
-        for dataset_name_and_args in tqdm(analysis_queue):
+        for dataset_name_and_args in tqdm(
+            analysis_queue, desc="Predicting nuclei (1P)"
+        ):
             generate_results(dataset_name_and_args)
-        print("Done single-core processing.")
 
     print("\N{MICROSCOPE} Done analysis.")
 
