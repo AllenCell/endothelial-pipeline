@@ -829,7 +829,9 @@ def split_multinucleate_regions(
         sato(cell_boundary_image, black_ridges=False), out_range=(0, 1)
     )
     seg = watershed(image=sato_filt, markers=seeds_cleaned, mask=seg_mask_final)
-    seg = watershed(image=sato_filt, markers=seg)
+    # seg = watershed(image=sato_filt, markers=seg)
+    # seg = watershed(image=cell_boundary_image, markers=seeds_cleaned, mask=seg_mask_final)
+    seg = watershed(image=cell_boundary_image, markers=seg)
 
     # refine the accuracy of the segmentation by re-running watershed
     # on the cell boundary image using eroded versions of the existing
