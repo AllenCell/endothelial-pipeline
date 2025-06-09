@@ -396,7 +396,7 @@ def load_nuclei_prediction(
 
     if nuc_path.exists():
         # Load the nuclei prediction as a Dask array
-        nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=T)
+        nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=0)
         return nuc_dask_arr
     else:
         print(

@@ -71,10 +71,10 @@ def generate_results(
     seg_dir = out_dir / "segmentations"
     val_dir = out_dir / "validations"
 
-    print(f"T={T} -- loading dataset") if verbose else None
     dim_order = get_default_dim_order()
     dim_map = get_dim_map(dim_order)
     if use_original_data:
+        print(f"T={T} -- loading dataset from original") if verbose else None
         original_path = Path(get_original_path(dataset_name))
         img_path = original_path
         img = BioImage(img_path)
@@ -90,6 +90,7 @@ def generate_results(
                 "When using original data, either scene_index or scene_name must be provided."
             )
     else:
+        print(f"T={T} -- loading dataset from zarr") if verbose else None
         zarr_name = get_zarr_name(dataset_name, position)
         zarr_path = Path(get_zarr_path(dataset_name)[zarr_name])
         img = BioImage(
