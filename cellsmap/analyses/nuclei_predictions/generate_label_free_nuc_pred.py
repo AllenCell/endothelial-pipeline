@@ -59,7 +59,8 @@ def generate_results(args: dict) -> None:
         dim_map = get_dim_map(dim_order)
 
         img = BioImage(img_path)
-        img.set_scene(args["scene_index"])
+        if args["use_original_data"]:
+            img.set_scene(args["scene_index"])
 
         brightfield_index = get_dataset_info(dataset_name)["brightfield_channel_index"]
         img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)

@@ -821,8 +821,8 @@ def split_multinucleate_regions(
     seeds_cleaned += seeds_edges
 
     # segment cells with watershed
-    # seg_mask_final = ~(find_boundaries(cell_segmentations)+cell_boundary_thresh)
-    seg_mask_final = ~find_boundaries(cell_segmentations)
+    seg_mask_final = ~(find_boundaries(cell_segmentations) + cell_boundary_thresh)
+    # seg_mask_final = ~find_boundaries(cell_segmentations)
     # seg_mask_final = ~cell_boundary_thresh
     # use a sato filter to enhance the cell boundaries
     sato_filt = rescale_intensity(
