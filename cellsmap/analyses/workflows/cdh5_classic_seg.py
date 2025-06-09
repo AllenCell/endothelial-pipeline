@@ -243,7 +243,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         use_original_data=use_original_data,
-        image_validation_frequency=20,
+        image_validation_frequency=48,
     )
 
     if n_proc > 1:
