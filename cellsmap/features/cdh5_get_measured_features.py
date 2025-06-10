@@ -455,7 +455,7 @@ def main(
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
-    use_original_data: bool = True,
+    use_original_data: bool = False,
 ) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)

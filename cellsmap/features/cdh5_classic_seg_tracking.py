@@ -92,6 +92,7 @@ def main(
     n_proc: int = 1,
     dataset_name: str | Sequence | None = None,
     save_output: bool = True,
+    use_original_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -108,7 +109,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=True,
+        use_original_data=use_original_data,
     )
 
     analysis_queue_df = pd.DataFrame(analysis_queue)
