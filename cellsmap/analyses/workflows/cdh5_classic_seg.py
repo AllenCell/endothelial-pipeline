@@ -161,7 +161,6 @@ def generate_results(
                 processed_img,
                 hyst_clean,
                 seg2_lab,
-                # seg2_lab_no_mask_merge,
                 seg2_lab_no_mask_merge_bounds,
                 seeds,  # NOTE used to be nuc_pred, remove this comment if done
                 seg_aug,  # add the augmented segmentation

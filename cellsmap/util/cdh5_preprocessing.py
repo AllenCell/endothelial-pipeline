@@ -650,6 +650,7 @@ def split_multinucleate_regions(
     nuclei_segmentations: np.ndarray,
     cell_boundary_thresh: np.ndarray,
     cell_boundary_image: np.ndarray,
+    min_size_filter: int = 500,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Splits multinucleate regions in the segmentation based on the nuclei predictions.
@@ -660,40 +661,26 @@ def split_multinucleate_regions(
     # if nuclei with different labels are touching then separate them
     # only if a segmentation boundary or the cdh5 threshold would have
     # separated them
-    # nuc_seg_merge_adjacent = label((nuclei_segmentations * ~cell_boundary_thresh).astype(bool))
     nuc_seg_merge_adjacent = label(nuclei_segmentations.astype(bool))
+
     # remove any nuclei do not have more than half their area in
     # a single segmented region
+    # get properties of nuclei predictions and original segmentations
     nuc_props = regionprops(
         label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations
     )
     nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
-    # nuclei_label_fractions_per_region = {}
-    # for prop in nuc_seg_merge_adjacent_props:
-    #     nuclei_label_fractions_per_region[prop.label] = 0
-    # nuclei_label_fractions_per_region = {
-    #     prop.label: float(np.count_nonzero(prop.intensity_image) / prop.area)
-    #     for prop in nuc_seg_merge_adjacent_props
-    # }
-    # unambiguous_nuclei_labels = [
-    #     lab for lab in nuclei_label_fractions_per_region if nuclei_label_fractions_per_region[lab] > 0.5]
-    # nuc_seg_skels = skeletonize(nuc_seg_merge_adjacent) * nuc_seg_merge_adjacent
+
     reg_props = regionprops(
-        # label_image=cell_segmentations,
-        # intensity_image=nuc_seg_skels,
         label_image=cell_segmentations,
-        # intensity_image=nuc_seg_merge_adjacent
         intensity_image=nuc_seg_merge_adjacent * ~cell_boundary_thresh,
     )
-    # num_nuclei_per_region = {
-    #     prop.label: np.count_nonzero(np.unique(prop.intensity_image))
-    #     for prop in reg_props
-    # }
+
+    # keep only nuclei that have more than half of their area in a
+    # single segmented region
     nuclei_ambiguity_threshold = 0.5
     nuclei_labels_per_region = dict()
-    # nuclei_label_fractions_per_region = {}
     for prop in reg_props:
-        nuc_prop_sizes
         nuc_labels = []
         for nuc_lab in np.unique(prop.intensity_image):
             if nuc_lab != 0:
@@ -704,27 +691,19 @@ def split_multinucleate_regions(
                 if nuc_frac > nuclei_ambiguity_threshold:
                     nuc_labels.append(nuc_lab)
         nuclei_labels_per_region[prop.label] = np.array(nuc_labels)
-        # nuclei_labels_per_region[prop.label] = np.unique(prop.intensity_image).tolist()
 
-    # anucleate_region_labels = [
-    #     lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 0
-    # ]
     anucleate_regions = {
         lab: nuclei_labels_per_region[lab]
         for lab in nuclei_labels_per_region
         if np.count_nonzero(nuclei_labels_per_region[lab]) == 0
     }
-    # mononucleate_region_labels = [
-    #     lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] == 1
-    # ]
+
     mononucleate_regions = {
         lab: nuclei_labels_per_region[lab]
         for lab in nuclei_labels_per_region
         if np.count_nonzero(nuclei_labels_per_region[lab]) == 1
     }
-    # multinucleate_region_labels = [
-    #     lab for lab in num_nuclei_per_region if num_nuclei_per_region[lab] > 1
-    # ]
+
     multinucleate_regions = {
         lab: nuclei_labels_per_region[lab]
         for lab in nuclei_labels_per_region
@@ -753,18 +732,11 @@ def split_multinucleate_regions(
         * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
         * cell_segmentations
     )
-    # mononucleate_seeds_and_skels = ((
-    #     np.isin(cell_segmentations, list(mononucleate_regions.keys()))
-    #     * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
-    #     + np.isin(seg_skels, list(mononucleate_regions.keys()))
-    # ) * cell_segmentations
-    # )
+
     seeds = anucleate_skels + mononucleate_skels
-    # seeds = anucleate_skels + mononucleate_seeds_and_skels
-    # seeds = anucleate_skels + mononucleate_seeds
-    # seeds_edges = anucleate_skels + mononucleate_seeds
-    # use the nuclei as seed points for the multinucleate regions
-    # multinuc_seeds = np.isin(cell_segmentations, multinucleate_region_labels) * nuc_seg_skels
+
+    # use the nuclei in the multinucleate regions as seeds and
+    # combine these with the skeleton-seeds from above
     multinucleate_nuclei_labels = set(
         [
             lab
@@ -777,32 +749,21 @@ def split_multinucleate_regions(
         np.isin(cell_segmentations, list(multinucleate_regions.keys()))
         * np.isin(nuc_seg_merge_adjacent, list(multinucleate_nuclei_labels))
         * nuc_seg_merge_adjacent
-        # * nuc_seg_skels
     )
     multinucleate_seeds, _, _ = relabel_sequential(
         multinucleate_seeds, offset=1 + seeds.max()
     )
     seeds = seeds + multinucleate_seeds
-    # seeds_edges = seeds_edges + multinucleate_seeds
 
-    # # NOTE THE SEG AND EDGE_REGIONS BELOW ARE TO TRY
-    # # AND RESOLVE CELLS THAT ARE VERY CLOSE TO THE EDGE
-    # # BUT NOT TOUCHING IT
-    # # get basins for performing watershed segmentation
-    # seeds, basins = get_watershed_seeds_and_basins(~cell_boundary_thresh)
-    # seg = watershed(
-    #     image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh
-    # )
-    # edge_regions = ~clear_border(seg).astype(bool) * seg
-    # seeds_edges = skeletonize(edge_regions.astype(bool))
-    # # exclude seeds if they overlap with regions that touched the image border
-    # seeds = seeds * ~edge_regions.astype(bool)
-    # # edge_regions, _, _ = relabel_sequential(edge_regions, offset=1 + seeds.max())
-    # # seeds += edge_regions
-    # # add the skeletons of the regions touching the image edge as seeds
-    # # after labeling them
-
-    # seeds_edges = label(seeds * ~cell_boundary_thresh)
+    # to better resolve regions at the edges do a watershed where the
+    # threshold is used as a mask and the seeds are nuclei (note this
+    # is different from above where region skeletons are the seeds if
+    # a region has 1 nucleus). If a region cannot be reached from a
+    # nucleus then it is considered unreachable and if an unreachable
+    # region touches the image border then it will be skeletonized
+    # and used as a seed to be added to the skeleton seeds from above.
+    # NOTE: Using the nuclei as seeds does a better job of segmenting
+    # cells touching the borders than using the skeletons as seeds.
     seeds_edges = anucleate_skels + mononucleate_seeds + multinucleate_seeds
     seg = watershed(
         image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh
@@ -813,24 +774,31 @@ def split_multinucleate_regions(
     # remove the unreachable regions from the seeds
     seeds_cleaned = seeds * ~binary_dilation(unreachable_edges, disk(2))
     seeds_cleaned = label(seeds_cleaned)
-    # seeds_edges[seeds_edges > 0] += seeds.max() + 1
-    # seeds += seeds_edges
+
     seeds_edges = label(unreachable_edges)
     seeds_edges[seeds_edges > 0] += seeds_cleaned.max() + 1
     seeds_edges = skeletonize(seeds_edges) * seeds_edges
-    seeds_cleaned += seeds_edges
 
-    # segment cells with watershed
+    # produce the final seeds that will be used for refining the
+    # cell segmentations
+    seeds_cleaned += seeds_edges
+    # the mask below helps keep the watershed algorithm from redefining
+    # boundaries of regions that were okay before
     seg_mask_final = ~(find_boundaries(cell_segmentations) + cell_boundary_thresh)
-    # seg_mask_final = ~find_boundaries(cell_segmentations)
-    # seg_mask_final = ~cell_boundary_thresh
-    # use a sato filter to enhance the cell boundaries
+
+    # use a sato filter to enhance the cell boundaries and use that
+    # as the image for the watershed when splitting multinucleate regions
+    # the mask helps keep differences between the original segmentation
+    # and newly-split segmentation to just new lines at cell-cell
+    # boundaries (or as close to it)
     sato_filt = rescale_intensity(
         sato(cell_boundary_image, black_ridges=False), out_range=(0, 1)
     )
     seg = watershed(image=sato_filt, markers=seeds_cleaned, mask=seg_mask_final)
-    # seg = watershed(image=sato_filt, markers=seg)
-    # seg = watershed(image=cell_boundary_image, markers=seeds_cleaned, mask=seg_mask_final)
+
+    # to fill in the masked regions use the same cell boundary image
+    # as was used to get the original segmentations to minimize
+    # differences between the original and newly-splitted segmentations
     seg = watershed(image=cell_boundary_image, markers=seg)
 
     # refine the accuracy of the segmentation by re-running watershed
@@ -839,29 +807,16 @@ def split_multinucleate_regions(
     seg_inner = seg * binary_erosion(~find_boundaries(seg), disk(3))
     seg = watershed(image=cell_boundary_image, markers=seg_inner)
 
-    # # NOTE MAYBE REPLACE THESE 2 LINES WITH SEG ON SATO FILTER ABOVE
-    # seg = watershed(image=cell_boundary_image, markers=seeds_cleaned, mask=seg_mask_final)
-    # seg = watershed(image=cell_boundary_image, markers=seg)
-
     # remove small regions and segment one last time
-    seg = remove_small_objects(seg, min_size=500)
+    seg = remove_small_objects(seg, min_size=min_size_filter)
     seg = watershed(image=cell_boundary_image, markers=seg)
-    # edge_regions, _, _ = relabel_sequential(edge_regions, offset=1 + seeds.max())
 
     # remove the seeds that were removed from the segmentation
-    # seeds = seg * seeds.astype(bool)
-    seeds = seg * seeds_cleaned.astype(bool) * seg_mask_final
     seeds = (
         seeds_cleaned
         * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)]))
         * seg_mask_final
     )
-
-    # from matplotlib import pyplot as plt
-    # from skimage.color import label2rgb
-    # clipped_img = rescale_intensity(np.clip(sato_filt, a_min=np.percentile(sato_filt, 2), a_max=np.percentile(sato_filt, 98)))
-    # overlay = label2rgb(label=find_boundaries(seg)*1 + seeds.astype(bool)*2, image=clipped_img, bg_label=0, alpha=0.5)
-    # plt.imshow(overlay[:500,:500])
 
     return seg, seeds
 
