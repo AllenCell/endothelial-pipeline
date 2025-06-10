@@ -680,6 +680,9 @@ ml-workflows = [
     { name = "hydra-core" },
     { name = "mlflow" },
 ]
+slurm = [
+    { name = "wasmtime" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -752,8 +755,9 @@ requires-dist = [
     { name = "torch", specifier = "~=2.0.0" },
     { name = "tqdm", specifier = ">=4.66.5" },
     { name = "vtk", specifier = ">=9.4.1" },
+    { name = "wasmtime", marker = "extra == 'slurm'", specifier = "<23.0" },
 ]
-provides-extras = ["internal", "ml-workflows", "cellpose"]
+provides-extras = ["internal", "ml-workflows", "cellpose", "slurm"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pre-commit", specifier = ">=3.7.1" }]
