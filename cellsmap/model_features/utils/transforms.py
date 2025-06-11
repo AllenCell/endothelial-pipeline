@@ -41,7 +41,7 @@ class MinStdCropd(Transform):
 class RotateRanged(Transform):
     """
     Transform for applying a range of rotations to a set of images. Useful for e.g. testing rotation dependence of a principal component or latent dimension.
-    To use, this transform should be applied **after** a cropping transform (like the RandSpatialCropSamplesd used for training). The spatial inferer in the model config should also be set to none to avoid overwriting the `start_y` and `start_x` metadata.
+    To use, this transform should be applied **after** a cropping transform (like the RandSpatialCropSamplesd used for training) where the roi size is at least sqrt(roi_size[0]**2 + roi_size[y]**2)). The spatial inferer in the model config should also be set to none to avoid overwriting the `start_y` and `start_x` metadata.
     """
 
     def __init__(
