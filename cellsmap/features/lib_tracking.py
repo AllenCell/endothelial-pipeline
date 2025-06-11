@@ -1531,25 +1531,25 @@ def run_tracking(
                     extra_channel=raw_channel,
                 )
 
-        out_filename_prefix = out_filename_prefix or out_dir.stem
-        table_out_name = f"{out_filename_prefix}_tracking.tsv"
-        out_path = out_dir / table_out_name
-        out_dir.mkdir(parents=True, exist_ok=True)
-        print(f"Saving tracking table to {out_path}") if verbose else None
+    out_filename_prefix = out_filename_prefix or out_dir.stem
+    table_out_name = f"{out_filename_prefix}_tracking.tsv"
+    out_path = out_dir / table_out_name
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Saving tracking table to {out_path}") if verbose else None
 
-        # split the 'centroid' column into separate columns for each dimension
-        if "centroid" in track_table.columns:
-            centroid_subdf = pd.DataFrame(
-                track_table["centroid"].tolist(), index=track_table.index
-            )
-            num_centroid_dims = len(centroid_subdf.columns)
-            # note that we have to iterate through the coordinates
-            # in reverse
-            centroid_dims = dim_order[::-1][:num_centroid_dims][::-1]
-            for i in range(num_centroid_dims):
-                dim = centroid_dims[i]
-                track_table[f"centroid_{dim}"] = centroid_subdf[i]
-        track_table.to_csv(out_path, index=False, sep="\t")
+    # split the 'centroid' column into separate columns for each dimension
+    if "centroid" in track_table.columns:
+        centroid_subdf = pd.DataFrame(
+            track_table["centroid"].tolist(), index=track_table.index
+        )
+        num_centroid_dims = len(centroid_subdf.columns)
+        # note that we have to iterate through the coordinates
+        # in reverse (hence the [::-1])
+        centroid_dims = dim_order[::-1][:num_centroid_dims][::-1]
+        for i in range(num_centroid_dims):
+            dim = centroid_dims[i]
+            track_table[f"centroid_{dim}"] = centroid_subdf[i]
+    track_table.to_csv(out_path, index=False, sep="\t")
 
 
 def update_track_table(
