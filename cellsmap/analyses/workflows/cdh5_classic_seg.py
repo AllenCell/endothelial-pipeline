@@ -66,7 +66,7 @@ def generate_results(
     verbose: bool = True,
 ) -> None:
 
-    print(f"Working on {dataset_name} -- T={T}...")
+    print(f"Working on {dataset_name} -- T={T}...") if verbose else None
     print(f"T={T} -- initializing workflow") if verbose else None
     seg_dir = out_dir / "segmentations"
     val_dir = out_dir / "validations"
