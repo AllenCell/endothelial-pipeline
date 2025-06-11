@@ -15,7 +15,7 @@ class MinStdCropd(Transform):
         self,
         keys: Union[list, str],
         offset: int = 5,
-        axes: int = (-1, -2),
+        axes: tuple[int] = (-1, -2),
         channel: int = 0,
     ):
         super().__init__()
@@ -48,8 +48,8 @@ class RotateRanged(Transform):
         self,
         keys: Union[list, str],
         roi_size: Sequence[int],
-        rotation_range=[0, 2 * np.pi],
-        n_steps=10,
+        rotation_range: list[float] = [0.0, 2 * np.pi],
+        n_steps: int = 10,
         allow_missing_keys: bool = False,
     ):
         """
