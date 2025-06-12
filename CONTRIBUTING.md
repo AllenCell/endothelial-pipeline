@@ -53,5 +53,12 @@ uv sync
 
 This creates two separate environments, one for a Slurm cluster and one for A100s machines.
 You can then activate the appropriate environment, or use `uv run`, which will use the environment specified by `UV_PROJECT_ENVIRONMENT`.
+You can check which environment `uv` is using with:
+
+```bash
+echo $UV_PROJECT_ENVIRONMENT
+```
+
+If no value is returned, `uv` will default to using `.venv`.
 
 If you often switch between systems, it may be helpful to add the `export` statement in your `.bashrc` (or equivalent) shell configuration file to automatically set the environment variable.
