@@ -264,6 +264,20 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     return interpolated_points
 
 
+def convert_coordinates_from_pc_to_latent(coords, reducer):
+    """
+    Convert coordinates in PCA-based feature space
+    to latent space using the PCA model.
+    """
+    coords = np.array(coords)
+    latent = reducer.inverse_transform(coords)
+    num_coords = latent.shape[0]
+    # turn coordinate array into list of lists
+    latent_coords = [l.tolist() for l in latent]
+
+    return latent_coords
+
+
 def convert_coordinates_from_volume_to_pc(
     xvol: np.array, grid_spacing: float, origin: float
 ) -> np.array:
@@ -286,7 +300,8 @@ def get_and_viz_ddff(
     init: np.ndarray,
     fig_savedir: str,
     vtk_savedir: str,
-) -> np.ndarray:
+    output_savedir: str,
+) -> np.ndarray | list[np.ndarray]:
 
     # load dataframe and get top 3 PCs
     df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
@@ -305,6 +320,12 @@ def get_and_viz_ddff(
     flow_field_dict = compute_extrapolated_vector_field(
         drift_km, centers, interpolator="nearest"
     )
+    # save flow field dictionary as npy
+    np.save(
+        output_savedir + f"flow_field_dict_{name}.npy",
+        flow_field_dict,
+        allow_pickle=True,
+    )
     # save flow field as vtk image data
     vtk_io.save_vector_field_as_vtk(
         flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk"
@@ -314,6 +335,12 @@ def get_and_viz_ddff(
     # (diagonal diffusion tensor represented as 3D vector field)
     diffusion_field_dict = compute_extrapolated_vector_field(
         diff_km, centers, interpolator="nearest"
+    )
+    # save diffusion field dictionary as npy
+    np.save(
+        output_savedir + f"diffusion_field_dict_{name}.npy",
+        diffusion_field_dict,
+        allow_pickle=True,
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
@@ -327,6 +354,14 @@ def get_and_viz_ddff(
 
     # call main flow field viz function (makes and saves plots)
     ffv.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+
+    # hack-y work around for intermediate shear stress
+    # simulate second trajectory to get second stable point
+    if name == "20250319_20X" or name == "20250326_20X":
+        init = np.array([1.1, 0.0, -0.2])
+        time_span = [0, 5000]
+        traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
+        traj = [traj, traj_2]  # return both trajectories
 
     return traj
 
@@ -343,7 +378,7 @@ def ddff_main(
     output_savedir: str,
 ) -> None:
     # get bins for KMCs
-    bounds = set_3d_bounds_from_data(list_of_datasets, pca)
+    bounds = set_3d_bounds_from_data(list_of_datasets, pca, col_names="feat")
     num_bins = [50, 50, 50]
     bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
 
@@ -368,6 +403,7 @@ def ddff_main(
             init,
             fig_savedir,
             vtk_savedir,
+            output_savedir,
         )
 
         # save out using dataset descriptions
@@ -375,3 +411,7 @@ def ddff_main(
         traj_dict[condition] = traj
 
     np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)
+
+    # generate plot of stable fixed points
+    # for low, high, and 12dyn datasets
+    ffv.plot_stable_fixed_points_together(fig_savedir, output_savedir)

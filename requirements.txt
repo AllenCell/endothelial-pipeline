@@ -120,12 +120,17 @@ bioio-base==1.0.7 \
     --hash=sha256:dfa3c1f9d373ca3a56f66e3694286a3db20dab972d9fe455eebe0d0ddb075a7d
     # via
     #   bioio
+    #   bioio-imageio
     #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-ome-zarr
     #   bioio-sldy
     #   bioio-tifffile
     #   cellsmap
+bioio-imageio==1.1.0 \
+    --hash=sha256:a6a5713dbd5e514b3ea51fa6c873c0089294e70a37394bb66732b87c62fbe6c3 \
+    --hash=sha256:f72a8b8354f7a01036311217073b1be16d2604e60aa8da4d4c6a1d8f8b546e15
+    # via cellsmap
 bioio-nd2==1.1.0 \
     --hash=sha256:c05b75fa4df1c1e3c03dab02ffde438b7110fe0faa33ee26e88bf96c932d4378 \
     --hash=sha256:eddcee6b345c03b304562fe18e9738087efcf425da2a4891e603d38bf282de68
@@ -334,6 +339,7 @@ dask==2025.4.0 \
     # via
     #   bioio
     #   bioio-base
+    #   bioio-imageio
     #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-sldy
@@ -469,6 +475,7 @@ fsspec==2025.3.2 \
     # via
     #   bioio
     #   bioio-base
+    #   bioio-imageio
     #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-ome-zarr
@@ -523,11 +530,12 @@ imagecodecs==2025.3.30 \
     #   bioio-ome-tiff
     #   bioio-tifffile
     #   nd2
-imageio==2.37.0 \
-    --hash=sha256:11efa15b87bc7871b61590326b2d635439acc321cf7f8ce996f812543ce10eed \
-    --hash=sha256:71b57b3669666272c818497aebba2b4c5f20d5b37c81720e5e1a56d59c492996
+imageio==2.27.0 \
+    --hash=sha256:24c6ad7d000e64eacc2861c402b6fb128f370cb0a6623cf796d83bca0d0d14d3 \
+    --hash=sha256:ee269c957785ef0373cc7a7323185956d83ec05e6cdf20b42a03ba7b74ac58c6
     # via
     #   bioio
+    #   bioio-imageio
     #   scikit-image
 imageio-ffmpeg==0.6.0 \
     --hash=sha256:02fa47c83703c37df6bfe4896aab339013f62bf02c5ebf2dce6da56af04ffc0a \
@@ -972,6 +980,7 @@ numpy==1.26.4 \
     # via
     #   bioio
     #   bioio-base
+    #   bioio-imageio
     #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-sldy
@@ -1162,6 +1171,7 @@ pillow==11.2.1 \
     --hash=sha256:ea926cfbc3957090becbcbbb65ad177161a2ff2ad578b5a6ec9bb1e1cd78753c \
     --hash=sha256:f6b0c664ccb879109ee3ca702a9272d877f4fcd21e5eb63c26422fd6e415365e
     # via
+    #   bioio-imageio
     #   colorizer-data
     #   imageio
     #   matplotlib
@@ -1877,6 +1887,7 @@ xarray==2025.3.1 \
     --hash=sha256:3404e313930c226db70a945377441ea3c957225d8ba2d429e764c099bb91a546
     # via
     #   bioio-base
+    #   bioio-imageio
     #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-ome-zarr
