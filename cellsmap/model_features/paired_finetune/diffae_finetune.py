@@ -11,7 +11,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
     def __init__(
         self,
         paired_condition_key: str,
-        use_separate_encoders: bool = False,
+        use_separate_encoders: bool = True,
         infer_with_fixed: bool = True,
         **base_kwargs,
     ):
@@ -102,6 +102,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         x_feats, y_feats = self.matching_forward(
             batch[self.hparams.condition_key],
             batch[self.hparams.paired_condition_key],
+            batch_idx=batch_idx,
             stage=stage,
         )
 
