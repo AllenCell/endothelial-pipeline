@@ -92,6 +92,7 @@ def load_images_sequentially(
     ------
     image_list: list of np.array objects
     """
+    print("Preparing filepath and crop lists...") if verbose else None
     assert isinstance(
         filepaths, (list, tuple, Path)
     ), "filepaths must be a list of filepaths or a Path object"
@@ -173,6 +174,7 @@ def load_images_sequentially(
         # update the crop dictionary to reflect the current slice of images being loaded
         crop_list = crops[relative_slice]
         # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
+        print("Converting crop lists to range objects...") if verbose else None
         crop_list = [
             {
                 dim: range(*BioImage(image_list[j]).dims[dim])[crop_list[j][dim]]
@@ -191,6 +193,11 @@ def load_images_sequentially(
         )
         old_image_list = image_list.copy()
 
+        (
+            print("Checking which images haven't been loaded yet and loading them...")
+            if verbose
+            else None
+        )
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
         dim_order_string = "".join(dim_order)
         loaded_images = loaded_images + [
