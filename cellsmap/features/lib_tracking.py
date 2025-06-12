@@ -12,13 +12,12 @@ from typing import (
     Union,
 )
 
-import dask as da
 import numpy as np
 import pandas as pd
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from skimage.measure import regionprops
-from skimage.segmentation import clear_border, find_boundaries
+from skimage.segmentation import clear_border
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import extract_T
