@@ -174,7 +174,11 @@ def load_images_sequentially(
         # update the crop dictionary to reflect the current slice of images being loaded
         crop_list = crops[relative_slice]
         # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
-        print("Converting crop lists to range objects...") if verbose else None
+        (
+            print(f"Converting crop list (len={len(crop_list)}) to range objects...")
+            if verbose
+            else None
+        )
         crop_list = [
             {
                 dim: range(*BioImage(image_list[j]).dims[dim])[crop_list[j][dim]]
@@ -182,6 +186,12 @@ def load_images_sequentially(
             }
             for j in range(len(crop_list))
         ]
+        print("...done converting crop lists.") if verbose else None
+        (
+            print("Identifying which images have already been loaded...")
+            if verbose
+            else None
+        )
         loaded_relative_indices_to_keep = [
             j for j, fp in enumerate(old_image_list) if fp in image_list
         ]
@@ -194,7 +204,7 @@ def load_images_sequentially(
         old_image_list = image_list.copy()
 
         (
-            print("Checking which images haven't been loaded yet and loading them...")
+            print("Carrying over loaded images and loading new images...")
             if verbose
             else None
         )
