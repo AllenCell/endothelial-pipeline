@@ -405,7 +405,12 @@ def load_nuclei_prediction(
         return dask.array.empty(shape=[0] * len(dim_order))
 
 
-def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
+def get_cdh5_classic_segmentation_path(
+    dataset_name: str,
+    position: int,
+    T: int | None = None,
+    missing_file_exception: Literal["raise", "warn"] = "warn",
+) -> Path | None:
     # NOTE at some point the cdh5 classic segmentation paths
     # will probably be added to the dataconfig.yaml file
     # for the base_path, but until then I will hardcode the
@@ -417,8 +422,50 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     # NOTE this is what the code is expected to be when the
     # path is added to the dataconfig.yaml file:
     # base_path = dataset_info['cdh5_classic_seg_path']
-    position_path = f"{base_path}/P{position}/"
-    return position_path
+    position_path = Path(f"{base_path}/P{position}/")
+    if T is None:
+        return position_path
+    else:
+        cdh5_seg_path_dict = {
+            extract_T(fp.stem): fp
+            for fp in position_path.glob("*.ome.tif*")
+            if extract_T(fp.name) == T
+        }
+        cdh5_seg_path = cdh5_seg_path_dict.get(T, None)
+        if cdh5_seg_path is not None:
+            return cdh5_seg_path
+
+    match missing_file_exception:
+        case "raise":
+            raise FileNotFoundError(
+                f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
+            )
+        case "warn":
+            print(
+                f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
+            )
+            return None
+
+
+def load_cdh5_classic_segmentation(
+    dataset_name: str,
+    position: int,
+    T: int,
+    dim_order: str = "ZYX",
+) -> dask.array.Array:
+    """
+    Load the CDH5 classic segmentation for a given dataset, position, and timepoint.
+    """
+    cdh5_seg_path = get_cdh5_classic_segmentation_path(dataset_name, position, T)
+    if cdh5_seg_path is not None and cdh5_seg_path.exists():
+        # Load the CDH5 classic segmentation as a Dask array
+        cdh5_dask_arr = BioImage(cdh5_seg_path).get_image_dask_data(dim_order, T=0)
+        return cdh5_dask_arr
+    else:
+        print(
+            f"CDH5 classic segmentation file not found for T={T} in {cdh5_seg_path}, returning empty dask array."
+        )
+        return dask.array.empty(shape=[0] * len(dim_order))
 
 
 def get_tracking_data_paths(
