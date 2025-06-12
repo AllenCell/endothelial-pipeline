@@ -63,9 +63,6 @@ ml_workflows = [
 cellpose = [
     "cellpose>=3.1.0",
 ]
-slurm = [
-    "wasmtime<23.0" # Ubuntu on our slurm nodes is too old to support wasmtime 23.0 and above
-]
 
 [dependency-groups]
 dev = [
