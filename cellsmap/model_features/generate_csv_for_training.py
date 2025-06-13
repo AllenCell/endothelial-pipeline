@@ -9,7 +9,7 @@ from cellsmap.util.set_output import get_output_path
 
 # %%
 # set output directory
-output_folder = "models"
+output_folder = "manifests"
 output_savedir = get_output_path(output_folder, verbose=False)
 
 # load data config
