@@ -7,6 +7,29 @@ from sklearn.model_selection import train_test_split
 from cellsmap.util.dataset_io import load_config
 from cellsmap.util.set_output import get_output_path
 
+
+def check_dataset_for_model_training(dataset_name: str, data_config: dict) -> bool:
+    """
+    Check if the dataset is suitable for training. If it is, return true
+    and the zarr path. Else, return false and None.
+    """
+    config_dict = data_config[dataset_name]
+    # only train on datasets that have been converted to zarr
+    if config_dict["zarr_path"] is None:
+        return False, None
+    # only train on live datasets
+    if config_dict["live_or_fixed_sample"] != "live":
+        return False, None
+    # only train on 20X datasets from 3i scope
+    if (
+        config_dict["microscope"] != "3i"
+        or "40X" in config_dict["original_path"]
+        or "Nikon" in config_dict["original_path"]
+    ):
+        return False, None
+    return True, config_dict["zarr_path"]
+
+
 # %%
 # set output directory
 output_folder = "manifests"
@@ -18,26 +41,15 @@ data_config = load_config("data")
 # %%
 zarr_file_paths = []
 for dataset_name in data_config:
-    # this line will change when the PRs
-    # changing the data config structure are merged
-    config_dict = data_config[dataset_name]
-    zarr_path = config_dict["zarr_path"]
-    # only train on datasets that have been converted to zarr
-    if zarr_path is None:
+    # check if the dataset is suitable for training
+    # see check_dataset_for_training function for
+    # the criteria used to filter datasets
+    is_for_training, zarr_path = check_dataset_for_model_training(
+        dataset_name, data_config
+    )
+    if not is_for_training:
         continue
-    # only train on live datasets
-    if config_dict["live_or_fixed_sample"] != "live":
-        continue
-    # only train on 20X datasets from 3i scope
-    # leaving out paired Nikon datasets for now
-    if (
-        config_dict["microscope"] != "3i"
-        or "40X" in config_dict["original_path"]
-        or "Nikon" in config_dict["original_path"]
-    ):
-        continue
-
-    print(f"Processing dataset {dataset_name} (FMS ID {config_dict['fmsid']})")
+    print(f"Processing dataset {dataset_name}")
     # get all zarr files in zarr path
     # append to list of zarr file paths
     glob_list = list(Path(zarr_path).glob("*zarr"))
