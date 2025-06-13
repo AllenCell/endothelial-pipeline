@@ -50,10 +50,22 @@ def concat(row, savedir):
 
 
 def generate_paired_dataset(
-    base_path: str, directories: list[str] | None = None, split: bool = False
+    model_name: str, directories: list[str] | None = None, split: bool = False
 ):
+    """
+    Utility function for generating a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
+
+    Parameters
+    ----------
+    model_name: str
+        The name of the model to use for generating the dataset. This should correspond to a directory in `outputs/models/` and match the model name used during the `paired_data_validation` step
+    directories: list[str] | None
+        A list of directories to search for aligned image pairs. If None, all directories in `outputs/models/{model_name}` that match the pattern `*_vs_*` will be used.
+    split: bool
+        If True, the dataset will be split into training and validation sets. The split will be saved as `train.csv` and `val.csv`. If False, the entire dataset will be saved as `dataset.csv`.
+    """
     save_path = Path(get_output_path("finetune_paired_dataset"))
-    base_path = Path(base_path)
+    base_path = Path(get_output_path(f"models/{model_name}"))
 
     df = find_csvs(base_path, directories)
     print(f"Found {len(df)} pairs of images to save")
