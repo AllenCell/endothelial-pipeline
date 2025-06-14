@@ -8,7 +8,9 @@ from cellsmap.util.dataset_io import load_config
 from cellsmap.util.set_output import get_output_path
 
 
-def check_dataset_for_model_training(dataset_name: str, data_config: dict) -> bool:
+def check_dataset_for_model_training(
+    dataset_name: str, data_config: dict
+) -> tuple[bool, str | None]:
     """
     Check if the dataset is suitable for training. If it is, return true
     and the zarr path. Else, return false and None.
