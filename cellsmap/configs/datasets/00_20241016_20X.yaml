@@ -1,0 +1,23 @@
+name: 20241016_20X
+original_path: //allen/programs/allencell/data/proj0/fa3/2f4/77f/bde/c1a/d98/749/61e/190/0d1/23/20241016_GE0007381_20X_timelapse_sldy/20241016_GE00007381_20X_timelapse_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241016_230d119061e749d98c1abde77f2f4fa3
+fmsid: 230d119061e749d98c1abde77f2f4fa3
+barcode: GE00007381
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+microscope: 3i
+shear_stress_regime: 24hr_high-to-24hr_low
+use_cases: [classic_segmentation, measurement]
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[0, 244, 22.35], [245, 576, 5.62]]
+488_channel_index: 0
+brightfield_channel_index: 1
+n_total_positions: 6
+notes: This is a high-to-low flow dataset. There is some cell debris in the CDH5 channel.
+nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241016_20X
+nuclear_seg_manifest_fmsid: a90e321dff584e7f95e0c5e81122c751
+diffae_manifest_fmsid: ''
+tracking_integration_fmsid: 9add4f8e00a24889bb27ac6cffc1d1d8
+diffae_tracking_integration_fmsid: 35068038241e46b184f0aaf98d72a4ec

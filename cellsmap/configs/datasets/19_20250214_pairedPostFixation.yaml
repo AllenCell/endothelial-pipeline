@@ -1,0 +1,24 @@
+name: 20250214_pairedPostFixation
+original_path: //allen/programs/allencell/data/proj0/0b2/e40/73a/e23/5da/718/e42/278/9ec/a3a/30/20250219_GE00006747_20X_POST_FIX_sldy/20250219_GE00006747_20X_POST_FIX_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250219_30a3a9ec278e427185dae2373ae400b2
+fmsid: 30a3a9ec278e427185dae2373ae400b2
+barcode: GE00006747
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+microscope: 3i
+shear_stress_regime: no_flow
+use_cases: [model_training]
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, -1, 0]]
+488_channel_index: 0
+brightfield_channel_index: 1
+n_total_positions: 10
+notes: These cells were fed about 2 hours before fixation (previously the cells had
+  not been fed prior to fixation). This sample was imaged at a later date than the
+  pre-fix sample due to blobs / bubbles appearing in the sample after fixation which
+  had to be washed out first.
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: 6a9682a9ebbe472383a9dffe686f062c

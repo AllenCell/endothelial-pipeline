@@ -1,0 +1,21 @@
+name: 20250228_paired20X
+original_path: //allen/programs/allencell/data/proj0/6e0/d20/c72/ff0/6b7/96b/04e/55e/88d/eca/56/20250228_GE00006610_ZSTACK_20X/20250228_GE00006610_20x_zstacks_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250228_56eca88d55e04e96b6b7ff0c72d206e0
+fmsid: 56eca88d55e04e96b6b7ff0c72d206e0
+barcode: GE00006610
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+microscope: 3i
+shear_stress_regime: 24hr_low
+use_cases: []
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, -1, 0]]
+488_channel_index: 0
+brightfield_channel_index: 1
+n_total_positions: 10
+notes: ''
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: 65f32e5cfda940b497453940d00396f4
