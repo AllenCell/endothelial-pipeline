@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from typing import Callable, Sequence, Sized
 
 import matplotlib.pyplot as plt
 import numdifftools as nd
@@ -51,7 +51,7 @@ def plot_trajectories(trajectory: dict, inits: list[tuple]) -> None:
         plt.plot(trajectory[j][0, :], trajectory[j][1, :], "b-", linewidth=2.25)
 
 
-def findroot(func: Callable, init: float | np.ndarray | tuple) -> np.ndarray:
+def findroot(func: Callable, init: float | Sized) -> np.ndarray:
     """
     Find root of nonlinear equation f(x)=0.
 
@@ -73,6 +73,8 @@ def findroot(func: Callable, init: float | np.ndarray | tuple) -> np.ndarray:
     if init is float:
         return np.array([np.nan])
     else:
+        # assert that init is type Sized
+        assert isinstance(init, Sized)
         return np.array([np.nan] * len(init))
 
 
@@ -134,7 +136,7 @@ def find_stability(jacobian: np.ndarray) -> str:
 def classify_fps(
     my_flow: Callable,
     fpts: list[tuple],
-    x: tuple[np.ndarray] | np.ndarray,
+    x: list[np.ndarray],
     unique: bool = True,
     ax: plt.Axes | None = None,
     verbose: bool = True,
@@ -173,7 +175,8 @@ def classify_fps(
     fpts_new = []
     fpt_types = []
     # unpack x into x1 and x2
-    x1, x2 = x
+    x1 = x[0]
+    x2 = x[1]
     # define Jacobian as a function of x - for getting stability:
     flow_jacobian = nd.Jacobian(my_flow)
     if verbose:
@@ -238,7 +241,7 @@ def plot_null(
     f2: Callable,
     x1: np.ndarray,
     x2: np.ndarray,
-    params=None,
+    params: dict | None = None,
 ) -> plt.Axes:
     """
     Plot the nullclines of a system of ODEs given by f1 and f2.
@@ -282,7 +285,7 @@ def plot_null(
 
 
 def plot_flow(
-    ax: plt.Axes, my_flow: Callable, x: tuple[np.ndarray], num_grid: int = 15
+    ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: int = 15
 ) -> plt.Axes:
     """
     Plot flow field of a system of ODEs given by my_flow.
@@ -299,12 +302,19 @@ def plot_flow(
     Outputs:
     - ax: matplotlib axes object with flow field plotted
     """
-    x1, x2 = x
+    # unpack x into x1 and x2
+    x1 = x[0]
+    x2 = x[1]
+
+    # create a grid of points in the x1-x2 plane
     x_1, x_2 = np.meshgrid(
         np.linspace(x1.min(), x1.max(), num_grid),
         np.linspace(x2.min(), x2.max(), num_grid),
     )
+
+    # evaluate the flow at each point in the grid
     f = my_flow([x_1, x_2])
+
     # normalize vectors for quiver plot
     f = f / np.sqrt(f[0] ** 2 + f[1] ** 2)
     ax.quiver(x_1, x_2, f[0], f[1], width=0.003, alpha=0.5)
@@ -362,7 +372,7 @@ def phase_portrait(
 
     # define function x' = [f1(x),f2(x)] for rest
     # of code (does not need t as variable)
-    def my_flow(x):
+    def _my_flow(x: Sequence) -> np.ndarray:
         if params is None:
             f_out = np.array([f1(x[0], x[1]), f2(x[0], x[1])])
         else:
@@ -381,20 +391,20 @@ def phase_portrait(
         ax = plot_null(ax, f1, f2, x1, x2, params)
 
     # plot direction field given by myFlow
-    ax = plot_flow(ax, my_flow, [x1, x2])
+    ax = plot_flow(ax, _my_flow, [x1, x2])
 
     # if given initial conditions, plot trajectories
     if inits is not None:
         # define function x' = [f1(x),f2(x)] for
         # ODE solver: needs to have t as first variable
-        def my_system(t, x):
-            return my_flow(x)
+        def _my_system(t: float | Sequence, x: Sequence) -> np.ndarray:
+            return _my_flow(x)
 
         # if t_vec is not given, use default
         if t_vec is None:
             t_vec = np.linspace(0, 50, 100)
         # plot trajectories with initial conditions ICs
-        trajectory = get_trajectories(my_system, t_vec, inits)
+        trajectory = get_trajectories(_my_system, t_vec, inits)
         plot_trajectories(trajectory, inits)
 
     # sub-sample the grid to get initial guesses
@@ -408,12 +418,14 @@ def phase_portrait(
         (x1_coarse[i], x2_coarse[j]) for i in range(n1_coarse) for j in range(n2_coarse)
     ]
     # get fixed points of the system
-    fpts = get_fps(my_flow, init_coarse)
+    fpts = get_fps(_my_flow, init_coarse)
 
     # if fixed points are found, classify them
     # and plot them
     if len(fpts) > 0:
-        fpt_types, _, ax = classify_fps(my_flow, fpts, [x1, x2], ax=ax, verbose=verbose)
+        fpt_types, _, ax = classify_fps(
+            _my_flow, fpts, [x1, x2], ax=ax, verbose=verbose
+        )
     else:
         if verbose:
             print("No fixed points found.")
@@ -421,8 +433,8 @@ def phase_portrait(
 
     ax.set_xlabel("$x_1$", fontsize=14)
     ax.set_ylabel("$x_2$", fontsize=14)
-    ax.set_xlim([x1.min(), x1.max()])
-    ax.set_ylim([x2.min(), x2.max()])
+    ax.set_xlim((x1.min(), x1.max()))
+    ax.set_ylim((x2.min(), x2.max()))
 
     # build custom legend with
     # fixed point types
