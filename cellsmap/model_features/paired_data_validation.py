@@ -602,6 +602,7 @@ def compare_paired_features(
     alignment_method: str,
     pca_dir: str | None,
     align_fluo: bool = True,
+    align_only: bool = False,
     overrides: Dict[str, Any] = {},
     **alignment_kwargs: Dict[str, Any],
 ) -> None:
@@ -649,6 +650,12 @@ def compare_paired_features(
         # channel used for inference is in the aligned images, which are single channel
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
+
+    if align_only:
+        print(
+            f"Aligned images saved to {save_path}. Skipping feature extraction and PCA projection."
+        )
+        return
 
     # apply on fixed images
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
@@ -721,6 +728,7 @@ def main(
     pca_dir: str | None = None,
     fixed_finetuned_model_name: str = "diffae_finetuned_for_fixed",
     model_name: str = "diffae_04_10",
+    align_only: bool = False,
 ) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
@@ -750,6 +758,7 @@ def main(
             alignment_method="sift",
             pca_dir=pca_dir,
             overrides=overrides,
+            align_only=align_only,
         )
 
     datasets_20x_40x = {
@@ -764,6 +773,7 @@ def main(
             alignment_method="template",
             pca_dir=pca_dir,
             overrides=overrides,
+            align_only=align_only,
         )
 
 
