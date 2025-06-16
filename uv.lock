@@ -412,6 +412,24 @@ wheels = [
 ]
 
 [[package]]
+name = "bioio-imageio"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bioio-base" },
+    { name = "dask", extra = ["array"] },
+    { name = "fsspec" },
+    { name = "imageio", extra = ["ffmpeg"] },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "xarray" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/be/51/f2f01310d450e9e0afb97e44ecddc737114583f0c340b9cbad1119ee3534/bioio_imageio-1.1.0.tar.gz", hash = "sha256:f72a8b8354f7a01036311217073b1be16d2604e60aa8da4d4c6a1d8f8b546e15", size = 21619, upload-time = "2025-04-18T20:28:20.111Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/79/ba686c31ec742e7524ad55fd20bbd542180a9a5c61b1af878efc3ad467a8/bioio_imageio-1.1.0-py3-none-any.whl", hash = "sha256:a6a5713dbd5e514b3ea51fa6c873c0089294e70a37394bb66732b87c62fbe6c3", size = 15670, upload-time = "2025-04-18T20:28:18.853Z" },
+]
+
+[[package]]
 name = "bioio-nd2"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -617,6 +635,7 @@ source = { editable = "." }
 dependencies = [
     { name = "bioio" },
     { name = "bioio-base" },
+    { name = "bioio-imageio" },
     { name = "bioio-nd2" },
     { name = "bioio-ome-tiff" },
     { name = "bioio-ome-zarr" },
@@ -701,6 +720,7 @@ requires-dist = [
     { name = "aicsfiles", marker = "extra == 'internal'", specifier = ">=7.10.0", index = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple" },
     { name = "bioio", specifier = ">=1.4.0" },
     { name = "bioio-base", specifier = ">=1.0.5" },
+    { name = "bioio-imageio", specifier = ">=1.1.0" },
     { name = "bioio-nd2", specifier = ">=1.0.1" },
     { name = "bioio-ome-tiff", specifier = ">=1.0.1" },
     { name = "bioio-ome-zarr", specifier = ">=1.1.1" },
@@ -1813,15 +1833,15 @@ wheels = [
 
 [[package]]
 name = "imageio"
-version = "2.37.0"
+version = "2.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pillow" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/47/57e897fb7094afb2d26e8b2e4af9a45c7cf1a405acdeeca001fdf2c98501/imageio-2.37.0.tar.gz", hash = "sha256:71b57b3669666272c818497aebba2b4c5f20d5b37c81720e5e1a56d59c492996", size = 389963, upload-time = "2025-01-20T02:42:37.089Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/d5/4c72159bfabe71b083bf497ab9054d3cdade154b79effee8d5b6b81c144c/imageio-2.27.0.tar.gz", hash = "sha256:ee269c957785ef0373cc7a7323185956d83ec05e6cdf20b42a03ba7b74ac58c6", size = 3440316, upload-time = "2023-03-27T02:38:48.592Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/bd/b394387b598ed84d8d0fa90611a90bee0adc2021820ad5729f7ced74a8e2/imageio-2.37.0-py3-none-any.whl", hash = "sha256:11efa15b87bc7871b61590326b2d635439acc321cf7f8ce996f812543ce10eed", size = 315796, upload-time = "2025-01-20T02:42:34.931Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/5b/fa636ec082247ffc250c2a16bb262f3405654cbb098a70996d99d59677eb/imageio-2.27.0-py3-none-any.whl", hash = "sha256:24c6ad7d000e64eacc2861c402b6fb128f370cb0a6623cf796d83bca0d0d14d3", size = 3369816, upload-time = "2023-03-27T02:38:46.02Z" },
 ]
 
 [package.optional-dependencies]

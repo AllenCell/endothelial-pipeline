@@ -70,7 +70,6 @@ def generate_results(args: dict) -> None:
         nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
 
         gpu = core.use_gpu()
-        print(f" - using device: {gpu or 'CPU'}") if verbose else None
 
         model_path = Path(nuclei_model["model_path"])
         model_bf_stdproject = models.CellposeModel(
@@ -143,7 +142,7 @@ def main(
     overwrite: bool = True,
     is_test: bool = False,
     use_original_data: bool = False,
-    verbose: bool = True,
+    verbose: bool = False,
 ) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
@@ -167,6 +166,9 @@ def main(
         use_original_data=use_original_data,
         verbose=verbose,
     )
+
+    gpu = core.use_gpu()
+    print(f" - using device: {'GPU' if gpu else 'CPU'}") if verbose else None
 
     if n_proc > 1:
         if __name__ == "__main__":

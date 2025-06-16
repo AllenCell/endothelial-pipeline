@@ -40,7 +40,7 @@
   brightfield_channel_index: 0
   n_total_positions: 6
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241022_20X_mito
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: 4cc9c9f7be764040b4c0250504ed49a2
   diffae_manifest_fmsid: f1a32daf5f004ce58d410f7d81d3d6d0
 20240328_T02_001:
@@ -64,7 +64,7 @@
   include_scenes: [0, 1, 2, 4]
   notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
     prior to fix.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20240328_T01_001:
@@ -87,7 +87,7 @@
   n_total_positions: 10
   include_scenes: [5, 6, 7, 8, 9]
   notes: no flow dataset (24 hours)
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20241120_20X:
@@ -108,7 +108,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This is a nice 48hr high flow dataset.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: a9ef7c8557334f1fb36393f79b582609
   diffae_manifest_fmsid: 3ce3dedd56a54b48a544c99dc61a2fe1
   valid_timepoints:
@@ -136,7 +136,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This timelapse has not yet been converted to ZARR.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241203_20X
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: f17ac69d490b43d48492332c29e338ee
   diffae_manifest_fmsid: b02cf89d77da4e1592a36dc93dd690bd
 20241217_20X:
@@ -157,7 +157,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241217_20X
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: 225e4e4f67934f2781caba8db82401f6
   diffae_manifest_fmsid: da36d8a9fd7541e0b4d459d396063343
   valid_timepoints:
@@ -185,7 +185,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: e7f3e9715e254bd7a89b956d7db304d2
   include_scenes: [1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -207,7 +207,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: bf2005ff545d4602b4f8fa21b895c970
   include_scenes: [1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -230,7 +230,7 @@
   n_total_positions: 12
   notes: Due to complications with Z focus when trying to get a 4x3 tiled region,
     3 positions each consisting of 4x1 tilings were taken instead.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250115_paired3iNikon_3i2nd:
@@ -252,7 +252,7 @@
   n_total_positions: 12
   notes: Due to complications with Z focus when trying to get a 4x3 tiled region,
     3 positions each consisting of 4x1 tilings were taken instead.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250115_paired3iNikon_Nikon1st:
@@ -273,7 +273,7 @@
   brightfield_channel_index: 1
   n_total_positions: 1
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250115_paired3iNikon_Nikon2nd:
@@ -294,7 +294,7 @@
   brightfield_channel_index: 1
   n_total_positions: 1
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/image_segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250122_SMAD1:
@@ -320,7 +320,7 @@
     experiment for it was initiated on 01/08/2025, but it was imaged on 01/22/2025.
     It was thawed and on the same day as barcode GE00006323. Laser powers unknown.
     likely standard laser power (Check JAN QC file)
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 17f900047bfe46cf9f34f72817f9dda8
 20250131_pairedPreFixation:
@@ -341,7 +341,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250131_pairedPostFixation:
@@ -362,7 +362,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250204_pairedPreFixation:
@@ -383,7 +383,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250204_pairedPostFixation:
@@ -404,7 +404,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250214_pairedPreFixation:
@@ -425,7 +425,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: c6676d68995844ed9eae3275c4f24078
 20250214_pairedPostFixation:
@@ -449,7 +449,7 @@
     had not been fed prior to fixation). This sample was imaged at a later date than
     the pre-fix sample due to blobs / bubbles appearing in the sample after fixation
     which had to be washed out first.
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 6a9682a9ebbe472383a9dffe686f062c
 20250219_40X:
@@ -471,7 +471,7 @@
   n_total_positions: 32
   notes: 48 hour timelapse flow was 5.6 but then slowly dropped to 3 did not keep
     48 hour timelapse
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250224_20X:
@@ -492,7 +492,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250224_20X
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: dd80c432b37e4268a4dc44d96fb3e475
   diffae_manifest_fmsid: 80affabd33654cb583818cc106c06697
 20250224_20X_Nikon:
@@ -513,7 +513,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250227_paired20X:
@@ -534,7 +534,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/image_data/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: fd79709d90864162b2aef5817946a9d4
 20250227_paired40X:
@@ -555,7 +555,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ea1973c83b5c4436a5324bbef1186a64
 20250227_40X:
@@ -576,7 +576,7 @@
   brightfield_channel_index: 1
   n_total_positions: 1
   notes: USE WITH CAUTION, cell health concern
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250228_paired20X:
@@ -597,7 +597,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 65f32e5cfda940b497453940d00396f4
 20250228_paired40X:
@@ -618,7 +618,7 @@
   brightfield_channel_index: 1
   n_total_positions: 10
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: e8966eb09ff045db9c4aba00e0e039e0
 20250304_paired3iNikon_3i1st:
@@ -639,7 +639,7 @@
   brightfield_channel_index: 1
   n_total_positions: 50
   notes: ''
-  nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250304_paired3iNikon_Nikon2nd:
@@ -660,7 +660,7 @@
   brightfield_channel_index: 1
   n_total_positions: 50
   notes: ''
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: ''
 20250319_20X:
@@ -706,7 +706,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: ''
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 5b56ac5942f74709af9b79c56ffb21c3
   valid_timepoints:
@@ -730,7 +730,7 @@
   brightfield_channel_index: 1
   n_total_positions: 6
   notes: Frame of flow switch was ~275.
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 3221e4f0a473402db6c95e26b5219707
 20250415_SlideA_20X:
@@ -752,7 +752,7 @@
   405_channel_index: 0
   nuclear_seg_manifest_fmsid: ''
   n_total_positions: 50
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   diffae_manifest_fmsid: ''
 20250415_SlideE_20X:
   original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy
@@ -773,7 +773,7 @@
   405_channel_index: 0
   nuclear_seg_manifest_fmsid: ''
   n_total_positions: 50
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   diffae_manifest_fmsid: ''
 20250415_SlideH_20X:
   original_path: //allen/programs/allencell/data/proj0/655/ee7/c58/80c/e02/60a/c44/308/307/a3c/eb/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy
@@ -794,7 +794,7 @@
   405_channel_index: 0
   nuclear_seg_manifest_fmsid: ''
   n_total_positions: 50
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   diffae_manifest_fmsid: ''
 20250402_20X:
   original_path: //allen/programs/allencell/data/proj0/269/7fb/469/95b/849/efa/440/8f1/b7d/e37/90/20250402_GE00007594_20X_timelapse_sldy/20250402_GE00007594_20X_timelapse_sldy.sldy
@@ -866,7 +866,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 26c99fb5bd194280be13cb78561fb5d6
   diffae_tracking_integration_fmsid: ''
@@ -891,7 +891,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 8ce1d2ba8c7a41ac914dca2f1ca28a8f
   diffae_tracking_integration_fmsid: ''
@@ -916,7 +916,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: c787f7ee2d18419e895dc487f9ea1349
   diffae_tracking_integration_fmsid: ''
@@ -941,7 +941,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 5b877dd11b69479daa5d6f51a5f9d1e8
   diffae_tracking_integration_fmsid: ''
@@ -966,7 +966,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 6fcebb0b0a5a4a108bba0620a4860848
   diffae_tracking_integration_fmsid: ''
@@ -991,7 +991,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 1130e27b36fb467aab6d0f17d6efd102
   diffae_tracking_integration_fmsid: ''
@@ -1016,7 +1016,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: e14b9497286d47c595921767e52f19e9
   diffae_tracking_integration_fmsid: ''
@@ -1041,7 +1041,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 61e57753a9fa4c63903791346c399e9a
   diffae_tracking_integration_fmsid: ''
@@ -1066,7 +1066,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: f5d7a1bb5c74430bbb0d6217076dfa81
   diffae_tracking_integration_fmsid: ''
@@ -1091,7 +1091,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: 9de17f3de1c641ed88ea4cd4e3e04fe4
   diffae_tracking_integration_fmsid: ''
@@ -1116,7 +1116,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: Secondary only immunofluorescence control
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: fb35d1ad725f46fe99ff959fea7c4e52
   diffae_tracking_integration_fmsid: ''
@@ -1141,7 +1141,7 @@
   brightfield_channel_index: 4
   n_total_positions: 2
   notes: image content NucViolet,EGFP_CDH5,SOX17,SMAD1,BF
-  nuclear_label_free_seg_path: ''
+  nuclear_label_free_seg_path: null
   nuclear_seg_manifest_fmsid: ''
   diffae_manifest_fmsid: b6b36ad33d6647bda3ff4e4e4a0f7f86
   diffae_tracking_integration_fmsid: ''
