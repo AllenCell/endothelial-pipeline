@@ -25,6 +25,7 @@ def generate_tfe_dataset(
     output_dir: Path,
     source_dir: Path,
     backdrops: bool,
+    output_dir_suffix: str = "",
 ) -> None:
     """
     Generates a TFE dataset by updating the manifest and generating backdrops.
@@ -37,7 +38,8 @@ def generate_tfe_dataset(
         backdrops (bool): Flag to generate backdrops.
     """
     # Ensure output directory exists
-    output_dir = output_dir / f"{dataset}_P{position}"
+    output_dir_suffix = "_" + output_dir_suffix if output_dir_suffix else ""
+    output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     df_tracks = get_segmentation_features_manifest([dataset])
