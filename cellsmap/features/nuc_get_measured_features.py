@@ -96,42 +96,12 @@ def get_nuclei_features(
     )
     raw_MIP = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
-    # associate each nuclei with a cdh5 segmentation
-    # nuc_props_on_seg = regionprops(label_image=nuc_seg, intensity_image=cdh5_seg)
-
-    # add the fraction overlap of the cdh5 segmentation with the segmentation
-    # to each of the properties in reg_props
-    # also add the label with the most overlap
-    # for prop in nuc_props_on_seg:
-    #     get_overlap_props(prop)
-    # seg_overlap_fractions = {}
-    # for seg_lab, seg_lab_size in zip(*np.unique(prop.intensity_image, return_counts=True)):
-    #     if seg_lab != 0:
-    #         overlap_fraction = seg_lab_size / prop.area
-    #         seg_overlap_fractions[seg_lab] = overlap_fraction
-
-    # prop.seg_overlap_labels, prop.seg_overlap_fractions = zip(*seg_overlap_fractions.items())
-
-    # seg_most_overlap = max(seg_overlap_fractions, key=lambda x: seg_overlap_fractions[x])
-    # seg_most_overlap_val = seg_overlap_fractions[seg_most_overlap]
-    # seg_most_overlap = tuple(lab for lab in seg_overlap_fractions.keys() if seg_overlap_fractions[lab] == seg_most_overlap_val)
-
-    # prop.seg_most_overlap = seg_most_overlap
-
-    # nuc_props_on_seg_dict = {prop.label: prop for prop in nuc_props_on_seg}
-
     # keep only nuclei that have more than half of their area in a
     # single segmented region
     nuclei_ambiguity_threshold = 0.5
 
-    # get intensity properties from each channel of the raw image within the
-    # nuclei segmentations
-    # if channels is None:
-    #     num_channels = raw_MIP.shape[dim_order.index("C")]
-    #     channel_indices = range(num_channels)
-    # else:
-    #     channel_indices = channels.index()
-
+    # get intensities in the segmented nuclei regions
+    # for each channel
     channel_indices = range(len(channels))
 
     nuc_props_on_intens = dict()
@@ -144,6 +114,7 @@ def get_nuclei_features(
 
     nuc_seg_size_dict = {prop.label: int(prop.area) for prop in regionprops(nuc_seg)}
 
+    # associate each nuclei with a cdh5 segmentation
     reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
 
     # Set up some initial data containers to populate
@@ -173,25 +144,18 @@ def get_nuclei_features(
         for f in feats_with_list_of_lists:
             [nuc_feats.update({f"{f}_{chan}": []}) for chan in channels]
 
+        # add the fraction overlap of the cdh5 segmentation with the segmentation
+        # to each of the properties in reg_props
+        # also add the label with the most overlap
         for lab in nuc_seg_labels:
             if nuc_seg_labels:
-                # print(prop.label, nuc_seg_labels)
-                # break
                 nuc_seg_in_cdh5_seg_size = np.count_nonzero(prop.intensity_image == lab)
                 nuc_seg_total_size = nuc_seg_size_dict[lab]
                 nuc_feats["nuclei_seg_in_cdh5_seg_frac"].append(
                     nuc_seg_in_cdh5_seg_size / nuc_seg_total_size
                 )
 
-                ## NOTE WORKING HERE
-                # NEED TO GET THE NUCLEI CENTROIDS X AND Y VALUES
-                # AND ADD THEM TO THE TABLE
-                # nuc_centroid = prop.centroid
-                # for i, dim in enumerate(dim_order):
-                # nuc_feats["nuc_centroid_x"] =
-
-                # get intensities in the segmeneted nuclei regions
-                # for each channel
+                # summarize intensities in segmented nuclei regions for each channel
                 for chan in channels:
                     nuc_arr = nuc_props_on_intens[chan][lab].image
 
@@ -227,12 +191,13 @@ def get_nuclei_features(
             for lab in nuc_lab_frac_dict
             if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
         ]
-        nuc_feats["nuclei_seg_with_most_overlap"] = nuclei_seg_with_most_overlap
-        # nuc_feats["nuclei_with_most_overlap_index"] = ???
-        # nuc_feats["nuclei_with_most_overlap_centroid_X"] = ???
-        # nuc_feats["nuclei_with_most_overlap_centroid_Y"] = ???
-        # NOTE THE ABOVE 2 CENTROID LINES SHOULD USE THE INDEX
-        # TO GET THE CENTROIDS FROM nuc_feats["nuc_centroid_x"]
+        for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
+            nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
+            for dim in ["X", "Y"]:
+                dim_index = dim_order[::-1].index(dim)
+                nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
+                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[::-1][dim_index]
+                )
 
         nuc_feats_ls.append(nuc_feats)
 
@@ -272,9 +237,10 @@ def main(
                 )
             )
     else:
+        nuclei_features = list()
         for args in tqdm(
             analysis_queue,
             total=len(analysis_queue),
             desc="Getting nuclei features (1P)",
         ):
-            nuclei_features = get_nuclei_features_arg_unpacker(args)
+            nuclei_features.append(get_nuclei_features_arg_unpacker(args))
