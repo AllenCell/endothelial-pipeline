@@ -631,10 +631,10 @@ def compare_paired_features(
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = model_path / "TEST"  # f"{fixed_dataset_name}_vs_{moving_dataset_name}"
+    save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
     save_path.mkdir(parents=True, exist_ok=True)
     data_save_path = (
-        save_path / f"aligned_{moving_dataset_name}_vs_{fixed_dataset_name}.csv"
+        save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
     )
 
     if not data_save_path.exists():
@@ -687,21 +687,21 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    # add_fmsid_to_config(
-    #     fixed_features_path,
-    #     fixed_dataset_name,
-    #     mlflow_id,
-    #     model_path,
-    # )
+    add_fmsid_to_config(
+        fixed_features_path,
+        fixed_dataset_name,
+        mlflow_id,
+        model_path,
+    )
     moving_features_path = str(
         save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
     )
-    # add_fmsid_to_config(
-    #     moving_features_path,
-    #     moving_dataset_name,
-    #     mlflow_id,
-    #     model_path,
-    # )
+    add_fmsid_to_config(
+        moving_features_path,
+        moving_dataset_name,
+        mlflow_id,
+        model_path,
+    )
 
     # load features for comparison
     fixed_features = pd.read_parquet(fixed_features_path)
