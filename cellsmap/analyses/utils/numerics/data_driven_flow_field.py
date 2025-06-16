@@ -10,7 +10,9 @@ import cellsmap.analyses.utils.io.vtk_io as vtk_io
 import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.flow_field_viz as ffv
 import cellsmap.util.manifest_io as manifest_io
-import cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing as diffae_preproc
+from cellsmap.util.manifest_preprocessing import (
+    diffae_feature_preprocessing as diffae_preproc,
+)
 
 
 def set_3d_bounds_from_data(
