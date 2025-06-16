@@ -175,8 +175,8 @@ def generate_results(
                     "segmentations_initial",
                     "segmentations_merged",
                     "nuclei_predictions",
-                    "segmentations_augmented",  # name for the augmented segmentation
-                    "segmentations_augmented_borders",  # name for the augmented segmentation boundaries
+                    "cdh5_segmentations_split_by_nuclei",  # name for the augmented segmentation
+                    "cdh5_segmentations_split_by_nuclei_borders",  # name for the augmented segmentation boundaries
                 ],
                 "channel_colors": [
                     (255, 255, 255),
@@ -204,11 +204,11 @@ def generate_results(
         )
         Path.mkdir(out_path.parent, exist_ok=True, parents=True)
         images_out = [
-            seg2_lab_no_mask_merge,
+            seg_aug,
         ]
         images_out_metadata = {
             "image_name": dataset_name,
-            "channel_names": ["segmentations_merged"],
+            "channel_names": ["cdh5_segmentations_split_by_nuclei"],
             "channel_colors": [
                 (255, 255, 255),
             ],
