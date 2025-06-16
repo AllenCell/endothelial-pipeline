@@ -10,16 +10,20 @@ def add_description_column(
     df: pd.DataFrame, ds_name: str, simple: bool = False
 ) -> pd.DataFrame:
     """
-    Add description column to DataFrame df. (Descriptions are currently based on the dataset name.)
+    Add description column to DataFrame df.
+    (Descriptions are currently based on the dataset name.).
 
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data for dataset ds_name
-        - IMPORTANT: DataFrame must be restricted to one dataset only, as identified by the dataset_name column
+        - IMPORTANT: DataFrame must be restricted to one dataset only,
+            as identified by the dataset_name column
     - ds_name: str, name of dataset to add description for
-    - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
+    - simple (optional): bool, whether to use simple description
+        (e.g., "48hr_High")
 
     Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one dataset with added description column
+    - df: pd.DataFrame, DataFrame of feature data for one
+        dataset with added description column
     """
     # get descriptions for each dataset name
     description = get_dataset_descriptions([ds_name], simple=simple)
@@ -34,7 +38,8 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
     """
     Get descriptive metadata for each dataset given in the list of datasets.
 
-    Describes the experimental conditions for each dataset, e.g., "48_hours_at_30_dyncm2".
+    Describes the experimental conditions for each dataset,
+        e.g., "48_hours_at_30_dyncm2".
 
     Inputs:
     - list_of_datasets: list, list of dataset names to get descriptions for
@@ -56,9 +61,9 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
         flow_config = data_config["flow"]  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
 
-        shear_rate = [
-            int(flow_config[i][-1]) for i in range(num_flows)
-        ]  # get shear rate for each flow condition, last element in each list in flow_config
+        # get shear rate for each flow condition,
+        # last element in each list in flow_config
+        shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)]
         if (
             simple
         ):  # if simple description, use qualitative description of shear stress level
@@ -91,20 +96,25 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
 
 def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Add crop index column to DataFrame df. (Crops are currently identified by their starting position in x and y.)
+    Add crop index column to DataFrame df. (Crops are currently identified by
+        their starting position in x and y.).
 
     Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata columns for start_x, start_y, and FOV_ID
-        - IMPORTANT: DataFrame must be restricted to one dataset only, as identified by the dataset_name column
+    - df: pd.DataFrame, DataFrame of feature data with metadata
+        columns for start_x, start_y, and FOV_ID
+        - IMPORTANT: DataFrame must be restricted to one dataset only,
+            as identified by the dataset_name column
 
     Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for one dataset with added crop index column
+    - df: pd.DataFrame, DataFrame of feature data for one
+        dataset with added crop index column
     """
     assert "start_x" in df.columns, "Data must have a column for start_x"
     assert "start_y" in df.columns, "Data must have a column for start_y"
-    assert "position" in df.columns, f"Data must have a column for position"
+    assert "position" in df.columns, "Data must have a column for position"
 
-    # get list of unique starting positions and FOV_IDs (position column in DiffAE manifest)
+    # get list of unique starting positions and FOV_IDs
+    # (position column in DiffAE manifest)
     start_x = df[df["frame_number"] == df["frame_number"].min()][
         "start_x"
     ].values.tolist()
@@ -114,7 +124,7 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     position = df[df["frame_number"] == df["frame_number"].min()][
         "position"
     ].values.tolist()
-    tup_list = list(zip(start_x, start_y, position))
+    tup_list = list(zip(start_x, start_y, position, strict=False))
 
     # function to convert starting position and FOV_ID to crop index
     def pos_to_index(x, y, position):
@@ -135,10 +145,12 @@ def project_manifest_to_pcs(
     feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
-    Project feature data for crops from one dataset onto principal component axes of fit PCA model.
+    Project feature data for crops from one dataset onto principal
+    component axes of fit PCA model.
 
     Inputs:
-    - df: pd.DataFrame, DataFrame of feature data with metadata columns for dataset_name, T, FOV_ID, start_x, start_y
+    - df: pd.DataFrame, DataFrame of feature data with metadata columns
+        for dataset_name, T, FOV_ID, start_x, start_y
     - pca: Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
         - can include any preprocessing steps before PCA, e.g., scaling
     - ds_name: str, name of dataset to project feature data for
@@ -147,16 +159,20 @@ def project_manifest_to_pcs(
     - feature_cols: list, custom list of feature columns to project onto PCA axes
 
     Outputs:
-    - df_: pd.DataFrame, DataFrame of feature data for crops from dataset ds_name projected onto PCA axes
+    - df_: pd.DataFrame, DataFrame of feature data for crops from
+        dataset ds_name projected onto PCA axes
     """
-    # feature columns to project onto PCA axes, currently all columns except metadata columns
-    # this is assuming that there are 8 feature columns, will need to change if this is not the case
+    # feature columns to project onto PCA axes,
+    # currently all columns except metadata columns
+    # this is assuming that there are 8 feature columns,
+    # will need to change if this is not the case
     if feat_cols is None:
         feat_cols = manifest_io.get_feature_cols(df)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
-    # project feature data onto PCA axes, replace feature columns with features projected onto PCA axes
+    # project feature data onto PCA axes, replace feature columns
+    # with features projected onto PCA axes
     if overwrite_feature_columns:
         df_.loc[:, feat_cols] = pca.transform(df_[feat_cols].values)
     else:
@@ -216,7 +232,8 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
         - DataFrame should have metadata columns for crop_index and T
 
     Outputs:
-    - feats: np.ndarray, array of feature data for all crops at all timepoints in one dataset
+    - feats: np.ndarray, array of feature data for all crops
+        at all timepoints in one dataset
         - shape is num_crops x num_timepoints x num_features
     """
     assert "crop_index" in df_.columns, "DataFrame must have a column for crop_index"
@@ -224,7 +241,7 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
         "frame_number" in df_.columns
     ), "DataFrame must have a column for frame_number"
 
-    num_T = df_["frame_number"].nunique()  # number of timepoints in the movie
+    num_time = df_["frame_number"].nunique()  # number of timepoints in the movie
     num_crop = df_["crop_index"].nunique()  # number of crops made at each timepoint
 
     # get array of num crops x num timepoints x num PCs
@@ -238,7 +255,7 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
     )
 
     # check that array shape is correct
-    assert feats.shape == (num_crop, num_T, len(feat_cols))
+    assert feats.shape == (num_crop, num_time, len(feat_cols))
 
     return feats
 
@@ -266,7 +283,7 @@ def get_timepoints_for_plotting_pcs(
         starts = timepoint_dict.get("start", 0)
         stops = timepoint_dict.get("stop", 0)
         timepoints_list = []
-        for start, stop in zip(starts, stops):
+        for start, stop in zip(starts, stops, strict=False):
             # hard coded because this is the no-flow dataset that
             # we are using for fitting the PCs, and specifically
             # the one with the two sets of timepoints

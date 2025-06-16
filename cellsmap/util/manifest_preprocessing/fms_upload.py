@@ -19,7 +19,8 @@ def save_file_to_fms(
 
     If a model was used to produce the output, add the model version and mlflow run id.
 
-    Parameters:
+    Parameters
+    ----------
     file_path (str): The path to the file to be uploaded.
     dataset (str): The name of the dataset matching the dataconfig.yaml file.
     commit_hash (str): The commit hash of the code used to generate the file.
@@ -30,7 +31,8 @@ def save_file_to_fms(
     effort (str): The effortof the file. Default is "Core". Other option is "Parallel".
     env (str): The environment to upload the file to. Default is "prod", use "stg" for staging.
 
-    Returns:
+    Returns
+    -------
     None
     """
     fms = FileManagementSystem.from_env(env)

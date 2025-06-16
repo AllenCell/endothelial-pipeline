@@ -104,7 +104,7 @@ def main(
                 name, pca, kernel_params, fig_savedir_kernel, config
             )
 
-        print(f"\nRunning 3D flow field estimation workflow for all datasets. \n")
+        print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
         ddff.ddff_main(
             list_of_datasets,

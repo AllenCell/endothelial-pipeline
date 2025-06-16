@@ -13,12 +13,18 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipeline:
     """
-    Helper function for fitting PCA pipeline.
+    Fit PCA model to fixed set of reference datasets.
+    Reference datasets are flagged in the data configs,
+    and the list of datasets to use for PCA is obtained
+    by calling the `get_reference_datasets` function.
 
     Args:
-        num_pcs (int, optional): Number of principal components to keep (default: 8, i.e., full PCA)
-        scale (bool, optional): Whether to scale the data before fitting PCA (default: False)
-        verbose (bool): Whether to print the explained variance ratios (default: True)
+        num_pcs (int, optional): Number of principal components
+            to keep (default: 8, i.e., full PCA)
+        scale (bool, optional): Whether to scale the data before
+            fitting PCA (default: False)
+        verbose (bool): Whether to print the explained variance
+            ratios (default: True)
 
     Returns:
         pipe (Pipeline): Fitted PCA pipeline (may include scaling)
@@ -46,13 +52,17 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     else:  # don't scale the data before fitting PCA
         pipe = Pipeline([("pca", PCA(n_components=num_pcs, svd_solver="full"))])
 
-    # get the feature columns from the data, these are the columns that start with 'feat_'
+    # get the feature columns from the data,
+    # these are the columns that start with 'feat_'
     feature_cols = manifest_io.get_feature_cols(data_ref)
     pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
     if verbose:  # print explained variance ratios
         print(
-            f'Cumulative Explained Variance: {np.round(np.cumsum(pipe["pca"].explained_variance_ratio_),4)} \n'
+            f'Cumulative Explained Variance: {np.round(
+                np.cumsum(pipe["pca"].explained_variance_ratio_),
+                4
+                )} \n'
         )
 
     # return the fit PCA pipeline

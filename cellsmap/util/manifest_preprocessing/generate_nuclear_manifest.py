@@ -109,9 +109,7 @@ def create_nuclear_manifest(dataset, num_workers=32):
 
 # %%
 def parse_arguments():
-    """
-    Parse command-line arguments.
-    """
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Generate nuclear manifest for a dataset."
     )
