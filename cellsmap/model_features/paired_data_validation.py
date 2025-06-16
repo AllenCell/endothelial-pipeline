@@ -717,7 +717,11 @@ def compare_paired_features(
     )
 
 
-def main(pca_dir: str | None = None) -> None:
+def main(
+    pca_dir: str | None = None,
+    fixed_finetuned_model_name: str = "diffae_finetuned_for_fixed",
+    model_name: str = "diffae_04_10",
+) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
     Parameters
@@ -740,7 +744,7 @@ def main(pca_dir: str | None = None) -> None:
     ):
         compare_paired_features(
             # use model finetuned for fixation
-            "diffae_finetuned_for_fixed",
+            fixed_finetuned_model_name,
             fixed,
             moving,
             alignment_method="sift",
@@ -749,14 +753,12 @@ def main(pca_dir: str | None = None) -> None:
         )
 
     datasets_20x_40x = {
-        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"][:1],
-        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"][
-            :1
-        ],
+        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
+        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
     }
     for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
         compare_paired_features(
-            "diffae_04_10",
+            model_name,
             fixed,
             moving,
             alignment_method="template",
