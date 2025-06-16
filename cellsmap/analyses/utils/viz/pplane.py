@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Sized
+from collections.abc import Callable, Sequence, Sized
 
 import matplotlib.pyplot as plt
 import numdifftools as nd
@@ -133,6 +133,51 @@ def find_stability(jacobian: np.ndarray) -> str:
     return stability
 
 
+def get_and_plot_fpt_types(
+    fpt: tuple[float, float],
+    fpt_stability: list[str],
+    fpt_type_list: list[str],
+    unique: bool = True,
+    ax: plt.Axes | None = None,
+) -> tuple[list[str], plt.Axes | None]:
+    """
+    Add the stability type of a fixed point
+    to the running list of fixed point types
+    and plot it (optional).
+
+    Helper function for classify_fps.
+    """
+    if "Stable" in fpt_stability:
+        if ax is not None:
+            ax.plot(fpt[0], fpt[1], "g.", markersize=15)
+        if unique and "stable" not in fpt_type_list:
+            fpt_type_list.append("stable")
+        elif not unique:
+            fpt_type_list.append("stable")
+    elif "Saddle" in fpt_stability:
+        if ax is not None:
+            ax.plot(fpt[0], fpt[1], "P", color="tab:purple", markersize=8)
+        if unique and "saddle" not in fpt_type_list:
+            fpt_type_list.append("saddle")
+        elif not unique:
+            fpt_type_list.append("saddle")
+    elif "Unstable" in fpt_stability:  # unstable
+        if ax is not None:
+            ax.plot(fpt[0], fpt[1], "rs", markersize=8)
+        if unique and "unstable" not in fpt_type_list:
+            fpt_type_list.append("unstable")
+        elif not unique:
+            fpt_type_list.append("unstable")
+    else:  # indeterminate
+        if ax is not None:
+            ax.plot(fpt[0], fpt[1], "p", color="darkgoldenrod", markersize=8)
+        if unique and "indeterminate" not in fpt_type_list:
+            fpt_type_list.append("indeterminate")
+        elif not unique:
+            fpt_type_list.append("indeterminate")
+    return fpt_type_list, ax
+
+
 def classify_fps(
     my_flow: Callable,
     fpts: list[tuple],
@@ -195,41 +240,17 @@ def classify_fps(
         # if verbose, print the point and its stability
         if verbose:
             print(f"  • {fpt_stability} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
-        # if out of bounds of the plot window, don't plot it
+        # if out of bounds of the plot window,
+        # don't plot it or append it to the list
         if fpt[0] < x1[0] or fpt[0] > x1[-1] or fpt[1] < x2[0] or fpt[1] > x2[-1]:
             continue
         # plot the fixed point, if ax is not None
         # append the type of fixed point to the
         # list of fixed point types
         # if unique, only append if not already in the list
-        if "Stable" in fpt_stability:
-            if ax is not None:
-                ax.plot(fpt[0], fpt[1], "g.", markersize=15)
-            if unique and "stable" not in fpt_types:
-                fpt_types.append("stable")
-            elif not unique:
-                fpt_types.append("stable")
-        elif "Saddle" in fpt_stability:
-            if ax is not None:
-                ax.plot(fpt[0], fpt[1], "P", color="tab:purple", markersize=8)
-            if unique and "saddle" not in fpt_types:
-                fpt_types.append("saddle")
-            elif not unique:
-                fpt_types.append("saddle")
-        elif "Unstable" in fpt_stability:  # unstable
-            if ax is not None:
-                ax.plot(fpt[0], fpt[1], "rs", markersize=8)
-            if unique and "unstable" not in fpt_types:
-                fpt_types.append("unstable")
-            elif not unique:
-                fpt_types.append("unstable")
-        else:  # indeterminate
-            if ax is not None:
-                ax.plot(fpt[0], fpt[1], "p", color="darkgoldenrod", markersize=8)
-            if unique and "indeterminate" not in fpt_types:
-                fpt_types.append("indeterminate")
-            elif not unique:
-                fpt_types.append("indeterminate")
+        fpt_types, ax = get_and_plot_fpt_types(
+            fpt, fpt_stability, fpt_types, unique=unique, ax=ax
+        )
         fpts_new.append(fpt)
 
     return fpt_types, fpts_new, ax

@@ -416,7 +416,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     plt.show()
 
     # save the figure
-    vb.save_plot(fig, fig_savedir + f"fixed_points_plot", dpi=300)
+    vb.save_plot(fig, fig_savedir + "fixed_points_plot", dpi=300)
 
 
 def flow_field_viz_main(
