@@ -58,11 +58,10 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
     if verbose:  # print explained variance ratios
+        cumul_exp_var = np.cumsum(pipe["pca"].explained_variance_ratio_)
         print(
-            f'Cumulative Explained Variance: {np.round(
-                np.cumsum(pipe["pca"].explained_variance_ratio_),
-                4
-                )} \n'
+            "Cumulative Explained Variance:",
+            f"{np.round(cumul_exp_var, 4).tolist()} \n",
         )
 
     # return the fit PCA pipeline
