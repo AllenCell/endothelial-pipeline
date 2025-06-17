@@ -1,4 +1,3 @@
-# %%
 import argparse
 
 from bioio import BioImage
@@ -24,7 +23,6 @@ DEFAULT_OUTPUT_PATH = (
     "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs"
 )
 
-# %%
 """
 This script processes images from a dataset and writes them to Zarr format.
 Zarrs are saved in this default channel order: 488, BF, 405, 561, 640
@@ -129,8 +127,6 @@ def parse_arguments() -> tuple[str, str, str, list[str]]:
     return args.dataset, args.output_dataset_name, args.output_path, channel_names
 
 
-# %%
 if __name__ == "__main__":
     dataset, output_dataset_name, output_path, channel_names = parse_arguments()
     convert_dataset(dataset, output_dataset_name, output_path, channel_names)
-# %%
