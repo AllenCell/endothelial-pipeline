@@ -128,21 +128,5 @@ def validate_dataset_configs() -> None:
         YAMLDecoder(DatasetConfig).decode(dataset_config.read_text())
 
 
-def replace_channel_name(channel_number):
-    config_dir = Path(__file__).resolve().parents[1] / "configs"
-    old_channel_field = f"{channel_number}_channel_index"
-    new_channel_field = f"channel_{channel_number}_index"
-
-    for dataset_config in (config_dir / "datasets").iterdir():
-        dataset_config_path = Path(dataset_config)
-        old_contents = dataset_config_path.open().read()
-        new_contents = old_contents.replace(old_channel_field, new_channel_field)
-        dataset_config_path.open("w").write(new_contents)
-
-
 if __name__ == "__main__":
-    replace_channel_name(405)
-    replace_channel_name(488)
-    replace_channel_name(561)
-    replace_channel_name(640)
     validate_dataset_configs()
