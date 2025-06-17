@@ -12,6 +12,16 @@ from cellsmap.util.dataset_io import (
 
 
 def get_included_scenes(dataset_name: str) -> list:
+    """
+    Retrieves the list of scenes to include for a given dataset if specified in the dataset config file.
+
+    Parameters:
+    dataset_name (str): The name of the dataset for which to retrieve included scenes.
+
+    Returns:
+    include_scenes (list): A list of scene indices to include. If no specific scenes are defined in the dataset config file,
+            all scenes are included by default.
+    """
     dataset_info = get_dataset_info(dataset_name)
     include_scenes = dataset_info.get("include_scenes")
 
