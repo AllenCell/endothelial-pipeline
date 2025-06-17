@@ -9,7 +9,7 @@ from bioio import BioImage
 from tqdm import tqdm
 
 from cellsmap.util import dataset_io
-from cellsmap.vis.image_processing import (
+from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_image_processing import (
     bf_slice,
     bf_std_dev,
     contrast_stretching,

@@ -15,7 +15,7 @@ from cellsmap.util.general_image_preprocessing import (
     sequence_to_scalar,
 )
 from cellsmap.util.set_output import get_output_path
-from cellsmap.vis.timelapse_feature_explorer.generate_tfe_dataset import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
 
