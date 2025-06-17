@@ -51,13 +51,15 @@ def contrast_stretching(
     """
     Apply contrast stretching to an image.
 
-    Parameters:
+    Parameters
+    ----------
     image (ndarray): The input image.
     method (str): The method of contrast stretching ('min-max' or 'percentile').
     low_percentile (int): The low percentile for percentile contrast stretching.
     high_percentile (int): The high percentile for percentile contrast stretching.
 
-    Returns:
+    Returns
+    -------
     ndarray: The contrast-stretched image.
     """
     if method == "min-max":

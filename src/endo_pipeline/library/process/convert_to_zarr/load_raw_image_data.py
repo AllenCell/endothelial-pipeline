@@ -15,10 +15,12 @@ def get_included_scenes(dataset_name: str) -> list:
     """
     Retrieves the list of scenes to include for a given dataset if specified in the dataset config file.
 
-    Parameters:
+    Parameters
+    ----------
     dataset_name (str): The name of the dataset for which to retrieve included scenes.
 
-    Returns:
+    Returns
+    -------
     include_scenes (list): A list of scene indices to include. If no specific scenes are defined in the dataset config file,
             all scenes are included by default.
     """
@@ -43,14 +45,16 @@ def get_delayed_array_for_position(
     """
     Loads all timepoints for a given position in the datase as a Dask array.
 
-    Parameters:
+    Parameters
+    ----------
     pos (int): The position index to process.
     dataset_name (str): The name of the dataset.
     number_positions (int): The total number of positions in the dataset. Default is 6.
     scene_index (int): The scene index. You can find the scene names (in their indexed order) using `BioImage(get_original_path(dataset_name)).scenes` Default is 0.
     img (BioImage): The BioImage object for the dataset. If provided will reduce number of times the image is loaded. If None then it will be loaded for the given dataset_name. Default is None.
 
-    Returns:
+    Returns
+    -------
     dask.array.Array: A Dask array containing the processed images for all timepoints at the given position.
     """
     # Load the dataset as a BioImage object

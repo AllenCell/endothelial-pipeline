@@ -1,5 +1,3 @@
-from typing import List
-
 import colorcet as cc
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -15,7 +13,7 @@ from cellsmap.util import dataset_io
 
 
 def plot_flow_over_time_per_dataset(
-    dataset_name_list: List[str], fig_savedir: str
+    dataset_name_list: list[str], fig_savedir: str
 ) -> None:
     fig = plt.figure(figsize=(12, 10))
     colors = list(mcolors.TABLEAU_COLORS.values())
@@ -39,7 +37,7 @@ def plot_flow_over_time_per_dataset(
     plt.ylabel("Flow (dyn/cm²)")
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.show()
-    vb.save_plot(fig, fig_savedir + f"flow_over_time.png", dpi=72)
+    vb.save_plot(fig, fig_savedir + "flow_over_time.png", dpi=72)
 
 
 def plot_number_of_nuclei_per_fov(
@@ -75,7 +73,7 @@ def plot_number_of_nuclei_per_fov(
 
 
 def plot_number_of_nuclei_per_dataset(
-    df_list: List[pd.DataFrame], fig_savedir: str
+    df_list: list[pd.DataFrame], fig_savedir: str
 ) -> None:
     print("Starting plot_number_of_nuclei_per_dataset...")
 
@@ -113,7 +111,7 @@ def plot_number_of_nuclei_per_dataset(
     print("Plotting complete. Saving figure...")
     vb.save_plot(
         fig,
-        filename=fig_savedir + f"number_of_detected_nuclei_per_frame_all_datasets",
+        filename=fig_savedir + "number_of_detected_nuclei_per_frame_all_datasets",
         dpi=72,
     )
 

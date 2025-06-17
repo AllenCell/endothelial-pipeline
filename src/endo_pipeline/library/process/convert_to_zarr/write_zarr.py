@@ -11,10 +11,12 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
     """
     Retrieves sldy metadata for the given dataset in the format of PhysicalPixelSizes.
 
-    Parameters:
+    Parameters
+    ----------
     dataset (str): The name of the dataset.
 
-    Returns:
+    Returns
+    -------
     metadata: The the metadata for the dataset as a dictionary of dictionaries.
     """
     dataset_path = dataset_io.get_original_path(dataset)
@@ -27,10 +29,12 @@ def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     """
     Retrieves the physical pixel sizes for the given sldy metadata.
 
-    Parameters:
+    Parameters
+    ----------
     metadata (dict): The metadata as a dictionary of dictrionaries from a .sldy file opened with BioImage.
 
-    Returns:
+    Returns
+    -------
     PhysicalPixelSizes: The physical pixel sizes for the dataset.
     """
     xy_pixel_size_in_um = metadata["image_record"]["CLensDef70"]["mMicronPerPixel"]
@@ -54,12 +58,14 @@ def get_level_shapes(
     The number of levels in the final output is determined by the length of the xy_scaling and
     z_scaling lists plus one (original resolution and then the scaled ones).
 
-    Parameters:
+    Parameters
+    ----------
     shape (tuple): The shape of the original image data.
     xy_scaling (list[float]): The scaling factors for the XY dimensions.
     z_scaling (list[float]): The scaling factors for the Z dimension.
 
-    Returns:
+    Returns
+    -------
     list[tuple]: A list of shapes for each resolution level.
     """
 
@@ -91,10 +97,12 @@ def get_zarr_chunk_dims(
     """
     Determines the chunk dimensions for Zarr storage.
 
-    Parameters:
+    Parameters
+    ----------
     im_shape (tuple): The shape of the image data.
 
-    Returns:
+    Returns
+    -------
     list[tuple]: A list of chunk dimensions for each resolution level.
     """
     chunk_dims = []
@@ -121,7 +129,8 @@ def write_scene(
     """
     Writes a scene to a Zarr store.
 
-    Parameters:
+    Parameters
+    ----------
     im (np.array or da.array): 5D image array in the order TCZYX.
     channels (list[str]): The list of channel names.
     full_zarr_path (str): The full path to the Zarr store.
@@ -130,7 +139,8 @@ def write_scene(
     physical_pixel_sizes (PhysicalPixelSizes): The physical pixel sizes for the dataset.
     interval_min (float): The time interval in minutes.
 
-    Returns:
+    Returns
+    -------
     None
     """
     zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
@@ -146,7 +156,7 @@ def write_scene(
     # Use all channels, if channels are not specific by user
     channels_to_use = [c for c in range(im.shape[1])]
 
-    print(f"Writing images...")
+    print("Writing images...")
     writer.write_t_batches_array(im, channels=channels_to_use, tbatch=4)
 
     physical_scale = {
@@ -169,6 +179,6 @@ def write_scene(
         physical_units=physical_units,
         channel_colors=[0xFFFFFF for i in range(im.shape[1])],
     )
-    print(f"Writing metadata...")
+    print("Writing metadata...")
     writer.write_metadata(meta)
     return

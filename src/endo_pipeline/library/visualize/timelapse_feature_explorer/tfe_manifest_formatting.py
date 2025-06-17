@@ -63,8 +63,10 @@ def update_manifest_for_tfe(
 def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     """
     Perform PCA on the intensity mean features and add the projected features to the DataFrame.
+
     Args:
         df (pd.DataFrame): The input DataFrame.
+
     Returns:
         pd.DataFrame: The updated DataFrame with PCA features.
     """

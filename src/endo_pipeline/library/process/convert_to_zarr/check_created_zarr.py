@@ -1,5 +1,4 @@
 # %%
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +8,7 @@ from cellsmap.util import dataset_io
 
 
 def get_channel_crop(
-    img: BioImage, T: int, C: int, crop_size: Tuple[int, int] = (128, 128)
+    img: BioImage, T: int, C: int, crop_size: tuple[int, int] = (128, 128)
 ) -> np.ndarray:
     """Helper function to get cropped data for a specific channel.
 

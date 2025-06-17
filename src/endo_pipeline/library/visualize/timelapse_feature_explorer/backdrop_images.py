@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable, List
 
 import imageio.v3 as iio
 import numpy as np
@@ -51,7 +51,7 @@ def process_frame(
 def generate_backdrops(
     dataset: str,
     position: int,
-    backdrops: List[str],
+    backdrops: list[str],
     output_dir: Path,
 ) -> None:
     """
@@ -103,7 +103,7 @@ def add_backdrop_fname_to_manifest(
     df: pd.DataFrame,
     dataset: str,
     position: int,
-    backdrops: List[str],
+    backdrops: list[str],
     output_dir: Path,
 ) -> pd.DataFrame:
     """
