@@ -1,10 +1,7 @@
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.pipeline import Pipeline
 
-import cellsmap.analyses.utils.numerics.data_driven_flow_field as ddff
 import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
@@ -111,15 +108,15 @@ def plot_pc_scatter(
         ax[0].scatter(
             df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01, color=color
         )
-        ax[0].set_xlabel(f"PC1")
-        ax[0].set_ylabel(f"PC2")
+        ax[0].set_xlabel("PC1")
+        ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
         ax[1].scatter(
             df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01, color=color
         )
-        ax[1].set_xlabel(f"PC1")
-        ax[1].set_ylabel(f"PC3")
+        ax[1].set_xlabel("PC1")
+        ax[1].set_ylabel("PC3")
 
     return fig, ax
 
@@ -264,7 +261,7 @@ def plot_top_3_pcs_alldata(pca: Pipeline) -> tuple:
     return fig, axs
 
 
-def plot_latent_component_mean(feats: np.ndarray) -> Tuple:
+def plot_latent_component_mean(feats: np.ndarray) -> tuple:
     """
     Plot mean values of latent components for a gven dataset.
     At each frame in the dataset, takes the mean and standard
@@ -292,7 +289,8 @@ def plot_latent_component_mean(feats: np.ndarray) -> Tuple:
     st_dev = np.std(feats, axis=0)
     mean_feats = np.mean(feats, axis=0)
 
-    # loop over PCs, plot mean and standard deviation of feature data projected onto each PC
+    # loop over PCs, plot mean and standard deviation
+    # of feature data projected onto each PC
     for col, ax_ in enumerate(ax.flatten()):
         # plot mean values
         ax_.plot(np.arange(num_frames), mean_feats[:, col], "k-")
@@ -316,7 +314,7 @@ def plot_latent_component_mean(feats: np.ndarray) -> Tuple:
 
 def plot_latent_component_histogram(
     feats: np.ndarray, bins: list | None = None
-) -> Tuple:
+) -> tuple:
     """
     Plot histogram of latent components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -336,31 +334,31 @@ def plot_latent_component_histogram(
     # right now, this function is only used for 8D latent space
     assert feats.shape[-1] == 8, "Number of latent components must be 8"
     if bins is None:
-        Nbins = 40
+        num_bins = 40
     else:
-        Nbins = len(bins[0]) - 1
+        num_bins = len(bins[0]) - 1
     # initialize figure and axes
     fig, ax = vb.init_subplots(4, 2, figsize=(15, 20))
 
     # loop over time points, compute histogram of feature data along each component
     num_traj = feats.shape[0]
-    num_T = feats.shape[1]
+    num_time = feats.shape[1]
     num_feats = feats.shape[-1]
     hist_array = np.zeros(
-        (num_feats, Nbins, num_T)
+        (num_feats, num_bins, num_time)
     )  # histogram values for each component as a function of time
 
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
             rh.get_bins(
-                [Nbins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
+                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
             )[0][0]
             for j in range(num_feats)
         ]
     else:
         bin_edges = bins
-    for t in range(num_T):
+    for t in range(num_time):
         # loop over latent components
         for dim in range(num_feats):
             # compute histogram of feature data along each component
@@ -379,16 +377,16 @@ def plot_latent_component_histogram(
         )
         ax_.set_title(f"Latent component {col+1}")
         ax_.set_xlabel("Frame number")
-        ax_.set_xticks(np.arange(0, num_T, step=100))
-        ax_.set_xticklabels(np.arange(0, num_T, step=100))
-        ax_.set_yticks(np.arange(0, Nbins + 1, step=5))
+        ax_.set_xticks(np.arange(0, num_time, step=100))
+        ax_.set_xticklabels(np.arange(0, num_time, step=100))
+        ax_.set_yticks(np.arange(0, num_bins + 1, step=5))
         ax_.set_yticklabels(np.round(bin_edges[col], 2)[::5])
 
     fig.subplots_adjust(hspace=0.5)
     return fig, ax
 
 
-def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> Tuple:
+def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> tuple:
     """
     Plot histogram of principal components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -409,33 +407,34 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
     assert feats.shape[-1] == 3, "Number of principal components must be 3"
 
     if bins is None:
-        Nbins = 40
+        num_bins = 40
     else:
-        Nbins = len(bins[0]) - 1
+        num_bins = len(bins[0]) - 1
 
     # initialize figure and axes
     fig, ax = vb.init_subplots(3, 1, figsize=(15, 15))
 
-    # loop over time points, compute histogram of feature data along each component
+    # loop over time points, compute histogram
+    # of feature data along each component
     num_traj = feats.shape[0]
-    num_T = feats.shape[1]
+    num_time = feats.shape[1]
     num_feats = feats.shape[-1]
     hist_array = np.zeros(
-        (num_feats, Nbins, num_T)
+        (num_feats, num_bins, num_time)
     )  # histogram values for each component as a function of time
 
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
             rh.get_bins(
-                [Nbins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
+                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
             )[0][0]
             for j in range(num_feats)
         ]
     else:
         bin_edges = bins
 
-    for t in range(num_T):
+    for t in range(num_time):
         # loop over latent components
         for dim in range(num_feats):
             # compute histogram of feature data along each component
@@ -454,9 +453,9 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
         )
         ax_.set_title(f"PC{col+1}")
         ax_.set_xlabel("Frame number")
-        ax_.set_xticks(np.arange(0, num_T, step=100))
-        ax_.set_xticklabels(np.arange(0, num_T, step=100))
-        ax_.set_yticks(np.arange(0, Nbins + 1, step=5))
+        ax_.set_xticks(np.arange(0, num_time, step=100))
+        ax_.set_xticklabels(np.arange(0, num_time, step=100))
+        ax_.set_yticks(np.arange(0, num_bins + 1, step=5))
         ax_.set_yticklabels(np.round(bin_edges[col], 2)[::5])
 
     fig.subplots_adjust(hspace=0.5)
@@ -465,10 +464,8 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
 
 def plot_km(
     centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
-) -> Tuple:
-    """
-    Plot Kramers-Moyal coefficients.
-    """
+) -> tuple:
+    """Plot Kramers-Moyal coefficients."""
     ndim = len(pcs)
     if ndim == 2:
         x_1, x_2 = np.meshgrid(*centers)
@@ -544,7 +541,11 @@ def plot_km(
 
 def plot_km_drift_2d(
     centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
-) -> Tuple:
+) -> tuple:
+    """
+    Plot surfaces of Kramers-Moyal drift coefficients
+    computed in a 2D state space.
+    """
     x_1, x_2 = np.meshgrid(*centers)
 
     fig, ax = vb.init_subplots()
