@@ -81,7 +81,7 @@ def _get_available_artifacts(
     return all_found_artifacts
 
 
-def _get_ckpt_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
+def get_ckpt_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
     """
     return last.ckpt if it exists, otherwise return the best checkpoint path if it exists or throw an error
     """
@@ -177,7 +177,7 @@ def download_model(
     tracking_uri: str
         The tracking URI of the MLflow server.
     """
-    checkpoint_path = checkpoint_path or _get_ckpt_path(
+    checkpoint_path = checkpoint_path or get_ckpt_path(
         tracking_uri=tracking_uri, run_id=run_id
     )
     download_mlflow_artifact(run_id, checkpoint_path, save_path, tracking_uri)

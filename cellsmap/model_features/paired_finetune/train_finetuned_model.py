@@ -4,7 +4,10 @@ from typing import Any, Literal
 import fire
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.model_features.utils.mlflow_utils import download_mlflow_artifact
+from cellsmap.model_features.utils.mlflow_utils import (
+    download_mlflow_artifact,
+    get_ckpt_path,
+)
 from cellsmap.util.dataset_io import get_model_info
 from cellsmap.util.set_output import get_output_path
 
@@ -79,16 +82,17 @@ def main(
 
     manifest_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
 
-    diffae_ckpt_path = Path(get_output_path(f"models/{model_name}/checkpoints")).rglob(
-        "*.ckpt"
-    )
+    # download model to finetune
+    finetune_run_id = get_model_info(model_name)["mlflow_run_id"]
+    diffae_ckpt_path = get_ckpt_path(run_id=finetune_run_id)
+    download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, save_dir)
 
     overrides = _generate_overrides(
         user_overrides=overrides,
         save_path=save_dir,
         train_data_path=manifest_path / "train.csv",
         val_data_path=manifest_path / "val.csv",
-        ckpt_path=diffae_ckpt_path,
+        ckpt_path=save_dir / diffae_ckpt_path,
     )
 
     # download template config
