@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 import fire
 import numpy as np
@@ -50,7 +51,10 @@ def concat(row, savedir):
 
 
 def generate_paired_dataset(
-    model_name: str, directories: list[str] | None = None, split: bool = False
+    model_name: str,
+    dataset_type: Literal["live_fixed", "20x_40x"],
+    directories: list[str] | None = None,
+    split: bool = False,
 ):
     """
     Utility function for generating a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
@@ -58,13 +62,15 @@ def generate_paired_dataset(
     Parameters
     ----------
     model_name: str
-        The name of the model to use for generating the dataset. This should correspond to a directory in `outputs/models/` and match the model name used during the `paired_data_validation` step
+        This is used to find the aligned image pairs in `models/{model_name}` and should match either `fixed_finetuned_model_name` or `model_name` from `paired_data_validation`.
+    dataset_type: Literal['live_fixed', '20x_40x']
+        Whether paired dataset is aligned live/fixed or 20x/40x. This will determine the directory structure to search for aligned image pairs. If `model_name` matches `fixed_finetuned_model_name`, then `dataset_type` should be `live_fixed`. If `model_name` matches `model_name` from `paired_data_validation`, then `dataset_type` should be `20x_40x`.
     directories: list[str] | None
-        A list of directories to search for aligned image pairs. If None, all directories in `outputs/models/{model_name}` that match the pattern `*_vs_*` will be used.
+        An optional list of directories to search for aligned image pairs. If None, all directories in `outputs/models/{model_name}` that match the pattern `*_vs_*` will be used.
     split: bool
         If True, the dataset will be split into training and validation sets. The split will be saved as `train.csv` and `val.csv`. If False, the entire dataset will be saved as `dataset.csv`.
     """
-    save_path = Path(get_output_path(f"finetune_paired_dataset/{model_name}"))
+    save_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
     base_path = Path(get_output_path(f"models/{model_name}"))
 
     df = find_csvs(base_path, directories)
