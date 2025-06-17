@@ -1,7 +1,9 @@
+from typing import Tuple
+
 import numpy as np
 
 
-def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0):
+def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0) -> np.ndarray:
     """Get the weighted counts of the input array x."""
     return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
 
@@ -15,7 +17,7 @@ def _get_bin_counts(
 ) -> np.ndarray:
     """Get weighted bin counts for the input sample."""
     # Compute the bin number each sample falls into.
-    n_count = tuple(
+    n_count: Tuple[np.ndarray] = tuple(
         np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d)
     )
 
@@ -34,6 +36,7 @@ def _get_bin_counts(
     # correct bin count to the histogram.
 
     # Compute the sample indices in the flattened histogram matrix.
+    # for typing, n_count is a tuple of numpy arrays
     xy = np.ravel_multi_index(n_count, nbin)
 
     # Compute the number of repetitions in xy and assign it to the
@@ -74,7 +77,7 @@ def histogramdd(
     d = sample.shape[-1]
     # initialize edges, dedges, and nbin
     edges = bins.copy()
-    dedges = d * [None]
+    dedges = []
     nbin = np.zeros(d, dtype=int)
     weights = np.asarray(weights)
     for i in range(d):
@@ -87,7 +90,7 @@ def histogramdd(
         # increase bin count by 1 to include outliers
         nbin[i] = len(edges[i]) + 1
         # get the width of each bin
-        dedges[i] = np.diff(edges[i])
+        dedges.append(np.diff(edges[i]))
 
     m = len(bins)
     if m != d:
@@ -96,7 +99,7 @@ def histogramdd(
         )
 
     # Get the histogram counts.
-    hist = _get_bin_counts(sample, weights, edges, d, nbin)
+    hist: np.ndarray = _get_bin_counts(sample, weights, edges, d, nbin)
 
     # Reshape the histogram matrix to the correct shape.
     if weights.ndim == 1:
@@ -105,7 +108,7 @@ def histogramdd(
         hist = hist.reshape((weights.shape[0], *nbin))
 
     # Remove outliers (indices 0 and -1 for each dimension).
-    core = d * (slice(1, -1),)
+    core: Tuple[slice, ...] = d * (slice(1, -1),)
     hist = hist[(..., *core)]
 
     return hist
