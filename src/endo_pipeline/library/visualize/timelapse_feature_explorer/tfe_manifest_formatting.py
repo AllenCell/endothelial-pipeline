@@ -8,7 +8,7 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     project_manifest_to_pcs,
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (

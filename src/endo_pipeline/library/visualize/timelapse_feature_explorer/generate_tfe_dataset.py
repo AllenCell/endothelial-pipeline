@@ -4,7 +4,7 @@ from colorizer_data import convert_colorizer_data
 
 from cellsmap.util.dataset_io import get_segmentation_features_manifest
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
-from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (
