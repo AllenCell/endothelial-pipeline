@@ -7,6 +7,21 @@ from matplotlib.lines import Line2D
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 
+# set global dictionaries for stability colors and markers
+global stability_color_dict, stability_marker_dict
+stability_color_dict = {
+    "stable": "g",
+    "saddle": "tab:purple",
+    "unstable": "r",
+    "indeterminate": "darkgoldenrod",
+}
+stability_marker_dict = {
+    "stable": "o",
+    "saddle": "P",
+    "unstable": "s",
+    "indeterminate": "p",
+}
+
 
 def get_trajectories(
     my_system: Callable, t_vec: np.ndarray, inits: list[tuple]
@@ -106,9 +121,10 @@ def get_fps(my_flow: Callable, inits: list[tuple]) -> list[tuple]:
     return list(set(map(tuple, np.round(fpts, 4))))
 
 
-def find_stability(jacobian: np.ndarray) -> str:
+def find_fpt_type(jacobian: np.ndarray) -> str:
     """
-    Determine stability of a fixed point of dx/dt = f(x).
+    Determine stability and type of a fixed point
+    of the system of ODEs dx/dt = f(x).
 
     Inputs:
     - jacobian: Jacobian matrix at the fixed point
@@ -116,8 +132,9 @@ def find_stability(jacobian: np.ndarray) -> str:
     - ndim: dimensionality of the system (1 or 2)
 
     Outputs:
-    - stability: string describing the stability of the fixed point
-        (e.g. "stable", "unstable", "indeterminate")
+    - stability: string describing the stability and type
+        of the fixed point
+        (e.g. "stable spiral", "unstable node")
     """
     # get eigenvalues of the Jacobian
     # via trace and determinant
@@ -131,56 +148,6 @@ def find_stability(jacobian: np.ndarray) -> str:
         stability = "Stable" if tr_jac < 0 else "Unstable"
         stability += " spiral" if (tr_jac**2 < 4 * det_jac) else " node"
     return stability
-
-
-def plot_fpts():
-    return
-
-
-def get_fpt_types(
-    fpt: tuple[float, float],
-    fpt_type: str,
-    fpt_stability_list: list[str] | None = None,
-    ax: plt.Axes | None = None,
-) -> str | None:
-    """
-    Add the stability type of a fixed point
-    to the running list of fixed point types
-    and plot it (optional).
-
-    Helper function for classify_fps.
-    """
-    # if fpt_type_list is not None, then
-    # return the type of fixed point
-    # only if it is not already in the list
-    # else, return fixed point type
-
-    if fpt_stability_list is None:
-        # first word in fpt_stability
-        # is the stability of the fixed point
-        # e.g. "Stable", "Unstable", "Saddle"
-        stability_type = fpt_type.split(" ")[0].lower()
-    else:
-        if "stable" in fpt_type.lower():
-            if "stable" not in fpt_stability_list:
-                return "stable"
-            else:
-                return None
-        elif "saddle" in fpt_type.lower():
-            if "saddle" not in fpt_stability_list:
-                return "saddle"
-            else:
-                return None
-        elif "unstable" in fpt_type.lower():
-            if "unstable" not in fpt_stability_list:
-                return "unstable"
-            else:
-                return None
-        else:
-            if "indeterminate" not in fpt_stability_list:
-                return "indeterminate"
-            else:
-                return None
 
 
 def classify_fps(
@@ -211,7 +178,7 @@ def classify_fps(
         If True, fixed points and their stability will be printed
 
     Outputs:
-    - fpt_types: list of strings describing the stability
+    - fpt_stabilities: list of strings describing the stability
         of each fixed point given in fpts that is
         within the bounds of the plot window (x)
         - If unique is True, only unique values will be
@@ -223,7 +190,7 @@ def classify_fps(
         return None)
     """
     fpts_new = []
-    fpt_types = []
+    fpt_stabilities = []
     # unpack x into x1 and x2
     x1 = x[0]
     x2 = x[1]
@@ -240,25 +207,42 @@ def classify_fps(
             or fpt[1] > x2[-1] + 0.5 * abs(x2[-1])
         ):
             continue
-        # get stability of the fixed point
-        fpt_stability = find_stability(flow_jacobian(fpt))
+        # get stability and type of the fixed point
+        fpt_type = find_fpt_type(flow_jacobian(fpt))
+        # stability of the fixed point is the
+        # first word in the fpt_type string
+        fpt_stability = fpt_type.split(" ")[0].lower()
         # if verbose, print the point and its stability
         if verbose:
-            print(f"  • {fpt_stability} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
+            print(f"  • {fpt_type} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
+
         # if out of bounds of the plot window,
         # don't plot it or append it to the list
         if fpt[0] < x1[0] or fpt[0] > x1[-1] or fpt[1] < x2[0] or fpt[1] > x2[-1]:
             continue
-        # plot the fixed point, if ax is not None
-        # append the type of fixed point to the
-        # list of fixed point types
+
+        # append the stability of the fixed point to the
+        # list of found fixed point stabilities
         # if unique, only append if not already in the list
-        fpt_types, ax = get_and_plot_fpt_types(
-            fpt, fpt_stability, fpt_types, unique=unique, ax=ax
-        )
+        if unique and fpt_stability not in fpt_stabilities:
+            fpt_stabilities.append(fpt_stability)
+        elif not unique:
+            fpt_stabilities.append(fpt_stability)
+        # append the fixed point to the list of found fixed points
         fpts_new.append(fpt)
 
-    return fpt_types, fpts_new, ax
+        # if ax is not None, plot the fixed point
+        # with color and marker according to its stability
+        if ax is not None:
+            ax.plot(
+                fpt[0],
+                fpt[1],
+                marker=stability_marker_dict[fpt_stability],
+                color=stability_color_dict[fpt_stability],
+                markersize=8,
+            )
+
+    return fpt_stabilities, fpts_new, ax
 
 
 def plot_null(
@@ -449,13 +433,13 @@ def phase_portrait(
     # if fixed points are found, classify them
     # and plot them
     if len(fpts) > 0:
-        fpt_types, _, ax = classify_fps(
+        fpt_stabilities, _, ax = classify_fps(
             _my_flow, fpts, [x1, x2], ax=ax, verbose=verbose
         )
     else:
         if verbose:
             print("No fixed points found.")
-        fpt_types = []
+        fpt_stabilities = []
 
     ax.set_xlabel("$x_1$", fontsize=14)
     ax.set_ylabel("$x_2$", fontsize=14)
@@ -468,7 +452,7 @@ def phase_portrait(
     # this might be something
     # to write as a separate function
     my_handles = []
-    if "stable" in fpt_types:
+    if "stable" in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -480,7 +464,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "unstable" in fpt_types:
+    if "unstable" in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -492,7 +476,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "saddle" in fpt_types:
+    if "saddle" in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
@@ -504,7 +488,7 @@ def phase_portrait(
                 linestyle="",
             )
         )
-    if "indeterminate" in fpt_types:
+    if "indeterminate" in fpt_stabilities:
         my_handles.append(
             Line2D(
                 [],
