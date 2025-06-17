@@ -1,5 +1,6 @@
 import argparse
 
+from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.process.convert_to_zarr.convert_dataset import (
     convert_dataset,
 )
@@ -15,18 +16,18 @@ Arguments:
     dataset : str
         The name of the dataset to process.
     output_path : str
-        The path where the Zarr files will be saved.
+        The path where the Zarr files will be saved. Default is the results folder.
+    channel_names : str
+        Comma-separated list of channel names to include in the Zarr files.
+        Default is "EGFP,BF".
+        For IF data, name the marker imaged by that channel ie. "EGFP,BF,NucViolet,SOX17,SMAD1".
 
-Example:
 
-python cellsmap/image_conversion/raw_img_to_zarr.py 20250509_20X_IF3 20250509 --channel_names EGFP,BF,NucViolet,SOX17,SMAD1
+Example to test:
+python src/endo_pipeline/workflows/convert_to_zarr_workflow.py 20250509_20X_IF3 20250509 --channel_names EGFP,BF,NucViolet,SOX17,SMAD1
 
-Example (using API):
-    output_path = Path('//allen/aics/assay-dev/users/Serge/test_images')
-    convert_sldy_dataset(dataset='20240305_T01_001', output_path=output_path)
-
-This will process the dataset '20240305_T01_001' and save the output to the specified directory.
-The resulting zarr contains images from one scene.
+Example to run:
+python src/endo_pipeline/workflows/convert_to_zarr_workflow.py 20250509_20X_IF3 20250509 --channel_names EGFP,BF,NucViolet,SOX17,SMAD1 --output_path //allen/aics/endothelial/morphological_features/image_data/converted_zarrs
 """
 
 
@@ -45,7 +46,7 @@ def parse_arguments() -> tuple[str, str, str, list[str]]:
     parser.add_argument(
         "--output_path",
         type=str,
-        default="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs",
+        default=get_output_path("zarr_conversion"),
         help="The output path for the Zarr files",
     )
     parser.add_argument(
