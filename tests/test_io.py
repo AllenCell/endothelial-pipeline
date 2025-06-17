@@ -51,7 +51,7 @@ def test_get_zarr_path():
     for name, path in path.items():
         print(Path(path).parent)
         assert (
-            str(Path(path).parent)
+            Path(path).parent.as_posix()
             == "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241016_230d119061e749d98c1abde77f2f4fa3"
         )
 

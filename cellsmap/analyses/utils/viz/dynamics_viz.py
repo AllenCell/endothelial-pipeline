@@ -49,20 +49,20 @@ def plot_fixed_points_by_shear(
 
             # get fixed points and types
             fpts = fpt_dict["fixed_points"]
-            fpt_types = fpt_dict["fixed_point_types"]
+            fpt_stabilities = fpt_dict["fixed_point_stability"]
 
             # check that we have a type for each fixed point
-            assert len(fpts) == len(fpt_types)
+            assert len(fpts) == len(fpt_stabilities)
 
             # plot component j of each fixed point (if any)
             if len(fpts) > 0:
                 # color code by type (stability)
                 for ii, fpt in enumerate(fpts):
-                    if fpt_types[ii] == "stable":
+                    if fpt_stabilities[ii] == "stable":
                         color = "b"
-                    elif fpt_types[ii] == "unstable":
+                    elif fpt_stabilities[ii] == "unstable":
                         color = "r"
-                    elif fpt_types[ii] == "saddle":
+                    elif fpt_stabilities[ii] == "saddle":
                         color = "tab:purple"
                     else:  # can be indeterminate stability
                         color = "darkgoldenrod"

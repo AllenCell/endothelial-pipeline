@@ -1,24 +1,41 @@
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any
 
+import networkx
 import numpy as np
 import yaml
 from bioio import BioImage
 from scipy.ndimage import distance_transform_edt
 from skimage.exposure import rescale_intensity
 from skimage.feature import peak_local_max
-from skimage.filters import apply_hysteresis_threshold, gaussian
+from skimage.filters import apply_hysteresis_threshold, gaussian, sato
 from skimage.graph import merge_hierarchical, rag_boundary
 from skimage.measure import label, regionprops
-from skimage.morphology import binary_dilation, disk, remove_small_objects, skeletonize
+from skimage.morphology import (
+    binary_dilation,
+    binary_erosion,
+    disk,
+    remove_small_objects,
+    skeletonize,
+)
 from skimage.restoration import rolling_ball
-from skimage.segmentation import find_boundaries, join_segmentations, watershed
+from skimage.segmentation import (
+    clear_border,
+    find_boundaries,
+    join_segmentations,
+    relabel_sequential,
+    watershed,
+)
 
 from cellsmap.util.dataset_io import extract_T
 from cellsmap.util.general_image_preprocessing import get_dim_map
 
 
-def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
+def preprocess(
+    raw_arr: np.ndarray,
+    sigma: int = 3,
+    radius: int = 20,
+) -> np.ndarray:
     """
     Takes an image and returns a processed version after performing a gaussian blur,
     intensity rescaling to uint16, and then rolling-ball background subtraction.
@@ -44,8 +61,10 @@ def preprocess(raw_arr: np.ndarray, sigma=3, radius=20) -> np.ndarray:
 
 
 def get_noodly_regions(
-    binary_img_arr: np.ndarray, axis_ratio_filter=2.5, solidity_filter=0.6
-):
+    binary_img_arr: np.ndarray,
+    axis_ratio_filter: float = 2.5,
+    solidity_filter: float = 0.6,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     A function to divide a binary image into filamentous regions and round regions.
     The binary image is labeled first and then the labeled regions are classified as
@@ -122,7 +141,9 @@ def get_noodly_regions(
     return img_arr_noodly, img_arr_round
 
 
-def get_thresholds(processed_img: np.ndarray):
+def get_thresholds(
+    processed_img: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Performs a hysteresis threshold on processed_img and returns the threshold,
     the regions in the thresholded image that are considered noodly and the
@@ -187,7 +208,9 @@ def get_classic_segmentation(image: np.ndarray) -> np.ndarray:
     return seg_image
 
 
-def get_watershed_seeds_and_basins(binary_img_arr: np.ndarray, min_dist: int = 50):
+def get_watershed_seeds_and_basins(
+    binary_img_arr: np.ndarray, min_dist: int = 50
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Performs a distance transform on a binary image array and finds the peaks
     and inverse of the distance transform in order to get the seeds and basins
@@ -233,7 +256,7 @@ def clean_labeled_img(
     eccentricity_filter: float = 0.5,
     size_filter_conditional: int = 2000,
     size_filter_strict: int = 500,
-):
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Removes small, round objects from a labeled image.
 
@@ -295,8 +318,10 @@ def clean_labeled_img(
 
 
 def initialize_rag(
-    labeled_image: np.ndarray, intensity_image: np.ndarray, as_directed: bool = False
-):
+    labeled_image: np.ndarray,
+    intensity_image: np.ndarray,
+    as_directed: bool = False,
+) -> networkx.Graph:
     """
     Creates a region-adjacency graph (RAG) using a labeled image and an
     intensity image.
@@ -350,11 +375,20 @@ def initialize_rag(
 ## hierarchical merging were taken directly from the example
 ## provided in the scikit-image docs:
 ## https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_boundary_merge.html#sphx-glr-auto-examples-segmentation-plot-boundary-merge-py
-def dummy_func(graph, src, dst):
+def dummy_func(
+    graph: networkx.Graph,
+    src: int,
+    dst: int,
+) -> None:
     pass
 
 
-def weight_boundary(graph, src, dst, n):
+def weight_boundary(
+    graph: networkx.Graph,
+    src: int,
+    dst: int,
+    n: int,
+) -> dict:
     """
     Handle merging of nodes of a region boundary region adjacency graph.
 
@@ -399,7 +433,8 @@ def generate_segmentations(
     hyst: np.ndarray,
     hyst_clean: np.ndarray,
     hyst_removed: np.ndarray,
-):
+    intensity_percentile_for_merge_thresh: int = 80,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Create segmentations from processed_img with the help of the original
     threshold "hyst", the cleaned threshold "hyst_clean", and the regions from
@@ -465,7 +500,9 @@ def generate_segmentations(
     seg2_lab_no_mask = watershed(processed_img, seg2_lab)
     processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
     rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
+    merge_thresh = np.percentile(
+        processed_img_normd, q=intensity_percentile_for_merge_thresh
+    )
 
     seg2_lab_no_mask_merge = merge_hierarchical(
         seg2_lab_no_mask,
@@ -553,7 +590,7 @@ def generate_segmentations(
 
     good_label_mask = seg2_lab_no_mask_merge != 0
 
-    merge_thresh = (1 / 2) / 2
+    merge_thresh_skel = (1 / 2) / 2
 
     # note that seg2_lab_no_mask_merge and seg2_lab_no_mask_skel have
     # the same labels in roughly the same positions (with slightly
@@ -561,7 +598,7 @@ def generate_segmentations(
     seg2_lab_no_mask_merge = merge_hierarchical(
         seg2_lab_no_mask_merge,
         rag_skel,
-        thresh=merge_thresh,
+        thresh=merge_thresh_skel,
         rag_copy=False,
         in_place_merge=True,
         merge_func=dummy_func,
@@ -588,7 +625,9 @@ def generate_segmentations(
     seg2_lab_no_mask_merge = watershed(image=processed_img_normd, markers=seg2_filtered)
 
     rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
-    merge_thresh = np.percentile(processed_img_normd, q=80)
+    merge_thresh = np.percentile(
+        processed_img_normd, q=intensity_percentile_for_merge_thresh
+    )
 
     seg2_lab_no_mask_merge = merge_hierarchical(
         seg2_lab_no_mask_merge,
@@ -606,7 +645,185 @@ def generate_segmentations(
     return seg2_lab_no_mask_merge, seg2_lab
 
 
-def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> list:
+def split_multinucleate_regions(
+    cell_segmentations: np.ndarray,
+    nuclei_segmentations: np.ndarray,
+    cell_boundary_thresh: np.ndarray,
+    cell_boundary_image: np.ndarray,
+    min_size_filter: int = 500,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Splits multinucleate regions in the segmentation based on the nuclei predictions.
+    This function modifies the segmentation labels to ensure that each nucleus is
+    assigned a unique label, even if they were previously part of a multinucleate region.
+    """
+
+    # if nuclei with different labels are touching then separate them
+    # only if a segmentation boundary or the cdh5 threshold would have
+    # separated them
+    nuc_seg_merge_adjacent = label(nuclei_segmentations.astype(bool))
+
+    # remove any nuclei do not have more than half their area in
+    # a single segmented region
+    # get properties of nuclei predictions and original segmentations
+    nuc_props = regionprops(
+        label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations
+    )
+    nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
+
+    reg_props = regionprops(
+        label_image=cell_segmentations,
+        intensity_image=nuc_seg_merge_adjacent * ~cell_boundary_thresh,
+    )
+
+    # keep only nuclei that have more than half of their area in a
+    # single segmented region
+    nuclei_ambiguity_threshold = 0.5
+    nuclei_labels_per_region = dict()
+    for prop in reg_props:
+        nuc_labels = []
+        for nuc_lab in np.unique(prop.intensity_image):
+            if nuc_lab != 0:
+                nuc_frac = (
+                    np.count_nonzero(prop.intensity_image == nuc_lab)
+                    / nuc_prop_sizes[nuc_lab]
+                )
+                if nuc_frac > nuclei_ambiguity_threshold:
+                    nuc_labels.append(nuc_lab)
+        nuclei_labels_per_region[prop.label] = np.array(nuc_labels)
+
+    anucleate_regions = {
+        lab: nuclei_labels_per_region[lab]
+        for lab in nuclei_labels_per_region
+        if np.count_nonzero(nuclei_labels_per_region[lab]) == 0
+    }
+
+    mononucleate_regions = {
+        lab: nuclei_labels_per_region[lab]
+        for lab in nuclei_labels_per_region
+        if np.count_nonzero(nuclei_labels_per_region[lab]) == 1
+    }
+
+    multinucleate_regions = {
+        lab: nuclei_labels_per_region[lab]
+        for lab in nuclei_labels_per_region
+        if np.count_nonzero(nuclei_labels_per_region[lab]) > 1
+    }
+
+    # use the skeletonized regions as seed points for mononucleate
+    # and anucleate regions
+    seg_skels = skeletonize(~find_boundaries(cell_segmentations)) * cell_segmentations
+    anucleate_skels = (
+        np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
+    )
+    mononucleate_skels = (
+        np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
+    )
+    mononucleate_nuclei_labels = set(
+        [
+            lab
+            for nuc_labs in mononucleate_regions.values()
+            for lab in nuc_labs
+            if lab != 0
+        ]
+    )
+    mononucleate_seeds = (
+        np.isin(cell_segmentations, list(mononucleate_regions.keys()))
+        * np.isin(nuc_seg_merge_adjacent, list(mononucleate_nuclei_labels))
+        * cell_segmentations
+    )
+
+    seeds = anucleate_skels + mononucleate_skels
+
+    # use the nuclei in the multinucleate regions as seeds and
+    # combine these with the skeleton-seeds from above
+    multinucleate_nuclei_labels = set(
+        [
+            lab
+            for nuc_labs in multinucleate_regions.values()
+            for lab in nuc_labs
+            if lab != 0
+        ]
+    )
+    multinucleate_seeds = (
+        np.isin(cell_segmentations, list(multinucleate_regions.keys()))
+        * np.isin(nuc_seg_merge_adjacent, list(multinucleate_nuclei_labels))
+        * nuc_seg_merge_adjacent
+    )
+    multinucleate_seeds, _, _ = relabel_sequential(
+        multinucleate_seeds, offset=1 + seeds.max()
+    )
+    seeds = seeds + multinucleate_seeds
+
+    # to better resolve regions at the edges do a watershed where the
+    # threshold is used as a mask and the seeds are nuclei (note this
+    # is different from above where region skeletons are the seeds if
+    # a region has 1 nucleus). If a region cannot be reached from a
+    # nucleus then it is considered unreachable and if an unreachable
+    # region touches the image border then it will be skeletonized
+    # and used as a seed to be added to the skeleton seeds from above.
+    # NOTE: Using the nuclei as seeds does a better job of segmenting
+    # cells touching the borders than using the skeletons as seeds.
+    seeds_edges = anucleate_skels + mononucleate_seeds + multinucleate_seeds
+    seg = watershed(
+        image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh
+    )
+    unreachable_edges = np.logical_xor(seg, ~cell_boundary_thresh)
+    unreachable_edges = ~clear_border(unreachable_edges) * unreachable_edges
+
+    # remove the unreachable regions from the seeds
+    seeds_cleaned = seeds * ~binary_dilation(unreachable_edges, disk(2))
+    seeds_cleaned = label(seeds_cleaned)
+
+    seeds_edges = label(unreachable_edges)
+    seeds_edges[seeds_edges > 0] += seeds_cleaned.max() + 1
+    seeds_edges = skeletonize(seeds_edges) * seeds_edges
+
+    # produce the final seeds that will be used for refining the
+    # cell segmentations
+    seeds_cleaned += seeds_edges
+    # the mask below helps keep the watershed algorithm from redefining
+    # boundaries of regions that were okay before
+    seg_mask_final = ~(find_boundaries(cell_segmentations) + cell_boundary_thresh)
+
+    # use a sato filter to enhance the cell boundaries and use that
+    # as the image for the watershed when splitting multinucleate regions
+    # the mask helps keep differences between the original segmentation
+    # and newly-split segmentation to just new lines at cell-cell
+    # boundaries (or as close to it)
+    sato_filt = rescale_intensity(
+        sato(cell_boundary_image, black_ridges=False), out_range=(0, 1)
+    )
+    seg = watershed(image=sato_filt, markers=seeds_cleaned, mask=seg_mask_final)
+
+    # to fill in the masked regions use the same cell boundary image
+    # as was used to get the original segmentations to minimize
+    # differences between the original and newly-splitted segmentations
+    seg = watershed(image=cell_boundary_image, markers=seg)
+
+    # refine the accuracy of the segmentation by re-running watershed
+    # on the cell boundary image using eroded versions of the existing
+    # regions as seeds
+    seg_inner = seg * binary_erosion(~find_boundaries(seg), disk(3))
+    seg = watershed(image=cell_boundary_image, markers=seg_inner)
+
+    # remove small regions and segment one last time
+    seg = remove_small_objects(seg, min_size=min_size_filter)
+    seg = watershed(image=cell_boundary_image, markers=seg)
+
+    # remove the seeds that were removed from the segmentation
+    seeds = (
+        seeds_cleaned
+        * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)]))
+        * seg_mask_final
+    )
+
+    return seg, seeds
+
+
+def get_cdh5_classic_segmentation_paths(
+    dataset_name: str, sort_paths: bool = True
+) -> list:
     """
     Return the filepaths to the cdh5 classic segmentations (segmentations are saved
     as individual timepoints).
@@ -645,11 +862,11 @@ def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths=True) -> l
 def get_cdh5_classic_segmentation(
     dataset_name: str,
     T: int,
-    channels: Optional[List[str]] = None,
-    crop_y: Optional[slice] = None,
-    crop_x: Optional[slice] = None,
+    channels: list[str] | None = None,
+    crop_y: slice | None = None,
+    crop_x: slice | None = None,
     as_dask: bool = False,
-) -> List[Any]:
+) -> list[Any]:
     """
     Return the cdh5 classic segmentation as a list of arrays, where each array in the
     list corresponds to a channel.

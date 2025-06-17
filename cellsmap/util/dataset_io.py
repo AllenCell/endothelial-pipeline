@@ -18,12 +18,61 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple
 import fire
 
 
+def get_config_dir() -> Path:
+    """Get path to the config directory."""
+
+    return Path(__file__).resolve().parents[1] / "configs"
+
+
+def save_to_yaml(object: dict, path: Path) -> None:
+    """Save dictionary object to YAML at given path."""
+
+    yaml.SafeDumper.add_representer(list, lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True))
+    yaml_content = yaml.safe_dump(object, default_flow_style=False, sort_keys=False, width=80, indent=2)
+    path.open("w").write(yaml_content)
+
+
+def separate_data_config() -> None:
+    """Separate combined dataset configs into individual dataset configs."""
+
+    separated_path = get_config_dir() / "datasets"
+    combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
+
+    combined_data_config = yaml.safe_load(combined_path.open())
+
+    for index, (dataset, contents) in enumerate(combined_data_config.items()):
+        data_config_path = separated_path / f"{index:02d}_{dataset}.yaml"
+        single_data_config = {"name": dataset}
+        single_data_config.update(contents)
+        save_to_yaml(single_data_config, data_config_path)
+
+
+def combine_data_config(save: bool = False) -> dict:
+    """Combine individual dataset configs into combined dataset keyed by name."""
+
+    separated_path = get_config_dir() / "datasets"
+    combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
+
+    separate_data_configs = [yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))]
+    combined_data_config = { config["name"]: config for config in separate_data_configs }
+
+    if save:
+        save_to_yaml(combined_data_config, combined_path)
+
+    return combined_data_config
+
 # model methods
 def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError(
             'Invalid config type. Must be either "data", "model", or "dynamics."'
         )
+
+    # If loading the data config, load combined from all individual dataset
+    # configs. This is part of a change to manage datasets with dataclasses.
+    if config_type == "data":
+        return combine_data_config()
+
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f"{config_type}_config.yaml"
     with open(config_file, "r") as file:
@@ -50,6 +99,13 @@ def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> Non
         yaml.dump(
             config, file, default_flow_style=False, sort_keys=False, width=80, indent=2
         )
+
+    # If writing the data config, split the combined data config file that was
+    # saved above into individual dataset config files (and delete the combined
+    # config file).
+    if config_type == "data":
+        separate_data_config()
+        config_file.unlink()
 
 
 def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None:
@@ -379,6 +435,30 @@ def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
     base_path = dataset_info["nuclear_label_free_seg_path"]
     position_path = f"{base_path}/P{position}/"
     return position_path
+
+
+def load_nuclei_prediction(
+    dataset_name: str,
+    position: int,
+    T: int,
+    dim_order: str = "ZYX",
+) -> dask.array.Array:
+    """
+    Load the nuclei prediction for a given dataset, position, and timepoint.
+    """
+    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position))
+    nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
+    nuc_path = nuc_path_dict[T]
+
+    if nuc_path.exists():
+        # Load the nuclei prediction as a Dask array
+        nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=0)
+        return nuc_dask_arr
+    else:
+        print(
+            f"Nuclei prediction file not found for T={T} in {nuc_dir}, returning empty dask array."
+        )
+        return dask.array.empty(shape=[0] * len(dim_order))
 
 
 def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
