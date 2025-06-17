@@ -1,26 +1,7 @@
 import argparse
 
-from bioio import BioImage
-
-from cellsmap.util.dataset_io import (
-    get_fmsid,
-    get_microscope,
-    get_original_path,
-    get_time_interval_in_minutes,
-    get_total_number_of_positions,
-)
-from src.endo_pipeline.library.process.convert_to_zarr.load_raw_image_data import (
-    get_delayed_array_for_position,
-    get_included_scenes,
-)
-from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import (
-    get_sldy_pixel_sizes,
-    write_scene,
-)
-
-# Define the default output path
-DEFAULT_OUTPUT_PATH = (
-    "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs"
+from src.endo_pipeline.library.process.convert_to_zarr.convert_dataset import (
+    convert_dataset,
 )
 
 """
@@ -49,54 +30,6 @@ The resulting zarr contains images from one scene.
 """
 
 
-def convert_dataset(
-    dataset: str,
-    output_dataset_name: str,  # date
-    output_path: str = DEFAULT_OUTPUT_PATH,
-    channel_names: list[str] = ["EGFP", "BF"],
-) -> None:
-    img = BioImage(get_original_path(dataset))
-    if get_microscope(dataset) == "3i":
-        physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
-    if get_microscope(dataset) == "Nikon":
-        physical_pixel_sizes = img.physical_pixel_sizes
-    interval_min = get_time_interval_in_minutes(dataset)
-    fmsid = get_fmsid(dataset)
-    n_positions = get_total_number_of_positions(dataset)
-
-    assert n_positions % len(img.scenes) == 0, (
-        f"Number of positions ({n_positions}) in data_config.yaml must be divisible by "
-        f"number of scenes ({len(img.scenes)}) in the image file for dataset {dataset}"
-    )
-
-    num_pos_in_T = n_positions // len(img.scenes)
-    num_pos_in_S = len(img.scenes)
-
-    count = 0
-    for scene_index in range(num_pos_in_S):
-        subset_scene_list = get_included_scenes(dataset)
-        if scene_index not in subset_scene_list:
-            continue
-        else:
-            print(f"Processing scene {img.scenes[scene_index]}")
-        for position in range(num_pos_in_T):
-            output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
-            print(f"Writing to {output}")
-            scene = get_delayed_array_for_position(
-                position, dataset, channel_names, num_pos_in_T, scene_index, img
-            )
-            write_scene(
-                scene,
-                channel_names,
-                output,
-                dataset,
-                position,
-                physical_pixel_sizes,
-                interval_min,
-            )
-            count += 1
-
-
 def parse_arguments() -> tuple[str, str, str, list[str]]:
     parser = argparse.ArgumentParser(
         description="Process sldy or nd2 images and write to Zarr format."
@@ -112,7 +45,7 @@ def parse_arguments() -> tuple[str, str, str, list[str]]:
     parser.add_argument(
         "--output_path",
         type=str,
-        default=DEFAULT_OUTPUT_PATH,
+        default="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs",
         help="The output path for the Zarr files",
     )
     parser.add_argument(
