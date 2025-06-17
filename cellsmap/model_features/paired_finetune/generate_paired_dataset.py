@@ -64,7 +64,7 @@ def generate_paired_dataset(
     split: bool
         If True, the dataset will be split into training and validation sets. The split will be saved as `train.csv` and `val.csv`. If False, the entire dataset will be saved as `dataset.csv`.
     """
-    save_path = Path(get_output_path("finetune_paired_dataset"))
+    save_path = Path(get_output_path(f"finetune_paired_dataset/{model_name}"))
     base_path = Path(get_output_path(f"models/{model_name}"))
 
     df = find_csvs(base_path, directories)
