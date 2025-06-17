@@ -1,13 +1,15 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import fire
 from cyto_dl.api import CytoDLModel
 
 from cellsmap.model_features.utils.mlflow_utils import download_mlflow_artifact
+from cellsmap.util.dataset_io import get_model_info
+from cellsmap.util.set_output import get_output_path
 
 
-def generate_overrides(
+def _generate_overrides(
     user_overrides,
     save_path: Path,
     train_data_path: str,
@@ -50,11 +52,9 @@ def generate_overrides(
 
 
 def main(
-    save_dir: str,
-    train_csv_path: str,
-    val_csv_path: str,
-    diffae_ckpt_path: str,
-    base_model_run_id: str = "a5b6274c683948b5a3e6ef892b0c88d5",
+    model_name: str = "diffae_04_10",
+    dataset_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
+    model_template_name: str = "live_fixed_finetune_template",
     overrides: dict[str, Any] = {},
 ):
     """
@@ -62,32 +62,39 @@ def main(
 
     Parameters
     ----------
-    save_dir: str
-        The directory where the model and logs will be saved. This can be any empty folder.
-    train_csv_path: str
-        Path to the training CSV file containing paired data.
-    val_csv_path: str
-        Path to the validation CSV file containing paired data.
-    diffae_ckpt_path: str
-        Path to the DiffAE checkpoint to finetune.
-    base_model_run_id: str
-        The MLflow run ID of the base DiffAE model. This is used to download the template config and requirements.
+    dataset_type: Literal['live_fixed', '20x_40x']
+        The type of dataset to use for finetuning. This should match the dataset type used during the `paired_data_validation` step.
+    model_name: str
+        The name of the model to use for finetuning. This should correspond to a directory in `outputs/models/` and match the model name used during the `paired_data_validation` step.
+    model_template_name: str
+        The name of the model template to use for finetuning. This should correspond to a model in `model_config.yaml`
     overrides: dict[str, Any]
         Additional overrides for the training configuration. This can include any parameters that can be set in the config file, such as learning rate, batch size, etc.
     """
-    save_dir = Path(save_dir)
+    save_dir = Path(
+        get_output_path(
+            f"finetune_paired_dataset/finetune_{model_name}_on_{dataset_type}"
+        )
+    )
 
-    overrides = generate_overrides(
+    manifest_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
+
+    diffae_ckpt_path = Path(get_output_path(f"models/{model_name}/checkpoints")).rglob(
+        "*.ckpt"
+    )
+
+    overrides = _generate_overrides(
         user_overrides=overrides,
         save_path=save_dir,
-        train_data_path=train_csv_path,
-        val_data_path=val_csv_path,
+        train_data_path=manifest_path / "train.csv",
+        val_data_path=manifest_path / "val.csv",
         ckpt_path=diffae_ckpt_path,
     )
 
     # download template config
+    template_run_id = get_model_info(model_template_name)["mlflow_run_id"]
     download_mlflow_artifact(
-        run_id=base_model_run_id, artifact_path="config/train.yaml", dst_path=save_dir
+        run_id=template_run_id, artifact_path="config/train.yaml", dst_path=save_dir
     )
 
     model = CytoDLModel()

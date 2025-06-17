@@ -8,5 +8,5 @@
 
 
 ## Finetuning the DiffAE
-1. run `uv run cellsmap/model_features/paired_finetune/train_finetuned_model.py --save_dir <arbitrary_save_path> --train_csv_path /path/to/train.csv --val_csv_path /path/to/val.csv --diffae_ckpt_path /path/to/model.ckpt`. The save_dir should be empty (it will be created if it does not exist)
+1. run `uv run cellsmap/model_features/paired_finetune/train_finetuned_model.py --model_name diffae_04_10 --dataset_type live_fixed` to finetune the `diffae_04_10` checkpoint. The `dataset_type` argument should be set to `20x_40x` to use the aligned 20x/40x data for training.
 3. Once this model has been trained, add its mlflow run id to `model_config.yaml`.
