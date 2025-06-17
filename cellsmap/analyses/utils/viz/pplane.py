@@ -133,13 +133,16 @@ def find_stability(jacobian: np.ndarray) -> str:
     return stability
 
 
-def get_and_plot_fpt_types(
+def plot_fpts():
+    return
+
+
+def get_fpt_types(
     fpt: tuple[float, float],
-    fpt_stability: list[str],
-    fpt_type_list: list[str],
-    unique: bool = True,
+    fpt_type: str,
+    fpt_stability_list: list[str] | None = None,
     ax: plt.Axes | None = None,
-) -> tuple[list[str], plt.Axes | None]:
+) -> str | None:
     """
     Add the stability type of a fixed point
     to the running list of fixed point types
@@ -147,35 +150,37 @@ def get_and_plot_fpt_types(
 
     Helper function for classify_fps.
     """
-    if "Stable" in fpt_stability:
-        if ax is not None:
-            ax.plot(fpt[0], fpt[1], "g.", markersize=15)
-        if unique and "stable" not in fpt_type_list:
-            fpt_type_list.append("stable")
-        elif not unique:
-            fpt_type_list.append("stable")
-    elif "Saddle" in fpt_stability:
-        if ax is not None:
-            ax.plot(fpt[0], fpt[1], "P", color="tab:purple", markersize=8)
-        if unique and "saddle" not in fpt_type_list:
-            fpt_type_list.append("saddle")
-        elif not unique:
-            fpt_type_list.append("saddle")
-    elif "Unstable" in fpt_stability:  # unstable
-        if ax is not None:
-            ax.plot(fpt[0], fpt[1], "rs", markersize=8)
-        if unique and "unstable" not in fpt_type_list:
-            fpt_type_list.append("unstable")
-        elif not unique:
-            fpt_type_list.append("unstable")
-    else:  # indeterminate
-        if ax is not None:
-            ax.plot(fpt[0], fpt[1], "p", color="darkgoldenrod", markersize=8)
-        if unique and "indeterminate" not in fpt_type_list:
-            fpt_type_list.append("indeterminate")
-        elif not unique:
-            fpt_type_list.append("indeterminate")
-    return fpt_type_list, ax
+    # if fpt_type_list is not None, then
+    # return the type of fixed point
+    # only if it is not already in the list
+    # else, return fixed point type
+
+    if fpt_stability_list is None:
+        # first word in fpt_stability
+        # is the stability of the fixed point
+        # e.g. "Stable", "Unstable", "Saddle"
+        stability_type = fpt_type.split(" ")[0].lower()
+    else:
+        if "stable" in fpt_type.lower():
+            if "stable" not in fpt_stability_list:
+                return "stable"
+            else:
+                return None
+        elif "saddle" in fpt_type.lower():
+            if "saddle" not in fpt_stability_list:
+                return "saddle"
+            else:
+                return None
+        elif "unstable" in fpt_type.lower():
+            if "unstable" not in fpt_stability_list:
+                return "unstable"
+            else:
+                return None
+        else:
+            if "indeterminate" not in fpt_stability_list:
+                return "indeterminate"
+            else:
+                return None
 
 
 def classify_fps(
