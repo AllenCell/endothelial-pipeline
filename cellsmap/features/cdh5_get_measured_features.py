@@ -507,54 +507,29 @@ def main(
 
     # lastly, for each dataset concatenate the tables from each timepoint
     # into a single output table for that dataset
-    for dataset_name in dataset_name_list:
-        concatenate_and_save_feature_tables(
-            out_dir,
-            dataset_name,
-            out_file_suffix="alignments",
-            input_filename_contains="alignments",
-            file_extension=".csv",
-            remove_initial_files_and_folders=True,
+    if save_output:
+        for dataset_name in dataset_name_list:
+            concatenate_and_save_feature_tables(
+                out_dir,
+                dataset_name,
+                out_file_suffix="alignments",
+                input_filename_contains="alignments",
+                file_extension=".csv",
+                remove_initial_files_and_folders=True,
+            )
+            concatenate_and_save_feature_tables(
+                out_dir,
+                dataset_name,
+                out_file_suffix="segprops",
+                input_filename_contains="segprops",
+                file_extension=".csv",
+                remove_initial_files_and_folders=True,
+            )
+
+        # save git versioning info
+        save_git_versioning_info(
+            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
         )
-        concatenate_and_save_feature_tables(
-            out_dir,
-            dataset_name,
-            out_file_suffix="segprops",
-            input_filename_contains="segprops",
-            file_extension=".csv",
-            remove_initial_files_and_folders=True,
-        )
-
-    analysis_queue_df = pd.DataFrame(analysis_queue)
-    analysis_queue_per_dataset = analysis_queue_df.groupby("dataset_name")
-
-    print("Concatenating individual timepoint tables together and saving...")
-    if n_proc > 1:
-        if __name__ == "__main__":
-            print("Starting multiprocessing...")
-            with Pool(processes=n_proc) as pool:
-                list(
-                    tqdm(
-                        pool.imap(
-                            concatenate_tables_multiproc,
-                            analysis_queue_per_dataset,
-                            chunksize=1,
-                        ),
-                        total=len(analysis_queue_per_dataset),
-                    )
-                )
-                pool.close()
-                pool.join()
-            print("Done multiprocessing.")
-    else:
-        print("Running workflow with single process...")
-        for queue_group in analysis_queue_per_dataset:
-            concatenate_tables_multiproc(queue_group)
-        print("Done single-processing.")
-
-    save_git_versioning_info(
-        out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
-    )
 
     print("\N{MICROSCOPE} Done analysis.")
 

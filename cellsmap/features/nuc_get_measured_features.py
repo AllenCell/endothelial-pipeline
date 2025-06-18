@@ -281,10 +281,14 @@ def main(
     # get and save results from images in analysis queue
     if n_proc > 1:
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
-            tqdm(
-                executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
-                total=len(analysis_queue),
-                desc="Getting nuclei features (MP)",
+            list(
+                tqdm(
+                    executor.map(
+                        get_and_save_nuclei_features_arg_unpacker, analysis_queue
+                    ),
+                    total=len(analysis_queue),
+                    desc="Getting nuclei features (MP)",
+                )
             )
     else:
         for args in tqdm(

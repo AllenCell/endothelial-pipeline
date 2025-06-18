@@ -960,7 +960,7 @@ def save_git_versioning_info(
     output_dir should be a path that exists already, it will not be created.
     """
     git_info = get_git_versioning_info()
-    output_path = output_dir / f"{filename_prefix}_git_versioning_info.txt"
+    output_path = out_dir / f"{filename_prefix}_git_versioning_info.txt"
     with output_path.open("w") as git_versioning_file:
         for key, value in git_info.items():
             git_versioning_file.write(f"{key}: {value}\n")

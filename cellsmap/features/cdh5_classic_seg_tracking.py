@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.dataset_io import (
+    concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -70,6 +71,7 @@ def run_workflow(queue: Sequence) -> None:
             scene_index = None
             raw_filepath = None
             raw_channel = None
+
         run_tracking(
             in_dir=seg_filepaths,
             out_dir=out_dir,
@@ -88,6 +90,16 @@ def run_workflow(queue: Sequence) -> None:
             track_tolerance=3,
             image_validation_frequency=image_validation_frequency,
             verbose=verbose,
+        )
+
+        # add the dataset name and position to the output table
+        tracking_table = pd.read_csv(
+            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t"
+        )
+        tracking_table["dataset_name"] = dataset_name
+        tracking_table["position"] = position
+        tracking_table.to_csv(
+            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t", index=False
         )
 
     else:
@@ -149,20 +161,22 @@ def main(
         ):
             run_workflow(queue)
 
-    for dataset in dataset_name_list:
-        tracking_table_paths = (out_dir / dataset).glob("*/*.tsv")
-        if tracking_table_paths:
-            pd.concat(
-                [pd.read_csv(fp, sep="\t") for fp in tracking_table_paths]
-            ).to_csv(
-                out_dir / dataset / f"{dataset}_tracking.tsv",
-                index=False,
-                sep="\t",
+    if save_output:
+        for dataset_name in tqdm(
+            dataset_name_list, desc="Replacing individual tables with combined table..."
+        ):
+            concatenate_and_save_feature_tables(
+                out_dir=out_dir,
+                dataset_name=dataset_name,
+                out_file_suffix="tracking",
+                file_extension=".tsv",
+                remove_initial_files_and_folders=True,
             )
-    # save git versioning info
-    save_git_versioning_info(
-        out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
-    )
+
+        # save git versioning info
+        save_git_versioning_info(
+            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+        )
 
     print("\N{MICROSCOPE} Done analysis.")
 
