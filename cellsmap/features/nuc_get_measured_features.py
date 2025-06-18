@@ -1,23 +1,15 @@
-import subprocess
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import Pool
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
-from bioio import BioImage
 from skimage.measure import regionprops
-from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
     extract_T,
     fire_parse_generate_dataset_name_list,
-    get_cdh5_classic_segmentation_path,
-    get_dataset_info,
-    get_original_path,
-    get_zarr_name,
-    get_zarr_path,
     ipython_cli_flexecute,
     load_cdh5_classic_segmentation,
     load_dataset_position_as_dask_array,
@@ -30,36 +22,163 @@ from cellsmap.util.general_image_preprocessing import (
 from cellsmap.util.set_output import get_output_path
 
 
-def get_nuclei_features_arg_unpacker(args: dict) -> pd.DataFrame:
+def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
     dataset_name = args["dataset_name"]
     position = args["position"]
     T = args["T"]
     out_dir = args["output_dir"]
-    verbose = args["verbose"]
-
-    nuc_props_df = get_nuclei_features(dataset_name, position, T)
-
-    return nuc_props_df
+    save_output = args["save_output"]
+    get_and_save_nuclei_features(dataset_name, position, T, out_dir, save_output)
 
 
-# def get_overlap_props(prop: regionprops) -> None:
-#     seg_overlap_fractions = {}
-#     for seg_lab, seg_lab_size in zip(*np.unique(prop.intensity_image, return_counts=True)):
-#         if seg_lab != 0:
-#             overlap_fraction = seg_lab_size / prop.area
-#             seg_overlap_fractions[seg_lab] = overlap_fraction
+def get_and_save_nuclei_features(
+    dataset_name: str,
+    position: int,
+    T: int,
+    out_dir: Path,
+    save_output: bool = True,
+) -> None:
 
-#     prop.seg_overlap_labels, prop.seg_overlap_fractions = zip(*seg_overlap_fractions.items())
+    nuc_props_df = get_nuclei_features_from_dataset_at_T(dataset_name, position, T)
 
-#     seg_most_overlap = max(seg_overlap_fractions, key=lambda x: seg_overlap_fractions[x])
-#     seg_most_overlap_val = seg_overlap_fractions[seg_most_overlap]
-#     seg_most_overlap = tuple(lab for lab in seg_overlap_fractions.keys() if seg_overlap_fractions[lab] == seg_most_overlap_val)
+    out_subdir = out_dir / dataset_name / f"P{position}"
+    out_subdir.mkdir(exist_ok=True, parents=True)
+    out_path = out_subdir / f"{dataset_name}_P{position}_T{T}_nuclei_features.tsv"
+    if save_output:
+        nuc_props_df.to_csv(out_path, sep="\t", index=False)
 
-#     prop.seg_most_overlap = seg_most_overlap
+
+def get_nuclei_features_from_image(
+    cdh5_seg: np.ndarray,
+    nuc_seg: np.ndarray,
+    fluorescence_images: list[np.ndarray],
+    fluor_img_names: list[str] | None = None,
+    seg_dim_order: str = "YX",
+) -> pd.DataFrame:
+    """
+    Extracts features from nuclei segmentations and their overlap with cell segmentations.
+
+    Parameters
+    ----------
+    cdh5_seg: ndarray
+        Image of the cell segmentations based on Cdh5.
+    nuc_seg: ndarray:
+        Image of the nuclei segmentations.
+    fluorescence_images: list[np.ndarray]:
+        List of fluorescence images to get intensity information for each
+        of the nuclei segmentation regions. In this workflow each image
+        is a channel from the raw image.
+    fluor_img_names: list[str] | None:
+        Names of the fluorescence images. If None, defaults to "Channel_0", "Channel_1", etc.
+    nuclei_ambiguity_threshold (float):
+        Threshold for determining if a nucleus segmentation overlaps a cell
+        segmentation enough to be kept.
+    Returns
+    -------
+        pd.DataFrame: DataFrame with extracted features.
+    """
+    # just in case make sure that the number of dimensions provided
+    # in seg_dim_order matches that of the images
+    for img in [
+        cdh5_seg,
+        nuc_seg,
+        *fluorescence_images,
+    ]:
+        assert len(seg_dim_order) == img.ndim
+
+    # assign default names to fluorescence images if not provided
+    channel_indices = range(len(fluorescence_images))
+    if fluor_img_names is None:
+        fluor_img_names = [f"Channel{i}" for i in channel_indices]
+
+    # get intensities in the segmented nuclei regions
+    # for each channel
+    nuc_props_on_intens = dict()
+    for i in range(len(fluorescence_images)):
+        nuc_props_on_intens[fluor_img_names[i]] = {
+            prop.label: prop
+            for prop in regionprops(
+                label_image=nuc_seg, intensity_image=fluorescence_images[i]
+            )
+        }
+
+    nuc_seg_size_dict = {prop.label: int(prop.area) for prop in regionprops(nuc_seg)}
+
+    # associate each nuclei with a cdh5 segmentation
+    reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
+
+    # Set up some initial data containers to populate
+    nuc_feats_ls: list = list()
+
+    feats_with_list_of_lists: dict[str, Callable] = {
+        "nuc_seg_intens_means": np.mean,
+        "nuc_seg_intens_stds": np.std,
+        "nuc_seg_intens_medians": np.median,
+        "nuc_seg_intens_pct25s": lambda x: np.percentile(x, 25),
+        "nuc_seg_intens_pct75s": lambda x: np.percentile(x, 75),
+        "nuc_seg_intens_maxs": np.max,
+        "nuc_seg_intens_mins": np.min,
+    }
+
+    # Go through the region properties and extract features
+    for prop in reg_props:
+        nuc_seg_labels = np.unique(
+            prop.intensity_image[prop.intensity_image != 0]
+        ).tolist()
+
+        nuc_feats = {
+            "cdh5_segmentation_label": prop.label,
+            "nuclei_segmentation_labels": nuc_seg_labels,
+            "nuclei_seg_in_cdh5_seg_frac": [],
+        }
+
+        for f in feats_with_list_of_lists.keys():
+            [nuc_feats.update({f"{f}_{chan}": []}) for chan in fluor_img_names]
+
+        # add the fraction overlap of the cdh5 segmentation with the segmentation
+        # to each of the properties in reg_props
+        # also add the label with the most overlap
+        for lab in nuc_seg_labels:
+            if nuc_seg_labels:
+                nuc_seg_in_cdh5_seg_size = np.count_nonzero(prop.intensity_image == lab)
+                nuc_seg_total_size = nuc_seg_size_dict[lab]
+                nuc_feats["nuclei_seg_in_cdh5_seg_frac"].append(
+                    nuc_seg_in_cdh5_seg_size / nuc_seg_total_size
+                )
+
+                # summarize intensities in segmented nuclei regions for each channel
+                for chan in fluor_img_names:
+                    nuc_arr = nuc_props_on_intens[chan][lab].image
+                    intens_arr = nuc_props_on_intens[chan][lab].image_intensity
+
+                    for feat, func in feats_with_list_of_lists.items():
+                        nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
+
+        nuc_lab_frac_dict = dict(
+            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"])
+        )
+        nuclei_seg_with_most_overlap = [
+            lab
+            for lab in nuc_lab_frac_dict
+            if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
+        ]
+        for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
+            nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
+            # for dim in ["X", "Y"]:
+            for dim_index, dim in enumerate(seg_dim_order):
+                nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
+                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[::-1][dim_index]
+                )
+
+        nuc_feats_ls.append(nuc_feats)
+
+    nuc_feats_df = pd.DataFrame(nuc_feats_ls)
+
+    return nuc_feats_df
 
 
-def get_nuclei_features(
-    dataset_name: str, position: int, T: int, channels: list = ["EGFP", "BF"]
+def get_nuclei_features_from_dataset_at_T(
+    dataset_name: str, position: int, T: int, channel_names: list = ["EGFP", "BF"]
 ) -> pd.DataFrame:
 
     # Load segmentations and image
@@ -90,120 +209,90 @@ def get_nuclei_features(
     raw_img = load_dataset_position_as_dask_array(
         dataset_name=dataset_name,
         position=position,
-        channels=channels,
+        channels=channel_names,
         time_start=T,
         time_end=T,
     )
     raw_MIP = raw_img.max(axis=dim_order.index("Z"), keepdims=True).compute()
 
-    # keep only nuclei that have more than half of their area in a
-    # single segmented region
-    nuclei_ambiguity_threshold = 0.5
+    # split up the image into a list of channels
+    channel_arrs = np.split(
+        raw_MIP, indices_or_sections=len(channel_names), axis=dim_order.index("C")
+    )
+    channel_arrs = [channel_arr.squeeze() for channel_arr in channel_arrs]
 
-    # get intensities in the segmented nuclei regions
-    # for each channel
-    channel_indices = range(len(channels))
+    # Get the nuclei properties
+    nuc_feats_df = get_nuclei_features_from_image(
+        cdh5_seg=cdh5_seg,
+        nuc_seg=nuc_seg,
+        fluorescence_images=channel_arrs,
+        fluor_img_names=channel_names,
+        seg_dim_order="YX",
+    )
 
-    nuc_props_on_intens = dict()
-    for i in channel_indices:
-        channel_arr = raw_MIP.take(axis=dim_order.index("C"), indices=[i]).squeeze()
-        nuc_props_on_intens[channels[i]] = {
-            prop.label: prop
-            for prop in regionprops(label_image=nuc_seg, intensity_image=channel_arr)
-        }
+    # add the total number of detected nuclei per image to the dataframe
+    num_nuclei = np.count_nonzero(np.unique(nuc_seg))
+    nuc_feats_df["total_nuclei_count_at_T"] = num_nuclei
 
-    nuc_seg_size_dict = {prop.label: int(prop.area) for prop in regionprops(nuc_seg)}
+    # add the dataset name, position, and T to the dataframe
+    nuc_feats_df["dataset_name"] = dataset_name
+    nuc_feats_df["position"] = position
+    nuc_feats_df["T"] = T
 
-    # associate each nuclei with a cdh5 segmentation
-    reg_props = regionprops(label_image=cdh5_seg, intensity_image=nuc_seg)
-
-    # Set up some initial data containers to populate
-    nuc_feats_ls: list = list()
-    feats_with_list_of_lists = [
-        "nuc_seg_intens_means",
-        "nuc_seg_intens_stds",
-        "nuc_seg_intens_medians",
-        "nuc_seg_intens_pct25s",
-        "nuc_seg_intens_pct75s",
-        "nuc_seg_intens_maxs",
-        "nuc_seg_intens_mins",
+    # move the dataset_name, position, and T columns to the front
+    # of the data table
+    nuc_feats_df = nuc_feats_df[
+        ["dataset_name", "position", "T"]
+        + [
+            col
+            for col in nuc_feats_df.columns
+            if col not in ["dataset_name", "position", "T"]
+        ]
     ]
 
-    # Go through the region properties and extract features
-    for prop in reg_props:
-        nuc_seg_labels = np.unique(
-            prop.intensity_image[prop.intensity_image != 0]
-        ).tolist()
-
-        nuc_feats = {
-            "cdh5_segmentation_label": prop.label,
-            "nuclei_segmentation_labels": nuc_seg_labels,
-            "nuclei_seg_in_cdh5_seg_frac": [],
-        }
-
-        for f in feats_with_list_of_lists:
-            [nuc_feats.update({f"{f}_{chan}": []}) for chan in channels]
-
-        # add the fraction overlap of the cdh5 segmentation with the segmentation
-        # to each of the properties in reg_props
-        # also add the label with the most overlap
-        for lab in nuc_seg_labels:
-            if nuc_seg_labels:
-                nuc_seg_in_cdh5_seg_size = np.count_nonzero(prop.intensity_image == lab)
-                nuc_seg_total_size = nuc_seg_size_dict[lab]
-                nuc_feats["nuclei_seg_in_cdh5_seg_frac"].append(
-                    nuc_seg_in_cdh5_seg_size / nuc_seg_total_size
-                )
-
-                # summarize intensities in segmented nuclei regions for each channel
-                for chan in channels:
-                    nuc_arr = nuc_props_on_intens[chan][lab].image
-
-                    intens_arr = nuc_props_on_intens[chan][lab].image_intensity
-
-                    nuc_feats[f"nuc_seg_intens_means_{chan}"].append(
-                        intens_arr[nuc_arr].mean()
-                    )
-                    nuc_feats[f"nuc_seg_intens_stds_{chan}"].append(
-                        intens_arr[nuc_arr].std()
-                    )
-                    nuc_feats[f"nuc_seg_intens_medians_{chan}"].append(
-                        np.median(intens_arr[nuc_arr])
-                    )
-                    nuc_feats[f"nuc_seg_intens_pct25s_{chan}"].append(
-                        np.percentile(intens_arr[nuc_arr], 25)
-                    )
-                    nuc_feats[f"nuc_seg_intens_pct75s_{chan}"].append(
-                        np.percentile(intens_arr[nuc_arr], 75)
-                    )
-                    nuc_feats[f"nuc_seg_intens_maxs_{chan}"].append(
-                        intens_arr[nuc_arr].max()
-                    )
-                    nuc_feats[f"nuc_seg_intens_mins_{chan}"].append(
-                        intens_arr[nuc_arr].min()
-                    )
-
-        nuc_lab_frac_dict = dict(
-            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"])
-        )
-        nuclei_seg_with_most_overlap = [
-            lab
-            for lab in nuc_lab_frac_dict
-            if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
-        ]
-        for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
-            nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
-            for dim in ["X", "Y"]:
-                dim_index = dim_order[::-1].index(dim)
-                nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
-                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[::-1][dim_index]
-                )
-
-        nuc_feats_ls.append(nuc_feats)
-
-    nuc_feats_df = pd.DataFrame(nuc_feats_ls)
-
     return nuc_feats_df
+
+
+def concatenate_and_save_nuclei_feature_tables(
+    out_dir: Path, dataset_name: str
+) -> None:
+    """
+    Concatenates the nuclei feature tables for all positions and
+    timepoints for a given dataset and then saves the concatenated
+    table to the output directory.
+    """
+    out_subdir = out_dir / dataset_name
+    nuc_feats_dfs = []
+
+    nuc_feats_filepaths = sorted(
+        out_subdir.glob("**/*.tsv"), key=lambda fp: extract_T(fp.stem)
+    )
+    nuc_feats_dfs = [pd.read_csv(fp, sep="\t") for fp in nuc_feats_filepaths]
+
+    if nuc_feats_dfs:
+        concatenated_df = pd.concat(nuc_feats_dfs, ignore_index=True)
+        concatenated_df_out_path = out_dir / f"{dataset_name}_nuclei_features.tsv"
+        concatenated_df.to_csv(concatenated_df_out_path, sep="\t", index=False)
+    else:
+        print(f"No nuclei feature tables found for {dataset_name}.")
+
+
+def remove_initial_nuclei_feature_tables(out_dir: Path, dataset_name: str) -> None:
+    """
+    Removes the initial nuclei feature tables for all positions and
+    timepoints for a given dataset to eliminate redundancy / save space.
+    """
+    out_subdir = out_dir / dataset_name
+    nuc_feats_filepaths = out_subdir.glob("**/*.tsv")
+    for fp in nuc_feats_filepaths:
+        fp.unlink()
+    list(out_subdir.glob("*/"))
+    dirs_to_remove = list(out_subdir.glob("**/"))
+    # remove the empty directory now that old tables are deleted
+    # (note this must be done in reverse order because a folder with
+    # subfolders does not count as empty and therfore raises an error)
+    for dir_path in dirs_to_remove[::-1]:
+        dir_path.rmdir()
 
 
 def main(
@@ -212,11 +301,13 @@ def main(
     n_proc: int = 1,
     verbose: bool = False,
     use_original_data: bool = False,
+    test: bool = False,
 ) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-    out_dir = get_output_path(Path(__file__).stem, verbose=False)
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
+    # build analysis queue
     analysis_queue = build_analysis_queue(
         dataset_name_list,
         save_output=save_output,
@@ -226,21 +317,33 @@ def main(
         image_validation_frequency=None,
         use_original_data=use_original_data,
     )
+    if test:
+        analysis_queue = analysis_queue[:20]
 
+    # get and save results from images in analysis queue
     if n_proc > 1:
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
-            nuclei_features = list(
-                tqdm(
-                    executor.map(get_nuclei_features_arg_unpacker, analysis_queue),
-                    total=len(analysis_queue),
-                    desc="Getting nuclei features (MP)",
-                )
+            tqdm(
+                executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
+                total=len(analysis_queue),
+                desc="Getting nuclei features (MP)",
             )
     else:
-        nuclei_features = list()
         for args in tqdm(
             analysis_queue,
             total=len(analysis_queue),
             desc="Getting nuclei features (1P)",
         ):
-            nuclei_features.append(get_nuclei_features_arg_unpacker(args))
+            get_and_save_nuclei_features_arg_unpacker(args)
+
+    # concatenate the results outputs from above in to a single table
+    if save_output:
+        for dataset_name in tqdm(
+            dataset_name_list, desc="Replacing individual tables with combined table..."
+        ):
+            concatenate_and_save_nuclei_feature_tables(out_dir, dataset_name)
+            remove_initial_nuclei_feature_tables(out_dir, dataset_name)
+
+
+if __name__ == "__main__":
+    ipython_cli_flexecute(main)
