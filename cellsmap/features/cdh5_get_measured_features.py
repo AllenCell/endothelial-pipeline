@@ -226,7 +226,7 @@ def build_measured_features_tables(
             time_start=T,
             time_end=T,
         )
-        raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze()
+        raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
         zarr_name = get_zarr_name(dataset_name, position)
         image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
