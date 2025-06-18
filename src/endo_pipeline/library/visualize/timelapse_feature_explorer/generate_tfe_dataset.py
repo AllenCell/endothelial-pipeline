@@ -4,13 +4,13 @@ from colorizer_data import convert_colorizer_data
 
 from cellsmap.util.dataset_io import get_segmentation_features_manifest
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (  # noqa: E501
     generate_backdrops,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (  # noqa: E501
     LABEL_MAP,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (  # noqa: E501
     add_dynamic_features_with_filtering,
     add_feauture_metadata,
     add_intensity_mean_pcs,
@@ -27,7 +27,7 @@ def generate_tfe_dataset(
     output_dir_suffix: str = "",
 ) -> None:
     """
-    Generates a TFE dataset by updating the manifest and generating backdrops.
+    Create timelapse feature explorer manifest and generate backdrop images.
 
     Args:
         dataset (str): Name of the dataset.
@@ -35,9 +35,10 @@ def generate_tfe_dataset(
         output_dir (Path): Directory to save the output.
         source_dir (Path): Source directory for the segmentation images.
         backdrops (bool): Flag to generate backdrops.
+        output_dir_suffix (str): Optional suffix to append to the output directory name.
     """
     # Ensure output directory exists
-    output_dir_suffix = "_" + output_dir_suffix if output_dir_suffix else ""
+    output_dir_suffix = f"_{output_dir_suffix}" if output_dir_suffix else ""
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -54,7 +55,9 @@ def generate_tfe_dataset(
     )
 
     df_merge_features = df_position.merge(
-        df_diffae_cell_mean, how="inner", on=["label", "image_index", "position"]
+        df_diffae_cell_mean,
+        how="inner",
+        on=["label", "image_index", "position"],
     )
 
     df = add_dynamic_features_with_filtering(df_merge_features)
@@ -86,8 +89,6 @@ def generate_tfe_dataset(
             "bf_std_dev_backdrop",
             "gfp_max_proj_backdrop",
         ],
-        feature_column_names=list(
-            LABEL_MAP.keys()
-        ),  # only these features will get colorized
+        feature_column_names=list(LABEL_MAP.keys()),
         feature_info=feature_info,
     )

@@ -8,10 +8,10 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     project_manifest_to_pcs,
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (  # noqa: E501
     add_backdrop_fname_to_manifest,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (  # noqa: E501
     LABEL_MAP,
 )
 
@@ -62,7 +62,8 @@ def update_manifest_for_tfe(
 
 def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Perform PCA on the intensity mean features and add the projected features to the DataFrame.
+    Perform PCA on the intensity mean features and add the projected features
+    to the DataFrame.
 
     Args:
         df (pd.DataFrame): The input DataFrame.
@@ -94,10 +95,10 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     """
     Dynamic features can only be calculated on longer tracks that are filtered.
     For TFE we need to preserve the rows that are filtered out, so we filter them
-    and then calculate the features and then merge them back in!
+    and then calculate the features and then merge them back in.
     """
-    df_filtered_rows = df[df["filter_global"] == True]
-    df_keep = df[df["filter_global"] == False]
+    df_filtered_rows = df[df["filter_global"]]
+    df_keep = df[~df["filter_global"]]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)
 
     df_result = pd.concat([df_calc, df_filtered_rows], ignore_index=True)

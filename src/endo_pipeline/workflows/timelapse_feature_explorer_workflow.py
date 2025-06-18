@@ -3,16 +3,16 @@ from pathlib import Path
 
 from cellsmap.util.dataset_io import get_cdh5_classic_segmentation_path
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (  # noqa: E501
     generate_tfe_dataset,
 )
 
 
 def main() -> None:
     """
-    This script processes datasets and positions to generate timelapse feature explorer (TFE) datasets.
-    It allows customization of datasets, positions, program directory, and optional backdrops through
-    command-line arguments.
+    Workflow processes datasets and positions to generate timelapse feature
+    explorer (TFE) datasets. It allows customization of datasets, positions,
+    program directory, and optional backdrops through command-line arguments.
 
     Testing:
     python src/endo_pipeline/workflows/timelapse_feature_explorer_workflow.py
@@ -21,7 +21,9 @@ def main() -> None:
     python src/endo_pipeline/workflows/timelapse_feature_explorer_workflow.py
     --datasets ["20241120_20X", "20241217_20X", "20250409_20X", "20250319_20X"]
     --positions [0, 3, 5]
-    --output_dir "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
+    --output_dir (
+        "//allen/aics/endothelial/morphological_features/timelapse_feature_explorer"
+    )
     --no_backdrops
 
     Command-line Arguments:
@@ -43,7 +45,8 @@ def main() -> None:
         In the future we can add the nuclei segmentation.
 
     --no_backdrops : flag
-       By default, the script generates backdrops. Use this flag to skip that step.
+       By default, the script generates backdrops. Use this flag to skip that
+       step.
     """
     parser = argparse.ArgumentParser(
         description="Generate TFE datasets for specified datasets and positions."
@@ -76,7 +79,10 @@ def main() -> None:
     parser.add_argument(
         "--no_backdrops",
         action="store_false",
-        help="Default without the flag will generate the backdrops. Adding --no_backdrops will skip that step",
+        help=(
+            "Default without the flag will generate the backdrops. "
+            "Adding --no_backdrops will skip that step."
+        ),
     )
     args = parser.parse_args()
 
