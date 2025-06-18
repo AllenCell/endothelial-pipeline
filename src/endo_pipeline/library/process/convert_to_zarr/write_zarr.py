@@ -6,6 +6,9 @@ from bioio_base.types import PhysicalPixelSizes
 
 from cellsmap.util import dataset_io
 
+DEFAULT_XY_SCALING = [0.5]
+DEFAULT_Z_SCALING = [1.0]
+
 
 def get_sldy_metadata(dataset: str) -> dict:
     """
@@ -55,7 +58,7 @@ def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
 
 
 def get_level_shapes(
-    shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]
+    shape: tuple, xy_scaling: list[float], z_scaling: list[float]
 ) -> list[tuple]:
     """
     Determine the image data shape at different resolutions.
@@ -103,7 +106,7 @@ def get_level_shapes(
 
 
 def get_zarr_chunk_dims(
-    im_shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]
+    im_shape: tuple, xy_scaling: list[float], z_scaling: list[float]
 ) -> list[tuple]:
     """
     Determine the chunk dimensions for Zarr storage.
@@ -140,8 +143,8 @@ def write_scene(
     position: int,
     physical_pixel_sizes: PhysicalPixelSizes,
     interval_min: float,
-    xy_scaling: list[float] = [0.5],
-    z_scaling: list[float] = [1.0],
+    xy_scaling: list[float] | None = None,
+    z_scaling: list[float] | None = None,
 ) -> None:
     """
     Write a scene to a Zarr store.
@@ -171,6 +174,11 @@ def write_scene(
     -------
     None
     """
+    if xy_scaling is None:
+        xy_scaling = DEFAULT_XY_SCALING
+    if z_scaling is None:
+        z_scaling = DEFAULT_Z_SCALING
+
     zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
 
     writer = ome_zarr_writer.OmeZarrWriter()
