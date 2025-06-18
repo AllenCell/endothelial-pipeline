@@ -28,6 +28,7 @@ dependencies = [
     "fire>=0.6.0",
     "ipykernel>=6.29.5",
     "jupyter>=1.0.0",
+    "mashumaro>=3.16",
     "matplotlib>=3.10",
     "ngff-zarr==0.8.2",
     "notebook==7.2.1",

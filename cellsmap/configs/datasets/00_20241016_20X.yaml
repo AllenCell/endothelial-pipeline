@@ -12,7 +12,7 @@ pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 244, 22.35], [245, 576, 5.62]]
-488_channel_index: 0
+channel_488_index: 0
 brightfield_channel_index: 1
 n_total_positions: 6
 notes: This is a high-to-low flow dataset. There is some cell debris in the CDH5 channel.

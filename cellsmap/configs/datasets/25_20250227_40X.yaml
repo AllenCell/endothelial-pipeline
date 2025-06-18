@@ -12,7 +12,7 @@ pixel_size_xy_in_um: 0.191
 duration: 481
 time_interval_in_minutes: 1.0
 flow: [[0, 30, 6.16], [31, 480, 21.7]]
-488_channel_index: 0
+channel_488_index: 0
 brightfield_channel_index: 1
 n_total_positions: 1
 notes: USE WITH CAUTION, cell health concern

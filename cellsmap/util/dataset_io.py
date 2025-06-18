@@ -254,11 +254,11 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
 
 def get_specific_channel_order(dataset_name: str) -> Tuple:
     dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("488_channel_index")
+    gfp_index = dataset_info.get("channel_488_index")
     bf_index = dataset_info.get("brightfield_channel_index")
-    index_405 = dataset_info.get("405_channel_index", None)
-    index_561 = dataset_info.get("561_channel_index", None)
-    index_640 = dataset_info.get("640_channel_index", None)
+    index_405 = dataset_info.get("channel_405_index", None)
+    index_561 = dataset_info.get("channel_561_index", None)
+    index_640 = dataset_info.get("channel_640_index", None)
 
     return gfp_index, bf_index, index_405, index_561, index_640
 

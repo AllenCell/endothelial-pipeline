@@ -12,9 +12,9 @@ pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: -1.0
 flow: [[0, -1, 13.5]]
-488_channel_index: 5
+channel_488_index: 5
 brightfield_channel_index: 2
-405_channel_index: 1
+channel_405_index: 1
 n_total_positions: 10
 include_scenes: [0, 1, 2, 4]
 notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
