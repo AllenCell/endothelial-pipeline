@@ -9,7 +9,7 @@ from bioio import BioImage
 from tqdm import tqdm
 
 from cellsmap.util import dataset_io
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_image_processing import (  # noqa: E501
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.image_processing import (
     bf_slice,
     bf_std_dev,
     contrast_stretching,
@@ -74,9 +74,7 @@ def generate_backdrops(
 
     for backdrop, func in backdrop_functions.items():
         if backdrop in backdrops:
-            print(
-                f"Generating {backdrop} for dataset {dataset}, position {position}..."
-            )
+            print(f"Generating {backdrop} for dataset {dataset}, position {position}...")
 
             with ThreadPoolExecutor() as executor:
                 futures = [

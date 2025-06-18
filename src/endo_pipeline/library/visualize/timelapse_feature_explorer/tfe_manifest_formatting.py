@@ -8,12 +8,10 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     project_manifest_to_pcs,
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (  # noqa: E501
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (  # noqa: E501
-    LABEL_MAP,
-)
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 
 
 def update_manifest_for_tfe(
@@ -37,12 +35,7 @@ def update_manifest_for_tfe(
 
     # Generate segmentation image filenames
     df["seg_image"] = (
-        df["dataset"]
-        + "_P"
-        + df["position"].astype(str)
-        + "_T"
-        + df["T"].astype(str)
-        + ".ome.tiff"
+        df["dataset"] + "_P" + df["position"].astype(str) + "_T" + df["T"].astype(str) + ".ome.tiff"
     )
 
     # Add backdrop filenames to the manifest
@@ -84,9 +77,7 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
 
     df_result = pd.concat([df_projected, nan_rows], ignore_index=True)
 
-    assert (
-        df.shape[0] == df_result.shape[0]
-    ), "Shape mismatch dropping and merging back NaN rows"
+    assert df.shape[0] == df_result.shape[0], "Shape mismatch dropping and merging back NaN rows"
 
     return df_result
 

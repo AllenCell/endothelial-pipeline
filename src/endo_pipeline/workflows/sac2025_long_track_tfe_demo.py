@@ -5,17 +5,14 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
-    get_segmentation_features_manifest,
-    ipython_cli_flexecute,
-)
+from cellsmap.util.dataset_io import get_segmentation_features_manifest, ipython_cli_flexecute
 from cellsmap.util.general_image_preprocessing import (
     get_default_dim_order,
     save_image_output,
     sequence_to_scalar,
 )
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (  # noqa: E501
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
 
@@ -89,9 +86,7 @@ def draw_crop_bounds(
     return img_arr
 
 
-def get_out_subdirs(
-    out_dir: Path, dataset_name: str, position: int
-) -> tuple[Path, Path]:
+def get_out_subdirs(out_dir: Path, dataset_name: str, position: int) -> tuple[Path, Path]:
     """
     Get the output subdirectories for fluorescence images overlaid
     with segmentation and crop box, and for crop box-only output images.
@@ -115,9 +110,7 @@ def get_out_subdirs(
     out_dir_seg_and_box = out_dir / "tfe_example_track" / dataset_name / f"P{position}"
     out_dir_seg_and_box.mkdir(exist_ok=True, parents=True)
 
-    out_dir_box_only = (
-        out_dir / "tfe_example_track_box_only" / dataset_name / f"P{position}"
-    )
+    out_dir_box_only = out_dir / "tfe_example_track_box_only" / dataset_name / f"P{position}"
     out_dir_box_only.mkdir(exist_ok=True, parents=True)
 
     return out_dir_seg_and_box, out_dir_box_only
@@ -160,15 +153,11 @@ def generate_crop_outline_images(
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
-    out_dir_seg_and_box, out_dir_box_only = get_out_subdirs(
-        out_dir, dataset_name, position
-    )
+    out_dir_seg_and_box, out_dir_box_only = get_out_subdirs(out_dir, dataset_name, position)
 
     # load segmentation features table associated with the track id
     # and subset the position of interest
-    seg_feat_df = get_segmentation_features_manifest([dataset_name]).query(
-        "position == @position"
-    )
+    seg_feat_df = get_segmentation_features_manifest([dataset_name]).query("position == @position")
     img_shape = {
         "T": 1,
         "C": 1,
@@ -219,9 +208,7 @@ def generate_crop_outline_images(
             crop_box_img_arr = example_track_img_arr.copy().squeeze()
         else:
             # load the segmentation image
-            fp = Path(
-                sequence_to_scalar(seg_feat_df_at_t["cdh5_classic_segmentation_path"])
-            )
+            fp = Path(sequence_to_scalar(seg_feat_df_at_t["cdh5_classic_segmentation_path"]))
             img = BioImage(fp)
             img_arr = img.get_image_data(dim_order)
 

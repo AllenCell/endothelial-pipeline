@@ -72,7 +72,5 @@ def contrast_stretching(
     elif method == "percentile":
         low, high = np.percentile(image, (low_percentile, high_percentile))
 
-    stretched_image = exposure.rescale_intensity(
-        image, in_range=(low, high), out_range=(0, 255)
-    )
+    stretched_image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
     return stretched_image

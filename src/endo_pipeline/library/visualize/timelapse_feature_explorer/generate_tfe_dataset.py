@@ -4,13 +4,11 @@ from colorizer_data import convert_colorizer_data
 
 from cellsmap.util.dataset_io import get_segmentation_features_manifest
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (  # noqa: E501
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import (  # noqa: E501
-    LABEL_MAP,
-)
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (  # noqa: E501
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
     add_feauture_metadata,
     add_intensity_mean_pcs,
@@ -46,13 +44,9 @@ def generate_tfe_dataset(
     df_position = df_tracks[df_tracks["position"] == position]
 
     df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
-    df_diffae_cell_mean = df_diffae_cell_mean[
-        df_diffae_cell_mean["position"] == f"P{position}"
-    ]
+    df_diffae_cell_mean = df_diffae_cell_mean[df_diffae_cell_mean["position"] == f"P{position}"]
     df_diffae_cell_mean["position"] = position
-    df_diffae_cell_mean = df_diffae_cell_mean.rename(
-        columns={"frame_number": "image_index"}
-    )
+    df_diffae_cell_mean = df_diffae_cell_mean.rename(columns={"frame_number": "image_index"})
 
     df_merge_features = df_position.merge(
         df_diffae_cell_mean,
