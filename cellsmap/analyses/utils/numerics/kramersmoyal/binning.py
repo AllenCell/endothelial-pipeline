@@ -17,7 +17,7 @@ def _get_bin_counts(
 ) -> np.ndarray:
     """Get weighted bin counts for the input sample."""
     # Compute the bin number each sample falls into.
-    n_count: Tuple[np.ndarray] = tuple(
+    n_count = tuple(
         np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d)
     )
 
@@ -36,12 +36,13 @@ def _get_bin_counts(
     # correct bin count to the histogram.
 
     # Compute the sample indices in the flattened histogram matrix.
-    # for typing, n_count is a tuple of numpy arrays
-    xy = np.ravel_multi_index(n_count, nbin)
+    # Ensure n_count is a tuple of integer arrays
+    n_count = tuple(arr.astype(int) for arr in n_count)
+    xy = np.ravel_multi_index(n_count, tuple(map(int, nbin)))
 
     # Compute the number of repetitions in xy and assign it to the
     # flattened histmat.
-    hist = _bincount(xy, weights, minlength=nbin.prod())
+    hist = _bincount(xy, weights, minlength=int(np.prod(nbin)))
     return hist
 
 
@@ -109,6 +110,10 @@ def histogramdd(
 
     # Remove outliers (indices 0 and -1 for each dimension).
     core: Tuple[slice, ...] = d * (slice(1, -1),)
-    hist = hist[(..., *core)]
+
+    # slice the histogram to remove outliers
+    # Tell MyPy to ignore the type error here,
+    # doesn't like indexing via ellipsis
+    hist = hist[..., *core]  # type: ignore
 
     return hist
