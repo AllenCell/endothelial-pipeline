@@ -87,7 +87,7 @@ def plot_number_of_nuclei_per_dataset(
 
         for frame, dft in df.groupby("frame"):
             x = frame
-            for position, dfp in dft.groupby("position"):
+            for _position, dfp in dft.groupby("position"):
                 y = dfp["nuclear_label"].nunique()
                 plt.scatter(x, y, alpha=0.4, color=colors[i])
 
