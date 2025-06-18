@@ -12,9 +12,7 @@ from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import dataset_io
 
 
-def plot_flow_over_time_per_dataset(
-    dataset_name_list: list[str], fig_savedir: str
-) -> None:
+def plot_flow_over_time_per_dataset(dataset_name_list: list[str], fig_savedir: str) -> None:
     """
     Plot flow over time for multiple datasets and save the figure.
 
@@ -58,9 +56,7 @@ def plot_flow_over_time_per_dataset(
     vb.save_plot(fig, fig_savedir + "flow_over_time.png", dpi=72)
 
 
-def plot_number_of_nuclei_per_fov(
-    df: pd.DataFrame, dataset: str, fig_savedir: str
-) -> None:
+def plot_number_of_nuclei_per_fov(df: pd.DataFrame, dataset: str, fig_savedir: str) -> None:
     """
     Plot the number of nuclei per field of view (FOV) for a given dataset.
 
@@ -110,9 +106,7 @@ def plot_number_of_nuclei_per_fov(
     )
 
 
-def plot_number_of_nuclei_per_dataset(
-    df_list: list[pd.DataFrame], fig_savedir: str
-) -> None:
+def plot_number_of_nuclei_per_dataset(df_list: list[pd.DataFrame], fig_savedir: str) -> None:
     """
     Plot the total number of nuclei for multiple datasets and save the figure.
 
@@ -243,14 +237,11 @@ def visualize_nuclear_seg(
     axes[2].axis("off")
 
     flow = dataset_io.get_flow_for_frame(dataset, frame)
-    plt.suptitle(
-        f"Dataset: {dataset} Frame: {frame} Position: {position} Flow: {flow} dyn/cm²"
-    )
+    plt.suptitle(f"Dataset: {dataset} Frame: {frame} Position: {position} Flow: {flow} dyn/cm²")
     plt.tight_layout()
     plt.show()
     vb.save_plot(
         fig,
-        filename=fig_savedir
-        + f"nuclear_segmentation_overlay_{dataset}_{position}_{frame}",
+        filename=fig_savedir + f"nuclear_segmentation_overlay_{dataset}_{position}_{frame}",
         dpi=72,
     )

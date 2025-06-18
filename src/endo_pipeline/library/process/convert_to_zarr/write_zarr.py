@@ -57,9 +57,7 @@ def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     return physical_pixel_sizes
 
 
-def get_level_shapes(
-    shape: tuple, xy_scaling: list[float], z_scaling: list[float]
-) -> list[tuple]:
+def get_level_shapes(shape: tuple, xy_scaling: list[float], z_scaling: list[float]) -> list[tuple]:
     """
     Determine the image data shape at different resolutions.
 
@@ -84,9 +82,7 @@ def get_level_shapes(
     """
 
     if len(xy_scaling) != len(z_scaling):
-        raise ValueError(
-            f"XY and Z scaling with different length: XY={xy_scaling}, Z={z_scaling}."
-        )
+        raise ValueError(f"XY and Z scaling with different length: XY={xy_scaling}, Z={z_scaling}.")
     source_shape = shape
     level_shapes = [source_shape]
     nchannels = source_shape[1]

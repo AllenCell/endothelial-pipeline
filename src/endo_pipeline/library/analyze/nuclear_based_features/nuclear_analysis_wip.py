@@ -8,9 +8,7 @@ SAVE_DIR = get_output_path("nuclear_based_density_workflow/figs")
 
 # %% Load datasets
 dataset_list = list_datasets_with_manifest("nuclear_seg_manifest_fmsid")
-dataframes = {
-    dataset_name: get_nuclear_manifest(dataset_name) for dataset_name in dataset_list
-}
+dataframes = {dataset_name: get_nuclear_manifest(dataset_name) for dataset_name in dataset_list}
 print(f"Loaded {len(dataframes)} datasets.")
 print(f"Datasets: {list(dataframes.keys())}")
 
