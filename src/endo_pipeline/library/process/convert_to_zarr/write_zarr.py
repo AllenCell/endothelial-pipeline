@@ -182,7 +182,7 @@ def write_scene(
     )
 
     # Use all channels, if channels are not specific by user
-    channels_to_use = [c for c in range(im.shape[1])]
+    channels_to_use = list(range(im.shape[1]))
 
     print("Writing images...")
     writer.write_t_batches_array(im, channels=channels_to_use, tbatch=4)
