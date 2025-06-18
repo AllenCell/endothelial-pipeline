@@ -82,7 +82,7 @@ def get_level_shapes(
 
     if len(xy_scaling) != len(z_scaling):
         raise ValueError(
-            f"Found XY and Z scaling with different length: XY={xy_scaling}, Z={z_scaling}."
+            f"XY and Z scaling with different length: XY={xy_scaling}, Z={z_scaling}."
         )
     source_shape = shape
     level_shapes = [source_shape]
@@ -112,6 +112,10 @@ def get_zarr_chunk_dims(
     ----------
     im_shape : tuple
         The shape of the image data.
+    xy_scaling : list[float]
+        The scaling factors for the XY dimensions. Default is half the original size.
+    z_scaling : list[float]
+        The scaling factors for the Z dimension. Default is the original size.
 
     Returns
     -------

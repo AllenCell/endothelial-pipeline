@@ -21,7 +21,7 @@ def convert_dataset(
     dataset: str,
     output_dataset_name: str,  # date
     output_path: str,
-    channel_names: list[str] = ["EGFP", "BF"],
+    channel_names: list[str],
 ) -> None:
     """
     Convert a raw dataset into a Zarr format with a specific channel order,
@@ -36,7 +36,7 @@ def convert_dataset(
     output_path : str, optional
         The base directory where the converted Zarr files will be saved.
     channel_names : list[str], optional
-        A list of channel names to include in the output. Defaults to ["EGFP", "BF"].
+        A list of channel names to include in the output.
 
     Returns
     -------

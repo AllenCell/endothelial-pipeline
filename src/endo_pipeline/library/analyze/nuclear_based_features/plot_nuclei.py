@@ -15,6 +15,24 @@ from cellsmap.util import dataset_io
 def plot_flow_over_time_per_dataset(
     dataset_name_list: list[str], fig_savedir: str
 ) -> None:
+    """
+    Plot flow over time for multiple datasets and save the figure.
+
+    This function generates a line plot showing the flow over time (in frames)
+    for each dataset in the provided list. The plot is saved as a PNG file
+    in the specified directory.
+
+    Parameters
+    ----------
+    dataset_name_list : list[str]
+        A list of dataset names to plot.
+    fig_savedir : str
+        The directory where the generated plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     fig = plt.figure(figsize=(12, 10))
     colors = list(mcolors.TABLEAU_COLORS.values())
     linestyles = ["-", "--", "-.", ":"]
@@ -43,6 +61,27 @@ def plot_flow_over_time_per_dataset(
 def plot_number_of_nuclei_per_fov(
     df: pd.DataFrame, dataset: str, fig_savedir: str
 ) -> None:
+    """
+    Plot the number of nuclei per field of view (FOV) for a given dataset.
+
+    This function generates a bar plot showing the number of nuclei detected in each FOV
+    for the specified dataset.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A DataFrame containing the nuclear detection data, which must include columns
+        with "frame", "position", and "nuclear_label".
+    dataset : str
+        The name of the dataset to analyze.
+    fig_savedir : str
+        The directory where the generated plot will be saved.
+
+    Returns
+    -------
+    None
+        This function does not return a value. It generates and saves the plot.
+    """
     fig = plt.figure(figsize=(10, 10))
     colors = list(mcolors.TABLEAU_COLORS.values())
     added_labels = set()
@@ -75,6 +114,21 @@ def plot_number_of_nuclei_per_fov(
 def plot_number_of_nuclei_per_dataset(
     df_list: list[pd.DataFrame], fig_savedir: str
 ) -> None:
+    """
+    Plot the total number of nuclei for multiple datasets and save the figure.
+
+    Parameters
+    ----------
+    df_list : list[str]
+        A list of dataframes for each dataset to analyze.
+    fig_savedir : str
+        The directory where the generated plot will be saved.
+
+    Returns
+    -------
+    None
+        This function does not return a value. It generates and saves the plot.
+    """
     print("Starting plot_number_of_nuclei_per_dataset...")
 
     fig = plt.figure(figsize=(10, 10))
@@ -116,7 +170,30 @@ def plot_number_of_nuclei_per_dataset(
     )
 
 
-def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
+def visualize_nuclear_seg(
+    df: pd.DataFrame, dataset: str, frame: int, position: int, fig_savedir: str
+) -> None:
+    """
+    Visualize nuclear segmentation by overlaying segmentation masks on the image.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A DataFrame containing the nuclear segmentation data, which must include columns
+        with "frame", "position", and "fov_path".
+    dataset : str
+        The name of the dataset to analyze.
+    frame : int
+        The frame number to visualize.
+    position : int
+        The position number to visualize.
+    fig_savedir : str
+        The directory where the generated plot will be saved.
+
+    Returns
+    -------
+    None
+    """
     df_img = df[(df["position"] == position) & (df["frame"] == frame)]
 
     fov_path = df_img["fov_path"].iloc[0]
@@ -168,7 +245,7 @@ def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
 
     flow = dataset_io.get_flow_for_frame(dataset, frame)
     plt.suptitle(
-        f"Dataset: {dataset}, Frame: {frame}, Position: {position}, Flow: {flow} dyn/cm²"
+        f"Dataset: {dataset} Frame: {frame} Position: {position} Flow: {flow} dyn/cm²"
     )
     plt.tight_layout()
     plt.show()
