@@ -41,42 +41,40 @@ class SteadyFP:
         # (number of grid points in each dimension)
         self.d = len(n)
 
-        # set grid resolution and spacing
-        if self.d == 1:
-            # if dim is 1, convert
-            # input list to scalar
-            self.n = n[0]
-            self.dx = dx[0]
-        else:
-            self.n = n
-            self.dx = dx
+        # # set grid resolution and spacing
+        self.n = n
+        self.dx = dx
 
         # Set up indexing matrices for Fourier method for ndim = 1, 2
         if self.d == 1:
-            self.k = 2 * np.pi * fftfreq(n, dx)
-            self.idx = np.zeros((self.N, self.N), dtype=np.int32)
-            for i in range(self.N):
-                self.idx[i, :] = i - np.arange(n)
+            self.k = [2 * np.pi * fftfreq(self.n[0], self.dx[0])]
+            self.idx = np.zeros((self.n[0], self.n[0]), dtype=np.int32)
+            for i in range(self.n[0]):
+                self.idx[i, :] = i - np.arange(self.n[0])
         elif self.d == 2:
             # Fourier frequencies
-            self.k = [2 * np.pi * fftfreq(n[i], dx[i]) for i in range(self.d)]
+            self.k = [2 * np.pi * fftfreq(self.n[i], self.dx[i]) for i in range(self.d)]
             self.idx = np.zeros(
                 (2, self.n[0], self.n[1], self.n[0], self.n[1]), dtype=np.int32
             )
 
-            for i in range(n[0]):
-                for j in range(n[1]):
-                    self.idx[0, i, j, :, :] = i - np.tile(np.arange(n[0]), [n[1], 1]).T
-                    self.idx[1, i, j, :, :] = j - np.tile(np.arange(n[1]), [n[0], 1])
+            for i in range(self.n[0]):
+                for j in range(self.n[1]):
+                    self.idx[0, i, j, :, :] = (
+                        i - np.tile(np.arange(self.n[0]), [self.n[1], 1]).T
+                    )
+                    self.idx[1, i, j, :, :] = j - np.tile(
+                        np.arange(self.n[1]), [self.n[0], 1]
+                    )
 
         else:  # only implemented for 1D and 2D
             raise ValueError("SteadyFP solver only implemented for 1D and 2D. ")
 
         # This will be the operator matrix for the linear system
         # Gets initialized separately with precompute_operator
-        self.operator_matrix = None
+        # initialize as dummy array for now
 
-    def precompute_operator(self, drift: np.ndarray, diffusion: np.ndarray) -> None:
+    def compute_operator(self, drift: np.ndarray, diffusion: np.ndarray) -> np.ndarray:
         """
         Precompute the operator matrix for the linear system of equations.
         This method computes the Fourier transform of the drift
@@ -98,13 +96,13 @@ class SteadyFP:
 
         if self.d == 1:
             # Initialize Fourier transformed coefficients
-            drift_hat = self.dx * fftn(drift)
-            diff_hat = self.dx * fftn(diffusion)
+            drift_hat = self.dx[0] * fftn(drift)
+            diff_hat = self.dx[0] * fftn(diffusion)
 
             # Set up spectral projection operator
-            self.operator_matrix = np.einsum(
-                "i,ij->ij", -1j * self.k, drift_hat[self.idx]
-            ) + np.einsum("i,ij->ij", -self.k**2, diff_hat[self.idx])
+            operator_matrix = np.einsum(
+                "i,ij->ij", -1j * self.k[0], drift_hat[self.idx]
+            ) + np.einsum("i,ij->ij", -self.k[0] ** 2, diff_hat[self.idx])
 
         if self.d == 2:
             # Initialize Fourier transformed coefficients
@@ -115,7 +113,7 @@ class SteadyFP:
                 diff_hat[i] = np.prod(self.dx) * fftn(diffusion[i])
 
             # Set up spectral projection operator
-            self.operator_matrix = (
+            operator_matrix = (
                 -1j
                 * np.einsum(
                     "i,ijkl->ijkl", self.k[0], drift_hat[0, self.idx[0], self.idx[1]]
@@ -137,9 +135,10 @@ class SteadyFP:
             )
 
             # Reshape operator matrix (flatten along grid dimensions)
-            self.operator_matrix = np.reshape(
-                self.operator_matrix, (np.prod(self.n), np.prod(self.n))
+            operator_matrix = np.reshape(
+                operator_matrix, (np.prod(self.n), np.prod(self.n))
             )
+        return operator_matrix
 
     def solve(
         self, drift: np.ndarray, diffusion: np.ndarray, verbose: bool = False
@@ -163,7 +162,7 @@ class SteadyFP:
         """
 
         start_fp_op = time()
-        self.precompute_operator(drift, diffusion)
+        operator_matrix = self.compute_operator(drift, diffusion)
         if verbose:
             print(
                 f"%%%% Computing FP operator time: {time() - start_fp_op} seconds %%%%"
@@ -172,8 +171,8 @@ class SteadyFP:
         start_fp = time()
         q_hat = (
             tla.lstsq(
-                torch.from_numpy(self.operator_matrix[1:, 1:]).to(device),
-                torch.from_numpy(-self.operator_matrix[1:, 0]).to(device),
+                torch.from_numpy(operator_matrix[1:, 1:]).to(device),
+                torch.from_numpy(operator_matrix[1:, 0]).to(device),
                 rcond=1e-6,
             )[0]
             .cpu()

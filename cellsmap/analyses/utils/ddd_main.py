@@ -90,7 +90,7 @@ def ddd_model_analysis(
 
 
 def get_and_analyze_ddd(
-    name: str, pca: Pipeline, kernel_params: dict, fig_savedir: str, config: dict
+    name: str, pca: Pipeline, kernel_params: dict | None, fig_savedir: str, config: dict
 ) -> None:
     """
     Get and analyze data-driven dynamics for a given dataset.
