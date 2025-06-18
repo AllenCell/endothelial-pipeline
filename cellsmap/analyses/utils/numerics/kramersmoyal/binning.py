@@ -106,6 +106,6 @@ def histogramdd(
 
     # Remove outliers (indices 0 and -1 for each dimension).
     core = d * (slice(1, -1),)
-    hist = hist[(...,) + core]
+    hist = hist[(..., *core)]
 
     return hist

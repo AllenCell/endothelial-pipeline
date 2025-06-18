@@ -12,13 +12,12 @@ from typing import (
     Union,
 )
 
-import dask as da
 import numpy as np
 import pandas as pd
 from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from skimage.measure import regionprops
-from skimage.segmentation import clear_border, find_boundaries
+from skimage.segmentation import clear_border
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import extract_T
@@ -93,6 +92,7 @@ def load_images_sequentially(
     ------
     image_list: list of np.array objects
     """
+    print("Preparing filepath and crop lists...") if verbose else None
     assert isinstance(
         filepaths, (list, tuple, Path)
     ), "filepaths must be a list of filepaths or a Path object"
@@ -170,17 +170,16 @@ def load_images_sequentially(
             max(0, i - image_buffer_prior),
             min(len(filepath_list), i + 1 + image_buffer_next),
         )
+        # update the image list to reflect the current slice of images being loaded
         image_list = filepath_list[relative_slice]
         # update the crop dictionary to reflect the current slice of images being loaded
         crop_list = crops[relative_slice]
-        # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
-        crop_list = [
-            {
-                dim: range(*BioImage(image_list[j]).dims[dim])[crop_list[j][dim]]
-                for dim in crop_list[j]
-            }
-            for j in range(len(crop_list))
-        ]
+
+        (
+            print("Identifying which images have already been loaded...")
+            if verbose
+            else None
+        )
         loaded_relative_indices_to_keep = [
             j for j, fp in enumerate(old_image_list) if fp in image_list
         ]
@@ -192,12 +191,13 @@ def load_images_sequentially(
         )
         old_image_list = image_list.copy()
 
+        (
+            print("Carrying over loaded images and loading new images...")
+            if verbose
+            else None
+        )
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
         dim_order_string = "".join(dim_order)
-        loaded_images = loaded_images + [
-            BioImage(image_list[j]).get_image_data(dim_order_string, **crop_list[j])
-            for j in new_image_relative_indices
-        ]
 
         (
             print(
@@ -206,6 +206,26 @@ def load_images_sequentially(
             if verbose
             else None
         )
+
+        new_images = list()
+        for j in new_image_relative_indices:
+            # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
+            img = BioImage(image_list[j])
+            img_dims = img.dims
+            crop = {
+                dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]
+            }
+            (
+                print(
+                    f"Converting crop list (len={len(crop_list)}) to range objects..."
+                )
+                if verbose
+                else None
+            )
+
+            new_images.append(img.get_image_data(dim_order_string, **crop))
+
+        loaded_images += new_images
 
         yield Path(filepath_list[i]), crops[i], loaded_images
 
@@ -1430,9 +1450,9 @@ def run_tracking(
 
     print(f"Generating tracks...") if verbose else None
     results = generate_tracks(
-        img_fps_for_tracking,
-        crops_for_tracking,
-        tracking_metrics,
+        image_filepaths=img_fps_for_tracking,
+        img_crops=crops_for_tracking,
+        tracking_metrics=tracking_metrics,
         timeframes_for_table=timeframes,
         image_buffer_prior=0,
         image_buffer_next=track_tolerance + 1,
@@ -1683,10 +1703,10 @@ def generate_tracks(
     # run analysis on each timepoint of each dataset
     # NOTE load_images_sequentially is a generator
     paths_crops_labeled_images_all = load_images_sequentially(
-        image_filepaths,
-        img_crops,
-        image_buffer_prior,
-        image_buffer_next,
+        filepaths=image_filepaths,
+        crops=img_crops,
+        image_buffer_prior=image_buffer_prior,
+        image_buffer_next=image_buffer_next,
         verbose=verbose,
     )
 

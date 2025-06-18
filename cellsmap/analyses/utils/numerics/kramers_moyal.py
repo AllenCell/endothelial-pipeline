@@ -96,7 +96,7 @@ def get_km_kernel(
         diff_km = kmc[2]
     else:  # if ndim > 1, need to make sure arrays are in the right shape
         # permuted axes (0, ndim, ndim-1, ..., 1)
-        axes_permute = [0] + list(reversed(range(1, ndim + 1)))
+        axes_permute = [0, *list(reversed(range(1, ndim + 1)))]
         #  swap last ndim axes to get correct shape:
         # n_powers x N[ndim] x N[ndim-1] x ... x N[1]
         kmc = np.transpose(kmc, axes_permute)

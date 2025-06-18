@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 import dask
@@ -91,7 +92,7 @@ def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     return config_data
 
 
-def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> None:
+def write_config(config: Dict[str, Dict[str, Any]], config_type: str = "data") -> None:
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError(
             'Invalid config type. Must be either "data", "model", or "dynamics."'
@@ -265,11 +266,11 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
 
 def get_specific_channel_order(dataset_name: str) -> Tuple:
     dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("488_channel_index")
+    gfp_index = dataset_info.get("channel_488_index")
     bf_index = dataset_info.get("brightfield_channel_index")
-    index_405 = dataset_info.get("405_channel_index", None)
-    index_561 = dataset_info.get("561_channel_index", None)
-    index_640 = dataset_info.get("640_channel_index", None)
+    index_405 = dataset_info.get("channel_405_index", None)
+    index_561 = dataset_info.get("channel_561_index", None)
+    index_640 = dataset_info.get("channel_640_index", None)
 
     return gfp_index, bf_index, index_405, index_561, index_640
 
@@ -907,3 +908,60 @@ def extract_P(
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f"P{position_value}"
+
+
+def get_git_versioning_info() -> dict[str, str]:
+    """
+    Returns versioning info about the script, including the branch
+    name, commit hash, uncommitted changes, and timestamp of when
+    the script was run.
+    """
+    # get some versioning info about when this script was run and
+    # what version of the script was used to produce the output
+    # to save alongside the output
+    # the branch name:
+    git_branch_name = (
+        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
+    # the current commit hash:
+    git_commit_hash = (
+        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    )
+    # if there were any uncommitted changes when this script was run:
+    git_uncommitted_changes = (
+        subprocess.check_output(["git", "diff", "HEAD", "--name-only"])
+        .decode("ascii")
+        .strip()
+        or "None"
+    )
+    # the timestamp that this script was run:
+    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
+
+    git_branch_info = {
+        "timestamp": str(timestamp),
+        "git_branch_name": str(git_branch_name),
+        "git_commit_hash": str(git_commit_hash),
+        "git_uncommitted_changes": str(git_uncommitted_changes),
+    }
+    return git_branch_info
+
+
+def save_git_versioning_info(
+    output_dir: Path,
+    filename_prefix: str,
+    verbose: bool = True,
+) -> None:
+    """
+    Saves git versioning info to a .txt file in the specified output directory.
+    The filename will be prepended with the provided filename_prefix.
+    output_dir should be a path that exists already, it will not be created.
+    """
+    git_info = get_git_versioning_info()
+    output_path = output_dir / f"{filename_prefix}_git_versioning_info.txt"
+    with output_path.open("w") as git_versioning_file:
+        for key, value in git_info.items():
+            git_versioning_file.write(f"{key}: {value}\n")
+    print(f"Git versioning info saved to {output_path}.") if verbose else None
+    return None

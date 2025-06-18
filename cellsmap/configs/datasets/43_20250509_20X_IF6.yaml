@@ -12,10 +12,10 @@ pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: -1.0
 flow: [[0, -1, 5.98]]
-405_channel_index: 0
-488_channel_index: 1
-561_channel_index: 2
-640_channel_index: 3
+channel_405_index: 0
+channel_488_index: 1
+channel_561_index: 2
+channel_640_index: 3
 brightfield_channel_index: 4
 n_total_positions: 2
 notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF

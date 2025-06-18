@@ -12,9 +12,9 @@ pixel_size_xy_in_um: 0.382
 duration: 542
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 12.2]]
-488_channel_index: 0
+channel_488_index: 0
 brightfield_channel_index: 1
-n_nuclear_seg_manifest_fmsid: ''
+nuclear_seg_manifest_fmsid: ''
 n_total_positions: 6
 notes: Stopped imaging prior to 48 hours because cells were very packed
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250319_20X
