@@ -84,19 +84,18 @@ def plot_number_of_nuclei_per_fov(
     """
     fig = plt.figure(figsize=(10, 10))
     colors = list(mcolors.TABLEAU_COLORS.values())
-    added_labels = set()
+    added_labels: set[str] = set()
 
     for frame, dft in df.groupby("frame"):
         x = frame
         for idx, (position, dfp) in enumerate(dft.groupby("position")):
             y = dfp["nuclear_label"].nunique()
+            c = colors[idx % len(colors)]
             if position not in added_labels and len(added_labels) < 6:
-                plt.scatter(
-                    x, y, alpha=0.5, color=colors[idx % len(colors)], label=position
-                )
-                added_labels.add(position)
+                plt.scatter(x, y, alpha=0.5, color=c, label=position)  # type: ignore
+                added_labels.add(str(position))
             else:
-                plt.scatter(x, y, alpha=0.75, color=colors[idx % len(colors)])
+                plt.scatter(x, y, alpha=0.75, color=c)  # type: ignore
 
     plt.ylim(0, 350)
     plt.xlabel("Time (frames)")
@@ -143,7 +142,7 @@ def plot_number_of_nuclei_per_dataset(
             x = frame
             for _position, dfp in dft.groupby("position"):
                 y = dfp["nuclear_label"].nunique()
-                plt.scatter(x, y, alpha=0.4, color=colors[i])
+                plt.scatter(x, y, alpha=0.4, color=colors[i])  # type: ignore
 
         legend_elements.append(
             Line2D(
