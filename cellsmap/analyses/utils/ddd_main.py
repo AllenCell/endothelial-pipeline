@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -174,12 +174,15 @@ def get_and_analyze_ddd(
         )
 
         # turn into callable vector fields
-        drift = ddff.get_callable_vector_field(drift_dict, for_solve_ivp=False)
         # have to have shear as a parameter
         # (dummy variable)
-        drift_ = lambda x, u: drift(x)
-        diffusion = ddff.get_callable_vector_field(diffusion_dict, for_solve_ivp=False)
-        diffusion_ = lambda x, u: diffusion(x)
+        def drift_(x, u, vector_dict=drift_dict):
+            drift = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
+            return drift(x)
+
+        def diffusion_(x, u, vector_dict=diffusion_dict):
+            diffusion = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
+            return diffusion(x)
 
         # call main model analysis function
         # for the data driven dynamics workflow

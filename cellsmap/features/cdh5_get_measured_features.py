@@ -210,7 +210,7 @@ def build_measured_features_tables(
     print(f"T={T} -- loading imaging datasets") if verbose else None
     # load the raw cdh5 image data
     if use_original_data:
-        cdh5_chan_index = get_dataset_info(dataset_name)["488_channel_index"]
+        cdh5_chan_index = get_dataset_info(dataset_name)["channel_488_index"]
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
         img.set_scene(scene)

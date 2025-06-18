@@ -12,7 +12,7 @@ pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 262, 5.83], [263, 576, 22.0]]
-488_channel_index: 0
+channel_488_index: 0
 brightfield_channel_index: 1
 n_total_positions: 6
 notes: ''
