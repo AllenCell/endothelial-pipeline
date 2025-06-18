@@ -194,7 +194,7 @@ def build_measured_features_tables(
     # # the timestamp that this script was run:
     # timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
 
-    print(f"Working on {dataset_name} -- T={T}...") if verbose else False
+    print(f"Working on {dataset_name} -- T={T}...") if verbose else None
 
     dim_order = "TCZYX"
 
