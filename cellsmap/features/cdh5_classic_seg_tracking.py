@@ -16,6 +16,7 @@ from cellsmap.util.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
+    save_git_versioning_info,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
@@ -38,7 +39,15 @@ def run_workflow(queue: Sequence) -> None:
     use_original_data = sequence_to_scalar(queue_df["use_original_data"])
 
     # get the segmentation images
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position=position))
+    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position=position)
+    if seg_dir is not None:
+        seg_dir = Path(seg_dir)
+    else:
+        print(
+            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
+        )
+        return
+
     seg_filepaths = sorted(
         seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name)
     )
@@ -140,8 +149,6 @@ def main(
         ):
             run_workflow(queue)
 
-    print("\N{MICROSCOPE} Done analysis.")
-
     for dataset in dataset_name_list:
         tracking_table_paths = (out_dir / dataset).glob("*/*.tsv")
         if tracking_table_paths:
@@ -152,6 +159,12 @@ def main(
                 index=False,
                 sep="\t",
             )
+    # save git versioning info
+    save_git_versioning_info(
+        out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+    )
+
+    print("\N{MICROSCOPE} Done analysis.")
 
 
 if __name__ == "__main__":

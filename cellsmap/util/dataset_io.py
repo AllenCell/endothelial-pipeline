@@ -1,4 +1,5 @@
 import subprocess
+from os import scandir
 from pathlib import Path
 
 import dask
@@ -949,7 +950,7 @@ def get_git_versioning_info() -> dict[str, str]:
 
 
 def save_git_versioning_info(
-    output_dir: Path,
+    out_dir: Path,
     filename_prefix: str,
     verbose: bool = True,
 ) -> None:
@@ -965,3 +966,83 @@ def save_git_versioning_info(
             git_versioning_file.write(f"{key}: {value}\n")
     print(f"Git versioning info saved to {output_path}.") if verbose else None
     return None
+
+
+def concatenate_and_save_feature_tables(
+    out_dir: Path,
+    dataset_name: str,
+    out_file_suffix: str = "",
+    input_filename_contains: str = "",
+    file_extension: str = ".csv",
+    sort_by_T: bool = True,
+    check_saved_dataframe: bool = True,
+    remove_initial_files_and_folders: bool = False,
+) -> None:
+    """
+    Concatenates the nuclei feature tables for all positions and
+    timepoints for a given dataset in an out_dir and then saves
+    the concatenated table to the output directory.
+    The expected file structure in out_dir is:
+    out_dir/dataset_name/position/*filename_contains*.file_extension
+    """
+    out_subdir = out_dir / dataset_name
+    feats_dfs = []
+
+    file_extension = (
+        f".{file_extension}" if not file_extension.startswith(".") else file_extension
+    )
+    if input_filename_contains and not input_filename_contains.endswith("*"):
+        input_filename_contains = f"{input_filename_contains}*"
+    feats_filepaths = list(
+        out_subdir.glob(f"**/*{input_filename_contains}{file_extension}")
+    )
+    if sort_by_T:
+        feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
+    feats_dfs = [pd.read_csv(fp, sep="\t") for fp in feats_filepaths]
+
+    if feats_dfs:
+        concatenated_df = pd.concat(feats_dfs, ignore_index=True)
+        if out_file_suffix:
+            out_file_suffix = (
+                f"_{out_file_suffix}"
+                if not out_file_suffix.startswith("_")
+                else f"{out_file_suffix}"
+            )
+        concatenated_df_out_path = (
+            out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
+        )
+        sep = "\t" if file_extension == ".tsv" else ","
+        concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
+    else:
+        print(f"No feature tables found for {dataset_name}.")
+
+    if check_saved_dataframe:
+        # check that the concatenated dataframe at least has the same shape
+        # and column names as a proxy for checking if it was saved correctly
+        saved_df = pd.read_csv(concatenated_df_out_path, sep=sep)
+        same_shape = saved_df.shape == concatenated_df.shape
+        same_column_names = all(saved_df.columns == concatenated_df.columns)
+        if not (same_shape and same_column_names):
+            raise ValueError(
+                f"Saved dataframe {concatenated_df_out_path} does not match the concatenated dataframe."
+            )
+        print(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
+
+    if remove_initial_files_and_folders:
+        # remove files that match input_filename_contains
+        for fp in feats_filepaths:
+            fp.unlink()
+    dirs_to_remove = list(out_subdir.glob("**/"))
+    # remove the empty directory now that old tables are deleted
+    # (note this must be done in reverse order because a folder with
+    # subfolders does not count as empty and therfore raises an error)
+    for dir_path in dirs_to_remove[::-1]:
+        # NOTE that rmdir only removes empty directories
+        # and will raise an error if it is not empty. If
+        # a directory is not empty then we will skip it
+        if not any(list(scandir(dir_path))):
+            dir_path.rmdir()
+            print(f"Removed empty directory {dir_path}.")
+        else:
+            print(f"Directory {dir_path} is not empty, skipping removal.")
+            continue

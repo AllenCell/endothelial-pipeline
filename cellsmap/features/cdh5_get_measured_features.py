@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from cellsmap.util import shape_features as feat
 from cellsmap.util.dataset_io import (
+    concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -233,7 +234,15 @@ def build_measured_features_tables(
 
     print(f"T={T} -- loading classic segmentation") if verbose else None
     # load the segmentation images
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
+    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
+    if seg_dir is not None:
+        seg_dir = Path(seg_dir)
+    else:
+        print(
+            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
+        )
+        return
+
     seg_filepath_list = [
         fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T
     ]
@@ -476,7 +485,6 @@ def main(
 
     if n_proc > 1:
         if __name__ == "__main__":
-            print("Starting multiprocessing...")
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
@@ -486,19 +494,37 @@ def main(
                             chunksize=2,
                         ),
                         total=len(analysis_queue),
+                        desc="Getting cell features (MP)...",
                     )
                 )
                 pool.close()
                 pool.join()
-            print("Done multiprocessing.")
     else:
-        print("Running workflow with single process...")
-        for dataset_name_and_args in analysis_queue:
+        for dataset_name_and_args in tqdm(
+            analysis_queue, desc="Getting cell features (1P)..."
+        ):
             build_measured_features_tables_multiproc_wrapper(dataset_name_and_args)
-        print("Done single-processing.")
 
     # lastly, for each dataset concatenate the tables from each timepoint
     # into a single output table for that dataset
+    for dataset_name in dataset_name_list:
+        concatenate_and_save_feature_tables(
+            out_dir,
+            dataset_name,
+            out_file_suffix="alignments",
+            input_filename_contains="alignments",
+            file_extension=".csv",
+            remove_initial_files_and_folders=True,
+        )
+        concatenate_and_save_feature_tables(
+            out_dir,
+            dataset_name,
+            out_file_suffix="segprops",
+            input_filename_contains="segprops",
+            file_extension=".csv",
+            remove_initial_files_and_folders=True,
+        )
+
     analysis_queue_df = pd.DataFrame(analysis_queue)
     analysis_queue_per_dataset = analysis_queue_df.groupby("dataset_name")
 
@@ -527,7 +553,7 @@ def main(
         print("Done single-processing.")
 
     save_git_versioning_info(
-        output_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+        out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
     )
 
     print("\N{MICROSCOPE} Done analysis.")

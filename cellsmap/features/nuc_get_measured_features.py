@@ -8,12 +8,13 @@ from skimage.measure import regionprops
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
-    extract_T,
+    concatenate_and_save_feature_tables,
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
     load_cdh5_classic_segmentation,
     load_dataset_position_as_dask_array,
     load_nuclei_prediction,
+    save_git_versioning_info,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
@@ -253,55 +254,13 @@ def get_nuclei_features_from_dataset_at_T(
     return nuc_feats_df
 
 
-def concatenate_and_save_nuclei_feature_tables(
-    out_dir: Path, dataset_name: str
-) -> None:
-    """
-    Concatenates the nuclei feature tables for all positions and
-    timepoints for a given dataset and then saves the concatenated
-    table to the output directory.
-    """
-    out_subdir = out_dir / dataset_name
-    nuc_feats_dfs = []
-
-    nuc_feats_filepaths = sorted(
-        out_subdir.glob("**/*.tsv"), key=lambda fp: extract_T(fp.stem)
-    )
-    nuc_feats_dfs = [pd.read_csv(fp, sep="\t") for fp in nuc_feats_filepaths]
-
-    if nuc_feats_dfs:
-        concatenated_df = pd.concat(nuc_feats_dfs, ignore_index=True)
-        concatenated_df_out_path = out_dir / f"{dataset_name}_nuclei_features.tsv"
-        concatenated_df.to_csv(concatenated_df_out_path, sep="\t", index=False)
-    else:
-        print(f"No nuclei feature tables found for {dataset_name}.")
-
-
-def remove_initial_nuclei_feature_tables(out_dir: Path, dataset_name: str) -> None:
-    """
-    Removes the initial nuclei feature tables for all positions and
-    timepoints for a given dataset to eliminate redundancy / save space.
-    """
-    out_subdir = out_dir / dataset_name
-    nuc_feats_filepaths = out_subdir.glob("**/*.tsv")
-    for fp in nuc_feats_filepaths:
-        fp.unlink()
-    list(out_subdir.glob("*/"))
-    dirs_to_remove = list(out_subdir.glob("**/"))
-    # remove the empty directory now that old tables are deleted
-    # (note this must be done in reverse order because a folder with
-    # subfolders does not count as empty and therfore raises an error)
-    for dir_path in dirs_to_remove[::-1]:
-        dir_path.rmdir()
-
-
 def main(
     dataset_name: str | None = None,
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
     use_original_data: bool = False,
-    test: bool = False,
+    is_test: bool = False,
 ) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
@@ -314,11 +273,10 @@ def main(
         out_dir=out_dir,
         overwrite=True,
         verbose=verbose,
+        is_test=is_test,
         image_validation_frequency=None,
         use_original_data=use_original_data,
     )
-    if test:
-        analysis_queue = analysis_queue[:20]
 
     # get and save results from images in analysis queue
     if n_proc > 1:
@@ -341,8 +299,19 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list, desc="Replacing individual tables with combined table..."
         ):
-            concatenate_and_save_nuclei_feature_tables(out_dir, dataset_name)
-            remove_initial_nuclei_feature_tables(out_dir, dataset_name)
+            concatenate_and_save_feature_tables(
+                out_dir=out_dir,
+                dataset_name=dataset_name,
+                out_file_suffix="nuclei_features",
+                file_extension=".tsv",
+                remove_initial_files_and_folders=True,
+            )
+        # save git versioning info
+        save_git_versioning_info(
+            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+        )
+
+    print("\N{MICROSCOPE} Done analysis.")
 
 
 if __name__ == "__main__":
