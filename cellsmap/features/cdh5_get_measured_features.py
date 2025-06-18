@@ -1,6 +1,5 @@
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -23,13 +22,12 @@ from cellsmap.util.dataset_io import (
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
-    get_dim_map,
     save_image_output,
 )
 from cellsmap.util.set_output import get_output_path
 
 
-def build_measured_features_tables_multiproc_wrapper(args: Dict) -> None:
+def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     dataset_name = args["dataset_name"]
     scene = args["scene_index"]
     position = args["position"]
@@ -199,7 +197,6 @@ def build_measured_features_tables(
     print(f"Working on {dataset_name} -- T={T}...")
 
     dim_order = "TCZYX"
-    dim_map = get_dim_map(dim_order)
 
     out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
@@ -218,14 +215,18 @@ def build_measured_features_tables(
         img = BioImage(image_path)
         img.set_scene(scene)
         raw_dask_arr = img.get_image_dask_data(dim_order, C=[cdh5_chan_index], T=T)
-        raw_dask_arr = raw_dask_arr.max(axis=dim_map["Z"], keepdims=True)
+        raw_dask_arr = raw_dask_arr.max(axis=dim_order.index("Z"), keepdims=True)
         raw_arr = raw_dask_arr.compute().squeeze()
         voxel_size = img.physical_pixel_sizes
     else:
         raw_arr = load_dataset_position_as_dask_array(
-            dataset_name, position, channels=["EGFP"]
+            dataset_name,
+            position,
+            channels=["EGFP"],
+            time_start=T,
+            time_end=T,
         )
-        raw_arr = raw_arr.max(axis=dim_map["Z"]).squeeze()
+        raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze()
         zarr_name = get_zarr_name(dataset_name, position)
         image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
@@ -443,7 +444,7 @@ def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
     )
 
 
-def concatenate_tables_multiproc(queue_group: Tuple) -> None:
+def concatenate_tables_multiproc(queue_group: tuple) -> None:
     dataset_name, queue_df = queue_group
     out_dir = queue_df["output_dir"].iloc[0]
     concatenate_tables(dataset_name, out_dir)
