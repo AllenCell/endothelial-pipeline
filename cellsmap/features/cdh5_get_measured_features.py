@@ -1,4 +1,3 @@
-import subprocess
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, Tuple
@@ -20,6 +19,7 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
+    save_git_versioning_info,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
@@ -173,28 +173,28 @@ def build_measured_features_tables(
     - git_uncommitted_changes
     """
 
-    # get some versioning info about when this script was run and
-    # what version of the script was used to produce the output
-    # to save alongside the output
-    # the branch name:
-    git_branch_name = (
-        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-        .decode("ascii")
-        .strip()
-    )
-    # the current commit hash:
-    git_commit_hash = (
-        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-    )
-    # if there were any uncommitted changes when this script was run:
-    git_uncommitted_changes = (
-        subprocess.check_output(["git", "diff", "HEAD", "--name-only"])
-        .decode("ascii")
-        .strip()
-        or "None"
-    )
-    # the timestamp that this script was run:
-    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
+    # # get some versioning info about when this script was run and
+    # # what version of the script was used to produce the output
+    # # to save alongside the output
+    # # the branch name:
+    # git_branch_name = (
+    #     subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    #     .decode("ascii")
+    #     .strip()
+    # )
+    # # the current commit hash:
+    # git_commit_hash = (
+    #     subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    # )
+    # # if there were any uncommitted changes when this script was run:
+    # git_uncommitted_changes = (
+    #     subprocess.check_output(["git", "diff", "HEAD", "--name-only"])
+    #     .decode("ascii")
+    #     .strip()
+    #     or "None"
+    # )
+    # # the timestamp that this script was run:
+    # timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
 
     print(f"Working on {dataset_name} -- T={T}...")
 
@@ -302,10 +302,10 @@ def build_measured_features_tables(
                     "fluor_pct75 (au)"
                 ],
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
-                "measurement_timestamp": timestamp,
-                "git_branch_name": git_branch_name,
-                "git_commit_hash": git_commit_hash,
-                "git_uncommitted_changes": git_uncommitted_changes,
+                # "measurement_timestamp": timestamp,
+                # "git_branch_name": git_branch_name,
+                # "git_commit_hash": git_commit_hash,
+                # "git_uncommitted_changes": git_uncommitted_changes,
             }
         )
         table.to_csv(
@@ -405,10 +405,10 @@ def build_measured_features_tables(
                     "touches_image_border": labeled_region_metrics[
                         "touches_image_border"
                     ],
-                    "measurement_timestamp": timestamp,
-                    "git_branch_name": git_branch_name,
-                    "git_commit_hash": git_commit_hash,
-                    "git_uncommitted_changes": git_uncommitted_changes,
+                    # "measurement_timestamp": timestamp,
+                    # "git_branch_name": git_branch_name,
+                    # "git_commit_hash": git_commit_hash,
+                    # "git_uncommitted_changes": git_uncommitted_changes,
                 }
             )
             table.to_csv(
@@ -461,7 +461,7 @@ def main(
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     print("Building analysis queue...")
-    out_dir = get_output_path(Path(__file__).stem, verbose=False)
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
     analysis_queue = build_analysis_queue(
         dataset_name_list,
         save_output=save_output,
@@ -525,8 +525,12 @@ def main(
             concatenate_tables_multiproc(queue_group)
         print("Done single-processing.")
 
+    save_git_versioning_info(
+        output_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+    )
 
-print("\N{MICROSCOPE} Done analysis.")
+    print("\N{MICROSCOPE} Done analysis.")
+
 
 if __name__ == "__main__":
     ipython_cli_flexecute(main)
