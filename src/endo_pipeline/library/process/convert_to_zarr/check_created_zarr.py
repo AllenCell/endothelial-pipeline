@@ -8,20 +8,28 @@ from cellsmap.util import dataset_io
 
 
 def get_channel_crop(
-    img: BioImage, T: int, C: int, crop_size: tuple[int, int] = (128, 128)
+    img: BioImage, t: int, c: int, crop_size: tuple[int, int] = (128, 128)
 ) -> np.ndarray:
-    """Helper function to get cropped data for a specific channel.
-
-    Args:
-        img (BioImage): The BioImage object containing the image data.
-        T (int): The timepoint index.
-        C (int): The channel index.
-        crop_size (Tuple[int, int], optional): The crop size (height, width). Defaults to (128, 128).
-
-    Returns:
-        np.ndarray: The cropped image data as a NumPy array.
     """
-    return img.get_image_dask_data("ZYX", T=T, C=C)[
+    Get cropped data for a specific channel.
+
+    Parameters
+    ----------
+    img : BioImage
+        The BioImage object containing the image data.
+    t : int
+        The timepoint index.
+    c : int
+        The channel index.
+    crop_size : tuple[int, int], optional
+        The crop size (height, width). Defaults to (128, 128).
+
+    Returns
+    -------
+    np.ndarray
+        The cropped image data as a NumPy array.
+    """
+    return img.get_image_dask_data("ZYX", T=t, C=c)[
         :,  # Keep all Z-slices
         0 : crop_size[0],  # Crop along Y-axis
         0 : crop_size[1],  # Crop along X-axis
@@ -29,7 +37,8 @@ def get_channel_crop(
 
 
 # %%
-#  Quickly visualize crop in first position, first timepoint of each zarr to confirm channel order is correct
+# Quickly visualize crop in first position,
+# first timepoint of each zarr to confirm channel order is correct
 for dataset_name in dataset_io.get_available_datasets():
     fmsid = dataset_io.get_fmsid(dataset_name)
     barcode = dataset_io.get_barcode(dataset_name)
@@ -38,7 +47,7 @@ for dataset_name in dataset_io.get_available_datasets():
     print(f"barcode: {barcode}")
 
     zarr_paths = dataset_io.get_zarr_path(dataset_name)
-    for name, position_path in zarr_paths.items():
+    for _, position_path in zarr_paths.items():
         img = BioImage(position_path)
         print(f"image shape: {img.shape}")
         n_channels = img.shape[1]
@@ -47,7 +56,7 @@ for dataset_name in dataset_io.get_available_datasets():
         # Compute projections for all channels
         channel_projections = []
         for c in range(n_channels):
-            channel = get_channel_crop(img, T=0, C=c)
+            channel = get_channel_crop(img, t=0, c=c)
             if c == 1:  # Special case for Channel 1 (BF): use center slice
                 projection = channel[channel.shape[0] // 2, :, :]
             else:  # Default: use max projection

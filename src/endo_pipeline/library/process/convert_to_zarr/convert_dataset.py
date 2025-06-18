@@ -20,20 +20,27 @@ from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import (
 def convert_dataset(
     dataset: str,
     output_dataset_name: str,  # date
-    output_path: str = "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs",
+    output_path: str,
     channel_names: list[str] = ["EGFP", "BF"],
 ) -> None:
     """
-    Converts a raw dataset into a Zarr format with a specific channel order
-    and images of positions over time are organized in scenes.
+    Convert a raw dataset into a Zarr format with a specific channel order,
+    where images of positions over time are organized in scenes.
 
-    Args:
-        dataset (str): The name of the dataset to be converted.
-        output_dataset_name (str): The name of the output dataset (typically includes a date).
-        output_path (str, optional): The base directory where the converted Zarr files will be saved.
-            Defaults to "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs".
-        channel_names (list[str], optional): A list of channel names to include in the output.
-            Defaults to ["EGFP", "BF"].
+    Parameters
+    ----------
+    dataset : str
+        The name of the dataset to be converted.
+    output_dataset_name : str
+        The name of the output dataset (typically includes a date).
+    output_path : str, optional
+        The base directory where the converted Zarr files will be saved.
+    channel_names : list[str], optional
+        A list of channel names to include in the output. Defaults to ["EGFP", "BF"].
+
+    Returns
+    -------
+    None
     """
 
     img = BioImage(get_original_path(dataset))
@@ -50,21 +57,24 @@ def convert_dataset(
         f"number of scenes ({len(img.scenes)}) in the image file for dataset {dataset}"
     )
 
-    num_pos_in_T = n_positions // len(img.scenes)
-    num_pos_in_S = len(img.scenes)
+    num_pos_in_t = n_positions // len(img.scenes)
+    num_pos_in_s = len(img.scenes)
 
     count = 0
-    for scene_index in range(num_pos_in_S):
+    for scene_index in range(num_pos_in_s):
         subset_scene_list = get_included_scenes(dataset)
         if scene_index not in subset_scene_list:
             continue
         else:
             print(f"Processing scene {img.scenes[scene_index]}")
-        for position in range(num_pos_in_T):
-            output = f"{output_path}/{output_dataset_name}_{fmsid}/{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
+        for position in range(num_pos_in_t):
+            output = (
+                f"{output_path}/{output_dataset_name}_{fmsid}/"
+                f"{output_dataset_name}_{fmsid}_P{count}.ome.zarr"
+            )
             print(f"Writing to {output}")
             scene = get_delayed_array_for_position(
-                position, dataset, channel_names, num_pos_in_T, scene_index, img
+                position, dataset, channel_names, num_pos_in_t, scene_index, img
             )
             write_scene(
                 scene,
