@@ -6,12 +6,16 @@ from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
-import cellsmap.analyses.utils.io.vtk_io as vtk_io
-import cellsmap.analyses.utils.regression_helper as rh
-import cellsmap.analyses.utils.viz.flow_field_viz as ffv
 import cellsmap.util.manifest_io as manifest_io
-from cellsmap.util.manifest_preprocessing import (
+from src.endo_pipeline.configs import vtk_io
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
+    regression_helper as rh,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
+)
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import (
+    flow_field_viz as ffv,
 )
 
 
