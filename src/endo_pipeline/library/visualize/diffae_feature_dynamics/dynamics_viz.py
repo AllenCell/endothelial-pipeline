@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-from cellsmap.analyses.utils.viz import viz_base as vb
+from src.endo_pipeline.library.visualize import viz_base as vb
 
 
 def plot_fixed_points_by_shear(

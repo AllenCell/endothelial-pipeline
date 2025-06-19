@@ -5,8 +5,12 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from cellsmap.analyses.utils.numerics.kramersmoyal import kernels
-from cellsmap.analyses.utils.numerics.kramersmoyal.binning import histogramdd
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+    kernels,
+)
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal.binning import (
+    histogramdd,
+)
 
 
 def string_to_kernel(kernel: str) -> Callable:

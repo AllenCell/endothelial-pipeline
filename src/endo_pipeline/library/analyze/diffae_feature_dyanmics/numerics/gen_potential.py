@@ -1,8 +1,12 @@
 import numpy as np
 from scipy.integrate import simpson
 
-import cellsmap.analyses.utils.numerics.fp_solvers as fps
-from cellsmap.analyses.utils.model_eval import get_normalization_constant
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.model_eval import (
+    get_normalization_constant,
+)
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+    fp_solvers as fps,
+)
 
 
 def gradient_flow_term(

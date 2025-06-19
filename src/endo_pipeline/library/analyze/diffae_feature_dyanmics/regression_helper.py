@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-import cellsmap.analyses.utils.numerics.kramers_moyal as km
 import cellsmap.util.dataset_io as dio
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+    kramers_moyal as km,
+)
 
 
 def get_bins(

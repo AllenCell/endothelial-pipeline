@@ -5,13 +5,15 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
-from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.analyses.utils.viz import manifest_viz
-from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util.general_image_preprocessing import sequence_to_scalar
-from cellsmap.util.manifest_preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+    data_driven_flow_field as ddff,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def set_slice_plot_bounds_and_labels(
