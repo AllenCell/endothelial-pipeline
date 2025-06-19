@@ -78,7 +78,7 @@ def generate_results(
         original_path = Path(get_original_path(dataset_name))
         img_path = original_path
         img = BioImage(img_path)
-        egfp_index = get_dataset_info(dataset_name)["channel_488_index"]
+        egfp_index = get_dataset_info(dataset_name)["488_channel_index"]
         if scene_index is not None or scene_name is not None:
             scene = (
                 scene_index or scene_name or 0

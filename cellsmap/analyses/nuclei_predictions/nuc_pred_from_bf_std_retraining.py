@@ -103,7 +103,7 @@ def get_image_data_from_original(
 
     channel_names = sldmd.get_channel_name(img.metadata)
     channel_names = [chan.split("/")[0] for chan in channel_names]
-    nuc_chan = get_dataset_info(dataset_name)["channel_405_index"]
+    nuc_chan = get_dataset_info(dataset_name)["405_channel_index"]
     bf_chan = get_dataset_info(dataset_name)["brightfield_channel_index"]
     img_dask_arr_nuc = img.get_image_dask_data(dim_order, C=[nuc_chan], T=T).max(
         axis=dim_map["Z"], keepdims=True

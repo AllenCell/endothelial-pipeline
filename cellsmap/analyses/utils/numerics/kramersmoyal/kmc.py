@@ -177,7 +177,7 @@ def _km(
     grads: list[np.ndarray],
     bins: list[np.ndarray],
     powers: np.ndarray,
-    kernel_func: callable,
+    kernel_func: Callable,
     bw: float,
     tol: float,
     conv_method: str,
@@ -188,7 +188,7 @@ def _km(
     """
 
     # Internal function to get the Cartesian product of the bin edges
-    def cartesian_product(arrays: np.ndarray):
+    def _cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
         # Taken from https://stackoverflow.com/questions/11144513
         la = len(arrays)
         arr = np.empty([len(a) for a in arrays] + [la], dtype=np.float64)
@@ -197,7 +197,7 @@ def _km(
         return arr
 
     # Concatenate all gradients, need to get weights for weighted histogram
-    grads = np.concatenate(grads, axis=0)
+    grads_concat: np.ndarray = np.concatenate(grads, axis=0)
     # Get trajectories for weighted histogram
     # (timepoints corresponding to the gradients)
     # Note that the last timepoint of each trajectory
@@ -223,7 +223,7 @@ def _km(
     #                           (x_0(t+1)-x_0(t))^2,
     #                           (x_1(t+1)-x_1(t))^2]
     # If there are L powers and M observations, the result is an L x M array.
-    weights = np.prod(np.power(grads.T, powers[..., None]), axis=1)
+    weights = np.prod(np.power(grads_concat.T, powers[..., None]), axis=1)
 
     ##### Get weighted histogram for convolution
 
@@ -246,7 +246,7 @@ def _km(
     # (Default convolution method is 'auto', which uses
     # fft if the kernel is large enough.)
     edges_k = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
-    kernel_ = kernel_func(cartesian_product(edges_k), bw=bw)
+    kernel_ = kernel_func(_cartesian_product(edges_k), bw=bw)
 
     ##### KMC computation: convolve the histogram with the kernel
 

@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from functools import partial
 from time import time
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +28,7 @@ def model_data_comparison_one_dataset(
     bins: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
-) -> tuple[plt.Figure, plt.Axes, plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes, plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Qualitative evaluation of fit SDE model by taking one
     dataset at one flow condition, generating phase portrait of the
@@ -186,11 +187,11 @@ def model_data_comparison(
 
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
-            sup_title = fig2._suptitle.get_text()
+            sup_title = fig2.texts[0].get_text()
             sup_title = (
                 ds_name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
             )
-            fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(), y=1.15)
+            fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
             # save figures
@@ -257,11 +258,11 @@ def get_fixed_points_by_shear(
         # get fixed points and classify them
         fpts = pplane.get_fps(my_flow, init_coarse)
         fpt_stabilities, fpts_, _ = pplane.classify_fps(
-            my_flow, fpts, (x1, x2), unique=False, verbose=False
+            my_flow, fpts, [x1, x2], unique=False, verbose=False
         )
 
         # store fixed points and their types in dictionary
-        fpt_dict = {}
+        fpt_dict: dict[str, Any] = {}
         fpt_dict["fixed_points"] = fpts_  # list of fixed points
         fpt_dict["fixed_point_stability"] = fpt_stabilities  # corresponding types
         fpt_dict["shear"] = u_val  # value of shear stress
