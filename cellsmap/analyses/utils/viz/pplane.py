@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence, Sized
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numdifftools as nd
@@ -9,13 +10,13 @@ from scipy.optimize import fsolve
 
 # set global dictionaries for stability colors and markers
 global stability_color_dict, stability_marker_dict
-stability_color_dict = {
+stability_color_dict: dict[str, str] = {
     "stable": "g",
     "saddle": "tab:purple",
     "unstable": "r",
     "indeterminate": "darkgoldenrod",
 }
-stability_marker_dict = {
+stability_marker_dict: dict[str, str] = {
     "stable": "o",
     "saddle": "P",
     "unstable": "s",
@@ -157,9 +158,9 @@ def classify_fps(
     fpts: list[tuple] | list[np.ndarray],
     x: list[np.ndarray],
     unique: bool = True,
-    ax: plt.Axes | None = None,
+    ax_in: plt.Axes | None = None,
     verbose: bool = True,
-) -> tuple[list[str], list[np.ndarray] | list[tuple], plt.Axes | None]:
+) -> tuple[list[str], list[tuple[Any, ...] | np.ndarray[Any, Any]], plt.Axes]:
     """
     Classify fixed points of a system of ODEs given by my_flow.
 
@@ -200,6 +201,14 @@ def classify_fps(
     flow_jacobian = nd.Jacobian(my_flow)
     if verbose:
         print("Fixed points:")
+
+    if ax_in is None:
+        # for type checking easier to make dummy axes object
+        _, ax = plt.subplots()
+    else:
+        # used to plot fixed points and stabilities
+        ax = ax_in
+
     for fpt in fpts:
         # if far out of bounds of the plot window, don't report it
         if (
@@ -235,7 +244,7 @@ def classify_fps(
 
         # if ax is not None, plot the fixed point
         # with color and marker according to its stability
-        if ax is not None:
+        if ax_in is not None:
             ax.plot(
                 fpt[0],
                 fpt[1],
@@ -436,7 +445,7 @@ def phase_portrait(
     # and plot them
     if len(fpts) > 0:
         fpt_stabilities, _, ax = classify_fps(
-            _my_flow, fpts, [x1, x2], ax=ax, verbose=verbose
+            _my_flow, fpts, [x1, x2], ax_in=ax, verbose=verbose
         )
     else:
         if verbose:
