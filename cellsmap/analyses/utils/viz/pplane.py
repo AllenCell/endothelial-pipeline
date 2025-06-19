@@ -93,7 +93,9 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
         return np.array([np.nan] * len(init))
 
 
-def get_fps(my_flow: Callable, inits: list[tuple]) -> list[tuple]:
+def get_fps(
+    my_flow: Callable, inits: list[tuple] | list[np.ndarray]
+) -> list[tuple] | list[np.ndarray]:
     """
     Return the list of unique fixed points of
     the system x' = my_flow(x) starting around
@@ -152,12 +154,12 @@ def find_fpt_type(jacobian: np.ndarray) -> str:
 
 def classify_fps(
     my_flow: Callable,
-    fpts: list[tuple],
+    fpts: list[tuple] | list[np.ndarray],
     x: list[np.ndarray],
     unique: bool = True,
     ax: plt.Axes | None = None,
     verbose: bool = True,
-) -> tuple[list[str], list[float] | list[tuple], plt.Axes | None]:
+) -> tuple[list[str], list[np.ndarray] | list[tuple], plt.Axes | None]:
     """
     Classify fixed points of a system of ODEs given by my_flow.
 

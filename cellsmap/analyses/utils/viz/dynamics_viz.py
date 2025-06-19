@@ -131,7 +131,7 @@ def kl_divergence(p, q, dx, tol=1e-8):
 
 def compare_stationary_distributions(
     p_model: np.ndarray, p_hist: np.ndarray, bins
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, tuple[plt.Axes]]:
     """
     Side-by-side plots of the histogram of the data at steady state
     ("empirical PDF") and the numerical solution to the stationary
