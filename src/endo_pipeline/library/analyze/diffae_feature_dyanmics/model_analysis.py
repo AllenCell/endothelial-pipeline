@@ -8,16 +8,22 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.analyses.utils import model_eval
-from cellsmap.analyses.utils import regression_helper as rh
-from cellsmap.analyses.utils.numerics import gen_potential as gp
-from cellsmap.analyses.utils.viz import dynamics_viz as dviz
-from cellsmap.analyses.utils.viz import pplane
-from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io as mio
-from cellsmap.util.manifest_preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_eval
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
+    regression_helper as rh,
+)
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+    gen_potential as gp,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import (
+    dynamics_viz as dviz,
+)
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import pplane
 
 
 def model_data_comparison_one_dataset(
