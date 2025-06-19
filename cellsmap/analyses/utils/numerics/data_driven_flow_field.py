@@ -54,7 +54,7 @@ def set_3d_bounds_from_data(
     """
     num_dims = 3
     # initialize bounds
-    bounds = [np.array([100, -100]) for _ in range(num_dims)]
+    bounds_ = [[100, -100], [100, -100], [100, -100]]
 
     for name in list_of_datasets:
         df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
@@ -74,8 +74,10 @@ def set_3d_bounds_from_data(
             case "feat":
                 cols = feat_cols
         for j in range(num_dims):
-            bounds[j][0] = min(bounds[j][0], df[cols[j]].min())
-            bounds[j][1] = max(bounds[j][1], df[cols[j]].max())
+            bounds_[j][0] = min(bounds_[j][0], df[cols[j]].min())
+            bounds_[j][1] = max(bounds_[j][1], df[cols[j]].max())
+
+    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 
     return bounds
 
@@ -487,6 +489,7 @@ def ddff_main(
     # used for crop reconstruction
     traj_dict = {}
     for name in list_of_datasets:
+        print(f"******** Processing dataset: {name} ******** \n")
         traj = get_and_viz_ddff(
             name,
             pca,
