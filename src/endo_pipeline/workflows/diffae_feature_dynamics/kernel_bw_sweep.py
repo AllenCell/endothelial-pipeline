@@ -2,15 +2,16 @@
 import fire
 import numpy as np
 
-from cellsmap.analyses.utils import ddd_main
-from cellsmap.analyses.utils.io import dynamics_io
-from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.util import manifest_io
-from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import ddd_main
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+    data_driven_flow_field as ddff,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
 
 
-# %%
 def main(
     list_of_datasets: list[str] | None = None, bw_range: list[float] | None = None
 ) -> None:
@@ -121,5 +122,3 @@ def main(
 
 if __name__ == "__main__":
     fire.Fire(main)
-
-# %%
