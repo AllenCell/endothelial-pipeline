@@ -234,7 +234,10 @@ def get_callable_vector_field(
 
 
 def solve_ddff_ode(
-    flow_field_dict: dict, init: np.ndarray, t_span: list[float], num_t: int = 1750
+    flow_field_dict: dict,
+    init: np.ndarray,
+    t_span: list[int] | list[float],
+    num_t: int = 1750,
 ) -> np.ndarray:
     """
     Solve the ODE dx/dt = f(x) using scipy.integrate.solve_ivp.

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 # set default plot parameters
 global plt_params
@@ -32,7 +33,7 @@ def init_plot(figsize: tuple = (7, 6)) -> tuple[plt.Figure, plt.Axes]:
 
 def init_subplots(
     nrows: int = 1, ncols: int = 2, figsize: tuple = (14, 6)
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, np.ndarray[plt.Axes]]:
     """
     Initialize matplotlib figure with multiple subplots.
 
