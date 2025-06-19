@@ -172,7 +172,7 @@ class SteadyFP:
         q_hat = (
             tla.lstsq(
                 torch.from_numpy(operator_matrix[1:, 1:]).to(device),
-                torch.from_numpy(operator_matrix[1:, 0]).to(device),
+                torch.from_numpy(-operator_matrix[1:, 0]).to(device),
                 rcond=1e-6,
             )[0]
             .cpu()
