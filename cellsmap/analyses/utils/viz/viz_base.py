@@ -1,3 +1,5 @@
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -33,7 +35,7 @@ def init_plot(figsize: tuple = (7, 6)) -> tuple[plt.Figure, plt.Axes]:
 
 def init_subplots(
     nrows: int = 1, ncols: int = 2, figsize: tuple = (14, 6)
-) -> tuple[plt.Figure, np.ndarray[plt.Axes]]:
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Initialize matplotlib figure with multiple subplots.
 

@@ -28,7 +28,7 @@ def model_data_comparison_one_dataset(
     bins: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
-) -> tuple[plt.Figure, plt.Axes, plt.Figure, tuple[plt.Axes]]:
+) -> tuple[plt.Figure, plt.Axes, plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Qualitative evaluation of fit SDE model by taking one
     dataset at one flow condition, generating phase portrait of the
