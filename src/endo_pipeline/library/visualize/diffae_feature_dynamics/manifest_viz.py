@@ -3,12 +3,14 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
-import cellsmap.analyses.utils.regression_helper as rh
-import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
-from cellsmap.util.manifest_preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
+    regression_helper as rh,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
+from src.endo_pipeline.library.visualize import viz_base as vb
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
