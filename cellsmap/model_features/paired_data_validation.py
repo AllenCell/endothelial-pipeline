@@ -602,6 +602,7 @@ def compare_paired_features(
     alignment_method: str,
     pca_dir: str | None,
     align_fluo: bool = True,
+    align_only: bool = False,
     overrides: Dict[str, Any] = {},
     **alignment_kwargs: Dict[str, Any],
 ) -> None:
@@ -631,10 +632,10 @@ def compare_paired_features(
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = model_path / "TEST"  # f"{fixed_dataset_name}_vs_{moving_dataset_name}"
+    save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
     save_path.mkdir(parents=True, exist_ok=True)
     data_save_path = (
-        save_path / f"aligned_{moving_dataset_name}_vs_{fixed_dataset_name}.csv"
+        save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
     )
 
     if not data_save_path.exists():
@@ -649,6 +650,12 @@ def compare_paired_features(
         # channel used for inference is in the aligned images, which are single channel
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
+
+    if align_only:
+        print(
+            f"Aligned images saved to {save_path}. Skipping feature extraction and PCA projection."
+        )
+        return
 
     # apply on fixed images
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
@@ -687,21 +694,21 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    # add_fmsid_to_config(
-    #     fixed_features_path,
-    #     fixed_dataset_name,
-    #     mlflow_id,
-    #     model_path,
-    # )
+    add_fmsid_to_config(
+        fixed_features_path,
+        fixed_dataset_name,
+        mlflow_id,
+        model_path,
+    )
     moving_features_path = str(
         save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
     )
-    # add_fmsid_to_config(
-    #     moving_features_path,
-    #     moving_dataset_name,
-    #     mlflow_id,
-    #     model_path,
-    # )
+    add_fmsid_to_config(
+        moving_features_path,
+        moving_dataset_name,
+        mlflow_id,
+        model_path,
+    )
 
     # load features for comparison
     fixed_features = pd.read_parquet(fixed_features_path)
@@ -717,7 +724,12 @@ def compare_paired_features(
     )
 
 
-def main(pca_dir: str | None = None) -> None:
+def main(
+    pca_dir: str | None = None,
+    fixed_finetuned_model_name: str = "diffae_finetuned_for_fixed",
+    model_name: str = "diffae_04_10",
+    align_only: bool = False,
+) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
     Parameters
@@ -740,28 +752,28 @@ def main(pca_dir: str | None = None) -> None:
     ):
         compare_paired_features(
             # use model finetuned for fixation
-            "diffae_finetuned_for_fixed",
+            fixed_finetuned_model_name,
             fixed,
             moving,
             alignment_method="sift",
             pca_dir=pca_dir,
             overrides=overrides,
+            align_only=align_only,
         )
 
     datasets_20x_40x = {
-        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"][:1],
-        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"][
-            :1
-        ],
+        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
+        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
     }
     for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
         compare_paired_features(
-            "diffae_04_10",
+            model_name,
             fixed,
             moving,
             alignment_method="template",
             pca_dir=pca_dir,
             overrides=overrides,
+            align_only=align_only,
         )
 
 
