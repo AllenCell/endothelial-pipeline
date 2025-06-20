@@ -987,6 +987,7 @@ def concatenate_and_save_feature_tables(
     """
     out_subdir = out_dir / dataset_name
     feats_dfs = []
+    sep = "\t" if file_extension == ".tsv" else ","
 
     file_extension = (
         f".{file_extension}" if not file_extension.startswith(".") else file_extension
@@ -998,7 +999,7 @@ def concatenate_and_save_feature_tables(
     )
     if sort_by_T:
         feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
-    feats_dfs = [pd.read_csv(fp, sep="\t") for fp in feats_filepaths]
+    feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
 
     if feats_dfs:
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
@@ -1011,7 +1012,6 @@ def concatenate_and_save_feature_tables(
         concatenated_df_out_path = (
             out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
         )
-        sep = "\t" if file_extension == ".tsv" else ","
         concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
     else:
         print(f"No feature tables found for {dataset_name}.")
