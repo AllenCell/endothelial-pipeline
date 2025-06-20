@@ -35,9 +35,9 @@ def main(list_of_datasets: list[str] | None = None) -> None:
 
     pca = manifest_pca.fit_pca()
 
-    Nbins = [40, 40, 40]
+    num_bins = [40, 40, 40]
     bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]
-    bins = rh.get_bins(Nbins, bin_limits=bin_limits_pcs)[0]
+    bins = rh.get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
 
     for ds_name in list_of_datasets:
         print(f"Processing dataset: {ds_name}")
