@@ -5,10 +5,6 @@ import numpy as np
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from cellsmap.analyses.track_data_plots import (
-    add_filter_columns,
-    calculate_derived_data_dynamics_dependent,
-)
 from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     project_manifest_to_pcs,
 )
@@ -17,6 +13,10 @@ from cellsmap.vis.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
 from cellsmap.vis.timelapse_feature_explorer.feature_info import LABEL_MAP
+from src.endo_pipeline.workflows.track_data_plots import (
+    add_filter_columns,
+    calculate_derived_data_dynamics_dependent,
+)
 
 
 def update_manifest_for_tfe(

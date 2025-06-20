@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from cellsmap.features.lib_tracking import run_tracking
+from src.endo_pipeline.library.lib_tracking import run_tracking
+
 from cellsmap.util.dataset_io import extract_T, get_nuclear_prediction_path
 from cellsmap.util.set_output import get_output_path
 

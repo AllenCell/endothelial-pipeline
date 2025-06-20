@@ -16,6 +16,7 @@ from skimage import transform as tf
 from skimage.exposure import rescale_intensity
 from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
+from src.endo_pipeline.library.cdh5_preprocessing import preprocess
 from tqdm import tqdm, trange
 
 from cellsmap.model_features.apply_model import (
@@ -23,7 +24,6 @@ from cellsmap.model_features.apply_model import (
     get_cytodl_commit_hash,
 )
 from cellsmap.model_features.utils.mlflow_utils import download_model
-from cellsmap.util.cdh5_preprocessing import preprocess
 from cellsmap.util.dataset_io import (
     get_model_info,
     get_zarr_path,

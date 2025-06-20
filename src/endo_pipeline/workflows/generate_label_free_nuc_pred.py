@@ -5,21 +5,21 @@ from typing import List
 import numpy as np
 from bioio import BioImage
 from cellpose import core, models
-from tqdm import tqdm
-
-from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
-from cellsmap.util.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_dataset_info,
-    load_config,
-)
-from cellsmap.util.general_image_preprocessing import (
+from src.endo_pipeline.library.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
+from tqdm import tqdm
+
+from cellsmap.util.dataset_io import (
+    fire_parse_generate_dataset_name_list,
+    get_dataset_info,
+    load_config,
+)
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model

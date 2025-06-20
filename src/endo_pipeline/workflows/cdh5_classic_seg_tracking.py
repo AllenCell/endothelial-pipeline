@@ -4,9 +4,13 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
+from src.endo_pipeline.library.general_image_preprocessing import (
+    build_analysis_queue,
+    sequence_to_scalar,
+)
+from src.endo_pipeline.library.lib_tracking import run_tracking
 from tqdm import tqdm
 
-from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -18,10 +22,6 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
     save_git_versioning_info,
-)
-from cellsmap.util.general_image_preprocessing import (
-    build_analysis_queue,
-    sequence_to_scalar,
 )
 from cellsmap.util.set_output import get_output_path
 

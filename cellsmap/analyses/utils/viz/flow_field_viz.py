@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
+from src.endo_pipeline.library.general_image_preprocessing import sequence_to_scalar
 
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
 from cellsmap.analyses.utils.viz import manifest_viz
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.util.general_image_preprocessing import sequence_to_scalar
 from cellsmap.util.manifest_preprocessing import (
     diffae_feature_preprocessing as diffae_preproc,
 )

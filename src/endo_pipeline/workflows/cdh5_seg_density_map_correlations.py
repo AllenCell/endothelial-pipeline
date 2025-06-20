@@ -7,8 +7,8 @@ import seaborn as sns
 from skimage.measure import label, regionprops
 
 from cellsmap.features import cdh5_seg_density_map as cellsden
-from cellsmap.util import cdh5_preprocessing as preproc
 from cellsmap.util import dataset_io
+from src.endo_pipeline.library import cdh5_preprocessing as preproc
 
 # silence the max number of plots warning
 plt.rcParams.update({"figure.max_open_warning": 0})

@@ -7,14 +7,14 @@ from skimage.filters import gaussian
 from skimage.morphology import skeletonize
 from skimage.segmentation import find_boundaries
 from skimage.transform import pyramid_reduce
-
-from cellsmap.util.cdh5_preprocessing import (
+from src.endo_pipeline.library.cdh5_preprocessing import (
     extract_T,
     get_cdh5_classic_segmentation_paths,
     get_thresholds,
     preprocess,
     save_image_output,
 )
+
 from cellsmap.util.dataset_io import (
     get_available_channels,
     get_dataset_duration_in_frames,

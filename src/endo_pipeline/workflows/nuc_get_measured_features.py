@@ -5,6 +5,10 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 from skimage.measure import regionprops
+from src.endo_pipeline.library.general_image_preprocessing import (
+    build_analysis_queue,
+    get_default_dim_order,
+)
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
@@ -15,10 +19,6 @@ from cellsmap.util.dataset_io import (
     load_dataset_position_as_dask_array,
     load_nuclei_prediction,
     save_git_versioning_info,
-)
-from cellsmap.util.general_image_preprocessing import (
-    build_analysis_queue,
-    get_default_dim_order,
 )
 from cellsmap.util.set_output import get_output_path
 

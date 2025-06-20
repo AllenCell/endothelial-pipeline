@@ -9,6 +9,10 @@ from skimage import measure
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
+from src.endo_pipeline.library.general_image_preprocessing import (
+    build_analysis_queue,
+    get_dim_map,
+)
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
@@ -18,7 +22,6 @@ from cellsmap.util.dataset_io import (
     ipython_cli_flexecute,
     load_config,
 )
-from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_dim_map
 from cellsmap.util.set_output import get_output_path
 
 

@@ -6,10 +6,10 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import pandas as pd
 from bioio import BioImage
 from skimage.measure import label, regionprops
+from src.endo_pipeline.library.cdh5_preprocessing import extract_T
 from tqdm import tqdm
 
 from cellsmap.util import dataset_io, set_output
-from cellsmap.util.cdh5_preprocessing import extract_T
 
 """
 python generate_nuclear_manifest.py my_dataset_name

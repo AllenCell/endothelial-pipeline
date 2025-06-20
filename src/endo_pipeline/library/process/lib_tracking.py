@@ -18,11 +18,14 @@ from bioio import BioImage
 from bioio_base.types import PhysicalPixelSizes
 from skimage.measure import regionprops
 from skimage.segmentation import clear_border
+from src.endo_pipeline.library.general_image_preprocessing import (
+    get_dim_map,
+    save_image_output,
+)
+from src.endo_pipeline.library.shape_features import numpy_mesh_coords
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import extract_T
-from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
-from cellsmap.util.shape_features import numpy_mesh_coords
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
