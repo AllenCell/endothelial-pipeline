@@ -35,7 +35,12 @@ def update_manifest_for_tfe(
 
     # Generate segmentation image filenames
     df["seg_image"] = (
-        df["dataset"] + "_P" + df["position"].astype(str) + "_T" + df["T"].astype(str) + ".ome.tiff"
+        df["dataset"]
+        + "_P"
+        + df["position"].astype(str)
+        + "_T"
+        + df["image_index"].astype(str)
+        + ".ome.tiff"
     )
 
     # Add backdrop filenames to the manifest
