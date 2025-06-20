@@ -1,13 +1,113 @@
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import mlflow
 import yaml
 from hydra.utils import get_class
 
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
-DEFAULT_CHECKPOINT_PATH = "checkpoints/val/loss/best.ckpt"
-DEFAULT_CONFIG_PATH = "config/eval.yaml"
+
+
+def _get_options(available_artifacts, patterns):
+    """
+    Find artifacts that match a pattern. If exactly one match is found, return it otherwise raise an error.
+    """
+    for p in patterns:
+        matches = [path for path in available_artifacts if p in path]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            raise ValueError(
+                f"Multiple artifacts found for pattern {p}: {matches}. Please specify the artifact path."
+            )
+    raise ValueError(
+        f"None of the patterns {patterns} matched any artifacts. Available artifacts: {available_artifacts}"
+    )
+
+
+def _get_available_artifacts(
+    run_id: str,
+    artifact_path: str,
+    tracking_uri: str = DEFAULT_TRACKING_URI,
+    verbose: bool = True,
+    _current_recursion_level: int = 0,  # Internal parameter to manage verbose printing
+) -> list[str]:
+    """
+    Recursively lists all files and directories contained within a given MLflow artifact path
+    for a specific run.
+    """
+    mlflow.set_tracking_uri(tracking_uri)
+
+    all_found_artifacts = []
+
+    current_level_items = mlflow.artifacts.list_artifacts(
+        run_id=run_id,
+        tracking_uri=tracking_uri,
+        artifact_path=artifact_path,
+    )
+
+    # Iterate through each item (file or directory) found at the current level.
+    for item in current_level_items:
+        # Construct the full path of the current item.
+        full_item_path = item.path
+
+        if item.is_dir:
+            # recursively list directory contents
+            recursive_artifacts = _get_available_artifacts(
+                run_id=run_id,
+                artifact_path=full_item_path,
+                tracking_uri=tracking_uri,
+                verbose=False,
+                _current_recursion_level=_current_recursion_level + 1,
+            )
+            all_found_artifacts.extend(recursive_artifacts)
+        else:
+            all_found_artifacts.append(full_item_path)
+            if verbose and _current_recursion_level == 0:
+                print(f"Found file: {full_item_path}")
+
+    # print found items from top level call
+    if verbose and _current_recursion_level == 0:
+        if all_found_artifacts:
+            print(f"\n--- All artifacts found for run {run_id} ---")
+            for artifact in sorted(all_found_artifacts):
+                print(f"- {artifact}")
+            print("-------------------------------------------------")
+        else:
+            print(
+                f"\nNo artifacts found for run {run_id} under path '{artifact_path}'."
+            )
+
+    return all_found_artifacts
+
+
+def get_ckpt_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
+    """
+    return last.ckpt if it exists, otherwise return the best checkpoint path if it exists or throw an error
+    """
+    available_artifacts = _get_available_artifacts(
+        tracking_uri=tracking_uri,
+        run_id=run_id,
+        artifact_path="checkpoints",
+    )
+
+    ckpt_path = _get_options(available_artifacts, patterns=["last.ckpt", "best.ckpt"])
+    return ckpt_path
+
+
+def _get_config_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
+    """
+    Preferentially return eval.yaml if it exists, otherwise return train.yaml if it exists or throw an error
+    """
+    available_artifacts = _get_available_artifacts(
+        tracking_uri=tracking_uri,
+        run_id=run_id,
+        artifact_path="config",
+    )
+    config_path = _get_options(
+        available_artifacts, patterns=["eval.yaml", "train.yaml"]
+    )
+    return config_path
 
 
 def download_mlflow_artifact(
@@ -33,14 +133,13 @@ def download_mlflow_artifact(
     if (dst_path / artifact_path).exists():
         print(f"Artifact exists! Skipping download of {artifact_path}...")
         return
-    mlflow.set_tracking_uri(tracking_uri)
 
-    available_artifacts = mlflow.artifacts.list_artifacts(
-        run_id=run_id,
+    available_artifacts = _get_available_artifacts(
         tracking_uri=tracking_uri,
+        run_id=run_id,
         artifact_path=Path(artifact_path).parent,
     )
-    available_artifacts = [obj.path for obj in available_artifacts]
+
     if artifact_path not in available_artifacts:
         raise ValueError(
             f"Artifact {artifact_path} not found in run {run_id}. Available artifacts: {available_artifacts}"
@@ -59,8 +158,8 @@ def download_mlflow_artifact(
 def download_model(
     run_id: str,
     save_path: Union[str, Path],
-    checkpoint_path=DEFAULT_CHECKPOINT_PATH,
-    config_path=DEFAULT_CONFIG_PATH,
+    checkpoint_path: Optional[str] = None,
+    config_path: Optional[str] = None,
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> Dict:
     """
@@ -78,7 +177,14 @@ def download_model(
     tracking_uri: str
         The tracking URI of the MLflow server.
     """
+    checkpoint_path = checkpoint_path or get_ckpt_path(
+        tracking_uri=tracking_uri, run_id=run_id
+    )
     download_mlflow_artifact(run_id, checkpoint_path, save_path, tracking_uri)
+
+    config_path = config_path or _get_config_path(
+        tracking_uri=tracking_uri, run_id=run_id
+    )
     download_mlflow_artifact(run_id, config_path, save_path, tracking_uri)
 
     return {
@@ -90,8 +196,8 @@ def download_model(
 def load_mlflow_model(
     run_id: str,
     save_path: Union[str, Path],
-    checkpoint_path=DEFAULT_CHECKPOINT_PATH,
-    config_path=DEFAULT_CONFIG_PATH,
+    checkpoint_path: Optional[str] = None,
+    config_path: Optional[str] = None,
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ):
     """
@@ -110,6 +216,9 @@ def load_mlflow_model(
         The tracking URI of the MLflow server.
     """
     save_path = Path(save_path)
+    config_path = config_path or _get_config_path(
+        tracking_uri=tracking_uri, run_id=run_id
+    )
     download_model(run_id, save_path, checkpoint_path, config_path, tracking_uri)
 
     with open(save_path / config_path, "r") as f:

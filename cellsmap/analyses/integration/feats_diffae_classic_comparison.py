@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-# from cellsmap.analyses.utils.viz import flow_field_viz as ffv
 from cellsmap.analyses.utils import regression_helper as rh
 from cellsmap.analyses.utils.io.dynamics_io import load_dynamics_config
 from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
@@ -398,6 +397,8 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame:
     # load the tracking data of the measured features and merge them
     print("loading segmentation property data...")
     df_all_positions = get_segmentation_features_manifest([dataset_name])
+
+    print("merging segmentation properties and track-based DiffAE data...")
     diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
     df_all_positions["position_as_str"] = df_all_positions["position"].transform(
         lambda x: "P" + str(x)
@@ -514,7 +515,10 @@ def main() -> None:
             continue
 
         print("cleaning up merged table...")
-        df_all_positions = df_all_positions[df_all_positions["filter_global"] == False]
+        df_all_positions = df_all_positions.query("valid_points >= 120")
+        df_all_positions.dropna(
+            axis="index", how="any", subset="is_unique", inplace=True
+        )
 
         # fit the PCA (uses the reference datasets)
         pca = fit_pca()

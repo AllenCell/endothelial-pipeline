@@ -1,0 +1,28 @@
+name: 20241120_20X
+original_path: //allen/programs/allencell/data/proj0/223/29e/308/ce5/8a5/ca8/c44/7ed/88e/73b/15/20241120_GE00007382_20X_timelapse/20241120_20X_timelapse_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241120_1573b88e7edc44ca88a5ce530829e223
+fmsid: 1573b88e7edc44ca88a5ce530829e223
+barcode: GE00007382
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+microscope: 3i
+shear_stress_regime: 48hr_high
+use_cases: [classic_segmentation, measurement]
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[0, 576, 28.83]]
+channel_488_index: 0
+brightfield_channel_index: 1
+n_total_positions: 6
+notes: This is a nice 48hr high flow dataset.
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: a9ef7c8557334f1fb36393f79b582609
+diffae_manifest_fmsid: 3ce3dedd56a54b48a544c99dc61a2fe1
+valid_timepoints:
+  start: [230]
+  stop: [450]
+is_reference: true
+tracking_integration_fmsid: f053d3a12e454b109061c0e8ac891548
+diffae_tracking_integration_fmsid: 90251a5c7c0146e58a9e7d3277be3913
+cell_mean_features: 320cf8ae34394c72a7397d1c39b7d9e9

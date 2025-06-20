@@ -66,6 +66,7 @@ def model_data_comparison_one_dataset(
         lambda x1, x2: f2([x1, x2], u),
         pplane_xvec,
         pplane_yvec,
+        verbose=False,
     )
 
     ax1.set_xlabel(f"PC{pcs[0] + 1}")
@@ -255,14 +256,14 @@ def get_fixed_points_by_shear(
         ]
         # get fixed points and classify them
         fpts = pplane.get_fps(my_flow, init_coarse)
-        fpt_types, fpts_, _ = pplane.classify_fps(
+        fpt_stabilities, fpts_, _ = pplane.classify_fps(
             my_flow, fpts, (x1, x2), unique=False, verbose=False
         )
 
         # store fixed points and their types in dictionary
         fpt_dict = {}
         fpt_dict["fixed_points"] = fpts_  # list of fixed points
-        fpt_dict["fixed_point_types"] = fpt_types  # corresponding types
+        fpt_dict["fixed_point_stability"] = fpt_stabilities  # corresponding types
         fpt_dict["shear"] = u_val  # value of shear stress
         fpt_dict_list.append(fpt_dict)  # add to list
 

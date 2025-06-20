@@ -10,7 +10,9 @@ import cellsmap.analyses.utils.io.vtk_io as vtk_io
 import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.flow_field_viz as ffv
 import cellsmap.util.manifest_io as manifest_io
-import cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing as diffae_preproc
+from cellsmap.util.manifest_preprocessing import (
+    diffae_feature_preprocessing as diffae_preproc,
+)
 
 
 def set_3d_bounds_from_data(
@@ -18,7 +20,38 @@ def set_3d_bounds_from_data(
     pca: Pipeline,
     col_names: Literal["pc", "feat"] = "pc",
 ) -> list[np.ndarray]:
+    """
+    Set bounds for 3D state space based on the bounds
+    of the features in the datasets. The 3D state space
+    is based on the first three principal components
+    of the input pca Pipeline object, which is fit
+    on a fixed set of reference datasets.
 
+    Inputs:
+    - list_of_datasets: list of dataset names to use
+    - pca: PCA model to use for transforming the data
+    - col_names: which columns to use for bounds
+        - "pc": data is coming from a workflow where
+            the column names have been re-named to
+            reflect that the features are projected
+            onto the first three principal components
+            (i.e., column names in df pc1, pc2, pc3)
+        - "feat": data is coming from a workflow where
+            the column names are the original feature names
+            and the data have been over-written with the
+            features projected onto the full set of
+            principal components (i.e., column name feat_i
+            indicates projection onto the i-th principal component)
+        - this input will become deprecated in the future,
+            when the dataframes will always clearly label
+            what is an original feature and what is a
+            projected feature
+
+    Outputs:
+    - bounds: list of numpy arrays with the bounds
+        for each dimension in the 3D state space
+        - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
+    """
     num_dims = 3
     bounds = [[100, -100], [100, -100], [100, -100]]
 
@@ -264,6 +297,20 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     return interpolated_points
 
 
+def convert_coordinates_from_pc_to_latent(coords, reducer):
+    """
+    Convert coordinates in PCA-based feature space
+    to latent space using the PCA model.
+    """
+    coords = np.array(coords)
+    latent = reducer.inverse_transform(coords)
+    latent.shape[0]
+    # turn coordinate array into list of lists
+    latent_coords = [coord.tolist() for coord in latent]
+
+    return latent_coords
+
+
 def convert_coordinates_from_volume_to_pc(
     xvol: np.array, grid_spacing: float, origin: float
 ) -> np.array:
@@ -286,8 +333,45 @@ def get_and_viz_ddff(
     init: np.ndarray,
     fig_savedir: str,
     vtk_savedir: str,
-) -> np.ndarray:
+    output_savedir: str,
+) -> np.ndarray | list[np.ndarray]:
+    """
+    Get 3D flow field (drift coefficient) from data
+    projected onto the 3D principal component feature space
+    and output summary figures and vtk files for visualization.
 
+    Inputs:
+    - name: name of the dataset to process
+    - pca: PCA model to use for transforming the data
+    - kernel_params: parameters for the kernel-based
+        estimation of Kramers-Moyal coefficients
+    - dt: time step for the Kramers-Moyal coefficients
+    - bins: list of numpy arrays with the bin edges
+        for each dimension in the 3D state space
+        (computed via ..regression_helper.get_bins)
+    - centers: list of numpy arrays with the
+        centers of the bins in each dimension
+        (computed via ..regression_helper.get_bins)
+    - time_span: time span for the ODE solver
+        (list of two floats)
+    - init: initial condition for the trajectory
+        (numpy array of shape (3,))
+    - fig_savedir: directory to save figures
+    - vtk_savedir: directory to save vtk files
+    - output_savedir: directory to save output files
+        (.npy files with flow field and diffusion field)
+
+    Outputs:
+    - traj: trajectory in 3D state space for the
+        given initial condition and time span
+        according to the dynamics given by the
+        approximated flow field for the dataset
+        (numpy array of shape (num_t, 3))
+        - if name is "20250319_20X" or "20250326_20X",
+            returns a list of two trajectories
+            (trajectories going towards each of the
+            two stable fixed points for these conditions)
+    """
     # load dataframe and get top 3 PCs
     df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
     feat_cols = manifest_io.get_feature_cols(df)[:3]
@@ -305,6 +389,12 @@ def get_and_viz_ddff(
     flow_field_dict = compute_extrapolated_vector_field(
         drift_km, centers, interpolator="nearest"
     )
+    # save flow field dictionary as npy
+    np.save(
+        output_savedir + f"flow_field_dict_{name}.npy",
+        flow_field_dict,
+        allow_pickle=True,
+    )
     # save flow field as vtk image data
     vtk_io.save_vector_field_as_vtk(
         flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk"
@@ -314,6 +404,12 @@ def get_and_viz_ddff(
     # (diagonal diffusion tensor represented as 3D vector field)
     diffusion_field_dict = compute_extrapolated_vector_field(
         diff_km, centers, interpolator="nearest"
+    )
+    # save diffusion field dictionary as npy
+    np.save(
+        output_savedir + f"diffusion_field_dict_{name}.npy",
+        diffusion_field_dict,
+        allow_pickle=True,
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
@@ -327,6 +423,14 @@ def get_and_viz_ddff(
 
     # call main flow field viz function (makes and saves plots)
     ffv.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+
+    # hack-y work around for intermediate shear stress
+    # simulate second trajectory to get second stable point
+    if name == "20250319_20X" or name == "20250326_20X":
+        init = np.array([1.1, 0.0, -0.2])
+        time_span = [0, 5000]
+        traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
+        traj = [traj, traj_2]  # return both trajectories
 
     return traj
 
@@ -342,6 +446,30 @@ def ddff_main(
     vtk_savedir: str,
     output_savedir: str,
 ) -> None:
+    """
+    Run main workflow for computing and visualizing
+    the "data-driven flow field" (DDFF) for a list of datasets.
+
+    Inputs:
+    - list_of_datasets: list of dataset names to process
+    - pca: PCA model to use for transforming the data
+    - kernel_params: parameters for the kernel-based
+        estimation of Kramers-Moyal coefficients
+    - dt: time step for the Kramers-Moyal coefficients
+    - time_span: time span for the ODE solver
+    - init: initial condition for the trajectory
+    - fig_savedir: directory to save figures
+    - vtk_savedir: directory to save vtk files
+    - output_savedir: directory to save other output files
+
+    Outputs:
+    - None.
+    - This function saves out the trajectories for each dataset
+        in a dictionary, where keys are dataset descriptions
+        and values are trajectories in 3D state space.
+        - see docstring for `get_and_viz_ddff` for details
+            of what other files are saved out for each dataset
+    """
     # get bins for KMCs
     bounds = set_3d_bounds_from_data(list_of_datasets, pca, col_names="feat")
     num_bins = [50, 50, 50]
@@ -368,6 +496,7 @@ def ddff_main(
             init,
             fig_savedir,
             vtk_savedir,
+            output_savedir,
         )
 
         # save out using dataset descriptions
@@ -375,3 +504,7 @@ def ddff_main(
         traj_dict[condition] = traj
 
     np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)
+
+    # generate plot of stable fixed points
+    # for low, high, and 12dyn datasets
+    ffv.plot_stable_fixed_points_together(fig_savedir, output_savedir)

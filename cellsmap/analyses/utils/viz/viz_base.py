@@ -10,6 +10,7 @@ plt_params = {
     "xtick.labelsize": 14,
     "ytick.labelsize": 14,
     "figure.titlesize": 20,
+    "figure.max_open_warning": 0,  # suppress warning for too many open figures
 }
 plt.rcParams.update(plt_params)
 

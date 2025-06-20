@@ -10,13 +10,15 @@ from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
 
 # %%
-# get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
+# get output subdirectory for intermediate workflow outputs
+# (set in config file dynamics_config.yaml)
 # if directory does not exist, get_output_path function will create it
 workflow_name = "full_latent_dynamics"
 workflow_output_folder = f"stochastic_dynamics/{workflow_name}/outputs"
 savedir = get_output_path(workflow_output_folder)
 
-# get output subdirectory for figures that workflow outputs (set in config file dynamics_config.yaml)
+# get output subdirectory for figures that workflow outputs
+# (set in config file dynamics_config.yaml)
 # if directory does not exist, get_output_path function will create it
 workflow_fig_folder = f"stochastic_dynamics/{workflow_name}/figs"
 fig_savedir = get_output_path(workflow_fig_folder)

@@ -1,0 +1,21 @@
+name: 20250214_pairedPreFixation
+original_path: //allen/programs/allencell/data/proj0/dbc/19a/8ae/2e6/8df/a28/a40/355/2c7/0e3/07/20250214_GE00006747_20X_PRE_FIX_sldy/20250214_GE00006747_20X_PRE_FIX_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250214_070e32c7355a40a288df2e68ae19adbc
+fmsid: 070e32c7355a40a288df2e68ae19adbc
+barcode: GE00006747
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+microscope: 3i
+shear_stress_regime: no_flow
+use_cases: [model_training]
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, -1, 0]]
+channel_488_index: 0
+brightfield_channel_index: 1
+n_total_positions: 10
+notes: ''
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: c6676d68995844ed9eae3275c4f24078

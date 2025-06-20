@@ -891,6 +891,10 @@ def process_and_plot_tracking_data(
     big_table = add_cell_segmentation_path_column(big_table)
     big_table = calculate_derived_data_dynamics_independent(big_table, verbose)
 
+    # add the size of the crop used to get DiffAE features at full res
+    crop_size = 256
+    big_table["crop_size"] = crop_size
+
     # filter the segprops data to remove regions that
     # touch the image borders and keep only tracks that
     # have a minimum number of datapoints after this
@@ -944,7 +948,7 @@ def process_and_plot_tracking_data(
     filter_and_save_track_data_for_landscape_integration(
         big_table_filtered,
         out_path_integration_table,
-        crop_size=256,
+        crop_size=crop_size,
         min_num_points_per_track=120,
         return_df=False,
     )

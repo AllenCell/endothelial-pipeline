@@ -1,0 +1,21 @@
+name: 20250331_20X
+original_path: //allen/programs/allencell/data/proj0/edc/ed9/2ac/52b/a30/c1a/b40/027/33e/c86/92/20250331_GE00007559_20X_timelapse_sldy/20250331_GE00007559_20X_timelapse_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250331_92c8633e027b40c1aa3052b2aced9edc
+fmsid: 92c8633e027b40c1aa3052b2aced9edc
+barcode: GE00007559
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+microscope: 3i
+shear_stress_regime: 24hr_high-to-24hr_low
+use_cases: []
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[0, 275, 24.39], [276, 577, 5.83]]
+channel_488_index: 0
+brightfield_channel_index: 1
+n_total_positions: 6
+notes: Frame of flow switch was ~275.
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: 3221e4f0a473402db6c95e26b5219707

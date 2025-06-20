@@ -121,7 +121,7 @@ def get_diffae_manifest(
         return None
     df = get_dataframe_by_fmsid(fmsid)
     if filter_to_valid:
-        df = get_valid_subset(df, dataset_name)
+        df = get_valid_subset(df, dataset_name, verbose=False)
     return df
 
 

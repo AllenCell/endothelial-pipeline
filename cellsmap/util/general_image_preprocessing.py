@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
+import pandas as pd
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
@@ -166,7 +167,7 @@ def build_analysis_queue(
     return analysis_queue
 
 
-def sequence_to_scalar(sequence_like: Sequence) -> Any:
+def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:
     """
     Takes a sequence-like object and returns the sole element if
     there is only one unique element in the sequence, else raises
