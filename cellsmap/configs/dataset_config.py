@@ -77,6 +77,9 @@ class DatasetConfig:
     nuclear_label_free_seg_path: str
     """Path to nuclear label free segmentation."""
 
+    nuclear_stain_seg_path: str
+    """Path to nuclear stain segmentation."""
+
     channel_488_index: int | None = None
     """Index of the 488 channel."""
 
