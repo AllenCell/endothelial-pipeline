@@ -32,23 +32,6 @@ def gfp_max_proj(img: BioImage, frame: int) -> np.ndarray:
     return gfp_max_proj.compute()
 
 
-def infocus_slice(bf_stack: da.Array) -> np.ndarray:
-    """
-    Get the best focus slice from a Dask array representing the brightfield stack.
-    """
-    # Calculate standard deviations lazily for each plane
-    stdevs = [plane.std() for plane in bf_stack]
-
-    # Compute the best plane index (requires computing the std devs)
-    best_plane = max(
-        0, np.argmin([s.compute() for s in stdevs]) - 5
-    )  # Move 5 planes down
-
-    # Return the best focus slice as a Dask array
-    bf_slice = bf_stack[best_plane, :, :]
-    return bf_slice.compute()
-
-
 def max_proj(stack: da.Array, axis: int) -> np.ndarray:
     """
     Get the maximum projection of the brightfield stack as a Dask array.
@@ -89,7 +72,5 @@ def contrast_stretching(
     elif method == "percentile":
         low, high = np.percentile(image, (low_percentile, high_percentile))
 
-    stretched_image = exposure.rescale_intensity(
-        image, in_range=(low, high), out_range=(0, 255)
-    )
+    stretched_image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
     return stretched_image
