@@ -2,7 +2,7 @@ from pathlib import Path
 
 from bioio import BioImage
 
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 
 @pytest.mark.parameterize(

@@ -12,9 +12,7 @@ from cellsmap.model_features.utils.mlflow_utils import (
     download_mlflow_artifact,
     download_model,
 )
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import (
+from cellsmap.util.dataset_io import (
     extract_P,
     get_available_datasets,
     get_model_info,
@@ -22,6 +20,8 @@ from endo_pipeline.configs.dataset_io import (
     get_zarr_path,
     update_dataset_config,
 )
+from cellsmap.util.manifest_preprocessing import save_file_to_fms
+from cellsmap.util.set_output import get_output_path
 
 # the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1

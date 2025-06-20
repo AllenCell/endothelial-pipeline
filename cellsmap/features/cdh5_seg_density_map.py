@@ -15,7 +15,7 @@ from cellsmap.util.cdh5_preprocessing import (
     preprocess,
     save_image_output,
 )
-from endo_pipeline.configs.dataset_io import (
+from cellsmap.util.dataset_io import (
     get_available_channels,
     get_dataset_duration_in_frames,
     get_time_interval_in_minutes,

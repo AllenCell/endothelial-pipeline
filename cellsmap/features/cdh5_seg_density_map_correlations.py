@@ -8,7 +8,7 @@ from skimage.measure import label, regionprops
 
 from cellsmap.features import cdh5_seg_density_map as cellsden
 from cellsmap.util import cdh5_preprocessing as preproc
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 # silence the max number of plots warning
 plt.rcParams.update({"figure.max_open_warning": 0})

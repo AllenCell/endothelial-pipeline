@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bioio import BioImage
 
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 
 def get_channel_crop(

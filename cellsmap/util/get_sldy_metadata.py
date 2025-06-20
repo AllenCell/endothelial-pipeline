@@ -6,7 +6,7 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from endo_pipeline.configs.dataset_io import (
+from cellsmap.util.dataset_io import (
     get_available_datasets,
     get_dataset_info,
     get_original_path,

@@ -5,8 +5,8 @@ import numpy as np
 import torch
 
 from cellsmap.model_features.utils.mlflow_utils import load_mlflow_model
+from cellsmap.util.dataset_io import get_model_info
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import get_model_info
 
 
 def generate_from_coords(

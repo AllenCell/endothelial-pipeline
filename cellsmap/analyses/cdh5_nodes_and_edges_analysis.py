@@ -9,7 +9,7 @@ from bioio.writers.timeseries_writer import TimeseriesWriter
 
 from cellsmap.analyses import vis_cdh5_nodes_and_edges_analysis as vis
 from cellsmap.util import cdh5_preprocessing as preproc
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 try:
     from IPython import get_ipython

@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib.lines import Line2D
 
 from cellsmap.analyses.utils.viz import viz_base as vb
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 
 def plot_flow_over_time_per_dataset(dataset_name_list: List[str], fig_savedir: str):

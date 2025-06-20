@@ -4,8 +4,8 @@ import fire
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from cellsmap.util.dataset_io import load_config
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import load_config
 
 
 def check_dataset_for_model_training(

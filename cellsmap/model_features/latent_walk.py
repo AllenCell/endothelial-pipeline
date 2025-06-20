@@ -9,6 +9,7 @@ import pandas as pd
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.model_features.generate_image import generate_from_coords
+from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.manifest_io import (
     get_diffae_manifest,
     get_feature_cols,
@@ -17,7 +18,6 @@ from cellsmap.util.manifest_io import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import get_reference_datasets
 
 
 def write_text(img, text):

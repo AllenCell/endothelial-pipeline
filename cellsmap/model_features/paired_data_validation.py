@@ -24,6 +24,11 @@ from cellsmap.model_features.apply_model import (
 )
 from cellsmap.model_features.utils.mlflow_utils import download_model
 from cellsmap.util.cdh5_preprocessing import preprocess
+from cellsmap.util.dataset_io import (
+    get_model_info,
+    get_zarr_path,
+    update_dataset_config,
+)
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
@@ -31,11 +36,6 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import (
-    get_model_info,
-    get_zarr_path,
-    update_dataset_config,
-)
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1

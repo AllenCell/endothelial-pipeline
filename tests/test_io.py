@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 
 def test_load_config():

@@ -3,6 +3,10 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
+from cellsmap.util.dataset_io import (
+    get_cdh5_classic_segmentation_path,
+    get_segmentation_features_manifest,
+)
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
 from cellsmap.util.set_output import get_output_path
 from cellsmap.vis.timelapse_feature_explorer.backdrop_images import generate_backdrops
@@ -12,10 +16,6 @@ from cellsmap.vis.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_feauture_metadata,
     add_intensity_mean_pcs,
     update_manifest_for_tfe,
-)
-from endo_pipeline.configs.dataset_io import (
-    get_cdh5_classic_segmentation_path,
-    get_segmentation_features_manifest,
 )
 
 

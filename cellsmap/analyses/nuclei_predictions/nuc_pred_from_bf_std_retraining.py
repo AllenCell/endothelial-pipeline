@@ -15,6 +15,12 @@ from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
 from cellsmap.util import get_sldy_metadata as sldmd
+from cellsmap.util.dataset_io import (
+    get_dataset_info,
+    get_original_path,
+    ipython_cli_flexecute,
+    load_config,
+)
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
@@ -22,12 +28,6 @@ from cellsmap.util.general_image_preprocessing import (
     save_image_output,
 )
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import (
-    get_dataset_info,
-    get_original_path,
-    ipython_cli_flexecute,
-    load_config,
-)
 
 
 def get_scenes_to_use(dataset_name: str | None = None) -> Dict:

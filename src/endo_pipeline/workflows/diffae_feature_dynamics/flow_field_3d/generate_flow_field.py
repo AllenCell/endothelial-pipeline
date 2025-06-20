@@ -1,8 +1,8 @@
 import fire
 import numpy as np
 
+from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import get_reference_datasets
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,

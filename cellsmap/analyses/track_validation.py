@@ -11,15 +11,15 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_dim_map
-from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs.dataset_io import (
+from cellsmap.util.dataset_io import (
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_tracking_data_filtered,
     ipython_cli_flexecute,
     load_config,
 )
+from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_dim_map
+from cellsmap.util.set_output import get_output_path
 
 
 def save_validation_images(

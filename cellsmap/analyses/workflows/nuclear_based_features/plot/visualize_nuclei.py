@@ -6,7 +6,7 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 from skimage.measure import label
 
 from cellsmap.analyses.utils.viz import viz_base as vb
-from endo_pipeline.configs import dataset_io
+from cellsmap.util import dataset_io
 
 
 def visualize_nuclear_seg(df, dataset, frame, position, fig_savedir):
