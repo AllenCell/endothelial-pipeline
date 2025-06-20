@@ -55,7 +55,6 @@ def _get_aligned_paths(
                 alignment_method="sift" if dataset_type == "live_fixed" else "template",
             )
         )
-        break
     df = pd.concat(df, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
     print(f"Found {len(df)} pairs of images to save")
