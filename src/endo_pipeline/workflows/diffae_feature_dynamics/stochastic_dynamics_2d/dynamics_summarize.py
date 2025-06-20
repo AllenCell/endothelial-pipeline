@@ -3,14 +3,9 @@ import numpy as np
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    model_analysis,
-    model_eval,
-)
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
+from endo_pipeline.configs import dynamics_io
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis, model_eval
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
 
 
 def main(config_name: str = "default") -> None:
@@ -65,9 +60,7 @@ def main(config_name: str = "default") -> None:
 
     # for plotting fixed points by shear stress
     shear_range = config["shear_range"]
-    shear_range_fpt = np.linspace(
-        shear_range[0], shear_range[-1], config["num_shear_fpt"]
-    )
+    shear_range_fpt = np.linspace(shear_range[0], shear_range[-1], config["num_shear_fpt"])
 
     # for plotting entropy production rate by shear stress:
     # check if additive noise or not
@@ -78,12 +71,8 @@ def main(config_name: str = "default") -> None:
         additive_noise = False
 
     # for plotting generalized potential energy landscape for various shear stresses
-    bins_gp, centers_gp = rh.get_bins(
-        config["num_bins_landscape"], bin_limits=[bin_xlim, bin_ylim]
-    )
-    shear_range_gp = np.linspace(
-        shear_range[0], shear_range[-1], config["num_shear_landscape"]
-    )
+    bins_gp, centers_gp = rh.get_bins(config["num_bins_landscape"], bin_limits=[bin_xlim, bin_ylim])
+    shear_range_gp = np.linspace(shear_range[0], shear_range[-1], config["num_shear_landscape"])
     downsample_quiver = config["downsample_quiver"]
     normed = config["norm_vectors"]
 
@@ -120,9 +109,7 @@ def main(config_name: str = "default") -> None:
         pplane_xlim,
         pplane_ylim,
     ]  # set limits for plotted/reported fixed points
-    model_analysis.run_fixed_point_analysis(
-        drift, shear_range_fpt, pcs, plt_lims, fig_savedir
-    )
+    model_analysis.run_fixed_point_analysis(drift, shear_range_fpt, pcs, plt_lims, fig_savedir)
 
     #### Entropy production rate as a function of shear stress ####
     model_analysis.run_epr_analysis(

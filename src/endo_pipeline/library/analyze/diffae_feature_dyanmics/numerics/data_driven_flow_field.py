@@ -7,16 +7,12 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as manifest_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import (
-    flow_field_viz as ffv,
-)
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import vtk_io
+from endo_pipeline.library.visualize.diffae_feature_dynamics import flow_field_viz as ffv
+from endo_pipeline.library.visualize.diffae_feature_dynamics import vtk_io
 
 
 def set_3d_bounds_from_data(
@@ -138,24 +134,18 @@ def compute_extrapolated_vector_field(
     # Create interpolators for each component of the vector field
     if interpolator == "nearest":  # nearest neighbor
         interpolator_func = [
-            spinterp.NearestNDInterpolator(valid_points, valid_values[i])
-            for i in range(ndim)
+            spinterp.NearestNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
         ]
     elif interpolator == "linear":  # linear interpolation
         interpolator_func = [
-            spinterp.LinearNDInterpolator(valid_points, valid_values[i])
-            for i in range(ndim)
+            spinterp.LinearNDInterpolator(valid_points, valid_values[i]) for i in range(ndim)
         ]
     else:
-        raise ValueError(
-            f"Interpolator {interpolator} not recognized. Use 'nearest' or 'linear'."
-        )
+        raise ValueError(f"Interpolator {interpolator} not recognized. Use 'nearest' or 'linear'.")
 
     # Find the indices of all points (including NaN points)
     all_points = (
-        np.array(np.indices(vector_field[0].shape))
-        .reshape(len(vector_field[0].shape), -1)
-        .T
+        np.array(np.indices(vector_field[0].shape)).reshape(len(vector_field[0].shape), -1).T
     )
 
     # Interpolate the NaN points
@@ -170,9 +160,7 @@ def compute_extrapolated_vector_field(
     return vector_field_dict
 
 
-def get_callable_vector_field(
-    vector_field_dict: dict, for_solve_ivp: bool = True
-) -> Callable:
+def get_callable_vector_field(vector_field_dict: dict, for_solve_ivp: bool = True) -> Callable:
     """
     Get a callable vector field via linear interpolation
     on computed values of the vector field on the grid.
@@ -205,9 +193,7 @@ def get_callable_vector_field(
     vec_field_grid = np.stack(
         vector_field_dict["vectors"], axis=-1
     )  # shape (num_bins_x, num_bins_y, ... , ndim)
-    xyz_grid = np.moveaxis(np.array(vector_field_dict["grid"]), 0, -1).reshape(
-        (-1, ndim)
-    )
+    xyz_grid = np.moveaxis(np.array(vector_field_dict["grid"]), 0, -1).reshape((-1, ndim))
     vec_field_interp = spinterp.LinearNDInterpolator(
         xyz_grid, vec_field_grid.reshape((-1, ndim))
     )  # interpolator for f_KM
@@ -306,9 +292,7 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     return interpolated_points
 
 
-def convert_coordinates_from_pc_to_latent(
-    coords: np.ndarray, reducer: Pipeline
-) -> list[list]:
+def convert_coordinates_from_pc_to_latent(coords: np.ndarray, reducer: Pipeline) -> list[list]:
     """
     Convert coordinates in PCA-based feature space
     to latent space using the PCA model.
@@ -396,9 +380,7 @@ def get_and_viz_ddff(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = compute_extrapolated_vector_field(
-        drift_km, centers, interpolator="nearest"
-    )
+    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
     # save flow field dictionary as npy
     np.save(
         output_savedir + f"flow_field_dict_{name}.npy",
@@ -406,9 +388,7 @@ def get_and_viz_ddff(
         allow_pickle=True,
     )
     # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(
-        flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk"
-    )
+    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk")
 
     # compute interpolated diffusion field
     # (diagonal diffusion tensor represented as 3D vector field)
@@ -488,9 +468,7 @@ def ddff_main(
 
     # get experimental condition
     # descriptions of each dataset
-    condition_dict = diffae_preproc.get_dataset_descriptions(
-        list_of_datasets, simple=True
-    )
+    condition_dict = diffae_preproc.get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize dict to save trajectories
     # used for crop reconstruction

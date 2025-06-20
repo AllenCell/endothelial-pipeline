@@ -9,21 +9,15 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_eval
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
-    gen_potential as gp,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_eval
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import gen_potential as gp
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import (
-    dynamics_viz as dviz,
-)
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import pplane
+from endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize.diffae_feature_dynamics import dynamics_viz as dviz
+from endo_pipeline.library.visualize.diffae_feature_dynamics import pplane
 
 
 def model_data_comparison_one_dataset(
@@ -141,9 +135,7 @@ def model_data_comparison(
     """
 
     # get list of timelapse datasets with DiffAE manifest data
-    list_of_datasets = mio.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", timelapse_only=True
-    )
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid", timelapse_only=True)
 
     for ds_name in list_of_datasets:
         # if we don't want to fit model using this dataset, skip it
@@ -173,9 +165,7 @@ def model_data_comparison(
             if num_flow > 1:
                 frame_max = df_by_flow[j]["frame_number"].max()
                 frame_cutoff = frame_max - 100
-                stationary_data = df_by_flow[j][
-                    df_by_flow[j]["frame_number"] > frame_cutoff
-                ]
+                stationary_data = df_by_flow[j][df_by_flow[j]["frame_number"] > frame_cutoff]
             # else, it is just the whole dataset
             else:
                 stationary_data = df_by_flow[j]
@@ -194,26 +184,18 @@ def model_data_comparison(
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
             sup_title = fig2.texts[0].get_text()
-            sup_title = (
-                ds_name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
-            )
+            sup_title = ds_name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
             # save figures
             vb.save_plot(
                 fig1,
-                fig_savedir
-                + ds_name
-                + "_phase_portrait_shear_"
-                + str(int(shear_list[j])),
+                fig_savedir + ds_name + "_phase_portrait_shear_" + str(int(shear_list[j])),
             )
             vb.save_plot(
                 fig2,
-                fig_savedir
-                + ds_name
-                + "_stationary_dist_shear_"
-                + str(int(shear_list[j])),
+                fig_savedir + ds_name + "_stationary_dist_shear_" + str(int(shear_list[j])),
             )
 
 
@@ -357,9 +339,7 @@ def get_epr(
         p = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
 
         # get entropy production rate
-        epr[i] = gp.entropy_production(
-            p, drift_vals, diff_vals, centers, additive_noise
-        )
+        epr[i] = gp.entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
 
         # free up memory
         del drift_vals, diff_vals, p

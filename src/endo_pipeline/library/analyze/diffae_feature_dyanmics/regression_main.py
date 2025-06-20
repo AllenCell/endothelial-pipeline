@@ -3,16 +3,12 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import (
-    manifest_viz as mv,
-)
+from endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz as mv
 
 
 def kramers_moyal_train_test_one_dataset(
@@ -94,18 +90,14 @@ def kramers_moyal_train_test_one_dataset(
         if num_flow > 1:
             frame_max = df_by_flow[j]["frame_number"].max()
             frame_cutoff = frame_max - 100
-            stationary_data = df_by_flow[j][
-                df_by_flow[j]["frame_number"] > frame_cutoff
-            ]
+            stationary_data = df_by_flow[j][df_by_flow[j]["frame_number"] > frame_cutoff]
         # else, it is just the whole dataset
         else:
             stationary_data = df_by_flow[j]
 
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
-        traj_list, d_traj_list = rh.get_traj_and_diff(
-            stationary_data, feat_cols=feat_cols
-        )
+        traj_list, d_traj_list = rh.get_traj_and_diff(stationary_data, feat_cols=feat_cols)
 
         # get bins for histogramming
         # (for drift and diffusion estimates)
@@ -147,9 +139,7 @@ def kramers_moyal_train_test_one_dataset(
             drift_km_masked,
             x_pts_,
         ) = rh.masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
-        diff_km_masked, _ = rh.masked_vector_field(
-            diff_km_, np.array(np.meshgrid(*centers)).T
-        )
+        diff_km_masked, _ = rh.masked_vector_field(diff_km_, np.array(np.meshgrid(*centers)).T)
         drift_km.append(drift_km_masked)
         diff_km.append(diff_km_masked)
         x_pts.append(x_pts_)
@@ -168,12 +158,8 @@ def kramers_moyal_train_test_one_dataset(
     num_test = [num_tot[j] - num_train[j] for j in range(num_flow)]
 
     # get corresponding flow condition for each training and test point
-    u_train = np.concatenate(
-        [shear_list[j] * np.ones((num_train[j], 1)) for j in range(num_flow)]
-    )
-    u_test = np.concatenate(
-        [shear_list[j] * np.ones((num_test[j], 1)) for j in range(num_flow)]
-    )
+    u_train = np.concatenate([shear_list[j] * np.ones((num_train[j], 1)) for j in range(num_flow)])
+    u_test = np.concatenate([shear_list[j] * np.ones((num_test[j], 1)) for j in range(num_flow)])
 
     del x_pts, drift_km, diff_km  # free up memory
 
@@ -231,9 +217,7 @@ def build_kramers_moyal_train_test(
     # get list of datasets with DiffAE manifest data
     # using timelapse_only=True to restrict to datasets
     # that are live, timelapse datasets
-    list_of_datasets = mio.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", timelapse_only=True
-    )
+    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid", timelapse_only=True)
 
     # initialize lists to store train test sets for each dataset
     x_train_list = []

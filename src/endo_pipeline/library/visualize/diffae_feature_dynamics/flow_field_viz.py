@@ -6,14 +6,14 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 from cellsmap.util.general_image_preprocessing import sequence_to_scalar
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def set_slice_plot_bounds_and_labels(
@@ -185,9 +185,7 @@ def plot_one_slice_streamplot(
 
     # transpose the grid and velocities for streamplot
     # (meshgrid generated via indexing ij)
-    ax.streamplot(
-        x1_grid.T, x2_grid.T, dx1.T, dx2.T, color="black", linewidth=1, density=2
-    )
+    ax.streamplot(x1_grid.T, x2_grid.T, dx1.T, dx2.T, color="black", linewidth=1, density=2)
     return ax
 
 
@@ -210,12 +208,8 @@ def plot_streamplot_slices(
 
     # plot streamplot for the specified slices
     fig, ax = vb.init_subplots(figsize=(14, 5))
-    ax[0] = plot_one_slice_streamplot(
-        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0]
-    )
-    ax[1] = plot_one_slice_streamplot(
-        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1]
-    )
+    ax[0] = plot_one_slice_streamplot((v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0])
+    ax[1] = plot_one_slice_streamplot((v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1])
 
     return fig, ax
 
@@ -297,12 +291,8 @@ def plot_flow_field_slices(
         dataset_name = sequence_to_scalar(df_cond["dataset"])
         scatter_color = manifest_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(
-            df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.15
-        )
-        ax[1].scatter(
-            df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.15
-        )
+        ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.15)
+        ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.15)
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -331,9 +321,7 @@ def plot_flow_field_slices(
         # for saving the plot
         if df_cond is not None:
             name = df_cond["dataset"].unique()[0]
-            condition = diffae_preproc.get_dataset_descriptions([name], simple=True)[
-                name
-            ]
+            condition = diffae_preproc.get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
         vb.save_plot(
@@ -408,12 +396,8 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
                 fp = coord[-1, :]
                 # plot fixed point
                 # PC1 vs PC2, PC1 vs PC3
-                ax[0].scatter(
-                    fp[0], fp[1], s=100, color=scatter_color, edgecolor="black"
-                )
-                ax[1].scatter(
-                    fp[0], fp[2], s=100, color=scatter_color, edgecolor="black"
-                )
+                ax[0].scatter(fp[0], fp[1], s=100, color=scatter_color, edgecolor="black")
+                ax[1].scatter(fp[0], fp[2], s=100, color=scatter_color, edgecolor="black")
 
     # set the axis limits and labels
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
@@ -496,12 +480,8 @@ def flow_field_viz_main(
     # get the color for the scatter plot
     scatter_color = manifest_viz.get_dataset_color(name)
     # plot scatter of data overlaid on quiver plot
-    ax[0].scatter(
-        df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.05
-    )
-    ax[1].scatter(
-        df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.05
-    )
+    ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.05)
+    ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
 
     # plot last point of trajectory
@@ -550,7 +530,5 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    vb.save_plot(
-        fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300
-    )
+    vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300)
     return

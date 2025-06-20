@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-from src.endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize import viz_base as vb
 
 
 def plot_fixed_points_by_shear(
@@ -82,9 +82,7 @@ def plot_fixed_points_by_shear(
     return figs, axs
 
 
-def plot_histogram_2d(
-    ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str
-) -> plt.Axes:
+def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -> plt.Axes:
     """
     Plot 2D histogram with specified colormap.
 
@@ -159,13 +157,9 @@ def compare_stationary_distributions(
     ndim = len(bins)
     if ndim == 2:  # call 2D histogram plot function
         fig, ax = vb.init_subplots(figsize=(12, 4))
-        ax[0] = plot_histogram_2d(
-            ax[0], p_hist, bins, cmap="inferno"
-        )  # plot empirical PDF
+        ax[0] = plot_histogram_2d(ax[0], p_hist, bins, cmap="inferno")  # plot empirical PDF
         ax[0].set_title("Empirical PDF")
-        ax[1] = plot_histogram_2d(
-            ax[1], p_model, bins, cmap="inferno"
-        )  # plot model PDF
+        ax[1] = plot_histogram_2d(ax[1], p_model, bins, cmap="inferno")  # plot model PDF
         ax[1].set_title("Model PDF")
 
     elif ndim == 1:  # call 1D histogram plot function
@@ -178,9 +172,7 @@ def compare_stationary_distributions(
     dx = [bins[i][1] - bins[i][0] for i in range(ndim)]  # bin widths
     kl_div = kl_divergence(p_hist, p_model, dx)
 
-    fig.suptitle(
-        "$D_{KL}(p_{hist}||p_{model}) =$" + f"{kl_div:0.4f}", fontsize=16, y=1.05
-    )
+    fig.suptitle("$D_{KL}(p_{hist}||p_{model}) =$" + f"{kl_div:0.4f}", fontsize=16, y=1.05)
 
     return fig, ax
 

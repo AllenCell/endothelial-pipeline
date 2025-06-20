@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 import cellsmap.util.dataset_io as dio
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
     kramers_moyal as km,
 )
 
@@ -39,13 +39,9 @@ def get_bins(
     """
     if bin_limits is None:  # Automatically determine bins based on data
         if data is None:
-            raise ValueError(
-                "Please provide data or or upper and lower bounds for bins."
-            )
+            raise ValueError("Please provide data or or upper and lower bounds for bins.")
         ndim = data[0].shape[1]
-        assert ndim == len(
-            num_bins
-        ), "Number of bins must match number of dimensions in data."
+        assert ndim == len(num_bins), "Number of bins must match number of dimensions in data."
         bins = []
         centers = []
         for i in range(ndim):
@@ -58,9 +54,7 @@ def get_bins(
             centers.append(0.5 * (my_bins[1:] + my_bins[:-1]))
     else:  # Use user-defined bins
         ndim = len(bin_limits)
-        assert ndim == len(
-            num_bins
-        ), "Number of bins must match number of dimensions in data."
+        assert ndim == len(num_bins), "Number of bins must match number of dimensions in data."
         bins = []
         centers = []
         for i in range(ndim):
@@ -221,12 +215,9 @@ def get_kramers_moyal(
         print("No kernel parameters provided, using default parameters: ")
         kernel_params = {"bandwidth": 0.1, "kernel": "gaussian"}
         print(
-            f"bandwidth = {kernel_params['bandwidth']:.3f},"
-            f"kernel = {kernel_params['kernel']}"
+            f"bandwidth = {kernel_params['bandwidth']:.3f}," f"kernel = {kernel_params['kernel']}"
         )
-    drift_km, diff_km = km.get_km_kernel(
-        traj_list, d_traj_list, bins, dt, kernel_params
-    )
+    drift_km, diff_km = km.get_km_kernel(traj_list, d_traj_list, bins, dt, kernel_params)
     return drift_km, diff_km
 
 

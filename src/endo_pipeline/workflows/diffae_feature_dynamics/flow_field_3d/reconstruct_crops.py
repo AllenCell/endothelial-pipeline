@@ -3,10 +3,10 @@ from bioio.writers import OmeTiffWriter
 
 from cellsmap.model_features.generate_image import generate_from_coords_batch
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
 
 
 def main() -> None:
@@ -49,9 +49,7 @@ def main() -> None:
             interpolated_points = ddff.interpolate_on_curve(coords)
 
             # transform interpolated points to full latent space
-            latent_coords = ddff.convert_coordinates_from_pc_to_latent(
-                interpolated_points, reducer
-            )
+            latent_coords = ddff.convert_coordinates_from_pc_to_latent(interpolated_points, reducer)
             latent_coords_batch.append(latent_coords)
             condition_list.append(condition)
 

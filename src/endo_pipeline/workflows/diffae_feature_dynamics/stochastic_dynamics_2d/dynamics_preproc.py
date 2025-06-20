@@ -2,11 +2,11 @@ import fire
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_main
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from endo_pipeline.configs import dynamics_io
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_main
+from endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def main(config_name: str = "default") -> None:
@@ -55,9 +55,7 @@ def main(config_name: str = "default") -> None:
     ################### Visualize PCA results ###################
     # plot explained variance ratio of PCA components
     fig, _ = manifest_viz.plot_explained_variance(pca["pca"].explained_variance_ratio_)
-    vb.save_plot(
-        fig, filename=fig_savedir + "explained_variance_ratio", format=".png", dpi=500
-    )
+    vb.save_plot(fig, filename=fig_savedir + "explained_variance_ratio", format=".png", dpi=500)
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml

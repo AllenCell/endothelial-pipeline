@@ -3,9 +3,7 @@ from collections.abc import Callable
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
-    fp_solvers as fps,
-)
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import fp_solvers as fps
 
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:
@@ -70,9 +68,7 @@ def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
     def f_mesh(mesh_grid: tuple[np.ndarray], u: float | None = None) -> np.ndarray:
         # Create a mesh grid of points
         mesh_shape = mesh_grid[0].shape
-        grid_points = np.stack(
-            [mesh_grid[dim].flatten() for dim in range(ndim)], axis=-1
-        )
+        grid_points = np.stack([mesh_grid[dim].flatten() for dim in range(ndim)], axis=-1)
 
         # Evaluate the function on all grid points
         v_flat = np.apply_along_axis(f, 1, grid_points, u)

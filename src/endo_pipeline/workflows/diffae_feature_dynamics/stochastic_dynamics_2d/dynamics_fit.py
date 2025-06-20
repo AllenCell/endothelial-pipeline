@@ -2,8 +2,8 @@ import fire
 import pysindy as ps
 
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_fitting
+from endo_pipeline.configs import dynamics_io
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_fitting
 
 
 def main(config_name: str = "default") -> None:
@@ -90,9 +90,7 @@ def main(config_name: str = "default") -> None:
     )
     diff_model.print()
 
-    print(
-        f"Coefficient of determination (R^2) for model of diffusion term: {diff_r2:.6f}"
-    )
+    print(f"Coefficient of determination (R^2) for model of diffusion term: {diff_r2:.6f}")
 
     ################### Save trained models ###################
     model_dict = {"drift_model": drift_model, "diff_model": diff_model}

@@ -4,13 +4,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize import viz_base as vb
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -108,16 +106,12 @@ def plot_pc_scatter(
         color = get_dataset_color(name)
 
         # first plot: PC1 v PC2
-        ax[0].scatter(
-            df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01, color=color
-        )
+        ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01, color=color)
         ax[0].set_xlabel("PC1")
         ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
-        ax[1].scatter(
-            df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01, color=color
-        )
+        ax[1].scatter(df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01, color=color)
         ax[1].set_xlabel("PC1")
         ax[1].set_ylabel("PC3")
 
@@ -175,9 +169,7 @@ def plot_latent_component_mean(feats: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_latent_component_histogram(
-    feats: np.ndarray, bins: list | None = None
-) -> tuple:
+def plot_latent_component_histogram(feats: np.ndarray, bins: list | None = None) -> tuple:
     """
     Plot histogram of latent components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -214,9 +206,9 @@ def plot_latent_component_histogram(
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
-            rh.get_bins(
-                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
-            )[0][0]
+            rh.get_bins([num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)])[0][
+                0
+            ]
             for j in range(num_feats)
         ]
     else:
@@ -289,9 +281,9 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
-            rh.get_bins(
-                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
-            )[0][0]
+            rh.get_bins([num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)])[0][
+                0
+            ]
             for j in range(num_feats)
         ]
     else:
@@ -393,9 +385,7 @@ def plot_km(
         ax_01.set_title("$\hat{D}^{(2)}$")
         ax_01.set_xlabel(f"PC{pcs[0]+1}")
 
-        fig.suptitle(
-            f"Kramers-Moyal coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)"
-        )
+        fig.suptitle(f"Kramers-Moyal coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
 
         return fig, ax_00, ax_01
     else:
@@ -419,7 +409,5 @@ def plot_km_drift_2d(
     ax[1].streamplot(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
     ax[1].set_xlabel(f"PC{pcs[0]+1}")
     ax[1].set_ylabel(f"PC{pcs[1]+1}")
-    fig.suptitle(
-        f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)"
-    )
+    fig.suptitle(f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
     return fig, ax

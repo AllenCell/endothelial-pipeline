@@ -2,15 +2,13 @@ import fire
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def main(list_of_datasets: list[str] | None = None) -> None:
@@ -19,9 +17,7 @@ def main(list_of_datasets: list[str] | None = None) -> None:
     feature dynamics for a specified list of datasets.
     """
     if list_of_datasets is None:
-        list_of_datasets = manifest_io.list_datasets_with_manifest(
-            "diffae_manifest_fmsid"
-        )
+        list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
@@ -53,9 +49,7 @@ def main(list_of_datasets: list[str] | None = None) -> None:
         vb.save_plot(fig, f"{fig_savedir}/{ds_name}_latent_histogram")
 
         df_proj = diffae_preproc.project_manifest_to_pcs(df_ds, pca)
-        feats = diffae_preproc.df_to_array(df_proj, feat_cols)[
-            ..., :3
-        ]  # only looking at top 3 PCs
+        feats = diffae_preproc.df_to_array(df_proj, feat_cols)[..., :3]  # only looking at top 3 PCs
 
         fig, _ = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
         fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)

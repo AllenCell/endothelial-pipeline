@@ -1,20 +1,17 @@
-# %%
 import fire
 import numpy as np
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import ddd_main
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from endo_pipeline.configs import dynamics_io
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import ddd_main
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
 
 
-def main(
-    list_of_datasets: list[str] | None = None, bw_range: list[float] | None = None
-) -> None:
+def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None = None) -> None:
     """
     Get and visualize data-driven flow fields for
     all datasets in the manifest using various kernel bandwidths.
@@ -101,9 +98,7 @@ def main(
             print(f"\nComputing 2D drift and diffusion fields for dataset {name}")
 
             # 2D viz outputs
-            ddd_main.get_and_analyze_ddd(
-                name, pca, kernel_params, fig_savedir_kernel, config
-            )
+            ddd_main.get_and_analyze_ddd(name, pca, kernel_params, fig_savedir_kernel, config)
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs

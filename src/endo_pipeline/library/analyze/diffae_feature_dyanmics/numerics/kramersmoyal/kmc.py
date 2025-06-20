@@ -5,9 +5,9 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
-    binning,
-    kernels,
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+    km_binning,
+    km_kernels,
 )
 
 
@@ -31,7 +31,7 @@ def string_to_kernel(kernel: str) -> Callable:
     }  # functions that are not kernels
     kernel_dict = {
         name: func
-        for name, func in inspect.getmembers(kernels, inspect.isfunction)
+        for name, func in inspect.getmembers(km_kernels, inspect.isfunction)
         if name not in not_kernel
     }
     if kernel in kernel_dict:
@@ -230,7 +230,7 @@ def _km(
 
     # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
     # where N[i] is the number of bins in dimension i.
-    hist = binning.histogramdd(timeseries_, bins=bins, weights=weights)
+    hist = km_binning.histogramdd(timeseries_, bins=bins, weights=weights)
 
     ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
 

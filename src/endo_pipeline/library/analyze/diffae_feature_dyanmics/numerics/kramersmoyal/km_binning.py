@@ -15,9 +15,7 @@ def _get_bin_counts(
 ) -> np.ndarray:
     """Get weighted bin counts for the input sample."""
     # Compute the bin number each sample falls into.
-    n_count = tuple(
-        np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d)
-    )
+    n_count = tuple(np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d))
 
     # Using searchsorted, values that fall on an
     # edge are put in the right bin.
@@ -44,9 +42,7 @@ def _get_bin_counts(
     return hist
 
 
-def histogramdd(
-    sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray
-) -> np.ndarray:
+def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray) -> np.ndarray:
     """
     Compute the multidimensional weighted histogram of a sample.
 
@@ -83,9 +79,7 @@ def histogramdd(
         nbin[i] = len(edges[i]) + 1
         # check that bins are monotonically increasing
         if np.any(edges[i][:-1] > edges[i][1:]):
-            raise ValueError(
-                f"`bins[{i}]` must be monotonically increasing, when an array"
-            )
+            raise ValueError(f"`bins[{i}]` must be monotonically increasing, when an array")
         # increase bin count by 1 to include outliers
         nbin[i] = len(edges[i]) + 1
         # get the width of each bin
@@ -93,9 +87,7 @@ def histogramdd(
 
     m = len(bins)
     if m != d:
-        raise ValueError(
-            "The dimension of bins must be equal to the dimension of the " " sample x"
-        )
+        raise ValueError("The dimension of bins must be equal to the dimension of the " " sample x")
 
     # Get the histogram counts.
     hist: np.ndarray = _get_bin_counts(sample, weights, edges, d, nbin)

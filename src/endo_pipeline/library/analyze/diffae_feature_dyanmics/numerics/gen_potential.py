@@ -1,17 +1,13 @@
 import numpy as np
 from scipy.integrate import simpson
 
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.model_eval import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.model_eval import (
     get_normalization_constant,
 )
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
-    fp_solvers as fps,
-)
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import fp_solvers as fps
 
 
-def gradient_flow_term(
-    potential: np.ndarray, diffusion: np.ndarray, x: list
-) -> np.ndarray:
+def gradient_flow_term(potential: np.ndarray, diffusion: np.ndarray, x: list) -> np.ndarray:
     """
     Compute the gradient flow term -D(x) grad(U) for a given potential U
     and diagonal diffusion matrix D(x)=diag[D1(x),D2(x),...,Dd(x)].
@@ -96,9 +92,7 @@ def compute_flux_terms(
         # div(D): sum of gradients of diagonal terms
         # multiply by P(x) to get div(D(x)) * P(x) at end of loop
         if not additive_noise:
-            div_d_p[i] = div_d_p[i] + np.gradient(
-                diffusion[i], dx[i], axis=i, edge_order=2
-            )
+            div_d_p[i] = div_d_p[i] + np.gradient(diffusion[i], dx[i], axis=i, edge_order=2)
 
         # grad(P): numerical gradient
         grad_p_i = np.gradient(p, dx[i], axis=i, edge_order=2)
@@ -214,9 +208,7 @@ def grad_flux_decomposition(
 
     # solve for stationary probability density
     p = stationary_fp.solve(drift, diffusion)
-    p[p < tol] = (
-        tol  # set values less than tol to tol to avoid log(0) and divide by 0 errors
-    )
+    p[p < tol] = tol  # set values less than tol to tol to avoid log(0) and divide by 0 errors
     c = get_normalization_constant(p, dx)  # compute normalization constant
     p = p / c  # normalize
 

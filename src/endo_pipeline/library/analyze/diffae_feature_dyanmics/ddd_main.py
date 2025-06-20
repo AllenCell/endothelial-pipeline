@@ -5,17 +5,15 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import (
-    regression_helper as rh,
-)
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis
+from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
+from endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from src.endo_pipeline.library.visualize import viz_base as vb
+from endo_pipeline.library.visualize import viz_base as vb
 
 
 def ddd_model_analysis(
@@ -179,15 +177,11 @@ def get_and_analyze_ddd(
         # turn into callable vector fields
         # have to have shear as a parameter
         # (dummy variable)
-        def drift_(
-            x: np.ndarray, u: float, vector_dict: dict = drift_dict
-        ) -> np.ndarray:
+        def drift_(x: np.ndarray, u: float, vector_dict: dict = drift_dict) -> np.ndarray:
             drift = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
             return drift(x)
 
-        def diffusion_(
-            x: np.ndarray, u: float, vector_dict: dict = diffusion_dict
-        ) -> np.ndarray:
+        def diffusion_(x: np.ndarray, u: float, vector_dict: dict = diffusion_dict) -> np.ndarray:
             diffusion = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
             return diffusion(x)
 
