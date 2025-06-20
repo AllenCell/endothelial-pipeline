@@ -172,29 +172,6 @@ def build_measured_features_tables(
     - git_uncommitted_changes
     """
 
-    # # get some versioning info about when this script was run and
-    # # what version of the script was used to produce the output
-    # # to save alongside the output
-    # # the branch name:
-    # git_branch_name = (
-    #     subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-    #     .decode("ascii")
-    #     .strip()
-    # )
-    # # the current commit hash:
-    # git_commit_hash = (
-    #     subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-    # )
-    # # if there were any uncommitted changes when this script was run:
-    # git_uncommitted_changes = (
-    #     subprocess.check_output(["git", "diff", "HEAD", "--name-only"])
-    #     .decode("ascii")
-    #     .strip()
-    #     or "None"
-    # )
-    # # the timestamp that this script was run:
-    # timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
-
     print(f"Working on {dataset_name} -- T={T}...") if verbose else None
 
     dim_order = "TCZYX"
@@ -312,16 +289,13 @@ def build_measured_features_tables(
                     "fluor_pct75 (au)"
                 ],
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
-                # "measurement_timestamp": timestamp,
-                # "git_branch_name": git_branch_name,
-                # "git_commit_hash": git_commit_hash,
-                # "git_uncommitted_changes": git_uncommitted_changes,
             }
         )
         table.to_csv(
             tables_out_dir_alignments
-            / f"{dataset_name}_P{position}_T{T}_alignments.csv",
+            / f"{dataset_name}_P{position}_T{T}_alignments.tsv",
             index=False,
+            sep="\t",
         )
 
         if create_validation_image:
@@ -415,16 +389,13 @@ def build_measured_features_tables(
                     "touches_image_border": labeled_region_metrics[
                         "touches_image_border"
                     ],
-                    # "measurement_timestamp": timestamp,
-                    # "git_branch_name": git_branch_name,
-                    # "git_commit_hash": git_commit_hash,
-                    # "git_uncommitted_changes": git_uncommitted_changes,
                 }
             )
             table.to_csv(
                 tables_out_dir_segprops
-                / f"{dataset_name}_P{position}_T{T}_segprops.csv",
+                / f"{dataset_name}_P{position}_T{T}_segprops.tsv",
                 index=False,
+                sep="\t",
             )
 
 
@@ -514,7 +485,7 @@ def main(
                 dataset_name,
                 out_file_suffix="alignments",
                 input_filename_contains="alignments",
-                file_extension=".csv",
+                file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
             concatenate_and_save_feature_tables(
@@ -522,7 +493,7 @@ def main(
                 dataset_name,
                 out_file_suffix="segprops",
                 input_filename_contains="segprops",
-                file_extension=".csv",
+                file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
 
