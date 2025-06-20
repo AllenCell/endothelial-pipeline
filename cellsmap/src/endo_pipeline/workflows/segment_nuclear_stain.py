@@ -14,12 +14,12 @@ from cellsmap.vis import get_images, image_processing
 Segment nuclear stain channel using Cellpose for immunofluorescence datasets.
 
 To test this script, you can run it with the following command:
-python cellsmap/src/endo_pipeline/library/process/segment_nuclear_stain.py \
+python cellsmap/src/endo_pipeline/workflows/segment_nuclear_stain.py \
     --dataset "20250509_20X_IF2" \
     --nuc_stain "NucViolet"
 
 To run this script on new datasets, you can use the following command:
-python cellsmap/src/endo_pipeline/library/process/segment_nuclear_stain.py \
+python cellsmap/src/endo_pipeline/workflows/segment_nuclear_stain.py \
     --dataset "20250509_20X_IF2" \
     --nuc_stain "NucViolet" \
     --output_dir "//allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/"
@@ -68,9 +68,7 @@ def segment_nuclei(max_int_projections: list) -> list:
     """
     print("Segmenting nuclei...")
     model = models.Cellpose(model_type="nuclei")
-    masks, _flows, _styles, _diams = model.eval(
-        max_int_projections, diameter=None, channels=[0, 0]
-    )
+    masks, _flows, _styles, _diams = model.eval(max_int_projections, diameter=None, channels=[0, 0])
     return masks
 
 
@@ -89,18 +87,16 @@ def visualize_results(max_int_projections: list, masks: list, dataset: str) -> N
 
         fig, axes = plt.subplots(1, 3, figsize=(10, 5))
         axes[0].imshow(max_int_proj, cmap="gray")
-        axes[0].set_title("Original Flourescence Image")
+        axes[0].set_title("Original Flourescence Image", fontsize=10)
         axes[0].axis("off")
 
         axes[1].imshow(colored_mask)
-        axes[1].set_title("Nuclear Segmentation Mask")
+        axes[1].set_title("Nuclear Segmentation Mask", fontsize=10)
         axes[1].axis("off")
 
         axes[2].imshow(max_int_proj, cmap="gray")  # Show original DAPI first
-        axes[2].imshow(
-            colored_mask, alpha=0.2
-        )  # Add the colored mask with transparency overlay
-        axes[2].set_title("Overlay")
+        axes[2].imshow(colored_mask, alpha=0.2)  # Add the colored mask with transparency overlay
+        axes[2].set_title("Overlay", fontsize=10)
         axes[2].axis("off")
 
         plt.tight_layout()
