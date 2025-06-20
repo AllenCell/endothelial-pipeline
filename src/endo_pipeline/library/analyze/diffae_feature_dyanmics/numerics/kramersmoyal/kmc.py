@@ -6,10 +6,8 @@ from scipy.signal import convolve
 from scipy.special import factorial
 
 from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+    binning,
     kernels,
-)
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal.binning import (
-    histogramdd,
 )
 
 
@@ -40,8 +38,7 @@ def string_to_kernel(kernel: str) -> Callable:
         return kernel_dict[kernel]
     else:
         raise ValueError(
-            f"Kernel '{kernel}' not recognized. "
-            f" Available kernels: {list(kernel_dict.keys())}"
+            f"Kernel '{kernel}' not recognized. " f" Available kernels: {list(kernel_dict.keys())}"
         )
 
 
@@ -233,7 +230,7 @@ def _km(
 
     # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
     # where N[i] is the number of bins in dimension i.
-    hist = histogramdd(timeseries_, bins=bins, weights=weights)
+    hist = binning.histogramdd(timeseries_, bins=bins, weights=weights)
 
     ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
 
@@ -262,9 +259,7 @@ def _km(
     kmc = convolve(hist, kernel_[None, ...], mode="same", method=conv_method)
 
     # Normalise with correct factorial coefficients * histogram
-    mask = (
-        np.abs(kmc[0]) < tol
-    )  # where probability density is small... (i.e., little to no data)
+    mask = np.abs(kmc[0]) < tol  # where probability density is small... (i.e., little to no data)
     kmc[0:, mask] = np.nan  # ...set kmc coeffs to nan
 
     # get correct Taylor expansion coefficients (e.g., divide 2nd order powers by 2!)
