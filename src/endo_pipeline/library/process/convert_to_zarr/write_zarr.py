@@ -6,16 +6,23 @@ from bioio_base.types import PhysicalPixelSizes
 
 from cellsmap.util import dataset_io
 
+DEFAULT_XY_SCALING = [0.5]
+DEFAULT_Z_SCALING = [1.0]
 
-def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
+
+def get_sldy_metadata(dataset: str) -> dict:
     """
-    Retrieves sldy metadata for the given dataset in the format of PhysicalPixelSizes.
+    Retrieve sldy metadata for the given dataset.
 
-    Parameters:
-    dataset (str): The name of the dataset.
+    Parameters
+    ----------
+    dataset : str
+        The name of the dataset.
 
-    Returns:
-    metadata: The the metadata for the dataset as a dictionary of dictionaries.
+    Returns
+    -------
+    dict
+        The metadata for the dataset as a dictionary of dictionaries.
     """
     dataset_path = dataset_io.get_original_path(dataset)
     im = BioImage(dataset_path)
@@ -25,13 +32,18 @@ def get_sldy_metadata(dataset: str) -> PhysicalPixelSizes:
 
 def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     """
-    Retrieves the physical pixel sizes for the given sldy metadata.
+    Retrieve the physical pixel sizes for the given sldy metadata.
 
-    Parameters:
-    metadata (dict): The metadata as a dictionary of dictrionaries from a .sldy file opened with BioImage.
+    Parameters
+    ----------
+    metadata : dict
+        The metadata as a dictionary of dictionaries from a .sldy file
+        opened with BioImage.
 
-    Returns:
-    PhysicalPixelSizes: The physical pixel sizes for the dataset.
+    Returns
+    -------
+    PhysicalPixelSizes
+        The physical pixel sizes for the dataset.
     """
     xy_pixel_size_in_um = metadata["image_record"]["CLensDef70"]["mMicronPerPixel"]
     optovar_mag = metadata["image_record"]["COptovarDef70"]["mMagnification"]
@@ -45,28 +57,32 @@ def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     return physical_pixel_sizes
 
 
-def get_level_shapes(
-    shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]
-) -> list[tuple]:
+def get_level_shapes(shape: tuple, xy_scaling: list[float], z_scaling: list[float]) -> list[tuple]:
     """
-    Determines the image data shape at different resolutions using XY and Z scaling parameters.
-    By default, it returns the full resolution and a single downsampled resolution at 50% in XY.
-    The number of levels in the final output is determined by the length of the xy_scaling and
-    z_scaling lists plus one (original resolution and then the scaled ones).
+    Determine the image data shape at different resolutions.
 
-    Parameters:
-    shape (tuple): The shape of the original image data.
-    xy_scaling (list[float]): The scaling factors for the XY dimensions.
-    z_scaling (list[float]): The scaling factors for the Z dimension.
+    By default, it returns the full resolution and a single downsampled
+    resolution at 50% in XY. The number of levels in the final output is
+    determined by the length of the `xy_scaling` and `z_scaling` lists plus
+    one (original resolution and then the scaled ones).
 
-    Returns:
-    list[tuple]: A list of shapes for each resolution level.
+    Parameters
+    ----------
+    shape : tuple
+        The shape of the original image data.
+    xy_scaling : list[float]
+        The scaling factors for the XY dimensions.
+    z_scaling : list[float]
+        The scaling factors for the Z dimension.
+
+    Returns
+    -------
+    list[tuple]
+        A list of shapes for each resolution level.
     """
 
     if len(xy_scaling) != len(z_scaling):
-        raise ValueError(
-            f"Found XY and Z scaling with different length: XY={xy_scaling}, Z={z_scaling}."
-        )
+        raise ValueError(f"XY and Z scaling with different length: XY={xy_scaling}, Z={z_scaling}.")
     source_shape = shape
     level_shapes = [source_shape]
     nchannels = source_shape[1]
@@ -86,16 +102,24 @@ def get_level_shapes(
 
 
 def get_zarr_chunk_dims(
-    im_shape: tuple, xy_scaling: list[float] = [0.5], z_scaling: list[float] = [1.0]
+    im_shape: tuple, xy_scaling: list[float], z_scaling: list[float]
 ) -> list[tuple]:
     """
-    Determines the chunk dimensions for Zarr storage.
+    Determine the chunk dimensions for Zarr storage.
 
-    Parameters:
-    im_shape (tuple): The shape of the image data.
+    Parameters
+    ----------
+    im_shape : tuple
+        The shape of the image data.
+    xy_scaling : list[float]
+        The scaling factors for the XY dimensions. Default is half the original size.
+    z_scaling : list[float]
+        The scaling factors for the Z dimension. Default is the original size.
 
-    Returns:
-    list[tuple]: A list of chunk dimensions for each resolution level.
+    Returns
+    -------
+    list[tuple]
+        A list of chunk dimensions for each resolution level.
     """
     chunk_dims = []
     level_shapes = get_level_shapes(im_shape, xy_scaling, z_scaling)
@@ -115,24 +139,42 @@ def write_scene(
     position: int,
     physical_pixel_sizes: PhysicalPixelSizes,
     interval_min: float,
-    xy_scaling: list[float] = [0.5],
-    z_scaling: list[float] = [1.0],
+    xy_scaling: list[float] | None = None,
+    z_scaling: list[float] | None = None,
 ) -> None:
     """
-    Writes a scene to a Zarr store.
+    Write a scene to a Zarr store.
 
-    Parameters:
-    im (np.array or da.array): 5D image array in the order TCZYX.
-    channels (list[str]): The list of channel names.
-    full_zarr_path (str): The full path to the Zarr store.
-    dataset (str): The name of the dataset.
-    position (int): The position index.
-    physical_pixel_sizes (PhysicalPixelSizes): The physical pixel sizes for the dataset.
-    interval_min (float): The time interval in minutes.
+    Parameters
+    ----------
+    im : np.array or da.array
+        5D image array in the order TCZYX.
+    channels : list[str]
+        The list of channel names.
+    full_zarr_path : str
+        The full path to the Zarr store.
+    dataset : str
+        The name of the dataset.
+    position : int
+        The position index.
+    physical_pixel_sizes : PhysicalPixelSizes
+        The physical pixel sizes for the dataset.
+    interval_min : float
+        The time interval in minutes.
+    xy_scaling : list[float], optional
+        The scaling factors for the XY dimensions (default is [0.5]).
+    z_scaling : list[float], optional
+        The scaling factors for the Z dimension (default is [1.0]).
 
-    Returns:
+    Returns
+    -------
     None
     """
+    if xy_scaling is None:
+        xy_scaling = DEFAULT_XY_SCALING
+    if z_scaling is None:
+        z_scaling = DEFAULT_Z_SCALING
+
     zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
 
     writer = ome_zarr_writer.OmeZarrWriter()
@@ -144,9 +186,9 @@ def write_scene(
     )
 
     # Use all channels, if channels are not specific by user
-    channels_to_use = [c for c in range(im.shape[1])]
+    channels_to_use = list(range(im.shape[1]))
 
-    print(f"Writing images...")
+    print("Writing images...")
     writer.write_t_batches_array(im, channels=channels_to_use, tbatch=4)
 
     physical_scale = {
@@ -169,6 +211,6 @@ def write_scene(
         physical_units=physical_units,
         channel_colors=[0xFFFFFF for i in range(im.shape[1])],
     )
-    print(f"Writing metadata...")
+    print("Writing metadata...")
     writer.write_metadata(meta)
     return
