@@ -18,7 +18,7 @@ from skimage.segmentation import watershed
 
 from cellsmap.util import dataset_io
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library import get_sldy_metadata as sldmd
+from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
 
 # NOTE
 # because we don't have zarr files for the datasets in the

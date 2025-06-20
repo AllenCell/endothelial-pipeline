@@ -5,10 +5,6 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 from skimage.segmentation import find_boundaries
-from src.endo_pipeline.library.general_image_preprocessing import (
-    build_analysis_queue,
-    save_image_output,
-)
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
@@ -25,7 +21,11 @@ from cellsmap.util.dataset_io import (
     save_git_versioning_info,
 )
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library import shape_features as feat
+from src.endo_pipeline.library.analyze import shape_features as feat
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    build_analysis_queue,
+    save_image_output,
+)
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:

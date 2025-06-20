@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
-from src.endo_pipeline.library.get_sldy_metadata import get_objective_info
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
@@ -15,6 +14,7 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
 )
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 
 
 def get_default_dim_order() -> str:

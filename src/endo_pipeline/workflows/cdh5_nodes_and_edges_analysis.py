@@ -8,8 +8,8 @@ from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
 from cellsmap.util import dataset_io
-from src.endo_pipeline.library import cdh5_preprocessing as preproc
-from src.endo_pipeline.library import vis_cdh5_nodes_and_edges_analysis as vis
+from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
+from src.endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
 
 try:
     from IPython import get_ipython

@@ -5,14 +5,14 @@ from pathlib import Path
 from matplotlib.gridspec import GridSpec
 from matplotlib.projections.polar import PolarAxes
 from pandas import DataFrame
-from src.endo_pipeline.library.general_image_preprocessing import (
-    get_default_dim_order,
-    get_dim_map,
-)
 
 from cellsmap.util.dataset_io import load_config, load_dataset_position_as_dask_array
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library import optical_flow_calculator
+from src.endo_pipeline.library.analyze import optical_flow_calculator
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    get_default_dim_order,
+    get_dim_map,
+)
 
 # %% Make list of datasets to analzye
 dataset_name_list = [

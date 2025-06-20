@@ -3,12 +3,6 @@ from pathlib import Path
 
 from bioio import BioImage
 from skimage.segmentation import find_boundaries
-from src.endo_pipeline.library.general_image_preprocessing import (
-    build_analysis_queue,
-    get_default_dim_order,
-    get_dim_map,
-    save_image_output,
-)
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
@@ -22,7 +16,13 @@ from cellsmap.util.dataset_io import (
     load_nuclei_prediction,
 )
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library import cdh5_preprocessing as preproc
+from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    build_analysis_queue,
+    get_default_dim_order,
+    get_dim_map,
+    save_image_output,
+)
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:

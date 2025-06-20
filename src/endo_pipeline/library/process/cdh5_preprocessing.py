@@ -26,9 +26,9 @@ from skimage.segmentation import (
     relabel_sequential,
     watershed,
 )
-from src.endo_pipeline.library.general_image_preprocessing import get_dim_map
 
 from cellsmap.util.dataset_io import extract_T
+from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
 def preprocess(

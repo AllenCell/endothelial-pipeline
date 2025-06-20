@@ -5,10 +5,6 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 from skimage.measure import regionprops
-from src.endo_pipeline.library.general_image_preprocessing import (
-    build_analysis_queue,
-    get_default_dim_order,
-)
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
@@ -21,6 +17,10 @@ from cellsmap.util.dataset_io import (
     save_git_versioning_info,
 )
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    build_analysis_queue,
+    get_default_dim_order,
+)
 
 
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
