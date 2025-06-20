@@ -512,6 +512,7 @@ def flow_field_viz_main(
         # simulate second trajectory to get second stable point
         if name == "20250319_20X" or name == "20250326_20X":
             ax_.scatter(traj_2[-1, 0], traj_2[-1, j + 1], s=100, color="black")
+
     # plot second stable point
     ax = set_slice_plot_bounds_and_labels(ax, bounds_)
     # set titles with slice values

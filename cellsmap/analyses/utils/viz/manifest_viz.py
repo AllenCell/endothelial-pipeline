@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.pipeline import Pipeline
 
-import cellsmap.analyses.utils.numerics.data_driven_flow_field as ddff
 import cellsmap.analyses.utils.regression_helper as rh
 import cellsmap.analyses.utils.viz.viz_base as vb
 import cellsmap.util.manifest_io as mio
