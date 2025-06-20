@@ -114,7 +114,7 @@ def apply_model_single(
     overrides: Union[str, Dict] = {},
 ):
     """
-    Apply a model to a single dataset.
+    Apply a DiffAE model to a single dataset.
 
     Parameters
     ----------

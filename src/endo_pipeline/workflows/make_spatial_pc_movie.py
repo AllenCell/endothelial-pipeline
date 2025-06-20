@@ -23,7 +23,7 @@ from src.endo_pipeline.library.model.apply_model import (
     get_cytodl_commit_hash,
     load_overrides,
 )
-from src.endo_pipeline.workflows.apply_model import apply_model_single
+from src.endo_pipeline.workflows.apply_diffae_model import apply_model_single
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
