@@ -16,11 +16,6 @@ from cellsmap.analyses.utils.viz.flow_field_viz import (
     plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
-from cellsmap.util.dataset_io import (
-    get_reference_datasets,
-    get_segmentation_features_manifest,
-    ipython_cli_flexecute,
-)
 from cellsmap.util.manifest_io import (
     get_diffae_manifest,
     get_feature_cols,
@@ -35,6 +30,11 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
+from endo_pipeline.configs.dataset_io import (
+    get_reference_datasets,
+    get_segmentation_features_manifest,
+    ipython_cli_flexecute,
+)
 
 """
 NOTE: I believe that the "feat_#" columns in the dataset loaded by

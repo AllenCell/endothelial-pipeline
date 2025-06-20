@@ -7,7 +7,12 @@ import pandas as pd
 from tqdm import tqdm
 
 from cellsmap.features.lib_tracking import run_tracking
-from cellsmap.util.dataset_io import (
+from cellsmap.util.general_image_preprocessing import (
+    build_analysis_queue,
+    sequence_to_scalar,
+)
+from cellsmap.util.set_output import get_output_path
+from endo_pipeline.configs.dataset_io import (
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -17,11 +22,6 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
 )
-from cellsmap.util.general_image_preprocessing import (
-    build_analysis_queue,
-    sequence_to_scalar,
-)
-from cellsmap.util.set_output import get_output_path
 
 
 def run_workflow(queue: Sequence) -> None:

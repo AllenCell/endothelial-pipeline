@@ -1,6 +1,6 @@
 import pytest
 
-from cellsmap.util import dataset_io
+from endo_pipeline.configs import dataset_io
 
 CONFIG_DATA_FIELDS = [
     "original_path",

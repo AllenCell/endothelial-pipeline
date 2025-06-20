@@ -27,8 +27,8 @@ from skimage.segmentation import (
     watershed,
 )
 
-from cellsmap.util.dataset_io import extract_T
 from cellsmap.util.general_image_preprocessing import get_dim_map
+from endo_pipeline.configs.dataset_io import extract_T
 
 
 def preprocess(
