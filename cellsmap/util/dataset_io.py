@@ -27,8 +27,15 @@ def get_config_dir() -> Path:
 def save_to_yaml(object: dict, path: Path) -> None:
     """Save dictionary object to YAML at given path."""
 
-    yaml.SafeDumper.add_representer(list, lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True))
-    yaml_content = yaml.safe_dump(object, default_flow_style=False, sort_keys=False, width=80, indent=2)
+    yaml.SafeDumper.add_representer(
+        list,
+        lambda dumper, data: dumper.represent_sequence(
+            "tag:yaml.org,2002:seq", data, flow_style=True
+        ),
+    )
+    yaml_content = yaml.safe_dump(
+        object, default_flow_style=False, sort_keys=False, width=80, indent=2
+    )
     path.open("w").write(yaml_content)
 
 
@@ -53,13 +60,17 @@ def combine_data_config(save: bool = False) -> dict:
     separated_path = get_config_dir() / "datasets"
     combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
 
-    separate_data_configs = [yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))]
-    combined_data_config = { config["name"]: config for config in separate_data_configs }
+    separate_data_configs = [
+        yaml.safe_load(config.open())
+        for config in sorted(separated_path.glob("*.yaml"))
+    ]
+    combined_data_config = {config["name"]: config for config in separate_data_configs}
 
     if save:
         save_to_yaml(combined_data_config, combined_path)
 
     return combined_data_config
+
 
 # model methods
 def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
@@ -75,6 +86,26 @@ def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
 
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f"{config_type}_config.yaml"
+    with open(config_file, "r") as file:
+        config_data = yaml.safe_load(file)
+    return config_data
+
+
+def load_config_src(config_type: str = "data") -> dict[str, dict[str, Any]]:
+    """
+    Load config file from new location in
+    src/endo_pipeline/configs/.
+
+    This function will become deprecated in the future
+    when we update this module to be compatible with
+    the new repo structure.
+    """
+    if config_type not in ["data", "model", "dynamics"]:
+        raise ValueError(
+            'Invalid config type. Must be either "data", "model", or "dynamics."'
+        )
+    parent_folder = Path(__file__).resolve().parents[2]
+    config_file = parent_folder / f"src/endo_pipeline/{config_type}_config.yaml"
     with open(config_file, "r") as file:
         config_data = yaml.safe_load(file)
     return config_data
