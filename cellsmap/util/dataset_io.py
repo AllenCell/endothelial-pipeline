@@ -104,7 +104,7 @@ def load_config_src(config_type: str = "data") -> dict[str, dict[str, Any]]:
             'Invalid config type. Must be either "data", "model", or "dynamics."'
         )
     parent_folder = Path(__file__).resolve().parents[2]
-    config_file = parent_folder / f"src/endo_pipeline/{config_type}_config.yaml"
+    config_file = parent_folder / f"src/endo_pipeline/configs/{config_type}_config.yaml"
     with open(config_file, "r") as file:
         config_data = yaml.safe_load(file)
     return config_data
