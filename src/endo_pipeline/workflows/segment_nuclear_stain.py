@@ -14,12 +14,12 @@ from cellsmap.vis import get_images, image_processing
 Segment nuclear stain channel using Cellpose for immunofluorescence datasets.
 
 To test this script, you can run it with the following command:
-python cellsmap/src/endo_pipeline/workflows/segment_nuclear_stain.py \
+python src/endo_pipeline/workflows/segment_nuclear_stain.py \
     --dataset "20250509_20X_IF2" \
     --nuc_stain "NucViolet"
 
 To run this script on new datasets, you can use the following command:
-python cellsmap/src/endo_pipeline/workflows/segment_nuclear_stain.py \
+python src/endo_pipeline/workflows/segment_nuclear_stain.py \
     --dataset "20250509_20X_IF2" \
     --nuc_stain "NucViolet" \
     --output_dir "//allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/"
