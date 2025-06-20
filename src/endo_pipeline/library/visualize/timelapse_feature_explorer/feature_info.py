@@ -32,7 +32,7 @@ LABEL_MAP = {
     # filters
     "filter_edge_FOV": "Filter: Touches Edge of Field of View",
     "filter_global": "Global Filter",
-    "filter_max_smoothed_area_normd_change_0.1": "Filter: Max Smoothed Area Change (0.1)",
+    "filter_max_smoothed_area_normd_change_0.1": ("Filter: Max Smoothed Area Change (0.1)"),
     "filter_min_track_duration_24": "Filter: Min Track Duration (24)",
     "filter_valid_points_20": "Filter: Valid Points (20)",
 }
