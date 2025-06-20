@@ -8,11 +8,6 @@ from cellpose import core, models
 from tqdm import tqdm
 
 from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
-from cellsmap.util.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_dataset_info,
-    load_config,
-)
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
@@ -20,6 +15,11 @@ from cellsmap.util.general_image_preprocessing import (
     save_image_output,
 )
 from cellsmap.util.set_output import get_output_path
+from endo_pipeline.configs.dataset_io import (
+    fire_parse_generate_dataset_name_list,
+    get_dataset_info,
+    load_config,
+)
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model

@@ -17,7 +17,7 @@ from skimage.filters import gaussian
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
-from cellsmap.util import dataset_io
+from endo_pipeline.configs import dataset_io
 
 
 def expand_crop_region(crop_region, padding):

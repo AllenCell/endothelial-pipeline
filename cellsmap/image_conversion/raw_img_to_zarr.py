@@ -11,7 +11,7 @@ from cellsmap.image_conversion.process_images.write_zarr import (
     get_sldy_pixel_sizes,
     write_scene,
 )
-from cellsmap.util.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     get_fmsid,
     get_microscope,
     get_original_path,

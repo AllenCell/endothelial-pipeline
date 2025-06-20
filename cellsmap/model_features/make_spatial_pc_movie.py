@@ -15,15 +15,15 @@ from cellsmap.model_features.apply_model import (
     get_cytodl_commit_hash,
     load_overrides,
 )
-from cellsmap.util.dataset_io import (
+from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
+from cellsmap.util.manifest_preprocessing import save_file_to_fms
+from cellsmap.util.set_output import get_output_path
+from endo_pipeline.configs.dataset_io import (
     extract_T,
     get_cdh5_classic_segmentation_path,
     get_model_info,
     update_dataset_config,
 )
-from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.set_output import get_output_path
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1

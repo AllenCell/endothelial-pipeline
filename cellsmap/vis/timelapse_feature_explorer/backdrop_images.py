@@ -8,13 +8,13 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from cellsmap.util import dataset_io
 from cellsmap.vis.image_processing import (
     bf_slice,
     bf_std_dev,
     contrast_stretching,
     gfp_max_proj,
 )
+from endo_pipeline.configs import dataset_io
 
 
 def process_frame(

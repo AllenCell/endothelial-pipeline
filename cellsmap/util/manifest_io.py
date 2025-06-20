@@ -5,7 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import dataset_io
+from endo_pipeline.configs import dataset_io
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet

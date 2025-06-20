@@ -8,8 +8,9 @@ from bioio import BioImage
 from skimage.measure import label, regionprops
 from tqdm import tqdm
 
-from cellsmap.util import dataset_io, set_output
+from cellsmap.util import set_output
 from cellsmap.util.cdh5_preprocessing import extract_T
+from endo_pipeline.configs import dataset_io
 
 """
 python generate_nuclear_manifest.py my_dataset_name

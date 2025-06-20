@@ -21,9 +21,9 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border, find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import extract_T
 from cellsmap.util.general_image_preprocessing import get_dim_map, save_image_output
 from cellsmap.util.shape_features import numpy_mesh_coords
+from endo_pipeline.configs.dataset_io import extract_T
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE

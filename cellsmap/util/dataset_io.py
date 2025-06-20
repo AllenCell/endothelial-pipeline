@@ -73,6 +73,28 @@ def combine_data_config(save: bool = False) -> dict:
 
 
 # model methods
+
+
+def load_config_src(config_type: str = "data") -> dict[str, dict[str, Any]]:
+    """
+    Load config file from new location in
+    src/endo_pipeline/configs/.
+
+    This function will become deprecated in the future
+    when we update this module to be compatible with
+    the new repo structure.
+    """
+    if config_type not in ["data", "model", "dynamics"]:
+        raise ValueError(
+            'Invalid config type. Must be either "data", "model", or "dynamics."'
+        )
+    parent_folder = Path(__file__).resolve().parents[2]
+    config_file = parent_folder / f"src/endo_pipeline/{config_type}_config.yaml"
+    with open(config_file, "r") as file:
+        config_data = yaml.safe_load(file)
+    return config_data
+
+
 def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError(

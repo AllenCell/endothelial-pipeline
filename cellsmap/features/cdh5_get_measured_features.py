@@ -10,7 +10,13 @@ from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
 from cellsmap.util import shape_features as feat
-from cellsmap.util.dataset_io import (
+from cellsmap.util.general_image_preprocessing import (
+    build_analysis_queue,
+    get_dim_map,
+    save_image_output,
+)
+from cellsmap.util.set_output import get_output_path
+from endo_pipeline.configs.dataset_io import (
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -21,12 +27,6 @@ from cellsmap.util.dataset_io import (
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
 )
-from cellsmap.util.general_image_preprocessing import (
-    build_analysis_queue,
-    get_dim_map,
-    save_image_output,
-)
-from cellsmap.util.set_output import get_output_path
 
 
 def build_measured_features_tables_multiproc_wrapper(args: Dict) -> None:
