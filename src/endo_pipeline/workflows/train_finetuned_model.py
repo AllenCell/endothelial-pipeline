@@ -4,12 +4,12 @@ from typing import Any, Literal
 import fire
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.model_features.utils.mlflow_utils import (
+from cellsmap.util.dataset_io import get_model_info
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.model.mlflow import (
     download_mlflow_artifact,
     get_ckpt_path,
 )
-from cellsmap.util.dataset_io import get_model_info
-from cellsmap.util.set_output import get_output_path
 
 
 def _generate_overrides(
@@ -27,6 +27,8 @@ def _generate_overrides(
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.csv_path": train_data_path,
         "data.val_dataloaders.dataset.csv_path": val_data_path,
+        # change model target path
+        "model._target_": "src.endo_pipeline.library.model.diffae_finetune.DiffAEFinetune",
         # load diffae checkpoint to finetune
         "checkpoint.ckpt_path": ckpt_path,
         "checkpoint.weights_only": True,

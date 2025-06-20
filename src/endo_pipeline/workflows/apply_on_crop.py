@@ -1,67 +1,37 @@
-import json
-import re
 from pathlib import Path
-from typing import Dict, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 import fire
 import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.model_features.utils.mlflow_utils import (
-    download_mlflow_artifact,
-    download_model,
-)
 from cellsmap.util.dataset_io import (
     extract_P,
-    get_available_datasets,
+    get_dataset_info,
     get_model_info,
-    get_reference_datasets,
-    get_zarr_path,
     update_dataset_config,
 )
+from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.model.apply_model import (
+    get_cytodl_commit_hash,
+    load_overrides,
+)
+from src.endo_pipeline.library.model.mlflow import download_model
 
-# the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1
 
 
-def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
-    """
-    Extract commit hash from the requirements file uploaded to mlflow
-
-    Parameters
-    ----------
-    run_id: str
-        The run ID of the MLflow run.
-    model_path: Path
-        The path where the downloaded model artifacts are saved.
-    """
-    try:
-        artifact_path = "requirements/train-requirements.txt"
-        download_mlflow_artifact(run_id, artifact_path, model_path)
-    except ValueError:
-        artifact_path = "requirements/eval-requirements.txt"
-        download_mlflow_artifact(run_id, artifact_path, model_path)
-
-    with open(model_path / artifact_path, "r") as f:
-        lines = f.readlines()
-    for line in lines:
-        if "git+" in line and "cyto-dl" in line:
-            commit_hash = line.split("git+")[1].split("#egg")[0].split("/")[-1]
-            return commit_hash
-    raise ValueError("No commit hash found in requirements.txt")
-
-
 def generate_overrides(
-    user_overrides,
+    user_overrides: Dict[str, Any],
     save_path: str,
     data_path: str,
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
-) -> Dict:
+) -> Dict[str, Any]:
     overrides = {
         # train and val dataloaders are unnecessary for prediction and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
@@ -80,35 +50,85 @@ def generate_overrides(
                 "T",
                 "start_y",
                 "start_x",
+                "end_y",
+                "end_x",
                 "filename_or_obj",
+                "track_id",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_features",
+            "save_suffix": f"{dataset_name}_{model_name}_crop_features",
         },
+        # add cropping transform
+        "data.predict_dataloaders.dataset.transform.transforms[6]": {
+            "_target_": "cyto_dl.image.transforms.coordinate_crop.CropToCoordsd",
+            "keys": ["raw_bf"],
+            "start_keys": ["start_y", "start_x"],
+            "end_keys": ["end_y", "end_x"],
+            "meta_keys": ["track_id"],
+        },
+        # persist coordinate data through MultiDimImageDataset
+        "data.predict_dataloaders.dataset.extra_columns": [
+            "start_y",
+            "start_x",
+            "end_y",
+            "end_x",
+            "track_id",
+        ],
+        # no spatial inferer needed
+        "model.spatial_inferer": None,
     }
     overrides.update(user_overrides)
     return overrides
 
 
-def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int = 0):
-    # generate csv with paths to zarr files
-    df = pd.DataFrame({"path": sorted(get_zarr_path(dataset_name).values())})
-    df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = resolution_level
-    data_path = str(save_path / "dataset.csv")
-    df.to_csv(data_path, index=False)
-    return data_path
+def centroid_to_bbox(df: pd.DataFrame):
+    """
+    Convert centroids to bounding boxes. NOTE: coordinates are downsampled by half to match current model resolution.
+    """
+    df["start_x"] = ((df["centroid_x"] - df["crop_size"] / 2) / 2).astype(int)
+    df["start_y"] = ((df["centroid_y"] - df["crop_size"] / 2) / 2).astype(int)
+    df["end_x"] = ((df["centroid_x"] + df["crop_size"] / 2) / 2).astype(int)
+    df["end_y"] = ((df["centroid_y"] + df["crop_size"] / 2) / 2).astype(int)
+    return df
+
+
+def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
+    fms_id = get_dataset_info(dataset_name)["tracking_integration_fmsid"]
+    df = get_dataframe_by_fmsid(fms_id)
+    # convert centroids to bounding boxes
+    df = centroid_to_bbox(df)
+
+    # group df by zarr_path and convert start and end coordinates to list
+    grouped_df = (
+        df.groupby(["zarr_path", "image_index"])
+        .agg(
+            {
+                "start_y": lambda x: list(x),
+                "start_x": lambda x: list(x),
+                "end_y": lambda x: list(x),
+                "end_x": lambda x: list(x),
+                "track_id": lambda x: list(x),
+            }
+        )
+        .reset_index()
+    )
+    grouped_df["channel"] = ZARR_BF_CHANNEL
+    grouped_df["resolution"] = 0
+    # only run a single timepoint from zarr
+    grouped_df["start"] = grouped_df["image_index"]
+    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
+
+    save_path = save_dir / "aggregated_crop_manifest.csv"
+    grouped_df.to_csv(save_path, index=False)
+    return save_path
 
 
 def update_prediction_with_meta(
-    dataset_name: str,
-    model_name: str,
-    crop_size: Sequence[int],
-    mlflow_id: str,
-    save_path: Path,
+    dataset_name: str, model_name: str, mlflow_id: str, save_path: Path
 ):
     # add model and dataset information to prediction file
     prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
+        save_path / f"predict_{dataset_name}_{model_name}_crop_features.parquet"
     )
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
@@ -118,8 +138,10 @@ def update_prediction_with_meta(
     # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
     pred_df["resolution_level"] = 1
 
-    pred_df["end_y"] = pred_df["start_y"] + crop_size[0]
-    pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
+    crop_size = (
+        pred_df["end_y"].iloc[0] - pred_df["start_y"].iloc[0],
+        pred_df["end_x"].iloc[0] - pred_df["start_x"].iloc[0],
+    )
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
     pred_df["position"] = pred_df["filename_or_obj"].apply(
@@ -132,40 +154,13 @@ def update_prediction_with_meta(
     return prediction_path
 
 
-def load_overrides(overrides: Union[str, Dict]) -> Dict:
-    if isinstance(overrides, str):
-        overrides = json.loads(overrides)
-    elif not isinstance(overrides, dict):
-        raise ValueError("Overrides must be a dictionary or a string")
-    return overrides
-
-
 def apply_model_single(
     model_name: str,
     dataset_name: str,
-    resolution_level: int = 0,
+    save_path: Optional[Union[str, Path]] = None,
     upload_to_fms: bool = True,
-    save_path: Union[str, Path] = None,
     overrides: Union[str, Dict] = {},
 ):
-    """
-    Apply a model to a single dataset.
-
-    Parameters
-    ----------
-    model_name: str
-        Name of the model from `model_config.yaml` to apply.
-    dataset_name: str
-        Name of the dataset from `data_config.yaml` to apply the model to.
-    resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
-    upload_to_fms: bool
-        Whether to upload the prediction file to FMS. Default is True.
-    save_path: str
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict
-        Overrides to apply to the model config. By default, no overrides are applied
-    """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
@@ -181,8 +176,8 @@ def apply_model_single(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    # create zarr dataset
-    data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
+    data_path = preprocess_manifest(dataset_name, save_path)
+
     # apply overrides
     overrides = generate_overrides(
         overrides,
@@ -194,28 +189,26 @@ def apply_model_single(
     )
     model.override_config(overrides)
     model.predict()
-    crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
     prediction_path = update_prediction_with_meta(
         dataset_name=dataset_name,
         model_name=model_name,
-        crop_size=crop_size,
         mlflow_id=mlflow_id,
         save_path=save_path,
     )
+    commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
     if upload_to_fms:
         file_id = save_file_to_fms(
             prediction_path,
             dataset_name,
-            get_cytodl_commit_hash(mlflow_id, model_path),
+            commit_hash,
             misc_notes="",
             mlflow_run_id=mlflow_id,
         )
-
         update_dataset_config(
             dataset_name,
-            {"diffae_manifest_fmsid": file_id},
+            {"diffae_tracking_integration_fmsid": file_id},
         )
 
     return prediction_path
@@ -223,28 +216,22 @@ def apply_model_single(
 
 def apply_model(
     model_name: str,
-    dataset_names: str | Sequence[str] = [],
-    regex: str = None,
-    resolution_level: int = 0,
+    dataset_names: Sequence[str],
     upload_to_fms: bool = True,
     save_path: Union[str, Path] = None,
     overrides: Union[str, Dict] = {},
 ):
     """
     Apply a model to a multiple datasets.
-    Example usage: python apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+    Example usage: python src/endo_pipeline/workflows/apply_on_crop.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
 
 
     Parameters
     ----------
     model_name: str
         Name of the model from `model_config.yaml` to apply.
-    dataset_names: str
-        Names of the datasets from `data_config.yaml` to apply the model to. If "reference", all reference datasets will be used.
-    regex: str
-        Regex to filter datasets by name. If provided, only datasets matching the regex will be used.
-    resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
+    dataset_name: str
+        Name of the dataset from `data_config.yaml` to apply the model to.
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str
@@ -252,23 +239,12 @@ def apply_model(
     overrides: str or dict
         Overrides to apply to the model config. By default, no overrides are applied
     """
-    if regex:
-        dataset_names = [
-            name
-            for name in get_available_datasets(verbose=False)
-            if re.search(regex, name)
-        ]
-        print(f"Found {dataset_names} matching regex '{regex}'")
-    else:
-        if dataset_names == "reference":
-            dataset_names = get_reference_datasets()
-        elif isinstance(dataset_names, str):
-            dataset_names = [dataset_names]
+    if isinstance(dataset_names, str):
+        dataset_names = [dataset_names]
     for name in dataset_names:
         apply_model_single(
             model_name=model_name,
             dataset_name=name,
-            resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
             overrides=overrides,

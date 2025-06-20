@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.model_features.generate_image import generate_from_coords
 from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.manifest_io import (
     get_diffae_manifest,
@@ -18,6 +17,7 @@ from cellsmap.util.manifest_io import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.model.generate_image import generate_from_coords
 
 
 def write_text(img, text):
@@ -125,7 +125,8 @@ def generate_latent_walk(
     n_noise_samples: int = 1,
 ):
     """
-    Create latent walk for a given model using PCA or model features
+    Create latent walk for a given model using PCA or model features.
+    uv run src/endo_pipeline/workflows/latent_walk.py --model_name diffae_04_10 --num_pcs 3 --sigma 3.0 --n_steps 10 --use_pcs True --show_coords True
 
     Parameters
     ----------
