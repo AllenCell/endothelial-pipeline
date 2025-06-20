@@ -1,12 +1,12 @@
 import fire
 
-from cellsmap.analyses.utils import ddd_main
-from cellsmap.analyses.utils.io import dynamics_io
-from cellsmap.analyses.utils.viz import manifest_viz
-from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import manifest_io
-from cellsmap.util.manifest_preprocessing import manifest_pca
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import ddd_main
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def main(config_name: str = "default") -> None:

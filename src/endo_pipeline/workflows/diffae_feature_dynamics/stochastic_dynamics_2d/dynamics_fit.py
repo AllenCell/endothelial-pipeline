@@ -1,9 +1,9 @@
 import fire
-import pysindy as ps  # import pysindy package for SINDy based regression
+import pysindy as ps
 
-from cellsmap.analyses.utils import model_fitting
-from cellsmap.analyses.utils.io import dynamics_io
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_fitting
 
 
 def main(config_name: str = "default") -> None:
