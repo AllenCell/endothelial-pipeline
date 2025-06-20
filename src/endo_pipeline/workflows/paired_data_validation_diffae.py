@@ -15,8 +15,10 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
-from src.endo_pipeline.library.model.mlflow import download_model
+from src.endo_pipeline.library.diffae_model.apply_diffae_model import (
+    get_cytodl_commit_hash,
+)
+from src.endo_pipeline.library.diffae_model.mlflow import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
 from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 

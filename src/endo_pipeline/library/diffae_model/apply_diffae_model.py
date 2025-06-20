@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Dict, Union
 
-from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact
+from src.endo_pipeline.library.diffae_model.mlflow import download_mlflow_artifact
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
