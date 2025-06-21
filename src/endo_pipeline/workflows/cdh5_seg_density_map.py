@@ -37,9 +37,6 @@ try:
     from IPython import get_ipython
 except ModuleNotFoundError:
     pass
-from collections.abc import Callable
-
-import fire
 
 
 def get_chan_map(filepath: Path) -> dict:

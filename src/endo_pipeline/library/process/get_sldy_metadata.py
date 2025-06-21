@@ -1,5 +1,6 @@
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator, Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd

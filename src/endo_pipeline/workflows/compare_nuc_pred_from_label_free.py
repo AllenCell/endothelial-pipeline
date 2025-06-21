@@ -1,6 +1,6 @@
 import re
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import matplotlib.pyplot as plt
 import numpy as np

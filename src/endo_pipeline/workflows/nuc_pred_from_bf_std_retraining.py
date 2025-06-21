@@ -1,7 +1,8 @@
+from collections.abc import Generator
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Generator, Literal
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np

@@ -1,7 +1,6 @@
 from multiprocessing import Pool
 from pathlib import Path
 
-import fire
 import numpy as np
 import pandas as pd
 from bioio import BioImage
