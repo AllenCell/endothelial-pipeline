@@ -8,8 +8,7 @@ from skimage.color import label2rgb
 
 from cellsmap.analyses.utils.viz import viz_base as vb
 from cellsmap.util import dataset_io, set_output
-from cellsmap.vis import image_processing
-from src.endo_pipeline.library.process import get_images
+from src.endo_pipeline.library.process import get_images, image_processing
 
 """
 Segment nuclear stain channel using Cellpose for immunofluorescence datasets.
