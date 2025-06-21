@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -74,6 +74,7 @@ def get_nuclei_features_from_image(
     nuclei_ambiguity_threshold (float):
         Threshold for determining if a nucleus segmentation overlaps a cell
         segmentation enough to be kept.
+
     Returns
     -------
         pd.DataFrame: DataFrame with extracted features.
@@ -156,7 +157,7 @@ def get_nuclei_features_from_image(
                         nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
 
         nuc_lab_frac_dict = dict(
-            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"])
+            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"], strict=False)
         )
         nuclei_seg_with_most_overlap = [
             lab

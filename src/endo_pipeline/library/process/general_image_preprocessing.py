@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,7 @@ def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
     dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums))
+    dim_map = dict(zip(dims, dim_nums, strict=False))
 
     return dim_map
 
@@ -86,7 +87,9 @@ def build_analysis_queue(
             positions_in_T += list(range(num_pos_in_T))
             positions_in_S += [scene_index] * num_pos_in_T
 
-        for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
+        for pos, (pos_in_T, pos_in_S) in enumerate(
+            zip(positions_in_T, positions_in_S, strict=False)
+        ):
             if use_original_data:
                 img.set_scene(pos_in_S)
                 scene_name = img.scenes[pos_in_S]
@@ -246,10 +249,10 @@ def restore_full_dims(
 
 
 def save_image_output(
-    out_path: Union[str, Path],
-    images: List[np.ndarray],
+    out_path: str | Path,
+    images: list[np.ndarray],
     images_metadata: dict,
-    dtype: Optional[Any] = None,
+    dtype: Any | None = None,
 ) -> None:
     """
     Combines a list of images into a single image and saves it as an OME-TIFF

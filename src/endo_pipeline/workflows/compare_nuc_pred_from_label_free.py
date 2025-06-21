@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from typing import Generator
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,8 +29,13 @@ use_original_data = True
 
 
 def plot_and_save_overlays(
-    overlay_bf, overlay_nuc, out_dir, dataset_name, timepoint, filename_suffix=""
-):
+    overlay_bf: np.ndarray,
+    overlay_nuc: np.ndarray,
+    out_dir: Path,
+    dataset_name: str,
+    timepoint: int,
+    filename_suffix: str = "",
+) -> None:
     fig, (ax1, ax2) = plt.subplots(ncols=2)
     ax1.imshow(overlay_bf)
     ax2.imshow(overlay_nuc)
@@ -48,7 +54,9 @@ def plot_and_save_overlays(
     plt.close(fig)
 
 
-def get_image_data_from_original(dataset_name, scenes_to_use):
+def get_image_data_from_original(
+    dataset_name: str, scenes_to_use: list[str]
+) -> Generator:
 
     dim_order = "TCZYX"
     dim_map = dataset_io.get_dim_map(dim_order)
@@ -94,7 +102,7 @@ def get_image_data_from_original(dataset_name, scenes_to_use):
         )
 
 
-def get_image_data_from_zarr(dataset_name):
+def get_image_data_from_zarr(dataset_name: str) -> Generator:
 
     dim_order = "TCZYX"
     dim_map = dataset_io.get_dim_map(dim_order)
@@ -322,7 +330,9 @@ for dataset_name in datasets_to_use:
         )
         dist = distance_transform_edt(thresh)
         peaks_img = np.zeros(dist.shape, dtype=bool)
-        peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15)))] = True
+        peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15), strict=False))] = (
+            True
+        )
         peaks_img = label(dilation(peaks_img, footprint=disk(5)))
         ws = watershed(
             rescale_intensity(dist, out_range=(1, 0)), markers=peaks_img, mask=thresh
@@ -389,7 +399,7 @@ for nm, grp in nuclei_count_df.groupby("dataset_name"):
     fig, ax = plt.subplots()
     sns.barplot(data=grp, x="image_id", y="nuclei_count", hue="method", ax=ax)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment="right")
-    ax.set_title(nm)
+    ax.set_title(str(nm))
     plt.tight_layout()
     fig.savefig(out_dir / f"{nm}_nuclei_counts.png", bbox_inches="tight", dpi=180)
 
@@ -397,7 +407,7 @@ for nm, grp in nuclei_count_df.groupby("dataset_name"):
     fig, ax = plt.subplots()
     sns.barplot(data=grp, x="image_id", y="fraction_wrt_classic", hue="method", ax=ax)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment="right")
-    ax.set_title(nm)
+    ax.set_title(str(nm))
     plt.tight_layout()
     fig.savefig(
         out_dir / f"{nm}_nuclei_counts_fractions.png", bbox_inches="tight", dpi=180

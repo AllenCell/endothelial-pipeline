@@ -26,6 +26,7 @@ def get_crop_bounds(
 ) -> tuple:
     """
     Get the crop bounds for a given centroid and crop size.
+
     Parameters
     ----------
     centroid_x : float
@@ -272,6 +273,7 @@ def generate_TFE_dataset_of_single_track(
     verbose: bool = True,
 ) -> None:
     """Generate a TFE dataset for a single track in a specified dataset and position.
+
     Parameters
     ----------
     out_dir : Path | None

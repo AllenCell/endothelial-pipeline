@@ -7,7 +7,10 @@ import pandas as pd
 from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
-from cellsmap.util import dataset_io
+from cellsmap.util.dataset_io import (
+    fire_parse_generate_dataset_name_list,
+    ipython_cli_flexecute,
+)
 from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
 from src.endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
 
@@ -24,9 +27,10 @@ APPROXIMATE SCRIPT RUN-TIME:
 vis.set_max_plots(0)  # silences the max plot warning
 
 
-def stringified_floatlist_to_floatlist(ls, to_tuple=False):
+def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list | tuple:
     """Converts a list that is saved as a string back to a list object.
-    Assumes that there is only one set of brackets (either '[]' or '()')."""
+    Assumes that there is only one set of brackets (either '[]' or '()').
+    """
     # if 'ls' is already a list of floats then return the input
     if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
         float_list = ls
@@ -38,18 +42,21 @@ def stringified_floatlist_to_floatlist(ls, to_tuple=False):
     return tuple(float_list) if to_tuple else float_list
 
 
-def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
+def main(
+    n_proc: int = 1,
+    dataset_name: str | None = None,
+    show_plots: bool = True,
+    save_output: bool = True,
+    is_test: bool = False,
+) -> None:
 
-    DATASET_NAME_LIST = [
-        config_data["name"]
-        for config_data in dataset_io.load_config(config_type="data")
-    ]
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
-    for dataset_name in DATASET_NAME_LIST:
+    for dataset_name in dataset_name_list:
         # create some paths of interest
         SCT_NAME = Path(__file__).stem
         PRJ_DIR = (
-            Path("../").resolve() if not IS_TEST else Path("../../tests").resolve()
+            Path("../").resolve() if not is_test else Path("../../tests").resolve()
         )
         assert PRJ_DIR.exists()
         data_path_angles_and_dists = (
@@ -68,12 +75,11 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
         df_segprops = pd.read_csv(data_path_segprops)
 
         # generate directories for the output of each dataset
-        for dataset_name, grp in df_ang_dist.groupby("dataset_name"):
-            out_dir = PRJ_DIR / f"results/{SCT_NAME}" / dataset_name
-            out_dir_plots = PRJ_DIR / f"results/{SCT_NAME}" / dataset_name / "plots"
-            if SAVE_OUTPUT:
-                Path.mkdir(out_dir, exist_ok=True, parents=True)
-                Path.mkdir(out_dir_plots, exist_ok=True, parents=True)
+        out_dir = PRJ_DIR / f"results/{SCT_NAME}" / dataset_name
+        out_dir_plots = PRJ_DIR / f"results/{SCT_NAME}" / dataset_name / "plots"
+        if save_output:
+            Path.mkdir(out_dir, exist_ok=True, parents=True)
+            Path.mkdir(out_dir_plots, exist_ok=True, parents=True)
 
         # do some operations on some columns
         df_ang_dist["angle_relative_to_horizontal_in_deg"] = df_ang_dist[
@@ -146,7 +152,7 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
         )
         df_ang_dist_summary.columns = flat_col_names
         df_ang_dist_summary.reset_index(inplace=True)
-        if SAVE_OUTPUT:
+        if save_output:
             df_ang_dist_summary.to_csv(
                 out_dir / f"{dataset_name}_alignments_summary.csv"
             )
@@ -166,13 +172,13 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
         )
         df_segprops_summary.columns = flat_col_names
         df_segprops_summary.reset_index(inplace=True)
-        if SAVE_OUTPUT:
+        if save_output:
             df_segprops_summary.to_csv(out_dir / f"{dataset_name}_segprops_summary.csv")
 
         # plot the results
         ## first plot mean measures of alignment for an overall picture
         vis.generate_alignment_summary_plots(
-            df_ang_dist_summary, out_dir_plots, SHOW_PLOTS, SAVE_OUTPUT
+            df_ang_dist_summary, out_dir_plots, show_plots, save_output
         )
 
         ## divide the large scatterplot above into 3 regions plotted separately?
@@ -193,18 +199,18 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
                 grp["node_to_node_distance"],
                 dist_min,
                 dist_max,
-                SHOW_PLOTS,
-                SAVE_OUTPUT,
+                show_plots,
+                save_output,
             )
             for (dataset_name, time_hrs, T), grp in df_ang_dist.groupby(
                 ["dataset_name", "Time (hours)", "T"]
             )
         ]
 
-        if N_PROC > 1:
+        if n_proc > 1:
             if __name__ == "__main__":
                 print("Starting multiprocessing...")
-                with Pool(processes=N_PROC) as pool:
+                with Pool(processes=n_proc) as pool:
                     pool.starmap(vis.generate_alignment_plots, args_list)
                     pool.close()
                     pool.join()
@@ -214,7 +220,7 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
                 vis.generate_alignment_plots(*args)
 
         # create a movie from the individual alignment plots
-        if SAVE_OUTPUT:
+        if save_output:
             plot_paths = sorted(
                 [
                     filepath
@@ -247,14 +253,13 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
             semilog=False,
             out_path=out_dir_plots,
             filename_stem=dataset_name,
-            SAVE_OUTPUT=SAVE_OUTPUT,
+            SAVE_OUTPUT=save_output,
         )
 
         vis.compare_metrics_temporal_colorcode_polar(
             df_ang_dist,
             x="angle_relative_to_horizontal_in_deg",
             y="edge_fluorescence_mean (a.u.)",
-            semilog=False,
             out_path=out_dir_plots,
             filename_stem=dataset_name,
             SAVE_OUTPUT=False,
@@ -262,24 +267,9 @@ def main(N_PROC: int = 1, SHOW_PLOTS=True, SAVE_OUTPUT=True, IS_TEST=False):
 
         # plot some of the features from the segmentation properties:
         vis.generate_segprop_summary_plots(
-            df_segprops_summary, out_dir_plots, SHOW_PLOTS, SAVE_OUTPUT
+            df_segprops_summary, out_dir_plots, show_plots, save_output
         )
 
 
 if __name__ == "__main__":
-    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
-    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
-    # some non-interactive shell like bash
-    try:
-        # the following line will return a string if an interactive shell is in use,
-        # otherwise raises NameError since get_ipython is not imported from IPython
-        # or returns None if get_ipython is present but script is being executed
-        # from a non-interactive shell
-        if get_ipython().__class__.__name__ != "NoneType":
-            print(f"Using interactive shell {get_ipython().__class__.__name__}.")
-            main()
-        else:
-            raise NameError
-    except NameError:
-        print("Using non-interactive shell.")
-        fire.Fire(main)
+    ipython_cli_flexecute(main)

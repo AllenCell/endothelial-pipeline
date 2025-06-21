@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Generator, Literal
 
 import numpy as np
 import pandas as pd
@@ -14,7 +14,12 @@ from cellsmap.util.dataset_io import (
 )
 
 
-def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=False):
+def get_nested_keys(
+    nested_dict: dict,
+    ls: list = [],
+    iterable_size_limit: int = 50,
+    check_for_lists: bool = False,
+) -> Generator:
     """
     This function will return all the keys in a nested dictionary. It is a generator function.
     The keys are returned similar to globbing through paths in a file system, where the keys
@@ -71,7 +76,9 @@ def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=
             # the indices as the keys and then call this function recursively
             if any(isinstance(x, dict) for x in val):
                 val = {
-                    k: v for k, v in zip(range(len(val)), val) if isinstance(v, dict)
+                    k: v
+                    for k, v in zip(range(len(val)), val, strict=False)
+                    if isinstance(v, dict)
                 }
                 if len(val) <= iterable_size_limit:
                     yield from get_nested_keys(
@@ -93,7 +100,7 @@ def get_nested_keys(nested_dict, ls=[], iterable_size_limit=50, check_for_lists=
         ls = ls_past.copy()
 
 
-def get_sldy_metadata(filepath: Path, scene_index: int = 0):  # -> dict:
+def get_sldy_metadata(filepath: Path, scene_index: int = 0) -> dict:
     """Returns the metadata from a .sldy file which is a series of nested dictionaries."""
     img = BioImage(filepath)
     img.set_scene(scene_index)
@@ -296,11 +303,14 @@ def get_imaging_date(sldy_metadata: dict) -> dict:
 
 
 # TODO: find out how to tell if a channel has fluorescence or brightfield and adjust excitation and emission accordingly
-def get_channel_name(sldy_metadata: dict, return_unprocessed_string=False) -> list:
+def get_channel_name(
+    sldy_metadata: dict, return_unprocessed_string: bool = False
+) -> list:
     """
     Returns the name of each channel from the output of the get_sldy_metadata function.
     NOTE: Channel names may need further processing to remove extraneous characters if
-    `return_unprocessed_string = True`."""
+    `return_unprocessed_string = True`.
+    """
     channel_names = [
         sldy_metadata["channel_record"]["CFluorDef70"][i]["mName"]
         for i in range(sldy_metadata["image_record"]["CImageRecord70"]["mNumChannels"])
@@ -368,7 +378,7 @@ def get_exposure_time(sldy_metadata: dict) -> dict[str, int]:
     return exposure_times
 
 
-def get_time_intervals(sldy_metadata: dict, units="msec") -> dict[str, float]:
+def get_time_intervals(sldy_metadata: dict, units: str = "msec") -> dict[str, float]:
     """Returned time interval for each channel (default is in milliseconds) from the output of the get_sldy_metadata function.
     Possible options for 'units' argument are:
         'msec': milliseconds
@@ -397,10 +407,11 @@ def get_time_intervals(sldy_metadata: dict, units="msec") -> dict[str, float]:
 
 
 def sldy_metadata_to_df(
-    sldy_filepath: str | Path, save_path: Optional[str | Path] = None
-):
+    sldy_filepath: str | Path, save_path: str | Path | None = None
+) -> pd.DataFrame:
     """Creates a dataframe from some of the metadata from a .sldy file
-    and saves it as a tsv file if "save_path" is provided."""
+    and saves it as a tsv file if "save_path" is provided.
+    """
 
     # Create an empty list to hold the rows of data
     metadata_table = []
@@ -474,8 +485,8 @@ def sldy_metadata_to_df(
 
 
 def all_sldy_metadata_to_tsv(
-    save_dir: Optional[str | Path] = None, verbose: bool = True
-):
+    save_dir: str | Path | None = None, verbose: bool = True
+) -> None:
     """
     This function will save the metadata for all of our .sldy files
     currently listed in the cellsmap repos config_data.yaml file as a
@@ -513,12 +524,12 @@ def all_sldy_metadata_to_tsv(
         df_list.append(sldy_metadata_to_df(sldy_filepath))
 
     # Save the metadata as a single tsv file
-    save_path = save_dir / f"endo-holistic_sldy_metadata.tsv"
+    save_path = save_dir / "endo-holistic_sldy_metadata.tsv"
     pd.concat(df_list).to_csv(save_path, sep="\t", index=False)
     return
 
 
-def get_test_of_metadata():
+def get_test_of_metadata() -> tuple[dict, list]:
     """
     Constructs a nested dictionary that can be used as a
     minimal example of the sldy metadata file structure.
@@ -544,7 +555,7 @@ def get_test_of_metadata():
     return md_test, md_keys
 
 
-def get_example_metadata():
+def get_example_metadata() -> Any:
     image_path = Path(
         "//allen/aics/microscopy/Endo Timelapses/20241120/20241120_20X_timelapse_SLDY.dir"
     )
@@ -553,7 +564,7 @@ def get_example_metadata():
 
 
 # Example usage:
-def show_example_usage():
+def show_example_usage() -> None:
     metadata = get_example_metadata()
     print("What are the keys / headers in the metadata?")
     print(

@@ -1,6 +1,5 @@
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from bioio import BioImage
@@ -136,7 +135,7 @@ def generate_results(args: dict) -> None:
 
 
 def main(
-    dataset_name: str | List | None = None,
+    dataset_name: str | list | None = None,
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,

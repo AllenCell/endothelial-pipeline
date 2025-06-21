@@ -1,7 +1,7 @@
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Dict, List, Literal
+from typing import Any, Generator, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,7 +30,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 
 
-def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
+def get_scenes_to_use(dataset_name: str | None = None) -> dict:
     """
     This function returns the scenes to use for a given dataset.
     It is used to filter the analysis queue to only include the
@@ -72,14 +72,14 @@ def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
 
 
 def get_training_data_output_dirs(
-    kind: List[Literal["images", "labels"]] | None = None,
-) -> List:
+    kind: list[Literal["images", "labels"]] | None = None,
+) -> list:
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
     out_dir_labels = (
-        out_dir / f"training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
+        out_dir / "training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
     )
     out_dir_images = (
-        out_dir / f"training_data/cellpose_base_nuclei_model_brightfield_std/"
+        out_dir / "training_data/cellpose_base_nuclei_model_brightfield_std/"
     )
     out_dirs = {"images": out_dir_images, "labels": out_dir_labels}
     if kind == None:
@@ -114,11 +114,8 @@ def get_image_data_from_original(
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-def get_image_data_from_zarr(dataset_name: str) -> None:
+def get_image_data_from_zarr(dataset_name: str) -> Generator:
     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
-    raise NotImplementedError(
-        f"Zarrs not yet implemented yet. Skipping {dataset_name}."
-    )
     for zarr_name in get_zarr_path(dataset_name):
         img_dict_nuc = load_dataset(
             dataset_name, zarr_name=zarr_name, channels=["DAPI"]
@@ -129,6 +126,9 @@ def get_image_data_from_zarr(dataset_name: str) -> None:
             axis=dim_map["Z"], keepdims=True
         )
         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
+    raise NotImplementedError(
+        f"Zarrs not yet implemented yet. Skipping {dataset_name}."
+    )
 
 
 def save_overlay(
@@ -168,7 +168,7 @@ def generate_training_data(analysis_args: dict) -> None:
     )
     out_dir_nuclei = (
         analysis_args["output_dir"]
-        / f"training_data/cellpose_base_nuclei_model_nuclei_max/"
+        / "training_data/cellpose_base_nuclei_model_nuclei_max/"
     )
     out_dir_images, out_dir_labels = get_training_data_output_dirs(
         kind=["images", "labels"]
@@ -296,7 +296,7 @@ def generate_training_data(analysis_args: dict) -> None:
 
 
 def get_training_data(
-    analysis_queue: List,
+    analysis_queue: list,
     create_training_data: bool = False,
     n_proc: int = 1,
     gpu: bool = False,
@@ -413,8 +413,17 @@ def main(
     # get the nuclei model path from the config file
     model_config = load_config(config_type="model")
     nuclei_models = model_config.get("nuc_pred_labelfree")
-    assert len(nuclei_models) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
-    model_path = Path(nuclei_models.get("model_path"))
+    if nuclei_models is None:
+        raise ValueError("No label-free nuclei model found in the configuration file.")
+    else:
+        assert (
+            len(list(nuclei_models)) == 1
+        ), f"Expected 1 model path, found {len(nuclei_models)}"
+        model_path = nuclei_models.get("model_path")
+        if model_path is not None:
+            model_path = Path(model_path)
+        else:
+            raise ValueError("No model path found in the configuration file.")
 
     # create a directory to save the models
     # and their losses and a test image

@@ -1,16 +1,6 @@
+from collections.abc import Callable, Generator, Sequence
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -30,10 +20,10 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE
 def parse_paths(
-    filepath: Union[str, Path, List[str], List[Path]],
+    filepath: str | Path | list[str] | list[Path],
     file_extension: str = "*",
-    sorting_function: Optional[Callable] = None,
-) -> Path | List[Path]:
+    sorting_function: Callable | None = None,
+) -> Path | list[Path]:
     if isinstance(filepath, (Path, str)):
         filepath = Path(filepath)
         if filepath.is_file():
@@ -59,10 +49,10 @@ def parse_paths(
 
 def load_images_sequentially(
     filepaths: str | Path | Sequence[Path] | Sequence[str],
-    crops: Optional[Union[Sequence[Dict], Dict]] = None,
+    crops: Sequence[dict] | dict | None = None,
     image_buffer_prior: int = 0,
     image_buffer_next: int = 0,
-    axis: Optional[str] = None,
+    axis: str | None = None,
     verbose: bool = False,
 ) -> Generator:
     """Load a list of sequential images from a list of filepaths or from a single filepath.
@@ -91,6 +81,7 @@ def load_images_sequentially(
     axis: str
         The axis iterate over when loading the images. Can be one of 'filepaths', 'T', 'Z', 'C', 'Y', or 'X'.
         Default behavior is to iterate over the list of filepaths if "filepaths" is a list or over the 'T' axis if filepaths is a Path object.
+
     Yields
     ------
     image_list: list of np.array objects
@@ -137,10 +128,10 @@ def load_images_sequentially(
         if axis == "filepaths":
             crops = [crops] * len(filepath_list)
         else:  # axis = 'T' there is only one filepath
-            new_crops: List = []
+            new_crops: list = []
             assert (
                 len(axis) == 1
-            ), f"Axis must be a single dimension (T, C, Z, Y, or X) if a single file is provided."
+            ), "Axis must be a single dimension (T, C, Z, Y, or X) if a single file is provided."
             axis_length: int = int(*BioImage(filepath).dims[axis])
             for i in range(axis_length):
                 new_crop = crops.copy()
@@ -165,8 +156,8 @@ def load_images_sequentially(
         crops
     ), f"If crops is defined then it must have the same length as filepaths (filepaths has length {len(filepath_list)}, but crops has length {len(crops)})."
 
-    old_image_list: List = []
-    loaded_images: List = []
+    old_image_list: list = []
+    loaded_images: list = []
     for i in range(total_image_length):
 
         relative_slice = slice(
@@ -190,7 +181,7 @@ def load_images_sequentially(
             (j, fp) for j, fp in enumerate(image_list) if fp not in old_image_list
         ]
         new_image_relative_indices, new_image_list = (
-            zip(*new_fps) if new_fps else ([], [])
+            zip(*new_fps, strict=False) if new_fps else ([], [])
         )
         old_image_list = image_list.copy()
 
@@ -237,10 +228,10 @@ def load_images_sequentially(
 
 
 def match_labels_from_images(
-    labeled_images: List,
-    metrics: List[Union[str, Callable]] = ["centroid"],
+    labeled_images: list,
+    metrics: list[str | Callable] = ["centroid"],
     reference_index: int = 0,
-    metrics_thresholds: Optional[List[float]] = None,
+    metrics_thresholds: list[float] | None = None,
     matching_method: Literal[
         "forward",
         "reverse",
@@ -250,7 +241,7 @@ def match_labels_from_images(
     ] = "forward",
     exclude_if_any_thresholded: bool = False,
     verbose: bool = False,
-) -> Dict:
+) -> dict:
     """
     Match labels between frames based on a list of metrics.
 
@@ -365,7 +356,7 @@ def match_labels_from_images(
         "region_overlap",
     ]
     for metric in metrics:
-        if metric not in acceptable_metrics and not hasattr(metric, "__call__"):
+        if metric not in acceptable_metrics and not callable(metric):
             raise AssertionError(
                 f'"{metric}" is neither a property in skimage.measure.regionprops nor a function; all metrics must be in skimage.measure.regionprops or a function'
             )
@@ -382,7 +373,7 @@ def match_labels_from_images(
 
     # create a list of metrics that are functions to pass to regionprops
     # (hasattr(metric, '__call__') returns True if metric is a function)
-    extra_props = [metric for metric in metrics if hasattr(metric, "__call__")]
+    extra_props = [metric for metric in metrics if callable(metric)]
 
     # generate the regionprops for each image, including extra properties
     all_img_props = [
@@ -444,9 +435,9 @@ def match_labels_from_images(
 
 
 def match_labels_from_metrics(
-    list_of_labeled_metric_vals: List,
+    list_of_labeled_metric_vals: list,
     reference_index: int = 0,
-    metrics_thresholds: Optional[List] = None,
+    metrics_thresholds: list | None = None,
     matching_method: Literal[
         "forward",
         "reverse",
@@ -455,7 +446,7 @@ def match_labels_from_metrics(
         "reciprocal_matches_only",
     ] = "forward",
     exclude_if_any_thresholded: bool = False,
-) -> Dict:
+) -> dict:
     """
     Compares the dictionary of labeled metrics at list_of_labeled_metric_vals[reference_index] to the
     dictionary of labeled metrics from each of the other indices in list_of_labeled_metric_vals and
@@ -558,9 +549,10 @@ def match_labels_from_metrics(
     all_metrics_vals = tuple(
         zip(
             *[
-                zip(*labeled_metric_vals.values())
+                zip(*labeled_metric_vals.values(), strict=False)
                 for labeled_metric_vals in list_of_labeled_metric_vals
-            ]
+            ],
+            strict=False,
         )
     )
     labels_arrs = [
@@ -592,7 +584,7 @@ def match_labels_from_metrics(
 
     # use the mean of the metrics differences exluding masked values
     metrics_diffs_mean_list = []
-    for diffs_arrs in zip(*metrics_diffs):
+    for diffs_arrs in zip(*metrics_diffs, strict=False):
         metrics_diffs_mean = np.ma.mean(np.ma.stack(diffs_arrs, axis=0), axis=0)
         if exclude_if_any_thresholded:
             metrics_diffs_mean.mask = np.ma.max(
@@ -700,8 +692,8 @@ def match_labels_from_metrics(
                 raise ValueError(
                     'matching_method must be one of "forward", "reverse", "to_reference", "from_reference", or "reciprocal_matches_only"'
                 )
-        matched_labels_list.append(dict(zip(*matched_labels)))
-        matched_metrics_list.append(dict(zip(*matched_metrics)))
+        matched_labels_list.append(dict(zip(*matched_labels, strict=False)))
+        matched_metrics_list.append(dict(zip(*matched_metrics, strict=False)))
 
     # convert the matched_labels_list to a dict of dicts with the reference labels as the outer dict
     # keys and the inner dict having key:value pairs for query labels and optimized metric values
@@ -730,7 +722,7 @@ def match_labels_from_metrics(
 
 
 def match_labels_from_overlaps(
-    labeled_images: List[np.ndarray],
+    labeled_images: list[np.ndarray],
     reference_index: int = 0,
     matching_method: Literal[
         "forward",
@@ -835,8 +827,8 @@ def match_labels_from_overlaps(
                     list(prop["get_label_with_most_overlap"].values())[0]
                 )
 
-        matched_labels: Tuple[Any, Any]
-        matched_metrics: Tuple[Any, Any]
+        matched_labels: tuple[Any, Any]
+        matched_metrics: tuple[Any, Any]
 
         match matching_method:
             case "forward":
@@ -868,10 +860,14 @@ def match_labels_from_overlaps(
                 matched_labels = (ref_labs_from_refs, query_labs_from_refs)
                 matched_metrics = (ref_labs_from_refs, metrics_vals_from_refs)
             case "reciprocal_matches_only":
-                matches_from_refs = dict(zip(ref_labs_from_refs, query_labs_from_refs))
-                matches_to_refs = dict(zip(query_labs_to_refs, ref_labs_to_refs))
+                matches_from_refs = dict(
+                    zip(ref_labs_from_refs, query_labs_from_refs, strict=False)
+                )
+                matches_to_refs = dict(
+                    zip(query_labs_to_refs, ref_labs_to_refs, strict=False)
+                )
                 matches_from_refs_vals = dict(
-                    zip(ref_labs_from_refs, metrics_vals_from_refs)
+                    zip(ref_labs_from_refs, metrics_vals_from_refs, strict=False)
                 )
 
                 ref_labs_reciprocal = []
@@ -891,8 +887,8 @@ def match_labels_from_overlaps(
                 raise ValueError(
                     'matching_method must be one of "forward", "reverse", "to_reference", "from_reference", or "reciprocal_matches_only"'
                 )
-        matched_labels_list.append(dict(zip(*matched_labels)))
-        matched_metrics_list.append(dict(zip(*matched_metrics)))
+        matched_labels_list.append(dict(zip(*matched_labels, strict=False)))
+        matched_metrics_list.append(dict(zip(*matched_metrics, strict=False)))
 
     # convert the matched_labels_list to a dict of dicts with the reference labels as the outer dict
     # keys and the inner dict having key:value pairs for query labels and optimized metric values
@@ -923,10 +919,10 @@ def match_labels_from_overlaps(
 def get_label_with_most_overlap(
     region_mask: np.ndarray,
     labeled_image: np.ndarray,
-    masked_labels: List = [
+    masked_labels: list = [
         0,
     ],
-) -> Dict:
+) -> dict:
     """
     Calculate the fraction of region_mask that does not overlap with labeled_image.
     """
@@ -946,9 +942,9 @@ def get_label_with_most_overlap(
             fractions_outside_labeled_region == fractions_outside_labeled_region.min()
         ].tolist()
         fraction_overlap = 1 - np.min(fractions_outside_labeled_region)
-        labels_with_most_overlap = {
-            lab: fraction_overlap for lab in label_with_most_overlap
-        }
+        labels_with_most_overlap = dict.fromkeys(
+            label_with_most_overlap, fraction_overlap
+        )
     else:
         labels_with_most_overlap = {}
     return labels_with_most_overlap
@@ -967,7 +963,8 @@ def initialize_track_ids(
     """list_of_region_props_list = list(list(measure.regionprops))
     list_of_region_props_list at index_to_initialize_on will be used to start a dataframe.
     Each label in the region_props_list will get a row in the dataframe with its own track_id
-    as well as the associated centroid."""
+    as well as the associated centroid.
+    """
 
     tracking_data = list(
         zip(
@@ -979,14 +976,15 @@ def initialize_track_ids(
                     *(list_of_region_props[id][prop] for prop in props_to_include),
                 )
                 for id in range(len(list_of_region_props))
-            ]
+            ],
+            strict=False,
         )
     )
     column_names = [
         column_name
         for column_name in ("image_index", "T", "track_id", *props_to_include)
     ]
-    track_ids = dict(zip(column_names, tracking_data))
+    track_ids = dict(zip(column_names, tracking_data, strict=False))
 
     df_track_ids = pd.DataFrame(track_ids)
     return df_track_ids
@@ -1071,12 +1069,14 @@ def reassign_track_ids_from_matches(
         zip(
             existing_tracks_to_reassign["match_at_current_image_index"],
             existing_tracks_to_reassign["track_id"],
+            strict=False,
         )
     )
     new_tracks_reassignments = dict(
         zip(
             sorted(set(tracks_needing_new_ids)),
             range(track_id_offset, track_id_offset + len(set(new_tracks)) + 1),
+            strict=False,
         )
     )
 
@@ -1128,9 +1128,9 @@ def update_new_track_ids(
 
 def axial_min(
     arr: np.ndarray,
-    mask: Optional[np.ndarray] = None,
-    mask_values_below: Optional[float] = None,
-    mask_values_above: Optional[float] = None,
+    mask: np.ndarray | None = None,
+    mask_values_below: float | None = None,
+    mask_values_above: float | None = None,
 ) -> tuple:
     """
     Finds and returns the indices of the lowest values along the column and row axes of a 2D numpy array,
@@ -1197,13 +1197,13 @@ def axial_min(
         data=for_j_in_arr_argmin, mask=for_j_in_arr_min.mask
     )
 
-    ij_argmins: Tuple = (
+    ij_argmins: tuple = (
         np.ma.masked_array(
             data=np.arange(for_i_in_arr_argmin.shape[0]), mask=for_i_in_arr_min.mask
         ),
         for_i_in_arr_argmin.squeeze(axis=1),
     )
-    ji_argmins: Tuple = (
+    ji_argmins: tuple = (
         for_j_in_arr_argmin.squeeze(axis=0),
         np.ma.masked_array(
             data=np.arange(for_j_in_arr_argmin.shape[1]), mask=for_j_in_arr_min.mask
@@ -1220,8 +1220,8 @@ def axial_min(
 def save_track_labeled_images(
     out_path: Path,
     track_labeled_image: np.ndarray,
-    image_metadata: Optional[dict] = None,
-    extra_channel: Optional[dict] = None,
+    image_metadata: dict | None = None,
+    extra_channel: dict | None = None,
 ) -> None:
     """
     track_labeled_image: np.ndarray
@@ -1299,21 +1299,21 @@ def save_track_labeled_images(
 
 
 def run_tracking(
-    in_dir: Union[str, Path, List[Path], List[str]],
+    in_dir: str | Path | list[Path] | list[str],
     out_dir: Path,
-    out_filename_prefix: Optional[str | None] = None,
-    tracking_metrics: List[str] = ["region_overlap"],  # for nuclei try 'centroids'
+    out_filename_prefix: str | None | None = None,
+    tracking_metrics: list[str] = ["region_overlap"],  # for nuclei try 'centroids'
     sorting_key: Callable | None = None,
     C: int = 0,
-    scene: Optional[Union[str, int]] = None,
-    bin_level: Optional[int] = None,
-    T: Optional[List[int]] = None,
-    extra_in_dir: Optional[Union[Path, List[Path]]] = None,
+    scene: str | int | None = None,
+    bin_level: int | None = None,
+    T: list[int] | None = None,
+    extra_in_dir: Path | list[Path] | None = None,
     extra_C: int = 0,
-    extra_scene: Optional[str | int] = None,
-    extra_bin_level: Optional[int] = None,
-    extra_T: Optional[List[int]] = None,
-    Z_projection: Optional[Callable] = None,
+    extra_scene: str | int | None = None,
+    extra_bin_level: int | None = None,
+    extra_T: list[int] | None = None,
+    Z_projection: Callable | None = None,
     track_tolerance: int = 0,
     image_validation_frequency: int = 0,
     verbose: bool = False,
@@ -1449,9 +1449,9 @@ def run_tracking(
         crops_for_tracking,
         img_fps_for_overlay,
         crops_for_overlay,
-    ) = zip(*img_queue_list)
+    ) = zip(*img_queue_list, strict=False)
 
-    print(f"Generating tracks...") if verbose else None
+    print("Generating tracks...") if verbose else None
     results = generate_tracks(
         image_filepaths=img_fps_for_tracking,
         img_crops=crops_for_tracking,
@@ -1576,17 +1576,17 @@ def run_tracking(
 
 
 def update_track_table(
-    labeled_images: List[np.ndarray],
+    labeled_images: list[np.ndarray],
     existing_track_ids: pd.DataFrame,
     current_T: int,
-    tracking_metrics: List = ["centroid"],
+    tracking_metrics: list = ["centroid"],
     image_buffer_prior: int = 0,
     image_buffer_next: int = 1,
     reference_index: int = 0,
     verbose: bool = False,
-) -> Tuple:
+) -> tuple:
 
-    print(f"- updating tracks...") if verbose else None
+    print("- updating tracks...") if verbose else None
 
     current_image_index = (
         int(existing_track_ids["image_index"].max()) + 1
@@ -1594,7 +1594,7 @@ def update_track_table(
         else 0
     )
 
-    print(f"- matching labels...") if verbose else None
+    print("- matching labels...") if verbose else None
     matched_labels = match_labels_from_images(
         labeled_images,
         reference_index=reference_index,
@@ -1637,7 +1637,7 @@ def update_track_table(
         newest_track_id_label < np.iinfo(np.uint32).max
     ), "HALTING: NUMBER OF NEW TRACKS EXCEEDS 32-BIT INTEGER LIMIT"
 
-    print(f"- initializing track ids...") if verbose else None
+    print("- initializing track ids...") if verbose else None
     new_track_ids = initialize_track_ids(
         matched_labels_props_list,
         image_index=current_image_index,
@@ -1655,7 +1655,7 @@ def update_track_table(
         ].copy()
 
         # update track ids
-        print(f"- reassigning track ids...") if verbose else None
+        print("- reassigning track ids...") if verbose else None
         new_track_ids = update_new_track_ids(
             recent_track_ids,
             new_track_ids,
@@ -1666,7 +1666,7 @@ def update_track_table(
         pass
     # concatenate reassigned track ids to existing track ids
     (
-        print(f"- concatenating existing track table and new track table...")
+        print("- concatenating existing track table and new track table...")
         if verbose
         else None
     )
@@ -1678,7 +1678,7 @@ def update_track_table(
 
     # relabel images
     # NOTE I adopted this reassignment methodology from StackOverflow: https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
-    print(f"- relabeling images...") if verbose else None
+    print("- relabeling images...") if verbose else None
     label_map_arr = np.zeros(shape=new_track_ids["label"].max() + 1, dtype=np.uint32)
     label_map_arr[new_track_ids["label"]] = new_track_ids["track_id"]
     track_labeled_image = label_map_arr[labeled_images[reference_index]]
@@ -1688,8 +1688,8 @@ def update_track_table(
 
 def generate_tracks(
     image_filepaths: str | Path | Sequence[Path] | Sequence[str],
-    img_crops: Optional[Union[Sequence[Dict], Dict]] = None,
-    tracking_metrics: List = ["centroid"],
+    img_crops: Sequence[dict] | dict | None = None,
+    tracking_metrics: list = ["centroid"],
     timeframes_for_table: Sequence | None = None,
     image_buffer_prior: int = 0,
     image_buffer_next: int = 1,
