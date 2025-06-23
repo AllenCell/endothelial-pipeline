@@ -4,9 +4,7 @@ from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
 from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
-    diffae_feature_preprocessing as diffae_preproc,
-)
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.visualize import viz_base as vb
 from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz as mv
 

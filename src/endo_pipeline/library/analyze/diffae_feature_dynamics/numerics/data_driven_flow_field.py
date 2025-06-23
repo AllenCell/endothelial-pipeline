@@ -8,9 +8,7 @@ from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as manifest_io
 from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
-    diffae_feature_preprocessing as diffae_preproc,
-)
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.visualize.diffae_feature_dynamics import flow_field_viz as ffv
 from src.endo_pipeline.library.visualize.diffae_feature_dynamics import vtk_io
 

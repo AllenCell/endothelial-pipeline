@@ -6,9 +6,7 @@ from cellsmap.util import dataset_io, manifest_io
 from cellsmap.util.dataset_io import get_valid_timepoints
 
 
-def add_description_column(
-    df: pd.DataFrame, ds_name: str, simple: bool = False
-) -> pd.DataFrame:
+def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False) -> pd.DataFrame:
     """
     Add description column to DataFrame df.
     (Descriptions are currently based on the dataset name.).
@@ -54,9 +52,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
     # initialize dictionary to store descriptions
     description_dic = {}
     for name in list_of_datasets:
-        data_config = dataset_io.get_dataset_info(
-            name
-        )  # get dataset info from data_config.yaml
+        data_config = dataset_io.get_dataset_info(name)  # get dataset info from data_config.yaml
 
         flow_config = data_config["flow"]  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
@@ -64,9 +60,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
         # get shear rate for each flow condition,
         # last element in each list in flow_config
         shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)]
-        if (
-            simple
-        ):  # if simple description, use qualitative description of shear stress level
+        if simple:  # if simple description, use qualitative description of shear stress level
             shear_rate_str = []
             for shear in shear_rate:
                 if shear >= 20:
@@ -83,8 +77,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
             ]  # convert shear rates to strings
 
         time_str = [
-            f"{int((flow_config[i][1]-flow_config[i][0])*5/60)}hr"
-            for i in range(num_flows)
+            f"{int((flow_config[i][1]-flow_config[i][0])*5/60)}hr" for i in range(num_flows)
         ]  # get duration of each flow condition in hours
         description = "_".join(
             [time_str[i] + "_" + shear_rate_str[i] for i in range(num_flows)]
@@ -115,15 +108,9 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
 
     # get list of unique starting positions and FOV_IDs
     # (position column in DiffAE manifest)
-    start_x = df[df["frame_number"] == df["frame_number"].min()][
-        "start_x"
-    ].values.tolist()
-    start_y = df[df["frame_number"] == df["frame_number"].min()][
-        "start_y"
-    ].values.tolist()
-    position = df[df["frame_number"] == df["frame_number"].min()][
-        "position"
-    ].values.tolist()
+    start_x = df[df["frame_number"] == df["frame_number"].min()]["start_x"].values.tolist()
+    start_y = df[df["frame_number"] == df["frame_number"].min()]["start_y"].values.tolist()
+    position = df[df["frame_number"] == df["frame_number"].min()]["position"].values.tolist()
     tup_list = list(zip(start_x, start_y, position, strict=True))
 
     # function to convert starting position and FOV_ID to crop index
@@ -182,9 +169,7 @@ def project_manifest_to_pcs(
     return df_
 
 
-def get_manifest_for_dynamics_workflows(
-    ds_name: str, pca: Pipeline | None = None
-) -> pd.DataFrame:
+def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = None) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
     in the stochastic dynamics workflow. Adds crop index column to DataFrame,
@@ -237,9 +222,7 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
         - shape is num_crops x num_timepoints x num_features
     """
     assert "crop_index" in df_.columns, "DataFrame must have a column for crop_index"
-    assert (
-        "frame_number" in df_.columns
-    ), "DataFrame must have a column for frame_number"
+    assert "frame_number" in df_.columns, "DataFrame must have a column for frame_number"
 
     num_time = df_["frame_number"].nunique()  # number of timepoints in the movie
     num_crop = df_["crop_index"].nunique()  # number of crops made at each timepoint
@@ -247,9 +230,7 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
     # get array of num crops x num timepoints x num PCs
     feats = np.array(
         [
-            df_[df_["crop_index"] == ii]
-            .sort_values(by="frame_number")[feat_cols]
-            .values
+            df_[df_["crop_index"] == ii].sort_values(by="frame_number")[feat_cols].values
             for ii in range(num_crop)
         ]
     )

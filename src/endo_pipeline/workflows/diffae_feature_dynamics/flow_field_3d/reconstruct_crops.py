@@ -6,7 +6,7 @@ from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
     data_driven_flow_field as ddff,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 
 
 def main() -> None:
