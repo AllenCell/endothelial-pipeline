@@ -259,7 +259,7 @@ def main(
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     is_test: bool = False,
 ) -> None:
 
@@ -275,7 +275,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
     )
 
     # get and save results from images in analysis queue

@@ -37,7 +37,7 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     verbose = args["verbose"]
-    use_original_data = args["use_original_data"]
+    use_sldy_data = args["use_sldy_data"]
     create_validation_image = args["validation_image"]
     build_measured_features_tables(
         dataset_name,
@@ -45,7 +45,7 @@ def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
         out_dir,
         scene,
         position,
-        use_original_data,
+        use_sldy_data,
         img_bin_level,
         save_output=save_output,
         create_validation_image=create_validation_image,
@@ -59,7 +59,7 @@ def build_measured_features_tables(
     out_dir: str | Path,
     scene: str | int = 0,
     position: int = 0,
-    use_original_data: bool | None = False,
+    use_sldy_data: bool | None = False,
     img_bin_level: int = 0,
     save_output: bool | None = True,
     create_validation_image: bool = False,
@@ -89,13 +89,13 @@ def build_measured_features_tables(
     out_dir: str | Path
         The output directory to save the tables and validation images to.
     scene: str | int
-        The scene index to process (only used if use_original_data = True).
+        The scene index to process (only used if use_sldy_data = True).
     position: int
         The position to process (this will be equal to the scene index).
-    use_original_data: bool | None
+    use_sldy_data: bool | None
         Whether to use the original data or the zarr data.
     img_bin_level: int
-        The binning level to use when loading an image (only used if use_original_data = False).
+        The binning level to use when loading an image (only used if use_sldy_data = False).
         Currently not implemented.
     save_output: bool | None
         Whether to save the output tables (and validation images if selected).
@@ -187,7 +187,7 @@ def build_measured_features_tables(
 
     print(f"T={T} -- loading imaging datasets") if verbose else None
     # load the raw cdh5 image data
-    if use_original_data:
+    if use_sldy_data:
         cdh5_chan_index = get_dataset_info(dataset_name)["channel_488_index"]
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
@@ -436,7 +436,7 @@ def main(
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
 ) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
@@ -451,7 +451,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
     )
 
     if n_proc > 1:

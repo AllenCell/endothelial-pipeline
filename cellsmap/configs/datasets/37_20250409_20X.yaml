@@ -16,7 +16,7 @@ channel_488_index: 0
 brightfield_channel_index: 1
 n_total_positions: 6
 notes: cells become very crowded near end of timelapse
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20250409_20X
+nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250409_20X
 nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: 2979ed0ac60c492db40511ea0b0bef6b
 valid_timepoints:

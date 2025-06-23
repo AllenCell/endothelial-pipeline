@@ -37,7 +37,7 @@ def run_workflow(queue: Sequence) -> None:
     verbose = sequence_to_scalar(queue_df["verbose"])
     out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
     out_filename_prefix = f"{dataset_name}_P{position}"
-    use_original_data = sequence_to_scalar(queue_df["use_original_data"])
+    use_sldy_data = sequence_to_scalar(queue_df["use_sldy_data"])
 
     # get the segmentation images
     seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position=position)
@@ -59,7 +59,7 @@ def run_workflow(queue: Sequence) -> None:
         if validation_image:
             # get the raw cadherin channel from either original data or the zarr version
             scene_index = int(sequence_to_scalar(queue_df["scene_index"]))
-            if use_original_data:
+            if use_sldy_data:
                 raw_channel = get_dataset_info(dataset_name)["channel_488_index"]
                 raw_filepath = Path(get_original_path(dataset_name))
             else:
@@ -113,7 +113,7 @@ def main(
     n_proc: int = 1,
     dataset_name: str | Sequence | None = None,
     save_output: bool = True,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -130,7 +130,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
     )
 
     analysis_queue_df = pd.DataFrame(analysis_queue)

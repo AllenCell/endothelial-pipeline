@@ -145,7 +145,7 @@ def main(
     analysis_queue = build_analysis_queue(
         dataset_name_list,
         t_final=t_final,
-        use_original_data=True,
+        use_sldy_data=True,
         out_dir=out_dir,
         verbose=verbose,
     )

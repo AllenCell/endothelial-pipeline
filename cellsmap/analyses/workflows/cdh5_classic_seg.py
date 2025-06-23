@@ -35,7 +35,7 @@ def generate_results_multiproc_wrapper(args: dict) -> None:
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     verbose = args["verbose"]
-    use_original_data = args["use_original_data"]
+    use_sldy_data = args["use_sldy_data"]
     create_validation_image = args["validation_image"]
     generate_results(
         out_dir=out_dir,
@@ -44,7 +44,7 @@ def generate_results_multiproc_wrapper(args: dict) -> None:
         position=position,
         scene_index=scene_index,
         scene_name=scene_name,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         img_bin_level=img_bin_level,
         save_output=save_output,
         create_validation_image=create_validation_image,
@@ -59,7 +59,7 @@ def generate_results(
     position: int,
     scene_index: int | None = None,
     scene_name: str | None = None,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     img_bin_level: int = 0,
     save_output: bool = True,
     create_validation_image: bool = False,
@@ -73,7 +73,7 @@ def generate_results(
 
     dim_order = get_default_dim_order()
     dim_map = get_dim_map(dim_order)
-    if use_original_data:
+    if use_sldy_data:
         print(f"T={T} -- loading dataset from original") if verbose else None
         original_path = Path(get_original_path(dataset_name))
         img_path = original_path
@@ -225,7 +225,7 @@ def main(
     dataset_name: str | None = None,
     save_output: bool = True,
     overwrite: bool = True,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -242,7 +242,7 @@ def main(
         overwrite=overwrite,
         verbose=verbose,
         is_test=is_test,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         image_validation_frequency=48,
     )
 
