@@ -19,6 +19,7 @@ def load_dynamics_config(config_name: str = "default") -> dict:
     """
     # Load config file
     configs = load_config_src("dynamics")
+    print(type(configs))
 
     # Find the config with the given name
     for config in configs:

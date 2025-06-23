@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.integrate import simpson
 
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.model_eval import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.model_eval import (
     get_normalization_constant,
 )
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import fp_solvers as fps
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import fp_solvers as fps
 
 
 def gradient_flow_term(potential: np.ndarray, diffusion: np.ndarray, x: list) -> np.ndarray:

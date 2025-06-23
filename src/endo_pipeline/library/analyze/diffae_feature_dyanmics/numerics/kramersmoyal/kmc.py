@@ -5,7 +5,7 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
     km_binning,
     km_kernels,
 )

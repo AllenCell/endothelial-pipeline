@@ -6,14 +6,14 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 from cellsmap.util.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from endo_pipeline.library.analyze.diffae_manifest_processing import (
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from endo_pipeline.library.visualize import viz_base as vb
-from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def set_slice_plot_bounds_and_labels(

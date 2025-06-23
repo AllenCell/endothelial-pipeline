@@ -5,15 +5,15 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from endo_pipeline.library.analyze.diffae_manifest_processing import (
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize import viz_base as vb
 
 
 def ddd_model_analysis(

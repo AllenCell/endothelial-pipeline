@@ -3,12 +3,12 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
-from endo_pipeline.library.analyze.diffae_manifest_processing import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from endo_pipeline.library.visualize import viz_base as vb
-from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz as mv
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz as mv
 
 
 def kramers_moyal_train_test_one_dataset(

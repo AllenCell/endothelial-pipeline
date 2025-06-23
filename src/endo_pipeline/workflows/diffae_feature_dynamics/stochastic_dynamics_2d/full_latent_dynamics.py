@@ -2,13 +2,13 @@ import fire
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
-from endo_pipeline.library.analyze.diffae_manifest_processing import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
-from endo_pipeline.library.visualize import viz_base as vb
-from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def main(list_of_datasets: list[str] | None = None) -> None:

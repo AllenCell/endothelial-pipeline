@@ -9,15 +9,15 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_eval
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import gen_potential as gp
-from endo_pipeline.library.analyze.diffae_manifest_processing import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_eval
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import gen_potential as gp
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from endo_pipeline.library.visualize import viz_base as vb
-from endo_pipeline.library.visualize.diffae_feature_dynamics import dynamics_viz as dviz
-from endo_pipeline.library.visualize.diffae_feature_dynamics import pplane
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import dynamics_viz as dviz
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import pplane
 
 
 def model_data_comparison_one_dataset(

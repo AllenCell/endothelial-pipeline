@@ -3,16 +3,16 @@ import numpy as np
 
 from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs import dynamics_io
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
     data_driven_flow_field as ddff,
 )
-from endo_pipeline.library.analyze.diffae_manifest_processing import (
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )
-from endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
-from endo_pipeline.library.visualize import viz_base as vb
-from endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca
+from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 
 
 def main(datasets_to_use: list | None = None) -> None:

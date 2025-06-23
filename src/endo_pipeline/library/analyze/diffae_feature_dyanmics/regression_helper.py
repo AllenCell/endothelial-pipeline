@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 import cellsmap.util.dataset_io as dio
-from endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
     kramers_moyal as km,
 )
 

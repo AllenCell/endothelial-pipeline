@@ -3,9 +3,9 @@ import numpy as np
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.configs import dynamics_io
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis, model_eval
-from endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis, model_eval
+from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
 
 
 def main(config_name: str = "default") -> None:
