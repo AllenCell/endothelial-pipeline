@@ -58,7 +58,7 @@ def generate_results(args: dict) -> None:
         dim_map = get_dim_map(dim_order)
 
         img = BioImage(img_path)
-        if args["use_original_data"]:
+        if args["use_sldy_data"]:
             img.set_scene(args["scene_index"])
 
         brightfield_index = get_dataset_info(dataset_name)["brightfield_channel_index"]
@@ -71,9 +71,7 @@ def generate_results(args: dict) -> None:
         gpu = core.use_gpu()
 
         model_path = Path(nuclei_model["model_path"])
-        model_bf_stdproject = models.CellposeModel(
-            gpu=gpu, pretrained_model=str(model_path)
-        )
+        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
         bf_std_dask_arr = img_arr.std(axis=dim_map["Z"], keepdims=True)
@@ -81,9 +79,7 @@ def generate_results(args: dict) -> None:
 
         # Predict nuclei from brightfield images
         (
-            print(
-                " - predicting nuclei from brightfield standard deviation projections..."
-            )
+            print(" - predicting nuclei from brightfield standard deviation projections...")
             if verbose
             else None
         )
@@ -116,9 +112,7 @@ def generate_results(args: dict) -> None:
                 0, np.argmin([plane for plane in plane_stdevs]) - 6
             )
             bf_good_contrast_arr = (
-                img_arr.squeeze()[[possible_good_contrast_brightfield_plane]]
-                .squeeze()
-                .compute()
+                img_arr.squeeze()[[possible_good_contrast_brightfield_plane]].squeeze().compute()
             )
 
             # Construct and save a multichannel image
@@ -140,7 +134,7 @@ def main(
     save_output: bool = True,
     overwrite: bool = True,
     is_test: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     verbose: bool = False,
 ) -> None:
     """
@@ -162,7 +156,7 @@ def main(
         overwrite=overwrite,
         is_test=is_test,
         image_validation_frequency=48,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         verbose=verbose,
     )
 
@@ -182,9 +176,7 @@ def main(
                 pool.close()
                 pool.join()
     else:
-        for dataset_name_and_args in tqdm(
-            analysis_queue, desc="Predicting nuclei (1P)"
-        ):
+        for dataset_name_and_args in tqdm(analysis_queue, desc="Predicting nuclei (1P)"):
             generate_results(dataset_name_and_args)
 
     print("\N{MICROSCOPE} Done analysis.")

@@ -99,9 +99,7 @@ def get_nuclei_features_from_image(
     for i in range(len(fluorescence_images)):
         nuc_props_on_intens[fluor_img_names[i]] = {
             prop.label: prop
-            for prop in regionprops(
-                label_image=nuc_seg, intensity_image=fluorescence_images[i]
-            )
+            for prop in regionprops(label_image=nuc_seg, intensity_image=fluorescence_images[i])
         }
 
     nuc_seg_size_dict = {prop.label: int(prop.area) for prop in regionprops(nuc_seg)}
@@ -124,9 +122,7 @@ def get_nuclei_features_from_image(
 
     # Go through the region properties and extract features
     for prop in reg_props:
-        nuc_seg_labels = np.unique(
-            prop.intensity_image[prop.intensity_image != 0]
-        ).tolist()
+        nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
 
         nuc_feats = {
             "cdh5_segmentation_label": prop.label,
@@ -245,11 +241,7 @@ def get_nuclei_features_from_dataset_at_T(
     # of the data table
     nuc_feats_df = nuc_feats_df[
         ["dataset_name", "position", "T"]
-        + [
-            col
-            for col in nuc_feats_df.columns
-            if col not in ["dataset_name", "position", "T"]
-        ]
+        + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
     ]
 
     return nuc_feats_df
@@ -260,7 +252,7 @@ def main(
     save_output: bool = True,
     n_proc: int = 1,
     verbose: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     is_test: bool = False,
 ) -> None:
 
@@ -276,7 +268,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
     )
 
     # get and save results from images in analysis queue
@@ -284,9 +276,7 @@ def main(
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
             list(
                 tqdm(
-                    executor.map(
-                        get_and_save_nuclei_features_arg_unpacker, analysis_queue
-                    ),
+                    executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
                     total=len(analysis_queue),
                     desc="Getting nuclei features (MP)",
                 )

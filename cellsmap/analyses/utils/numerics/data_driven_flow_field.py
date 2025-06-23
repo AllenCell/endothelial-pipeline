@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from scipy import interpolate as spinterp
@@ -53,7 +53,8 @@ def set_3d_bounds_from_data(
         - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
     """
     num_dims = 3
-    bounds = [[100, -100], [100, -100], [100, -100]]
+    # initialize bounds
+    bounds_ = [[100, -100], [100, -100], [100, -100]]
 
     for name in list_of_datasets:
         df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
@@ -73,10 +74,10 @@ def set_3d_bounds_from_data(
             case "feat":
                 cols = feat_cols
         for j in range(num_dims):
-            bounds[j][0] = min(bounds[j][0], df[cols[j]].min())
-            bounds[j][1] = max(bounds[j][1], df[cols[j]].max())
+            bounds_[j][0] = min(bounds_[j][0], df[cols[j]].min())
+            bounds_[j][1] = max(bounds_[j][1], df[cols[j]].max())
 
-    bounds = [np.array(b) for b in bounds]
+    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 
     return bounds
 
@@ -214,25 +215,29 @@ def get_callable_vector_field(
         # need time as first argument
         # and x as second argument even if
         # the system is time-independent
-        def vec_func(t, x):
+        def vec_func_ivp(t: Any, x: np.ndarray) -> np.ndarray:
             # get interpolated value
             vec_interp_val = vec_field_interp(x)
             # return dx/dt = f(x)
             return vec_interp_val
 
+        return vec_func_ivp
     else:
 
-        def vec_func(x):
+        def vec_func(x: np.ndarray) -> np.ndarray:
             # get interpolated value
             vec_interp_val = vec_field_interp(x)
             # return dx/dt = f(x)
             return vec_interp_val
 
-    return vec_func
+        return vec_func
 
 
 def solve_ddff_ode(
-    flow_field_dict: dict, init: np.ndarray, t_span: list[float], num_t: int = 1750
+    flow_field_dict: dict,
+    init: np.ndarray,
+    t_span: list[int] | list[float],
+    num_t: int = 1750,
 ) -> np.ndarray:
     """
     Solve the ODE dx/dt = f(x) using scipy.integrate.solve_ivp.
@@ -297,12 +302,13 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     return interpolated_points
 
 
-def convert_coordinates_from_pc_to_latent(coords, reducer):
+def convert_coordinates_from_pc_to_latent(
+    coords: np.ndarray, reducer: Pipeline
+) -> list[list]:
     """
     Convert coordinates in PCA-based feature space
     to latent space using the PCA model.
     """
-    coords = np.array(coords)
     latent = reducer.inverse_transform(coords)
     latent.shape[0]
     # turn coordinate array into list of lists
@@ -312,8 +318,8 @@ def convert_coordinates_from_pc_to_latent(coords, reducer):
 
 
 def convert_coordinates_from_volume_to_pc(
-    xvol: np.array, grid_spacing: float, origin: float
-) -> np.array:
+    xvol: np.ndarray, grid_spacing: float, origin: float
+) -> np.ndarray:
     """
     Convert coordinates from 3D volume space to 3D PC space
     (for saving as .vtk to view in ParaView).
@@ -392,7 +398,7 @@ def get_and_viz_ddff(
     # save flow field dictionary as npy
     np.save(
         output_savedir + f"flow_field_dict_{name}.npy",
-        flow_field_dict,
+        flow_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save flow field as vtk image data
@@ -408,7 +414,7 @@ def get_and_viz_ddff(
     # save diffusion field dictionary as npy
     np.save(
         output_savedir + f"diffusion_field_dict_{name}.npy",
-        diffusion_field_dict,
+        diffusion_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save diffusion field as vtk image data
@@ -430,9 +436,10 @@ def get_and_viz_ddff(
         init = np.array([1.1, 0.0, -0.2])
         time_span = [0, 5000]
         traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
-        traj = [traj, traj_2]  # return both trajectories
-
-    return traj
+        traj_list = [traj, traj_2]  # return both trajectories
+        return traj_list
+    else:
+        return traj
 
 
 def ddff_main(
@@ -485,6 +492,7 @@ def ddff_main(
     # used for crop reconstruction
     traj_dict = {}
     for name in list_of_datasets:
+        print(f"******** Processing dataset: {name} ******** \n")
         traj = get_and_viz_ddff(
             name,
             pca,
@@ -503,7 +511,7 @@ def ddff_main(
         condition = condition_dict[name]
         traj_dict[condition] = traj
 
-    np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)
+    np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
 
     # generate plot of stable fixed points
     # for low, high, and 12dyn datasets

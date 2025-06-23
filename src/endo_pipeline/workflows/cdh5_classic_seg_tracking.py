@@ -30,28 +30,22 @@ def run_workflow(queue: Sequence) -> None:
     (dataset_name, position), queue_df = queue
     T_to_eval = queue_df["T"].tolist()
     position = sequence_to_scalar(queue_df["position"])
-    image_validation_frequency = sequence_to_scalar(
-        queue_df["image_validation_frequency"]
-    )
+    image_validation_frequency = sequence_to_scalar(queue_df["image_validation_frequency"])
     validation_image = sequence_to_scalar(queue_df["validation_image"])
     verbose = sequence_to_scalar(queue_df["verbose"])
     out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
     out_filename_prefix = f"{dataset_name}_P{position}"
-    use_original_data = sequence_to_scalar(queue_df["use_original_data"])
+    use_sldy_data = sequence_to_scalar(queue_df["use_sldy_data"])
 
     # get the segmentation images
     seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position=position)
     if seg_dir is not None:
         seg_dir = Path(seg_dir)
     else:
-        print(
-            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
-        )
+        print(f"No segmentation directory found for {dataset_name}. Skipping tracking analysis.")
         return
 
-    seg_filepaths = sorted(
-        seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name)
-    )
+    seg_filepaths = sorted(seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name))
     segmentation_channel = 0  # the segmentation images only contain a single channel
 
     # run the tracking workflow
@@ -59,7 +53,7 @@ def run_workflow(queue: Sequence) -> None:
         if validation_image:
             # get the raw cadherin channel from either original data or the zarr version
             scene_index = int(sequence_to_scalar(queue_df["scene_index"]))
-            if use_original_data:
+            if use_sldy_data:
                 raw_channel = get_dataset_info(dataset_name)["channel_488_index"]
                 raw_filepath = Path(get_original_path(dataset_name))
             else:
@@ -76,9 +70,7 @@ def run_workflow(queue: Sequence) -> None:
             in_dir=seg_filepaths,
             out_dir=out_dir,
             out_filename_prefix=out_filename_prefix,
-            tracking_metrics=[
-                "region_overlap"
-            ],  # this can be changed to ['centroids'] if desired
+            tracking_metrics=["region_overlap"],  # this can be changed to ['centroids'] if desired
             sorting_key=extract_T,
             C=segmentation_channel,
             T=T_to_eval,
@@ -93,9 +85,7 @@ def run_workflow(queue: Sequence) -> None:
         )
 
         # add the dataset name and position to the output table
-        tracking_table = pd.read_csv(
-            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t"
-        )
+        tracking_table = pd.read_csv(out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t")
         tracking_table["dataset_name"] = dataset_name
         tracking_table["position"] = position
         tracking_table.to_csv(
@@ -113,7 +103,7 @@ def main(
     n_proc: int = 1,
     dataset_name: str | Sequence | None = None,
     save_output: bool = True,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -130,13 +120,11 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
     )
 
     analysis_queue_df = pd.DataFrame(analysis_queue)
-    analysis_queue_per_position = list(
-        analysis_queue_df.groupby(["dataset_name", "position"])
-    )
+    analysis_queue_per_position = list(analysis_queue_df.groupby(["dataset_name", "position"]))
 
     if n_proc > 1:
         if __name__ == "__main__":
@@ -144,9 +132,7 @@ def main(
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
-                        pool.imap(
-                            run_workflow, analysis_queue_per_position, chunksize=1
-                        ),
+                        pool.imap(run_workflow, analysis_queue_per_position, chunksize=1),
                         total=len(analysis_queue_per_position),
                         desc="Tracking (MP)",
                     )

@@ -36,9 +36,7 @@ def save_validation_images(
     T: int,
     padding: int = 50,
 ) -> None:
-    expanded_bbox = tuple(
-        [slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop]
-    )
+    expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
     crop_img = img_arr[expanded_bbox].squeeze()
     crop_seg = seg_arr[expanded_bbox].squeeze()
@@ -82,9 +80,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     raw_path = Path(get_dataset_info(dataset_name)["original_path"])
     seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
     if seg_dir is None:
-        print(
-            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
-        )
+        print(f"No segmentation directory found for {dataset_name}. Skipping tracking analysis.")
         return
     seg_path = seg_dir / f"{dataset_name}_P{position}_T{T}.ome.tiff"
 
@@ -112,9 +108,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
 
         # associate the cell ids with their track ids
         cell_ids_with_tracks = dframe[dframe["T"] == T]["label"].unique().tolist()
-        cell_id_to_track_id_map = dict(
-            zip(dframe["label"], dframe["track_id"], strict=False)
-        )
+        cell_id_to_track_id_map = dict(zip(dframe["label"], dframe["track_id"], strict=False))
 
         # iterate through each cell id in the timepoint and create
         # an overlay of the raw image and the segmentation
@@ -155,7 +149,7 @@ def main(
     analysis_queue = build_analysis_queue(
         dataset_name_list,
         t_final=t_final,
-        use_original_data=True,
+        use_sldy_data=True,
         out_dir=out_dir,
         verbose=verbose,
     )
@@ -166,9 +160,7 @@ def main(
             tracking_df = tracking_df.query("T < @t_final")
 
         tracking_df = tracking_df[tracking_df["dataset_name"] == dataset_name]
-        analysis_queue_sub = analysis_queue_df[
-            analysis_queue_df["dataset_name"] == dataset_name
-        ]
+        analysis_queue_sub = analysis_queue_df[analysis_queue_df["dataset_name"] == dataset_name]
         position_scene_map = dict(
             zip(
                 analysis_queue_sub["position"],

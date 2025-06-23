@@ -16,7 +16,7 @@ channel_488_index: 0
 brightfield_channel_index: 1
 n_total_positions: 6
 notes: This is a nice 48hr high flow dataset.
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_segmentation/20241120_20X
+nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241120_20X
 nuclear_seg_manifest_fmsid: a9ef7c8557334f1fb36393f79b582609
 diffae_manifest_fmsid: 3ce3dedd56a54b48a544c99dc61a2fe1
 valid_timepoints:

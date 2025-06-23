@@ -7,7 +7,7 @@ import cellsmap.util.dataset_io as dio
 
 
 def get_bins(
-    num_bins: list, data: pd.DataFrame | None = None, bin_limits: list | None = None
+    num_bins: list, data: list[np.ndarray] | None = None, bin_limits: list | None = None
 ) -> tuple[list, list]:
     """
     Generate histogram bins for computing Kramers-Moyal
@@ -47,6 +47,7 @@ def get_bins(
         bins = []
         centers = []
         for i in range(ndim):
+            # Get min and max for each dimension across all trajectories
             traj_min = min([traj[:, i].min() for traj in data])
             traj_max = max([traj[:, i].max() for traj in data])
             bin_min, bin_max = traj_min - 0.1, traj_max + 0.1

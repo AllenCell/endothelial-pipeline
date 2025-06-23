@@ -25,7 +25,7 @@ from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
 # because we don't have zarr files for the datasets in the
 # test_datasets list, the function dataset_io.get_channel_index
 # does not work. Therefore this script is currently broken.
-use_original_data = True
+use_sldy_data = True
 
 
 def plot_and_save_overlays(
@@ -54,9 +54,7 @@ def plot_and_save_overlays(
     plt.close(fig)
 
 
-def get_image_data_from_original(
-    dataset_name: str, scenes_to_use: list[str]
-) -> Generator:
+def get_image_data_from_original(dataset_name: str, scenes_to_use: list[str]) -> Generator:
 
     dim_order = "TCZYX"
     dim_map = dataset_io.get_dim_map(dim_order)
@@ -123,12 +121,8 @@ def get_image_data_from_zarr(dataset_name: str) -> Generator:
         ],
     )
     for scene_index, filename in enumerate(img_dict_nuc):
-        img_dask_arr_nuc = img_dict_nuc[filename].max(
-            axis=dim_map[projection_dim], keepdims=True
-        )
-        img_dask_arr_bf_std = img_dict_bf[filename].std(
-            axis=dim_map[projection_dim], keepdims=True
-        )
+        img_dask_arr_nuc = img_dict_nuc[filename].max(axis=dim_map[projection_dim], keepdims=True)
+        img_dask_arr_bf_std = img_dict_bf[filename].std(axis=dim_map[projection_dim], keepdims=True)
         bf_focus_index = np.argmin(
             [
                 img.std()
@@ -181,9 +175,7 @@ Path.mkdir(out_dir, exist_ok=True, parents=True)
 
 # CellPose label-free nuclear prediction model that Goutham trained:
 model_config = dataset_io.load_config(config_type="model")
-nuclei_models = [
-    model for model in model_config if model["name"] == "nuc_pred_labelfree"
-]
+nuclei_models = [model for model in model_config if model["name"] == "nuc_pred_labelfree"]
 assert len(nuclei_models) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
 model_path = Path(nuclei_models[0]["model_path_retrained"])
 model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=str(model_path))
@@ -196,10 +188,8 @@ nuclei_count_data = []
 
 for dataset_name in datasets_to_use:
     # load the dapi and brightfield data
-    if use_original_data:
-        imgs_to_eval = get_image_data_from_original(
-            dataset_name, scenes_to_use[dataset_name]
-        )
+    if use_sldy_data:
+        imgs_to_eval = get_image_data_from_original(dataset_name, scenes_to_use[dataset_name])
     else:
         imgs_to_eval = get_image_data_from_zarr(dataset_name)
 
@@ -225,7 +215,7 @@ for dataset_name in datasets_to_use:
         # fig.savefig(out_dir_dataset / f'{dataset_name}_S{scene_index}_nuc.png', bbox_inches='tight', pad_inches=0, dpi=300)
 
         # function to extract the timepoint from the CytoDL output files:
-        if use_original_data:
+        if use_sldy_data:
             cytodl_nuc_pred_path = [
                 fp
                 for fp in cytodl_nuc_pred_dir
@@ -262,9 +252,7 @@ for dataset_name in datasets_to_use:
         overlay_nuc = label2rgb(
             label=masks_bf_std[0],
             image=rescale_intensity(
-                np.clip(
-                    img_arr_nuc.squeeze(), 0, np.percentile(img_arr_nuc.squeeze(), 98)
-                )
+                np.clip(img_arr_nuc.squeeze(), 0, np.percentile(img_arr_nuc.squeeze(), 98))
             ),
             bg_label=0,
         )
@@ -285,9 +273,7 @@ for dataset_name in datasets_to_use:
         overlay_nuc = label2rgb(
             label=cytodl_nuc_pred,
             image=rescale_intensity(
-                np.clip(
-                    img_arr_nuc.squeeze(), 0, np.percentile(img_arr_nuc.squeeze(), 98)
-                )
+                np.clip(img_arr_nuc.squeeze(), 0, np.percentile(img_arr_nuc.squeeze(), 98))
             ),
             bg_label=0,
         )
@@ -308,9 +294,7 @@ for dataset_name in datasets_to_use:
         )
         overlay_nuc = label2rgb(
             label=masks_bf_std[0].astype(bool) * 1 + cytodl_nuc_pred.astype(bool) * 2,
-            image=rescale_intensity(
-                np.clip(img_arr_nuc, 0, np.percentile(img_arr_nuc, 98))
-            ),
+            image=rescale_intensity(np.clip(img_arr_nuc, 0, np.percentile(img_arr_nuc, 98))),
             bg_label=0,
             colors=["red", "cyan", "yellow"],
         )
@@ -330,13 +314,9 @@ for dataset_name in datasets_to_use:
         )
         dist = distance_transform_edt(thresh)
         peaks_img = np.zeros(dist.shape, dtype=bool)
-        peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15), strict=False))] = (
-            True
-        )
+        peaks_img[tuple(zip(*peak_local_max(dist, min_distance=15), strict=False))] = True
         peaks_img = label(dilation(peaks_img, footprint=disk(5)))
-        ws = watershed(
-            rescale_intensity(dist, out_range=(1, 0)), markers=peaks_img, mask=thresh
-        )
+        ws = watershed(rescale_intensity(dist, out_range=(1, 0)), markers=peaks_img, mask=thresh)
         overlay_bf3 = label2rgb(
             label=ws, image=rescale_intensity(img_arr_bf_near_focus), bg_label=0
         )  # , colors=['orange'])
@@ -389,9 +369,7 @@ for dataset_name in datasets_to_use:
 
 nuclei_count_df = pd.DataFrame(nuclei_count_data)
 fig, ax = plt.subplots()
-sns.barplot(
-    data=nuclei_count_df, x="dataset_name", y="nuclei_count", hue="method", ax=ax
-)
+sns.barplot(data=nuclei_count_df, x="dataset_name", y="nuclei_count", hue="method", ax=ax)
 plt.tight_layout()
 fig.savefig(out_dir / "nuclei_counts.png", bbox_inches="tight", dpi=180)
 
@@ -409,6 +387,4 @@ for nm, grp in nuclei_count_df.groupby("dataset_name"):
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment="right")
     ax.set_title(str(nm))
     plt.tight_layout()
-    fig.savefig(
-        out_dir / f"{nm}_nuclei_counts_fractions.png", bbox_inches="tight", dpi=180
-    )
+    fig.savefig(out_dir / f"{nm}_nuclei_counts_fractions.png", bbox_inches="tight", dpi=180)

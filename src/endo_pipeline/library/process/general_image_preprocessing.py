@@ -49,7 +49,7 @@ def build_analysis_queue(
     image_validation_frequency: int | None = None,
     verbose: bool = False,
     is_test: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
 ) -> list:
     print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
@@ -64,7 +64,7 @@ def build_analysis_queue(
         desc="Building analysis queue",
         unit="dataset",
     ):
-        if use_original_data:
+        if use_sldy_data:
             img_path = Path(get_original_path(dataset_name))
             img = BioImage(img_path)
             num_positions = get_total_number_of_positions(dataset_name)
@@ -73,9 +73,7 @@ def build_analysis_queue(
             img_path_dict = get_zarr_path(dataset_name)
             num_positions = get_total_number_of_positions(dataset_name)
             num_pos_in_S = len(img_path_dict)
-            zarr_name_dict = {
-                pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)
-            }
+            zarr_name_dict = {pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)}
 
         assert (
             num_positions % num_pos_in_S == 0
@@ -87,10 +85,8 @@ def build_analysis_queue(
             positions_in_T += list(range(num_pos_in_T))
             positions_in_S += [scene_index] * num_pos_in_T
 
-        for pos, (pos_in_T, pos_in_S) in enumerate(
-            zip(positions_in_T, positions_in_S, strict=False)
-        ):
-            if use_original_data:
+        for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
+            if use_sldy_data:
                 img.set_scene(pos_in_S)
                 scene_name = img.scenes[pos_in_S]
             else:
@@ -162,7 +158,7 @@ def build_analysis_queue(
                                 "overwrite": overwrite,
                                 "validation_image": validation_image,
                                 "image_validation_frequency": image_validation_frequency,
-                                "use_original_data": use_original_data,
+                                "use_sldy_data": use_sldy_data,
                                 "is_test": is_test,
                                 "verbose": verbose,
                             }
@@ -195,16 +191,13 @@ def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:
         element = unique_elements.pop()
     else:
         raise ValueError(
-            "Sequence must have only one unique element. "
-            f"Unique elements: {unique_elements}"
+            "Sequence must have only one unique element. " f"Unique elements: {unique_elements}"
         )
 
     return element
 
 
-def restore_full_dims(
-    image: np.ndarray, current_dims: str, full_dims: str = "TCZYX"
-) -> np.ndarray:
+def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str = "TCZYX") -> np.ndarray:
     """
     Takes an array with specified image dims and restores dimensions with size 1
     that are present in full_dims.
@@ -317,10 +310,7 @@ def save_image_output(
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = np.concatenate(
-        [
-            restore_full_dims(img, img_dim_order, full_dims=dim_order_out)
-            for img in images
-        ],
+        [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images],
         axis=dim_map["C"],
     ).astype(dtype)
 

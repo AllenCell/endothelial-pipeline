@@ -51,10 +51,6 @@ def main(config_name: str = "default") -> None:
         fig, filename=fig_savedir + "explained_variance_ratio", format=".png", dpi=500
     )
 
-    # plot top 3 principal components of feature data vs. frame number
-    fig, _ = manifest_viz.plot_top_3_pcs_alldata(pca)
-    vb.save_plot(fig, filename=fig_savedir + "top_3_PCs", format=".png", dpi=500)
-
     #### Get data driven flow fields (kernel method) ####
     # load inputs from dynamics_config.yaml
     ds_to_skip = config["datasets_to_skip"]

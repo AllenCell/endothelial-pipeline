@@ -44,7 +44,7 @@ def build_drift_lib(
 
 
 def build_diff_lib(
-    ndim: int, diff_deg: int = 0, param_deg=3
+    ndim: int, diff_deg: int = 0, param_deg: int = 3
 ) -> ps.ParameterizedLibrary:
     """
     Build library of polynomial basis functions for

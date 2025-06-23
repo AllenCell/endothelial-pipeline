@@ -127,12 +127,12 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     tup_list = list(zip(start_x, start_y, position, strict=True))
 
     # function to convert starting position and FOV_ID to crop index
-    def pos_to_index(x, y, position):
+    def _pos_to_index(x: float, y: float, position: str) -> int:
         return tup_list.index((x, y, position))
 
     # apply function to DataFrame to get crop index
     df["crop_index"] = df.apply(
-        lambda x: pos_to_index(x["start_x"], x["start_y"], x["position"]), axis=1
+        lambda x: _pos_to_index(x["start_x"], x["start_y"], x["position"]), axis=1
     )
 
     return df
