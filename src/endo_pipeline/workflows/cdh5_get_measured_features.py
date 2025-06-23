@@ -7,7 +7,6 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util import shape_features as feat
 from cellsmap.util.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -21,11 +20,12 @@ from cellsmap.util.dataset_io import (
     load_dataset_position_as_dask_array,
     save_git_versioning_info,
 )
-from cellsmap.util.general_image_preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.analyze import shape_features as feat
+from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
 )
-from cellsmap.util.set_output import get_output_path
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
@@ -178,12 +178,8 @@ def build_measured_features_tables(
 
     out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
-    tables_out_dir_alignments = (
-        out_dir / f"{dataset_name}/P{position}/tables_alignments"
-    )
-    tables_out_dir_segprops = (
-        out_dir / f"{dataset_name}/P{position}/tables_segmentation_properties"
-    )
+    tables_out_dir_alignments = out_dir / f"{dataset_name}/P{position}/tables_alignments"
+    tables_out_dir_segprops = out_dir / f"{dataset_name}/P{position}/tables_segmentation_properties"
 
     print(f"T={T} -- loading imaging datasets") if verbose else None
     # load the raw cdh5 image data
@@ -215,14 +211,10 @@ def build_measured_features_tables(
     if seg_dir is not None:
         seg_dir = Path(seg_dir)
     else:
-        print(
-            f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements."
-        )
+        print(f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements.")
         return
 
-    seg_filepath_list = [
-        fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T
-    ]
+    seg_filepath_list = [fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T]
     assert (
         len(seg_filepath_list) == 1
     ), f"Found {len(seg_filepath_list)} segmentation files for T={T} in {dataset_name}. Expected 1."
@@ -244,21 +236,15 @@ def build_measured_features_tables(
         if verbose
         else None
     )
-    neighbor_node_metrics, labeled_region_metrics = (
-        feat.calculate_region_border_metrics(
-            seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
-        )
+    neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(
+        seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
     )
 
     ## save a table of the results
     if save_output:
         tables_out_dir_alignments.mkdir(exist_ok=True, parents=True)
         ## save table output of edge alignments
-        (
-            print(f"T={T} -- saving table of edge angles and distances")
-            if verbose
-            else None
-        )
+        (print(f"T={T} -- saving table of edge angles and distances") if verbose else None)
         table = pd.DataFrame(
             {
                 "filepath_raw_image": image_path,
@@ -274,26 +260,17 @@ def build_measured_features_tables(
                 "connecting_edges": neighbor_node_metrics["edge_labels"],
                 "edge_num_pixels": neighbor_node_metrics["edge_num_pixels"],
                 "edge_length (px)": neighbor_node_metrics["length (px)"],
-                "edge_fluorescence_mean (a.u.)": neighbor_node_metrics[
-                    "fluor_mean (au)"
-                ],
+                "edge_fluorescence_mean (a.u.)": neighbor_node_metrics["fluor_mean (au)"],
                 "edge_fluorescence_std (a.u.)": neighbor_node_metrics["fluor_std (au)"],
-                "edge_fluorescence_median (a.u.)": neighbor_node_metrics[
-                    "fluor_median (au)"
-                ],
+                "edge_fluorescence_median (a.u.)": neighbor_node_metrics["fluor_median (au)"],
                 "edge_fluoresnce_min (a.u.)": neighbor_node_metrics["fluor_min (au)"],
-                "edge_fluorescence_pct25 (a.u.)": neighbor_node_metrics[
-                    "fluor_pct25 (au)"
-                ],
-                "edge_fluorescence_pct75 (a.u.)": neighbor_node_metrics[
-                    "fluor_pct75 (au)"
-                ],
+                "edge_fluorescence_pct25 (a.u.)": neighbor_node_metrics["fluor_pct25 (au)"],
+                "edge_fluorescence_pct75 (a.u.)": neighbor_node_metrics["fluor_pct75 (au)"],
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
             }
         )
         table.to_csv(
-            tables_out_dir_alignments
-            / f"{dataset_name}_P{position}_T{T}_alignments.tsv",
+            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_alignments.tsv",
             index=False,
             sep="\t",
         )
@@ -351,9 +328,7 @@ def build_measured_features_tables(
                     "cell_label": labeled_region_metrics["cell_label"],
                     "cell_centroid": labeled_region_metrics["cell_centroid"],
                     "cell_area (px**2)": labeled_region_metrics["cell_area (px**2)"],
-                    "cell_perimeter (px)": labeled_region_metrics[
-                        "cell_perimeter (px)"
-                    ],
+                    "cell_perimeter (px)": labeled_region_metrics["cell_perimeter (px)"],
                     "cell_solidity": labeled_region_metrics["cell_solidity"],
                     "major_axis_length": labeled_region_metrics["major_axis_length"],
                     "minor_axis_length": labeled_region_metrics["minor_axis_length"],
@@ -380,20 +355,15 @@ def build_measured_features_tables(
                     "cell_fluorescence_max (a.u.)": labeled_region_metrics[
                         "cell_fluorescence_max (au)"
                     ],
-                    "neighboring_cell_labels": labeled_region_metrics[
-                        "neighboring_cell_labels"
-                    ],
+                    "neighboring_cell_labels": labeled_region_metrics["neighboring_cell_labels"],
                     "edge_labels": labeled_region_metrics["edge_labels"],
                     "node_labels": labeled_region_metrics["node_labels"],
                     "node_pair_labels": labeled_region_metrics["node_pair_labels"],
-                    "touches_image_border": labeled_region_metrics[
-                        "touches_image_border"
-                    ],
+                    "touches_image_border": labeled_region_metrics["touches_image_border"],
                 }
             )
             table.to_csv(
-                tables_out_dir_segprops
-                / f"{dataset_name}_P{position}_T{T}_segprops.tsv",
+                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_segprops.tsv",
                 index=False,
                 sep="\t",
             )
@@ -405,17 +375,13 @@ def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
     # table paths for each dataset
     out_dir = Path(out_dir)
     tables_alignments = out_dir.glob(f"**/{dataset_name}/*/tables_alignments/*.csv")
-    tables_segprops = out_dir.glob(
-        f"**/{dataset_name}/*/tables_segmentation_properties/*.csv"
-    )
+    tables_segprops = out_dir.glob(f"**/{dataset_name}/*/tables_segmentation_properties/*.csv")
 
     # concatenate and save the tables for each dataset
     concatenated_table_out_dir = out_dir / f"{dataset_name}"
 
     master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_alignments])
-    master_table.to_csv(
-        concatenated_table_out_dir / f"{dataset_name}_alignments.csv", index=False
-    )
+    master_table.to_csv(concatenated_table_out_dir / f"{dataset_name}_alignments.csv", index=False)
 
     master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
     master_table.to_csv(
@@ -471,9 +437,7 @@ def main(
                 pool.close()
                 pool.join()
     else:
-        for dataset_name_and_args in tqdm(
-            analysis_queue, desc="Getting cell features (1P)..."
-        ):
+        for dataset_name_and_args in tqdm(analysis_queue, desc="Getting cell features (1P)..."):
             build_measured_features_tables_multiproc_wrapper(dataset_name_and_args)
 
     # lastly, for each dataset concatenate the tables from each timepoint

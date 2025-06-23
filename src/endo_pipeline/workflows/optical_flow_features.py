@@ -6,21 +6,24 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.projections.polar import PolarAxes
 from pandas import DataFrame
 
-from cellsmap.analyses.flow import optical_flow_calculator
-from cellsmap.util.dataset_io import load_config, load_dataset_position_as_dask_array
-from cellsmap.util.general_image_preprocessing import get_default_dim_order, get_dim_map
+from cellsmap.util.dataset_io import (
+    fire_parse_generate_dataset_name_list,
+    load_dataset_position_as_dask_array,
+)
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.analyze import optical_flow_calculator
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    get_default_dim_order,
+    get_dim_map,
+)
 
 # %% Make list of datasets to analzye
-dataset_name_list = [
-    config_data["name"]
-    for config_data in load_config(config_type="data")
-    if (config_data["microscope"] == "3i")
-]
+dataset_name_list = fire_parse_generate_dataset_name_list(
+    fire_dataset_name_input="20241016_20X"
+)
 position = (
     0  # NOTE PLACEHOLDER. WORKFLOW SHOULD BECOME MAIN() WITH position AS AN ARGUMENT
 )
-dataset_name_list = [dataset_name_list[0]]  # this is just a test
 
 debug = True
 ncores = 1  # 30
@@ -175,7 +178,8 @@ for dataset_name in dataset_list:
         *[
             (c[0, chan_map["vx"], ...].squeeze(), c[0, chan_map["vy"], ...].squeeze())
             for c in vfield_crops
-        ]
+        ],
+        strict=False,
     )
 
     img = load_dataset_position_as_dask_array(
@@ -189,10 +193,12 @@ for dataset_name in dataset_list:
         optical_flow_calculator.get_trimmed_vector_field_map(
             img, vx, vy, display=False, return_map=True
         )
-        for img, vx, vy in zip(img_crops, vx_crops, vy_crops)
+        for img, vx, vy in zip(img_crops, vx_crops, vy_crops, strict=False)
     ]
 
-    rois_as_titles = [list(zip(*[(slc.start, slc.stop) for slc in r])) for r in rois]
+    rois_as_titles = [
+        list(zip(*[(slc.start, slc.stop) for slc in r], strict=False)) for r in rois
+    ]
     fig, axs = plt.subplots(
         nrows=nrows, ncols=ncols, figsize=[d * 1.5 for d in figsize]
     )

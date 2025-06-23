@@ -5,7 +5,6 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util import cdh5_preprocessing as preproc
 from cellsmap.util.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_dataset_info,
@@ -16,13 +15,14 @@ from cellsmap.util.dataset_io import (
     load_dataset_position_as_dask_array,
     load_nuclei_prediction,
 )
-from cellsmap.util.general_image_preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
+from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
-from cellsmap.util.set_output import get_output_path
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -80,9 +80,7 @@ def generate_results(
         img = BioImage(img_path)
         egfp_index = get_dataset_info(dataset_name)["channel_488_index"]
         if scene_index is not None or scene_name is not None:
-            scene = (
-                scene_index or scene_name or 0
-            )  #  the "or 0" is here to silence mypy
+            scene = scene_index or scene_name or 0  #  the "or 0" is here to silence mypy
             img.set_scene(scene)
             raw_dask_arr = img.get_image_dask_data(dim_order, T=T, C=egfp_index)
         else:
@@ -93,9 +91,7 @@ def generate_results(
         print(f"T={T} -- loading dataset from zarr") if verbose else None
         zarr_name = get_zarr_name(dataset_name, position)
         zarr_path = Path(get_zarr_path(dataset_name)[zarr_name])
-        img = BioImage(
-            zarr_path
-        )  # only using BioImage here to pass pixel sizes to output
+        img = BioImage(zarr_path)  # only using BioImage here to pass pixel sizes to output
         raw_dask_arr = load_dataset_position_as_dask_array(
             dataset_name=dataset_name,
             position=position,
@@ -197,10 +193,7 @@ def generate_results(
         # save just the cdh5 segmentations
         print(f"T={T} -- saving segmentation") if verbose else None
         out_path = (
-            seg_dir
-            / dataset_name
-            / f"P{position}"
-            / f"{dataset_name}_P{position}_T{T}.ome.tiff"
+            seg_dir / dataset_name / f"P{position}" / f"{dataset_name}_P{position}_T{T}.ome.tiff"
         )
         Path.mkdir(out_path.parent, exist_ok=True, parents=True)
         images_out = [
