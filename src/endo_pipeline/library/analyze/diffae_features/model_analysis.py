@@ -9,13 +9,13 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics import model_eval
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_features import model_eval
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.analyze.numerics import gen_potential as gp
 from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import dynamics_viz as dviz
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import pplane
+from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz as dviz
+from src.endo_pipeline.library.visualize.diffae_features import pplane
 
 
 def model_data_comparison_one_dataset(

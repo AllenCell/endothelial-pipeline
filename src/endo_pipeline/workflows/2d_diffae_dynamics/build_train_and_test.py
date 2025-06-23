@@ -3,10 +3,10 @@ import fire
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_main
+from src.endo_pipeline.library.analyze.diffae_features import regression_main
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
 def main(config_name: str = "default") -> None:
