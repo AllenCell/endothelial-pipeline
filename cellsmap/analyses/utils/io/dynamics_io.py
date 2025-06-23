@@ -1,11 +1,12 @@
 import pickle
+from typing import Any
 
 import numpy as np
 
 from cellsmap.util.dataset_io import load_config
 
 
-def load_dynamics_config(config_name: str = "default") -> dict:
+def load_dynamics_config(config_name: str = "default") -> dict[str, dict[str, Any]]:
     """
     Load specific config from config file for running stochastic
     dynamics related workflows. Config file is
@@ -21,9 +22,9 @@ def load_dynamics_config(config_name: str = "default") -> dict:
     configs = load_config("dynamics")
 
     # Find the config with the given name
-    for config in configs:
-        if config["name"] == config_name:
-            return config
+    for config_key, config_dict in configs.items():
+        if config_key == config_name:
+            return config_dict
 
     # Raise error if config not found
     raise ValueError(f"Config {config_name} not found in dynamics_config.yaml")
