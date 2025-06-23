@@ -1,0 +1,3 @@
+The code in this directory was adapted from the GitHub repository [https://github.com/LRydin/KramersMoyal](https://github.com/LRydin/KramersMoyal) to be compatible with the required inputs and outputs of the workflows in this repository.
+
+Gorjão and Meirinhos, (2019) "`kramersmoyal`: Kramers-Moyal coefficients for stochastic processes." Journal of Open Science Software 4(44), 1693, [https://doi.org/10.21105/joss.01693](https://doi.org/10.21105/joss.01693)
