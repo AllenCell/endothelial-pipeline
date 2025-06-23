@@ -24,7 +24,7 @@ from cellsmap.util.set_output import get_output_path
 # because we don't have zarr files for the datasets in the
 # test_datasets list, the function dataset_io.get_channel_index
 # does not work. Therefore this script is currently broken.
-use_original_data = True
+use_sldy_data = True
 
 
 def plot_and_save_overlays(
@@ -188,7 +188,7 @@ nuclei_count_data = []
 
 for dataset_name in datasets_to_use:
     # load the dapi and brightfield data
-    if use_original_data:
+    if use_sldy_data:
         imgs_to_eval = get_image_data_from_original(
             dataset_name, scenes_to_use[dataset_name]
         )
@@ -217,7 +217,7 @@ for dataset_name in datasets_to_use:
         # fig.savefig(out_dir_dataset / f'{dataset_name}_S{scene_index}_nuc.png', bbox_inches='tight', pad_inches=0, dpi=300)
 
         # function to extract the timepoint from the CytoDL output files:
-        if use_original_data:
+        if use_sldy_data:
             cytodl_nuc_pred_path = [
                 fp
                 for fp in cytodl_nuc_pred_dir

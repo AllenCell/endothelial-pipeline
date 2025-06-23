@@ -1,7 +1,5 @@
-import subprocess
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,6 +9,7 @@ from tqdm import tqdm
 
 from cellsmap.util import shape_features as feat
 from cellsmap.util.dataset_io import (
+    concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -20,16 +19,16 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
+    save_git_versioning_info,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
-    get_dim_map,
     save_image_output,
 )
 from cellsmap.util.set_output import get_output_path
 
 
-def build_measured_features_tables_multiproc_wrapper(args: Dict) -> None:
+def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
     dataset_name = args["dataset_name"]
     scene = args["scene_index"]
     position = args["position"]
@@ -38,7 +37,7 @@ def build_measured_features_tables_multiproc_wrapper(args: Dict) -> None:
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     verbose = args["verbose"]
-    use_original_data = args["use_original_data"]
+    use_sldy_data = args["use_sldy_data"]
     create_validation_image = args["validation_image"]
     build_measured_features_tables(
         dataset_name,
@@ -46,7 +45,7 @@ def build_measured_features_tables_multiproc_wrapper(args: Dict) -> None:
         out_dir,
         scene,
         position,
-        use_original_data,
+        use_sldy_data,
         img_bin_level,
         save_output=save_output,
         create_validation_image=create_validation_image,
@@ -60,7 +59,7 @@ def build_measured_features_tables(
     out_dir: str | Path,
     scene: str | int = 0,
     position: int = 0,
-    use_original_data: bool | None = False,
+    use_sldy_data: bool | None = False,
     img_bin_level: int = 0,
     save_output: bool | None = True,
     create_validation_image: bool = False,
@@ -90,13 +89,13 @@ def build_measured_features_tables(
     out_dir: str | Path
         The output directory to save the tables and validation images to.
     scene: str | int
-        The scene index to process (only used if use_original_data = True).
+        The scene index to process (only used if use_sldy_data = True).
     position: int
         The position to process (this will be equal to the scene index).
-    use_original_data: bool | None
+    use_sldy_data: bool | None
         Whether to use the original data or the zarr data.
     img_bin_level: int
-        The binning level to use when loading an image (only used if use_original_data = False).
+        The binning level to use when loading an image (only used if use_sldy_data = False).
         Currently not implemented.
     save_output: bool | None
         Whether to save the output tables (and validation images if selected).
@@ -173,33 +172,9 @@ def build_measured_features_tables(
     - git_uncommitted_changes
     """
 
-    # get some versioning info about when this script was run and
-    # what version of the script was used to produce the output
-    # to save alongside the output
-    # the branch name:
-    git_branch_name = (
-        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-        .decode("ascii")
-        .strip()
-    )
-    # the current commit hash:
-    git_commit_hash = (
-        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-    )
-    # if there were any uncommitted changes when this script was run:
-    git_uncommitted_changes = (
-        subprocess.check_output(["git", "diff", "HEAD", "--name-only"])
-        .decode("ascii")
-        .strip()
-        or "None"
-    )
-    # the timestamp that this script was run:
-    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
-
-    print(f"Working on {dataset_name} -- T={T}...")
+    print(f"Working on {dataset_name} -- T={T}...") if verbose else None
 
     dim_order = "TCZYX"
-    dim_map = get_dim_map(dim_order)
 
     out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
@@ -212,27 +187,39 @@ def build_measured_features_tables(
 
     print(f"T={T} -- loading imaging datasets") if verbose else None
     # load the raw cdh5 image data
-    if use_original_data:
+    if use_sldy_data:
         cdh5_chan_index = get_dataset_info(dataset_name)["channel_488_index"]
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
         img.set_scene(scene)
         raw_dask_arr = img.get_image_dask_data(dim_order, C=[cdh5_chan_index], T=T)
-        raw_dask_arr = raw_dask_arr.max(axis=dim_map["Z"], keepdims=True)
+        raw_dask_arr = raw_dask_arr.max(axis=dim_order.index("Z"), keepdims=True)
         raw_arr = raw_dask_arr.compute().squeeze()
         voxel_size = img.physical_pixel_sizes
     else:
         raw_arr = load_dataset_position_as_dask_array(
-            dataset_name, position, channels=["EGFP"]
+            dataset_name,
+            position,
+            channels=["EGFP"],
+            time_start=T,
+            time_end=T,
         )
-        raw_arr = raw_arr.max(axis=dim_map["Z"]).squeeze()
+        raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
         zarr_name = get_zarr_name(dataset_name, position)
         image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
 
     print(f"T={T} -- loading classic segmentation") if verbose else None
     # load the segmentation images
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
+    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
+    if seg_dir is not None:
+        seg_dir = Path(seg_dir)
+    else:
+        print(
+            f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements."
+        )
+        return
+
     seg_filepath_list = [
         fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T
     ]
@@ -302,16 +289,13 @@ def build_measured_features_tables(
                     "fluor_pct75 (au)"
                 ],
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
-                "measurement_timestamp": timestamp,
-                "git_branch_name": git_branch_name,
-                "git_commit_hash": git_commit_hash,
-                "git_uncommitted_changes": git_uncommitted_changes,
             }
         )
         table.to_csv(
             tables_out_dir_alignments
-            / f"{dataset_name}_P{position}_T{T}_alignments.csv",
+            / f"{dataset_name}_P{position}_T{T}_alignments.tsv",
             index=False,
+            sep="\t",
         )
 
         if create_validation_image:
@@ -405,16 +389,13 @@ def build_measured_features_tables(
                     "touches_image_border": labeled_region_metrics[
                         "touches_image_border"
                     ],
-                    "measurement_timestamp": timestamp,
-                    "git_branch_name": git_branch_name,
-                    "git_commit_hash": git_commit_hash,
-                    "git_uncommitted_changes": git_uncommitted_changes,
                 }
             )
             table.to_csv(
                 tables_out_dir_segprops
-                / f"{dataset_name}_P{position}_T{T}_segprops.csv",
+                / f"{dataset_name}_P{position}_T{T}_segprops.tsv",
                 index=False,
+                sep="\t",
             )
 
 
@@ -443,7 +424,7 @@ def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
     )
 
 
-def concatenate_tables_multiproc(queue_group: Tuple) -> None:
+def concatenate_tables_multiproc(queue_group: tuple) -> None:
     dataset_name, queue_df = queue_group
     out_dir = queue_df["output_dir"].iloc[0]
     concatenate_tables(dataset_name, out_dir)
@@ -455,13 +436,13 @@ def main(
     save_output: bool = True,
     is_test: bool = False,
     verbose: bool = False,
-    use_original_data: bool = True,
+    use_sldy_data: bool = False,
 ) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     print("Building analysis queue...")
-    out_dir = get_output_path(Path(__file__).stem, verbose=False)
+    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
     analysis_queue = build_analysis_queue(
         dataset_name_list,
         save_output=save_output,
@@ -470,12 +451,11 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
     )
 
     if n_proc > 1:
         if __name__ == "__main__":
-            print("Starting multiprocessing...")
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
@@ -485,48 +465,45 @@ def main(
                             chunksize=2,
                         ),
                         total=len(analysis_queue),
+                        desc="Getting cell features (MP)...",
                     )
                 )
                 pool.close()
                 pool.join()
-            print("Done multiprocessing.")
     else:
-        print("Running workflow with single process...")
-        for dataset_name_and_args in analysis_queue:
+        for dataset_name_and_args in tqdm(
+            analysis_queue, desc="Getting cell features (1P)..."
+        ):
             build_measured_features_tables_multiproc_wrapper(dataset_name_and_args)
-        print("Done single-processing.")
 
     # lastly, for each dataset concatenate the tables from each timepoint
     # into a single output table for that dataset
-    analysis_queue_df = pd.DataFrame(analysis_queue)
-    analysis_queue_per_dataset = analysis_queue_df.groupby("dataset_name")
+    if save_output:
+        for dataset_name in dataset_name_list:
+            concatenate_and_save_feature_tables(
+                out_dir,
+                dataset_name,
+                out_file_suffix="alignments",
+                input_filename_contains="alignments",
+                file_extension=".tsv",
+                remove_initial_files_and_folders=True,
+            )
+            concatenate_and_save_feature_tables(
+                out_dir,
+                dataset_name,
+                out_file_suffix="segprops",
+                input_filename_contains="segprops",
+                file_extension=".tsv",
+                remove_initial_files_and_folders=True,
+            )
 
-    print("Concatenating individual timepoint tables together and saving...")
-    if n_proc > 1:
-        if __name__ == "__main__":
-            print("Starting multiprocessing...")
-            with Pool(processes=n_proc) as pool:
-                list(
-                    tqdm(
-                        pool.imap(
-                            concatenate_tables_multiproc,
-                            analysis_queue_per_dataset,
-                            chunksize=1,
-                        ),
-                        total=len(analysis_queue_per_dataset),
-                    )
-                )
-                pool.close()
-                pool.join()
-            print("Done multiprocessing.")
-    else:
-        print("Running workflow with single process...")
-        for queue_group in analysis_queue_per_dataset:
-            concatenate_tables_multiproc(queue_group)
-        print("Done single-processing.")
+        # save git versioning info
+        save_git_versioning_info(
+            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+        )
 
+    print("\N{MICROSCOPE} Done analysis.")
 
-print("\N{MICROSCOPE} Done analysis.")
 
 if __name__ == "__main__":
     ipython_cli_flexecute(main)
