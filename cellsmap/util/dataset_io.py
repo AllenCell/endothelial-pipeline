@@ -391,13 +391,33 @@ def get_flow_change_frame(dataset_name: str) -> int:
     return change_frame
 
 
-def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
+def get_flow_for_frame(dataset_name: str, frame: int) -> float:
+    """
+    Retrieve the flow value for a specific frame in a dataset.
+
+    This function searches the flow list for the given dataset and returns the
+    flow value corresponding to the specified frame. If the frame is not found
+    in the flow list, a ValueError is raised.
+
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the dataset to retrieve the flow information from.
+    frame : int
+        The frame index for which to retrieve the flow value.
+
+    Returns
+    -------
+    float
+        The flow value for the specified frame.
+    """
     flow_list = get_flow_info(dataset_name)
     for t_start, t_stop, flow in flow_list:
         if t_start <= frame <= t_stop:
             return flow
-    print(f"Frame {frame} not found in flow list.")
-    return None
+    raise ValueError(
+        f"Frame {frame} not found in flow list for dataset '{dataset_name}'."
+    )
 
 
 def get_valid_timepoints(dataset_name: str) -> dict:

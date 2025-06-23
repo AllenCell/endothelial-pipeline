@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable, List
 
 import imageio.v3 as iio
 import numpy as np
@@ -9,7 +9,7 @@ from bioio import BioImage
 from tqdm import tqdm
 
 from cellsmap.util import dataset_io
-from cellsmap.vis.image_processing import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.image_processing import (
     bf_slice,
     bf_std_dev,
     contrast_stretching,
@@ -27,13 +27,14 @@ def process_frame(
     output_dir: Path,
 ) -> None:
     """
-    For an individual frame in the dataset, create and save the desired backdrop image formatted as 8-bit image contrast stretched to 0-255.
+    For an individual frame in the dataset, create and save the desired backdrop image
+    formatted as 8-bit image contrast stretched to 0-255.
     """
 
     # Run the specific image processing function
     image_to_save = func(img, frame)
 
-    # Contrast stretch to 0–255 range
+    # Contrast stretch 0 to 255 range
     image_contrasted = contrast_stretching(image_to_save, method="percentile")
 
     # Convert to 8-bit unsigned int
@@ -51,11 +52,12 @@ def process_frame(
 def generate_backdrops(
     dataset: str,
     position: int,
-    backdrops: List[str],
+    backdrops: list[str],
     output_dir: Path,
 ) -> None:
     """
-    Generates and saves backdrop images to be viewable together with the colorized segmentations in the TFE viewer.
+    Generate and save backdrop images to be viewed together with the colorized
+    segmentations in the TFE viewer.
     """
 
     zarr_name = dataset_io.get_zarr_name(dataset, position)
@@ -72,9 +74,7 @@ def generate_backdrops(
 
     for backdrop, func in backdrop_functions.items():
         if backdrop in backdrops:
-            print(
-                f"Generating {backdrop} for dataset {dataset}, position {position}..."
-            )
+            print(f"Generating {backdrop} for dataset {dataset}, position {position}...")
 
             with ThreadPoolExecutor() as executor:
                 futures = [
@@ -103,15 +103,13 @@ def add_backdrop_fname_to_manifest(
     df: pd.DataFrame,
     dataset: str,
     position: int,
-    backdrops: List[str],
+    backdrops: list[str],
     output_dir: Path,
 ) -> pd.DataFrame:
-    """
-    Add the backdrop file name to the manifest DataFrame.
-    """
+    """Add the backdrop file name to the manifest DataFrame."""
     for backdrop in backdrops:
         df[f"{backdrop}_backdrop"] = df.apply(
-            lambda row: output_dir
+            lambda row, backdrop=backdrop: output_dir
             / f"{dataset}_P{position}_{backdrop}_{row['image_index']}.png",
             axis=1,
         )

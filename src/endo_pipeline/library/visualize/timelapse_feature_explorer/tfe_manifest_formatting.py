@@ -1,22 +1,17 @@
-import ast
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from cellsmap.analyses.track_data_plots import (
-    add_filter_columns,
-    calculate_derived_data_dynamics_dependent,
-)
+from cellsmap.analyses.track_data_plots import calculate_derived_data_dynamics_dependent
 from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
     project_manifest_to_pcs,
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from cellsmap.vis.timelapse_feature_explorer.backdrop_images import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
-from cellsmap.vis.timelapse_feature_explorer.feature_info import LABEL_MAP
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 
 
 def update_manifest_for_tfe(
@@ -44,7 +39,7 @@ def update_manifest_for_tfe(
         + "_P"
         + df["position"].astype(str)
         + "_T"
-        + df["T"].astype(str)
+        + df["image_index"].astype(str)
         + ".ome.tiff"
     )
 
@@ -65,9 +60,12 @@ def update_manifest_for_tfe(
 
 def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Perform PCA on the intensity mean features and add the projected features to the DataFrame.
+    Perform PCA on the intensity mean features and add the projected features
+    to the DataFrame.
+
     Args:
         df (pd.DataFrame): The input DataFrame.
+
     Returns:
         pd.DataFrame: The updated DataFrame with PCA features.
     """
@@ -84,9 +82,7 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
 
     df_result = pd.concat([df_projected, nan_rows], ignore_index=True)
 
-    assert (
-        df.shape[0] == df_result.shape[0]
-    ), "Shape mismatch dropping and merging back NaN rows"
+    assert df.shape[0] == df_result.shape[0], "Shape mismatch dropping and merging back NaN rows"
 
     return df_result
 
@@ -95,10 +91,10 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     """
     Dynamic features can only be calculated on longer tracks that are filtered.
     For TFE we need to preserve the rows that are filtered out, so we filter them
-    and then calculate the features and then merge them back in!
+    and then calculate the features and then merge them back in.
     """
-    df_filtered_rows = df[df["filter_global"] == True]
-    df_keep = df[df["filter_global"] == False]
+    df_filtered_rows = df[df["filter_global"]]
+    df_keep = df[~df["filter_global"]]
     df_calc = calculate_derived_data_dynamics_dependent(df_keep)
 
     df_result = pd.concat([df_calc, df_filtered_rows], ignore_index=True)
