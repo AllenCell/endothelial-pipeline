@@ -3,7 +3,7 @@ from collections.abc import Callable
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import fp_solvers as fps
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import fp_solvers as fps
 
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:

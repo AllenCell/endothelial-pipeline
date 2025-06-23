@@ -7,7 +7,7 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as manifest_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
 from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )

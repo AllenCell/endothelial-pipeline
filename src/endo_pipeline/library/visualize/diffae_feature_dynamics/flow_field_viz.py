@@ -6,7 +6,7 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 from cellsmap.util.general_image_preprocessing import sequence_to_scalar
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
     data_driven_flow_field as ddff,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest_processing import (

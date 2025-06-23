@@ -5,9 +5,9 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_analysis
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import model_analysis
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
     data_driven_flow_field as ddff,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest_processing import (

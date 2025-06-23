@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics.kramersmoyal import (
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics.kramersmoyal import (
     kmc as km,
 )
 

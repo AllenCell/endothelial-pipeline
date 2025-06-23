@@ -1,9 +1,7 @@
 import pysindy as ps
 
 
-def build_drift_lib(
-    ndim: int, drift_deg: int = 3, param_deg: int = 3
-) -> ps.ParameterizedLibrary:
+def build_drift_lib(ndim: int, drift_deg: int = 3, param_deg: int = 3) -> ps.ParameterizedLibrary:
     """
     Build library of polynomial basis functions for
     SINDy-based regression on Kramers-Moyal averages
@@ -43,9 +41,7 @@ def build_drift_lib(
     return drift_lib
 
 
-def build_diff_lib(
-    ndim: int, diff_deg: int = 0, param_deg: int = 3
-) -> ps.ParameterizedLibrary:
+def build_diff_lib(ndim: int, diff_deg: int = 0, param_deg: int = 3) -> ps.ParameterizedLibrary:
     """
     Build library of polynomial basis functions for
     SINDy-based regression on Kramers-Moyal averages

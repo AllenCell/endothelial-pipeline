@@ -9,9 +9,9 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import model_eval
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import gen_potential as gp
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import model_eval
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import gen_potential as gp
 from src.endo_pipeline.library.analyze.diffae_manifest_processing import (
     diffae_feature_preprocessing as diffae_preproc,
 )

@@ -4,8 +4,8 @@ import numpy as np
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics import ddd_main
-from src.endo_pipeline.library.analyze.diffae_feature_dyanmics.numerics import (
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import ddd_main
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
     data_driven_flow_field as ddff,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest_processing import manifest_pca

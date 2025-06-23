@@ -54,18 +54,12 @@ class SteadyFP:
         elif self.d == 2:
             # Fourier frequencies
             self.k = [2 * np.pi * fftfreq(self.n[i], self.dx[i]) for i in range(self.d)]
-            self.idx = np.zeros(
-                (2, self.n[0], self.n[1], self.n[0], self.n[1]), dtype=np.int32
-            )
+            self.idx = np.zeros((2, self.n[0], self.n[1], self.n[0], self.n[1]), dtype=np.int32)
 
             for i in range(self.n[0]):
                 for j in range(self.n[1]):
-                    self.idx[0, i, j, :, :] = (
-                        i - np.tile(np.arange(self.n[0]), [self.n[1], 1]).T
-                    )
-                    self.idx[1, i, j, :, :] = j - np.tile(
-                        np.arange(self.n[1]), [self.n[0], 1]
-                    )
+                    self.idx[0, i, j, :, :] = i - np.tile(np.arange(self.n[0]), [self.n[1], 1]).T
+                    self.idx[1, i, j, :, :] = j - np.tile(np.arange(self.n[1]), [self.n[0], 1])
 
         else:  # only implemented for 1D and 2D
             raise ValueError("SteadyFP solver only implemented for 1D and 2D. ")
@@ -114,14 +108,8 @@ class SteadyFP:
 
             # Set up spectral projection operator
             operator_matrix = (
-                -1j
-                * np.einsum(
-                    "i,ijkl->ijkl", self.k[0], drift_hat[0, self.idx[0], self.idx[1]]
-                )
-                - 1j
-                * np.einsum(
-                    "j,ijkl->ijkl", self.k[1], drift_hat[1, self.idx[0], self.idx[1]]
-                )
+                -1j * np.einsum("i,ijkl->ijkl", self.k[0], drift_hat[0, self.idx[0], self.idx[1]])
+                - 1j * np.einsum("j,ijkl->ijkl", self.k[1], drift_hat[1, self.idx[0], self.idx[1]])
                 - np.einsum(
                     "i,ijkl->ijkl",
                     self.k[0] ** 2,
@@ -135,14 +123,10 @@ class SteadyFP:
             )
 
             # Reshape operator matrix (flatten along grid dimensions)
-            operator_matrix = np.reshape(
-                operator_matrix, (np.prod(self.n), np.prod(self.n))
-            )
+            operator_matrix = np.reshape(operator_matrix, (np.prod(self.n), np.prod(self.n)))
         return operator_matrix
 
-    def solve(
-        self, drift: np.ndarray, diffusion: np.ndarray, verbose: bool = False
-    ) -> np.ndarray:
+    def solve(self, drift: np.ndarray, diffusion: np.ndarray, verbose: bool = False) -> np.ndarray:
         """
         Solve stationary Fokker-Planck equation from input drift coefficients using
         a Fourier-Galerkin method (uses Fourier transform of drift f(x)
@@ -164,9 +148,7 @@ class SteadyFP:
         start_fp_op = time()
         operator_matrix = self.compute_operator(drift, diffusion)
         if verbose:
-            print(
-                f"%%%% Computing FP operator time: {time() - start_fp_op} seconds %%%%"
-            )
+            print(f"%%%% Computing FP operator time: {time() - start_fp_op} seconds %%%%")
 
         start_fp = time()
         q_hat = (
