@@ -1,11 +1,13 @@
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 import numpy as np
 from scipy.special import factorial2, gamma
 from scipy.stats import norm
 
 
-def kernel(kernel_func):
+def kernel(kernel_func: Callable) -> Callable:
     """
     Transform a kernel function into a scaled kernel function
     (for a certain bandwidth ``bw``).
@@ -18,8 +20,8 @@ def kernel(kernel_func):
     """
 
     @wraps(kernel_func)  # just for naming
-    def decorated(x: np.ndarray, bw: float):
-        def volume_unit_ball(dims: int):
+    def decorated(x: np.ndarray, bw: float) -> np.ndarray:
+        def _volume_unit_ball(dims: int) -> float:
             # volume of a unit ball in dimension dims
             return np.pi ** (dims / 2.0) / gamma(dims / 2.0 + 1.0)
 
@@ -31,7 +33,7 @@ def kernel(kernel_func):
         # Euclidean norm
         dist = np.sqrt((x * x).sum(axis=-1))
 
-        return kernel_func(dist / bw, dims) / (bw**dims) / volume_unit_ball(dims)
+        return kernel_func(dist / bw, dims) / (bw**dims) / _volume_unit_ball(dims)
 
     return decorated
 
@@ -51,13 +53,13 @@ def epanechnikov(x: np.ndarray, dims: int) -> np.ndarray:
 def gaussian(x: np.ndarray, dims: int) -> np.ndarray:
     """Define the Gaussian kernel in dimensions dims."""
 
-    def gaussian_integral(n):
+    def _gaussian_integral(n: int) -> float:
         if n % 2 == 0:
             return np.sqrt(np.pi * 2) * factorial2(n - 1) / 2
-        elif n % 2 == 1:
+        else:
             return np.sqrt(np.pi * 2) * factorial2(n - 1) * norm.pdf(0)
 
-    normalisation = dims * gaussian_integral(dims - 1)
+    normalisation = dims * _gaussian_integral(dims - 1)
     kernel = np.exp(-(x**2) / 2.0) / normalisation
     return kernel
 
@@ -92,7 +94,9 @@ def quartic(x: np.ndarray, dims: int) -> np.ndarray:
     return kernel
 
 
-def silvermans_rule(timeseries: np.ndarray, multi_traj: bool = False) -> float:
+def silvermans_rule(
+    timeseries: np.ndarray, multi_traj: bool = False
+) -> np.ndarray[Any, np.dtype[np.floating[Any]]]:
     """Apply Silverman's rule of thumb for bandwidth selection."""
     if multi_traj:  # take average of std of each trajectory along each dimension
         n = 0

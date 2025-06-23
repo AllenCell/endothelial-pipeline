@@ -79,9 +79,9 @@ def ddd_model_analysis(
     )
 
     # add title to histogram plots
-    sup_title = fig2._suptitle.get_text()
+    sup_title = fig2.texts[0].get_text()
     sup_title = name + f", {shear} dyn/cm$^2$ \n" + sup_title
-    fig2.suptitle(sup_title, fontsize=fig2._suptitle.get_fontsize(), y=1.15)
+    fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
 
     # save figures
     vb.save_plot(fig1, fig_savedir + name + f"_ddff_phase_portrait_shear_{int(shear)}")
@@ -90,7 +90,7 @@ def ddd_model_analysis(
 
 
 def get_and_analyze_ddd(
-    name: str, pca: Pipeline, kernel_params: dict, fig_savedir: str, config: dict
+    name: str, pca: Pipeline, kernel_params: dict | None, fig_savedir: str, config: dict
 ) -> None:
     """
     Get and analyze data-driven dynamics for a given dataset.
@@ -146,10 +146,9 @@ def get_and_analyze_ddd(
     df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, name)
     num_flow = len(shear_list)
 
-    # getting drift and diffusion estimates
+    # get drift and diffusion estimates
     # for each flow condition
-    drift_km = []
-    diff_km = []
+    # and analyze the data-driven dynamics model
 
     for j in range(num_flow):
         # get list of per-crop trajectories and list
@@ -176,11 +175,15 @@ def get_and_analyze_ddd(
         # turn into callable vector fields
         # have to have shear as a parameter
         # (dummy variable)
-        def drift_(x, u, vector_dict=drift_dict):
+        def drift_(
+            x: np.ndarray, u: float, vector_dict: dict = drift_dict
+        ) -> np.ndarray:
             drift = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
             return drift(x)
 
-        def diffusion_(x, u, vector_dict=diffusion_dict):
+        def diffusion_(
+            x: np.ndarray, u: float, vector_dict: dict = diffusion_dict
+        ) -> np.ndarray:
             diffusion = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
             return diffusion(x)
 
@@ -196,4 +199,3 @@ def get_and_analyze_ddd(
             fig_savedir,
             config,
         )
-    return

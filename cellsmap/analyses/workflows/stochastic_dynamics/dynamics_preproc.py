@@ -59,10 +59,6 @@ def main(config_name: str = "default") -> None:
         fig, filename=fig_savedir + "explained_variance_ratio", format=".png", dpi=500
     )
 
-    # plot top 3 principal components of feature data vs. frame number
-    fig, _ = manifest_viz.plot_top_3_pcs_alldata(pca)
-    vb.save_plot(fig, filename=fig_savedir + "top_3_pcs", format=".png", dpi=500)
-
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
     pcs = config["pcs_to_analyze"]

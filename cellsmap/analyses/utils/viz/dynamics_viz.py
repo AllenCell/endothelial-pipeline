@@ -1,5 +1,8 @@
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 
 from cellsmap.analyses.utils.viz import viz_base as vb
 
@@ -100,7 +103,7 @@ def plot_histogram_2d(
         p_hist.T,
         interpolation="nearest",
         origin="lower",
-        extent=[bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]],
+        extent=(bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]),
         cmap=cmap,
         aspect=(bins[0][-1] - bins[0][0]) / (bins[1][-1] - bins[1][0]),
     )
@@ -112,7 +115,7 @@ def plot_histogram_2d(
     return ax
 
 
-def kl_divergence(p, q, dx, tol=1e-8):
+def kl_divergence(p: np.ndarray, q: np.ndarray, dx: list, tol: float = 1e-8) -> float:
     """Approximate Kullback-Leibler divergence for arbitrary dimensionality."""
     ndim = len(dx)
 
@@ -130,8 +133,8 @@ def kl_divergence(p, q, dx, tol=1e-8):
 
 
 def compare_stationary_distributions(
-    p_model: np.ndarray, p_hist: np.ndarray, bins
-) -> tuple[plt.Figure, plt.Axes]:
+    p_model: np.ndarray, p_hist: np.ndarray, bins: list
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Side-by-side plots of the histogram of the data at steady state
     ("empirical PDF") and the numerical solution to the stationary
@@ -227,7 +230,7 @@ def plot_gen_potential_2d(
     """
     if surf:
         fig = plt.figure(figsize=plt.figaspect(1 / 3))
-        ax = fig.add_subplot(1, 2, 1, projection="3d")
+        ax: Axes3D = fig.add_subplot(1, 2, 1, projection="3d")
         x_, y_ = np.meshgrid(xvec, yvec, indexing="ij")
         surf = ax.plot_surface(x_, y_, potential, cmap=cmap)
         ax.set_zlabel("$-\ln P$")
@@ -238,7 +241,7 @@ def plot_gen_potential_2d(
             potential.T,
             interpolation="nearest",
             origin="lower",
-            extent=[xvec[0], xvec[-1], yvec[0], yvec[-1]],
+            extent=(xvec[0], xvec[-1], yvec[0], yvec[-1]),
             cmap=cmap,
             aspect=(xvec[-1] - xvec[0]) / (yvec[-1] - yvec[0]),
         )
@@ -250,8 +253,8 @@ def plot_grad_flux_decomposition(
     potential: np.ndarray,
     xvec: np.ndarray,
     yvec: np.ndarray,
-    grad,
-    flux,
+    grad: np.ndarray,
+    flux: np.ndarray,
     cmap: str = "jet",
     normed: bool = False,
     downsample: int = 10,

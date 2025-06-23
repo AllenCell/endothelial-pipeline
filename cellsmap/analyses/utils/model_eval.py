@@ -21,7 +21,7 @@ def vector_field_function(sindy_model: ps.SINDy) -> Callable:
     of the state space is greater than 1.
     """
 
-    def f(x, u=None):
+    def f(x: np.ndarray, u: float | None = None) -> np.ndarray:
         # if x is a single point, convert to 2D array
         # input shape has to be (n_samples, n_features),
         # where n_features = dimension of state space
@@ -65,7 +65,7 @@ def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
     as an optional argument.
     """
 
-    def f_mesh(mesh_grid, u=None):
+    def f_mesh(mesh_grid: tuple[np.ndarray], u: float | None = None) -> np.ndarray:
         # Create a mesh grid of points
         mesh_shape = mesh_grid[0].shape
         grid_points = np.stack(
@@ -94,7 +94,7 @@ def vector_field_component(f: Callable, i: int) -> Callable:
     as an optional argument.
     """
 
-    def f_i(x, u=None):
+    def f_i(x: np.ndarray, u: float | None = None) -> np.ndarray:
         # check input type - this is done because this
         # component function is meant to be passed into the pplane
         # script, which alternatively passes in a meshgrid,
@@ -121,7 +121,7 @@ def vector_field_component(f: Callable, i: int) -> Callable:
     return f_i  # return the the callable function f_i
 
 
-def get_normalization_constant(p_fit: np.ndarray, dx: list) -> float:
+def get_normalization_constant(p_fit: np.ndarray, dx: list) -> np.ndarray:
     """
     Get normalization constant for stationary probability
     distribution p_fit. The normalization constant is the
