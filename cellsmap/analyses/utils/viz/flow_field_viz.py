@@ -1,3 +1,5 @@
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -13,9 +15,9 @@ from cellsmap.util.manifest_preprocessing import (
 
 
 def set_slice_plot_bounds_and_labels(
-    axs: tuple[plt.Axes],
-    bounds: tuple[tuple[float, float], tuple[float, float], tuple[float, float]],
-) -> tuple[plt.Axes]:
+    axs: np.ndarray[plt.Axes, Any],
+    bounds: list[tuple],
+) -> np.ndarray[plt.Axes, Any]:
     """
     Set the axis limits and labels for the plots
     of 2D slices of the 3D flow field.
@@ -40,7 +42,7 @@ def set_slice_plot_bounds_and_labels(
 
 def get_slice_indexes(
     sliced_variable_grid: np.ndarray, sliced_variable_val: float
-) -> np.ndarray:
+) -> tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...]:
     """
     Get the slice indexes of the grid that are closest to the prescribed value.
     This is used to slice the grid in 2D for plotting.
@@ -60,20 +62,20 @@ def get_slice_indexes(
     # first, get the absolute distance to the prescribed value
     dist_to_point = np.abs(sliced_variable_grid - sliced_variable_val)
     # get indexes of points where this distance is minimized
-    slice_indexes = np.where(dist_to_point.ravel() == dist_to_point.min())[0]
+    slice_indexes_ = np.where(dist_to_point.ravel() == dist_to_point.min())[0]
     # unravel the grid to get the indices of the points in the grid
     # that are within the z-range of interest
-    slice_indexes = np.unravel_index(slice_indexes, sliced_variable_grid.shape)
+    slice_indexes = np.unravel_index(slice_indexes_, sliced_variable_grid.shape)
     return slice_indexes
 
 
 def plot_one_slice_quiver(
     velocities: tuple,
     grid: tuple,
-    slice_indexes: np.ndarray,
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    ax: plt.Axes,
     color: str = "dimgrey",
     norm: bool = True,
-    ax: plt.Axes | None = None,
     ds: int = 3,
     scale: int | float = 30,
 ) -> plt.Axes:
@@ -81,8 +83,6 @@ def plot_one_slice_quiver(
     Plot one slice of the flow field (quiver plot)
     for a given slice of the grid.
     """
-    if ax is None:
-        _, ax = vb.init_subplots()
 
     # slice the grid to get the points in the slice
     # and reshape to 2d array
@@ -124,11 +124,14 @@ def plot_one_slice_quiver(
 
 def plot_quiver_slices(
     flow_field_dict: dict,
-    slice_indexes: tuple[np.ndarray, np.ndarray],
+    slice_indexes: tuple[
+        tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+        tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    ],
     color: str = "dimgrey",
     norm: bool = True,
     fig_ax: tuple | None = None,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot quiver plots of the 3D flow field
     for the specified 2D slices.
@@ -145,10 +148,10 @@ def plot_quiver_slices(
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
-        (v1, v2), (xgrid, ygrid), slice_indexes[0], color=color, ax=ax[0], norm=norm
+        (v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0], color=color, norm=norm
     )
     ax[1] = plot_one_slice_quiver(
-        (v1, v3), (xgrid, zgrid), slice_indexes[1], color=color, ax=ax[1], norm=norm
+        (v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1], color=color, norm=norm
     )
 
     return fig, ax
@@ -157,16 +160,13 @@ def plot_quiver_slices(
 def plot_one_slice_streamplot(
     velocities: tuple,
     grid: tuple,
-    slice_indexes: np.ndarray,
-    ax: plt.Axes | None = None,
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    ax: plt.Axes,
 ) -> plt.Axes:
     """
     Plot one slice of the flow field (streamplot)
     for a given slice of the grid.
     """
-    if ax is None:
-        _, ax = vb.init_subplots()
-
     my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
     # slice the grid to get the points in the slice, reshape for plotting
     x1_grid = grid[0][slice_indexes].reshape(my_shape)
@@ -190,8 +190,12 @@ def plot_one_slice_streamplot(
 
 
 def plot_streamplot_slices(
-    flow_field_dict: dict, slice_indexes: tuple[np.ndarray]
-) -> tuple[plt.Figure, tuple[plt.Axes]]:
+    flow_field_dict: dict,
+    slice_indexes: tuple[
+        tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+        tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    ],
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot streamplot of the 3D flow field
     for the specified 2D slices.
@@ -218,10 +222,10 @@ def plot_flow_field_slices(
     flow_field_dict: dict,
     df_cond: pd.DataFrame | None,
     fig_savedir: str | None,
-    pc_vals: tuple[float] | None = None,
+    pc_vals: tuple[Any, Any] | None = None,
     color: str = "black",
     norm: bool = True,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot 2D slices of the 3D flow field
     for the specified 2D slices.
@@ -264,13 +268,13 @@ def plot_flow_field_slices(
     # if data are not provided, use pc2 = pc3 = 0
     if pc_vals is None:
         if df_cond is None:
-            pc3_val = 0
-            pc2_val = 0
+            pc3_val = 0.0
+            pc2_val = 0.0
         else:
             # get mean at all time points over crops
-            mean_over_crops = df_cond.groupby("frame_number").mean(numeric_only=True)
+            mean_over_crops_ = df_cond.groupby("frame_number").mean(numeric_only=True)
             # get last time point
-            mean_over_crops = mean_over_crops.iloc[-1]
+            mean_over_crops = mean_over_crops_.iloc[-1]
             pc3_val = mean_over_crops["feat_2"].mean()
             pc2_val = mean_over_crops["feat_1"].mean()
     # if specified, unpack

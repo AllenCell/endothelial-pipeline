@@ -1,7 +1,9 @@
+from typing import Tuple
+
 import numpy as np
 
 
-def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0):
+def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0) -> np.ndarray:
     """Get the weighted counts of the input array x."""
     return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
 
@@ -34,11 +36,13 @@ def _get_bin_counts(
     # correct bin count to the histogram.
 
     # Compute the sample indices in the flattened histogram matrix.
-    xy = np.ravel_multi_index(n_count, nbin)
+    # Ensure n_count is a tuple of integer arrays
+    n_count = tuple(arr.astype(int) for arr in n_count)
+    xy = np.ravel_multi_index(n_count, tuple(map(int, nbin)))
 
     # Compute the number of repetitions in xy and assign it to the
     # flattened histmat.
-    hist = _bincount(xy, weights, minlength=nbin.prod())
+    hist = _bincount(xy, weights, minlength=int(np.prod(nbin)))
     return hist
 
 
@@ -74,7 +78,7 @@ def histogramdd(
     d = sample.shape[-1]
     # initialize edges, dedges, and nbin
     edges = bins.copy()
-    dedges = d * [None]
+    dedges = []
     nbin = np.zeros(d, dtype=int)
     weights = np.asarray(weights)
     for i in range(d):
@@ -87,7 +91,7 @@ def histogramdd(
         # increase bin count by 1 to include outliers
         nbin[i] = len(edges[i]) + 1
         # get the width of each bin
-        dedges[i] = np.diff(edges[i])
+        dedges.append(np.diff(edges[i]))
 
     m = len(bins)
     if m != d:
@@ -96,7 +100,7 @@ def histogramdd(
         )
 
     # Get the histogram counts.
-    hist = _get_bin_counts(sample, weights, edges, d, nbin)
+    hist: np.ndarray = _get_bin_counts(sample, weights, edges, d, nbin)
 
     # Reshape the histogram matrix to the correct shape.
     if weights.ndim == 1:
@@ -105,7 +109,11 @@ def histogramdd(
         hist = hist.reshape((weights.shape[0], *nbin))
 
     # Remove outliers (indices 0 and -1 for each dimension).
-    core = d * (slice(1, -1),)
-    hist = hist[(..., *core)]
+    core: Tuple[slice, ...] = d * (slice(1, -1),)
+
+    # slice the histogram to remove outliers
+    # Tell MyPy to ignore the type error here,
+    # doesn't like indexing via ellipsis
+    hist = hist[..., *core]  # type: ignore
 
     return hist
