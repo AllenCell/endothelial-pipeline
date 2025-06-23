@@ -170,6 +170,19 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
     return datasets
 
 
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing reference
+datasets is to use the following replacement method:
+
+        configs.dataset_config.load_reference_datasets
+
+which will load the reference dataset objects (not the dataset names). If you
+need the names of the reference datasets, access the .name field of the
+reference dataset objects returned by the above method.
+"""
+)
 def get_reference_datasets() -> list[str]:
     """Get a list of reference datasets for PCA from the config file."""
     return [
