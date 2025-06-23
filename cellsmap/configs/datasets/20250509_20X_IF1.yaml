@@ -23,3 +23,4 @@ nuclear_label_free_seg_path: null
 nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: 26c99fb5bd194280be13cb78561fb5d6
 diffae_tracking_integration_fmsid: ''
+nuclear_stain_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF1
