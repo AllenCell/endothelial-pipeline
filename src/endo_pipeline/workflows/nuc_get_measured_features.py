@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -16,11 +16,11 @@ from cellsmap.util.dataset_io import (
     load_nuclei_prediction,
     save_git_versioning_info,
 )
-from cellsmap.util.general_image_preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
 )
-from cellsmap.util.set_output import get_output_path
 
 
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
@@ -74,6 +74,7 @@ def get_nuclei_features_from_image(
     nuclei_ambiguity_threshold (float):
         Threshold for determining if a nucleus segmentation overlaps a cell
         segmentation enough to be kept.
+
     Returns
     -------
         pd.DataFrame: DataFrame with extracted features.
@@ -98,9 +99,7 @@ def get_nuclei_features_from_image(
     for i in range(len(fluorescence_images)):
         nuc_props_on_intens[fluor_img_names[i]] = {
             prop.label: prop
-            for prop in regionprops(
-                label_image=nuc_seg, intensity_image=fluorescence_images[i]
-            )
+            for prop in regionprops(label_image=nuc_seg, intensity_image=fluorescence_images[i])
         }
 
     nuc_seg_size_dict = {prop.label: int(prop.area) for prop in regionprops(nuc_seg)}
@@ -123,9 +122,7 @@ def get_nuclei_features_from_image(
 
     # Go through the region properties and extract features
     for prop in reg_props:
-        nuc_seg_labels = np.unique(
-            prop.intensity_image[prop.intensity_image != 0]
-        ).tolist()
+        nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
 
         nuc_feats = {
             "cdh5_segmentation_label": prop.label,
@@ -156,7 +153,7 @@ def get_nuclei_features_from_image(
                         nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
 
         nuc_lab_frac_dict = dict(
-            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"])
+            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"], strict=False)
         )
         nuclei_seg_with_most_overlap = [
             lab
@@ -244,11 +241,7 @@ def get_nuclei_features_from_dataset_at_T(
     # of the data table
     nuc_feats_df = nuc_feats_df[
         ["dataset_name", "position", "T"]
-        + [
-            col
-            for col in nuc_feats_df.columns
-            if col not in ["dataset_name", "position", "T"]
-        ]
+        + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
     ]
 
     return nuc_feats_df
@@ -283,9 +276,7 @@ def main(
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
             list(
                 tqdm(
-                    executor.map(
-                        get_and_save_nuclei_features_arg_unpacker, analysis_queue
-                    ),
+                    executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
                     total=len(analysis_queue),
                     desc="Getting nuclei features (MP)",
                 )

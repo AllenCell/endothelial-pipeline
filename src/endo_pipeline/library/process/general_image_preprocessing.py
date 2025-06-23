@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -13,8 +14,8 @@ from cellsmap.util.dataset_io import (
     get_zarr_name,
     get_zarr_path,
 )
-from cellsmap.util.get_sldy_metadata import get_objective_info
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 
 
 def get_default_dim_order() -> str:
@@ -25,7 +26,7 @@ def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
     dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums))
+    dim_map = dict(zip(dims, dim_nums, strict=False))
 
     return dim_map
 
@@ -72,9 +73,7 @@ def build_analysis_queue(
             img_path_dict = get_zarr_path(dataset_name)
             num_positions = get_total_number_of_positions(dataset_name)
             num_pos_in_S = len(img_path_dict)
-            zarr_name_dict = {
-                pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)
-            }
+            zarr_name_dict = {pos: get_zarr_name(dataset_name, pos) for pos in range(num_pos_in_S)}
 
         assert (
             num_positions % num_pos_in_S == 0
@@ -192,16 +191,13 @@ def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:
         element = unique_elements.pop()
     else:
         raise ValueError(
-            "Sequence must have only one unique element. "
-            f"Unique elements: {unique_elements}"
+            "Sequence must have only one unique element. " f"Unique elements: {unique_elements}"
         )
 
     return element
 
 
-def restore_full_dims(
-    image: np.ndarray, current_dims: str, full_dims: str = "TCZYX"
-) -> np.ndarray:
+def restore_full_dims(image: np.ndarray, current_dims: str, full_dims: str = "TCZYX") -> np.ndarray:
     """
     Takes an array with specified image dims and restores dimensions with size 1
     that are present in full_dims.
@@ -246,10 +242,10 @@ def restore_full_dims(
 
 
 def save_image_output(
-    out_path: Union[str, Path],
-    images: List[np.ndarray],
+    out_path: str | Path,
+    images: list[np.ndarray],
     images_metadata: dict,
-    dtype: Optional[Any] = None,
+    dtype: Any | None = None,
 ) -> None:
     """
     Combines a list of images into a single image and saves it as an OME-TIFF
@@ -314,10 +310,7 @@ def save_image_output(
     dim_map = get_dim_map(dim_order_out)
 
     merged_img = np.concatenate(
-        [
-            restore_full_dims(img, img_dim_order, full_dims=dim_order_out)
-            for img in images
-        ],
+        [restore_full_dims(img, img_dim_order, full_dims=dim_order_out) for img in images],
         axis=dim_map["C"],
     ).astype(dtype)
 

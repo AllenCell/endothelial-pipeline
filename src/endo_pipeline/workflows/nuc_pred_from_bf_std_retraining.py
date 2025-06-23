@@ -1,7 +1,8 @@
+from collections.abc import Generator
 from datetime import datetime
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Dict, List, Literal
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,23 +15,23 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util import get_sldy_metadata as sldmd
 from cellsmap.util.dataset_io import (
     get_dataset_info,
     get_original_path,
     ipython_cli_flexecute,
     load_config,
 )
-from cellsmap.util.general_image_preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
+from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
-from cellsmap.util.set_output import get_output_path
 
 
-def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
+def get_scenes_to_use(dataset_name: str | None = None) -> dict:
     """
     This function returns the scenes to use for a given dataset.
     It is used to filter the analysis queue to only include the
@@ -53,15 +54,9 @@ def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
             "20240328_T01_001-1711663662-322",
             "20240328_T01_001-1711663662-337",
         ],
-        "20250415_SlideA_20X": [
-            "20250415_GE00007488_slideA_20X - Position 1 [50]-1745428788-773"
-        ],
-        "20250415_SlideE_20X": [
-            "20250416_GE00007101_slideE_20X - Position 1 [50]-1745428816-305"
-        ],
-        "20250415_SlideH_20X": [
-            "20250415_GE00006885_slideH_20X - Position 1 [50]-1745428734-340"
-        ],
+        "20250415_SlideA_20X": ["20250415_GE00007488_slideA_20X - Position 1 [50]-1745428788-773"],
+        "20250415_SlideE_20X": ["20250416_GE00007101_slideE_20X - Position 1 [50]-1745428816-305"],
+        "20250415_SlideH_20X": ["20250415_GE00006885_slideH_20X - Position 1 [50]-1745428734-340"],
     }
     if dataset_name == None:
         return scenes_to_use
@@ -72,15 +67,11 @@ def get_scenes_to_use(dataset_name: str | None = None) -> Dict:
 
 
 def get_training_data_output_dirs(
-    kind: List[Literal["images", "labels"]] | None = None,
-) -> List:
+    kind: list[Literal["images", "labels"]] | None = None,
+) -> list:
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
-    out_dir_labels = (
-        out_dir / f"training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
-    )
-    out_dir_images = (
-        out_dir / f"training_data/cellpose_base_nuclei_model_brightfield_std/"
-    )
+    out_dir_labels = out_dir / "training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
+    out_dir_images = out_dir / "training_data/cellpose_base_nuclei_model_brightfield_std/"
     out_dirs = {"images": out_dir_images, "labels": out_dir_labels}
     if kind == None:
         return list(out_dirs.values())
@@ -114,21 +105,15 @@ def get_image_data_from_original(
     return (img_dask_arr_nuc, img_dask_arr_bf_std), img_metadata
 
 
-def get_image_data_from_zarr(dataset_name: str) -> None:
+def get_image_data_from_zarr(dataset_name: str) -> Generator:
     # NOTE THIS FUNCTION IS NOT YET IMPLEMENTED
-    raise NotImplementedError(
-        f"Zarrs not yet implemented yet. Skipping {dataset_name}."
-    )
     for zarr_name in get_zarr_path(dataset_name):
-        img_dict_nuc = load_dataset(
-            dataset_name, zarr_name=zarr_name, channels=["DAPI"]
-        )
+        img_dict_nuc = load_dataset(dataset_name, zarr_name=zarr_name, channels=["DAPI"])
         img_dict_bf = load_dataset(dataset_name, zarr_name=zarr_name, channels=["BF"])
         img_dask_arr_nuc = img_dict_nuc[zarr_name].max(axis=dim_map["Z"], keepdims=True)
-        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(
-            axis=dim_map["Z"], keepdims=True
-        )
+        img_dask_arr_bf_std = img_dict_bf[zarr_name].std(axis=dim_map["Z"], keepdims=True)
         yield (zarr_name, img_dask_arr_nuc, img_dask_arr_bf_std)
+    raise NotImplementedError(f"Zarrs not yet implemented yet. Skipping {dataset_name}.")
 
 
 def save_overlay(
@@ -162,17 +147,11 @@ def generate_training_data(analysis_args: dict) -> None:
     scene_name = analysis_args["scene_name"]
     position = analysis_args["position"]
     T = analysis_args["T"]
-    out_dir_val = (
-        analysis_args["output_dir"]
-        / f"training_data/validation_overlays/{dataset_name}/"
-    )
+    out_dir_val = analysis_args["output_dir"] / f"training_data/validation_overlays/{dataset_name}/"
     out_dir_nuclei = (
-        analysis_args["output_dir"]
-        / f"training_data/cellpose_base_nuclei_model_nuclei_max/"
+        analysis_args["output_dir"] / "training_data/cellpose_base_nuclei_model_nuclei_max/"
     )
-    out_dir_images, out_dir_labels = get_training_data_output_dirs(
-        kind=["images", "labels"]
-    )
+    out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=["images", "labels"])
     save_training_data = analysis_args["save_output"]
     save_validation_images = analysis_args["validation_image"]
     verbose = analysis_args["verbose"]
@@ -181,17 +160,11 @@ def generate_training_data(analysis_args: dict) -> None:
     nuc_model = models.CellposeModel(gpu=use_gpu, model_type="nuclei")
 
     if scene_name in get_scenes_to_use()[dataset_name]:
-        (
-            print(f"Working on {dataset_name} P{position} {scene_name}...")
-            if verbose
-            else None
-        )
+        (print(f"Working on {dataset_name} P{position} {scene_name}...") if verbose else None)
         pass
     else:
         (
-            print(
-                f"{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping."
-            )
+            print(f"{dataset_name} P{position} {scene_name} not in scenes_to_use. Skipping.")
             if verbose
             else None
         )
@@ -199,9 +172,7 @@ def generate_training_data(analysis_args: dict) -> None:
 
     print("loading image data...") if verbose else None
     if use_sldy_data:
-        img_dask_arrs, image_metadata = get_image_data_from_original(
-            dataset_name, scene_name, T
-        )
+        img_dask_arrs, image_metadata = get_image_data_from_original(dataset_name, scene_name, T)
         voxel_size = sldmd.get_voxel_size(image_metadata)
     else:
         print(f"Zarrs not yet implemented. Skipping {dataset_name} P{position}.")
@@ -237,9 +208,7 @@ def generate_training_data(analysis_args: dict) -> None:
         # save the labels used as ground truths for training
         # the label-free nuclei model
         out_dir_labels.mkdir(exist_ok=True, parents=True)
-        out_name_label = (
-            out_dir_labels / f"{dataset_name}_P{position}_T{T}_nuclei_seg.ome.tiff"
-        )
+        out_name_label = out_dir_labels / f"{dataset_name}_P{position}_T{T}_nuclei_seg.ome.tiff"
         images_out = [seg]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -256,9 +225,7 @@ def generate_training_data(analysis_args: dict) -> None:
         )
 
         out_dir_nuclei.mkdir(exist_ok=True, parents=True)
-        out_name_dapi = (
-            out_dir_nuclei / f"{dataset_name}_P{position}_T{T}_nuclei_raw.ome.tiff"
-        )
+        out_name_dapi = out_dir_nuclei / f"{dataset_name}_P{position}_T{T}_nuclei_raw.ome.tiff"
         images_out = [nuc_max]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -275,9 +242,7 @@ def generate_training_data(analysis_args: dict) -> None:
         )
 
         out_dir_images.mkdir(exist_ok=True, parents=True)
-        out_name_images = (
-            out_dir_images / f"{dataset_name}_P{position}_T{T}_bf_std.ome.tiff"
-        )
+        out_name_images = out_dir_images / f"{dataset_name}_P{position}_T{T}_bf_std.ome.tiff"
         images_out = [bf_std]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -296,7 +261,7 @@ def generate_training_data(analysis_args: dict) -> None:
 
 
 def get_training_data(
-    analysis_queue: List,
+    analysis_queue: list,
     create_training_data: bool = False,
     n_proc: int = 1,
     gpu: bool = False,
@@ -413,8 +378,15 @@ def main(
     # get the nuclei model path from the config file
     model_config = load_config(config_type="model")
     nuclei_models = model_config.get("nuc_pred_labelfree")
-    assert len(nuclei_models) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
-    model_path = Path(nuclei_models.get("model_path"))
+    if nuclei_models is None:
+        raise ValueError("No label-free nuclei model found in the configuration file.")
+    else:
+        assert len(list(nuclei_models)) == 1, f"Expected 1 model path, found {len(nuclei_models)}"
+        model_path = nuclei_models.get("model_path")
+        if model_path is not None:
+            model_path = Path(model_path)
+        else:
+            raise ValueError("No model path found in the configuration file.")
 
     # create a directory to save the models
     # and their losses and a test image
@@ -431,13 +403,9 @@ def main(
     if retrain_Gouthams_model:
         # retrain Goutham's Cellpose model
         model_dir_Goutham_retrain = model_dir / "Goutham_model_finetuning"
-        Goutham_finetuned_model_name = (
-            f"bf_std_model_no_preprocess_retrained_{timestamp}"
-        )
+        Goutham_finetuned_model_name = f"bf_std_model_no_preprocess_retrained_{timestamp}"
 
-        model_bf_stdproject = models.CellposeModel(
-            gpu=gpu, pretrained_model=str(model_path)
-        )
+        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
         model_path, train_losses, test_losses = train.train_seg(
             model_bf_stdproject.net,
             train_data=images_training,
@@ -570,9 +538,7 @@ def main(
     ax2.imshow(overlay)
     [ax.set_axis_off() for ax in (ax0, ax1, ax2)]
     plt.tight_layout()
-    fig.savefig(
-        model_dir / f"{model_name}_test_image.png", bbox_inches="tight", dpi=180
-    )
+    fig.savefig(model_dir / f"{model_name}_test_image.png", bbox_inches="tight", dpi=180)
     plt.close(fig)
 
 

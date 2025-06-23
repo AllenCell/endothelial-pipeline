@@ -28,7 +28,7 @@ from skimage.segmentation import (
 )
 
 from cellsmap.util.dataset_io import extract_T
-from cellsmap.util.general_image_preprocessing import get_dim_map
+from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
 def preprocess(
@@ -242,7 +242,7 @@ def get_watershed_seeds_and_basins(
         dist, min_distance=min_dist, labels=dist_labels, exclude_border=False
     )
     peaks_arr = np.zeros(binary_img_arr.shape, dtype=binary_img_arr.dtype)
-    peaks_arr[tuple(zip(*peaks))] = 1
+    peaks_arr[tuple(zip(*peaks, strict=False))] = 1
 
     peaks_arr = binary_dilation(peaks_arr, footprint=disk(5))
 
@@ -842,7 +842,7 @@ def get_cdh5_classic_segmentation_paths(
     prj_dir = Path("../").resolve()
     config_file = prj_dir / "cdh5_seg_config.yaml"
     assert config_file.exists()
-    with open(config_file, "r") as file:
+    with open(config_file) as file:
         config_data = yaml.safe_load(file)
     segmentation_dirs = [
         prj_dir / data["segmentation_dir"]

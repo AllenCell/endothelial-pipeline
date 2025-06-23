@@ -10,7 +10,7 @@ def bf_slice(img: BioImage, frame: int) -> np.ndarray:
     """Get the best Z slice from the brightfield image for a given frame."""
     bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
     stdevs = [plane.std().compute() for plane in bf_stack.squeeze()]
-    best_plane = max(0, np.argmin(stdevs))
+    best_plane = max(0, np.argmin(stdevs) - 5)  # move 5 planes down to have contrast
     bf_slice = img.get_image_dask_data("YX", Z=best_plane, C=1, T=frame)
     return bf_slice.compute()
 

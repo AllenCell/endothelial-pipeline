@@ -1,25 +1,24 @@
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from cellsmap.features.cdh5_classic_seg_tracking import ipython_cli_flexecute
 from cellsmap.util.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_dataset_info,
     load_config,
 )
-from cellsmap.util.general_image_preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model
@@ -72,9 +71,7 @@ def generate_results(args: dict) -> None:
         gpu = core.use_gpu()
 
         model_path = Path(nuclei_model["model_path"])
-        model_bf_stdproject = models.CellposeModel(
-            gpu=gpu, pretrained_model=str(model_path)
-        )
+        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
         bf_std_dask_arr = img_arr.std(axis=dim_map["Z"], keepdims=True)
@@ -82,9 +79,7 @@ def generate_results(args: dict) -> None:
 
         # Predict nuclei from brightfield images
         (
-            print(
-                " - predicting nuclei from brightfield standard deviation projections..."
-            )
+            print(" - predicting nuclei from brightfield standard deviation projections...")
             if verbose
             else None
         )
@@ -117,9 +112,7 @@ def generate_results(args: dict) -> None:
                 0, np.argmin([plane for plane in plane_stdevs]) - 6
             )
             bf_good_contrast_arr = (
-                img_arr.squeeze()[[possible_good_contrast_brightfield_plane]]
-                .squeeze()
-                .compute()
+                img_arr.squeeze()[[possible_good_contrast_brightfield_plane]].squeeze().compute()
             )
 
             # Construct and save a multichannel image
@@ -136,7 +129,7 @@ def generate_results(args: dict) -> None:
 
 
 def main(
-    dataset_name: str | List | None = None,
+    dataset_name: str | list | None = None,
     n_proc: int = 1,
     save_output: bool = True,
     overwrite: bool = True,
@@ -183,9 +176,7 @@ def main(
                 pool.close()
                 pool.join()
     else:
-        for dataset_name_and_args in tqdm(
-            analysis_queue, desc="Predicting nuclei (1P)"
-        ):
+        for dataset_name_and_args in tqdm(analysis_queue, desc="Predicting nuclei (1P)"):
             generate_results(dataset_name_and_args)
 
     print("\N{MICROSCOPE} Done analysis.")

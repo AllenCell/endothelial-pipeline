@@ -1,5 +1,6 @@
 import pickle
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +21,7 @@ from tqdm import tqdm
 from cellsmap.util import dataset_io
 
 
-def expand_crop_region(crop_region, padding):
+def expand_crop_region(crop_region: tuple[slice, ...], padding: int) -> tuple:
     crop_region = tuple(
         crop if isinstance(crop, slice) else slice(*crop) for crop in crop_region
     )
@@ -77,7 +78,9 @@ class FlowCalculator:
     ncores = 1  # Number of cores to be used in the calculation
     radius = 30  # Radius of the neighborhood after downscaling
 
-    def __init__(self, dataset, position_or_scene_index, debug=False):
+    def __init__(
+        self, dataset: str, position_or_scene_index: int, debug: bool = False
+    ) -> None:
         self.dataset = dataset
         self.position = position_or_scene_index
         if debug:
@@ -88,9 +91,9 @@ class FlowCalculator:
         channel: list[str],
         delta_t: int = 1,
         level: int = 1,
-        load_from_file=None,
+        load_from_file: Any = None,
         ncores: int = 20,
-    ):
+    ) -> None:
         """
         channel: list[str]
             A list of the names of the channels to be loaded from the dataset.
@@ -113,30 +116,32 @@ class FlowCalculator:
             self.load_flow_from_file(load_from_file)
         self.set_number_of_cores(ncores)
 
-    def load_dataset(self, level):
+    def load_dataset(self, level: int) -> None:
         # self.data = dataset_io.load_dataset(self.dataset, channels=self.channel, level=2)
         img_data = dataset_io.load_dataset_position_as_dask_array(
             self.dataset, self.position, self.channel, level=level
         )  # level=2 not present in ZARRs anymore
         self.data = img_data.max(axis=dataset_io.get_dim_map("TCZYX")["Z"])
 
-    def load_flow_from_file(self, fname):
+    def load_flow_from_file(self, fname: str | Path) -> None:
         with open(fname, "rb") as fpk:
             result = pickle.load(fpk)
         assert result["dataset"] == self.dataset
         self.vx = np.array(result["vx"]).reshape(result["shape"])
         self.vy = np.array(result["vy"]).reshape(result["shape"])
 
-    def set_debug_mode_on(self):
+    def set_debug_mode_on(self) -> None:
         self.debug = True
 
-    def set_flow_radius(self, radius):
+    def set_flow_radius(self, radius: int) -> None:
         self.radius = radius
 
-    def set_number_of_cores(self, ncores):
+    def set_number_of_cores(self, ncores: int) -> None:
         self.ncores = ncores
 
-    def compute_flow_field(self, executor=None, save=None):
+    def compute_flow_field(
+        self, executor: None = None, save: bool | None = None
+    ) -> None:
         step = 1
         duration = dataset_io.get_dataset_duration_in_frames(self.dataset)
         if self.debug:
@@ -164,7 +169,7 @@ class FlowCalculator:
         self.vy = np.array([fy for (_, _, fy) in flow])
         self.tps = tps
 
-    def compute_flow_at_timepoint(self, time):
+    def compute_flow_at_timepoint(self, time: int) -> None:
         # note that the compute_flow will return an empty array for vx and vy
         # the image intensity is not bright enough, therefore we rescale it
         raw0 = rescale_intensity(self.data[time, 0], out_range=self.data.dtype.type)
@@ -174,7 +179,7 @@ class FlowCalculator:
         (vx, vy) = self.compute_flow(raw0, raw1, radius=self.radius)
         return (raw1, vx, vy)
 
-    def save_vector_field_as_img(self, out_dir):
+    def save_vector_field_as_img(self, out_dir: Path) -> Path:
         Path.mkdir(out_dir, exist_ok=True, parents=True)
         out_path = out_dir / f"{self.dataset}_vector_field.ome.tiff"
         vector_data = np.asarray(
@@ -184,7 +189,7 @@ class FlowCalculator:
                         im, vx, vy, keepdims=True
                     )
                 )
-                for im, vx, vy in zip(self.im, self.vx, self.vy)
+                for im, vx, vy in zip(self.im, self.vx, self.vy, strict=False)
             ]
         )
         # keep only the vx and vy components and the norms when saving as an
@@ -216,21 +221,23 @@ class FlowCalculator:
         return out_path
 
     @staticmethod
-    def compute_angles(vx, vy):
+    def compute_angles(
+        vx: float | np.ndarray, vy: float | np.ndarray
+    ) -> float | np.ndarray:
         """
         Angles are in the correct quadrants (see docs for numpy.arctan2).
         """
         return np.arctan2(vy, vx)
 
     @staticmethod
-    def compute_magnitudes(vx, vy):
+    def compute_magnitudes(vx: np.ndarray, vy: np.ndarray) -> np.ndarray:
         return np.linalg.norm([vx, vy], axis=0)
 
     @staticmethod
     def get_features_from_vector_field_image(
         vector_field_image: np.ndarray,
         chan_map: dict = {"vx": 0, "vy": 1, "norm": 2, "theta": 3},
-    ):
+    ) -> dict[str, float]:
 
         features_vx = vector_field_image[:, chan_map["vx"], ...].squeeze()
         features_vy = vector_field_image[:, chan_map["vy"], ...].squeeze()
@@ -277,7 +284,13 @@ class FlowCalculator:
         return features
 
     @staticmethod
-    def compute_flow(image0, image1, radius=radius, display=False, return_map=False):
+    def compute_flow(
+        image0: np.ndarray,
+        image1: np.ndarray,
+        radius: float | int = radius,
+        display: bool = False,
+        return_map: bool = False,
+    ) -> tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         vy, vx = skreg.optical_flow_ilk(image0, image1, radius=radius)
 
@@ -291,16 +304,16 @@ class FlowCalculator:
 
     @staticmethod
     def make_vector_field_map(
-        image,
-        vx,
-        vy,
-        resolution=20,
+        image: np.ndarray,
+        vx: float | np.ndarray,
+        vy: float | np.ndarray,
+        resolution: int = 20,
         cmap_norm: tuple[float, float] | None = None,
         cmap: str = "inferno",
-        display=True,
-        return_map=False,
-        hide_axes=True,
-    ):
+        display: bool = True,
+        return_map: bool = False,
+        hide_axes: bool = True,
+    ) -> None | np.ndarray:
 
         norm = np.sqrt(vx**2 + vy**2)
 
@@ -345,8 +358,10 @@ class FlowCalculator:
 
         if return_map:
             return plot
+        else:
+            return None
 
-    def save_vector_field_as_pickle(self, out_dir):
+    def save_vector_field_as_pickle(self, out_dir: str | Path) -> None:
         out_dir = out_dir / Path(__file__).stem
         Path.mkdir(out_dir, exist_ok=True, parents=True)
         out_path = out_dir / f"{self.dataset}_vector_field.flow"
@@ -360,9 +375,13 @@ class FlowCalculator:
                             *FlowCalculator.get_vector_field_as_img(im, vx, vy),
                             vx.shape,
                         )
-                        for tp, im, vx, vy in zip(self.tps, self.im, self.vx, self.vy)
-                    ]
+                        for tp, im, vx, vy in zip(
+                            self.tps, self.im, self.vx, self.vy, strict=False
+                        )
+                    ],
+                    strict=False,
                 ),
+                strict=False,
             )
         )
 
@@ -370,7 +389,9 @@ class FlowCalculator:
             pickle.dump(vector_data, fpk)
 
     @staticmethod
-    def compute_flow_features_as_img(image, vx, vy, keepdims=True):
+    def compute_flow_features_as_img(
+        image: np.ndarray, vx: np.ndarray, vy: np.ndarray, keepdims: bool = True
+    ) -> list[np.ndarray] | list[np.ndarray]:
         norm = FlowCalculator.compute_magnitudes(vx, vy)
         theta = FlowCalculator.compute_angles(vx, vy)
         nl, nc = image.shape
@@ -381,7 +402,7 @@ class FlowCalculator:
             else [np.ravel(arr) for arr in (x, y, vx, vy, norm, theta)]
         )
 
-    def save_flow_field(self, path):
+    def save_flow_field(self, path: Path) -> None:
         result = {
             "dataset": self.dataset,
             "vx": self.vx.flatten().tolist(),
@@ -391,22 +412,22 @@ class FlowCalculator:
         with open(f"{path}/{self.dataset}.flow", "wb") as fpk:
             pickle.dump(result, fpk)
 
-    def run_flow_field_analysis(self):
+    def run_flow_field_analysis(self) -> None:
         self.compute_flow_field()
         self.calculate_flow_velocity()
         self.calculate_instantaneous_velocity()
 
 
 def compute_and_save_flow_field(
-    out_dir,
-    dataset_name,
-    position,
-    delta_t=1,
-    level=1,
-    executor=None,
-    ncores=1,
-    debug=False,
-):
+    out_dir: str | Path,
+    dataset_name: str,
+    position: int,
+    delta_t: int = 1,
+    level: int = 1,
+    executor: None = None,
+    ncores: int = 1,
+    debug: bool = False,
+) -> Path:
     print(f"Analyzing dataset: {dataset_name}")
 
     # Initialize the flow field calculator
@@ -429,13 +450,13 @@ def compute_and_save_flow_field(
     return out_path
 
 
-def get_vector_field_image_paths(out_dir):
+def get_vector_field_image_paths(out_dir: str | Path) -> dict[str, str]:
     out_dir = Path(out_dir)
     df = pd.read_csv(out_dir / "vector_field_image_paths.csv")
-    return dict(zip(df["dataset_name"], df["vector_field_image_paths"]))
+    return dict(zip(df["dataset_name"], df["vector_field_image_paths"], strict=False))
 
 
-def load_vector_field_img(img_dir, dataset_name):
+def load_vector_field_img(img_dir: str | Path, dataset_name: str) -> np.ndarray:
     # Get the paths to the vector field images
     image_paths = get_vector_field_image_paths(img_dir)
     im_path = image_paths[dataset_name]
@@ -452,7 +473,7 @@ def get_random_roi(
     roi_shape: tuple[int, ...],
     num_rois: int = 1,
     random_seed: int | None = None,
-):
+) -> list[tuple[slice, ...]]:
     """
     Returns a random region of interest (roi) within an image.
 
@@ -503,17 +524,18 @@ def get_random_roi(
         ]
     )
     roi = [
-        tuple([slice(start, stop) for start, stop in zip(*coord_pair)])
+        tuple([slice(start, stop) for start, stop in zip(*coord_pair, strict=False)])
         for coord_pair in zip(
             rand_coord.T,
             rand_coord.T + np.array(roi_shape_array, ndmin=rand_coord.ndim),
+            strict=False,
         )
     ]
     return roi
 
 
 def compute_PCA_on_features(
-    features: list[np.ndarray], n_components: int = 10, return_as_dataframe=False
+    features: np.ndarray, n_components: int = 10, return_as_dataframe: bool = False
 ) -> PCA:
     feat_arr = np.asarray([feature.ravel() for feature in features])
     pca = PCA(n_components=n_components)
@@ -528,7 +550,7 @@ def compute_PCA_on_features(
 
 
 def get_point_closest_to_reference_point(
-    points: np.ndarray, reference_point: tuple[float, float]
+    points: np.ndarray, reference_point: tuple[float, float] | np.ndarray
 ):
     distances = np.linalg.norm(points - np.array(reference_point), axis=1)
     assert len(distances) == len(points)
@@ -551,7 +573,7 @@ def get_quadrant_means(
     return quadrant_means
 
 
-def generate_synthetic_data():
+def generate_synthetic_data() -> np.ndarray:
     # create empty synthetic data with shape (time, channel, y, x)
     synth_shape_y, synth_shape_x = 512, 512
     num_circles_per_axis = 10
@@ -565,14 +587,15 @@ def generate_synthetic_data():
             range(0, synth_shape_x, synth_shape_x // num_circles_per_axis),
         )
         circle_centers = list(
-            zip(*[c_arr.ravel().tolist() for c_arr in circle_centers])
+            zip(*[c_arr.ravel().tolist() for c_arr in circle_centers], strict=False)
         )
         circle_indices = list(
             zip(
                 *[
                     circle_perimeter(y + i, x - i, circle_radii)
                     for y, x in circle_centers
-                ]
+                ],
+                strict=False,
             )
         )
         circle_indices = np.asarray(
@@ -600,7 +623,7 @@ def generate_synthetic_data():
 
 def compute_synthetic_image_flow_vectors_and_summarize(
     synth_img: np.ndarray, delta_t: int = 1, radius: int = 30
-):
+) -> tuple[list[np.ndarray], np.ndarray, np.ndarray, float, float]:
     flow_graphs = []
     for i in range(0, len(synth_img) - 1, delta_t):
         print(f"Computing flow for frame {i} to {i+delta_t}...")
@@ -621,13 +644,13 @@ def compute_synthetic_image_flow_vectors_and_summarize(
 
 def generate_validation_plot(
     out_dir: Path,
-    raw_image,
-    vector_image,
+    raw_image: np.ndarray,
+    vector_image: np.ndarray,
     features_and_pcs: pd.DataFrame,
-    quadrants_origin,
+    quadrants_origin: tuple[float, float],
     example_points: dict,
     vector_field_channel_map: dict = {"vx": 0, "vy": 1, "norm": 2, "theta": 3},
-):
+) -> None:
     rois = []
     for i, example_pt in example_points.items():
         roi = [
@@ -642,6 +665,7 @@ def generate_validation_plot(
                         ["delta_t", "size_c", "size_y", "size_x"]
                     ].values
                 ).ravel(),
+                strict=False,
             )
         ]
         rois.append(tuple(roi))
@@ -712,7 +736,7 @@ def generate_validation_plot(
         ang = cropped_vector_img[
             :, feats_and_pcs_at_roi["theta_chan_index"], ...
         ].squeeze()
-        roi_as_title = list(zip(*[(slc.start, slc.stop) for slc in roi]))
+        roi_as_title = list(zip(*[(slc.start, slc.stop) for slc in roi], strict=False))
 
         ax1.scatter(
             quad_record[0], quad_record[1], marker=".", color=quad_color, zorder=10
@@ -732,16 +756,16 @@ def generate_validation_plot(
         )
 
         with plt.rc_context(
-            {
-                key: quad_color
-                for key in [
+            dict.fromkeys(
+                [
                     "axes.edgecolor",
                     "xtick.color",
                     "ytick.color",
                     "xtick.labelcolor",
                     "ytick.labelcolor",
-                ]
-            }
+                ],
+                quad_color,
+            )
         ):
             ax3 = fig.add_subplot(axs[0, i + 1])
             ax3.imshow(flow_graph_at_roi, cmap="gray")
@@ -800,16 +824,16 @@ def generate_validation_plot(
 
 
 def get_trimmed_vector_field_map(
-    image,
-    vx,
-    vy,
-    resolution=20,
+    image: np.ndarray,
+    vx: np.ndarray,
+    vy: np.ndarray,
+    resolution: int = 20,
     cmap_norm: tuple[float, float] | None = None,
     cmap: str = "inferno",
-    display=True,
-    return_map=False,
-    hide_axes=True,
-):
+    display: bool = True,
+    return_map: bool = False,
+    hide_axes: bool = True,
+) -> np.ndarray:
     # get the vector field map:
     vecfield_map = FlowCalculator.make_vector_field_map(
         image.squeeze(),
@@ -835,20 +859,22 @@ def get_trimmed_vector_field_map(
     return vecfield_map_trimmed
 
 
-def discrete_divergence_like(vx, vy):
+def discrete_divergence_like(vx: np.ndarray, vy: np.ndarray) -> np.ndarray:
     vx_dx = np.gradient(vx, axis=1)
     vy_dy = np.gradient(vy, axis=0)
     return vx_dx + vy_dy
 
 
-def discrete_curl_like(vx, vy):
+def discrete_curl_like(vx: np.ndarray, vy: np.ndarray) -> np.ndarray:
     vy_dx = np.gradient(vy, axis=1)
     vx_dy = np.gradient(vx, axis=0)
     return vy_dx - vx_dy
 
 
 # vector_field_examples:
-def source_vector_field_example(show_vector_field=False):
+def source_vector_field_example(
+    show_vector_field: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
     vx = xx
     vy = yy
@@ -861,7 +887,9 @@ def source_vector_field_example(show_vector_field=False):
     return vfield
 
 
-def sink_vector_field_example(show_vector_field=False):
+def sink_vector_field_example(
+    show_vector_field: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
     vx = -1 * xx
     vy = -1 * yy
@@ -874,7 +902,9 @@ def sink_vector_field_example(show_vector_field=False):
     return vfield
 
 
-def saddle_vector_field_example(show_vector_field=False):
+def saddle_vector_field_example(
+    show_vector_field: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
     vx = xx
     vy = -1 * yy
@@ -887,7 +917,9 @@ def saddle_vector_field_example(show_vector_field=False):
     return vfield
 
 
-def ridge_vector_field_example(show_vector_field=False):
+def ridge_vector_field_example(
+    show_vector_field: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
     vx = xx
     vy = 0 * yy
@@ -900,7 +932,9 @@ def ridge_vector_field_example(show_vector_field=False):
     return vfield
 
 
-def valley_vector_field_example(show_vector_field=False):
+def valley_vector_field_example(
+    show_vector_field: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
     vx = -1 * xx
     vy = 0 * yy
@@ -913,7 +947,9 @@ def valley_vector_field_example(show_vector_field=False):
     return vfield
 
 
-def solenoidal_vector_field_example(show_vector_field=False):
+def solenoidal_vector_field_example(
+    show_vector_field: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
     vx = -1 * yy
     vy = xx
@@ -926,7 +962,9 @@ def solenoidal_vector_field_example(show_vector_field=False):
     return vfield
 
 
-def get_divergence_curl_example(vfield="solenoidal", show_vector_field=False):
+def get_divergence_curl_example(
+    vfield: str = "solenoidal", show_vector_field: bool = False
+) -> dict[str, tuple[np.ndarray, np.ndarray] | np.ndarray]:
     """Returns an example vector field, its divergence, and its curl"""
     example_vfields = {
         "source": source_vector_field_example,

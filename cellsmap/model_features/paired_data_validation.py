@@ -20,13 +20,13 @@ from tqdm import tqdm, trange
 
 from cellsmap.model_features.apply_model import generate_overrides, get_cytodl_commit_hash
 from cellsmap.model_features.utils.mlflow_utils import download_model
-from cellsmap.util.cdh5_preprocessing import preprocess
 from cellsmap.util.dataset_io import get_model_info, get_zarr_path, update_dataset_config
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from cellsmap.util.manifest_preprocessing.preprocessing import project_manifest_to_pcs
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1

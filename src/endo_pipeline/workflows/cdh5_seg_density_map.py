@@ -8,20 +8,24 @@ from skimage.morphology import skeletonize
 from skimage.segmentation import find_boundaries
 from skimage.transform import pyramid_reduce
 
-from cellsmap.util.cdh5_preprocessing import (
-    extract_T,
-    get_cdh5_classic_segmentation_paths,
-    get_thresholds,
-    preprocess,
-    save_image_output,
-)
 from cellsmap.util.dataset_io import (
+    fire_parse_generate_dataset_name_list,
     get_available_channels,
     get_dataset_duration_in_frames,
     get_time_interval_in_minutes,
     get_zarr_path,
+    ipython_cli_flexecute,
     load_config,
     load_dataset,
+)
+from src.endo_pipeline.library.process.cdh5_preprocessing import (
+    extract_T,
+    get_cdh5_classic_segmentation_paths,
+    get_thresholds,
+    preprocess,
+)
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    save_image_output,
 )
 
 mpl.rc("image", cmap="gray")
@@ -33,9 +37,6 @@ try:
     from IPython import get_ipython
 except ModuleNotFoundError:
     pass
-from typing import Callable
-
-import fire
 
 
 def get_chan_map(filepath: Path) -> dict:
@@ -47,31 +48,9 @@ def multiproc_wrapper(function, args):
     function(*args)
 
 
-def ipython_cli_flexecute(function: Callable, return_results=False, *args, **kwargs):
-    """
-    Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
-    """
-    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
-    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
-    # some non-interactive shell like bash
-    try:
-        # the following line will return a string if an interactive shell is in use,
-        # otherwise raises NameError since get_ipython is not imported from IPython
-        # or returns None if get_ipython is present but script is being executed
-        # from a non-interactive shell
-        if get_ipython().__class__.__name__ != "NoneType":
-            print(f"Using interactive shell {get_ipython().__class__.__name__}.")
-            results = function(*args, **kwargs)
-        else:
-            raise NameError
-    except NameError:
-        print("Using non-interactive shell.")
-        results = fire.Fire(function)
-
-    return results if return_results else None
-
-
-def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
+def initialize_workflow(
+    dataset_name: str, SAVE_OUTPUT: bool = True, IS_TEST: bool = False
+) -> tuple[Path, dict]:
     # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
     PRJ_DIR = Path("../").resolve() if not IS_TEST else Path("../../tests").resolve()
@@ -95,7 +74,7 @@ def initialize_workflow(dataset_name, SAVE_OUTPUT=True, IS_TEST=False):
 
 
 def get_density_map_from_thresholds(
-    dataset_name: str, T: int, density_map_sigma, VERBOSE=False
+    dataset_name: str, T: int, density_map_sigma: float, VERBOSE: bool = False
 ) -> np.ndarray:
     """
     Returns a density map of the cadherin channel of a dataset at a given timepoint T.
@@ -110,6 +89,7 @@ def get_density_map_from_thresholds(
         T: the timepoint at which to get the density map.
         density_map_sigma: the sigma value to pass along to the gaussian filter.
         VERBOSE: prints out progress statements if True (default is False).
+
     Returns
     -------
         density_map: the density map (values are floats and should range from 0 to 1).
@@ -165,7 +145,7 @@ def get_density_map_from_thresholds(
 
 
 def get_density_map_from_segmentations(
-    dataset_name: str, T: int, density_map_sigma: float = 160, VERBOSE=False
+    dataset_name: str, T: int, density_map_sigma: float = 160, VERBOSE: bool = False
 ) -> np.ndarray:
     DATASET_NAME_LIST = [
         config_data["name"] for config_data in load_config(config_type="data")
@@ -201,16 +181,21 @@ def get_density_map_from_segmentations(
     return density_map
 
 
-def multiproc_workflow(args):
+def multiproc_workflow(args: tuple[str, int, dict, Path, float, bool]) -> None:
     run_density_workflow(*args)
 
 
 def run_density_workflow(
-    dataset_name, T, img_metadata, out_dir, density_map_sigma, VERBOSE=False
-):
+    dataset_name: str,
+    T: int,
+    img_metadata: dict,
+    out_dir: str | Path,
+    density_map_sigma: float,
+    VERBOSE: bool = False,
+) -> None:
 
     print(f"Working on {dataset_name}, T={T}...")
-    print(f"- getting density map...") if VERBOSE else None
+    print("- getting density map...") if VERBOSE else None
     density_map = get_density_map_from_thresholds(
         dataset_name, T, density_map_sigma, VERBOSE
     )
@@ -239,7 +224,7 @@ def run_density_workflow(
         "dim_order": "YX",
         "dtype": data_type,
     }
-    print(f"- saving...") if VERBOSE else None
+    print("- saving...") if VERBOSE else None
     save_image_output(
         out_path,
         [
@@ -249,19 +234,23 @@ def run_density_workflow(
     )
 
 
-def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
+def main(
+    n_proc: int = 1,
+    dataset_name: str | None = None,
+    save_output: bool = True,
+    is_test: bool = False,
+    verbose: bool = False,
+) -> None:
 
-    DATASET_NAME_LIST = [
-        config_data["name"] for config_data in load_config(config_type="data")
-    ]
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
-    for dataset_name in DATASET_NAME_LIST:
+    for dataset_name in dataset_name_list:
         print(f"Initializing workflow for {dataset_name}...")
-        out_dir, img_metadata = initialize_workflow(dataset_name, SAVE_OUTPUT, IS_TEST)
+        out_dir, img_metadata = initialize_workflow(dataset_name, save_output, is_test)
 
         print(f"Getting timepoints for {dataset_name}...")
         timepoints = range(get_dataset_duration_in_frames(dataset_name))
-        timepoints = timepoints[560:] if IS_TEST else timepoints
+        timepoints = timepoints[560:] if is_test else timepoints
         density_map_gaussian_kernel_sigma = 40
         analysis_args_queue = list(
             zip(
@@ -273,19 +262,21 @@ def main(N_PROC=1, SAVE_OUTPUT=True, IS_TEST=False, VERBOSE=False):
                             img_metadata,
                             out_dir,
                             density_map_gaussian_kernel_sigma,
-                            VERBOSE,
+                            verbose,
                         )
                     ]
-                    * len(timepoints)
+                    * len(timepoints),
+                    strict=False,
                 ),
+                strict=False,
             )
         )
 
         print(f"Running workflow on {dataset_name}...")
-        if N_PROC > 1:
+        if n_proc > 1:
             if __name__ == "__main__":
                 print("Starting multiprocessing...")
-                with Pool(processes=N_PROC) as pool:
+                with Pool(processes=n_proc) as pool:
                     list(
                         tqdm(
                             pool.imap(

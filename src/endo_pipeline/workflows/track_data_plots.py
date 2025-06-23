@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, List, Sequence, Tuple
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -62,7 +63,7 @@ def write_filter_log_file(
     ) as f:
         f.write(
             f"""
-                Date run: {str(timestamp)}\n
+                Date run: {timestamp!s}\n
                 Datasets analyzed: {datasets_analyzed}\n
                 Number of rows before filtering: {num_rows_before_filtering}\n
                 Number of rows after filtering: {num_rows_after_filtering}\n
@@ -123,7 +124,7 @@ def save_filter_validation_plots(
             (timelapse_duration, timelapse_duration),
         ]
         top_of_boxes = [ax.get_ylim()] * len(left_of_boxes)
-        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes)
+        boxes = zip(top_of_boxes, left_of_boxes, right_of_boxes, strict=False)
         ax.set_xlim(0, timelapse_duration)
         [ax.fill_betweenx(y=y, x1=x1, x2=x2, color="lightgrey") for y, x1, x2 in boxes]
         fig.savefig(
@@ -371,12 +372,16 @@ def calculate_derived_data_dynamics_independent(
         try:
             img = BioImage(zarr_path)
             img.set_resolution_level(0)
-            channel_index = dict(zip(img.channel_names, range(len(img.channel_names))))
+            channel_index = dict(
+                zip(img.channel_names, range(len(img.channel_names)), strict=False)
+            )
         except:
             print("loading zarr failed, falling back to original path...")
             og_path = get_original_path(ds_nm)
             img = BioImage(og_path)
-            channel_index = dict(zip(["EGFP", "BF"], range(len(img.channel_names))))
+            channel_index = dict(
+                zip(["EGFP", "BF"], range(len(img.channel_names)), strict=False)
+            )
 
         image_size_y, image_size_x = img.dims.Y, img.dims.X
 
@@ -439,7 +444,8 @@ def calculate_derived_data_dynamics_dependent(
                         df["centroid_x_um"].values,
                         df["centroid_y_um"].values,
                         df["time_minutes"].values,
-                    )
+                    ),
+                    strict=False,
                 ),
                 index=df.index,
             )
@@ -499,9 +505,10 @@ def get_aspect_ratio(eccentricity: float) -> float:
     return aspect_ratio
 
 
-def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> List | Tuple:
+def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list | tuple:
     """Converts a list that is saved as a string back to a list object.
-    Assumes that there is only one set of brackets (either '[]' or '()')."""
+    Assumes that there is only one set of brackets (either '[]' or '()').
+    """
     # if 'ls' is already a list of floats then return the input
     if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
         return tuple(ls) if to_tuple else ls
@@ -509,7 +516,7 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> List 
     else:
         strfloats = ls.strip("[]")
         strfloats = strfloats.strip("()")
-        float_list: List[Any] = []
+        float_list: list[Any] = []
         for x in strfloats.split(","):
             try:
                 float_list.append(float(x))
@@ -528,7 +535,7 @@ def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> List 
 
 def get_centroid_velocity(
     centroid_xs: float, centroid_ys: float, timepoints: float
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     dx, dy, dt = np.diff([centroid_xs, centroid_ys, timepoints], prepend=np.nan, axis=1)
     dx_dt, dy_dt = dx / dt, dy / dt
     return dx_dt, dy_dt
@@ -541,8 +548,8 @@ def plot_per_position(
     filepath_out: str | Path,
     x_label: str | None = None,
     y_label: str | None = None,
-    x_lims: Tuple = (None, None),
-    y_lims: Tuple = (None, None),
+    x_lims: tuple = (None, None),
+    y_lims: tuple = (None, None),
     show_plot: bool = False,
 ) -> None:
     num_positions = df_group["position"].nunique()
@@ -913,7 +920,7 @@ def process_and_plot_tracking_data(
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
-    out_dir_raw = out_dir / f"segmentation_features_manifests/"
+    out_dir_raw = out_dir / "segmentation_features_manifests/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
     out_path_raw = out_dir_raw / f"{dataset_name}_segmentation_features.tsv"
     big_table.to_csv(out_path_raw, sep="\t", index=False)
@@ -940,7 +947,7 @@ def process_and_plot_tracking_data(
         if verbose
         else None
     )
-    out_dir_for_integration = Path(out_dir) / f"single_cell_track_integration/"
+    out_dir_for_integration = Path(out_dir) / "single_cell_track_integration/"
     out_dir_for_integration.mkdir(parents=True, exist_ok=True)
     out_path_integration_table = (
         out_dir_for_integration / f"{dataset_name}_single_cell_track_integration.csv"
@@ -956,7 +963,7 @@ def process_and_plot_tracking_data(
     if plot_figures:
         print("Plotting features...") if verbose else None
         # make basic plots for each dataset
-        out_dir_plots = Path(out_dir) / f"cdh5_classic_seg_plots/"
+        out_dir_plots = Path(out_dir) / "cdh5_classic_seg_plots/"
         out_dir_plots.mkdir(parents=True, exist_ok=True)
         for (dataset_nm, pos), df_group in tqdm(
             big_table_filtered.groupby(["dataset_name", "position"]),
@@ -990,6 +997,7 @@ def main(
                 dataset_name_list,
                 [out_dir] * len(dataset_name_list),
                 [verbose] * len(dataset_name_list),
+                strict=False,
             )
             list(
                 tqdm(

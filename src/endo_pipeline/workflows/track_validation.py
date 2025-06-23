@@ -12,22 +12,31 @@ from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
 from cellsmap.util.dataset_io import (
+    fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_tracking_data_filtered,
     ipython_cli_flexecute,
-    load_config,
 )
-from cellsmap.util.general_image_preprocessing import build_analysis_queue, get_dim_map
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    build_analysis_queue,
+    get_dim_map,
+)
 
 
 def save_validation_images(
-    cell_id, track_id, crop, img_arr, seg_arr, out_dir, dataset_name, T, padding=50
-):
-    expanded_bbox = tuple(
-        [slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop]
-    )
+    cell_id: int,
+    track_id: int,
+    crop: tuple[slice, ...],
+    img_arr: np.ndarray,
+    seg_arr: np.ndarray,
+    out_dir: Path,
+    dataset_name: str,
+    T: int,
+    padding: int = 50,
+) -> None:
+    expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
     crop_img = img_arr[expanded_bbox].squeeze()
     crop_seg = seg_arr[expanded_bbox].squeeze()
@@ -58,7 +67,7 @@ def save_validation_images(
     return
 
 
-def generate_and_save_validation_images(dframe):
+def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -69,7 +78,10 @@ def generate_and_save_validation_images(dframe):
 
     # get the raw image and segmentation image filepaths
     raw_path = Path(get_dataset_info(dataset_name)["original_path"])
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
+    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
+    if seg_dir is None:
+        print(f"No segmentation directory found for {dataset_name}. Skipping tracking analysis.")
+        return
     seg_path = seg_dir / f"{dataset_name}_P{position}_T{T}.ome.tiff"
 
     if not seg_path.exists():
@@ -96,7 +108,7 @@ def generate_and_save_validation_images(dframe):
 
         # associate the cell ids with their track ids
         cell_ids_with_tracks = dframe[dframe["T"] == T]["label"].unique().tolist()
-        cell_id_to_track_id_map = dict(zip(dframe["label"], dframe["track_id"]))
+        cell_id_to_track_id_map = dict(zip(dframe["label"], dframe["track_id"], strict=False))
 
         # iterate through each cell id in the timepoint and create
         # an overlay of the raw image and the segmentation
@@ -123,24 +135,16 @@ def generate_and_save_validation_images(dframe):
 
 
 def main(
-    n_proc=1, dataset_name=None, t_final=None, min_track_duration=120, verbose=False
-):
+    n_proc: int = 1,
+    dataset_name: str | None = None,
+    t_final: int | None = None,
+    min_track_duration: int = 120,
+    verbose: bool = False,
+) -> None:
     """t_final is really only used for testing purposes."""
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
-    if dataset_name == None:
-        dataset_name_list = [
-            config_data["name"]
-            for config_data in load_config(config_type="data")
-            if (
-                config_data["microscope"] == "3i"
-                and config_data["live_or_fixed_sample"] == "live"
-            )
-            and "AICS-126" in config_data["cell_lines"]
-            and config_data["duration"] > 1
-        ]
-    else:
-        dataset_name_list = [dataset_name]
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
     analysis_queue = build_analysis_queue(
         dataset_name_list,
@@ -156,11 +160,13 @@ def main(
             tracking_df = tracking_df.query("T < @t_final")
 
         tracking_df = tracking_df[tracking_df["dataset_name"] == dataset_name]
-        analysis_queue_sub = analysis_queue_df[
-            analysis_queue_df["dataset_name"] == dataset_name
-        ]
+        analysis_queue_sub = analysis_queue_df[analysis_queue_df["dataset_name"] == dataset_name]
         position_scene_map = dict(
-            zip(analysis_queue_sub["position"], analysis_queue_sub["scene_index"])
+            zip(
+                analysis_queue_sub["position"],
+                analysis_queue_sub["scene_index"],
+                strict=False,
+            )
         )
         tracking_df["scene_index"] = tracking_df["position"].transform(
             lambda x: position_scene_map[x]
@@ -182,7 +188,8 @@ def main(
                         "label",
                         "out_dir",
                     ]
-                ]
+                ],
+                strict=False,
             )
         )
         if n_proc > 1:
@@ -213,7 +220,7 @@ def main(
                 generate_and_save_validation_images(df_group)
             print(f"Finished single processing {dataset_name}.")
 
-    print(f"\N{MICROSCOPE} Done.")
+    print("\N{MICROSCOPE} Done.")
 
 
 if __name__ == "__main__":
