@@ -157,7 +157,7 @@ def save_overlay(
 
 def generate_training_data(analysis_args: dict) -> None:
     use_gpu = analysis_args["gpu"]
-    use_original_data = analysis_args["use_original_data"]
+    use_sldy_data = analysis_args["use_sldy_data"]
     dataset_name = analysis_args["dataset_name"]
     scene_name = analysis_args["scene_name"]
     position = analysis_args["position"]
@@ -198,7 +198,7 @@ def generate_training_data(analysis_args: dict) -> None:
         return
 
     print("loading image data...") if verbose else None
-    if use_original_data:
+    if use_sldy_data:
         img_dask_arrs, image_metadata = get_image_data_from_original(
             dataset_name, scene_name, T
         )
@@ -352,7 +352,7 @@ def main(
     create_training_data: bool = False,
     retrain_Gouthams_model: bool = False,
     train_from_base_cellpose_nuclei_model: bool = True,
-    use_original_data: bool = True,
+    use_sldy_data: bool = True,
     verbose: bool = False,
 ) -> None:
 
@@ -361,7 +361,7 @@ def main(
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         save_output=True,
         image_validation_frequency=1,
         overwrite=True,

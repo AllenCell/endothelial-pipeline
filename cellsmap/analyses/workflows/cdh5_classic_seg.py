@@ -35,7 +35,7 @@ def generate_results_multiproc_wrapper(args: dict) -> None:
     save_output = args["save_output"]
     out_dir = args["output_dir"]
     verbose = args["verbose"]
-    use_original_data = args["use_original_data"]
+    use_sldy_data = args["use_sldy_data"]
     create_validation_image = args["validation_image"]
     generate_results(
         out_dir=out_dir,
@@ -44,7 +44,7 @@ def generate_results_multiproc_wrapper(args: dict) -> None:
         position=position,
         scene_index=scene_index,
         scene_name=scene_name,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         img_bin_level=img_bin_level,
         save_output=save_output,
         create_validation_image=create_validation_image,
@@ -59,21 +59,21 @@ def generate_results(
     position: int,
     scene_index: int | None = None,
     scene_name: str | None = None,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     img_bin_level: int = 0,
     save_output: bool = True,
     create_validation_image: bool = False,
     verbose: bool = True,
 ) -> None:
 
-    print(f"Working on {dataset_name} -- T={T}...")
+    print(f"Working on {dataset_name} -- T={T}...") if verbose else None
     print(f"T={T} -- initializing workflow") if verbose else None
     seg_dir = out_dir / "segmentations"
     val_dir = out_dir / "validations"
 
     dim_order = get_default_dim_order()
     dim_map = get_dim_map(dim_order)
-    if use_original_data:
+    if use_sldy_data:
         print(f"T={T} -- loading dataset from original") if verbose else None
         original_path = Path(get_original_path(dataset_name))
         img_path = original_path
@@ -175,8 +175,8 @@ def generate_results(
                     "segmentations_initial",
                     "segmentations_merged",
                     "nuclei_predictions",
-                    "segmentations_augmented",  # name for the augmented segmentation
-                    "segmentations_augmented_borders",  # name for the augmented segmentation boundaries
+                    "cdh5_segmentations_split_by_nuclei",  # name for the augmented segmentation
+                    "cdh5_segmentations_split_by_nuclei_borders",  # name for the augmented segmentation boundaries
                 ],
                 "channel_colors": [
                     (255, 255, 255),
@@ -204,11 +204,11 @@ def generate_results(
         )
         Path.mkdir(out_path.parent, exist_ok=True, parents=True)
         images_out = [
-            seg2_lab_no_mask_merge,
+            seg_aug,
         ]
         images_out_metadata = {
             "image_name": dataset_name,
-            "channel_names": ["segmentations_merged"],
+            "channel_names": ["cdh5_segmentations_split_by_nuclei"],
             "channel_colors": [
                 (255, 255, 255),
             ],
@@ -225,7 +225,7 @@ def main(
     dataset_name: str | None = None,
     save_output: bool = True,
     overwrite: bool = True,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -242,7 +242,7 @@ def main(
         overwrite=overwrite,
         verbose=verbose,
         is_test=is_test,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         image_validation_frequency=48,
     )
 
