@@ -4,10 +4,8 @@ import pandas as pd
 from colorizer_data import FeatureInfo
 
 from cellsmap.analyses.track_data_plots import calculate_derived_data_dynamics_dependent
-from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
-    project_manifest_to_pcs,
-)
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
+from cellsmap.util.manifest_preprocessing.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
