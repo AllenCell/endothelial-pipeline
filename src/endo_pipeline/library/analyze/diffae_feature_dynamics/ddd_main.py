@@ -7,10 +7,8 @@ from sklearn.pipeline import Pipeline
 from cellsmap.util import manifest_io
 from src.endo_pipeline.library.analyze.diffae_feature_dynamics import model_analysis
 from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
-    data_driven_flow_field as ddff,
-)
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
 from src.endo_pipeline.library.visualize import viz_base as vb
 
 
@@ -103,7 +101,7 @@ def get_and_analyze_ddd(
         Used to compute drift and diffusion estimates
         Keys:
         - "kernel": kernel function to use
-            See cellsmap.analyses.utils.numerics.kramersmoyal.kernels
+            See library.analyze.kramersmoyal.km_kernels
         - "bandwidth": bandwidth for kernel function
     - fig_savedir (str): directory to save figures
     - config (dict): configuration dictionary

@@ -4,11 +4,9 @@ import numpy as np
 from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
-    data_driven_flow_field as ddff,
-)
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
 from src.endo_pipeline.library.visualize import viz_base as vb
 from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 

@@ -6,10 +6,8 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 from cellsmap.util.general_image_preprocessing import sequence_to_scalar
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import (
-    data_driven_flow_field as ddff,
-)
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
 from src.endo_pipeline.library.visualize import viz_base as vb
 from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
 

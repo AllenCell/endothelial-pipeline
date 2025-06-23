@@ -5,10 +5,7 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics.kramersmoyal import (
-    km_binning,
-    km_kernels,
-)
+from src.endo_pipeline.library.analyze.kramersmoyal import km_binning, km_kernels
 
 
 def string_to_kernel(kernel: str) -> Callable:
@@ -20,7 +17,7 @@ def string_to_kernel(kernel: str) -> Callable:
 
     Output:
     - kernel_func: callable, the kernel function with the given name
-    as defined in cellsmap.analyses.utils.numerics.kramersmoyal.kernels
+    as defined in library.analyze.kramersmoyal.km_kernels
     """
     # get dictionary of all callable functions in the kernels module
     not_kernel = {
@@ -101,7 +98,7 @@ def km(
         To select, for example, a Gaussian kernel use
             `kernel = `gaussian`
         Has to be the name of a kernel implemented in
-        `cellsmap.analyses.utils.numerics.kramersmoyal.kernels`.
+        `library.analyze.kramersmoyal.kernels`.
 
     bw: float (default `None`)
         Desired bandwidth of the kernel. A value of 1 occupies

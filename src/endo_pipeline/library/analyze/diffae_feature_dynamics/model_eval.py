@@ -3,7 +3,7 @@ from collections.abc import Callable
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics import fp_solvers as fps
+from src.endo_pipeline.library.analyze.numerics import fp_solvers as fps
 
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:
@@ -155,7 +155,7 @@ def get_stationary_probability(
     can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
 
     This function calls the PDE solver SteadyFP implemented in the
-    `cellsmap.analyses.utils.numerics.fp_solvers' module.
+    `library.analyze.numerics.fp_solvers' module.
 
     Inputs:
     - drift_vals: np.ndarray, values of the drift function

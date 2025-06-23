@@ -8,14 +8,6 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.analyses.utils import regression_helper as rh
-from cellsmap.analyses.utils.io.dynamics_io import load_dynamics_config
-from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.analyses.utils.viz.flow_field_viz import (
-    get_slice_indexes,
-    plot_quiver_slices,
-    set_slice_plot_bounds_and_labels,
-)
 from cellsmap.util.dataset_io import (
     get_reference_datasets,
     get_segmentation_features_manifest,
@@ -26,13 +18,21 @@ from cellsmap.util.manifest_io import (
     get_feature_cols,
     get_track_diffae_manifest,
 )
-from cellsmap.util.manifest_preprocessing import preprocessing as diffae_preproc
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from cellsmap.util.manifest_preprocessing.preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics.flow_field_viz import (
+    get_slice_indexes,
+    plot_quiver_slices,
+    set_slice_plot_bounds_and_labels,
+)
 
 """
 NOTE: I believe that the "feat_#" columns in the dataset loaded by

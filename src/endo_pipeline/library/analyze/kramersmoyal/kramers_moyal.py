@@ -1,8 +1,6 @@
 import numpy as np
 
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics.kramersmoyal import (
-    kmc as km,
-)
+from src.endo_pipeline.library.analyze.kramersmoyal import kmc as km
 
 
 def get_km_powers(ndim: int) -> np.ndarray:

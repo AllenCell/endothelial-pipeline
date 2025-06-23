@@ -3,9 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 import cellsmap.util.dataset_io as dio
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics.numerics.kramersmoyal import (
-    kramers_moyal as km,
-)
+from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal as km
 
 
 def get_bins(
