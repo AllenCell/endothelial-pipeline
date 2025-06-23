@@ -3,10 +3,10 @@ from typing import Any
 
 import numpy as np
 
-from cellsmap.util.dataset_io import load_config
+from cellsmap.util.dataset_io import load_dynamics_configs
 
 
-def load_dynamics_config(config_name: str = "default") -> dict[str, dict[str, Any]]:
+def load_dynamics_config(config_name: str = "default") -> dict:
     """
     Load specific config from config file for running stochastic
     dynamics related workflows. Config file is
@@ -19,12 +19,12 @@ def load_dynamics_config(config_name: str = "default") -> dict[str, dict[str, An
     - config: dict, config dictionary.
     """
     # Load config file
-    configs = load_config("dynamics")
+    configs = load_dynamics_configs()
 
     # Find the config with the given name
-    for config_key, config_dict in configs.items():
-        if config_key == config_name:
-            return config_dict
+    for config in configs:
+        if config["name"] == config_name:
+            return config
 
     # Raise error if config not found
     raise ValueError(f"Config {config_name} not found in dynamics_config.yaml")
