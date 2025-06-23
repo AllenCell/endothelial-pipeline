@@ -61,8 +61,7 @@ def combine_data_config(save: bool = False) -> dict:
     combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
 
     separate_data_configs = [
-        yaml.safe_load(config.open())
-        for config in sorted(separated_path.glob("*.yaml"))
+        yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))
     ]
     combined_data_config = {config["name"]: config for config in separate_data_configs}
 
@@ -75,9 +74,7 @@ def combine_data_config(save: bool = False) -> dict:
 # model methods
 def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError(
-            'Invalid config type. Must be either "data", "model", or "dynamics."'
-        )
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
 
     # If loading the data config, load combined from all individual dataset
     # configs. This is part of a change to manage datasets with dataclasses.
@@ -91,7 +88,7 @@ def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     return config_data
 
 
-def load_config_src(config_type: str = "data") -> dict[str, dict[str, Any]]:
+def load_config_src(config_type: str = "data") -> list[dict[Any, Any]]:
     """
     Load config file from new location in
     src/endo_pipeline/configs/.
@@ -100,9 +97,7 @@ def load_config_src(config_type: str = "data") -> dict[str, dict[str, Any]]:
     the new repo structure.
     """
     if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError(
-            'Invalid config type. Must be either "data", "model", or "dynamics."'
-        )
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parents[2]
     config_file = parent_folder / f"src/endo_pipeline/configs/{config_type}_config.yaml"
     with open(config_file, "r") as file:
@@ -112,9 +107,7 @@ def load_config_src(config_type: str = "data") -> dict[str, dict[str, Any]]:
 
 def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> None:
     if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError(
-            'Invalid config type. Must be either "data", "model", or "dynamics."'
-        )
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f"{config_type}_config.yaml"
 
@@ -126,9 +119,7 @@ def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> Non
 
     with open(config_file, "w") as file:
         #                        one key per line            keep ordering    wrap lines
-        yaml.dump(
-            config, file, default_flow_style=False, sort_keys=False, width=80, indent=2
-        )
+        yaml.dump(config, file, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     # If writing the data config, split the combined data config file that was
     # saved above into individual dataset config files (and delete the combined
@@ -270,9 +261,7 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     Get the zarr name for a given dataset and position.
     """
     zarr_paths = get_zarr_path(dataset_name)
-    zarr_found_for_position = position in [
-        extract_P(zarr_name) for zarr_name in zarr_paths.keys()
-    ]
+    zarr_found_for_position = position in [extract_P(zarr_name) for zarr_name in zarr_paths.keys()]
     assert (
         zarr_found_for_position
     ), f"Zarr file for position {position} not found in dataset {dataset_name}."
@@ -356,9 +345,7 @@ def load_dataset_position_as_dask_array(
                 break
     elif isinstance(position, str):
         if position not in zarr_path_list:
-            raise ValueError(
-                f"Zarr file {position} not found in dataset {dataset_name}."
-            )
+            raise ValueError(f"Zarr file {position} not found in dataset {dataset_name}.")
         zarr_name = position
 
     img_dict = load_dataset(
@@ -534,9 +521,7 @@ def get_tracking_data_raws(
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         position_list = (
-            range(get_total_number_of_positions(dataset_name))
-            if position == None
-            else [position]
+            range(get_total_number_of_positions(dataset_name)) if position == None else [position]
         )
         for pos in position_list:
             data_path = Path(get_tracking_data_paths(dataset_name, pos))
@@ -556,17 +541,13 @@ def get_tracking_data_raws(
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
     if tracking_data_list:
-        tracking_dataframe = table_reader.concat(
-            tracking_data_list, axis=0, ignore_index=True
-        )
+        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     else:  # create an empty dataframe
         tracking_dataframe = table_reader.DataFrame.from_dict({})
     return tracking_dataframe
 
 
-def get_tracking_data_filtered(
-    dataset_name_list: List, as_dask: bool = False
-) -> pd.DataFrame:
+def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool = False) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
     same script that a multiprocessing workflow that later uses
@@ -577,9 +558,7 @@ def get_tracking_data_filtered(
     multiprocessing.
     """
     table_reader = dd if as_dask else pd
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/track_filtering"
-    )
+    base_path = Path("//allen/aics/endothelial/morphological_features/analysis/track_filtering")
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
@@ -593,9 +572,7 @@ def get_tracking_data_filtered(
             print(f"No filtered tracking data found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = table_reader.concat(
-        tracking_data_list, axis=0, ignore_index=True
-    )
+    tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe
 
 
@@ -666,14 +643,10 @@ def get_segmentation_features_manifest(
             seg_feat_data["source_filtered_tracking_table_path"] = data_path.as_posix()
             seg_feat_data_list.append(seg_feat_data)
         else:
-            print(
-                f"No segmentation feature manifest found for {dataset_name}. Skipping..."
-            )
+            print(f"No segmentation feature manifest found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = table_reader.concat(
-        seg_feat_data_list, axis=0, ignore_index=True
-    )
+    seg_feat_dataframe = table_reader.concat(seg_feat_data_list, axis=0, ignore_index=True)
     return seg_feat_dataframe
 
 
@@ -688,9 +661,7 @@ def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
     base_path = dataset_info["cell_track_integration_manifest_fmsid"]
     integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
     if not integration_path.exists():
-        raise FileNotFoundError(
-            f"Cell track integration dataset not found at {integration_path}."
-        )
+        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
     return pd.read_csv(integration_path, sep="\t")
 
 
