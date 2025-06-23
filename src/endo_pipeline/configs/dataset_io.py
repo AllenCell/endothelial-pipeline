@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from bioio import BioImage
+from deprecated import deprecated
 
 try:
     from IPython import get_ipython
@@ -136,6 +137,30 @@ def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None
 
 
 # dataset methods
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing datasets is:
+
+1. If you need a list of available datasets by name, before selecting specific
+   dataset(s) to load, use the following replacement method:
+
+        configs.dataset_config.get_available_datasets
+
+   instead of:
+
+        util.dataset_io.get_available_datasets
+
+   Individual dataset(s) can then be loaded with:
+
+        configs.dataset_config.load_single_dataset(dataset_name)
+
+2. If you want to load all available datasets, use the following method to load
+   configs for all available datasets:
+
+        configs.dataset_config.load_all_datasets
+"""
+)
 def get_available_datasets(verbose: bool = True) -> list[str]:
     """Get a list of available datasets from the config file."""
     cfg = load_config("data")
