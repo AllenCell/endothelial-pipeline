@@ -216,7 +216,7 @@ def build_measured_features_tables(
         seg_dir = Path(seg_dir)
     else:
         print(
-            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
+            f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements."
         )
         return
 
