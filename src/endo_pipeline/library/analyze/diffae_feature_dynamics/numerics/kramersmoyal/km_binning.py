@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 
@@ -99,7 +101,7 @@ def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray)
         hist = hist.reshape((weights.shape[0], *nbin))
 
     # Remove outliers (indices 0 and -1 for each dimension).
-    core: tuple[slice, ...] = d * (slice(1, -1),)
+    core: Tuple[slice, ...] = d * (slice(1, -1),)
 
     # slice the histogram to remove outliers
     # Tell MyPy to ignore the type error here,

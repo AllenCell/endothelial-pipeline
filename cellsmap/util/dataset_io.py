@@ -72,7 +72,9 @@ def combine_data_config(save: bool = False) -> dict:
 
 
 # model methods
-def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
+
+
+def load_config(config_type: str = "data") -> dict[Any, Any]:
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
 
