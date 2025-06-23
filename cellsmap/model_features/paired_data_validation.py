@@ -16,19 +16,11 @@ from skimage import transform as tf
 from skimage.exposure import rescale_intensity
 from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
-from src.endo_pipeline.library.cdh5_preprocessing import preprocess
 from tqdm import tqdm, trange
 
-from cellsmap.model_features.apply_model import (
-    generate_overrides,
-    get_cytodl_commit_hash,
-)
+from cellsmap.model_features.apply_model import generate_overrides, get_cytodl_commit_hash
 from cellsmap.model_features.utils.mlflow_utils import download_model
-from cellsmap.util.dataset_io import (
-    get_model_info,
-    get_zarr_path,
-    update_dataset_config,
-)
+from cellsmap.util.dataset_io import get_model_info, get_zarr_path, update_dataset_config
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
@@ -36,14 +28,13 @@ from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
 
 
-def visualize_keypoints(
-    image: np.ndarray, keypoints: np.ndarray, savepath: str
-) -> None:
+def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str) -> None:
     """
     Visualizes the detected keypoints on the image.
 
@@ -102,9 +93,7 @@ def template_matching(
             f"Fixed image is smaller than moving image. Resized fixed shape: {downsampled_image.shape}, moving shape: {downsampled_template.shape}"
         )
     # Perform template matching
-    result = cv2.matchTemplate(
-        downsampled_image, downsampled_template, cv2.TM_CCOEFF_NORMED
-    )
+    result = cv2.matchTemplate(downsampled_image, downsampled_template, cv2.TM_CCOEFF_NORMED)
     _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
     print(f"Best score: {max_val}, Location: {max_loc}")
@@ -131,9 +120,7 @@ def template_registration(
         The shape of the template used for registration. If None, the shape of the moving image will be used.
     """
     template_shape = template_shape or image_moving.shape[-2:]
-    splitter = SlidingWindowSplitter(
-        patch_size=template_shape, overlap=0.1, pad_mode=None
-    )
+    splitter = SlidingWindowSplitter(patch_size=template_shape, overlap=0.1, pad_mode=None)
     # Register each template to the fixed image
     best_transform = None
     best_score = 0.0
@@ -279,9 +266,7 @@ def warp(
     return aligned_moving
 
 
-def resize_moving(
-    image_moving: np.ndarray, resize_factor: float | Sequence[float]
-) -> np.ndarray:
+def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[float]) -> np.ndarray:
     """
     Resizes the moving image to match the fixed image dimensions.
 
@@ -298,9 +283,7 @@ def resize_moving(
     return resized_image_moving
 
 
-def crop_to_overlap(
-    crop1: np.ndarray, crop2: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Remove NaN values present in the XY border of either of the passed images. It is assumed that
     the XY locations of the NaN values are the same across all Z slices if the images are 3D.
@@ -369,16 +352,12 @@ def align(
     --------
     pd.DataFrame: DataFrame containing the paths to the aligned images.
     """
-    print(
-        f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}"
-    )
+    print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
     image_fixed = BioImage(fixed_image_path)
     image_moving = BioImage(moving_image_path)
 
     if image_fixed.shape[:-3] != image_moving.shape[:-3]:
-        raise ValueError(
-            "The moving and fixed image must have the same non-spatial dimensions."
-        )
+        raise ValueError("The moving and fixed image must have the same non-spatial dimensions.")
 
     alignment_func = {
         "sift": sift_registration,
@@ -395,12 +374,8 @@ def align(
         image_fixed.set_scene(scene)
         image_moving.set_scene(scene)
         for t in range(image_fixed.dims["T"][0]):
-            fixed_fluo = image_fixed.get_image_dask_data(
-                "ZYX", C=FLUOR_CHANNEL, T=t
-            ).compute()
-            moving_fluo = image_moving.get_image_dask_data(
-                "ZYX", C=FLUOR_CHANNEL, T=t
-            ).compute()
+            fixed_fluo = image_fixed.get_image_dask_data("ZYX", C=FLUOR_CHANNEL, T=t).compute()
+            moving_fluo = image_moving.get_image_dask_data("ZYX", C=FLUOR_CHANNEL, T=t).compute()
 
             if not align_fluo:
                 fixed_fluo = fixed_fluo.std(0)
@@ -416,18 +391,12 @@ def align(
             fixed_projection = fixed_fluo.std(0) if align_fluo else fixed_fluo
             moving_projection = moving_fluo.std(0) if align_fluo else moving_fluo
 
-            model = alignment_func(
-                fixed_projection, moving_projection, **alignment_kwargs
-            )
+            model = alignment_func(fixed_projection, moving_projection, **alignment_kwargs)
             if model is None:
                 continue
 
-            fixed_bf = image_fixed.get_image_dask_data(
-                "ZYX", C=BF_CHANNEL, T=t
-            ).compute()
-            moving_bf = image_moving.get_image_dask_data(
-                "ZYX", C=BF_CHANNEL, T=t
-            ).compute()
+            fixed_bf = image_fixed.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
+            moving_bf = image_moving.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
             moving_bf = resize_moving(moving_bf, (1, rescale_factor, rescale_factor))
 
             if align_fluo:
@@ -436,12 +405,10 @@ def align(
 
                 # Save the aligned images
                 moving_save_path = str(
-                    savedir
-                    / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_fluo.ome.tiff"
+                    savedir / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_fluo.ome.tiff"
                 )
                 fixed_save_path = str(
-                    savedir
-                    / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_fluo.ome.tiff"
+                    savedir / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_fluo.ome.tiff"
                 )
                 OmeTiffWriter.save(uri=moving_save_path, data=moving_fluo)
                 OmeTiffWriter.save(uri=fixed_save_path, data=fixed_fluo)
@@ -458,8 +425,7 @@ def align(
             aligned_moving, fixed_bf = crop_to_overlap(aligned_moving, fixed_bf)
             # Save the aligned images
             moving_save_path = str(
-                savedir
-                / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_bf.ome.tiff"
+                savedir / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_bf.ome.tiff"
             )
             fixed_save_path = str(
                 savedir / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_bf.ome.tiff"
@@ -534,21 +500,15 @@ def plot_paired_features(
     """
     pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
 
-    fixed_features = project_manifest_to_pcs(
-        fixed_features, pca, overwrite_feature_columns=False
-    )
-    moving_features = project_manifest_to_pcs(
-        moving_features, pca, overwrite_feature_columns=False
-    )
+    fixed_features = project_manifest_to_pcs(fixed_features, pca, overwrite_feature_columns=False)
+    moving_features = project_manifest_to_pcs(moving_features, pca, overwrite_feature_columns=False)
 
     n_pcs = len([c for c in fixed_features.columns if c.startswith("pc")])
 
     fig, ax = plt.subplots(1, n_pcs, figsize=(n_pcs * 4, 4))
     for i in range(n_pcs):
         r = np.corrcoef(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"])[0, 1]
-        ax[i].scatter(
-            fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"], alpha=0.1, s=3
-        )
+        ax[i].scatter(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"], alpha=0.1, s=3)
         ax[i].set_xlabel(fixed_name)
         ax[i].set_ylabel(moving_name)
         ax[i].set_title(f"PC{i+1} r^2: {r**2:.2f}", fontsize=6)
@@ -634,9 +594,7 @@ def compare_paired_features(
 
     save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
     save_path.mkdir(parents=True, exist_ok=True)
-    data_save_path = (
-        save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
-    )
+    data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
 
     if not data_save_path.exists():
         data = align_all_positions(
@@ -659,9 +617,7 @@ def compare_paired_features(
 
     # apply on fixed images
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
-    fixed_overrides.update(
-        {"data.predict_dataloaders.dataset.img_path_column": "fixed"}
-    )
+    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
     fixed_overrides = generate_overrides(
         fixed_overrides,
         save_path=str(save_path),
@@ -747,9 +703,7 @@ def main(
             "20250214_pairedPostFixation",
         ],
     }
-    for fixed, moving in zip(
-        datasets_live_fixed["fixed"], datasets_live_fixed["moving"]
-    ):
+    for fixed, moving in zip(datasets_live_fixed["fixed"], datasets_live_fixed["moving"]):
         compare_paired_features(
             # use model finetuned for fixation
             fixed_finetuned_model_name,
