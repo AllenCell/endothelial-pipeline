@@ -16,7 +16,7 @@ channel_488_index: 0
 brightfield_channel_index: 1
 n_total_positions: 6
 notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
-nuclear_label_free_seg_path: null
+nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241217_20X
 nuclear_seg_manifest_fmsid: 225e4e4f67934f2781caba8db82401f6
 diffae_manifest_fmsid: da36d8a9fd7541e0b4d459d396063343
 valid_timepoints:

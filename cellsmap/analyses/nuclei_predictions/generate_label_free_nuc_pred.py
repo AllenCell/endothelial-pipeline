@@ -59,7 +59,7 @@ def generate_results(args: dict) -> None:
         dim_map = get_dim_map(dim_order)
 
         img = BioImage(img_path)
-        if args["use_original_data"]:
+        if args["use_sldy_data"]:
             img.set_scene(args["scene_index"])
 
         brightfield_index = get_dataset_info(dataset_name)["brightfield_channel_index"]
@@ -141,7 +141,7 @@ def main(
     save_output: bool = True,
     overwrite: bool = True,
     is_test: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
     verbose: bool = False,
 ) -> None:
     """
@@ -163,7 +163,7 @@ def main(
         overwrite=overwrite,
         is_test=is_test,
         image_validation_frequency=48,
-        use_original_data=use_original_data,
+        use_sldy_data=use_sldy_data,
         verbose=verbose,
     )
 

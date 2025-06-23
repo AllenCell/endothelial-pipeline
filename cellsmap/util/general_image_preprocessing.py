@@ -48,7 +48,7 @@ def build_analysis_queue(
     image_validation_frequency: int | None = None,
     verbose: bool = False,
     is_test: bool = False,
-    use_original_data: bool = False,
+    use_sldy_data: bool = False,
 ) -> list:
     print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
@@ -63,7 +63,7 @@ def build_analysis_queue(
         desc="Building analysis queue",
         unit="dataset",
     ):
-        if use_original_data:
+        if use_sldy_data:
             img_path = Path(get_original_path(dataset_name))
             img = BioImage(img_path)
             num_positions = get_total_number_of_positions(dataset_name)
@@ -87,7 +87,7 @@ def build_analysis_queue(
             positions_in_S += [scene_index] * num_pos_in_T
 
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
-            if use_original_data:
+            if use_sldy_data:
                 img.set_scene(pos_in_S)
                 scene_name = img.scenes[pos_in_S]
             else:
@@ -159,7 +159,7 @@ def build_analysis_queue(
                                 "overwrite": overwrite,
                                 "validation_image": validation_image,
                                 "image_validation_frequency": image_validation_frequency,
-                                "use_original_data": use_original_data,
+                                "use_sldy_data": use_sldy_data,
                                 "is_test": is_test,
                                 "verbose": verbose,
                             }

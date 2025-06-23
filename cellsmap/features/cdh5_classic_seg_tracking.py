@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from cellsmap.features.lib_tracking import run_tracking
 from cellsmap.util.dataset_io import (
+    concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -16,6 +17,7 @@ from cellsmap.util.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
+    save_git_versioning_info,
 )
 from cellsmap.util.general_image_preprocessing import (
     build_analysis_queue,
@@ -35,10 +37,18 @@ def run_workflow(queue: Sequence) -> None:
     verbose = sequence_to_scalar(queue_df["verbose"])
     out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
     out_filename_prefix = f"{dataset_name}_P{position}"
-    use_original_data = sequence_to_scalar(queue_df["use_original_data"])
+    use_sldy_data = sequence_to_scalar(queue_df["use_sldy_data"])
 
     # get the segmentation images
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position=position))
+    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position=position)
+    if seg_dir is not None:
+        seg_dir = Path(seg_dir)
+    else:
+        print(
+            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
+        )
+        return
+
     seg_filepaths = sorted(
         seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name)
     )
@@ -49,7 +59,7 @@ def run_workflow(queue: Sequence) -> None:
         if validation_image:
             # get the raw cadherin channel from either original data or the zarr version
             scene_index = int(sequence_to_scalar(queue_df["scene_index"]))
-            if use_original_data:
+            if use_sldy_data:
                 raw_channel = get_dataset_info(dataset_name)["channel_488_index"]
                 raw_filepath = Path(get_original_path(dataset_name))
             else:
@@ -61,6 +71,7 @@ def run_workflow(queue: Sequence) -> None:
             scene_index = None
             raw_filepath = None
             raw_channel = None
+
         run_tracking(
             in_dir=seg_filepaths,
             out_dir=out_dir,
@@ -81,6 +92,16 @@ def run_workflow(queue: Sequence) -> None:
             verbose=verbose,
         )
 
+        # add the dataset name and position to the output table
+        tracking_table = pd.read_csv(
+            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t"
+        )
+        tracking_table["dataset_name"] = dataset_name
+        tracking_table["position"] = position
+        tracking_table.to_csv(
+            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t", index=False
+        )
+
     else:
         print(
             f"No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False."
@@ -92,6 +113,7 @@ def main(
     n_proc: int = 1,
     dataset_name: str | Sequence | None = None,
     save_output: bool = True,
+    use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -108,7 +130,7 @@ def main(
         verbose=verbose,
         is_test=is_test,
         image_validation_frequency=None,
-        use_original_data=True,
+        use_sldy_data=use_sldy_data,
     )
 
     analysis_queue_df = pd.DataFrame(analysis_queue)
@@ -139,18 +161,24 @@ def main(
         ):
             run_workflow(queue)
 
-    print("\N{MICROSCOPE} Done analysis.")
-
-    for dataset in dataset_name_list:
-        tracking_table_paths = (out_dir / dataset).glob("*/*.tsv")
-        if tracking_table_paths:
-            pd.concat(
-                [pd.read_csv(fp, sep="\t") for fp in tracking_table_paths]
-            ).to_csv(
-                out_dir / dataset / f"{dataset}_tracking.tsv",
-                index=False,
-                sep="\t",
+    if save_output:
+        for dataset_name in tqdm(
+            dataset_name_list, desc="Replacing individual tables with combined table..."
+        ):
+            concatenate_and_save_feature_tables(
+                out_dir=out_dir,
+                dataset_name=dataset_name,
+                out_file_suffix="tracking",
+                file_extension=".tsv",
+                remove_initial_files_and_folders=True,
             )
+
+        # save git versioning info
+        save_git_versioning_info(
+            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
+        )
+
+    print("\N{MICROSCOPE} Done analysis.")
 
 
 if __name__ == "__main__":

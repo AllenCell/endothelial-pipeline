@@ -1,3 +1,5 @@
+import subprocess
+from os import scandir
 from pathlib import Path
 
 import dask
@@ -107,7 +109,7 @@ def load_config_src(config_type: str = "data") -> list[dict[Any, Any]]:
     return config_data
 
 
-def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> None:
+def write_config(config: Dict[str, Dict[str, Any]], config_type: str = "data") -> None:
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
@@ -498,7 +500,12 @@ def load_nuclei_prediction(
         return dask.array.empty(shape=[0] * len(dim_order))
 
 
-def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
+def get_cdh5_classic_segmentation_path(
+    dataset_name: str,
+    position: int,
+    T: int | None = None,
+    missing_file_exception: Literal["raise", "warn"] = "warn",
+) -> Path | None:
     # NOTE at some point the cdh5 classic segmentation paths
     # will probably be added to the dataconfig.yaml file
     # for the base_path, but until then I will hardcode the
@@ -510,8 +517,48 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     # NOTE this is what the code is expected to be when the
     # path is added to the dataconfig.yaml file:
     # base_path = dataset_info['cdh5_classic_seg_path']
-    position_path = f"{base_path}/P{position}/"
-    return position_path
+    position_path = Path(f"{base_path}/P{position}/")
+    if T is None:
+        return position_path
+    else:
+        cdh5_seg_path_dict = {
+            extract_T(fp.stem): fp
+            for fp in position_path.glob("*.ome.tif*")
+            if extract_T(fp.name) == T
+        }
+        cdh5_seg_path = cdh5_seg_path_dict.get(T, None)
+        if cdh5_seg_path is not None:
+            return cdh5_seg_path
+
+    match missing_file_exception:
+        case "raise":
+            raise FileNotFoundError(
+                f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
+            )
+        case "warn":
+            print(f"CDH5 segmentation for T={T} not found in {position_path}. Skipping...")
+            return None
+
+
+def load_cdh5_classic_segmentation(
+    dataset_name: str,
+    position: int,
+    T: int,
+    dim_order: str = "ZYX",
+) -> dask.array.Array:
+    """
+    Load the CDH5 classic segmentation for a given dataset, position, and timepoint.
+    """
+    cdh5_seg_path = get_cdh5_classic_segmentation_path(dataset_name, position, T)
+    if cdh5_seg_path is not None and cdh5_seg_path.exists():
+        # Load the CDH5 classic segmentation as a Dask array
+        cdh5_dask_arr = BioImage(cdh5_seg_path).get_image_dask_data(dim_order, T=0)
+        return cdh5_dask_arr
+    else:
+        print(
+            f"CDH5 classic segmentation file not found for T={T} in {cdh5_seg_path}, returning empty dask array."
+        )
+        return dask.array.empty(shape=[0] * len(dim_order))
 
 
 def get_tracking_data_paths(
@@ -870,3 +917,130 @@ def extract_P(
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f"P{position_value}"
+
+
+def get_git_versioning_info() -> dict[str, str]:
+    """
+    Returns versioning info about the script, including the branch
+    name, commit hash, uncommitted changes, and timestamp of when
+    the script was run.
+    """
+    # get some versioning info about when this script was run and
+    # what version of the script was used to produce the output
+    # to save alongside the output
+    # the branch name:
+    git_branch_name = (
+        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
+    # the current commit hash:
+    git_commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    # if there were any uncommitted changes when this script was run:
+    git_uncommitted_changes = (
+        subprocess.check_output(["git", "diff", "HEAD", "--name-only"]).decode("ascii").strip()
+        or "None"
+    )
+    # the timestamp that this script was run:
+    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
+
+    git_branch_info = {
+        "timestamp": str(timestamp),
+        "git_branch_name": str(git_branch_name),
+        "git_commit_hash": str(git_commit_hash),
+        "git_uncommitted_changes": str(git_uncommitted_changes),
+    }
+    return git_branch_info
+
+
+def save_git_versioning_info(
+    out_dir: Path,
+    filename_prefix: str,
+    verbose: bool = True,
+) -> None:
+    """
+    Saves git versioning info to a .txt file in the specified output directory.
+    The filename will be prepended with the provided filename_prefix.
+    output_dir should be a path that exists already, it will not be created.
+    """
+    git_info = get_git_versioning_info()
+    output_path = out_dir / f"{filename_prefix}_git_versioning_info.txt"
+    with output_path.open("w") as git_versioning_file:
+        for key, value in git_info.items():
+            git_versioning_file.write(f"{key}: {value}\n")
+    print(f"Git versioning info saved to {output_path}.") if verbose else None
+    return None
+
+
+def concatenate_and_save_feature_tables(
+    out_dir: Path,
+    dataset_name: str,
+    out_file_suffix: str = "",
+    input_filename_contains: str = "",
+    file_extension: str = ".csv",
+    sort_by_T: bool = True,
+    check_saved_dataframe: bool = True,
+    remove_initial_files_and_folders: bool = False,
+) -> None:
+    """
+    Concatenates the nuclei feature tables for all positions and
+    timepoints for a given dataset in an out_dir and then saves
+    the concatenated table to the output directory.
+    The expected file structure in out_dir is:
+    out_dir/dataset_name/position/*filename_contains*.file_extension
+    """
+    out_subdir = out_dir / dataset_name
+    feats_dfs = []
+    sep = "\t" if file_extension == ".tsv" else ","
+
+    file_extension = f".{file_extension}" if not file_extension.startswith(".") else file_extension
+    if input_filename_contains and not input_filename_contains.endswith("*"):
+        input_filename_contains = f"{input_filename_contains}*"
+    feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
+    if sort_by_T:
+        feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
+    feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
+
+    if feats_dfs:
+        concatenated_df = pd.concat(feats_dfs, ignore_index=True)
+        if out_file_suffix:
+            out_file_suffix = (
+                f"_{out_file_suffix}"
+                if not out_file_suffix.startswith("_")
+                else f"{out_file_suffix}"
+            )
+        concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
+        concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
+    else:
+        print(f"No feature tables found for {dataset_name}.")
+
+    if check_saved_dataframe:
+        # check that the concatenated dataframe at least has the same shape
+        # and column names as a proxy for checking if it was saved correctly
+        saved_df = pd.read_csv(concatenated_df_out_path, sep=sep)
+        same_shape = saved_df.shape == concatenated_df.shape
+        same_column_names = all(saved_df.columns == concatenated_df.columns)
+        if not (same_shape and same_column_names):
+            raise ValueError(
+                f"Saved dataframe {concatenated_df_out_path} does not match the concatenated dataframe."
+            )
+        print(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
+
+    if remove_initial_files_and_folders:
+        # remove files that match input_filename_contains
+        for fp in feats_filepaths:
+            fp.unlink()
+    dirs_to_remove = list(out_subdir.glob("**/"))
+    # remove the empty directory now that old tables are deleted
+    # (note this must be done in reverse order because a folder with
+    # subfolders does not count as empty and therfore raises an error)
+    for dir_path in dirs_to_remove[::-1]:
+        # NOTE that rmdir only removes empty directories
+        # and will raise an error if it is not empty. If
+        # a directory is not empty then we will skip it
+        if not any(list(scandir(dir_path))):
+            dir_path.rmdir()
+            print(f"Removed empty directory {dir_path}.")
+        else:
+            print(f"Directory {dir_path} is not empty, skipping removal.")
+            continue
