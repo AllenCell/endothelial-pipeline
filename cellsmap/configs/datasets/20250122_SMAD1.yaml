@@ -24,3 +24,4 @@ notes: This sample (barcode GE00006322) was PFA-fixed on 01/10/2025, and the flo
 nuclear_label_free_seg_path: null
 nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: 17f900047bfe46cf9f34f72817f9dda8
+nuclear_stain_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250122_SMAD1

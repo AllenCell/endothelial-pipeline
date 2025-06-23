@@ -8,14 +8,6 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.analyses.utils import regression_helper as rh
-from cellsmap.analyses.utils.io.dynamics_io import load_dynamics_config
-from cellsmap.analyses.utils.numerics import data_driven_flow_field as ddff
-from cellsmap.analyses.utils.viz.flow_field_viz import (
-    get_slice_indexes,
-    plot_quiver_slices,
-    set_slice_plot_bounds_and_labels,
-)
 from cellsmap.util.dataset_io import (
     get_reference_datasets,
     get_segmentation_features_manifest,
@@ -26,15 +18,21 @@ from cellsmap.util.manifest_io import (
     get_feature_cols,
     get_track_diffae_manifest,
 )
-from cellsmap.util.manifest_preprocessing import (
-    diffae_feature_preprocessing as diffae_preproc,
-)
-from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
+from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.visualize.diffae_feature_dynamics.flow_field_viz import (
+    get_slice_indexes,
+    plot_quiver_slices,
+    set_slice_plot_bounds_and_labels,
+)
 
 """
 NOTE: I believe that the "feat_#" columns in the dataset loaded by
@@ -214,13 +212,9 @@ def plot_quiver_slices_from_diffae_table(
     # plot the trajectories
     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
         if plot_trajectory:
-            ax.plot(
-                traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy", zorder=1
-            )
+            ax.plot(traj_grids[:, 0], traj_grids[:, j + 1], lw=2, color="navy", zorder=1)
         if plot_fixed_points:
-            ax.scatter(
-                traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=2
-            )
+            ax.scatter(traj_grids[-1, 0], traj_grids[-1, j + 1], s=50, color="black", zorder=2)
 
     return fig, axs
 
@@ -335,8 +329,7 @@ def plot_measured_feat_overlay_on_flowfield(
             f"track_ids must be 'mean', an integer, or None. Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
         )
     fig.savefig(
-        out_dir
-        / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
+        out_dir / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
         dpi=300,
     )
     if not show_plot:
@@ -473,9 +466,7 @@ def make_all_plots(
         # only overlay every 10th track id if there are a lot
         # of tracks to save time + space
         track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
-        for tid in tqdm(
-            track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}"
-        ):
+        for tid in tqdm(track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}"):
             # make the plots
             plot_measured_feat_overlay_on_flowfield(
                 out_subdir_indiv_pos,
@@ -504,16 +495,12 @@ def main() -> None:
 
         df_all_positions = get_merged_table(dataset_name)
         if df_all_positions is None:
-            print(
-                f"Dataset {dataset_name} is missing one or more data tables. Skipping..."
-            )
+            print(f"Dataset {dataset_name} is missing one or more data tables. Skipping...")
             continue
 
         print("cleaning up merged table...")
         df_all_positions = df_all_positions.query("valid_points >= 120")
-        df_all_positions.dropna(
-            axis="index", how="any", subset="is_unique", inplace=True
-        )
+        df_all_positions.dropna(axis="index", how="any", subset="is_unique", inplace=True)
 
         # fit the PCA (uses the reference datasets)
         pca = fit_pca()
@@ -539,9 +526,7 @@ def main() -> None:
         )
 
         print("getting trajectory and flow field for tracks-based crops...")
-        traj_tracks, _ = get_traj_and_flowfield(
-            df_all_positions, bounds, col_names="pc"
-        )
+        traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds, col_names="pc")
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
 
