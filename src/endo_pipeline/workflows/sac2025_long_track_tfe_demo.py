@@ -5,17 +5,14 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
-    get_segmentation_features_manifest,
-    ipython_cli_flexecute,
-)
+from cellsmap.util.dataset_io import get_segmentation_features_manifest, ipython_cli_flexecute
 from cellsmap.util.general_image_preprocessing import (
     get_default_dim_order,
     save_image_output,
     sequence_to_scalar,
 )
 from cellsmap.util.set_output import get_output_path
-from cellsmap.vis.timelapse_feature_explorer.generate_tfe_dataset import (
+from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
 
@@ -26,12 +23,11 @@ def get_crop_bounds(
 ) -> tuple:
     """
     Get the crop bounds for a given centroid and crop size.
+
     Parameters
     ----------
-    centroid_x : float
-        The x coordinate of the centroid.
-    centroid_y : float
-        The y coordinate of the centroid.
+    crop_center : tuple[float, ...]
+        The center of the crop in each dimension.
     crop_size : int
         The size of the crop.
 
@@ -60,17 +56,17 @@ def draw_crop_bounds(
     ----------
     img_arr : np.ndarray
         The image array to draw the crop bounds on.
-    bounds : tuple[slice, ...]
-        The crop bounds as a tuple of slices with same length
-        as img_arr has dimensions (len(bounds) == img_arr.ndim)
-        Format is tuple(slice(start, stop), slice(start, stop), ...)
+    crop_bounds : tuple[slice, ...]
+        The crop bounds as a tuple of slices with the same length
+        as the number of dimensions in `img_arr` (i.e., `len(bounds) == img_arr.ndim`).
+        Format: tuple(slice(start, stop), slice(start, stop), ...).
     bounds_value : int
         The value to assign to the crop bounds in the image array.
 
     Returns
     -------
     np.ndarray
-        The image array with the crop bounds drawn on it.
+        The modified image array with the crop bounds drawn on it.
     """
     # make a copy of the image array to avoid modifying the original
     img_arr = img_arr.copy()
@@ -90,29 +86,31 @@ def draw_crop_bounds(
     return img_arr
 
 
-def get_out_subdirs(
-    out_dir: Path, dataset_name: str, position: int
-) -> tuple[Path, Path]:
+def get_out_subdirs(out_dir: Path, dataset_name: str, position: int) -> tuple[Path, Path]:
     """
-    Get the output subdirectories for fluorescence images overlain
-    with segmentation and crop box, and crop box only output images.
+    Get the output subdirectories for fluorescence images overlaid
+    with segmentation and crop box, and for crop box-only output images.
 
     Parameters
     ----------
     out_dir : Path
-        The output directory that the subdirectories should be put in.
+        The base output directory where the subdirectories will be created.
+    dataset_name : str
+        The name of the dataset.
+    position : int
+        The position index in the dataset.
 
     Returns
     -------
     tuple[Path, Path]
-        The output directories for segmentation and box only images.
+        A tuple containing:
+        - The output directory for images with segmentation and crop box overlays.
+        - The output directory for images with crop box-only overlays.
     """
     out_dir_seg_and_box = out_dir / "tfe_example_track" / dataset_name / f"P{position}"
     out_dir_seg_and_box.mkdir(exist_ok=True, parents=True)
 
-    out_dir_box_only = (
-        out_dir / "tfe_example_track_box_only" / dataset_name / f"P{position}"
-    )
+    out_dir_box_only = out_dir / "tfe_example_track_box_only" / dataset_name / f"P{position}"
     out_dir_box_only.mkdir(exist_ok=True, parents=True)
 
     return out_dir_seg_and_box, out_dir_box_only
@@ -126,21 +124,40 @@ def generate_crop_outline_images(
     crop_size: int = 256,
     dim_order: str = "TCZYX",
 ) -> None:
+    """
+    Generate crop outline images for a specific track in a dataset.
 
+    This function creates images with crop outlines for a given track ID in a dataset.
+
+    Parameters
+    ----------
+    out_dir : Path
+        The directory where the generated crop outline images will be saved.
+    dataset_name : str, optional
+        The name of the dataset to process. Defaults to "20241120_20X".
+    position : int, optional
+        The position index in the dataset to process. Defaults to 0.
+    track_id : int, optional
+        The track ID for which to generate crop outline images. Defaults to 1852.
+    crop_size : int, optional
+        The size of the crop (in pixels). Defaults to 256.
+    dim_order : str, optional
+        The dimension order of the dataset (e.g., "TCZYX"). Defaults to "TCZYX".
+
+    Returns
+    -------
+    None
+    """
     # create the output directories
     dim_order = get_default_dim_order()
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
-    out_dir_seg_and_box, out_dir_box_only = get_out_subdirs(
-        out_dir, dataset_name, position
-    )
+    out_dir_seg_and_box, out_dir_box_only = get_out_subdirs(out_dir, dataset_name, position)
 
     # load segmentation features table associated with the track id
     # and subset the position of interest
-    seg_feat_df = get_segmentation_features_manifest([dataset_name]).query(
-        "position == @position"
-    )
+    seg_feat_df = get_segmentation_features_manifest([dataset_name]).query("position == @position")
     img_shape = {
         "T": 1,
         "C": 1,
@@ -175,7 +192,7 @@ def generate_crop_outline_images(
         unit="timepoint",
     ):
         # load_segmentation_image(dataset_name, position, timepoint)
-        seg_feat_df_at_T = seg_feat_df_subset.query("T == @tp")
+        seg_feat_df_at_t = seg_feat_df_subset.query("T == @tp")
 
         # initialize a blank image
         example_track_img_arr = np.zeros(
@@ -186,20 +203,18 @@ def generate_crop_outline_images(
         # if there is no segmentation for the track of interest at
         # this timepoint, then the table will be empty, so make an
         # array of zeros
-        if seg_feat_df_at_T.empty:
+        if seg_feat_df_at_t.empty:
             example_track_img_arr = example_track_img_arr.squeeze()
             crop_box_img_arr = example_track_img_arr.copy().squeeze()
         else:
             # load the segmentation image
-            fp = Path(
-                sequence_to_scalar(seg_feat_df_at_T["cdh5_classic_segmentation_path"])
-            )
+            fp = Path(sequence_to_scalar(seg_feat_df_at_t["cdh5_classic_segmentation_path"]))
             img = BioImage(fp)
             img_arr = img.get_image_data(dim_order)
 
             # get the centroid of the segmentation
-            centroid_x = sequence_to_scalar(seg_feat_df_at_T["centroid_X"])
-            centroid_y = sequence_to_scalar(seg_feat_df_at_T["centroid_Y"])
+            centroid_x = sequence_to_scalar(seg_feat_df_at_t["centroid_X"])
+            centroid_y = sequence_to_scalar(seg_feat_df_at_t["centroid_Y"])
 
             # get the crop bounds
             xlims, ylims = get_crop_bounds(
@@ -215,7 +230,7 @@ def generate_crop_outline_images(
             }
             crop_bounds = tuple(crop_bounds_map[dim] for dim in dim_order)
 
-            seg_id = sequence_to_scalar(seg_feat_df_at_T["label"])
+            seg_id = sequence_to_scalar(seg_feat_df_at_t["label"])
 
             # draw the crop bounds on the initially blank image
             example_track_img_arr = dilation(
@@ -263,7 +278,7 @@ def generate_crop_outline_images(
         )
 
 
-def generate_TFE_dataset_of_single_track(
+def generate_tfe_dataset_of_single_track(
     out_dir: Path | None = None,
     dataset_name: str = "20241120_20X",
     position: int = 0,
@@ -272,6 +287,7 @@ def generate_TFE_dataset_of_single_track(
     verbose: bool = True,
 ) -> None:
     """Generate a TFE dataset for a single track in a specified dataset and position.
+
     Parameters
     ----------
     out_dir : Path | None
@@ -318,4 +334,4 @@ def generate_TFE_dataset_of_single_track(
 
 
 if __name__ == "__main__":
-    ipython_cli_flexecute(generate_TFE_dataset_of_single_track)
+    ipython_cli_flexecute(generate_tfe_dataset_of_single_track)
