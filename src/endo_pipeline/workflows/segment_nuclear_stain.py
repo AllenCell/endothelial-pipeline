@@ -13,7 +13,7 @@ from src.endo_pipeline.library.process import get_images, image_processing
 """
 Segment nuclear stain channel using Cellpose for immunofluorescence datasets.
 
-To test this script, you can run it with the following command:
+To test this script, you can run it with the following command (~5 min):
 python src/endo_pipeline/workflows/segment_nuclear_stain.py \
     --dataset "20250509_20X_IF2" \
     --nuc_stain "NucViolet"
@@ -74,7 +74,7 @@ def segment_nuclei(max_int_projections: list) -> list:
 
 def visualize_results(max_int_projections: list, masks: list, dataset: str) -> None:
     """
-    Visualize the original images, segmentation masks, and overlays.
+    Visualize the contrast stretched images, segmentation masks, and overlays.
 
     Args:
         max_int_projections (list): List of maximum intensity projections.
@@ -85,16 +85,18 @@ def visualize_results(max_int_projections: list, masks: list, dataset: str) -> N
 
         colored_mask = label2rgb(mask, bg_label=0, kind="overlay")
 
+        contrasted_max_int_proj = image_processing.contrast_stretching(max_int_proj, "percentile")
+
         fig, axes = plt.subplots(1, 3, figsize=(10, 5))
-        axes[0].imshow(max_int_proj, cmap="gray")
-        axes[0].set_title("Original Flourescence Image", fontsize=10)
+        axes[0].imshow(contrasted_max_int_proj, cmap="gray")
+        axes[0].set_title("Flourescence Image", fontsize=10)
         axes[0].axis("off")
 
         axes[1].imshow(colored_mask)
         axes[1].set_title("Nuclear Segmentation Mask", fontsize=10)
         axes[1].axis("off")
 
-        axes[2].imshow(max_int_proj, cmap="gray")  # Show original DAPI first
+        axes[2].imshow(contrasted_max_int_proj, cmap="gray")  # Show contrasted signal
         axes[2].imshow(colored_mask, alpha=0.2)  # Add the colored mask with transparency overlay
         axes[2].set_title("Overlay", fontsize=10)
         axes[2].axis("off")
