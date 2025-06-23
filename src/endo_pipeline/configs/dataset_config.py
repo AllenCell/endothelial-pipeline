@@ -167,5 +167,32 @@ def validate_single_dataset_config(dataset_name: str) -> None:
         )
 
 
+def load_all_datasets() -> list[DatasetConfig]:
+    """Load all dataset configs."""
+
+    dataset_names = get_available_datasets()
+
+    datasets = [load_single_dataset(name) for name in dataset_names]
+    logger.info("Loaded all available datasets [ %s ]", " | ".join(dataset_names))
+
+    return datasets
+
+
+def load_single_dataset(dataset_name: str) -> DatasetConfig | None:
+    """Load single dataset config by name."""
+
+    config_dir = get_config_dir()
+    config_file = config_dir / "datasets" / f"{dataset_name}.yaml"
+
+    if not config_file.exists():
+        logger.warning(
+            "Dataset [ %s ] not found at config directory [ %s ]", dataset_name, config_dir
+        )
+        return None
+    else:
+        logger.info("Loaded dataset [ %s ]", dataset_name)
+        return YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+
+
 if __name__ == "__main__":
     validate_all_dataset_configs()
