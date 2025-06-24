@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from bioio import BioImage
+from deprecated import deprecated
 
 try:
     from IPython import get_ipython
@@ -77,6 +78,26 @@ def combine_data_config(save: bool = False) -> dict:
 # model methods
 
 
+@deprecated(
+    """
+NOTE: you can ignore this warning when loading "model" or "dynamics" configs.
+
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing dataset
+configs is to use one of the following replacement methods. If you need configs
+for all datasets, use:
+
+        configs.dataset_config.load_all_datasets
+
+If you need the config for a single dataset, use:
+
+        configs.dataset_config.load_single_dataset(dataset_name)
+
+If you need only need dataset names, use:
+
+        configs.dataset_config.get_available_datasets
+"""
+)
 def load_config(config_type: str = "data") -> dict[Any, Any]:
     """Load configuration from YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
@@ -94,6 +115,21 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     return config_data
 
 
+@deprecated(
+    """
+NOTE: you can ignore this warning when writing "model" or "dynamics" configs.
+
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated dataset
+configs is to directly adjust values in the config:
+
+        dataset.field = (new value)
+
+The dataset config can then be saved using:
+
+        configs.dataset_config.save_dataset_config(dataset)
+"""
+)
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
     """Write configuration to YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
@@ -119,6 +155,19 @@ def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -
         config_file.unlink()
 
 
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated dataset
+configs is to directly adjust values in the config:
+
+        dataset.field = (new value)
+
+The dataset config can then be saved using:
+
+        configs.dataset_config.save_dataset_config(dataset)
+"""
+)
 def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
     """
     Update the dataset config file with new values.
@@ -136,6 +185,30 @@ def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None
 
 
 # dataset methods
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing datasets is:
+
+1. If you need a list of available datasets by name, before selecting specific
+   dataset(s) to load, use the following replacement method:
+
+        configs.dataset_config.get_available_datasets
+
+   instead of:
+
+        configs.dataset_io.get_available_datasets
+
+   Individual dataset(s) can then be loaded with:
+
+        configs.dataset_config.load_single_dataset(dataset_name)
+
+2. If you want to load all available datasets, use the following method to load
+   configs for all available datasets:
+
+        configs.dataset_config.load_all_datasets
+"""
+)
 def get_available_datasets(verbose: bool = True) -> list[str]:
     """Get a list of available datasets from the config file."""
     cfg = load_config("data")
@@ -145,6 +218,19 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
     return datasets
 
 
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing reference
+datasets is to use the following replacement method:
+
+        configs.dataset_config.load_reference_datasets
+
+which will load the reference dataset objects (not the dataset names). If you
+need the names of the reference datasets, access the .name field of the
+reference dataset objects returned by the above method.
+"""
+)
 def get_reference_datasets() -> list[str]:
     """Get a list of reference datasets for PCA from the config file."""
     return [
