@@ -23,8 +23,7 @@ import fire
 def get_config_dir() -> Path:
     """Get path to the config directory."""
 
-    parent_folder = Path(__file__).resolve().parents[2]
-    return parent_folder / "src/endo_pipeline/configs/"
+    return Path(__file__).resolve().parents[0] / "configs"
 
 
 def save_to_yaml(object: dict, path: Path) -> None:

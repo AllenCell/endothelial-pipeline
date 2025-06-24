@@ -4,8 +4,8 @@ import fire
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from cellsmap.util.dataset_io import load_config
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import load_config
 
 
 def check_dataset_for_model_training(
@@ -47,9 +47,7 @@ def main(model_name: str | None = None) -> None:
         # check if the dataset is suitable for training
         # see check_dataset_for_training function for
         # the criteria used to filter datasets
-        is_for_training, zarr_path = check_dataset_for_model_training(
-            dataset_name, data_config
-        )
+        is_for_training, zarr_path = check_dataset_for_model_training(dataset_name, data_config)
         if not is_for_training:
             continue
         print(f"Processing dataset {dataset_name}")

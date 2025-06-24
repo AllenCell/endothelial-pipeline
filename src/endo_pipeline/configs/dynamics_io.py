@@ -3,7 +3,7 @@ from typing import Any
 
 import numpy as np
 
-from cellsmap.util.dataset_io import load_config_src
+from src.endo_pipeline.configs.dataset_io import load_config_src
 
 
 def load_dynamics_config(config_name: str = "default") -> dict:

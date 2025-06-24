@@ -7,7 +7,7 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
+from src.endo_pipeline.configs.dataset_io import (
     get_available_datasets,
     get_dataset_info,
     get_original_path,
@@ -65,9 +65,7 @@ def get_nested_keys(
             # using the value as the new dictionary argument and the current
             # list as the list of keys to be added to
             if len(val) <= iterable_size_limit:
-                yield from get_nested_keys(
-                    val, ls, iterable_size_limit, check_for_lists
-                )
+                yield from get_nested_keys(val, ls, iterable_size_limit, check_for_lists)
             else:
                 ls.append(f"Over {iterable_size_limit} items. Skipping...")
                 yield ls
@@ -77,14 +75,10 @@ def get_nested_keys(
             # the indices as the keys and then call this function recursively
             if any(isinstance(x, dict) for x in val):
                 val = {
-                    k: v
-                    for k, v in zip(range(len(val)), val, strict=False)
-                    if isinstance(v, dict)
+                    k: v for k, v in zip(range(len(val)), val, strict=False) if isinstance(v, dict)
                 }
                 if len(val) <= iterable_size_limit:
-                    yield from get_nested_keys(
-                        val, ls, iterable_size_limit, check_for_lists
-                    )
+                    yield from get_nested_keys(val, ls, iterable_size_limit, check_for_lists)
                 else:
                     ls.append(f"Over {iterable_size_limit} items. Skipping...")
                     yield ls
@@ -119,9 +113,7 @@ def get_voxel_size(sldy_metadata: dict) -> dict:
     optovar_mag = sldy_metadata["image_record"]["COptovarDef70"]["mMagnification"]
     pixel_size_xy = pixel_sizes_xy / optovar_mag
     # below is the Z-step size
-    pixel_size_z = sldy_metadata["channel_record"]["CExposureRecord70"][0][
-        "mInterplaneSpacing"
-    ]
+    pixel_size_z = sldy_metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
     voxel_size = {"X": pixel_size_xy, "Y": pixel_size_xy, "Z": pixel_size_z}
     return voxel_size
 
@@ -129,9 +121,7 @@ def get_voxel_size(sldy_metadata: dict) -> dict:
 def get_objective_info(sldy_metadata: dict) -> dict:
     """Returns information about the objective used (the magnification and numerical aperture) from the output of the get_sldy_metadata function."""
     objective_info = {
-        "magnification": sldy_metadata["image_record"]["CLensDef70"][
-            "mActualMagnification"
-        ],
+        "magnification": sldy_metadata["image_record"]["CLensDef70"]["mActualMagnification"],
         "numerical_aperture": sldy_metadata["image_record"]["CLensDef70"]["mNA"],
     }
     return objective_info
@@ -140,9 +130,7 @@ def get_objective_info(sldy_metadata: dict) -> dict:
 def get_magnification_changer_info(sldy_metadata: dict) -> dict:
     """Returns information about the mag changer from the output of the get_sldy_metadata function."""
     mag_changer_info = {
-        "magnification_changer": sldy_metadata["image_record"]["COptovarDef70"][
-            "mMagnification"
-        ]
+        "magnification_changer": sldy_metadata["image_record"]["COptovarDef70"]["mMagnification"]
     }
     return mag_changer_info
 
@@ -150,21 +138,12 @@ def get_magnification_changer_info(sldy_metadata: dict) -> dict:
 def get_num_unique_imaging_positions(sldy_metadata: dict) -> int:
     """Returns the number of unique imaging positions from the output of the get_sldy_metadata function."""
     stage_position_dim_order = {
-        dim: i
-        for i, dim in enumerate(
-            sldy_metadata["stage_position_data"]["StructDefMemberName"]
-        )
+        dim: i for i, dim in enumerate(sldy_metadata["stage_position_data"]["StructDefMemberName"])
     }
     stage_position_data = sldy_metadata["stage_position_data"]["StructArrayValues"]
-    stage_position_data = np.reshape(
-        stage_position_data, (-1, len(stage_position_dim_order))
-    )
-    num_horizontal_tiles = len(
-        np.unique(stage_position_data[:, stage_position_dim_order["mX"]])
-    )
-    num_vertical_tiles = len(
-        np.unique(stage_position_data[:, stage_position_dim_order["mY"]])
-    )
+    stage_position_data = np.reshape(stage_position_data, (-1, len(stage_position_dim_order)))
+    num_horizontal_tiles = len(np.unique(stage_position_data[:, stage_position_dim_order["mX"]]))
+    num_vertical_tiles = len(np.unique(stage_position_data[:, stage_position_dim_order["mY"]]))
     num_planes = sldy_metadata["image_record"]["CImageRecord70"]["mNumPlanes"]
     return num_horizontal_tiles * num_vertical_tiles * num_planes
 
@@ -180,27 +159,14 @@ def get_num_timepoints(sldy_metadata: dict) -> int:
     # E.g. a 3x3 tiled timelapse with 10 timepoints would have "90" under the
     # `mNumTimepoints` field.
     stage_position_dim_order = {
-        dim: i
-        for i, dim in enumerate(
-            sldy_metadata["stage_position_data"]["StructDefMemberName"]
-        )
+        dim: i for i, dim in enumerate(sldy_metadata["stage_position_data"]["StructDefMemberName"])
     }
     stage_position_data = sldy_metadata["stage_position_data"]["StructArrayValues"]
-    stage_position_data = np.reshape(
-        stage_position_data, (-1, len(stage_position_dim_order))
-    )
-    num_horizontal_tiles = np.unique(
-        stage_position_data[:, stage_position_dim_order["mX"]]
-    ).size
-    num_vertical_tiles = np.unique(
-        stage_position_data[:, stage_position_dim_order["mY"]]
-    ).size
-    num_positions_acquired = sldy_metadata["image_record"]["CImageRecord70"][
-        "mNumTimepoints"
-    ]
-    num_timepoints = num_positions_acquired / (
-        num_horizontal_tiles * num_vertical_tiles
-    )
+    stage_position_data = np.reshape(stage_position_data, (-1, len(stage_position_dim_order)))
+    num_horizontal_tiles = np.unique(stage_position_data[:, stage_position_dim_order["mX"]]).size
+    num_vertical_tiles = np.unique(stage_position_data[:, stage_position_dim_order["mY"]]).size
+    num_positions_acquired = sldy_metadata["image_record"]["CImageRecord70"]["mNumTimepoints"]
+    num_timepoints = num_positions_acquired / (num_horizontal_tiles * num_vertical_tiles)
     return round(num_timepoints)
 
 
@@ -212,18 +178,13 @@ def get_tiling_percentage_overlap(sldy_metadata: dict) -> dict:
 
     # the dimension order of the stage position data is below
     stage_position_dim_order = {
-        dim: i
-        for i, dim in enumerate(
-            sldy_metadata["stage_position_data"]["StructDefMemberName"]
-        )
+        dim: i for i, dim in enumerate(sldy_metadata["stage_position_data"]["StructDefMemberName"])
     }
     # the stage position data is saved as a 1D array, so we will reshape it
     # using the dimension order above
     # note that the stage position data is kept in physical units (i.e. microns)
     stage_position_data = sldy_metadata["stage_position_data"]["StructArrayValues"][:18]
-    stage_position_data = np.reshape(
-        stage_position_data, (-1, len(stage_position_dim_order))
-    )
+    stage_position_data = np.reshape(stage_position_data, (-1, len(stage_position_dim_order)))
 
     # next we will calculate the amount that the FOV shifts in X and Y
     # between each acquisition. This should let us figure out the overlap.
@@ -245,14 +206,10 @@ def get_tiling_percentage_overlap(sldy_metadata: dict) -> dict:
 
     # calculate the percentage overlap:
     percent_overlap_x = np.unique(
-        np.round(
-            100 * (1 - abs(stage_increments_x / fov_width_physical_size)), decimals=1
-        )
+        np.round(100 * (1 - abs(stage_increments_x / fov_width_physical_size)), decimals=1)
     )
     percent_overlap_y = np.unique(
-        np.round(
-            100 * (1 - abs(stage_increments_y / fov_height_physical_size)), decimals=1
-        )
+        np.round(100 * (1 - abs(stage_increments_y / fov_height_physical_size)), decimals=1)
     )
     return {
         "overlap_in_X": int(*percent_overlap_x),
@@ -263,21 +220,12 @@ def get_tiling_percentage_overlap(sldy_metadata: dict) -> dict:
 def get_tiling_arrangement(sldy_metadata: dict) -> dict:
     """Returns the number of tiles in X and Y from the output of the get_sldy_metadata function."""
     stage_position_dim_order = {
-        dim: i
-        for i, dim in enumerate(
-            sldy_metadata["stage_position_data"]["StructDefMemberName"]
-        )
+        dim: i for i, dim in enumerate(sldy_metadata["stage_position_data"]["StructDefMemberName"])
     }
     stage_position_data = sldy_metadata["stage_position_data"]["StructArrayValues"]
-    stage_position_data = np.reshape(
-        stage_position_data, (-1, len(stage_position_dim_order))
-    )
-    num_horizontal_tiles = len(
-        np.unique(stage_position_data[:, stage_position_dim_order["mX"]])
-    )
-    num_vertical_tiles = len(
-        np.unique(stage_position_data[:, stage_position_dim_order["mY"]])
-    )
+    stage_position_data = np.reshape(stage_position_data, (-1, len(stage_position_dim_order)))
+    num_horizontal_tiles = len(np.unique(stage_position_data[:, stage_position_dim_order["mX"]]))
+    num_vertical_tiles = len(np.unique(stage_position_data[:, stage_position_dim_order["mY"]]))
     # num_planes = sldy_metadata['image_record']['CImageRecord70']['mNumPlanes']
     return {
         "number_of_tiles_in_X": num_horizontal_tiles,
@@ -304,9 +252,7 @@ def get_imaging_date(sldy_metadata: dict) -> dict:
 
 
 # TODO: find out how to tell if a channel has fluorescence or brightfield and adjust excitation and emission accordingly
-def get_channel_name(
-    sldy_metadata: dict, return_unprocessed_string: bool = False
-) -> list:
+def get_channel_name(sldy_metadata: dict, return_unprocessed_string: bool = False) -> list:
     """
     Returns the name of each channel from the output of the get_sldy_metadata function.
     NOTE: Channel names may need further processing to remove extraneous characters if
@@ -317,9 +263,7 @@ def get_channel_name(
         for i in range(sldy_metadata["image_record"]["CImageRecord70"]["mNumChannels"])
     ]
     channel_names = (
-        channel_names
-        if return_unprocessed_string
-        else [x.split("_#32;")[0] for x in channel_names]
+        channel_names if return_unprocessed_string else [x.split("_#32;")[0] for x in channel_names]
     )
     return channel_names
 
@@ -371,9 +315,7 @@ def get_exposure_time(sldy_metadata: dict) -> dict[str, int]:
     """
     channel_names = get_channel_name(sldy_metadata)
     exposure_times = {
-        chan: int(
-            sldy_metadata["channel_record"]["CExposureRecord70"][i]["mExposureTime"]
-        )
+        chan: int(sldy_metadata["channel_record"]["CExposureRecord70"][i]["mExposureTime"])
         for i, chan in enumerate(channel_names)
     }
     return exposure_times
@@ -396,9 +338,7 @@ def get_time_intervals(sldy_metadata: dict, units: str = "msec") -> dict[str, fl
         "hr": 60 * 60 * 1000,
     }
     time_intervals = {
-        chan: sldy_metadata["channel_record"]["CExposureRecord70"][i][
-            "mTimeLapseInterval"
-        ]
+        chan: sldy_metadata["channel_record"]["CExposureRecord70"][i]["mTimeLapseInterval"]
         for i, chan in enumerate(channel_names)
     }
     time_intervals = {
@@ -468,9 +408,7 @@ def sldy_metadata_to_df(
             "excitation wavelengths (nm)": tuple(
                 excitation_wavelengths[nm] for nm in channel_names
             ),
-            "emission wavelengths": tuple(
-                emission_wavelengths[nm] for nm in channel_names
-            ),
+            "emission wavelengths": tuple(emission_wavelengths[nm] for nm in channel_names),
             "exposure times (ms)": tuple(exposure_times[nm] for nm in channel_names),
             "time intervals (s)": tuple(time_intervals[nm] for nm in channel_names),
         }
@@ -485,9 +423,7 @@ def sldy_metadata_to_df(
     return metadata_df
 
 
-def all_sldy_metadata_to_tsv(
-    save_dir: str | Path | None = None, verbose: bool = True
-) -> None:
+def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool = True) -> None:
     """
     This function will save the metadata for all of our .sldy files
     currently listed in the cellsmap repos config_data.yaml file as a
@@ -507,9 +443,7 @@ def all_sldy_metadata_to_tsv(
     dataset_name_list = get_available_datasets()
     print("\n")
     datasets_3i = [
-        name
-        for name in dataset_name_list
-        if get_dataset_info(name)["microscope"] == "3i"
+        name for name in dataset_name_list if get_dataset_info(name)["microscope"] == "3i"
     ]
 
     # Create the folder where the metadata will be saved if it
@@ -548,10 +482,7 @@ def get_test_of_metadata() -> tuple[dict, list]:
         "aaa": {"bbb": {"ccc": {"ddd1": 1, "ddd2": 2, "ddd3": 3}}},
     }
     md_keys = [
-        x
-        for x in get_nested_keys(
-            md_test, ls=[], iterable_size_limit=10, check_for_lists=True
-        )
+        x for x in get_nested_keys(md_test, ls=[], iterable_size_limit=10, check_for_lists=True)
     ]
     return md_test, md_keys
 
@@ -569,12 +500,7 @@ def show_example_usage() -> None:
     metadata = get_example_metadata()
     print("What are the keys / headers in the metadata?")
     print(
-        [
-            x
-            for x in get_nested_keys(
-                metadata, ls=[], iterable_size_limit=50, check_for_lists=True
-            )
-        ]
+        [x for x in get_nested_keys(metadata, ls=[], iterable_size_limit=50, check_for_lists=True)]
     )
 
     print("What is the magnification of the objective used to collect these images?")

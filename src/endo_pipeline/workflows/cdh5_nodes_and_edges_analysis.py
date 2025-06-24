@@ -6,7 +6,7 @@ import pandas as pd
 from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
-from cellsmap.util.dataset_io import (
+from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
@@ -54,9 +54,7 @@ def main(
     for dataset_name in dataset_name_list:
         # create some paths of interest
         SCT_NAME = Path(__file__).stem
-        PRJ_DIR = (
-            Path("../").resolve() if not is_test else Path("../../tests").resolve()
-        )
+        PRJ_DIR = Path("../").resolve() if not is_test else Path("../../tests").resolve()
         assert PRJ_DIR.exists()
         data_path_angles_and_dists = (
             PRJ_DIR
@@ -86,12 +84,8 @@ def main(
         ].transform(lambda x: np.rad2deg(x))
         # images are acquired every 5 minutes, i.e. 1 hour passes every 12 acquisitions
         t_res_hrs = 1 / 12
-        df_ang_dist["Time (hours)"] = df_ang_dist["T"].transform(
-            lambda x: x * t_res_hrs
-        )
-        df_segprops["Time (hours)"] = df_segprops["T"].transform(
-            lambda x: x * t_res_hrs
-        )
+        df_ang_dist["Time (hours)"] = df_ang_dist["T"].transform(lambda x: x * t_res_hrs)
+        df_segprops["Time (hours)"] = df_segprops["T"].transform(lambda x: x * t_res_hrs)
 
         # the orientation is initially relative to the vertical and ranges from -np.pi/2
         # to np.pi/2 so we need to restrict it to 0 to np.pi/2 with abs() and then shift
@@ -119,19 +113,13 @@ def main(
             df_ang_dist[col_name] = df_ang_dist[col_name].transform(
                 lambda x: stringified_floatlist_to_floatlist(x, to_tuple=False)
             )
-            df_ang_dist[col_name + "_count"] = df_ang_dist[col_name].transform(
-                lambda x: len(x)
-            )
-            df_ang_dist[col_name] = df_ang_dist[col_name].transform(
-                lambda x: np.mean(x)
-            )
+            df_ang_dist[col_name + "_count"] = df_ang_dist[col_name].transform(lambda x: len(x))
+            df_ang_dist[col_name] = df_ang_dist[col_name].transform(lambda x: np.mean(x))
 
         # the + 2  added to the edge_length is a conservative approximation for the length that was
         # missed by not being able to include the distance from the nodes to the ends of the first
         # pixel in the edge lengths
-        df_ang_dist["edge_length (px)"] = df_ang_dist["edge_length (px)"].transform(
-            lambda x: x + 2
-        )
+        df_ang_dist["edge_length (px)"] = df_ang_dist["edge_length (px)"].transform(lambda x: x + 2)
         df_ang_dist["normalized_node-node_distance"] = (
             df_ang_dist["edge_length (px)"] / df_ang_dist["node_to_node_distance"]
         )
@@ -152,9 +140,7 @@ def main(
         df_ang_dist_summary.columns = flat_col_names
         df_ang_dist_summary.reset_index(inplace=True)
         if save_output:
-            df_ang_dist_summary.to_csv(
-                out_dir / f"{dataset_name}_alignments_summary.csv"
-            )
+            df_ang_dist_summary.to_csv(out_dir / f"{dataset_name}_alignments_summary.csv")
 
         df_segprops_summary = df_segprops.groupby(["Time (hours)", "T"])[
             [
@@ -223,9 +209,7 @@ def main(
             plot_paths = sorted(
                 [
                     filepath
-                    for filepath in Path.glob(
-                        out_dir_plots / "angles_vs_dists_polar", "*.tif"
-                    )
+                    for filepath in Path.glob(out_dir_plots / "angles_vs_dists_polar", "*.tif")
                 ],
                 key=lambda fp: preproc.extract_T(fp.stem, use_last_match=True),
             )

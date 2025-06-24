@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.util.dataset_io import get_model_info, update_dataset_config
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import get_model_info, update_dataset_config
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash

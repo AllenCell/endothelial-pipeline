@@ -8,7 +8,7 @@ from skimage.morphology import skeletonize
 from skimage.segmentation import find_boundaries
 from skimage.transform import pyramid_reduce
 
-from cellsmap.util.dataset_io import (
+from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_available_channels,
     get_dataset_duration_in_frames,
@@ -24,9 +24,7 @@ from src.endo_pipeline.library.process.cdh5_preprocessing import (
     get_thresholds,
     preprocess,
 )
-from src.endo_pipeline.library.process.general_image_preprocessing import (
-    save_image_output,
-)
+from src.endo_pipeline.library.process.general_image_preprocessing import save_image_output
 
 mpl.rc("image", cmap="gray")
 from multiprocessing import Pool
@@ -95,9 +93,7 @@ def get_density_map_from_thresholds(
         density_map: the density map (values are floats and should range from 0 to 1).
     """
 
-    DATASET_NAME_LIST = [
-        config_data["name"] for config_data in load_config(config_type="data")
-    ]
+    DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
         dataset_name in DATASET_NAME_LIST
     ), f"dataset_name must be one of {DATASET_NAME_LIST}, not {dataset_name}"
@@ -105,14 +101,10 @@ def get_density_map_from_thresholds(
     print(f"T={T} -- loading dataset") if VERBOSE else None
     # get the binning levels of the dataset so we can always use the lowest resolution
     dataset_filepath = Path(get_zarr_path(dataset_name))
-    img_bin_level = sorted(
-        [level for level in BioImage(dataset_filepath).resolution_levels]
-    )[-1]
+    img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
     # get the name of the cadherin channel
     chan_names = [
-        name
-        for name in get_available_channels(dataset_name)
-        if name in ("CDH5", "CDH5_Tubulin")
+        name for name in get_available_channels(dataset_name) if name in ("CDH5", "CDH5_Tubulin")
     ]
     # load the raw image data of from the cadherin channel
     raw_arr = (
@@ -147,35 +139,23 @@ def get_density_map_from_thresholds(
 def get_density_map_from_segmentations(
     dataset_name: str, T: int, density_map_sigma: float = 160, VERBOSE: bool = False
 ) -> np.ndarray:
-    DATASET_NAME_LIST = [
-        config_data["name"] for config_data in load_config(config_type="data")
-    ]
+    DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
         dataset_name in DATASET_NAME_LIST
     ), f"dataset_name must be one of {DATASET_NAME_LIST}, not {dataset_name}"
     # get the lowest resolution binning level of the dataset so we can downsample the
     # classic cdh5 segmentations (which are done on the native resolution)
     dataset_filepath = Path(get_zarr_path(dataset_name))
-    img_bin_level = sorted(
-        [level for level in BioImage(dataset_filepath).resolution_levels]
-    )[-1]
+    img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
 
     print(f"T={T} -- loading segmentation") if VERBOSE else None
     image_filepaths = get_cdh5_classic_segmentation_paths(dataset_name, sort_paths=True)
-    image_filepath = Path(
-        str(*[fp for fp in image_filepaths if extract_T(fp.name) == T])
-    )
+    image_filepath = Path(str(*[fp for fp in image_filepaths if extract_T(fp.name) == T]))
     segmentation_channel = get_chan_map(image_filepath)["segmentations_merged"]
-    seg = (
-        BioImage(image_filepath)
-        .get_image_data("TCYX", C=segmentation_channel)
-        .squeeze()
-    )
+    seg = BioImage(image_filepath).get_image_data("TCYX", C=segmentation_channel).squeeze()
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None
-    seg_borders = pyramid_reduce(
-        skeletonize(find_boundaries(seg)), downscale=2**img_bin_level
-    )
+    seg_borders = pyramid_reduce(skeletonize(find_boundaries(seg)), downscale=2**img_bin_level)
     density_map = gaussian(seg_borders, sigma=density_map_sigma)
 
     return density_map
@@ -196,9 +176,7 @@ def run_density_workflow(
 
     print(f"Working on {dataset_name}, T={T}...")
     print("- getting density map...") if VERBOSE else None
-    density_map = get_density_map_from_thresholds(
-        dataset_name, T, density_map_sigma, VERBOSE
-    )
+    density_map = get_density_map_from_thresholds(dataset_name, T, density_map_sigma, VERBOSE)
 
     data_type = np.uint16
     density_map = (density_map * np.iinfo(data_type).max).astype(data_type)
@@ -279,9 +257,7 @@ def main(
                 with Pool(processes=n_proc) as pool:
                     list(
                         tqdm(
-                            pool.imap(
-                                multiproc_workflow, analysis_args_queue, chunksize=5
-                            ),
+                            pool.imap(multiproc_workflow, analysis_args_queue, chunksize=5),
                             total=len(analysis_args_queue),
                         )
                     )

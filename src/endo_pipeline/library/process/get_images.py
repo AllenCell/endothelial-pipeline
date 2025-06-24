@@ -4,7 +4,7 @@ from typing import Literal
 import dask.array as da
 from bioio import BioImage
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 
 
 def get_zarr_img_for_dataset(

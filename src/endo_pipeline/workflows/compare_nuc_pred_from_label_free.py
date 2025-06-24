@@ -17,8 +17,8 @@ from skimage.measure import label
 from skimage.morphology import dilation, disk
 from skimage.segmentation import watershed
 
-from cellsmap.util import dataset_io
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
 
 # NOTE

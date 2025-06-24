@@ -3,7 +3,7 @@ from typing import Any
 import dask.array as da
 from bioio import BioImage
 
-from cellsmap.util.dataset_io import (
+from src.endo_pipeline.configs.dataset_io import (
     get_dataset_info,
     get_original_path,
     get_specific_channel_order,
