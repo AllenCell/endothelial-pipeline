@@ -213,9 +213,8 @@ def apply_model(
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if regex:
-        dataset_names = [
-            name for name in get_available_datasets(verbose=False) if re.search(regex, name)
-        ]
+        all_datasets = get_available_datasets()
+        dataset_names = [name for name in all_datasets if re.search(regex, name)]
         print(f"Found {dataset_names} matching regex '{regex}'")
     else:
         if dataset_names == "reference":

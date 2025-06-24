@@ -154,7 +154,7 @@ def list_datasets_with_manifest(
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_config.get_available_datasets(verbose=False)
+    all_datasets = dataset_config.get_available_datasets()
 
     if verbose:
         manifest_type = (
