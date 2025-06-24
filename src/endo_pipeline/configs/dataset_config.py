@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from mashumaro.codecs.yaml import YAMLDecoder
+import yaml
+from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 from mashumaro.config import BaseConfig
 
 logger = logging.getLogger(__name__)
@@ -204,6 +205,23 @@ def load_single_dataset(dataset_name: str) -> DatasetConfig | None:
     else:
         logger.info("Loaded dataset [ %s ]", dataset_name)
         return YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+
+
+def save_dataset_config(dataset: DatasetConfig) -> None:
+    """Save dataset config to config directory."""
+
+    config_dir = get_config_dir()
+    config_file = config_dir / "datasets" / f"{dataset.name}.yaml"
+
+    def yaml_encoder(data):
+        list_representer = lambda dumper, data: dumper.represent_sequence(
+            "tag:yaml.org,2002:seq", data, flow_style=True
+        )
+        yaml.SafeDumper.add_representer(list, list_representer)
+        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+    content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)
+    config_file.write_text(content)
 
 
 if __name__ == "__main__":
