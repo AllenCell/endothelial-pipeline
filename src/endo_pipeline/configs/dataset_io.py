@@ -78,6 +78,7 @@ def combine_data_config(save: bool = False) -> dict:
 
 
 def load_config(config_type: str = "data") -> dict[Any, Any]:
+    """Load configuration from YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
 
@@ -94,6 +95,7 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
 
 
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
+    """Write configuration to YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
@@ -135,6 +137,7 @@ def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None
 
 # dataset methods
 def get_available_datasets(verbose: bool = True) -> list[str]:
+    """Get a list of available datasets from the config file."""
     cfg = load_config("data")
     datasets = list(cfg.keys())
     if verbose:
@@ -143,6 +146,7 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
 
 
 def get_reference_datasets() -> list[str]:
+    """Get a list of reference datasets for PCA from the config file."""
     return [
         name
         for name in get_available_datasets(verbose=False)
@@ -151,6 +155,7 @@ def get_reference_datasets() -> list[str]:
 
 
 def get_dataset_info(dataset_name: str) -> dict[str, Any]:
+    """Load specific dataset information from the config file."""
     config = load_config()
     if dataset_name not in config:
         raise ValueError(f"Dataset {dataset_name} not found in config file")
@@ -158,26 +163,30 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
 
 
 def get_frame(filename: str) -> int:
+    """Get frame number from filename"""
     return int(str(filename).split(".")[0][-4:])
 
 
-def get_flow(dataset_name: str, T: float) -> int | float:
+def get_flow(dataset_name: str, frame_number: float) -> int | float:
     """
+    Get shear stress level at frame frame_number from the data config.
+
     Parameters
     ----------
-        T: the time at which to get the flow value.
+        frame_number: the time at which to get the flow value.
 
     Returns
     -------
-        flow: the flow value at time T in dyn/cm^2.
+        flow: the flow value at time frame_number in dyn/cm^2.
     """
     dataset_info = get_dataset_info(dataset_name)
     flow_info = dataset_info["flow"]
-    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= T < t_stop]
+    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= frame_number < t_stop]
     return int(flows[0]) if flows else np.nan
 
 
 def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
+    """Get flow information in frames for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
     flow_info = dataset_info["flow"]
     flow_in_frames = [
@@ -192,6 +201,7 @@ def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
 
 
 def get_zarr_dir(dataset_name: str) -> str:
+    """Get the directory path for the zarr files of a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["zarr_path"]
 
@@ -200,6 +210,7 @@ def get_zarr_path(
     dataset_name: str,
     zarr_name: str | None | None = None,
 ) -> dict[str, str]:
+    """Get the zarr file paths for a given dataset."""
     data_dir = get_zarr_dir(dataset_name)
     zarr_paths = {}
     if zarr_name:
@@ -218,6 +229,7 @@ def get_zarr_path(
 def get_available_channels(
     dataset_name: str, zarr_name: str | None | None = None
 ) -> dict[str, list[str]]:
+    """Get the available channels for a given dataset."""
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_names = {}
     for filename, filepath in zarr_paths.items():
@@ -229,6 +241,7 @@ def get_available_channels(
 def get_channel_index(
     dataset_name: str, channel_names: list[str], zarr_name: str | None | None = None
 ) -> dict[str, list[int | None]]:
+    """Get the indices of specified channels in the dataset."""
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_indices = {}
     for filename in zarr_paths.keys():
@@ -261,6 +274,7 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
 
 
 def get_specific_channel_order(dataset_name: str) -> tuple:
+    """Get the specific channel order for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
     gfp_index = dataset_info.get("channel_488_index")
     bf_index = dataset_info.get("brightfield_channel_index")
@@ -273,7 +287,9 @@ def get_specific_channel_order(dataset_name: str) -> tuple:
 
 def get_total_number_of_positions(dataset_name: str) -> int:
     """
-    N positions is the product of n_scenes x n_positions_per_scene
+    Get the total number of positions in a dataset.
+
+    Number of positions is the product of n_scenes x n_positions_per_scene
     """
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["n_total_positions"]
@@ -287,6 +303,7 @@ def load_dataset(
     level: int = 0,
     zarr_name: str | None = None,
 ) -> dict[str, dask.array.Array]:
+    """Load a dataset as a dictionary of Dask arrays."""
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     dataset = {}
 
@@ -316,6 +333,8 @@ def load_dataset_position_as_dask_array(
     level: int = 0,
 ) -> dask.array.Array:
     """
+    Load a specific position of a dataset as a Dask array.
+
     Position can be either an integer or a string.
     If it is a string then it must the name of a zarr file found in
     dataset (e.g. a folder ending with the .ome.zarr extension).
