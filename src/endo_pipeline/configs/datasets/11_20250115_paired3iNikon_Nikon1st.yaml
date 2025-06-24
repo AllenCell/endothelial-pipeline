@@ -1,0 +1,21 @@
+name: 20250115_paired3iNikon_Nikon1st
+original_path: //allen/programs/allencell/data/proj0/40b/cc6/524/bbf/d29/e6b/b41/e8e/6f5/86d/2b/GE00006393_20250115_endo_imaged_on_nikon_first_piezo.nd2
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250115_2b86d6f5e8eb41e6bd29bbf524cc640b
+fmsid: 2b86d6f5e8eb41e6bd29bbf524cc640b
+barcode: GE00006393
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+microscope: Nikon
+shear_stress_regime: 24hr_low-to-24hr_high
+use_cases: [feasibility]
+pixel_size_xy_in_um: 0.325
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, 288, 6.51], [289, 576, 29.9], [576, 579, 0]]
+channel_488_index: 0
+brightfield_channel_index: 1
+n_total_positions: 1
+notes: ''
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: ''
