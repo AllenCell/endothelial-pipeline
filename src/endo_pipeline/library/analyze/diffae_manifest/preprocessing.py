@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs.dataset_config import load_single_dataset
 from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
 
 
@@ -53,7 +53,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
     # initialize dictionary to store descriptions
     description_dic = {}
     for name in list_of_datasets:
-        data_config = dataset_io.get_dataset_info(name)  # get dataset info from data_config.yaml
+        data_config = load_single_dataset(name)  # get dataset info from data_config.yaml
 
         flow_config = data_config["flow"]  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
