@@ -10,6 +10,7 @@ import pandas as pd
 import torch
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
+from cyto_dl.api import CytoDLModel
 from monai.inferers import SlidingWindowSplitter
 from skimage import transform as tf
 from skimage.exposure import rescale_intensity

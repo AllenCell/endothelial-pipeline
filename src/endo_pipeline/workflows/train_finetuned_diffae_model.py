@@ -6,10 +6,7 @@ from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.dataset_io import get_model_info
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.diffae_model.mlflow import (
-    download_mlflow_artifact,
-    get_ckpt_path,
-)
+from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, get_ckpt_path
 
 
 def _generate_overrides(
@@ -77,9 +74,7 @@ def main(
         Additional overrides for the training configuration. This can include any parameters that can be set in the config file, such as learning rate, batch size, etc.
     """
     save_dir = Path(
-        get_output_path(
-            f"finetune_paired_dataset/finetune_{model_name}_on_{dataset_type}"
-        )
+        get_output_path(f"finetune_paired_dataset/finetune_{model_name}_on_{dataset_type}")
     )
 
     manifest_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
