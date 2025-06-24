@@ -1,0 +1,26 @@
+name: 20250428_20X
+original_path: //allen/programs/allencell/data/proj0/edd/2f7/355/756/836/cd9/f4c/ba9/027/6aa/05/20250428_GE00007803_20X_sldy/20250428_GE00007803_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250428_056aa027ba9f4ccd98367563552f7edd
+fmsid: 056aa027ba9f4ccd98367563552f7edd
+barcode: GE00007803
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+microscope: 3i
+shear_stress_regime: intermediate
+use_cases: []
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[0, 577, 8.60]]
+channel_488_index: 0
+brightfield_channel_index: 1
+n_total_positions: 6
+notes: This is an intermediate flow dataset. There cells are very crowded by the end of the movie.
+valid_timepoints:
+  start: [217]
+  stop: [351]
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: null
+diffae_manifest_fmsid: ''
+tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: null
