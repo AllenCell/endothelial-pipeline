@@ -4,8 +4,8 @@ from typing import Any, Literal
 import fire
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.util.dataset_io import get_model_info
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import get_model_info
 from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, get_ckpt_path
 
 

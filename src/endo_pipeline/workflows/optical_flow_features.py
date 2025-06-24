@@ -6,11 +6,11 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.projections.polar import PolarAxes
 from pandas import DataFrame
 
-from cellsmap.util.dataset_io import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     load_dataset_position_as_dask_array,
 )
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.analyze import optical_flow_calculator
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
@@ -18,12 +18,8 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 
 # %% Make list of datasets to analzye
-dataset_name_list = fire_parse_generate_dataset_name_list(
-    fire_dataset_name_input="20241016_20X"
-)
-position = (
-    0  # NOTE PLACEHOLDER. WORKFLOW SHOULD BECOME MAIN() WITH position AS AN ARGUMENT
-)
+dataset_name_list = fire_parse_generate_dataset_name_list(fire_dataset_name_input="20241016_20X")
+position = 0  # NOTE PLACEHOLDER. WORKFLOW SHOULD BECOME MAIN() WITH position AS AN ARGUMENT
 
 debug = True
 ncores = 1  # 30
@@ -59,9 +55,9 @@ if __name__ == "__main__":
             out_path_list.append(out_path)
 
 # %% Save the locations of the outputs
-DataFrame(
-    {"dataset_name": dataset_name_list, "vector_field_image_paths": out_path_list}
-).to_csv(out_dir / "vector_field_image_paths.csv", index=False)
+DataFrame({"dataset_name": dataset_name_list, "vector_field_image_paths": out_path_list}).to_csv(
+    out_dir / "vector_field_image_paths.csv", index=False
+)
 
 
 import matplotlib.pyplot as plt
@@ -86,8 +82,7 @@ for dataset_name in dataset_list:
     image_paths = optical_flow_calculator.get_vector_field_image_paths(out_dir)
     im_path = image_paths[dataset_name]
     chan_map = {
-        img.channel_names: i
-        for i, img.channel_names in enumerate(BioImage(im_path).channel_names)
+        img.channel_names: i for i, img.channel_names in enumerate(BioImage(im_path).channel_names)
     }
     print(f"The channel names and their indices are: {chan_map}")
 
@@ -147,24 +142,15 @@ for dataset_name in dataset_list:
         dataset_name, position, channels=["EGFP"], level=level
     )
     img = img.max(axis=dim_map["Z"], keepdims=False)
-    rois_future = [
-        (slice(r[0].start + delta_t, r[0].stop + delta_t), *r[1:]) for r in rois
-    ]
+    rois_future = [(slice(r[0].start + delta_t, r[0].stop + delta_t), *r[1:]) for r in rois]
     crops = [
-        np.stack(
-            [img[rois[i]], img[rois_future[i]], np.zeros_like(img[rois[i]])], axis=-1
-        )
+        np.stack([img[rois[i]], img[rois_future[i]], np.zeros_like(img[rois[i]])], axis=-1)
         for i in range(len(rois))
     ]
     crops_in_memory = [c.compute() for c in crops]
-    crops_in_memory = [
-        rescale_intensity(c, out_range=np.uint8) for c in crops_in_memory
-    ]
+    crops_in_memory = [rescale_intensity(c, out_range=np.uint8) for c in crops_in_memory]
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-    [
-        ax.imshow(crops_in_memory[i][0, 0, ...], cmap="gray")
-        for i, ax in enumerate(axs.flatten())
-    ]
+    [ax.imshow(crops_in_memory[i][0, 0, ...], cmap="gray") for i, ax in enumerate(axs.flatten())]
     [ax.axis("off") for i, ax in enumerate(axs.flatten())]
     fig.suptitle("CDH5 from random crops (red = t, green = t + delta_t)", size=20)
     plt.tight_layout()
@@ -196,18 +182,12 @@ for dataset_name in dataset_list:
         for img, vx, vy in zip(img_crops, vx_crops, vy_crops, strict=False)
     ]
 
-    rois_as_titles = [
-        list(zip(*[(slc.start, slc.stop) for slc in r], strict=False)) for r in rois
-    ]
-    fig, axs = plt.subplots(
-        nrows=nrows, ncols=ncols, figsize=[d * 1.5 for d in figsize]
-    )
+    rois_as_titles = [list(zip(*[(slc.start, slc.stop) for slc in r], strict=False)) for r in rois]
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=[d * 1.5 for d in figsize])
     [ax.imshow(flow_graphs[i], cmap="gray") for i, ax in enumerate(axs.flatten())]
     [ax.axis("off") for i, ax in enumerate(axs.flatten())]
     [
-        ax.set_title(
-            f"roi start: {rois_as_titles[i][0]}\nroi stop:{rois_as_titles[i][1]}"
-        )
+        ax.set_title(f"roi start: {rois_as_titles[i][0]}\nroi stop:{rois_as_titles[i][1]}")
         for i, ax in enumerate(axs.flatten())
     ]
     fig.suptitle("Flow fields", size=20)
@@ -266,9 +246,7 @@ crops_in_memory = [c.compute() for c in crops]
 # they are conspicuous features of the vector field map
 features = pd.DataFrame(
     [
-        optical_flow_calculator.FlowCalculator.get_features_from_vector_field_image(
-            crop, chan_map
-        )
+        optical_flow_calculator.FlowCalculator.get_features_from_vector_field_image(crop, chan_map)
         for crop in crops_in_memory
     ]
 )
@@ -311,16 +289,12 @@ features_and_pcs = pd.concat([analysis_info, feats_proj, features], axis="column
 # get example crops from each quadrant
 pc_points = features_and_pcs[[0, 1]].to_numpy()
 quadrants_origin = np.mean(pc_points, axis=0)
-quadrant_means = optical_flow_calculator.get_quadrant_means(
-    pc_points, origin=quadrants_origin
-)
+quadrant_means = optical_flow_calculator.get_quadrant_means(pc_points, origin=quadrants_origin)
 quadrant_colors = ["tab:blue", "tab:orange", "tab:green", "tab:purple"]
 example_points = {}
 for i, quad_mean in enumerate(quadrant_means):
-    example_point, example_index = (
-        optical_flow_calculator.get_point_closest_to_reference_point(
-            pc_points, reference_point=quad_mean
-        )
+    example_point, example_index = optical_flow_calculator.get_point_closest_to_reference_point(
+        pc_points, reference_point=quad_mean
     )
     example_crop = features_and_pcs.iloc[example_index]
     # ensure that the example crop is using the correct points from example_pt
@@ -335,9 +309,7 @@ for i, quad_mean in enumerate(quadrant_means):
 
 # %% 5. Plot two PCs and the example crops from each of the 4 quadrants
 # load the cdh5 channel of the dataset in the crop region
-img = load_dataset_position_as_dask_array(
-    dataset_name, position, channels=["EGFP"], level=level
-)
+img = load_dataset_position_as_dask_array(dataset_name, position, channels=["EGFP"], level=level)
 img = img.max(axis=dim_map["Z"], keepdims=False)
 
 # Use the loaded raw image and vector information and the features and pcs dataframe to create
@@ -376,18 +348,14 @@ for i in range(num_crops_to_plot):
 
 # %% Below are some tests:
 # first, a quick test of the divergence and curl functions:
-diverg_curl_test = (
-    optical_flow_calculator.get_divergence_curl_example()
-)  # vector field example
+diverg_curl_test = optical_flow_calculator.get_divergence_curl_example()  # vector field example
 
 # %% Create some synthetic data to test the above vector field plotting:
 synth_img = optical_flow_calculator.generate_synthetic_data()
 
 # %% compute flow vectors from the synthetic data
 flow_graphs, vx, vy, mean_angle_deg, mean_mag = (
-    optical_flow_calculator.compute_synthetic_image_flow_vectors_and_summarize(
-        synth_img, delta_t=1
-    )
+    optical_flow_calculator.compute_synthetic_image_flow_vectors_and_summarize(synth_img, delta_t=1)
 )
 
 # %% Get flow fields from first timepoint of synthetic data

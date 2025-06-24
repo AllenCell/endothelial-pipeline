@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 from skimage.measure import label, regionprops
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
 from src.endo_pipeline.workflows import cdh5_seg_density_map as cellsden
 
@@ -14,22 +14,16 @@ from src.endo_pipeline.workflows import cdh5_seg_density_map as cellsden
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
-def evaluate_density_against_number_of_nuclei(
-    dataset_name, T, bbox_radius=256, nsamples=1000
-):
+def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, nsamples=1000):
     np.random.seed(666)
     # The density maps from thresholds and segmentations are comparable form my test on dataset 20240305_T01_001
     # dmap = cellsden.get_density_map_from_segmentations(dataset_name, T, density_map_sigma=10)
-    dmap = cellsden.get_density_map_from_thresholds(
-        dataset_name, T, density_map_sigma=40
-    )
+    dmap = cellsden.get_density_map_from_thresholds(dataset_name, T, density_map_sigma=40)
     nuc_seg = dataset_io.load_dataset(
         dataset_name, channels=["Nuc_Seg"], time_start=T, time_end=T, level=0
     ).squeeze()
     region_seg = np.array(
-        *preproc.get_cdh5_classic_segmentation(
-            dataset_name, T, channels=["segmentations_merged"]
-        )
+        *preproc.get_cdh5_classic_segmentation(dataset_name, T, channels=["segmentations_merged"])
     ).squeeze()
     nuc_seg = nuc_seg.compute().astype(int)
     df = []
@@ -112,9 +106,7 @@ for dataset_name in dataset_name_list:
     master_table = pd.concat([pd.read_csv(fp) for fp in table_paths])
 
     fig, ax = plt.subplots(figsize=(8, 6), ncols=1, nrows=1)
-    sns.lineplot(
-        x="T", y="pearson_nuclei", data=master_table, ls="-", marker="o", ax=ax
-    )
+    sns.lineplot(x="T", y="pearson_nuclei", data=master_table, ls="-", marker="o", ax=ax)
     ax2 = ax.twinx()
     sns.lineplot(
         x="T",

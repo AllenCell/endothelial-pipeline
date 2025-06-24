@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import dataset_io, manifest_io
-from cellsmap.util.dataset_io import get_valid_timepoints
+from cellsmap.util import manifest_io
+from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
 
 
 def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False) -> pd.DataFrame:

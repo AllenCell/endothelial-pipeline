@@ -1,8 +1,8 @@
 import argparse
 from pathlib import Path
 
-from cellsmap.util.dataset_io import get_cdh5_classic_segmentation_path
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import get_cdh5_classic_segmentation_path
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )

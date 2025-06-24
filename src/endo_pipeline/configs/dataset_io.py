@@ -15,7 +15,8 @@ try:
 except ModuleNotFoundError:
     pass
 import re
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Sequence
+from typing import Any, Literal
 
 import fire
 
@@ -23,7 +24,7 @@ import fire
 def get_config_dir() -> Path:
     """Get path to the config directory."""
 
-    return Path(__file__).resolve().parents[1] / "configs"
+    return Path(__file__).resolve().parents[0]
 
 
 def save_to_yaml(object: dict, path: Path) -> None:
@@ -77,6 +78,7 @@ def combine_data_config(save: bool = False) -> dict:
 
 
 def load_config(config_type: str = "data") -> dict[Any, Any]:
+    """Load configuration from YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
 
@@ -85,31 +87,15 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     if config_type == "data":
         return combine_data_config()
 
-    parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f"{config_type}_config.yaml"
-    with open(config_file, "r") as file:
+    config_dir = get_config_dir()
+    config_file = config_dir / f"{config_type}_config.yaml"
+    with open(config_file) as file:
         config_data = yaml.safe_load(file)
     return config_data
 
 
-def load_config_src(config_type: str = "data") -> list[dict[Any, Any]]:
-    """
-    Load config file from new location in
-    src/endo_pipeline/configs/.
-    This function will become deprecated in the future
-    when we update this module to be compatible with
-    the new repo structure.
-    """
-    if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
-    parent_folder = Path(__file__).resolve().parents[2]
-    config_file = parent_folder / f"src/endo_pipeline/configs/{config_type}_config.yaml"
-    with open(config_file, "r") as file:
-        config_data = yaml.safe_load(file)
-    return config_data
-
-
-def write_config(config: Dict[str, Dict[str, Any]], config_type: str = "data") -> None:
+def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
+    """Write configuration to YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
         raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
@@ -133,7 +119,7 @@ def write_config(config: Dict[str, Dict[str, Any]], config_type: str = "data") -
         config_file.unlink()
 
 
-def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None:
+def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
     """
     Update the dataset config file with new values.
 
@@ -150,7 +136,8 @@ def update_dataset_config(dataset_name: str, new_config: Dict[str, Any]) -> None
 
 
 # dataset methods
-def get_available_datasets(verbose: bool = True) -> List[str]:
+def get_available_datasets(verbose: bool = True) -> list[str]:
+    """Get a list of available datasets from the config file."""
     cfg = load_config("data")
     datasets = list(cfg.keys())
     if verbose:
@@ -158,7 +145,8 @@ def get_available_datasets(verbose: bool = True) -> List[str]:
     return datasets
 
 
-def get_reference_datasets() -> List[str]:
+def get_reference_datasets() -> list[str]:
+    """Get a list of reference datasets for PCA from the config file."""
     return [
         name
         for name in get_available_datasets(verbose=False)
@@ -166,7 +154,8 @@ def get_reference_datasets() -> List[str]:
     ]
 
 
-def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
+def get_dataset_info(dataset_name: str) -> dict[str, Any]:
+    """Load specific dataset information from the config file."""
     config = load_config()
     if dataset_name not in config:
         raise ValueError(f"Dataset {dataset_name} not found in config file")
@@ -174,25 +163,30 @@ def get_dataset_info(dataset_name: str) -> Dict[str, Any]:
 
 
 def get_frame(filename: str) -> int:
+    """Get frame number from filename"""
     return int(str(filename).split(".")[0][-4:])
 
 
-def get_flow(dataset_name: str, T: float) -> Union[int, float]:
+def get_flow(dataset_name: str, frame_number: float) -> int | float:
     """
+    Get shear stress level at frame frame_number from the data config.
+
     Parameters
     ----------
-        T: the time at which to get the flow value.
+        frame_number: the time at which to get the flow value.
+
     Returns
     -------
-        flow: the flow value at time T in dyn/cm^2.
+        flow: the flow value at time frame_number in dyn/cm^2.
     """
     dataset_info = get_dataset_info(dataset_name)
     flow_info = dataset_info["flow"]
-    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= T < t_stop]
+    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= frame_number < t_stop]
     return int(flows[0]) if flows else np.nan
 
 
-def get_flow_in_frames(dataset_name: str) -> List[Tuple[Any, Any, Any]]:
+def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
+    """Get flow information in frames for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
     flow_info = dataset_info["flow"]
     flow_in_frames = [
@@ -207,14 +201,16 @@ def get_flow_in_frames(dataset_name: str) -> List[Tuple[Any, Any, Any]]:
 
 
 def get_zarr_dir(dataset_name: str) -> str:
+    """Get the directory path for the zarr files of a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["zarr_path"]
 
 
 def get_zarr_path(
     dataset_name: str,
-    zarr_name: Optional[str | None] = None,
-) -> Dict[str, str]:
+    zarr_name: str | None | None = None,
+) -> dict[str, str]:
+    """Get the zarr file paths for a given dataset."""
     data_dir = get_zarr_dir(dataset_name)
     zarr_paths = {}
     if zarr_name:
@@ -231,8 +227,9 @@ def get_zarr_path(
 
 
 def get_available_channels(
-    dataset_name: str, zarr_name: Optional[str | None] = None
-) -> Dict[str, List[str]]:
+    dataset_name: str, zarr_name: str | None | None = None
+) -> dict[str, list[str]]:
+    """Get the available channels for a given dataset."""
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_names = {}
     for filename, filepath in zarr_paths.items():
@@ -242,8 +239,9 @@ def get_available_channels(
 
 
 def get_channel_index(
-    dataset_name: str, channel_names: List[str], zarr_name: Optional[str | None] = None
-) -> Dict[str, List[int | None]]:
+    dataset_name: str, channel_names: list[str], zarr_name: str | None | None = None
+) -> dict[str, list[int | None]]:
+    """Get the indices of specified channels in the dataset."""
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_indices = {}
     for filename in zarr_paths.keys():
@@ -275,7 +273,8 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     return zarr_name
 
 
-def get_specific_channel_order(dataset_name: str) -> Tuple:
+def get_specific_channel_order(dataset_name: str) -> tuple:
+    """Get the specific channel order for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
     gfp_index = dataset_info.get("channel_488_index")
     bf_index = dataset_info.get("brightfield_channel_index")
@@ -288,7 +287,9 @@ def get_specific_channel_order(dataset_name: str) -> Tuple:
 
 def get_total_number_of_positions(dataset_name: str) -> int:
     """
-    n positions is the product of n_scenes x n_positions_per_scene
+    Get the total number of positions in a dataset.
+
+    Number of positions is the product of n_scenes x n_positions_per_scene
     """
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["n_total_positions"]
@@ -296,12 +297,13 @@ def get_total_number_of_positions(dataset_name: str) -> int:
 
 def load_dataset(
     dataset_name: str,
-    channels: List = ["EGFP", "BF"],
+    channels: list = ["EGFP", "BF"],
     time_start: int = 0,
     time_end: int = -1,
     level: int = 0,
-    zarr_name: Optional[str] = None,
+    zarr_name: str | None = None,
 ) -> dict[str, dask.array.Array]:
+    """Load a dataset as a dictionary of Dask arrays."""
     zarr_paths = get_zarr_path(dataset_name, zarr_name)
     dataset = {}
 
@@ -325,13 +327,15 @@ def load_dataset(
 def load_dataset_position_as_dask_array(
     dataset_name: str,
     position: int | str,
-    channels: List = ["EGFP", "BF"],
+    channels: list = ["EGFP", "BF"],
     time_start: int = 0,
     time_end: int = -1,
     level: int = 0,
 ) -> dask.array.Array:
     """
-    position can be either an integer or a string.
+    Load a specific position of a dataset as a Dask array.
+
+    Position can be either an integer or a string.
     If it is a string then it must the name of a zarr file found in
     dataset (e.g. a folder ending with the .ome.zarr extension).
     If it is an integer then it will be used as the index to
@@ -441,7 +445,7 @@ def get_dim_map(dim_order: str) -> dict:
 
     dims = [a for a in dim_order]
     dim_nums = tuple(range(len(dims)))
-    dim_map = dict(zip(dims, dim_nums))
+    dim_map = dict(zip(dims, dim_nums, strict=False))
 
     return dim_map
 
@@ -577,7 +581,7 @@ def get_tracking_data_paths(
 
 
 def get_tracking_data_raws(
-    dataset_name_list: List,
+    dataset_name_list: list,
     position: int | None = None,
     as_dask: bool = True,
 ) -> pd.DataFrame:
@@ -614,7 +618,7 @@ def get_tracking_data_raws(
     return tracking_dataframe
 
 
-def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool = False) -> pd.DataFrame:
+def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
     same script that a multiprocessing workflow that later uses
@@ -658,7 +662,7 @@ def get_measurement_data_paths(
 
 
 def get_measurement_data_raws(
-    dataset_name_list: List,
+    dataset_name_list: list,
     kind: Literal["alignments", "segmentation_properties"],
     as_dask: bool = True,
 ) -> pd.DataFrame:
@@ -687,7 +691,7 @@ def get_measurement_data_raws(
 
 
 def get_segmentation_features_manifest(
-    dataset_name_list: List, as_dask: bool = False
+    dataset_name_list: list, as_dask: bool = False
 ) -> pd.DataFrame:
     """
     NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
@@ -733,7 +737,7 @@ def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
 
 
 # fire argparsing methods
-def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> List[str]:
+def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
     if isinstance(fire_str_or_list_like_input, str):
         list_of_strings = [fire_str_or_list_like_input]
     elif isinstance(fire_str_or_list_like_input, Sequence):
@@ -747,7 +751,7 @@ def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> List[str]
 
 def fire_parse_generate_dataset_name_list(
     fire_dataset_name_input: Sequence | None,
-) -> List[str]:
+) -> list[str]:
     """
     Parse a list of dataset names from the command line.
     The input can be a string or a list of strings.
@@ -773,7 +777,7 @@ def fire_parse_generate_dataset_name_list(
 
 
 # model methods
-def get_available_models() -> List[str]:
+def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
     for name in model_names:
@@ -781,7 +785,7 @@ def get_available_models() -> List[str]:
     return model_names
 
 
-def get_model_info(model_name: str) -> Dict[str, Any]:
+def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
         raise ValueError(f"Model {model_name} not found in config file")
@@ -801,10 +805,13 @@ def ipython_cli_flexecute(
     **kwargs: Any,
 ) -> Any:
     """
-    Executes function with arguments and keyword arguments in an IPython shell or via command line interface.
+    Execute function with arguments and keyword arguments in
+    an IPython shell or via command line interface.
     """
-    # The following try-except statement will run 'main' without fire.Fire if an interactive shell is in use,
-    # otherwise it will run 'main' through fire.Fire so that arguments can easily be passed to 'main' through
+    # The following try-except statement will run 'main' without
+    # fire.Fire if an interactive shell is in use,
+    # otherwise it will run 'main' through fire.Fire so that
+    # arguments can easily be passed to 'main' through
     # some non-interactive shell like bash
     try:
         # the following line will return a string if an interactive shell is in use,
@@ -824,7 +831,7 @@ def ipython_cli_flexecute(
 
 
 def extract_T(
-    fp_as_string: Union[str, Path],
+    fp_as_string: str | Path,
     int_only: bool = True,
     use_last_match: bool = True,
     default_if_not_found: int | str = "",
@@ -866,13 +873,13 @@ def extract_T(
     t = re.findall("T[0-9]+", fp_as_string)
     t_value = int(t[index].split("T")[-1]) if t else default_if_not_found
     if not t:
-        print(f"""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
+        print("""No 'T[0-9]+' found in filename. Using T == default_if_not_found.""")
 
     return t_value if int_only else f"T{t_value}"
 
 
 def extract_P(
-    fp_as_string: Union[str, Path],
+    fp_as_string: str | Path,
     int_only: bool = True,
     use_last_match: bool = True,
     default_if_not_found: int | str = "",
@@ -899,6 +906,8 @@ def extract_P(
         will return 3 by default. Ideally the position in fp_as_string
         would be unambiguous.
         Default is True.
+    default_if_not_found: int or str
+        The value to return if no position is found in the string.
 
     Returns
     -------
@@ -914,14 +923,14 @@ def extract_P(
     p = re.findall("P[0-9]+", fp_as_string)
     position_value = int(p[index].split("P")[-1]) if p else default_if_not_found
     if not p:
-        print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
+        print("""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f"P{position_value}"
 
 
 def get_git_versioning_info() -> dict[str, str]:
     """
-    Returns versioning info about the script, including the branch
+    Return versioning info about the script, including the branch
     name, commit hash, uncommitted changes, and timestamp of when
     the script was run.
     """
@@ -959,7 +968,7 @@ def save_git_versioning_info(
     verbose: bool = True,
 ) -> None:
     """
-    Saves git versioning info to a .txt file in the specified output directory.
+    Save git versioning info to a .txt file in the specified output directory.
     The filename will be prepended with the provided filename_prefix.
     output_dir should be a path that exists already, it will not be created.
     """
@@ -983,11 +992,11 @@ def concatenate_and_save_feature_tables(
     remove_initial_files_and_folders: bool = False,
 ) -> None:
     """
-    Concatenates the nuclei feature tables for all positions and
+    Concatenate the nuclei feature tables for all positions and
     timepoints for a given dataset in an out_dir and then saves
     the concatenated table to the output directory.
     The expected file structure in out_dir is:
-    out_dir/dataset_name/position/*filename_contains*.file_extension
+    out_dir/dataset_name/position/*filename_contains*.file_extension.
     """
     out_subdir = out_dir / dataset_name
     feats_dfs = []
@@ -1022,7 +1031,8 @@ def concatenate_and_save_feature_tables(
         same_column_names = all(saved_df.columns == concatenated_df.columns)
         if not (same_shape and same_column_names):
             raise ValueError(
-                f"Saved dataframe {concatenated_df_out_path} does not match the concatenated dataframe."
+                f"Saved dataframe {concatenated_df_out_path} \
+                    does not match the concatenated dataframe."
             )
         print(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
 

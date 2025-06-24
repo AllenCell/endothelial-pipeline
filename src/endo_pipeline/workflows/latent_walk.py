@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.manifest_io import (
     get_diffae_manifest,
     get_feature_cols,
@@ -17,6 +16,7 @@ from cellsmap.util.manifest_io import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import get_reference_datasets
 
 # from src.endo_pipeline.library.analyze.diffae_manifest
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords

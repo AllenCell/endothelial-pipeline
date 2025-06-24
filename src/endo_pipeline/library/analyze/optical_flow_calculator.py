@@ -18,13 +18,11 @@ from skimage.filters import gaussian
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 
 
 def expand_crop_region(crop_region: tuple[slice, ...], padding: int) -> tuple:
-    crop_region = tuple(
-        crop if isinstance(crop, slice) else slice(*crop) for crop in crop_region
-    )
+    crop_region = tuple(crop if isinstance(crop, slice) else slice(*crop) for crop in crop_region)
     crop_region = tuple(
         (
             max(0, crop.start - padding if crop.start else 0) or None,
@@ -78,9 +76,7 @@ class FlowCalculator:
     ncores = 1  # Number of cores to be used in the calculation
     radius = 30  # Radius of the neighborhood after downscaling
 
-    def __init__(
-        self, dataset: str, position_or_scene_index: int, debug: bool = False
-    ) -> None:
+    def __init__(self, dataset: str, position_or_scene_index: int, debug: bool = False) -> None:
         self.dataset = dataset
         self.position = position_or_scene_index
         if debug:
@@ -102,9 +98,7 @@ class FlowCalculator:
         """
         self.channel = channel
         zarr_name = dataset_io.get_zarr_name(self.dataset, self.position)
-        self.channel_index = dataset_io.get_channel_index(self.dataset, channel)[
-            zarr_name
-        ]
+        self.channel_index = dataset_io.get_channel_index(self.dataset, channel)[zarr_name]
         assert (
             len(self.channel) == 1 and len(self.channel) == 1
         ), f"Only one channel is implemented for flow calculation. Channels provided were {self.channel} corresponding to channel indices {self.channel_index}."
@@ -139,9 +133,7 @@ class FlowCalculator:
     def set_number_of_cores(self, ncores: int) -> None:
         self.ncores = ncores
 
-    def compute_flow_field(
-        self, executor: None = None, save: bool | None = None
-    ) -> None:
+    def compute_flow_field(self, executor: None = None, save: bool | None = None) -> None:
         step = 1
         duration = dataset_io.get_dataset_duration_in_frames(self.dataset)
         if self.debug:
@@ -159,9 +151,7 @@ class FlowCalculator:
             print("done single processing")
         else:
             print("starting multiprocessing")
-            flow = list(
-                tqdm(executor.map(self.compute_flow_at_timepoint, tps), total=len(tps))
-            )
+            flow = list(tqdm(executor.map(self.compute_flow_at_timepoint, tps), total=len(tps)))
             print("done multiprocessing")
 
         self.im = np.array([im for (im, _, _) in flow])
@@ -173,9 +163,7 @@ class FlowCalculator:
         # note that the compute_flow will return an empty array for vx and vy
         # the image intensity is not bright enough, therefore we rescale it
         raw0 = rescale_intensity(self.data[time, 0], out_range=self.data.dtype.type)
-        raw1 = rescale_intensity(
-            self.data[time + self.delta_t, 0], out_range=self.data.dtype.type
-        )
+        raw1 = rescale_intensity(self.data[time + self.delta_t, 0], out_range=self.data.dtype.type)
         (vx, vy) = self.compute_flow(raw0, raw1, radius=self.radius)
         return (raw1, vx, vy)
 
@@ -184,11 +172,7 @@ class FlowCalculator:
         out_path = out_dir / f"{self.dataset}_vector_field.ome.tiff"
         vector_data = np.asarray(
             [
-                np.asarray(
-                    FlowCalculator.compute_flow_features_as_img(
-                        im, vx, vy, keepdims=True
-                    )
-                )
+                np.asarray(FlowCalculator.compute_flow_features_as_img(im, vx, vy, keepdims=True))
                 for im, vx, vy in zip(self.im, self.vx, self.vy, strict=False)
             ]
         )
@@ -203,8 +187,7 @@ class FlowCalculator:
         px_res = PhysicalPixelSizes(
             *[
                 1,
-                *[dataset_io.get_xy_pixel_size_in_um(self.dataset)]
-                * len(img_dim_order),
+                *[dataset_io.get_xy_pixel_size_in_um(self.dataset)] * len(img_dim_order),
             ]
         )
         dim_order_out = "TCYX"
@@ -221,9 +204,7 @@ class FlowCalculator:
         return out_path
 
     @staticmethod
-    def compute_angles(
-        vx: float | np.ndarray, vy: float | np.ndarray
-    ) -> float | np.ndarray:
+    def compute_angles(vx: float | np.ndarray, vy: float | np.ndarray) -> float | np.ndarray:
         """
         Angles are in the correct quadrants (see docs for numpy.arctan2).
         """
@@ -249,12 +230,8 @@ class FlowCalculator:
             features_mags.std(),
         )
 
-        angle_of_mean_vector = FlowCalculator.compute_angles(
-            features_vx_mean, features_vy_mean
-        )
-        mag_of_mean_vector = FlowCalculator.compute_magnitudes(
-            features_vx_mean, features_vy_mean
-        )
+        angle_of_mean_vector = FlowCalculator.compute_angles(features_vx_mean, features_vy_mean)
+        mag_of_mean_vector = FlowCalculator.compute_magnitudes(features_vx_mean, features_vy_mean)
 
         divergence = discrete_divergence_like(
             vector_field_image[:, chan_map["vx"], ...].squeeze(),
@@ -375,9 +352,7 @@ class FlowCalculator:
                             *FlowCalculator.get_vector_field_as_img(im, vx, vy),
                             vx.shape,
                         )
-                        for tp, im, vx, vy in zip(
-                            self.tps, self.im, self.vx, self.vy, strict=False
-                        )
+                        for tp, im, vx, vy in zip(self.tps, self.im, self.vx, self.vy, strict=False)
                     ],
                     strict=False,
                 ),
@@ -431,9 +406,7 @@ def compute_and_save_flow_field(
     print(f"Analyzing dataset: {dataset_name}")
 
     # Initialize the flow field calculator
-    flowc = FlowCalculator(
-        dataset=dataset_name, position_or_scene_index=position, debug=debug
-    )
+    flowc = FlowCalculator(dataset=dataset_name, position_or_scene_index=position, debug=debug)
     channel_name = ["EGFP"]
     print("initializing...")
     flowc.initialize(channel=channel_name, delta_t=delta_t, level=level, ncores=ncores)
@@ -517,9 +490,7 @@ def get_random_roi(
     rand_gen = np.random.default_rng(seed=random_seed)
     rand_coord = np.asarray(
         [
-            np.array(
-                rand_gen.integers(0, random_space_limit + 1, size=num_rois), ndmin=1
-            )
+            np.array(rand_gen.integers(0, random_space_limit + 1, size=num_rois), ndmin=1)
             for random_space_limit in image_shape_array - roi_shape_array
         ]
     )
@@ -566,8 +537,7 @@ def get_quadrant_means(
     bottom_right = points[(points[:, 0] > origin[0]) & (points[:, 1] < origin[1])]
 
     quadrant_means = [
-        quad_points.mean(axis=0)
-        for quad_points in [top_right, top_left, bottom_left, bottom_right]
+        quad_points.mean(axis=0) for quad_points in [top_right, top_left, bottom_left, bottom_right]
     ]
 
     return quadrant_means
@@ -591,16 +561,11 @@ def generate_synthetic_data() -> np.ndarray:
         )
         circle_indices = list(
             zip(
-                *[
-                    circle_perimeter(y + i, x - i, circle_radii)
-                    for y, x in circle_centers
-                ],
+                *[circle_perimeter(y + i, x - i, circle_radii) for y, x in circle_centers],
                 strict=False,
             )
         )
-        circle_indices = np.asarray(
-            [np.concatenate(indices) for indices in circle_indices]
-        )
+        circle_indices = np.asarray([np.concatenate(indices) for indices in circle_indices])
         indices_too_low = np.any(
             circle_indices < np.array([[0], [0]], ndmin=2), axis=0, keepdims=True
         )
@@ -609,14 +574,10 @@ def generate_synthetic_data() -> np.ndarray:
             axis=0,
             keepdims=True,
         )
-        circle_indices = circle_indices[
-            :, ~np.any(indices_too_low | indices_too_high, axis=0)
-        ]
+        circle_indices = circle_indices[:, ~np.any(indices_too_low | indices_too_high, axis=0)]
         ts, cs = [i] * len(circle_indices[0]), [0] * len(circle_indices[0])
         synth_img[(ts, cs, *circle_indices)] = 255
-        synth_img[i, 0, ...] = gaussian(
-            synth_img[i, 0, ...], sigma=2, preserve_range=True
-        )
+        synth_img[i, 0, ...] = gaussian(synth_img[i, 0, ...], sigma=2, preserve_range=True)
 
     return synth_img
 
@@ -656,14 +617,10 @@ def generate_validation_plot(
         roi = [
             slice(start, stop)
             for start, stop in zip(
-                example_pt["record"][
-                    ["T", "start_c", "start_y", "start_x"]
-                ].values.ravel(),
+                example_pt["record"][["T", "start_c", "start_y", "start_x"]].values.ravel(),
                 (
                     example_pt["record"][["T", "start_c", "start_y", "start_x"]].values
-                    + example_pt["record"][
-                        ["delta_t", "size_c", "size_y", "size_x"]
-                    ].values
+                    + example_pt["record"][["delta_t", "size_c", "size_y", "size_x"]].values
                 ).ravel(),
                 strict=False,
             )
@@ -689,9 +646,7 @@ def generate_validation_plot(
     fig = plt.figure(figsize=((1 + num_examples) * 3, 6))
     axs = gs.GridSpec(ncols=(1 + num_examples), nrows=2, figure=fig, hspace=0.6)
     ax1 = fig.add_subplot(axs[0, 0])
-    ax1.scatter(
-        features_and_pcs[0], features_and_pcs[1], marker=".", c="grey", alpha=0.7
-    )
+    ax1.scatter(features_and_pcs[0], features_and_pcs[1], marker=".", c="grey", alpha=0.7)
     ax1.axvline(quadrants_origin[0], color="k", linestyle="--", alpha=0.5)
     ax1.axhline(quadrants_origin[1], color="k", linestyle="--", alpha=0.5)
     ax1.set_xlabel("PC1 (normalized)")
@@ -733,19 +688,13 @@ def generate_validation_plot(
             display=False,
             return_map=True,
         )
-        ang = cropped_vector_img[
-            :, feats_and_pcs_at_roi["theta_chan_index"], ...
-        ].squeeze()
+        ang = cropped_vector_img[:, feats_and_pcs_at_roi["theta_chan_index"], ...].squeeze()
         roi_as_title = list(zip(*[(slc.start, slc.stop) for slc in roi], strict=False))
 
-        ax1.scatter(
-            quad_record[0], quad_record[1], marker=".", color=quad_color, zorder=10
-        )
+        ax1.scatter(quad_record[0], quad_record[1], marker=".", color=quad_color, zorder=10)
 
         if example_pt["quadrant_mean"] is not None:
-            ax1.scatter(
-                *example_pt["quadrant_mean"], marker="x", color=quad_color, alpha=0.5
-            )
+            ax1.scatter(*example_pt["quadrant_mean"], marker="x", color=quad_color, alpha=0.5)
 
         ax2.scatter(
             quad_record["vector_magnitudes_std"],

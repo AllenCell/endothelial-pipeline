@@ -9,7 +9,7 @@ from matplotlib.lines import Line2D
 from skimage.measure import label
 
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 
 
 def plot_flow_over_time_per_dataset(dataset_name_list: list[str], fig_savedir: str) -> None:
