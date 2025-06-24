@@ -52,6 +52,7 @@ def get_dataset_color(name: str) -> str:
         "20241120_20X": "tab:blue",
         "20250409_20X": "tab:orange",
         "20241217_20X": "tab:green",
+        "20250428_20X": "tab:red",
         "20250319_20X": "tab:purple",
         "20250326_20X": "tab:cyan",
     }
