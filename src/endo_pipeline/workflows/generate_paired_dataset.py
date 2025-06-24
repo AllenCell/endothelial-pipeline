@@ -9,8 +9,8 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from sklearn.model_selection import train_test_split
 
-from cellsmap.model_features.paired_data_validation import align_all_positions
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.process.registration import align_all_positions
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:

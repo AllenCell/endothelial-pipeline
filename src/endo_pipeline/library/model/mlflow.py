@@ -219,6 +219,9 @@ def load_mlflow_model(
     config_path = config_path or _get_config_path(
         tracking_uri=tracking_uri, run_id=run_id
     )
+    checkpoint_path = checkpoint_path or get_ckpt_path(
+        tracking_uri=tracking_uri, run_id=run_id
+    )
     download_model(run_id, save_path, checkpoint_path, config_path, tracking_uri)
 
     with open(save_path / config_path, "r") as f:

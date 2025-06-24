@@ -9,12 +9,6 @@ import pandas as pd
 from bioio import BioImage
 from skimage.measure import regionprops_table
 
-from cellsmap.image_conversion.process_images.write_zarr import write_scene
-from cellsmap.model_features.apply_model import (
-    apply_model_single,
-    get_cytodl_commit_hash,
-    load_overrides,
-)
 from cellsmap.util.dataset_io import (
     extract_T,
     get_cdh5_classic_segmentation_path,
@@ -24,6 +18,9 @@ from cellsmap.util.dataset_io import (
 from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
+from src.endo_pipeline.workflows.apply_diffae_model import apply_model_single
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -33,14 +30,8 @@ def make_overlay(filename, feature_movie, end_y, end_x):
     img = BioImage(filename)
     img.set_resolution_level(1)
     n_t = range(feature_movie.shape[0])
-    fluor_img = (
-        img.get_image_dask_data("TZYX", C=FLUOR_CHANNEL, T=n_t)
-        .max(1)
-        .astype(np.float32)
-    )
-    bf_img = (
-        img.get_image_dask_data("TZYX", C=BF_CHANNEL, T=n_t).std(1).astype(np.float32)
-    )
+    fluor_img = img.get_image_dask_data("TZYX", C=FLUOR_CHANNEL, T=n_t).max(1).astype(np.float32)
+    bf_img = img.get_image_dask_data("TZYX", C=BF_CHANNEL, T=n_t).std(1).astype(np.float32)
 
     # crop movie to only include data used for feature extraction
     fluor_img = fluor_img[:, :end_y, :end_x][:, None]
@@ -59,9 +50,7 @@ def create_frame(shape, df, feat_cols):
     values = df[feat_cols].values[:, :, None, None]
     for i in range(values.shape[0]):
         # fill in movie with pc values in crop location
-        timepoint_movie[
-            :, coords[i, 0] : coords[i, 1], coords[i, 2] : coords[i, 3]
-        ] += values[i]
+        timepoint_movie[:, coords[i, 0] : coords[i, 1], coords[i, 2] : coords[i, 3]] += values[i]
         count_movie[:, coords[i, 0] : coords[i, 1], coords[i, 2] : coords[i, 3]] += 1
     return timepoint_movie / count_movie
 
@@ -73,18 +62,14 @@ def get_physical_pixel_sizes(filename):
     return im.physical_pixel_sizes
 
 
-def get_segmentation_path_at_T(
-    dataset_name: str, position: int, timepoint: int
-) -> Path:
+def get_segmentation_path_at_T(dataset_name: str, position: int, timepoint: int) -> Path:
     """
     Temporary helper function to extract timepoints based on local path until segmentation paths are in data manifest
     """
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
-    seg_path = [
-        fp
-        for fp in seg_dir.glob("*.ome.tiff")
-        if (extract_T(fp.name) // 6) == timepoint
-    ][0]
+    seg_path = [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint][
+        0
+    ]
     return seg_path
 
 
@@ -104,9 +89,7 @@ def _get_per_cell_features(
         (len(feat_cols), movie_shape_y, movie_shape_x), data, feat_cols
     ).compute()
 
-    segmentation_path = get_segmentation_path_at_T(
-        dataset_name, position[1:], timepoint
-    )
+    segmentation_path = get_segmentation_path_at_T(dataset_name, position[1:], timepoint)
 
     # TODO set resolution to 1 once segmentations are zarrs
     segmentation = BioImage(segmentation_path).get_image_dask_data("YX").compute()
@@ -202,7 +185,7 @@ def generate_spatial_feature_movie(
     Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` zarr file for each position in the dataset with an overlay of the brightfield standard deviation projection and max projection of the fluorescent channel.
     The movie is saved in the `models/{model_name}/spatial_pcs/{dataset_name}` directory.
 
-    Example usage: python make_spatial_pc_movie.py generate_spatial_feature_movie --model_name diffae_04_10 --dataset_name 20241016_20X --pca_dir //allen/aics/users/erin.angelini/git-repos/cellsmap/results/stochastic_dynamics/default/outputs/ --overlap 0.5 --resolution_level 0 --n_pcs 3
+    Example usage: python src/endo_pipeline/workflows/make_spatial_pc_movie.py generate_spatial_feature_movie --model_name diffae_04_10 --dataset_name 20241016_20X --pca_dir //allen/aics/users/erin.angelini/git-repos/cellsmap/results/stochastic_dynamics/default/outputs/ --overlap 0.5 --resolution_level 0 --n_pcs 3
 
     Parameters
     ----------
@@ -323,9 +306,7 @@ def measure_per_cell_features(
     for position_name, position_data in data.groupby("position"):
         for t, timepoint_data in position_data.groupby("frame_number"):
             spatial_pc_info.append(
-                _get_per_cell_features(
-                    timepoint_data, feat_cols, dataset_name, position_name, t
-                )
+                _get_per_cell_features(timepoint_data, feat_cols, dataset_name, position_name, t)
             )
     spatial_pc_info = pd.concat(spatial_pc_info)
 
