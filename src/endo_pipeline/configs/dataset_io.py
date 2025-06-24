@@ -78,6 +78,26 @@ def combine_data_config(save: bool = False) -> dict:
 # model methods
 
 
+@deprecated(
+    """
+NOTE: you can ignore this warning when loading "model" or "dynamics" configs.
+
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing dataset
+configs is to use one of the following replacement methods. If you need configs
+for all datasets, use:
+
+        configs.dataset_config.load_all_datasets
+
+If you need the config for a single dataset, use:
+
+        configs.dataset_config.load_single_dataset(dataset_name)
+
+If you need only need dataset names, use:
+
+        configs.dataset_config.get_available_datasets
+"""
+)
 def load_config(config_type: str = "data") -> dict[Any, Any]:
     """Load configuration from YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
@@ -95,6 +115,21 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     return config_data
 
 
+@deprecated(
+    """
+NOTE: you can ignore this warning when writing "model" or "dynamics" configs.
+
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated dataset
+configs is to directly adjust values in the config:
+
+        dataset.field = (new value)
+
+The dataset config can then be saved using:
+
+        configs.dataset_config.save_dataset_config(dataset)
+"""
+)
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
     """Write configuration to YAML file."""
     if config_type not in ["data", "model", "dynamics"]:
@@ -120,6 +155,19 @@ def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -
         config_file.unlink()
 
 
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated dataset
+configs is to directly adjust values in the config:
+
+        dataset.field = (new value)
+
+The dataset config can then be saved using:
+
+        configs.dataset_config.save_dataset_config(dataset)
+"""
+)
 def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
     """
     Update the dataset config file with new values.
@@ -149,7 +197,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    instead of:
 
-        util.dataset_io.get_available_datasets
+        configs.dataset_io.get_available_datasets
 
    Individual dataset(s) can then be loaded with:
 
