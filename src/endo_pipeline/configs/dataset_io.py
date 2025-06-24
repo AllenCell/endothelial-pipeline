@@ -23,7 +23,7 @@ import fire
 def get_config_dir() -> Path:
     """Get path to the config directory."""
 
-    return Path(__file__).resolve().parents[0] / "configs"
+    return Path(__file__).resolve().parents[0]
 
 
 def save_to_yaml(object: dict, path: Path) -> None:
