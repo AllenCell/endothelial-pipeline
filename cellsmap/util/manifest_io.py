@@ -173,7 +173,7 @@ def list_datasets_with_manifest(
         time_interval_in_minutes = dataset_info.time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
-        if manifest_name in dataset_info and dataset_info[manifest_name] != "":
+        if dataset_info[manifest_name] != "":
             dataset_list.append(dataset_name)
             if verbose:
                 print(f" - {dataset_name}")
