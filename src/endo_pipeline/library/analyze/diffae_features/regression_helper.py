@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 import cellsmap.util.dataset_io as dio
-from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal as km
+from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal
 
 
 def get_bins(
@@ -215,7 +215,7 @@ def get_kramers_moyal(
         print(
             f"bandwidth = {kernel_params['bandwidth']:.3f}," f"kernel = {kernel_params['kernel']}"
         )
-    drift_km, diff_km = km.get_km_kernel(traj_list, d_traj_list, bins, dt, kernel_params)
+    drift_km, diff_km = kramers_moyal.get_km_kernel(traj_list, d_traj_list, bins, dt, kernel_params)
     return drift_km, diff_km
 
 

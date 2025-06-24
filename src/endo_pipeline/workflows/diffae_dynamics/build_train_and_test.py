@@ -5,7 +5,7 @@ from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.library.analyze.diffae_features import regression_main
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
-from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -55,7 +55,9 @@ def main(config_name: str = "default") -> None:
     ################### Visualize PCA results ###################
     # plot explained variance ratio of PCA components
     fig, _ = manifest_viz.plot_explained_variance(pca["pca"].explained_variance_ratio_)
-    vb.save_plot(fig, filename=fig_savedir + "explained_variance_ratio", format=".png", dpi=500)
+    viz_base.save_plot(
+        fig, filename=fig_savedir + "explained_variance_ratio", format=".png", dpi=500
+    )
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml

@@ -4,9 +4,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.visualize import viz_base
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -21,7 +21,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     - fig: plt.Figure
     - ax: plt.Axes
     """
-    fig, ax = vb.init_plot()  # initialize figure and axes
+    fig, ax = viz_base.init_plot()  # initialize figure and axes
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
@@ -83,11 +83,11 @@ def plot_pc_scatter(
     - ax: plt.Axes
     """
 
-    fig, ax = vb.init_subplots(figsize=(15, 5))
+    fig, ax = viz_base.init_subplots(figsize=(15, 5))
 
     for name in datasets_to_use:
         # load dataframe and get top 3 PCs
-        df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+        df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
         feat_cols = mio.get_feature_cols(df)[:3]
 
         # if timepoints_to_use is provided, restrict to those timepoints
@@ -135,7 +135,7 @@ def plot_latent_component_mean(feats: np.ndarray) -> tuple:
     # right now, this function is only used for 8D latent space
     assert feats.shape[-1] == 8, "Number of latent components must be 8"
 
-    fig, ax = vb.init_subplots(4, 2, figsize=(15, 20))
+    fig, ax = viz_base.init_subplots(4, 2, figsize=(15, 20))
 
     # get mean and standard deviation of feature data projected onto top 3 PCs
     # mean and standard deviation taken over all crops at each timepoint
@@ -191,7 +191,7 @@ def plot_latent_component_histogram(feats: np.ndarray, bins: list | None = None)
     else:
         num_bins = len(bins[0]) - 1
     # initialize figure and axes
-    fig, ax = vb.init_subplots(4, 2, figsize=(15, 20))
+    fig, ax = viz_base.init_subplots(4, 2, figsize=(15, 20))
 
     # loop over time points, compute histogram of feature data along each component
     num_traj = feats.shape[0]
@@ -204,9 +204,9 @@ def plot_latent_component_histogram(feats: np.ndarray, bins: list | None = None)
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
-            rh.get_bins([num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)])[0][
-                0
-            ]
+            regression_helper.get_bins(
+                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
+            )[0][0]
             for j in range(num_feats)
         ]
     else:
@@ -265,7 +265,7 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
         num_bins = len(bins[0]) - 1
 
     # initialize figure and axes
-    fig, ax = vb.init_subplots(3, 1, figsize=(15, 15))
+    fig, ax = viz_base.init_subplots(3, 1, figsize=(15, 15))
 
     # loop over time points, compute histogram
     # of feature data along each component
@@ -279,9 +279,9 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
-            rh.get_bins([num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)])[0][
-                0
-            ]
+            regression_helper.get_bins(
+                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
+            )[0][0]
             for j in range(num_feats)
         ]
     else:
@@ -399,7 +399,7 @@ def plot_km_drift_2d(
     """
     x_1, x_2 = np.meshgrid(*centers)
 
-    fig, ax = vb.init_subplots()
+    fig, ax = viz_base.init_subplots()
     ax[0].quiver(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
     ax[0].set_xlabel(f"PC{pcs[0]+1}")
     ax[0].set_ylabel(f"PC{pcs[1]+1}")

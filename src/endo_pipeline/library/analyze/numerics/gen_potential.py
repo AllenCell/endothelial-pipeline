@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import simpson
 
 from src.endo_pipeline.library.analyze.diffae_features.model_eval import get_normalization_constant
-from src.endo_pipeline.library.analyze.numerics import fp_solvers as fps
+from src.endo_pipeline.library.analyze.numerics import fp_solvers
 
 
 def gradient_flow_term(potential: np.ndarray, diffusion: np.ndarray, x: list) -> np.ndarray:
@@ -202,7 +202,7 @@ def grad_flux_decomposition(
 
     # numerical solution of Fokker-Planck equation
     # initialize stationary Fokker-Planck solver
-    stationary_fp = fps.SteadyFP(num_bins, dx)
+    stationary_fp = fp_solvers.SteadyFP(num_bins, dx)
 
     # solve for stationary probability density
     p = stationary_fp.solve(drift, diffusion)

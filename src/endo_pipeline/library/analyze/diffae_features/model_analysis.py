@@ -9,13 +9,11 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_features import model_eval
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.numerics import gen_potential as gp
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz as dviz
-from src.endo_pipeline.library.visualize.diffae_features import pplane
+from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.numerics import gen_potential
+from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 
 
 def model_data_comparison_one_dataset(
@@ -87,9 +85,9 @@ def model_data_comparison_one_dataset(
     # we want to extract columns 'feat_0' and 'feat_1'
     feat_cols_all = mio.get_feature_cols(stationary_data)
     feat_cols = [feat_cols_all[i] for i in pcs]
-    p_hist = rh.get_stationary_hist(stationary_data, feat_cols, bins)
+    p_hist = regression_helper.get_stationary_hist(stationary_data, feat_cols, bins)
 
-    fig2, ax2 = dviz.compare_stationary_distributions(p_fit, p_hist, bins)
+    fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
 
     for j in range(2):
         ax2[j].set_xlabel(f"PC{pcs[0] + 1}")
@@ -147,10 +145,10 @@ def model_data_comparison(
         # with outliers labeled and features
         # projected onto principal component axes
         # as defined by fit PCA object pca
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
 
         # split out data by flow condition
-        df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, ds_name, verbose=False)
+        df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name, verbose=False)
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
@@ -187,11 +185,11 @@ def model_data_comparison(
             plt.show()
 
             # save figures
-            vb.save_plot(
+            viz_base.save_plot(
                 fig1,
                 fig_savedir + ds_name + "_phase_portrait_shear_" + str(int(shear_list[j])),
             )
-            vb.save_plot(
+            viz_base.save_plot(
                 fig2,
                 fig_savedir + ds_name + "_stationary_dist_shear_" + str(int(shear_list[j])),
             )
@@ -286,9 +284,9 @@ def run_fixed_point_analysis(
     """
     print("*** Running fixed point analysis...\n")
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
-    figs, _ = dviz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pcs, plt_lims)
+    figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pcs, plt_lims)
     for i in range(len(figs)):
-        vb.save_plot(figs[i], fig_savedir + f"fixed_points_by_shear_{i}")
+        viz_base.save_plot(figs[i], fig_savedir + f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
@@ -337,7 +335,7 @@ def get_epr(
         p = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
 
         # get entropy production rate
-        epr[i] = gp.entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
+        epr[i] = gen_potential.entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
 
         # free up memory
         del drift_vals, diff_vals, p
@@ -385,9 +383,9 @@ def run_epr_analysis(
     """
     print("*** Running entropy production rate analysis...\n")
     epr = get_epr(model, bins, centers, shear_range, additive_noise)
-    fig, _ = dviz.plot_entropy_production_rate(epr, shear_range)
+    fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
     plt.show()
-    vb.save_plot(fig, fig_savedir + "epr")
+    viz_base.save_plot(fig, fig_savedir + "epr")
 
 
 def run_gen_potential_analysis(
@@ -449,7 +447,7 @@ def run_gen_potential_analysis(
         potential = -np.log(p_fit)
 
         # plot generalized potential energy landscape
-        fig, ax = dviz.plot_gen_potential_2d(
+        fig, ax = dynamics_viz.plot_gen_potential_2d(
             potential, centers[0], centers[1], cmap="jet", surf=False
         )
         ax.set_xlabel(f"PC{pcs[0] + 1}")
@@ -459,12 +457,12 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        vb.save_plot(fig, fig_savedir + f"gp_shear_{ii}")
+        viz_base.save_plot(fig, fig_savedir + f"gp_shear_{ii}")
 
         #### plot gradient/flux decomposition ####
 
         # get gradient/flux decomposition
-        _, grad_term, _, flux_term = gp.grad_flux_decomposition(
+        _, grad_term, _, flux_term = gen_potential.grad_flux_decomposition(
             drift_vals, diff_vals, centers, additive_noise
         )
 
@@ -476,7 +474,7 @@ def run_gen_potential_analysis(
             flux_term = np.array(flux_term)
 
         # plot gradient/flux decomposition on top of landscape
-        fig, ax = dviz.plot_grad_flux_decomposition(
+        fig, ax = dynamics_viz.plot_grad_flux_decomposition(
             potential,
             centers[0],
             centers[1],
@@ -493,4 +491,4 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        vb.save_plot(fig, fig_savedir + f"gp_decomp_shear_{ii}")
+        viz_base.save_plot(fig, fig_savedir + f"gp_decomp_shear_{ii}")

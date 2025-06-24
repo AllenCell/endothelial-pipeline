@@ -3,7 +3,7 @@ from collections.abc import Callable
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.numerics import fp_solvers as fps
+from src.endo_pipeline.library.analyze.numerics import fp_solvers
 
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:
@@ -186,7 +186,7 @@ def get_stationary_probability(
     num_bins = [len(bins[i]) - 1 for i in range(ndim)]
 
     # initialize SteadyFP object
-    fp = fps.SteadyFP(num_bins, dx)
+    fp = fp_solvers.SteadyFP(num_bins, dx)
 
     # solve stationary Fokker-Planck equation
     p_fit = fp.solve(drift_vals, diff_vals)
