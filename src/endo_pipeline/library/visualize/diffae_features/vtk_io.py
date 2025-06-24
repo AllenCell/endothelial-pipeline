@@ -48,17 +48,11 @@ def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImag
     image_data.SetSpacing(1, 1, 1)
 
     # Create VTK arrays from NumPy arrays
-    x_array = vtknp.numpy_to_vtk(
-        vx.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT
-    )
+    x_array = vtknp.numpy_to_vtk(vx.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT)
     x_array.SetName("vx")
-    y_array = vtknp.numpy_to_vtk(
-        vy.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT
-    )
+    y_array = vtknp.numpy_to_vtk(vy.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT)
     y_array.SetName("vy")
-    z_array = vtknp.numpy_to_vtk(
-        vz.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT
-    )
+    z_array = vtknp.numpy_to_vtk(vz.ravel(order="F"), deep=True, array_type=vtk.VTK_FLOAT)
     z_array.SetName("vz")
 
     # Create a vector array
@@ -68,9 +62,7 @@ def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImag
 
     # Interleave the x, y, and z components into the vector array
     for i in range(vx.size):
-        vectors.InsertTuple3(
-            i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i)
-        )
+        vectors.InsertTuple3(i, x_array.GetTuple1(i), y_array.GetTuple1(i), z_array.GetTuple1(i))
 
     # Add vector array to PointData
     point_data = image_data.GetPointData()

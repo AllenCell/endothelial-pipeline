@@ -24,9 +24,7 @@ stability_marker_dict: dict[str, str] = {
 }
 
 
-def get_trajectories(
-    my_system: Callable, t_vec: np.ndarray, inits: list[tuple]
-) -> dict:
+def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple]) -> dict:
     """
     Get trajectories of a system of ODEs given by my_system
     at initial conditions in inits and time points in t_vec.
@@ -305,9 +303,7 @@ def plot_null(
     return ax
 
 
-def plot_flow(
-    ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: int = 15
-) -> plt.Axes:
+def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: int = 15) -> plt.Axes:
     """
     Plot flow field of a system of ODEs given by my_flow.
 
@@ -435,18 +431,14 @@ def phase_portrait(
     if n2_coarse is None:
         n2_coarse = n1_coarse
     x2_coarse = np.linspace(x2[0], x2[-1], n2_coarse)
-    init_coarse = [
-        (x1_coarse[i], x2_coarse[j]) for i in range(n1_coarse) for j in range(n2_coarse)
-    ]
+    init_coarse = [(x1_coarse[i], x2_coarse[j]) for i in range(n1_coarse) for j in range(n2_coarse)]
     # get fixed points of the system
     fpts = get_fps(_my_flow, init_coarse)
 
     # if fixed points are found, classify them
     # and plot them
     if len(fpts) > 0:
-        fpt_stabilities, _, ax = classify_fps(
-            _my_flow, fpts, [x1, x2], ax_in=ax, verbose=verbose
-        )
+        fpt_stabilities, _, ax = classify_fps(_my_flow, fpts, [x1, x2], ax_in=ax, verbose=verbose)
     else:
         if verbose:
             print("No fixed points found.")
@@ -513,14 +505,10 @@ def phase_portrait(
         )
 
     if nullclines:
-        my_handles.append(
-            Line2D([], [], label="nullclines", color="black", linestyle="dashed")
-        )
+        my_handles.append(Line2D([], [], label="nullclines", color="black", linestyle="dashed"))
 
     if inits is not None:
-        my_handles.append(
-            Line2D([], [], label="trajectories", color="blue", linestyle="-")
-        )
+        my_handles.append(Line2D([], [], label="trajectories", color="blue", linestyle="-"))
 
     if len(my_handles) > 0:
         ax.legend(handles=my_handles, bbox_to_anchor=(1.02, 1.01), loc="upper left")

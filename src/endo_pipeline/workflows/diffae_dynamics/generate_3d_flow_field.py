@@ -8,7 +8,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
 from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import manifest_viz
+from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
 def main(datasets_to_use: list | None = None) -> None:

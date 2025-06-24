@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.visualize import viz_base as vb
 

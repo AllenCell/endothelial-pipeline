@@ -3,7 +3,7 @@ import pysindy as ps
 
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics import model_fitting
+from src.endo_pipeline.library.analyze.diffae_features import model_fitting
 
 
 def main(config_name: str = "default") -> None:

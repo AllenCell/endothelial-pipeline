@@ -4,7 +4,7 @@
 
 To start, ensure that your time series data are saved in a `.csv` or `.parquet` file where the columns represent the extracted features (i.e., observed variables), the rows represent inividual data points. There may be additional metadata columns as needed.
 
-For example, suppose we have data that are 8 features for each crop of the image at each frame in the image series. In the manifest file that we load into `dynamics_preproc.py`, the rows are each instance of the data (i.e., one single image crop at a given frame), the first 8 columns represent each of the extracted features, and the remaining columns are metadata for, e.g., what dataset the original image is from, the FOV the crop was taken from, the time point in the movie, etc.
+For example, suppose we have data that are 8 features for each crop of the image at each frame in the image series. In the manifest file that we load into `build_train_and_test.py`, the rows are each instance of the data (i.e., one single image crop at a given frame), the first 8 columns represent each of the extracted features, and the remaining columns are metadata for, e.g., what dataset the original image is from, the FOV the crop was taken from, the time point in the movie, etc.
 
 ## Environment variables and management
 
@@ -14,7 +14,7 @@ Install `uv` and configure project at the root of the `cellsmap` repository.
 
 Set working directory to be the head of the `cellsmap` repository.
 
-`uv run src/endo_pipeline/workflows/diffae_feature_dynamics/stochastic_dynamics_2d/dynamics_preproc.py [config_name]`
+`uv run src/endo_pipeline/workflows/2d_diffae_dynamics/build_train_and_test.py [config_name]`
 * Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space.
 * Get one time step displacements of crops over time, train/test split for fitting drift
  $\mathbf{f}(\mathbf{x})$
@@ -22,10 +22,10 @@ Set working directory to be the head of the `cellsmap` repository.
  $\mathbf{D}(\mathbf{x})$
  coefficients from these displacements.
 
-`uv run src/endo_pipeline/workflows/diffae_feature_dynamics/stochastic_dynamics_2d/dynamics_fit.py [config_name]`
+`uv run src/endo_pipeline/workflows/2d_diffae_dynamics/fit_sde_model.py [config_name]`
 * Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
 
-`uv run src/endo_pipeline/workflows/diffae_feature_dynamics/stochastic_dynamics_2d/dynamics_summarize.py [config_name]`
+`uv run src/endo_pipeline/workflows/2d_diffae_dynamics/summarize_sde_model.py [config_name]`
 * Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
 $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 \mathbf{D}(\mathbf{x})} \xi(t)$$
 
