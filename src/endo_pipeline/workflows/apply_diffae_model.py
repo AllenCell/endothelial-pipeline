@@ -1,4 +1,3 @@
-import json
 import re
 from pathlib import Path
 from typing import Dict, Sequence, Union
@@ -8,10 +7,6 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.model_features.utils.mlflow_utils import (
-    download_mlflow_artifact,
-    download_model,
-)
 from cellsmap.util.dataset_io import (
     extract_P,
     get_available_datasets,
@@ -22,36 +17,11 @@ from cellsmap.util.dataset_io import (
 )
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model.mlflow import download_model
 
 # the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1
-
-
-def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
-    """
-    Extract commit hash from the requirements file uploaded to mlflow
-
-    Parameters
-    ----------
-    run_id: str
-        The run ID of the MLflow run.
-    model_path: Path
-        The path where the downloaded model artifacts are saved.
-    """
-    try:
-        artifact_path = "requirements/train-requirements.txt"
-        download_mlflow_artifact(run_id, artifact_path, model_path)
-    except ValueError:
-        artifact_path = "requirements/eval-requirements.txt"
-        download_mlflow_artifact(run_id, artifact_path, model_path)
-
-    with open(model_path / artifact_path, "r") as f:
-        lines = f.readlines()
-    for line in lines:
-        if "git+" in line and "cyto-dl" in line:
-            commit_hash = line.split("git+")[1].split("#egg")[0].split("/")[-1]
-            return commit_hash
-    raise ValueError("No commit hash found in requirements.txt")
 
 
 def generate_overrides(
@@ -107,9 +77,7 @@ def update_prediction_with_meta(
     save_path: Path,
 ):
     # add model and dataset information to prediction file
-    prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
-    )
+    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
@@ -122,22 +90,10 @@ def update_prediction_with_meta(
     pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: extract_P(s, int_only=False)
-    )
-    pred_df.rename(
-        columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True
-    )
+    pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
+    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path
-
-
-def load_overrides(overrides: Union[str, Dict]) -> Dict:
-    if isinstance(overrides, str):
-        overrides = json.loads(overrides)
-    elif not isinstance(overrides, dict):
-        raise ValueError("Overrides must be a dictionary or a string")
-    return overrides
 
 
 def apply_model_single(
@@ -149,7 +105,7 @@ def apply_model_single(
     overrides: Union[str, Dict] = {},
 ):
     """
-    Apply a model to a single dataset.
+    Apply a DiffAE model to a single dataset.
 
     Parameters
     ----------
@@ -232,7 +188,7 @@ def apply_model(
 ):
     """
     Apply a model to a multiple datasets.
-    Example usage: python apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+    Example usage: uv run src/endo_pipeline/workflows/apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
 
 
     Parameters
@@ -254,9 +210,7 @@ def apply_model(
     """
     if regex:
         dataset_names = [
-            name
-            for name in get_available_datasets(verbose=False)
-            if re.search(regex, name)
+            name for name in get_available_datasets(verbose=False) if re.search(regex, name)
         ]
         print(f"Found {dataset_names} matching regex '{regex}'")
     else:

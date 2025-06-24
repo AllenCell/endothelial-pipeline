@@ -18,15 +18,16 @@ from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
 from tqdm import tqdm, trange
 
-from cellsmap.model_features.apply_model import generate_overrides, get_cytodl_commit_hash
-from cellsmap.model_features.utils.mlflow_utils import download_model
 from cellsmap.util.dataset_io import get_model_info, get_zarr_path, update_dataset_config
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
+from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
+from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -318,6 +319,22 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
     plt.axis("off")
     plt.savefig(savepath, dpi=300)
     plt.close()
+
+
+def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Remove NaN values present in the XY border of either of the passed images. It is assumed that
+    the XY locations of the NaN values are the same across all Z slices if the images are 3D.
+    """
+    slices_to_check = [crop1[0], crop2[0]] if len(crop1.shape) == 3 else [crop1, crop2]
+    valid_mask = ~np.isnan(np.stack(slices_to_check, axis=0)).any(axis=0)
+    overlap = np.where(valid_mask)
+    y_start, y_end = overlap[0].min(), overlap[0].max()
+    x_start, x_end = overlap[1].min(), overlap[1].max()
+    return (
+        crop1[..., y_start:y_end, x_start:x_end],
+        crop2[..., y_start:y_end, x_start:x_end],
+    )
 
 
 def align(
