@@ -12,11 +12,11 @@ from skimage.measure import regionprops_table
 from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_config import load_single_dataset, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
     extract_T,
     get_cdh5_classic_segmentation_path,
     get_model_info,
-    update_dataset_config,
 )
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
@@ -325,10 +325,11 @@ def measure_per_cell_features(
             mlflow_run_id=mlflow_id,
         )
 
-        update_dataset_config(
-            dataset_name,
-            {"cell_mean_features": file_id},
-        )
+        # update dataset config with the FMS ID
+        # of the prediction file
+        dataset_config = load_single_dataset(dataset_name)
+        dataset_config.cell_mean_features = file_id
+        save_dataset_config(dataset_config)
 
 
 if __name__ == "__main__":

@@ -9,13 +9,16 @@ from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_config import (
+    get_available_datasets,
+    load_single_dataset,
+    save_dataset_config,
+)
 from src.endo_pipeline.configs.dataset_io import (
     extract_P,
-    get_available_datasets,
     get_model_info,
     get_reference_datasets,
     get_zarr_path,
-    update_dataset_config,
 )
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
@@ -169,10 +172,11 @@ def apply_model_single(
             mlflow_run_id=mlflow_id,
         )
 
-        update_dataset_config(
-            dataset_name,
-            {"diffae_manifest_fmsid": file_id},
-        )
+        # update dataset config with the FMS ID
+        # of the prediction file
+        dataset_config = load_single_dataset(dataset_name)
+        dataset_config.diffae_manifest_fmsid = file_id
+        save_dataset_config(dataset_config)
 
     return prediction_path
 

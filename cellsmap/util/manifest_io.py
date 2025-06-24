@@ -5,7 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs import dataset_config, dataset_io
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -154,7 +154,7 @@ def list_datasets_with_manifest(
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_io.get_available_datasets(verbose=False)
+    all_datasets = dataset_config.get_available_datasets(verbose=False)
 
     if verbose:
         manifest_type = (
@@ -166,11 +166,11 @@ def list_datasets_with_manifest(
             print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
     for dataset_name in all_datasets:
-        dataset_info = dataset_io.get_dataset_info(dataset_name)
+        dataset_info = dataset_config.load_single_dataset(dataset_name)
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
-        time_interval_in_minutes = dataset_info.get("time_interval_in_minutes", -1.0)
+        time_interval_in_minutes = dataset_info.time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
         if manifest_name in dataset_info and dataset_info[manifest_name] != "":
