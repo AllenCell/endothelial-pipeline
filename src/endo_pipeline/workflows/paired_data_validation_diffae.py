@@ -10,7 +10,8 @@ from cyto_dl.api import CytoDLModel
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_model_info, update_dataset_config
+from src.endo_pipeline.configs.dataset_config import load_single_dataset, save_dataset_config
+from src.endo_pipeline.configs.dataset_io import get_model_info
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
@@ -81,10 +82,11 @@ def add_fmsid_to_config(
         mlflow_run_id=mlflow_id,
     )
 
-    update_dataset_config(
-        dataset_name,
-        {"diffae_manifest_fmsid": file_id},
-    )
+    # update dataset config with the FMS ID
+    # of the prediction file
+    dataset_config = load_single_dataset(dataset_name)
+    dataset_config.diffae_manifest_fmsid = file_id
+    save_dataset_config(dataset_config)
 
 
 def compare_paired_features(
