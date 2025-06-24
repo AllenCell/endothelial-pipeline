@@ -1,10 +1,10 @@
 import numpy as np
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.model_features.generate_image import generate_from_coords_batch
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 
 
 def main() -> None:
