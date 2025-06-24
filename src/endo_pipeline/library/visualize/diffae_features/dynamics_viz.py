@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
-from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize import viz_base
 
 
 def plot_fixed_points_by_shear(
@@ -40,7 +40,7 @@ def plot_fixed_points_by_shear(
     ndim = len(pcs)
     for j in range(ndim):
         # initialize figure and axes for the j-th component
-        fig, ax = vb.init_plot()
+        fig, ax = viz_base.init_plot()
 
         # loop over shear stress values
         for i, u in enumerate(shear_range):
@@ -156,14 +156,14 @@ def compare_stationary_distributions(
     # check if 1D or 2D
     ndim = len(bins)
     if ndim == 2:  # call 2D histogram plot function
-        fig, ax = vb.init_subplots(figsize=(12, 4))
+        fig, ax = viz_base.init_subplots(figsize=(12, 4))
         ax[0] = plot_histogram_2d(ax[0], p_hist, bins, cmap="inferno")  # plot empirical PDF
         ax[0].set_title("Empirical PDF")
         ax[1] = plot_histogram_2d(ax[1], p_model, bins, cmap="inferno")  # plot model PDF
         ax[1].set_title("Model PDF")
 
     elif ndim == 1:  # call 1D histogram plot function
-        fig, ax = vb.init_subplots(figsize=(12, 4))
+        fig, ax = viz_base.init_subplots(figsize=(12, 4))
         ax[0].plot(bins[0][:-1], p_hist, "k", label="Empirical PDF")
         ax[0].set_title("Empirical PDF")
         ax[1].plot(bins[0][:-1], p_model, "k", label="Model PDF")
@@ -192,7 +192,7 @@ def plot_entropy_production_rate(
     - fig: plt.Figure
     - ax: plt.Axes
     """
-    fig, ax = vb.init_plot()
+    fig, ax = viz_base.init_plot()
     ax.plot(shear_range, epr, "-o", color="k")
     ax.set_xlabel("Shear stress (dyn/cm$^2$)")
     ax.set_ylabel("Entropy production rate")
@@ -228,7 +228,7 @@ def plot_gen_potential_2d(
         ax.set_zlabel("$-\ln P$")
         plt.tight_layout()
     else:
-        fig, ax = vb.init_plot()
+        fig, ax = viz_base.init_plot()
         im = ax.imshow(
             potential.T,
             interpolation="nearest",

@@ -6,7 +6,7 @@ from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.library.analyze.diffae_features import ddd_main
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 
 
 def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None = None) -> None:
@@ -100,7 +100,7 @@ def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
-        ddff.ddff_main(
+        data_driven_flow_field.ddff_main(
             list_of_datasets,
             pca,
             kernel_params,

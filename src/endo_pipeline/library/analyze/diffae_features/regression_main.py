@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io as mio
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.visualize import viz_base as vb
-from src.endo_pipeline.library.visualize.diffae_features import manifest_viz as mv
+from cellsmap.util import manifest_io
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
 def kramers_moyal_train_test_one_dataset(
@@ -67,12 +67,12 @@ def kramers_moyal_train_test_one_dataset(
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
     # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = mio.get_feature_cols(df_proj)
+    feat_cols_all = manifest_io.get_feature_cols(df_proj)
     feat_cols = [feat_cols_all[i] for i in pcs]
     ndim = len(pcs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, ds_name)
+    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name)
     num_flow = len(shear_list)
 
     drift_km = []
@@ -95,15 +95,17 @@ def kramers_moyal_train_test_one_dataset(
 
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
-        traj_list, d_traj_list = rh.get_traj_and_diff(stationary_data, feat_cols=feat_cols)
+        traj_list, d_traj_list = regression_helper.get_traj_and_diff(
+            stationary_data, feat_cols=feat_cols
+        )
 
         # get bins for histogramming
         # (for drift and diffusion estimates)
-        bins, centers = rh.get_bins(num_bins, data=traj_list)
+        bins, centers = regression_helper.get_bins(num_bins, data=traj_list)
 
         # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
-        drift_km_, diff_km_ = rh.get_kramers_moyal(
+        drift_km_, diff_km_ = regression_helper.get_kramers_moyal(
             traj_list,
             d_traj_list,
             bins,
@@ -113,8 +115,8 @@ def kramers_moyal_train_test_one_dataset(
 
         # plot drift and diffusion estimates
         kmc = np.concatenate([drift_km_, diff_km_], axis=-1).T
-        fig = mv.plot_km(centers, kmc, pcs, shear_list[j])[0]
-        vb.save_plot(
+        fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
+        viz_base.save_plot(
             fig,
             filename=fig_savedir + f"kmcs_all_{ds_name}_flow_{j}",
             format=".png",
@@ -123,8 +125,8 @@ def kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = mv.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
-            vb.save_plot(
+            fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
+            viz_base.save_plot(
                 fig,
                 filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",
                 format=".png",
@@ -136,8 +138,10 @@ def kramers_moyal_train_test_one_dataset(
         (
             drift_km_masked,
             x_pts_,
-        ) = rh.masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
-        diff_km_masked, _ = rh.masked_vector_field(diff_km_, np.array(np.meshgrid(*centers)).T)
+        ) = regression_helper.masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
+        diff_km_masked, _ = regression_helper.masked_vector_field(
+            diff_km_, np.array(np.meshgrid(*centers)).T
+        )
         drift_km.append(drift_km_masked)
         diff_km.append(diff_km_masked)
         x_pts.append(x_pts_)
@@ -146,7 +150,7 @@ def kramers_moyal_train_test_one_dataset(
 
     # get train test split of Kramers-Moyal
     # estimates for each flow condition
-    x_train, x_test, y_train, y_test, v_train, v_test = rh.train_test_all(
+    x_train, x_test, y_train, y_test, v_train, v_test = regression_helper.train_test_all(
         x_pts, drift_km, diff_km, train_frac, seed=47
     )
 
@@ -215,7 +219,9 @@ def build_kramers_moyal_train_test(
     # get list of datasets with DiffAE manifest data
     # using timelapse_only=True to restrict to datasets
     # that are live, timelapse datasets
-    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid", timelapse_only=True)
+    list_of_datasets = manifest_io.list_datasets_with_manifest(
+        "diffae_manifest_fmsid", timelapse_only=True
+    )
 
     # initialize lists to store train test sets for each dataset
     x_train_list = []
@@ -240,7 +246,7 @@ def build_kramers_moyal_train_test(
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (

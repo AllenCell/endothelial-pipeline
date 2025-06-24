@@ -4,8 +4,11 @@ import numpy as np
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_features import model_analysis, model_eval
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_features import (
+    model_analysis,
+    model_eval,
+    regression_helper,
+)
 
 
 def main(config_name: str = "default") -> None:
@@ -56,7 +59,7 @@ def main(config_name: str = "default") -> None:
     pplane_yvec = np.linspace(pplane_ylim[0], pplane_ylim[1], num_pts_pplane + 1)
 
     # for histogram plots, fix bins across all datasets
-    bins, centers = rh.get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
+    bins, centers = regression_helper.get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
 
     # for plotting fixed points by shear stress
     shear_range = config["shear_range"]
@@ -71,7 +74,9 @@ def main(config_name: str = "default") -> None:
         additive_noise = False
 
     # for plotting generalized potential energy landscape for various shear stresses
-    bins_gp, centers_gp = rh.get_bins(config["num_bins_landscape"], bin_limits=[bin_xlim, bin_ylim])
+    bins_gp, centers_gp = regression_helper.get_bins(
+        config["num_bins_landscape"], bin_limits=[bin_xlim, bin_ylim]
+    )
     shear_range_gp = np.linspace(shear_range[0], shear_range[-1], config["num_shear_landscape"])
     downsample_quiver = config["downsample_quiver"]
     normed = config["norm_vectors"]

@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -142,7 +142,7 @@ def plot_quiver_slices(
 
     # plot quiver plots for the specified slices
     if fig_ax is None:
-        fig, ax = vb.init_subplots(figsize=(14, 5))
+        fig, ax = viz_base.init_subplots(figsize=(14, 5))
     else:
         fig, ax = fig_ax
     ax[0] = plot_one_slice_quiver(
@@ -203,7 +203,7 @@ def plot_streamplot_slices(
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
     # plot streamplot for the specified slices
-    fig, ax = vb.init_subplots(figsize=(14, 5))
+    fig, ax = viz_base.init_subplots(figsize=(14, 5))
     ax[0] = plot_one_slice_streamplot((v1, v2), (xgrid, ygrid), slice_indexes[0], ax=ax[0])
     ax[1] = plot_one_slice_streamplot((v1, v3), (xgrid, zgrid), slice_indexes[1], ax=ax[1])
 
@@ -281,7 +281,7 @@ def plot_flow_field_slices(
 
     # plot quiver plots of these PC2 and PC3 slices
     # overlaid on scatter plot of data
-    fig, ax = vb.init_subplots(figsize=(14, 5))
+    fig, ax = viz_base.init_subplots(figsize=(14, 5))
     if df_cond is not None:
         # get the color for the scatter plot
         dataset_name = sequence_to_scalar(df_cond["dataset"])
@@ -317,13 +317,13 @@ def plot_flow_field_slices(
         # for saving the plot
         if df_cond is not None:
             name = df_cond["dataset"].unique()[0]
-            condition = diffae_preproc.get_dataset_descriptions([name], simple=True)[name]
+            condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
-        vb.save_plot(
+        viz_base.save_plot(
             fig, filename=fig_savedir + f"flow_field_{condition}", dpi=300
         )  # save the figure
-        vb.save_plot(
+        viz_base.save_plot(
             fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
         )  # save the figure
 
@@ -349,10 +349,10 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
         "20250319_20X",
     ]
 
-    conditions = diffae_preproc.get_dataset_descriptions(list_of_datasets, simple=True)
+    conditions = preprocessing.get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
-    fig, ax = vb.init_subplots(figsize=(14, 5))
+    fig, ax = viz_base.init_subplots(figsize=(14, 5))
 
     # get bounds of the grid - load one of the flow field objects
     # saved in main function
@@ -402,7 +402,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     plt.show()
 
     # save the figure
-    vb.save_plot(fig, fig_savedir + "fixed_points_plot", dpi=300)
+    viz_base.save_plot(fig, fig_savedir + "fixed_points_plot", dpi=300)
 
 
 def flow_field_viz_main(
@@ -432,7 +432,7 @@ def flow_field_viz_main(
     """
     # dataset flow condition for saving the figures
     name = df_cond["dataset"].unique()[0]
-    condition = diffae_preproc.get_dataset_descriptions([name], simple=True)[name]
+    condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
@@ -471,7 +471,7 @@ def flow_field_viz_main(
     bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
     # 1) plot last point of trajectory over flow field
-    fig, ax = vb.init_subplots(figsize=(14, 5))
+    fig, ax = viz_base.init_subplots(figsize=(14, 5))
 
     # get the color for the scatter plot
     scatter_color = manifest_viz.get_dataset_color(name)
@@ -486,7 +486,7 @@ def flow_field_viz_main(
     if name == "20250319_20X" or name == "20250326_20X":
         init = np.array([1.1, 0.0, -0.2])
         time_span = [0, 5000]
-        traj_2 = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
+        traj_2 = data_driven_flow_field.solve_ddff_ode(flow_field_dict, init, time_span)
 
     for j, ax_ in enumerate(ax):  # PC1 v s PC2, PC1 vs PC3
         ax_.scatter(traj[-1, 0], traj[-1, j + 1], s=100, color="black")
@@ -503,7 +503,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
+    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
@@ -512,10 +512,10 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
+    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
 
     # 3) trajectory with equally spaced interpolated points
-    interpolated_points = ddff.interpolate_on_curve(traj)
+    interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
     for j, ax_ in enumerate(ax):
         ax_.scatter(
             interpolated_points[:, 0],
@@ -526,5 +526,5 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    vb.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300)
+    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300)
     return
