@@ -85,8 +85,8 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     if config_type == "data":
         return combine_data_config()
 
-    parent_folder = Path(__file__).resolve().parent
-    config_file = parent_folder.parent / f"{config_type}_config.yaml"
+    config_dir = get_config_dir()
+    config_file = config_dir / f"{config_type}_config.yaml"
     with open(config_file, "r") as file:
         config_data = yaml.safe_load(file)
     return config_data
