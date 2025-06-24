@@ -2,8 +2,8 @@ import subprocess
 from pathlib import Path
 from typing import Literal
 
-from cellsmap.util.dataset_io import ipython_cli_flexecute
 from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
+from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
 """
 This is a rough script to get track integration for Benji and Erin
@@ -13,16 +13,12 @@ quickly before SAC.
 
 def main(dataset_name: str, env: Literal["stg", "prod"]) -> None:
     # the current commit hash:
-    git_commit_hash = (
-        subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-    )
+    git_commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
     integration_data_dir = Path(
         "//allen/aics/endothelial/morphological_features/single_cell_track_integration"
     )
     integration_data_paths = [dataset for dataset in integration_data_dir.glob("*.csv")]
-    file_path = [
-        path.as_posix() for path in integration_data_paths if dataset_name in path.name
-    ][0]
+    file_path = [path.as_posix() for path in integration_data_paths if dataset_name in path.name][0]
 
     notes = f"""
     Dataset: {dataset_name}.

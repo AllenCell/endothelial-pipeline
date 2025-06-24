@@ -8,13 +8,13 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import (
     get_original_path,
     get_total_number_of_positions,
     get_zarr_name,
     get_zarr_path,
 )
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 
 

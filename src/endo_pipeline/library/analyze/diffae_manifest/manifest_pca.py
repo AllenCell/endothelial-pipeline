@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from cellsmap.util import manifest_io
-from cellsmap.util.dataset_io import get_reference_datasets
+from src.endo_pipeline.configs.dataset_io import get_reference_datasets
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'

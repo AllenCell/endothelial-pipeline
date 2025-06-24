@@ -10,7 +10,7 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import extract_T
+from src.endo_pipeline.configs.dataset_io import extract_T
 from src.endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_dim_map,
@@ -169,34 +169,22 @@ def load_images_sequentially(
         # update the crop dictionary to reflect the current slice of images being loaded
         crop_list = crops[relative_slice]
 
-        (
-            print("Identifying which images have already been loaded...")
-            if verbose
-            else None
-        )
+        (print("Identifying which images have already been loaded...") if verbose else None)
         loaded_relative_indices_to_keep = [
             j for j, fp in enumerate(old_image_list) if fp in image_list
         ]
-        new_fps = [
-            (j, fp) for j, fp in enumerate(image_list) if fp not in old_image_list
-        ]
+        new_fps = [(j, fp) for j, fp in enumerate(image_list) if fp not in old_image_list]
         new_image_relative_indices, new_image_list = (
             zip(*new_fps, strict=False) if new_fps else ([], [])
         )
         old_image_list = image_list.copy()
 
-        (
-            print("Carrying over loaded images and loading new images...")
-            if verbose
-            else None
-        )
+        (print("Carrying over loaded images and loading new images...") if verbose else None)
         loaded_images = [loaded_images[j] for j in loaded_relative_indices_to_keep]
         dim_order_string = "".join(dim_order)
 
         (
-            print(
-                f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]"
-            )
+            print(f"[new images being loaded: {tuple([fp.name for fp in new_image_list])}]")
             if verbose
             else None
         )
@@ -206,13 +194,9 @@ def load_images_sequentially(
             # convert slice objects to range objects so that they can be used as arguments in `get_image_data`
             img = BioImage(image_list[j])
             img_dims = img.dims
-            crop = {
-                dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]
-            }
+            crop = {dim: range(*img_dims[dim])[crop_list[j][dim]] for dim in crop_list[j]}
             (
-                print(
-                    f"Converting crop list (len={len(crop_list)}) to range objects..."
-                )
+                print(f"Converting crop list (len={len(crop_list)}) to range objects...")
                 if verbose
                 else None
             )
@@ -366,9 +350,7 @@ def match_labels_from_images(
         len(metrics) == len(metrics_thresholds) if metrics_thresholds else True
     ), "metrics and metrics_threshold must have the same length; np.inf can be used if no threshold is desired"
     assert (
-        len(metrics) == 1
-        if ("centroid" in metrics or "region_overlap" in metrics)
-        else True
+        len(metrics) == 1 if ("centroid" in metrics or "region_overlap" in metrics) else True
     ), "if centroid or region_overlap is used then they can be the only metric"
 
     # create a list of metrics that are functions to pass to regionprops
@@ -385,9 +367,7 @@ def match_labels_from_images(
         for img in labeled_images
     ]
     # replace functions with their names in metrics
-    metric_names = [
-        metric.__name__ if callable(metric) else metric for metric in metrics
-    ]
+    metric_names = [metric.__name__ if callable(metric) else metric for metric in metrics]
 
     # call the matching functions based on which metrics are used
     if "region_overlap" in metric_names:
@@ -402,8 +382,7 @@ def match_labels_from_images(
         for img_props in all_img_props:
             # associate each label with its metrics
             labeled_metric_vals = {
-                prop.label: tuple([prop[metric] for metric in metric_names])
-                for prop in img_props
+                prop.label: tuple([prop[metric] for metric in metric_names]) for prop in img_props
             }
             list_of_labeled_metric_vals.append(labeled_metric_vals)
         # both metrics = 'centroids' and metrics = a list of metrics are handled the same way
@@ -422,12 +401,12 @@ def match_labels_from_images(
     ref_props = {prop.label: prop for prop in all_img_props[reference_index]}
     for label in matched_labels_dict:
         matched_labels_dict[label]["regionprops"] = ref_props[label]
-        matched_labels_dict[label]["regionprops"].matched_query_label = (
-            matched_labels_dict[label]["matched_query_label"]
-        )
-        matched_labels_dict[label]["regionprops"].optimized_metric_value = (
-            matched_labels_dict[label]["optimized_metric_value"]
-        )
+        matched_labels_dict[label]["regionprops"].matched_query_label = matched_labels_dict[label][
+            "matched_query_label"
+        ]
+        matched_labels_dict[label]["regionprops"].optimized_metric_value = matched_labels_dict[
+            label
+        ]["optimized_metric_value"]
         matched_labels_dict[label]["regionprops"].reference_index = reference_index
         matched_labels_dict[label]["regionprops"].matching_method = matching_method
 
@@ -530,21 +509,14 @@ def match_labels_from_metrics(
     if not metrics_thresholds:
         # get length of metrics and make metrics_thresholds that length
         metrics_length = int(
-            *set(
-                [
-                    len(met_val)
-                    for met in list_of_labeled_metric_vals
-                    for met_val in met.values()
-                ]
-            )
+            *set([len(met_val) for met in list_of_labeled_metric_vals for met_val in met.values()])
         )
         metrics_thresholds = [
             np.inf,
         ] * metrics_length
 
     labels = [
-        list(labeled_metric_vals.keys())
-        for labeled_metric_vals in list_of_labeled_metric_vals
+        list(labeled_metric_vals.keys()) for labeled_metric_vals in list_of_labeled_metric_vals
     ]
     all_metrics_vals = tuple(
         zip(
@@ -556,8 +528,7 @@ def match_labels_from_metrics(
         )
     )
     labels_arrs = [
-        np.meshgrid(labels[reference_index], labs, indexing=mesh_indexing)
-        for labs in labels
+        np.meshgrid(labels[reference_index], labs, indexing=mesh_indexing) for labs in labels
     ]
 
     # calculate the differences for each of the metrics
@@ -565,15 +536,12 @@ def match_labels_from_metrics(
     for i, metric_vals in enumerate(all_metrics_vals):
         # create an array of the metrics to be compared to the reference
         meshed_metrics_arrs = [
-            numpy_mesh_coords(
-                metric_vals[reference_index], mval, indexing=mesh_indexing
-            )
+            numpy_mesh_coords(metric_vals[reference_index], mval, indexing=mesh_indexing)
             for mval in metric_vals
         ]
         # calculate the differences between the reference and the other metrics
         differences_arrs = [
-            np.linalg.norm(met1 - met2, axis=(met1.ndim - 1))
-            for met1, met2 in meshed_metrics_arrs
+            np.linalg.norm(met1 - met2, axis=(met1.ndim - 1)) for met1, met2 in meshed_metrics_arrs
         ]
         # mask differences values that exceed the metrics thresholds
         differences_arrs = [
@@ -587,9 +555,7 @@ def match_labels_from_metrics(
     for diffs_arrs in zip(*metrics_diffs, strict=False):
         metrics_diffs_mean = np.ma.mean(np.ma.stack(diffs_arrs, axis=0), axis=0)
         if exclude_if_any_thresholded:
-            metrics_diffs_mean.mask = np.ma.max(
-                np.ma.stack(diffs_arrs, axis=0).mask, axis=0
-            )
+            metrics_diffs_mean.mask = np.ma.max(np.ma.stack(diffs_arrs, axis=0).mask, axis=0)
         else:
             pass
         metrics_diffs_mean_list.append(metrics_diffs_mean)
@@ -607,9 +573,7 @@ def match_labels_from_metrics(
             indices_queries_matched_to_refs,
             indices_reciprocal_matches,
         ) = (
-            axial_min(arr=mdiffs.data, mask=mdiffs.mask)
-            if mdiffs.any()
-            else ((), (), ())
+            axial_min(arr=mdiffs.data, mask=mdiffs.mask) if mdiffs.any() else ((), (), ())
         )
 
         # update the lists of matched indices
@@ -626,16 +590,12 @@ def match_labels_from_metrics(
         invalid_query_matches_from_refs = np.logical_or(
             *[arr.mask for arr in indices_refs_matched_to_queries_list[i]]
         )
-        ref_labs_from_refs = reference_label_arrs[
-            indices_refs_matched_to_queries_list[i]
-        ]
+        ref_labs_from_refs = reference_label_arrs[indices_refs_matched_to_queries_list[i]]
         query_labs_from_refs: np.ma.masked_array = np.ma.masked_array(
             data=query_label_arrs[indices_refs_matched_to_queries_list[i]],
             mask=invalid_query_matches_from_refs,
         )
-        metrics_vals_from_refs = metrics_diffs_mean_list[i][
-            indices_refs_matched_to_queries_list[i]
-        ]
+        metrics_vals_from_refs = metrics_diffs_mean_list[i][indices_refs_matched_to_queries_list[i]]
 
         invalid_query_matches_to_refs = np.logical_or(
             *[arr.mask for arr in indices_queries_matched_to_refs_list[i]]
@@ -645,9 +605,7 @@ def match_labels_from_metrics(
             data=query_label_arrs[indices_queries_matched_to_refs_list[i]],
             mask=invalid_query_matches_to_refs,
         )
-        metrics_vals_to_refs = metrics_diffs_mean_list[i][
-            indices_queries_matched_to_refs_list[i]
-        ]
+        metrics_vals_to_refs = metrics_diffs_mean_list[i][indices_queries_matched_to_refs_list[i]]
 
         match matching_method:
             case "forward":
@@ -701,11 +659,7 @@ def match_labels_from_metrics(
     for label in matched_labels_list[reference_index]:
         matched_labels_dict[label] = {
             "matched_query_label": [
-                (
-                    matched_labels_list[i][label]
-                    if label in matched_labels_list[i]
-                    else np.ma.masked
-                )
+                (matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked)
                 for i in range(len(matched_labels_list))
             ],
             "optimized_metric_value": [
@@ -789,20 +743,14 @@ def match_labels_from_overlaps(
                 metrics_vals_from_refs.append(np.ma.masked)
             elif len(prop["get_label_with_most_overlap"]) == 1:
                 query_labs_from_refs.append(*prop["get_label_with_most_overlap"].keys())
-                metrics_vals_from_refs.append(
-                    *prop["get_label_with_most_overlap"].values()
-                )
+                metrics_vals_from_refs.append(*prop["get_label_with_most_overlap"].values())
             else:
                 # the reason to keep this if-else statement instead of
                 # always choosing the first match is in case we want to
                 # implement keeping tracking of multiple matches in
                 # the future (e.g. track merging or splitting behavior)
-                query_labs_from_refs.append(
-                    list(prop["get_label_with_most_overlap"].keys())[0]
-                )
-                metrics_vals_from_refs.append(
-                    list(prop["get_label_with_most_overlap"].values())[0]
-                )
+                query_labs_from_refs.append(list(prop["get_label_with_most_overlap"].keys())[0])
+                metrics_vals_from_refs.append(list(prop["get_label_with_most_overlap"].values())[0])
 
         query_labs_to_refs, ref_labs_to_refs, metrics_vals_to_refs = [], [], []
         for prop in props_ref_to_refs:
@@ -812,20 +760,14 @@ def match_labels_from_overlaps(
                 metrics_vals_to_refs.append(np.ma.masked)
             elif len(prop["get_label_with_most_overlap"]) == 1:
                 ref_labs_to_refs.append(*prop["get_label_with_most_overlap"].keys())
-                metrics_vals_to_refs.append(
-                    *prop["get_label_with_most_overlap"].values()
-                )
+                metrics_vals_to_refs.append(*prop["get_label_with_most_overlap"].values())
             else:
                 # the reason to keep this if-else statement instead of
                 # always choosing the first match is in case we want to
                 # implement keeping tracking of multiple matches in
                 # the future (e.g. track merging or splitting behavior)
-                ref_labs_to_refs.append(
-                    list(prop["get_label_with_most_overlap"].keys())[0]
-                )
-                metrics_vals_to_refs.append(
-                    list(prop["get_label_with_most_overlap"].values())[0]
-                )
+                ref_labs_to_refs.append(list(prop["get_label_with_most_overlap"].keys())[0])
+                metrics_vals_to_refs.append(list(prop["get_label_with_most_overlap"].values())[0])
 
         matched_labels: tuple[Any, Any]
         matched_metrics: tuple[Any, Any]
@@ -863,9 +805,7 @@ def match_labels_from_overlaps(
                 matches_from_refs = dict(
                     zip(ref_labs_from_refs, query_labs_from_refs, strict=False)
                 )
-                matches_to_refs = dict(
-                    zip(query_labs_to_refs, ref_labs_to_refs, strict=False)
-                )
+                matches_to_refs = dict(zip(query_labs_to_refs, ref_labs_to_refs, strict=False))
                 matches_from_refs_vals = dict(
                     zip(ref_labs_from_refs, metrics_vals_from_refs, strict=False)
                 )
@@ -896,11 +836,7 @@ def match_labels_from_overlaps(
     for label in matched_labels_list[reference_index]:
         matched_labels_dict[label] = {
             "matched_query_label": [
-                (
-                    matched_labels_list[i][label]
-                    if label in matched_labels_list[i]
-                    else np.ma.masked
-                )
+                (matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked)
                 for i in range(len(matched_labels_list))
             ],
             "optimized_metric_value": [
@@ -935,16 +871,12 @@ def get_label_with_most_overlap(
     labels_overlapping = labels_overlapping[~mask]
     sizes_overlapping = sizes_overlapping[~mask]
     if np.any(labels_overlapping):
-        fractions_outside_labeled_region = (
-            region_mask_size - sizes_overlapping
-        ) / region_mask_size
+        fractions_outside_labeled_region = (region_mask_size - sizes_overlapping) / region_mask_size
         label_with_most_overlap = labels_overlapping[
             fractions_outside_labeled_region == fractions_outside_labeled_region.min()
         ].tolist()
         fraction_overlap = 1 - np.min(fractions_outside_labeled_region)
-        labels_with_most_overlap = dict.fromkeys(
-            label_with_most_overlap, fraction_overlap
-        )
+        labels_with_most_overlap = dict.fromkeys(label_with_most_overlap, fraction_overlap)
     else:
         labels_with_most_overlap = {}
     return labels_with_most_overlap
@@ -981,8 +913,7 @@ def initialize_track_ids(
         )
     )
     column_names = [
-        column_name
-        for column_name in ("image_index", "T", "track_id", *props_to_include)
+        column_name for column_name in ("image_index", "T", "track_id", *props_to_include)
     ]
     track_ids = dict(zip(column_names, tracking_data, strict=False))
 
@@ -1003,9 +934,7 @@ def reassign_track_ids_from_matches(
     )
     # print('reassign_track_ids_from_matches:', f'current_T={current_T}')
     recent_track_ids["match_at_current_image_index"] = recent_track_ids.apply(
-        lambda row: row["matched_query_label"][
-            reference_index - row["image_index_relative"]
-        ],
+        lambda row: row["matched_query_label"][reference_index - row["image_index_relative"]],
         axis=1,
     ).copy()
 
@@ -1017,9 +946,7 @@ def reassign_track_ids_from_matches(
 
     # remove lost tracks
     filtered_recent_track_ids = recent_track_ids[
-        recent_track_ids["match_at_current_image_index"].transform(
-            lambda x: not np.ma.is_masked(x)
-        )
+        recent_track_ids["match_at_current_image_index"].transform(lambda x: not np.ma.is_masked(x))
     ].reset_index(drop=False)
 
     # for tracks with a viable matches in matched_query_label,
@@ -1027,9 +954,9 @@ def reassign_track_ids_from_matches(
     most_recent_track_id_records = filtered_recent_track_ids.groupby("track_id")[
         "image_index_relative"
     ].transform(lambda x: x == x.max())
-    filtered_recent_track_ids = filtered_recent_track_ids[
-        most_recent_track_id_records
-    ].reset_index(drop=True)
+    filtered_recent_track_ids = filtered_recent_track_ids[most_recent_track_id_records].reset_index(
+        drop=True
+    )
 
     merged_tracks = (
         filtered_recent_track_ids.groupby(["index", "image_index", "label"])
@@ -1038,28 +965,20 @@ def reassign_track_ids_from_matches(
         > 1
     )  # .query('count > 1')
     split_tracks = (
-        filtered_recent_track_ids.groupby(
-            ["index", "image_index", "match_at_current_image_index"]
-        )
+        filtered_recent_track_ids.groupby(["index", "image_index", "match_at_current_image_index"])
         .size()
         .reset_index(name="count")["count"]
         > 1
     )  # .query('count > 1')
     new_tracks = new_track_ids[
-        ~new_track_ids["label"].isin(
-            filtered_recent_track_ids["match_at_current_image_index"]
-        )
+        ~new_track_ids["label"].isin(filtered_recent_track_ids["match_at_current_image_index"])
     ]["label"]
 
     # reassign track_ids for existing tracks and give new track_ids to new tracks
     tracks_needing_new_ids = (
         new_tracks.to_list()
-        + filtered_recent_track_ids[merged_tracks][
-            "match_at_current_image_index"
-        ].to_list()
-        + filtered_recent_track_ids[split_tracks][
-            "match_at_current_image_index"
-        ].to_list()
+        + filtered_recent_track_ids[merged_tracks]["match_at_current_image_index"].to_list()
+        + filtered_recent_track_ids[split_tracks]["match_at_current_image_index"].to_list()
     )
     existing_tracks_to_reassign = filtered_recent_track_ids.query(
         "match_at_current_image_index not in @tracks_needing_new_ids", inplace=False
@@ -1190,12 +1109,8 @@ def axial_min(
     # to make a masked array using for_i_in_arr_min.mask and for_j_in_arr_min.mask
     for_i_in_arr_argmin = np.ma.argmin(arr, axis=1, keepdims=True)
     for_j_in_arr_argmin = np.ma.argmin(arr, axis=0, keepdims=True)
-    for_i_in_arr_argmin = np.ma.masked_array(
-        data=for_i_in_arr_argmin, mask=for_i_in_arr_min.mask
-    )
-    for_j_in_arr_argmin = np.ma.masked_array(
-        data=for_j_in_arr_argmin, mask=for_j_in_arr_min.mask
-    )
+    for_i_in_arr_argmin = np.ma.masked_array(data=for_i_in_arr_argmin, mask=for_i_in_arr_min.mask)
+    for_j_in_arr_argmin = np.ma.masked_array(data=for_j_in_arr_argmin, mask=for_j_in_arr_min.mask)
 
     ij_argmins: tuple = (
         np.ma.masked_array(
@@ -1210,9 +1125,7 @@ def axial_min(
         ),
     )
 
-    reciprocal_argmin = np.ma.where(
-        (arr == for_j_in_arr_min) * (arr == for_i_in_arr_min)
-    )
+    reciprocal_argmin = np.ma.where((arr == for_j_in_arr_min) * (arr == for_i_in_arr_min))
 
     return ij_argmins, ji_argmins, reciprocal_argmin
 
@@ -1242,37 +1155,26 @@ def save_track_labeled_images(
     assert (
         extra_channel is None or extra_channel["image"].ndim == track_labeled_image.ndim
     ), "extra_channel must be the same shape as track_labeled_image if provided"
-    current_dim_of_track_labeled_image = (
-        "YX" if track_labeled_image.ndim == 2 else "ZYX"
-    )
+    current_dim_of_track_labeled_image = "YX" if track_labeled_image.ndim == 2 else "ZYX"
 
     extra_image_props = ["image", "name", "color"]
     extra_image, extra_name, extra_color = (
-        [
-            extra_channel[prop] if prop in extra_image_props else []
-            for prop in extra_image_props
-        ]
+        [extra_channel[prop] if prop in extra_image_props else [] for prop in extra_image_props]
         if extra_channel
         else [[], [], []]
     )
     extra_color = (
-        [extra_color] or [(255, 255, 255)]
-        if isinstance(extra_image, np.ndarray)
-        else extra_color
+        [extra_color] or [(255, 255, 255)] if isinstance(extra_image, np.ndarray) else extra_color
     )
     extra_name = (
-        [extra_name] or ["extra_channel"]
-        if isinstance(extra_image, np.ndarray)
-        else extra_name
+        [extra_name] or ["extra_channel"] if isinstance(extra_image, np.ndarray) else extra_name
     )
 
     if image_metadata is not None and "physical_pixel_sizes" in image_metadata:
         assert (
             len(image_metadata["physical_pixel_sizes"]) == 3
         ), "physical_pixel_sizes must be a 3D iterable with entries for Z, Y, X in that order."
-        voxel_size = tuple(
-            [image_metadata["physical_pixel_sizes"][dim] for dim in "ZYX"]
-        )
+        voxel_size = tuple([image_metadata["physical_pixel_sizes"][dim] for dim in "ZYX"])
         physical_pixel_sizes = PhysicalPixelSizes(*voxel_size)
     else:
         voxel_size = (1, 1, 1)
@@ -1361,9 +1263,7 @@ def run_tracking(
         in_dir, file_extension=".tif?", sorting_function=sorting_function
     )
     extra_image_filepaths_to_overlay = (
-        parse_paths(
-            extra_in_dir, file_extension=".tif?", sorting_function=sorting_function
-        )
+        parse_paths(extra_in_dir, file_extension=".tif?", sorting_function=sorting_function)
         if extra_in_dir
         else []
     )
@@ -1406,9 +1306,7 @@ def run_tracking(
                 else {i: fp for i, fp in enumerate(filepath)}
             )
             if time_list:
-                T_range_dict = {
-                    t: fp for t, fp in T_range_dict.items() if t in time_list
-                }
+                T_range_dict = {t: fp for t, fp in T_range_dict.items() if t in time_list}
             img_queue[key] = {
                 timeframe: {
                     "path": fp,
@@ -1562,9 +1460,7 @@ def run_tracking(
 
     # split the 'centroid' column into separate columns for each dimension
     if "centroid" in track_table.columns:
-        centroid_subdf = pd.DataFrame(
-            track_table["centroid"].tolist(), index=track_table.index
-        )
+        centroid_subdf = pd.DataFrame(track_table["centroid"].tolist(), index=track_table.index)
         num_centroid_dims = len(centroid_subdf.columns)
         # note that we have to iterate through the coordinates
         # in reverse (hence the [::-1])
@@ -1589,9 +1485,7 @@ def update_track_table(
     print("- updating tracks...") if verbose else None
 
     current_image_index = (
-        int(existing_track_ids["image_index"].max()) + 1
-        if not existing_track_ids.empty
-        else 0
+        int(existing_track_ids["image_index"].max()) + 1 if not existing_track_ids.empty else 0
     )
 
     print("- matching labels...") if verbose else None
@@ -1603,9 +1497,7 @@ def update_track_table(
         verbose=verbose,
     )
 
-    matched_labels_props_list = [
-        matched_labels[lab]["regionprops"] for lab in matched_labels
-    ]
+    matched_labels_props_list = [matched_labels[lab]["regionprops"] for lab in matched_labels]
     border_labels = np.unique(
         ~clear_border(labeled_images[reference_index]).astype(bool)
         * labeled_images[reference_index]
@@ -1665,11 +1557,7 @@ def update_track_table(
     else:
         pass
     # concatenate reassigned track ids to existing track ids
-    (
-        print("- concatenating existing track table and new track table...")
-        if verbose
-        else None
-    )
+    (print("- concatenating existing track table and new track table...") if verbose else None)
     existing_track_ids = (
         pd.concat([existing_track_ids, new_track_ids])
         if not existing_track_ids.empty

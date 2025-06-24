@@ -8,7 +8,7 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process.image_processing import (
     bf_slice,
     bf_std_dev,

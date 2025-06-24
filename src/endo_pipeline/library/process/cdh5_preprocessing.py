@@ -27,7 +27,7 @@ from skimage.segmentation import (
     watershed,
 )
 
-from cellsmap.util.dataset_io import extract_T
+from src.endo_pipeline.configs.dataset_io import extract_T
 from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
@@ -101,17 +101,13 @@ def get_noodly_regions(
     img_labeled = label(binary_img_arr)
     img_props = regionprops(img_labeled)
 
-    axis_ratio_filter = (
-        2.5  # NOTE 1 = perfect circle, higher numbers == more elongated ovals
-    )
+    axis_ratio_filter = 2.5  # NOTE 1 = perfect circle, higher numbers == more elongated ovals
     solidity_filter = 0.6
 
     hyst_props_axes_ratio = {}
     for prop in img_props:
         if prop.axis_minor_length:
-            hyst_props_axes_ratio[prop.label] = (
-                prop.axis_major_length / prop.axis_minor_length
-            )
+            hyst_props_axes_ratio[prop.label] = prop.axis_major_length / prop.axis_minor_length
         else:
             hyst_props_axes_ratio[prop.label] = np.inf
 
@@ -170,9 +166,7 @@ def get_thresholds(
 
     low_thresh, high_thresh = np.percentile(processed_img, q=(66, 80))
     hyst = apply_hysteresis_threshold(processed_img, low=low_thresh, high=high_thresh)
-    hyst_noodly, hyst_round = get_noodly_regions(
-        hyst, axis_ratio_filter=2.5, solidity_filter=0.6
-    )
+    hyst_noodly, hyst_round = get_noodly_regions(hyst, axis_ratio_filter=2.5, solidity_filter=0.6)
 
     return hyst, hyst_noodly, hyst_round
 
@@ -201,9 +195,7 @@ def get_classic_segmentation(image: np.ndarray) -> np.ndarray:
     # threshold the processed image
     hyst, hyst_clean, hyst_removed = get_thresholds(processed_img)
     # segment the processed image with the help of the thresholded image
-    seg_image, seg2_lab = generate_segmentations(
-        processed_img, hyst, hyst_clean, hyst_removed
-    )
+    seg_image, seg2_lab = generate_segmentations(processed_img, hyst, hyst_clean, hyst_removed)
 
     return seg_image
 
@@ -238,9 +230,7 @@ def get_watershed_seeds_and_basins(
     dist = distance_transform_edt(binary_img_arr)
     dist_labels = label(binary_img_arr)
     basins = 1 - rescale_intensity(dist, out_range=(0, 1))
-    peaks = peak_local_max(
-        dist, min_distance=min_dist, labels=dist_labels, exclude_border=False
-    )
+    peaks = peak_local_max(dist, min_distance=min_dist, labels=dist_labels, exclude_border=False)
     peaks_arr = np.zeros(binary_img_arr.shape, dtype=binary_img_arr.dtype)
     peaks_arr[tuple(zip(*peaks, strict=False))] = 1
 
@@ -294,19 +284,13 @@ def clean_labeled_img(
     labeled_props_sm_round = [
         prop.label
         for prop in labeled_props
-        if (
-            prop.eccentricity < eccentricity_filter
-            and prop.num_pixels < size_filter_conditional
-        )
+        if (prop.eccentricity < eccentricity_filter and prop.num_pixels < size_filter_conditional)
         or prop.num_pixels < size_filter_strict
     ]
     labeled_props_lrg_oblong = [
         prop.label
         for prop in labeled_props
-        if (
-            prop.eccentricity >= eccentricity_filter
-            or prop.num_pixels >= size_filter_conditional
-        )
+        if (prop.eccentricity >= eccentricity_filter or prop.num_pixels >= size_filter_conditional)
         and prop.num_pixels >= size_filter_strict
     ]
 
@@ -500,9 +484,7 @@ def generate_segmentations(
     seg2_lab_no_mask = watershed(processed_img, seg2_lab)
     processed_img_normd = rescale_intensity(processed_img, out_range=(0, 1))
     rag = initialize_rag(seg2_lab_no_mask, processed_img_normd)
-    merge_thresh = np.percentile(
-        processed_img_normd, q=intensity_percentile_for_merge_thresh
-    )
+    merge_thresh = np.percentile(processed_img_normd, q=intensity_percentile_for_merge_thresh)
 
     seg2_lab_no_mask_merge = merge_hierarchical(
         seg2_lab_no_mask,
@@ -616,18 +598,12 @@ def generate_segmentations(
     # or get merged and repeat the watershed -> RAG -> merge step
     # NOTE we assume that these "small" regions can't possibly be
     # its own cell
-    cell_size_filter = (
-        2000  # number of pixels of segmented area that is considered too small
-    )
-    seg2_filtered = remove_small_objects(
-        seg2_lab_no_mask_merge, min_size=cell_size_filter
-    )
+    cell_size_filter = 2000  # number of pixels of segmented area that is considered too small
+    seg2_filtered = remove_small_objects(seg2_lab_no_mask_merge, min_size=cell_size_filter)
     seg2_lab_no_mask_merge = watershed(image=processed_img_normd, markers=seg2_filtered)
 
     rag = initialize_rag(seg2_lab_no_mask_merge, processed_img_normd)
-    merge_thresh = np.percentile(
-        processed_img_normd, q=intensity_percentile_for_merge_thresh
-    )
+    merge_thresh = np.percentile(processed_img_normd, q=intensity_percentile_for_merge_thresh)
 
     seg2_lab_no_mask_merge = merge_hierarchical(
         seg2_lab_no_mask_merge,
@@ -666,9 +642,7 @@ def split_multinucleate_regions(
     # remove any nuclei do not have more than half their area in
     # a single segmented region
     # get properties of nuclei predictions and original segmentations
-    nuc_props = regionprops(
-        label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations
-    )
+    nuc_props = regionprops(label_image=nuc_seg_merge_adjacent, intensity_image=cell_segmentations)
     nuc_prop_sizes = {prop.label: prop.area for prop in nuc_props}
 
     reg_props = regionprops(
@@ -685,8 +659,7 @@ def split_multinucleate_regions(
         for nuc_lab in np.unique(prop.intensity_image):
             if nuc_lab != 0:
                 nuc_frac = (
-                    np.count_nonzero(prop.intensity_image == nuc_lab)
-                    / nuc_prop_sizes[nuc_lab]
+                    np.count_nonzero(prop.intensity_image == nuc_lab) / nuc_prop_sizes[nuc_lab]
                 )
                 if nuc_frac > nuclei_ambiguity_threshold:
                     nuc_labels.append(nuc_lab)
@@ -713,19 +686,10 @@ def split_multinucleate_regions(
     # use the skeletonized regions as seed points for mononucleate
     # and anucleate regions
     seg_skels = skeletonize(~find_boundaries(cell_segmentations)) * cell_segmentations
-    anucleate_skels = (
-        np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
-    )
-    mononucleate_skels = (
-        np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
-    )
+    anucleate_skels = np.isin(seg_skels, list(anucleate_regions.keys())) * cell_segmentations
+    mononucleate_skels = np.isin(seg_skels, list(mononucleate_regions.keys())) * cell_segmentations
     mononucleate_nuclei_labels = set(
-        [
-            lab
-            for nuc_labs in mononucleate_regions.values()
-            for lab in nuc_labs
-            if lab != 0
-        ]
+        [lab for nuc_labs in mononucleate_regions.values() for lab in nuc_labs if lab != 0]
     )
     mononucleate_seeds = (
         np.isin(cell_segmentations, list(mononucleate_regions.keys()))
@@ -738,21 +702,14 @@ def split_multinucleate_regions(
     # use the nuclei in the multinucleate regions as seeds and
     # combine these with the skeleton-seeds from above
     multinucleate_nuclei_labels = set(
-        [
-            lab
-            for nuc_labs in multinucleate_regions.values()
-            for lab in nuc_labs
-            if lab != 0
-        ]
+        [lab for nuc_labs in multinucleate_regions.values() for lab in nuc_labs if lab != 0]
     )
     multinucleate_seeds = (
         np.isin(cell_segmentations, list(multinucleate_regions.keys()))
         * np.isin(nuc_seg_merge_adjacent, list(multinucleate_nuclei_labels))
         * nuc_seg_merge_adjacent
     )
-    multinucleate_seeds, _, _ = relabel_sequential(
-        multinucleate_seeds, offset=1 + seeds.max()
-    )
+    multinucleate_seeds, _, _ = relabel_sequential(multinucleate_seeds, offset=1 + seeds.max())
     seeds = seeds + multinucleate_seeds
 
     # to better resolve regions at the edges do a watershed where the
@@ -765,9 +722,7 @@ def split_multinucleate_regions(
     # NOTE: Using the nuclei as seeds does a better job of segmenting
     # cells touching the borders than using the skeletons as seeds.
     seeds_edges = anucleate_skels + mononucleate_seeds + multinucleate_seeds
-    seg = watershed(
-        image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh
-    )
+    seg = watershed(image=cell_boundary_image, markers=seeds_edges, mask=~cell_boundary_thresh)
     unreachable_edges = np.logical_xor(seg, ~cell_boundary_thresh)
     unreachable_edges = ~clear_border(unreachable_edges) * unreachable_edges
 
@@ -791,9 +746,7 @@ def split_multinucleate_regions(
     # the mask helps keep differences between the original segmentation
     # and newly-split segmentation to just new lines at cell-cell
     # boundaries (or as close to it)
-    sato_filt = rescale_intensity(
-        sato(cell_boundary_image, black_ridges=False), out_range=(0, 1)
-    )
+    sato_filt = rescale_intensity(sato(cell_boundary_image, black_ridges=False), out_range=(0, 1))
     seg = watershed(image=sato_filt, markers=seeds_cleaned, mask=seg_mask_final)
 
     # to fill in the masked regions use the same cell boundary image
@@ -812,18 +765,12 @@ def split_multinucleate_regions(
     seg = watershed(image=cell_boundary_image, markers=seg)
 
     # remove the seeds that were removed from the segmentation
-    seeds = (
-        seeds_cleaned
-        * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)]))
-        * seg_mask_final
-    )
+    seeds = seeds_cleaned * np.isin(seeds_cleaned, np.unique(seg[np.nonzero(seg)])) * seg_mask_final
 
     return seg, seeds
 
 
-def get_cdh5_classic_segmentation_paths(
-    dataset_name: str, sort_paths: bool = True
-) -> list:
+def get_cdh5_classic_segmentation_paths(dataset_name: str, sort_paths: bool = True) -> list:
     """
     Return the filepaths to the cdh5 classic segmentations (segmentations are saved
     as individual timepoints).
@@ -845,13 +792,9 @@ def get_cdh5_classic_segmentation_paths(
     with open(config_file) as file:
         config_data = yaml.safe_load(file)
     segmentation_dirs = [
-        prj_dir / data["segmentation_dir"]
-        for data in config_data
-        if data["name"] == dataset_name
+        prj_dir / data["segmentation_dir"] for data in config_data if data["name"] == dataset_name
     ]
-    filepaths = [
-        fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob("*.tif*"))
-    ]
+    filepaths = [fp for seg_dir in segmentation_dirs for fp in list(Path(seg_dir).glob("*.tif*"))]
 
     if sort_paths:
         filepaths = sorted(filepaths, key=lambda fpath: extract_T(fpath.name))
@@ -940,15 +883,12 @@ def get_cdh5_classic_segmentation(
     # because it is easier to crop an array with them over tuples and using
     # an integer when slicing an array reduces its dimensionality.
     crops = [
-        {d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order}
-        for crop_map in crop_maps
+        {d: range(int(*img.dims[d]))[crop_map[d]] for d in dim_order} for crop_map in crop_maps
     ]
     dim_order_string = "".join(dim_order)
     if not as_dask:
         nd_arrays = [img.get_image_data(dim_order_string, **crop) for crop in crops]
         return nd_arrays
     else:
-        dask_arrays = [
-            img.get_image_dask_data(dim_order_string, **crop) for crop in crops
-        ]
+        dask_arrays = [img.get_image_dask_data(dim_order_string, **crop) for crop in crops]
         return dask_arrays

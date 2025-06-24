@@ -5,7 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -31,9 +31,7 @@ def replace_base_url(file_path: str) -> str:
         modified_path = file_path.replace(base_url, new_base_path)
         return modified_path
     else:
-        raise ValueError(
-            f"The base URL '{base_url}' was not found in the provided file path."
-        )
+        raise ValueError(f"The base URL '{base_url}' was not found in the provided file path.")
 
 
 def get_valid_path(fpath) -> str:
@@ -79,9 +77,7 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
-def get_valid_subset(
-    df: pd.DataFrame, dataset_name: str, verbose: bool = True
-) -> pd.DataFrame:
+def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
     """
     Select timepoints from a dataframe annotated as valid if annotation is present, otherwise use all teimpoints
 
@@ -112,9 +108,7 @@ def get_valid_subset(
     return df[df.valid]
 
 
-def get_diffae_manifest(
-    dataset_name: str, filter_to_valid: bool = False
-) -> pd.DataFrame:
+def get_diffae_manifest(dataset_name: str, filter_to_valid: bool = False) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
     if fmsid == "" or fmsid is None:
         print(f"No DiffAE manifest found for dataset {dataset_name}")
@@ -126,9 +120,7 @@ def get_diffae_manifest(
 
 
 def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
-    fmsid = dataset_io.get_dataset_info(dataset_name).get(
-        "diffae_tracking_integration_fmsid", None
-    )
+    fmsid = dataset_io.get_dataset_info(dataset_name).get("diffae_tracking_integration_fmsid", None)
     if fmsid:
         return get_dataframe_by_fmsid(fmsid)
     else:
@@ -166,9 +158,7 @@ def list_datasets_with_manifest(
 
     if verbose:
         manifest_type = (
-            "nuclear segmentation"
-            if manifest_name == "nuclear_seg_manifest_fmsid"
-            else "DiffAE"
+            "nuclear segmentation" if manifest_name == "nuclear_seg_manifest_fmsid" else "DiffAE"
         )
         if timelapse_only:
             print(f"Available timelapse datasets with {manifest_type} manifest data: ")
