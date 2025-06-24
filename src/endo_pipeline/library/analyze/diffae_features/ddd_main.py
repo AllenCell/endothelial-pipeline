@@ -5,11 +5,10 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.library.analyze.diffae_features import model_analysis
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
-from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
+from src.endo_pipeline.library.visualize import viz_base
 
 
 def ddd_model_analysis(
@@ -82,8 +81,8 @@ def ddd_model_analysis(
     fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
 
     # save figures
-    vb.save_plot(fig1, fig_savedir + name + f"_ddff_phase_portrait_shear_{int(shear)}")
-    vb.save_plot(fig2, fig_savedir + name + f"_ddff_stationary_dist_shear_{int(shear)}")
+    viz_base.save_plot(fig1, fig_savedir + name + f"_ddff_phase_portrait_shear_{int(shear)}")
+    viz_base.save_plot(fig2, fig_savedir + name + f"_ddff_stationary_dist_shear_{int(shear)}")
     return
 
 
@@ -130,18 +129,18 @@ def get_and_analyze_ddd(
     bin_ylim = config["plt_ylim"]["hist"]
     num_bins_hist = config["num_bins_hist"]
     # get bins edges and centers
-    bins, centers = rh.get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
+    bins, centers = regression_helper.get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
 
     # load the data for the given name
     # and preprocess it
-    df_proj = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca=pca)
+    df_proj = preprocessing.get_manifest_for_dynamics_workflows(name, pca=pca)
 
     # just get PCs of interest
     feat_cols_all = manifest_io.get_feature_cols(df_proj)
     feat_cols = [feat_cols_all[i] for i in pcs]
 
     # split out data by flow condition
-    df_by_flow, shear_list = rh.get_traj_by_flow(df_proj, name)
+    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, name)
     num_flow = len(shear_list)
 
     # get drift and diffusion estimates
@@ -151,10 +150,10 @@ def get_and_analyze_ddd(
     for j in range(num_flow):
         # get list of per-crop trajectories and list
         # of the corresponding displacement vectors
-        traj_list, d_traj_list = rh.get_traj_and_diff(df_by_flow[j], feat_cols)
+        traj_list, d_traj_list = regression_helper.get_traj_and_diff(df_by_flow[j], feat_cols)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
-        drift_km, diff_km = rh.get_kramers_moyal(
+        drift_km, diff_km = regression_helper.get_kramers_moyal(
             traj_list,
             d_traj_list,
             bins,
@@ -163,10 +162,10 @@ def get_and_analyze_ddd(
         )
 
         # extrapolate nans in drift and diffusion estimates
-        drift_dict = ddff.compute_extrapolated_vector_field(
+        drift_dict = data_driven_flow_field.compute_extrapolated_vector_field(
             drift_km, centers, interpolator="nearest"
         )
-        diffusion_dict = ddff.compute_extrapolated_vector_field(
+        diffusion_dict = data_driven_flow_field.compute_extrapolated_vector_field(
             diff_km, centers, interpolator="nearest"
         )
 
@@ -174,11 +173,15 @@ def get_and_analyze_ddd(
         # have to have shear as a parameter
         # (dummy variable)
         def drift_(x: np.ndarray, u: float, vector_dict: dict = drift_dict) -> np.ndarray:
-            drift = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
+            drift = data_driven_flow_field.get_callable_vector_field(
+                vector_dict, for_solve_ivp=False
+            )
             return drift(x)
 
         def diffusion_(x: np.ndarray, u: float, vector_dict: dict = diffusion_dict) -> np.ndarray:
-            diffusion = ddff.get_callable_vector_field(vector_dict, for_solve_ivp=False)
+            diffusion = data_driven_flow_field.get_callable_vector_field(
+                vector_dict, for_solve_ivp=False
+            )
             return diffusion(x)
 
         # call main model analysis function
