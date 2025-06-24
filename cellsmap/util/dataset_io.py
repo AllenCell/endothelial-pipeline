@@ -686,11 +686,56 @@ def get_measurement_data_raws(
     return measurement_dataframe
 
 
+def get_measured_segmentation_data_raws(
+    dataset_name_list: list,
+    kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
+    as_dask: bool = False,
+) -> pd.DataFrame:
+    match kind:
+        case "cdh5_segmentations":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/cdh5_get_measured_features"
+            )
+            data_suffix = "segprops"
+        case "nuclei_labelfree":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/nuc_labelfree_get_measured_features"
+            )
+            data_suffix = "nuclei_features"
+        case "cdh5_tracking":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
+            )
+            data_suffix = "tracking"
+        case _:
+            raise ValueError(
+                f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
+            )
+    table_reader = dd if as_dask else pd
+    measured_data_list = []
+    for dataset_name in dataset_name_list:
+        data_path = base_path / f"{dataset_name}_{data_suffix}.tsv"
+        if data_path.exists():
+            # open the data tables
+            measured_data = table_reader.read_csv(data_path, sep="\t")
+            # include path to file that this data was loaded from
+            measured_data[f"source_measured_table_path-{kind}"] = data_path.as_posix()
+            measured_data_list.append(measured_data)
+        else:
+            print(f"No {kind} data found for {dataset_name}. Skipping...")
+            continue
+    # concatenate the dataframes into a single dataframe and return it
+    if measured_data_list:
+        measured_dataframe = table_reader.concat(measured_data_list, axis=0, ignore_index=True)
+    else:  # create an empty dataframe
+        measured_dataframe = table_reader.DataFrame.from_dict({})
+    return measured_dataframe
+
+
 def get_segmentation_features_manifest(
-    dataset_name_list: List, as_dask: bool = False
+    dataset_name_list: list, as_dask: bool = False
 ) -> pd.DataFrame:
     """
-    NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
     Get the segmentation features manifest for a given dataset.
     The manifest is a TSV file that contains the measurements
     from the tracked segmentations of a dataset.
