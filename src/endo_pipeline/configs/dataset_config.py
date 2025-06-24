@@ -78,7 +78,7 @@ class DatasetConfig:
     brightfield_channel_index: int
     """Index of the brightfield channel."""
 
-    nuclear_label_free_seg_path: str
+    nuclear_label_free_seg_path: str | None = None
     """Path to nuclear label free segmentation."""
 
     nuclear_stain_seg_path: str | None = None
@@ -125,6 +125,7 @@ class DatasetConfig:
 
     class Config(BaseConfig):
         forbid_extra_keys = True
+        omit_none = False
 
 
 def get_config_dir() -> Path:
@@ -203,7 +204,7 @@ def load_single_dataset(dataset_name: str) -> DatasetConfig | None:
         )
         return None
     else:
-        logger.info("Loaded dataset [ %s ]", dataset_name)
+        logger.debug("Loaded dataset [ %s ]", dataset_name)
         return YAMLDecoder(DatasetConfig).decode(config_file.read_text())
 
 
