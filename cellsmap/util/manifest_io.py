@@ -173,7 +173,11 @@ def list_datasets_with_manifest(
         time_interval_in_minutes = dataset_info.time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
-        if dataset_info[manifest_name] != "":
+        if manifest_name == "nuclear_seg_manifest_fmsid":
+            manifest_fmsid = dataset_info.nuclear_seg_manifest_fmsid
+        else:
+            manifest_fmsid = dataset_info.diffae_manifest_fmsid
+        if manifest_fmsid != "":
             dataset_list.append(dataset_name)
             if verbose:
                 print(f" - {dataset_name}")
