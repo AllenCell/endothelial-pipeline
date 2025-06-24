@@ -17,11 +17,8 @@ from cellsmap.util.dataset_io import (
 )
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.diffae_model.apply_diffae_model import (
-    get_cytodl_commit_hash,
-    load_overrides,
-)
-from src.endo_pipeline.library.diffae_model.mlflow import download_model
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model.mlflow import download_model
 
 # the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1
@@ -80,9 +77,7 @@ def update_prediction_with_meta(
     save_path: Path,
 ):
     # add model and dataset information to prediction file
-    prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
-    )
+    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
@@ -95,12 +90,8 @@ def update_prediction_with_meta(
     pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: extract_P(s, int_only=False)
-    )
-    pred_df.rename(
-        columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True
-    )
+    pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
+    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path
 
@@ -219,9 +210,7 @@ def apply_model(
     """
     if regex:
         dataset_names = [
-            name
-            for name in get_available_datasets(verbose=False)
-            if re.search(regex, name)
+            name for name in get_available_datasets(verbose=False) if re.search(regex, name)
         ]
         print(f"Found {dataset_names} matching regex '{regex}'")
     else:

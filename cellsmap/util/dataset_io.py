@@ -1,3 +1,5 @@
+import subprocess
+from os import scandir
 from pathlib import Path
 
 import dask
@@ -27,8 +29,15 @@ def get_config_dir() -> Path:
 def save_to_yaml(object: dict, path: Path) -> None:
     """Save dictionary object to YAML at given path."""
 
-    yaml.SafeDumper.add_representer(list, lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True))
-    yaml_content = yaml.safe_dump(object, default_flow_style=False, sort_keys=False, width=80, indent=2)
+    yaml.SafeDumper.add_representer(
+        list,
+        lambda dumper, data: dumper.represent_sequence(
+            "tag:yaml.org,2002:seq", data, flow_style=True
+        ),
+    )
+    yaml_content = yaml.safe_dump(
+        object, default_flow_style=False, sort_keys=False, width=80, indent=2
+    )
     path.open("w").write(yaml_content)
 
 
@@ -53,20 +62,23 @@ def combine_data_config(save: bool = False) -> dict:
     separated_path = get_config_dir() / "datasets"
     combined_path = Path(__file__).resolve().parents[1] / "data_config.yaml"
 
-    separate_data_configs = [yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))]
-    combined_data_config = { config["name"]: config for config in separate_data_configs }
+    separate_data_configs = [
+        yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))
+    ]
+    combined_data_config = {config["name"]: config for config in separate_data_configs}
 
     if save:
         save_to_yaml(combined_data_config, combined_path)
 
     return combined_data_config
 
+
 # model methods
-def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
+
+
+def load_config(config_type: str = "data") -> dict[Any, Any]:
     if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError(
-            'Invalid config type. Must be either "data", "model", or "dynamics."'
-        )
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
 
     # If loading the data config, load combined from all individual dataset
     # configs. This is part of a change to manage datasets with dataclasses.
@@ -80,11 +92,26 @@ def load_config(config_type: str = "data") -> dict[str, dict[str, Any]]:
     return config_data
 
 
-def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> None:
+def load_config_src(config_type: str = "data") -> list[dict[Any, Any]]:
+    """
+    Load config file from new location in
+    src/endo_pipeline/configs/.
+    This function will become deprecated in the future
+    when we update this module to be compatible with
+    the new repo structure.
+    """
     if config_type not in ["data", "model", "dynamics"]:
-        raise ValueError(
-            'Invalid config type. Must be either "data", "model", or "dynamics."'
-        )
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
+    parent_folder = Path(__file__).resolve().parents[2]
+    config_file = parent_folder / f"src/endo_pipeline/configs/{config_type}_config.yaml"
+    with open(config_file, "r") as file:
+        config_data = yaml.safe_load(file)
+    return config_data
+
+
+def write_config(config: Dict[str, Dict[str, Any]], config_type: str = "data") -> None:
+    if config_type not in ["data", "model", "dynamics"]:
+        raise ValueError('Invalid config type. Must be either "data", "model", or "dynamics."')
     parent_folder = Path(__file__).resolve().parent
     config_file = parent_folder.parent / f"{config_type}_config.yaml"
 
@@ -96,9 +123,7 @@ def write_config(config: List[Dict[str, Any]], config_type: str = "data") -> Non
 
     with open(config_file, "w") as file:
         #                        one key per line            keep ordering    wrap lines
-        yaml.dump(
-            config, file, default_flow_style=False, sort_keys=False, width=80, indent=2
-        )
+        yaml.dump(config, file, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     # If writing the data config, split the combined data config file that was
     # saved above into individual dataset config files (and delete the combined
@@ -240,9 +265,7 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     Get the zarr name for a given dataset and position.
     """
     zarr_paths = get_zarr_path(dataset_name)
-    zarr_found_for_position = position in [
-        extract_P(zarr_name) for zarr_name in zarr_paths.keys()
-    ]
+    zarr_found_for_position = position in [extract_P(zarr_name) for zarr_name in zarr_paths.keys()]
     assert (
         zarr_found_for_position
     ), f"Zarr file for position {position} not found in dataset {dataset_name}."
@@ -326,9 +349,7 @@ def load_dataset_position_as_dask_array(
                 break
     elif isinstance(position, str):
         if position not in zarr_path_list:
-            raise ValueError(
-                f"Zarr file {position} not found in dataset {dataset_name}."
-            )
+            raise ValueError(f"Zarr file {position} not found in dataset {dataset_name}.")
         zarr_name = position
 
     img_dict = load_dataset(
@@ -378,13 +399,31 @@ def get_flow_change_frame(dataset_name: str) -> int:
     return change_frame
 
 
-def get_flow_for_frame(dataset_name: str, frame: int) -> float | None:
+def get_flow_for_frame(dataset_name: str, frame: int) -> float:
+    """
+    Retrieve the flow value for a specific frame in a dataset.
+
+    This function searches the flow list for the given dataset and returns the
+    flow value corresponding to the specified frame. If the frame is not found
+    in the flow list, a ValueError is raised.
+
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the dataset to retrieve the flow information from.
+    frame : int
+        The frame index for which to retrieve the flow value.
+
+    Returns
+    -------
+    float
+        The flow value for the specified frame.
+    """
     flow_list = get_flow_info(dataset_name)
     for t_start, t_stop, flow in flow_list:
         if t_start <= frame <= t_stop:
             return flow
-    print(f"Frame {frame} not found in flow list.")
-    return None
+    raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
 def get_valid_timepoints(dataset_name: str) -> dict:
@@ -461,7 +500,12 @@ def load_nuclei_prediction(
         return dask.array.empty(shape=[0] * len(dim_order))
 
 
-def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
+def get_cdh5_classic_segmentation_path(
+    dataset_name: str,
+    position: int,
+    T: int | None = None,
+    missing_file_exception: Literal["raise", "warn"] = "warn",
+) -> Path | None:
     # NOTE at some point the cdh5 classic segmentation paths
     # will probably be added to the dataconfig.yaml file
     # for the base_path, but until then I will hardcode the
@@ -473,8 +517,48 @@ def get_cdh5_classic_segmentation_path(dataset_name: str, position: int) -> str:
     # NOTE this is what the code is expected to be when the
     # path is added to the dataconfig.yaml file:
     # base_path = dataset_info['cdh5_classic_seg_path']
-    position_path = f"{base_path}/P{position}/"
-    return position_path
+    position_path = Path(f"{base_path}/P{position}/")
+    if T is None:
+        return position_path
+    else:
+        cdh5_seg_path_dict = {
+            extract_T(fp.stem): fp
+            for fp in position_path.glob("*.ome.tif*")
+            if extract_T(fp.name) == T
+        }
+        cdh5_seg_path = cdh5_seg_path_dict.get(T, None)
+        if cdh5_seg_path is not None:
+            return cdh5_seg_path
+
+    match missing_file_exception:
+        case "raise":
+            raise FileNotFoundError(
+                f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
+            )
+        case "warn":
+            print(f"CDH5 segmentation for T={T} not found in {position_path}. Skipping...")
+            return None
+
+
+def load_cdh5_classic_segmentation(
+    dataset_name: str,
+    position: int,
+    T: int,
+    dim_order: str = "ZYX",
+) -> dask.array.Array:
+    """
+    Load the CDH5 classic segmentation for a given dataset, position, and timepoint.
+    """
+    cdh5_seg_path = get_cdh5_classic_segmentation_path(dataset_name, position, T)
+    if cdh5_seg_path is not None and cdh5_seg_path.exists():
+        # Load the CDH5 classic segmentation as a Dask array
+        cdh5_dask_arr = BioImage(cdh5_seg_path).get_image_dask_data(dim_order, T=0)
+        return cdh5_dask_arr
+    else:
+        print(
+            f"CDH5 classic segmentation file not found for T={T} in {cdh5_seg_path}, returning empty dask array."
+        )
+        return dask.array.empty(shape=[0] * len(dim_order))
 
 
 def get_tracking_data_paths(
@@ -504,9 +588,7 @@ def get_tracking_data_raws(
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         position_list = (
-            range(get_total_number_of_positions(dataset_name))
-            if position == None
-            else [position]
+            range(get_total_number_of_positions(dataset_name)) if position == None else [position]
         )
         for pos in position_list:
             data_path = Path(get_tracking_data_paths(dataset_name, pos))
@@ -526,17 +608,13 @@ def get_tracking_data_raws(
                 tracking_data_list.append(tracking_data)
     # concatenate the dataframes into a single dataframe and return it
     if tracking_data_list:
-        tracking_dataframe = table_reader.concat(
-            tracking_data_list, axis=0, ignore_index=True
-        )
+        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     else:  # create an empty dataframe
         tracking_dataframe = table_reader.DataFrame.from_dict({})
     return tracking_dataframe
 
 
-def get_tracking_data_filtered(
-    dataset_name_list: List, as_dask: bool = False
-) -> pd.DataFrame:
+def get_tracking_data_filtered(dataset_name_list: List, as_dask: bool = False) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
     same script that a multiprocessing workflow that later uses
@@ -547,9 +625,7 @@ def get_tracking_data_filtered(
     multiprocessing.
     """
     table_reader = dd if as_dask else pd
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/track_filtering"
-    )
+    base_path = Path("//allen/aics/endothelial/morphological_features/analysis/track_filtering")
     tracking_data_list = []
     for dataset_name in dataset_name_list:
         data_path = base_path / f"{dataset_name}_filtered_tracking_data.tsv"
@@ -563,9 +639,7 @@ def get_tracking_data_filtered(
             print(f"No filtered tracking data found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    tracking_dataframe = table_reader.concat(
-        tracking_data_list, axis=0, ignore_index=True
-    )
+    tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe
 
 
@@ -636,14 +710,10 @@ def get_segmentation_features_manifest(
             seg_feat_data["source_filtered_tracking_table_path"] = data_path.as_posix()
             seg_feat_data_list.append(seg_feat_data)
         else:
-            print(
-                f"No segmentation feature manifest found for {dataset_name}. Skipping..."
-            )
+            print(f"No segmentation feature manifest found for {dataset_name}. Skipping...")
             continue
     # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = table_reader.concat(
-        seg_feat_data_list, axis=0, ignore_index=True
-    )
+    seg_feat_dataframe = table_reader.concat(seg_feat_data_list, axis=0, ignore_index=True)
     return seg_feat_dataframe
 
 
@@ -658,9 +728,7 @@ def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
     base_path = dataset_info["cell_track_integration_manifest_fmsid"]
     integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
     if not integration_path.exists():
-        raise FileNotFoundError(
-            f"Cell track integration dataset not found at {integration_path}."
-        )
+        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
     return pd.read_csv(integration_path, sep="\t")
 
 
@@ -849,3 +917,130 @@ def extract_P(
         print(f"""No 'P[0-9]+' found in filename. Using P == default_if_not_found.""")
 
     return position_value if int_only else f"P{position_value}"
+
+
+def get_git_versioning_info() -> dict[str, str]:
+    """
+    Returns versioning info about the script, including the branch
+    name, commit hash, uncommitted changes, and timestamp of when
+    the script was run.
+    """
+    # get some versioning info about when this script was run and
+    # what version of the script was used to produce the output
+    # to save alongside the output
+    # the branch name:
+    git_branch_name = (
+        subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        .decode("ascii")
+        .strip()
+    )
+    # the current commit hash:
+    git_commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    # if there were any uncommitted changes when this script was run:
+    git_uncommitted_changes = (
+        subprocess.check_output(["git", "diff", "HEAD", "--name-only"]).decode("ascii").strip()
+        or "None"
+    )
+    # the timestamp that this script was run:
+    timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %X")
+
+    git_branch_info = {
+        "timestamp": str(timestamp),
+        "git_branch_name": str(git_branch_name),
+        "git_commit_hash": str(git_commit_hash),
+        "git_uncommitted_changes": str(git_uncommitted_changes),
+    }
+    return git_branch_info
+
+
+def save_git_versioning_info(
+    out_dir: Path,
+    filename_prefix: str,
+    verbose: bool = True,
+) -> None:
+    """
+    Saves git versioning info to a .txt file in the specified output directory.
+    The filename will be prepended with the provided filename_prefix.
+    output_dir should be a path that exists already, it will not be created.
+    """
+    git_info = get_git_versioning_info()
+    output_path = out_dir / f"{filename_prefix}_git_versioning_info.txt"
+    with output_path.open("w") as git_versioning_file:
+        for key, value in git_info.items():
+            git_versioning_file.write(f"{key}: {value}\n")
+    print(f"Git versioning info saved to {output_path}.") if verbose else None
+    return None
+
+
+def concatenate_and_save_feature_tables(
+    out_dir: Path,
+    dataset_name: str,
+    out_file_suffix: str = "",
+    input_filename_contains: str = "",
+    file_extension: str = ".csv",
+    sort_by_T: bool = True,
+    check_saved_dataframe: bool = True,
+    remove_initial_files_and_folders: bool = False,
+) -> None:
+    """
+    Concatenates the nuclei feature tables for all positions and
+    timepoints for a given dataset in an out_dir and then saves
+    the concatenated table to the output directory.
+    The expected file structure in out_dir is:
+    out_dir/dataset_name/position/*filename_contains*.file_extension
+    """
+    out_subdir = out_dir / dataset_name
+    feats_dfs = []
+    sep = "\t" if file_extension == ".tsv" else ","
+
+    file_extension = f".{file_extension}" if not file_extension.startswith(".") else file_extension
+    if input_filename_contains and not input_filename_contains.endswith("*"):
+        input_filename_contains = f"{input_filename_contains}*"
+    feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
+    if sort_by_T:
+        feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
+    feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
+
+    if feats_dfs:
+        concatenated_df = pd.concat(feats_dfs, ignore_index=True)
+        if out_file_suffix:
+            out_file_suffix = (
+                f"_{out_file_suffix}"
+                if not out_file_suffix.startswith("_")
+                else f"{out_file_suffix}"
+            )
+        concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
+        concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
+    else:
+        print(f"No feature tables found for {dataset_name}.")
+
+    if check_saved_dataframe:
+        # check that the concatenated dataframe at least has the same shape
+        # and column names as a proxy for checking if it was saved correctly
+        saved_df = pd.read_csv(concatenated_df_out_path, sep=sep)
+        same_shape = saved_df.shape == concatenated_df.shape
+        same_column_names = all(saved_df.columns == concatenated_df.columns)
+        if not (same_shape and same_column_names):
+            raise ValueError(
+                f"Saved dataframe {concatenated_df_out_path} does not match the concatenated dataframe."
+            )
+        print(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
+
+    if remove_initial_files_and_folders:
+        # remove files that match input_filename_contains
+        for fp in feats_filepaths:
+            fp.unlink()
+    dirs_to_remove = list(out_subdir.glob("**/"))
+    # remove the empty directory now that old tables are deleted
+    # (note this must be done in reverse order because a folder with
+    # subfolders does not count as empty and therfore raises an error)
+    for dir_path in dirs_to_remove[::-1]:
+        # NOTE that rmdir only removes empty directories
+        # and will raise an error if it is not empty. If
+        # a directory is not empty then we will skip it
+        if not any(list(scandir(dir_path))):
+            dir_path.rmdir()
+            print(f"Removed empty directory {dir_path}.")
+        else:
+            print(f"Directory {dir_path} is not empty, skipping removal.")
+            continue

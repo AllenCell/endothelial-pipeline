@@ -1,9 +1,12 @@
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 from mashumaro.codecs.yaml import YAMLDecoder
 from mashumaro.config import BaseConfig
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -77,6 +80,9 @@ class DatasetConfig:
     nuclear_label_free_seg_path: str
     """Path to nuclear label free segmentation."""
 
+    nuclear_stain_seg_path: str | None = None
+    """Path to nuclear stain segmentation."""
+
     channel_488_index: int | None = None
     """Index of the 488 channel."""
 
@@ -120,29 +126,46 @@ class DatasetConfig:
         forbid_extra_keys = True
 
 
-def validate_dataset_configs() -> None:
-    config_dir = Path(__file__).resolve().parents[1] / "configs"
+def get_config_dir() -> Path:
+    """Get path to config directory."""
 
-    for dataset_config in (config_dir / "datasets").iterdir():
-        print(f"Validating config [ {dataset_config} ]")
-        YAMLDecoder(DatasetConfig).decode(dataset_config.read_text())
+    return Path(__file__).resolve().parents[1] / "configs"
 
 
-def replace_channel_name(channel_number):
-    config_dir = Path(__file__).resolve().parents[1] / "configs"
-    old_channel_field = f"{channel_number}_channel_index"
-    new_channel_field = f"channel_{channel_number}_index"
+def get_available_datasets() -> list[str]:
+    """Get list of available dataset names."""
 
-    for dataset_config in (config_dir / "datasets").iterdir():
-        dataset_config_path = Path(dataset_config)
-        old_contents = dataset_config_path.open().read()
-        new_contents = old_contents.replace(old_channel_field, new_channel_field)
-        dataset_config_path.open("w").write(new_contents)
+    dataset_names = [path.stem for path in (get_config_dir() / "datasets").iterdir()]
+    logger.info("Available datasets [ %s ]", " | ".join(dataset_names))
+
+    return dataset_names
+
+
+def validate_all_dataset_configs() -> None:
+    """Validate all dataset configs against defined schema."""
+
+    dataset_names = get_available_datasets()
+
+    for dataset_name in dataset_names:
+        validate_single_dataset_config(dataset_name)
+
+
+def validate_single_dataset_config(dataset_name: str) -> None:
+    """Validate given dataset config against defined schema."""
+
+    config_dir = get_config_dir()
+    config_file = config_dir / "datasets" / f"{dataset_name}.yaml"
+
+    logger.info("Validating config file [ %s ]", dataset_name)
+    config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+
+    if config.name != config_file.stem:
+        logger.error(
+            "Config file name [ %s ] does not match name field [ %s ]",
+            config_file,
+            config.name,
+        )
 
 
 if __name__ == "__main__":
-    replace_channel_name(405)
-    replace_channel_name(488)
-    replace_channel_name(561)
-    replace_channel_name(640)
-    validate_dataset_configs()
+    validate_all_dataset_configs()

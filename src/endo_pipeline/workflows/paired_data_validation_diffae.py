@@ -10,15 +10,11 @@ from cyto_dl.api import CytoDLModel
 from cellsmap.util.dataset_io import get_model_info, update_dataset_config
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.manifest_preprocessing.diffae_feature_preprocessing import (
-    project_manifest_to_pcs,
-)
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.diffae_model.apply_diffae_model import (
-    get_cytodl_commit_hash,
-)
-from src.endo_pipeline.library.diffae_model.mlflow import download_model
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
+from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
 from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
@@ -36,21 +32,15 @@ def plot_paired_features(
     """
     pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
 
-    fixed_features = project_manifest_to_pcs(
-        fixed_features, pca, overwrite_feature_columns=False
-    )
-    moving_features = project_manifest_to_pcs(
-        moving_features, pca, overwrite_feature_columns=False
-    )
+    fixed_features = project_manifest_to_pcs(fixed_features, pca, overwrite_feature_columns=False)
+    moving_features = project_manifest_to_pcs(moving_features, pca, overwrite_feature_columns=False)
 
     n_pcs = len([c for c in fixed_features.columns if c.startswith("pc")])
 
     fig, ax = plt.subplots(1, n_pcs, figsize=(n_pcs * 4, 4))
     for i in range(n_pcs):
         r = np.corrcoef(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"])[0, 1]
-        ax[i].scatter(
-            fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"], alpha=0.1, s=3
-        )
+        ax[i].scatter(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"], alpha=0.1, s=3)
         ax[i].set_xlabel(fixed_name)
         ax[i].set_ylabel(moving_name)
         ax[i].set_title(f"PC{i+1} r^2: {r**2:.2f}", fontsize=6)
@@ -136,9 +126,7 @@ def compare_paired_features(
 
     save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
     save_path.mkdir(parents=True, exist_ok=True)
-    data_save_path = (
-        save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
-    )
+    data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
 
     if not data_save_path.exists():
         data = align_all_positions(
@@ -161,9 +149,7 @@ def compare_paired_features(
 
     # apply on fixed images
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
-    fixed_overrides.update(
-        {"data.predict_dataloaders.dataset.img_path_column": "fixed"}
-    )
+    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
     fixed_overrides = generate_overrides(
         fixed_overrides,
         save_path=str(save_path),
@@ -249,9 +235,7 @@ def main(
             "20250214_pairedPostFixation",
         ],
     }
-    for fixed, moving in zip(
-        datasets_live_fixed["fixed"], datasets_live_fixed["moving"]
-    ):
+    for fixed, moving in zip(datasets_live_fixed["fixed"], datasets_live_fixed["moving"]):
         compare_paired_features(
             # use model finetuned for fixation
             fixed_finetuned_model_name,

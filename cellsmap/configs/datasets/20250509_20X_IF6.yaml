@@ -1,0 +1,26 @@
+name: 20250509_20X_IF6
+original_path: //allen/programs/allencell/data/proj0/650/03c/090/038/d21/7eb/742/89d/ca2/c9f/b5/20250509_GE00007877_20X_sldy/20250509_GE00007877_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b5c9fca289d7427ebd2103809003c650
+fmsid: b5c9fca289d7427ebd2103809003c650
+barcode: GE00007877
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+microscope: 3i
+shear_stress_regime: 24hr_low
+use_cases: [immunofluorescence]
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, -1, 5.98]]
+channel_405_index: 0
+channel_488_index: 1
+channel_561_index: 2
+channel_640_index: 3
+brightfield_channel_index: 4
+n_total_positions: 2
+notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+nuclear_label_free_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: 1130e27b36fb467aab6d0f17d6efd102
+diffae_tracking_integration_fmsid: ''
+nuclear_stain_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF6

@@ -17,7 +17,9 @@ from cellsmap.util.manifest_io import (
 )
 from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.diffae_model.generate_image import generate_from_coords
+
+# from src.endo_pipeline.library.analyze.diffae_manifest
+from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
 
 
 def write_text(img, text):
@@ -148,10 +150,7 @@ def generate_latent_walk(
     save_dir = get_output_path(f"models/{model_name}")
 
     reference_manifests = pd.concat(
-        [
-            get_diffae_manifest(name, filter_to_valid=True)
-            for name in get_reference_datasets()
-        ]
+        [get_diffae_manifest(name, filter_to_valid=True) for name in get_reference_datasets()]
     )
 
     feature_cols = get_feature_cols(reference_manifests)
