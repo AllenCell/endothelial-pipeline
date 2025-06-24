@@ -55,7 +55,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
     for name in list_of_datasets:
         data_config = load_single_dataset(name)  # get dataset info from data_config.yaml
 
-        flow_config = data_config["flow"]  # get flow conditions for dataset
+        flow_config = data_config.flow  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
 
         # get shear rate for each flow condition,
