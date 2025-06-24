@@ -4,10 +4,9 @@ import numpy as np
 from cellsmap.util.dataset_io import get_reference_datasets
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
-from src.endo_pipeline.library.visualize import viz_base as vb
+from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
+from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
+from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -48,7 +47,7 @@ def main(datasets_to_use: list | None = None) -> None:
     # get timepoints to use for scatter plots
     # this can definitely be written into a wrapper function
     # maybe make a dictionary instead of a list?
-    timepoints_refs = diffae_preproc.get_timepoints_for_plotting_pcs(
+    timepoints_refs = preprocessing.get_timepoints_for_plotting_pcs(
         pca_refs, restrict_no_flow=restrict_no_flow
     )
 
@@ -56,14 +55,14 @@ def main(datasets_to_use: list | None = None) -> None:
     fig, _ = manifest_viz.plot_pc_scatter(
         pca, pca_refs, timepoints_to_use=timepoints_refs  # pca reference datasets
     )
-    vb.save_plot(fig, fig_savedir + "/pca_scatter_ref")
+    viz_base.save_plot(fig, fig_savedir + "/pca_scatter_ref")
 
     # scatter plot of all datasets specified in command line
     fig, _ = manifest_viz.plot_pc_scatter(
         pca,
         datasets_to_use,  # all datasets specified and all timepoints
     )
-    vb.save_plot(fig, fig_savedir + "/pca_scatter_all")
+    viz_base.save_plot(fig, fig_savedir + "/pca_scatter_all")
 
     # load default config, get kernel params
     config = dynamics_io.load_dynamics_config("default")
@@ -84,7 +83,7 @@ def main(datasets_to_use: list | None = None) -> None:
     # shear stress conditions
     init = np.array([-0.1, -0.7, -0.1])
 
-    ddff.ddff_main(
+    data_driven_flow_field.ddff_main(
         datasets_to_use,
         pca,
         kernel_params,
