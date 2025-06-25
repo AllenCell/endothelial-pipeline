@@ -35,6 +35,12 @@ def max_proj(stack: da.Array, axis: int) -> np.ndarray:
     return max_proj.compute()
 
 
+def sum_proj(stack: da.Array, axis: int) -> np.ndarray:
+    """Get the sum projection of the brightfield stack as a Dask array."""
+    sum_proj = stack.sum(axis)  # Sum projection along the Z-axis
+    return sum_proj.compute()
+
+
 def std_dev(stack: da.Array, axis: int) -> np.ndarray:
     """Get the standard deviation projection stack as a Dask array."""
     std_dev = stack.std(axis)  # Standard deviation along the Z-axis
@@ -74,3 +80,24 @@ def contrast_stretching(
 
     stretched_image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
     return stretched_image
+
+
+def background_subtract(img: np.ndarray, camera_offset: int = 100) -> np.ndarray:
+    """
+    Background subtract the image by clipping values below a camera offset.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        The input image array.
+    camera_offset : int, optional
+        The camera offset value to subtract from the image, by default 100.
+
+    Returns
+    -------
+    np.ndarray
+        The background-subtracted image.
+    """
+    img = np.clip(img, camera_offset, None)
+    img = img - camera_offset  # Set any negative values to zero
+    return img
