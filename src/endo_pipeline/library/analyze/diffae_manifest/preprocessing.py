@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs.dataset_config import DatasetConfig
+from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_single_dataset
 
 
 def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False) -> pd.DataFrame:
@@ -24,7 +24,8 @@ def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False)
         dataset with added description column
     """
     # get descriptions for each dataset name
-    description = get_dataset_descriptions([ds_name], simple=simple)
+    config = load_single_dataset(ds_name)
+    description = get_dataset_descriptions([config], simple=simple)
 
     # add description column to DataFrame
     df["description"] = description[ds_name]  # add description to DataFrame
