@@ -85,7 +85,7 @@ def plot_tracking_data(
             "nematic_order",
             "Time (hours)",
             "Nematic Order",
-            (None, None),
+            (-1, 1),
             f"{dataset_name}_P{position}_nematic_order.png",
         ),
         (
@@ -93,7 +93,7 @@ def plot_tracking_data(
             "aspect_ratio",
             "Time (hours)",
             "Aspect Ratio",
-            (None, None),
+            (0, None),
             f"{dataset_name}_P{position}_aspect_ratio.png",
         ),
         (
@@ -280,7 +280,7 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
         for dataset in tqdm(
             dataset_name_list,
             total=len(dataset_name_list),
-            desc=f"Getting nuclei features (SP; {dataset})",  # type: ignore
+            desc=f"Getting nuclei features (SP)",  # type: ignore
             unit="dataset",
         ):
             # process dataset below will both load and plot the data
