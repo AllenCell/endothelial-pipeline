@@ -32,9 +32,13 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     raise ValueError("No commit hash found in requirements.txt")
 
 
-def load_overrides(overrides: Union[str, Dict]) -> Dict:
+def load_overrides(overrides: Union[str, Dict, None]) -> Dict:
+    # this is a duplicate of the function in apply_model.py
+    # consider deprecating one of them in the future
     if isinstance(overrides, str):
         overrides = json.loads(overrides)
+    elif overrides is None:
+        overrides = {}
     elif not isinstance(overrides, dict):
         raise ValueError("Overrides must be a dictionary or a string")
     return overrides

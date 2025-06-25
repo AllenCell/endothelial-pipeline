@@ -44,9 +44,7 @@ def get_valid_path(fpath) -> str:
 
 
 def read_file_to_dataframe(path: str) -> pd.DataFrame:
-    """
-    Reads a file into a pandas dataframe
-    """
+    """Read a file into a pandas dataframe."""
     if path.endswith("csv"):
         return pd.read_csv(path)
     elif path.endswith("parquet"):
@@ -79,7 +77,8 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
     """
-    Select timepoints from a dataframe annotated as valid if annotation is present, otherwise use all teimpoints
+    Select timepoints from a dataframe annotated as valid
+    if annotation is present, otherwise use all teimpoints.
 
     Inputs:
     - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
@@ -99,7 +98,7 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) 
         if verbose:
             print(f"Valid timepoints for dataset {dataset_name}: ")
         tps = []
-        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
+        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"], strict=True):
             tps.extend(list(range(start, stop + 1)))
             if verbose:
                 print(f"   - {start} to {stop}")
@@ -139,7 +138,8 @@ def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
-    Extract columns corresponding to DiffAE model features from dataframe (loaded DiffAE manifest).
+    Extract columns corresponding to DiffAE model
+    features from dataframe (loaded DiffAE manifest).
     """
     feat_cols = [c for c in df.columns if c.startswith("feat_")]
     feat_cols = sorted(feat_cols, key=lambda x: int(x.split("_")[1]))
@@ -152,7 +152,8 @@ def list_datasets_with_manifest(
     timelapse_only: bool = False,
 ) -> list:
     """
-    List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
+    List all dataset names that have a 'nuclear_seg_manifest_fmsid'
+    or 'diffae_manifest_fmsid'.
     """
     all_datasets = dataset_config.get_available_dataset_names()
 

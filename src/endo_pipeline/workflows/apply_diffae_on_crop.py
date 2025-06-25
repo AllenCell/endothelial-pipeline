@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any
 
 import fire
 import pandas as pd
@@ -21,15 +22,17 @@ ZARR_BF_CHANNEL = 1
 
 
 def generate_overrides(
-    user_overrides: Dict[str, Any],
+    user_overrides: dict[str, Any],
     save_path: str,
     data_path: str,
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
+    """Generate overrides for the CytoDLModel configuration."""
     overrides = {
-        # train and val dataloaders are unnecessary for prediction and might be slow to instantiate (e.g. if they cache data)
+        # train and val dataloaders are unnecessary for prediction
+        # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": 128,
@@ -78,7 +81,9 @@ def generate_overrides(
 
 def centroid_to_bbox(df: pd.DataFrame):
     """
-    Convert centroids to bounding boxes. NOTE: coordinates are downsampled by half to match current model resolution.
+    Convert centroids to bounding boxes.
+
+    Note: coordinates are downsampled by half to match current model resolution.
     """
     df["start_x"] = ((df["centroid_x"] - df["crop_size"] / 2) / 2).astype(int)
     df["start_y"] = ((df["centroid_y"] - df["crop_size"] / 2) / 2).astype(int)
@@ -88,6 +93,7 @@ def centroid_to_bbox(df: pd.DataFrame):
 
 
 def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
+    """Preprocess the manifest for a dataset to prepare it for model prediction."""
     fms_id = load_single_dataset_config(dataset_name).tracking_integration_fmsid
     df = get_dataframe_by_fmsid(fms_id)
     # convert centroids to bounding boxes
@@ -122,6 +128,7 @@ def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
 def update_prediction_with_meta(
     dataset_name: str, model_name: str, mlflow_id: str, save_path: Path
 ):
+    """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     prediction_path = save_path / f"predict_{dataset_name}_{model_name}_crop_features.parquet"
     pred_df = pd.read_parquet(prediction_path)
@@ -147,10 +154,11 @@ def update_prediction_with_meta(
 def apply_model_single(
     model_name: str,
     dataset_name: str,
-    save_path: Optional[Union[str, Path]] = None,
+    save_path: str | Path | None = None,
     upload_to_fms: bool = True,
-    overrides: Union[str, Dict] = {},
+    overrides: str | dict | None = None,
 ):
+    """Apply a model to a single dataset."""
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
@@ -210,25 +218,30 @@ def apply_model(
     model_name: str,
     dataset_names: Sequence[str],
     upload_to_fms: bool = True,
-    save_path: Union[str, Path] = None,
-    overrides: Union[str, Dict] = {},
+    save_path: str | Path | None = None,
+    overrides: str | dict | None = None,
 ):
     """
     Apply a model to a multiple datasets.
-    Example usage: python src/endo_pipeline/workflows/apply_on_crop.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+
+    Example usage:
+    ```
+    python src/endo_pipeline/workflows/apply_on_crop.py
+    --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+    ```
 
 
     Parameters
     ----------
     model_name: str
         Name of the model from `model_config.yaml` to apply.
-    dataset_name: str
+    dataset_names: str
         Name of the dataset from `data_config.yaml` to apply the model to.
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
-    save_path: str
+    save_path: str | Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict
+    overrides: str or dict or None
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if isinstance(dataset_names, str):
