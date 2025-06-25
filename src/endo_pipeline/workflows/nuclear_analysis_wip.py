@@ -1,5 +1,5 @@
 # %%
-from cellsmap.util.manifest_io_temp import get_nuclear_manifest, list_datasets_with_manifest
+from cellsmap.util.manifest_io import get_nuclear_manifest, list_datasets_with_manifest
 from cellsmap.util.set_output import get_output_path
 from endo_pipeline.library.analyze.nuclear_based_features import nuclear_plots
 

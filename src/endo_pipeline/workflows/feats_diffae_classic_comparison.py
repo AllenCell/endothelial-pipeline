@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.util.manifest_io_temp import (
+from cellsmap.util.manifest_io import (
     get_diffae_manifest,
     get_feature_cols,
     get_track_diffae_manifest,

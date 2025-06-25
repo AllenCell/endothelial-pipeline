@@ -1,7 +1,7 @@
 import fire
 import numpy as np
 
-from cellsmap.util import manifest_io_temp
+from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.library.analyze.diffae_features import (
@@ -96,7 +96,7 @@ def main(config_name: str = "default") -> None:
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset
-    pca = manifest_io_temp.load_pca_model(savedir)
+    pca = manifest_io.load_pca_model(savedir)
     model_analysis.model_data_comparison(
         my_model,
         fig_savedir,

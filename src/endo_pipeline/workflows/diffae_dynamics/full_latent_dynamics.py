@@ -1,6 +1,6 @@
 import fire
 
-from cellsmap.util import manifest_io_temp
+from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
@@ -14,7 +14,7 @@ def main(list_of_datasets: list[str] | None = None) -> None:
     feature dynamics for a specified list of datasets.
     """
     if list_of_datasets is None:
-        list_of_datasets = manifest_io_temp.list_datasets_with_manifest("diffae_manifest_fmsid")
+        list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
@@ -35,7 +35,7 @@ def main(list_of_datasets: list[str] | None = None) -> None:
     for ds_name in list_of_datasets:
         print(f"Processing dataset: {ds_name}")
         df_ds = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=None)
-        feat_cols = manifest_io_temp.get_feature_cols(df_ds)
+        feat_cols = manifest_io.get_feature_cols(df_ds)
         feats = preprocessing.df_to_array(df_ds, feat_cols)
         fig, _ = manifest_viz.plot_latent_component_mean(feats)
         fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)

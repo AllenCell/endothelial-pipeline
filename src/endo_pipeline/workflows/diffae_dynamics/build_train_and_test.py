@@ -1,6 +1,6 @@
 import fire
 
-from cellsmap.util import manifest_io_temp
+from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.library.analyze.diffae_features import regression_main
@@ -50,7 +50,7 @@ def main(config_name: str = "default") -> None:
 
     # save out PCA object (need later for analysis and
     # summary of fit dynamical systems model)
-    manifest_io_temp.save_pca_model(pca, savedir)
+    manifest_io.save_pca_model(pca, savedir)
 
     ################### Visualize PCA results ###################
     # plot explained variance ratio of PCA components
