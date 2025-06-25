@@ -4,11 +4,7 @@ import pandas as pd
 
 from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import (
-    DatasetConfig,
-    load_single_dataset_config,
-    save_dataset_config,
-)
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import get_git_versioning_info
 from src.endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
 
@@ -25,7 +21,6 @@ Current datasets to choose from:
 20250509_20X_IF1 20250509_20X_IF2 20250509_20X_IF3 20250509_20X_IF4 20250509_20X_IF5
 20250509_20X_IF6 20250509_20X_IF7 20250509_20X_IF8 20250509_20X_IF9 20250509_20X_IF10
 20250509_20X_IF11 20250509_20X_IF12
-
 """
 
 
@@ -81,7 +76,7 @@ def update_dataset_config(dataset: str, fms_id: str) -> None:
     Raises:
         ValueError: If the dataset configuration cannot be loaded.
     """
-    dataset_config: DatasetConfig = load_single_dataset_config(dataset)
+    dataset_config = load_single_dataset_config(dataset)
     if dataset_config is None:
         raise ValueError(f"Dataset configuration for '{dataset}' could not be loaded.")
     dataset_config.immunofluorescence_manifest_fmsid = fms_id
