@@ -386,7 +386,9 @@ def get_and_viz_ddff(
         allow_pickle=True,
     )
     # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir + f"flow_field_{name}.vtk")
+    vtk_io.save_vector_field_as_vtk(
+        flow_field_dict, vtk_savedir + f"flow_field_{data_config.name}.vtk"
+    )
 
     # compute interpolated diffusion field
     # (diagonal diffusion tensor represented as 3D vector field)

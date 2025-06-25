@@ -79,7 +79,7 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 def get_valid_subset(df: pd.DataFrame, config: DatasetConfig, verbose: bool = True) -> pd.DataFrame:
     """
     Select timepoints from a dataframe annotated as
-    valid if annotation is present, otherwise use all teimpoints
+    valid if annotation is present, otherwise use all teimpoints.
 
     Inputs:
     - df: pd.DataFrame, containing the metadata
@@ -102,7 +102,7 @@ def get_valid_subset(df: pd.DataFrame, config: DatasetConfig, verbose: bool = Tr
         if verbose:
             print(f"Valid timepoints for dataset {config.name}: ")
         tps = []
-        for start, stop in zip(valid_timepoints.start, valid_timepoints.stop):
+        for start, stop in zip(valid_timepoints.start, valid_timepoints.stop, strict=True):
             tps.extend(list(range(start, stop + 1)))
             if verbose:
                 print(f"   - {start} to {stop}")
@@ -111,7 +111,9 @@ def get_valid_subset(df: pd.DataFrame, config: DatasetConfig, verbose: bool = Tr
     return df[df.valid]
 
 
-def get_diffae_manifest(config: DatasetConfig, filter_to_valid: bool = False) -> pd.DataFrame:
+def get_diffae_manifest(
+    config: DatasetConfig, filter_to_valid: bool = False
+) -> pd.DataFrame | None:
     """
     Get DiffAE manifest for a given dataset via the
     loaded DatasetConfig object for the dataset.
@@ -167,7 +169,8 @@ def list_datasets_with_manifest(
     timelapse_only: bool = False,
 ) -> list:
     """
-    List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
+    List all dataset names that have a 'nuclear_seg_manifest_fmsid'
+    or 'diffae_manifest_fmsid'.
     """
     all_datasets = dataset_config.get_available_datasets()
 
@@ -182,6 +185,8 @@ def list_datasets_with_manifest(
     dataset_list = []
     for dataset_name in all_datasets:
         dataset_info = dataset_config.load_single_dataset(dataset_name)
+        if dataset_info is None:
+            raise ValueError(f"Dataset {dataset_name} not found in dataset config directory.")
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
