@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io_temp
+from cellsmap.util import manifest_io
 from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
@@ -136,7 +136,7 @@ def get_and_analyze_ddd(
     df_proj = preprocessing.get_manifest_for_dynamics_workflows(name, pca=pca)
 
     # just get PCs of interest
-    feat_cols_all = manifest_io_temp.get_feature_cols(df_proj)
+    feat_cols_all = manifest_io.get_feature_cols(df_proj)
     feat_cols = [feat_cols_all[i] for i in pcs]
 
     # split out data by flow condition

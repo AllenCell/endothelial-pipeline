@@ -3,7 +3,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
-import cellsmap.util.manifest_io_temp as mio
+import cellsmap.util.manifest_io as mio
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize import viz_base

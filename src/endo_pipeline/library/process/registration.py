@@ -18,7 +18,7 @@ from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
 from tqdm import tqdm, trange
 
-from cellsmap.util.manifest_io_temp import load_pca_model
+from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (

@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from cellsmap.util import manifest_io_temp
+from cellsmap.util import manifest_io
 from src.endo_pipeline.configs.dataset_config import load_reference_datasets
 
 # this is to suppress the SettingWithCopyWarning
@@ -15,7 +15,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     """
     Fit PCA model to fixed set of reference datasets.
     Reference datasets are flagged in the data configs,
-    and the configs of the datasets to use for PCA is obtained
+    and the list of datasets to use for PCA is obtained
     by calling the `load_reference_datasets` function.
 
     Args:
@@ -29,13 +29,13 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     Returns:
         pipe (Pipeline): Fitted PCA pipeline (may include scaling)
     """
-    # first, load configs for reference datasets for PCA
+    # first, get list of reference datasets to use for PCA
     reference_datasets = load_reference_datasets()
     if verbose:
         print(f"\nReference datasets for PCA: {reference_datasets}")
     data_ref = pd.concat(
         [
-            manifest_io_temp.get_diffae_manifest(config, filter_to_valid=True)
+            manifest_io.get_diffae_manifest(config, filter_to_valid=True)
             for config in reference_datasets
         ],
         ignore_index=True,
@@ -54,7 +54,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    feature_cols = manifest_io_temp.get_feature_cols(data_ref)
+    feature_cols = manifest_io.get_feature_cols(data_ref)
     pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
     if verbose:  # print explained variance ratios

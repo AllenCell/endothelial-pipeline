@@ -6,7 +6,7 @@ from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
-import cellsmap.util.manifest_io_temp as manifest_io_temp
+import cellsmap.util.manifest_io as manifest_io
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
@@ -56,7 +56,7 @@ def set_3d_bounds_from_data(
     for name in list_of_datasets:
         df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
         # get column names for features
-        feat_cols = manifest_io_temp.get_feature_cols(df)
+        feat_cols = manifest_io.get_feature_cols(df)
         match col_names:
             case "pc":
                 # get the PCs
@@ -365,7 +365,7 @@ def get_and_viz_ddff(
     """
     # load dataframe and get top 3 PCs
     df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
-    feat_cols = manifest_io_temp.get_feature_cols(df)[:3]
+    feat_cols = manifest_io.get_feature_cols(df)[:3]
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
