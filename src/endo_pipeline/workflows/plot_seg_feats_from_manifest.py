@@ -1,3 +1,4 @@
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -254,16 +255,35 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
         )
 
 
-def main(dataset_names: str | None = None) -> None:
+def main(dataset_names: str | None = None, n_proc: int = 1) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_names)
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=True))
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    for dataset in dataset_name_list:
-        # process dataset below will both load and plot the data
-        process_dataset(dataset, out_dir)
+    if n_proc > 1:
+        with ProcessPoolExecutor(max_workers=n_proc) as executor:
+            list(
+                tqdm(
+                    executor.map(
+                        process_dataset, zip(dataset_name_list, [out_dir] * len(dataset_name_list))
+                    ),
+                    total=len(dataset_name_list),
+                    desc="Creating plots (MP)",
+                    unit="dataset",
+                )
+            )
+
+    else:
+        for dataset in tqdm(
+            dataset_name_list,
+            total=len(dataset_name_list),
+            desc=f"Getting nuclei features (SP; {dataset})",  # type: ignore
+            unit="dataset",
+        ):
+            # process dataset below will both load and plot the data
+            process_dataset(dataset, out_dir)
 
     # save git versioning info
     save_git_versioning_info(out_dir, Path(__file__).stem, verbose=False)
