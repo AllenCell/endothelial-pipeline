@@ -25,6 +25,8 @@ def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False)
     """
     # get descriptions for each dataset name
     config = load_single_dataset(ds_name)
+    if config is None:
+        raise ValueError(f"No dataset configuration found for dataset {ds_name}")
     description = get_dataset_descriptions([config], simple=simple)
 
     # add description column to DataFrame
@@ -263,6 +265,8 @@ def get_timepoints_for_plotting_pcs(
         # get range of valid timepoints for each dataset
         # loaded from data_config.yaml
         timepoints = config.valid_timepoints
+        if timepoints is None:
+            raise ValueError(f"No valid timepoints found for dataset {config.name}")
         starts = timepoints.start
         stops = timepoints.stop
         timepoints_list = []
