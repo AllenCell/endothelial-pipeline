@@ -54,7 +54,8 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
     description_dic = {}
     for name in list_of_datasets:
         data_config = load_single_dataset_config(name)  # get dataset info from data_config.yaml
-
+        if data_config is None:
+            raise ValueError(f"Dataset {name} not found in data_config.yaml")
         flow_config = data_config.flow  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
 

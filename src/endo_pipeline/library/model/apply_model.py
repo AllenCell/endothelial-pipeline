@@ -33,10 +33,17 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
 
 
 def load_overrides(overrides: Union[str, Dict, None]) -> Dict:
+    """
+    Load overrides from a string or dictionary.
+
+    If None, return an empty dictionary.
+    """
     if isinstance(overrides, str):
-        overrides = json.loads(overrides)
+        overrides_dict = json.loads(overrides)
     elif overrides is None:
-        overrides = {}
+        overrides_dict = {}
+    elif isinstance(overrides, dict):
+        overrides_dict = overrides
     elif not isinstance(overrides, dict):
         raise ValueError("Overrides must be a dictionary or a string")
-    return overrides
+    return overrides_dict
