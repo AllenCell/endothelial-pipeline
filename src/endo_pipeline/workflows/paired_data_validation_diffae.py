@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any
 
 import fire
 import matplotlib.pyplot as plt
@@ -26,11 +26,9 @@ def plot_paired_features(
     moving_features: pd.DataFrame,
     moving_name: str,
     save_path: Path,
-    pca_dir: None | Union[str, Path],
+    pca_dir: None | str | Path,
 ) -> None:
-    """
-    Plot the PCA features of the fixed and moving images
-    """
+    """Plot the PCA features of the fixed and moving images."""
     pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
 
     fixed_features = project_manifest_to_pcs(fixed_features, pca, overwrite_feature_columns=False)
@@ -52,7 +50,7 @@ def plot_paired_features(
         ax[i].set_ylim(min_, max_)
         ax[i].set_aspect("equal", adjustable="box")
     fig.tight_layout()
-    fig.savefig(save_path / f"paired_features.png", dpi=300)
+    fig.savefig(save_path / "paired_features.png", dpi=300)
     fig.clf()
     plt.close(fig)
 
@@ -97,28 +95,41 @@ def compare_paired_features(
     pca_dir: str | None,
     align_fluo: bool = True,
     align_only: bool = False,
-    overrides: Dict[str, Any] = {},
-    **alignment_kwargs: Dict[str, Any],
+    overrides: dict[str, Any] | None = None,
+    **alignment_kwargs: dict[str, Any],
 ) -> None:
     """
-    Compare the features of two paired datasets using a trained model through registration, crop extraction, and PCA
+    Compare the features of two paired datasets using a trained
+    model through registration, crop extraction, and PCA.
 
     Parameters
     ----------
     model_name : str
         The name of the trained model.
     fixed_dataset_name : str
-        Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
+        Dataset name to use as the fixed images
+        (i.e. the reference against which the moving images are registered)
     moving_dataset_name : str
-        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
+        Dataset name to use as the moving images
+        (i.e. the images to be registered to the fixed images)
     alignment_method : str
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
+        The method used for alignment. Options are "sift" or "template".
+        Input "sift" is recommended for the 20x pre/post fixation datasets,
+        while "template" is recommended for the 20x/40x datasets.
     align_fluo : bool
-        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
+        Whether to align the fluorescent channel.
+        If False, the fluorescent channel is not aligned.
     pca_dir : str | None
-        Path to the PCA model directory. If None, PCA will be calculated from existing features
-    overrides : Union[str, Dict], optional
-        Overrides for the model configuration, by default {}. One relevant override is `model.spatial_inferer.splitter.overlap`, which determines the percent overlap of patches extracted during sliding window inference and can increase the number of samples used for the dataset comparison.
+        Path to the PCA model directory.
+        If None, PCA will be calculated from existing features
+    overrides : Union[Dict, None], optional
+        Overrides for the model configuration, by default {}.
+        One relevant override is `model.spatial_inferer.splitter.overlap`,
+        which determines the percent overlap of patches extracted during
+        sliding window inference and can increase the number of samples
+        used for the dataset comparison.
+    align_only : bool
+        If True, only align the images and do not extract features or project to PCA.
     **alignment_kwargs : Dict[str, Any]
         Additional arguments for the alignment function.
     """
@@ -220,12 +231,21 @@ def main(
     model_name: str = "diffae_04_10",
     align_only: bool = False,
 ) -> None:
-    """ "
-    Main function to compare paired features of fixed and moving images using a trained model.
+    """
+    Compare paired features of fixed and moving images using a trained model.
+
     Parameters
     ----------
     pca_dir : str | None
-        Path to the PCA model directory. If None, PCA will be calculated from existing features"
+        Path to the PCA model directory.
+        If None, PCA will be calculated from existing features
+    fixed_finetuned_model_name : str
+        The name of the model finetuned for fixation.
+    model_name : str
+        The name of the model to use for comparison.
+    align_only : bool
+        If True, only align the images and do not extract features or project to PCA.
+        Defaults to False.
     """
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
 
@@ -237,7 +257,9 @@ def main(
             "20250214_pairedPostFixation",
         ],
     }
-    for fixed, moving in zip(datasets_live_fixed["fixed"], datasets_live_fixed["moving"]):
+    for fixed, moving in zip(
+        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=False
+    ):
         compare_paired_features(
             # use model finetuned for fixation
             fixed_finetuned_model_name,
@@ -253,7 +275,7 @@ def main(
         "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
         "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
     }
-    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
+    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=False):
         compare_paired_features(
             model_name,
             fixed,
