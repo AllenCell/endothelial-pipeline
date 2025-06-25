@@ -23,6 +23,7 @@ dependencies = [
     "bioio-tifffile>=1.0.1",
     "colorcet>=3.1.0",
     "colorizer-data",
+    "deprecated>=1.2.18",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",

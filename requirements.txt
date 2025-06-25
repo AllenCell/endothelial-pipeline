@@ -368,6 +368,10 @@ defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
     # via nbconvert
+deprecated==1.2.18 \
+    --hash=sha256:422b6f6d859da6f2ef57857761bfb392480502a64c3028ca9bbe86085d72115d \
+    --hash=sha256:bd5011788200372a32418f888e326a09ff80d0214bd961147cfed01b5c018eec
+    # via cellsmap
 derivative==0.6.3 \
     --hash=sha256:72e7fd56e92665f939b5449c4b9ceea88fdf02eda7378cf0a3e961ab0df58181 \
     --hash=sha256:e121926a21e13a5ab1db07e10e26a5e805494a1255eac032c2fba309547e64c9
@@ -1886,7 +1890,9 @@ wrapt==1.17.2 \
     --hash=sha256:b18f2d1533a71f069c7f82d524a52599053d4c7166e9dd374ae2136b7f40f7c8 \
     --hash=sha256:f09b286faeff3c750a879d336fb6d8713206fc97af3adc14def0cdd349df6000 \
     --hash=sha256:ff04ef6eec3eee8a5efef2401495967a916feaa353643defcc03fc74fe213b58
-    # via aiobotocore
+    # via
+    #   aiobotocore
+    #   deprecated
 xarray==2025.3.1 \
     --hash=sha256:0252c96a73528b29d1ed7f0ab28d928d2ec00ad809e47369803b184dece1e447 \
     --hash=sha256:3404e313930c226db70a945377441ea3c957225d8ba2d429e764c099bb91a546
