@@ -4,7 +4,7 @@ from bioio import BioImage
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 
 DEFAULT_XY_SCALING = [0.5]
 DEFAULT_Z_SCALING = [1.0]

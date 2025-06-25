@@ -1,6 +1,6 @@
 from bioio import BioImage
 
-from cellsmap.util.dataset_io import (
+from src.endo_pipeline.configs.dataset_io import (
     get_fmsid,
     get_microscope,
     get_original_path,

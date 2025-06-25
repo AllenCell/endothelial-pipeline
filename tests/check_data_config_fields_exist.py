@@ -1,6 +1,6 @@
 import pytest
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 
 CONFIG_DATA_FIELDS = [
     "original_path",
@@ -41,9 +41,7 @@ def check_all_fields_exist(dataset_name: str) -> bool:
     missing_fields = [
         field_name for field_name in CONFIG_DATA_FIELDS if field_name not in config_data
     ]
-    missing_fields += [
-        field_name for field_name in config_data if config_data[field_name] == None
-    ]
+    missing_fields += [field_name for field_name in config_data if config_data[field_name] == None]
     assert (
         not missing_fields
     ), f"Dataset {dataset_name} is missing or has an empty field for: {missing_fields}"

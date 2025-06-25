@@ -1,7 +1,7 @@
 # %%
 from cellsmap.util.manifest_io import get_nuclear_manifest, list_datasets_with_manifest
 from cellsmap.util.set_output import get_output_path
-from endo_pipeline.library.analyze.nuclear_based_features import nuclear_plots
+from src.endo_pipeline.library.analyze.nuclear_based_features import nuclear_plots
 
 # %%
 SAVE_DIR = get_output_path("nuclear_based_density_workflow/figs")

@@ -7,10 +7,9 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as manifest_io
-from src.endo_pipeline.library.analyze.diffae_feature_dynamics import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import flow_field_viz as ffv
-from src.endo_pipeline.library.visualize.diffae_feature_dynamics import vtk_io
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 
 
 def set_3d_bounds_from_data(
@@ -55,7 +54,7 @@ def set_3d_bounds_from_data(
     bounds_ = [[100, -100], [100, -100], [100, -100]]
 
     for name in list_of_datasets:
-        df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+        df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
         # get column names for features
         feat_cols = manifest_io.get_feature_cols(df)
         match col_names:
@@ -365,15 +364,15 @@ def get_and_viz_ddff(
             two stable fixed points for these conditions)
     """
     # load dataframe and get top 3 PCs
-    df = diffae_preproc.get_manifest_for_dynamics_workflows(name, pca)
+    df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
     feat_cols = manifest_io.get_feature_cols(df)[:3]
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = rh.get_traj_and_diff(df, feat_cols)
+    traj_list, d_traj_list = regression_helper.get_traj_and_diff(df, feat_cols)
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = rh.get_kramers_moyal(
+    drift_km, diff_km = regression_helper.get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
@@ -410,7 +409,7 @@ def get_and_viz_ddff(
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
 
     # call main flow field viz function (makes and saves plots)
-    ffv.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
@@ -462,11 +461,11 @@ def ddff_main(
     # get bins for KMCs
     bounds = set_3d_bounds_from_data(list_of_datasets, pca, col_names="feat")
     num_bins = [50, 50, 50]
-    bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
+    bins, centers = regression_helper.get_bins(num_bins, bin_limits=bounds)
 
     # get experimental condition
     # descriptions of each dataset
-    condition_dict = diffae_preproc.get_dataset_descriptions(list_of_datasets, simple=True)
+    condition_dict = preprocessing.get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize dict to save trajectories
     # used for crop reconstruction
@@ -495,4 +494,4 @@ def ddff_main(
 
     # generate plot of stable fixed points
     # for low, high, and 12dyn datasets
-    ffv.plot_stable_fixed_points_together(fig_savedir, output_savedir)
+    flow_field_viz.plot_stable_fixed_points_together(fig_savedir, output_savedir)
