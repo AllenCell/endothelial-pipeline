@@ -255,9 +255,10 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
         )
 
 
-def main(dataset_names: str | None = None, n_proc: int = 1) -> None:
+def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
 
-    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_names)
+    dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    print(f"Processing: {dataset_name_list}")
 
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=True))
     out_dir.mkdir(parents=True, exist_ok=True)
