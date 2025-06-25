@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from skimage.measure import label, regionprops
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process.image_processing import background_subtract, sum_proj
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
