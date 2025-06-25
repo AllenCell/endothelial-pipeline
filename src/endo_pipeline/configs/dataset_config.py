@@ -78,11 +78,8 @@ class DatasetConfig:
     brightfield_channel_index: int
     """Index of the brightfield channel."""
 
-    nuclear_label_free_seg_path: str | None = None
-    """Path to nuclear label free segmentation."""
-
-    nuclear_stain_seg_path: str | None = None
-    """Path to nuclear stain segmentation."""
+    channel_405_index: int | None = None
+    """Index of the 405 channel."""
 
     channel_488_index: int | None = None
     """Index of the 488 channel."""
@@ -93,8 +90,11 @@ class DatasetConfig:
     channel_640_index: int | None = None
     """Index of the 640 channel."""
 
-    channel_405_index: int | None = None
-    """Index of the 405 channel."""
+    nuclear_label_free_seg_path: str | None = None
+    """Path to nuclear label free segmentation."""
+
+    nuclear_stain_seg_path: str | None = None
+    """Path to nuclear stain segmentation."""
 
     nuclear_seg_manifest_fmsid: str | None = None
     """FMS ID for nuclear segmentation manifest."""
@@ -134,7 +134,7 @@ def get_config_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "configs"
 
 
-def get_available_datasets() -> list[str]:
+def get_available_dataset_names() -> list[str]:
     """Get list of available dataset names."""
 
     dataset_names = [path.stem for path in (get_config_dir() / "datasets").iterdir()]
@@ -146,7 +146,7 @@ def get_available_datasets() -> list[str]:
 def validate_all_dataset_configs() -> None:
     """Validate all dataset configs against defined schema."""
 
-    dataset_names = get_available_datasets()
+    dataset_names = get_available_dataset_names()
 
     for dataset_name in dataset_names:
         validate_single_dataset_config(dataset_name)
@@ -169,21 +169,21 @@ def validate_single_dataset_config(dataset_name: str) -> None:
         )
 
 
-def load_all_datasets() -> list[DatasetConfig]:
+def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""
 
-    dataset_names = get_available_datasets()
+    dataset_names = get_available_dataset_names()
 
-    datasets = [load_single_dataset(name) for name in dataset_names]
+    datasets = [load_single_dataset_config(name) for name in dataset_names]
     logger.info("Loaded all available datasets [ %s ]", " | ".join(dataset_names))
 
     return datasets
 
 
-def load_reference_datasets() -> list[DatasetConfig]:
+def load_reference_dataset_configs() -> list[DatasetConfig]:
     """Load all reference dataset configs."""
 
-    all_datasets = load_all_datasets()
+    all_datasets = load_all_dataset_configs()
     reference_datasets = [dataset for dataset in all_datasets if dataset.is_reference]
 
     reference_dataset_names = [dataset.name for dataset in reference_datasets]
@@ -192,7 +192,7 @@ def load_reference_datasets() -> list[DatasetConfig]:
     return reference_datasets
 
 
-def load_single_dataset(dataset_name: str) -> DatasetConfig | None:
+def load_single_dataset_config(dataset_name: str) -> DatasetConfig | None:
     """Load single dataset config by name."""
 
     config_dir = get_config_dir()

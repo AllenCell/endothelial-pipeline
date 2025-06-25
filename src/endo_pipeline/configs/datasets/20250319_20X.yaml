@@ -12,14 +12,22 @@ pixel_size_xy_in_um: 0.382
 duration: 542
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 12.2]]
-channel_488_index: 0
-brightfield_channel_index: 1
-nuclear_seg_manifest_fmsid: ''
 n_total_positions: 6
-notes: Stopped imaging prior to 48 hours because cells were very packed
+brightfield_channel_index: 1
+channel_405_index: null
+channel_488_index: 0
+channel_561_index: null
+channel_640_index: null
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250319_20X
+nuclear_stain_seg_path: null
+nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: f68469a1a7f948dc92d20693a59b1aeb
+tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: null
+is_reference: false
 valid_timepoints:
   start: [117]
   stop: [336]
 cell_mean_features: c79efb6d0f754e719b71221d7ea3c17f
+include_scenes: null
+notes: Stopped imaging prior to 48 hours because cells were very packed

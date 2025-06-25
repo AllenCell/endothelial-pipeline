@@ -87,15 +87,15 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 configs is to use one of the following replacement methods. If you need configs
 for all datasets, use:
 
-        configs.dataset_config.load_all_datasets
+        configs.dataset_config.load_all_dataset_configs
 
 If you need the config for a single dataset, use:
 
-        configs.dataset_config.load_single_dataset(dataset_name)
+        configs.dataset_config.load_single_dataset_config(dataset_name)
 
 If you need only need dataset names, use:
 
-        configs.dataset_config.get_available_datasets
+        configs.dataset_config.get_available_dataset_names
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -193,7 +193,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 1. If you need a list of available datasets by name, before selecting specific
    dataset(s) to load, use the following replacement method:
 
-        configs.dataset_config.get_available_datasets
+        configs.dataset_config.get_available_dataset_names
 
    instead of:
 
@@ -201,12 +201,12 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    Individual dataset(s) can then be loaded with:
 
-        configs.dataset_config.load_single_dataset(dataset_name)
+        configs.dataset_config.load_single_dataset_config(dataset_name)
 
 2. If you want to load all available datasets, use the following method to load
    configs for all available datasets:
 
-        configs.dataset_config.load_all_datasets
+        configs.dataset_config.load_all_dataset_configs
 """
 )
 def get_available_datasets(verbose: bool = True) -> list[str]:
@@ -224,7 +224,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing reference
 datasets is to use the following replacement method:
 
-        configs.dataset_config.load_reference_datasets
+        configs.dataset_config.load_reference_dataset_configs
 
 which will load the reference dataset objects (not the dataset names). If you
 need the names of the reference datasets, access the .name field of the
@@ -240,6 +240,25 @@ def get_reference_datasets() -> list[str]:
     ]
 
 
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing dataset info
+is directly from loaded DatasetConfig objects. These configs can be loaded using
+one of the following:
+
+        configs.dataset_config.load_all_dataset_configs
+        configs.dataset_config.load_single_dataset_config(dataset_name)
+        configs.dataset_config.load_reference_dataset_configs
+
+Fields can then be accessed using dot notation:
+
+        dataset.field
+
+Available fields and descriptions for each field for DatasetConfig objects are
+provided in configs.dataset_config.
+"""
+)
 def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     """Load specific dataset information from the config file."""
     config = load_config()
