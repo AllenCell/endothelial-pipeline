@@ -241,6 +241,26 @@ def get_available_channels(
     return channel_names
 
 
+def get_channel_names(dataset_name: str) -> list[str]:
+    """
+    Retrieve the list of channel names for a specific dataset.
+    All positions have the same channels available so we can use the first position
+    to get the channel names. The test `check_zarr_channels` in validates this.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+
+    Returns:
+        list[str]: A list of channel names available in the dataset at the specified position.
+    """
+    zarr_name = get_zarr_name(dataset_name, position=0)
+    zarr_paths = get_zarr_path(dataset_name, zarr_name)
+    path_of_interest = zarr_paths[zarr_name]
+    reader = BioImage(path_of_interest)
+    channel_names = reader.channel_names
+    return channel_names
+
+
 def get_channel_index(
     dataset_name: str, channel_names: List[str], zarr_name: Optional[str | None] = None
 ) -> Dict[str, List[int | None]]:
@@ -469,9 +489,23 @@ def get_fmsid(dataset_name: str) -> str:
     return dataset_info["fmsid"]
 
 
-def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
+def get_nuclear_prediction_path(
+    dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
+) -> str:
+    """
+    Get the file path for the nuclear prediction data for a specific dataset and position.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+        position (int): The position index within the dataset.
+        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
+            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
+
+    Returns:
+        str: The file path to the nuclear prediction data for the specified dataset and position.
+    """
     dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info["nuclear_label_free_seg_path"]
+    base_path = dataset_info[nuc_seg_type]
     position_path = f"{base_path}/P{position}/"
     return position_path
 
@@ -481,11 +515,25 @@ def load_nuclei_prediction(
     position: int,
     T: int,
     dim_order: str = "ZYX",
+    nuc_seg_type: str = "nuclear_label_free_seg_path",
 ) -> dask.array.Array:
     """
-    Load the nuclei prediction for a given dataset, position, and timepoint.
+    Load the nuclei prediction data as a Dask array for a given dataset, position, and timepoint.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+        position (int): The position index within the dataset.
+        T (int): The timepoint index to load.
+        dim_order (str, optional): The dimension order of the data (e.g., "ZYX").
+            Defaults to "ZYX".
+        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
+            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
+
+    Returns:
+        dask.array.Array: A Dask array containing the nuclei prediction data for the specified
+        dataset, position, and timepoint. If the file is not found, an empty Dask array is returned.
     """
-    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position))
+    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position, nuc_seg_type))
     nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
     nuc_path = nuc_path_dict[T]
 
