@@ -4,17 +4,16 @@ from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
 
-# %%
+# %% Run nuclei feature extraction
 dataset = "20250509_20X_IF1"
 df = run_nuclei_feature_extraction(dataset)
 
-# %%
+# %% Save output to CSV
 output_dir = get_output_path("immunoflouresence_manifest", verbose=True)
-
 save_dir = output_dir + f"{dataset}_if_manifest.csv"
 df.to_csv(save_dir, index=False)
 
-# %%
+# %% Upload manifest to FMS
 commit_info = get_git_versioning_info()
 # %%
 fms_id = save_file_to_fms(
@@ -29,4 +28,3 @@ fms_id = save_file_to_fms(
     effort="Core",
     env="stg",
 )
-# %%
