@@ -10,8 +10,8 @@ from cyto_dl.api import CytoDLModel
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_config import (
-    get_available_datasets,
-    load_single_dataset,
+    get_available_dataset_names,
+    load_single_dataset_config,
     save_dataset_config,
 )
 from src.endo_pipeline.configs.dataset_io import (
@@ -174,7 +174,7 @@ def apply_model_single(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset(dataset_name)
+        dataset_config = load_single_dataset_config(dataset_name)
         dataset_config.diffae_manifest_fmsid = file_id
         save_dataset_config(dataset_config)
 
@@ -213,7 +213,7 @@ def apply_model(
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if regex:
-        all_datasets = get_available_datasets()
+        all_datasets = get_available_dataset_names()
         dataset_names = [name for name in all_datasets if re.search(regex, name)]
         print(f"Found {dataset_names} matching regex '{regex}'")
     else:

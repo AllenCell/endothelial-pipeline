@@ -12,7 +12,7 @@ from skimage.measure import regionprops_table
 from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import load_single_dataset, save_dataset_config
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
     extract_T,
     get_cdh5_classic_segmentation_path,
@@ -327,7 +327,7 @@ def measure_per_cell_features(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset(dataset_name)
+        dataset_config = load_single_dataset_config(dataset_name)
         dataset_config.cell_mean_features = file_id
         save_dataset_config(dataset_config)
 

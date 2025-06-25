@@ -154,7 +154,7 @@ def list_datasets_with_manifest(
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_config.get_available_datasets()
+    all_datasets = dataset_config.get_available_dataset_names()
 
     if verbose:
         manifest_type = (
@@ -166,7 +166,7 @@ def list_datasets_with_manifest(
             print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
     for dataset_name in all_datasets:
-        dataset_info = dataset_config.load_single_dataset(dataset_name)
+        dataset_info = dataset_config.load_single_dataset_config(dataset_name)
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
