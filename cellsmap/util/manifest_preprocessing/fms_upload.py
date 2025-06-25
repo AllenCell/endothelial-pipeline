@@ -12,7 +12,7 @@ def save_file_to_fms(
     mlflow_run_id: str | None = None,
     effort: str = "Core",
     env: str = "prod",
-):
+) -> str:
     """
     Save a file to FMS with Endo project specific metadata annotations.
     Manifests should represent one dataset.
@@ -20,6 +20,7 @@ def save_file_to_fms(
     If a model was used to produce the output, add the model version and mlflow run id.
 
     Parameters:
+    -----------
     file_path (str): The path to the file to be uploaded.
     dataset (str): The name of the dataset matching the dataconfig.yaml file.
     commit_hash (str): The commit hash of the code used to generate the file.
@@ -31,7 +32,8 @@ def save_file_to_fms(
     env (str): The environment to upload the file to. Default is "prod", use "stg" for staging.
 
     Returns:
-    None
+    --------
+    fms_file.id (str): The ID of the uploaded file in the File Management System (FMS).
     """
     fms = FileManagementSystem.from_env(env)
 
