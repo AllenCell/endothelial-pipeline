@@ -1,13 +1,12 @@
 import json
 from pathlib import Path
-from typing import Dict, Union
 
 from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     """
-    Extract commit hash from the requirements file uploaded to mlflow
+    Extract commit hash from the requirements file uploaded to mlflow.
 
     Parameters
     ----------
@@ -23,7 +22,7 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
         artifact_path = "requirements/eval-requirements.txt"
         download_mlflow_artifact(run_id, artifact_path, model_path)
 
-    with open(model_path / artifact_path, "r") as f:
+    with open(model_path / artifact_path) as f:
         lines = f.readlines()
     for line in lines:
         if "git+" in line and "cyto-dl" in line:
@@ -32,7 +31,7 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
     raise ValueError("No commit hash found in requirements.txt")
 
 
-def load_overrides(overrides: Union[str, Dict, None]) -> Dict:
+def load_overrides(overrides: str | dict | None) -> dict:
     """
     Load overrides from a string or dictionary.
 

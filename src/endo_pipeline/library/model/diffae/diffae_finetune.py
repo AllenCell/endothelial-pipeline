@@ -8,6 +8,8 @@ from torchmetrics import MeanMetric
 
 
 class DiffAEFinetune(DiffusionAutoEncoder):
+    """Class for finetuning a DiffAE model using paired data."""
+
     def __init__(
         self,
         paired_condition_key: str,
@@ -16,20 +18,27 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         **base_kwargs,
     ):
         """
-        Class for finetuning a DiffAE model using paired data (e.g. fixed vs. live). A checkpoint should be provided when using this class, as it will initialize the semantic encoder and autoencoder from the checkpoint.
+        Finetune a DiffAE model using paired data (e.g. fixed vs. live).
+        A checkpoint should be provided when using this class, as it will
+        initialize the semantic encoder and autoencoder from the checkpoint.
 
         Parameters
         ----------
         paired_condition_key: str
-            The key in the batch that contains the images paired to the reference (i.e. `condition_key`) images
+            The key in the batch that contains the images paired
+            to the reference (i.e. `condition_key`) images
         use_separate_encoders : bool
-            If True, use a separate encoder for the fixed semantic encoder. This encoder will be initialized using the weights of the semantic encoder. If False, the semantic encoder and diffusion UNet will both be trained to minimize the diffusion and matching losses.
+            If True, use a separate encoder for the fixed semantic encoder.
+            This encoder will be initialized using the weights of the semantic
+            encoder. If False, the semantic encoder and diffusion UNet will
+            both be trained to minimize the diffusion and matching losses.
         infer_with_fixed : bool
-            If True, the inference will be done using the fixed semantic encoder. If False, the inference will be done using the semantic encoder.
+            If True, the inference will be done using the fixed semantic
+            encoder. If False, the inference will be done using the semantic encoder.
         base_kwargs : dict
             Additional keyword arguments to pass to the parent class.
         """
-        _DEFAULT_METRICS = {
+        _default_metrics = {
             "train/loss": MeanMetric(),
             "train/loss/diffusion": MeanMetric(),
             "train/loss/mse": MeanMetric(),
@@ -38,7 +47,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
             "val/loss/mse": MeanMetric(),
             "test/loss": MeanMetric(),
         }
-        metrics = base_kwargs.pop("metrics", _DEFAULT_METRICS)
+        metrics = base_kwargs.pop("metrics", _default_metrics)
         super().__init__(metrics=metrics, **base_kwargs)
 
         if use_separate_encoders:
@@ -51,6 +60,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
             self.fixed_semantic_encoder = self.semantic_encoder
 
     def configure_optimizers(self):
+        """Configure optimizers for the DiffAE finetune model."""
         if self.hparams.use_separate_encoders:
             # only optimizing the paired encoder to match the semantic encoder
             params = list(self.fixed_semantic_encoder.parameters())
@@ -65,7 +75,8 @@ class DiffAEFinetune(DiffusionAutoEncoder):
 
     def matching_forward(self, x, y, batch_idx, stage=None):
         """
-        Extract features from appropriate encoders for matching and plot correlation between them.
+        Extract features from appropriate encoders
+        for matching and plot correlation between them.
         """
         x_feats = self.semantic_encoder(x)
         y_feats = self.fixed_semantic_encoder(y)
@@ -85,13 +96,12 @@ class DiffAEFinetune(DiffusionAutoEncoder):
                 # plot y=x
                 min_, max_ = x_feats[:, i].min().item(), x_feats[:, i].max().item()
                 ax[i].plot([min_, max_], [min_, max_], color="red", linestyle="--")
-            fig.savefig(
-                f"{self.hparams.save_dir}/{self.current_epoch}_correlation_{stage}.png"
-            )
+            fig.savefig(f"{self.hparams.save_dir}/{self.current_epoch}_correlation_{stage}.png")
             plt.close(fig)
         return x_feats, y_feats
 
     def model_step(self, stage, batch, batch_idx):
+        """Run a model step for the DiffAE finetune model."""
         batch = convert_to_tensor(batch)
         loss = {"diffusion": 0}
         if not self.hparams.use_separate_encoders:
@@ -115,12 +125,11 @@ class DiffAEFinetune(DiffusionAutoEncoder):
     def encode_image(self, x):
         """
         Encode an image using the appropriate encoder.
-        If `infer_with_fixed` is True, use the fixed semantic encoder; otherwise, use the semantic encoder.
+        If `infer_with_fixed` is True, use the fixed semantic encoder;
+        otherwise, use the semantic encoder.
         """
         encoder = (
-            self.fixed_semantic_encoder
-            if self.hparams.infer_with_fixed
-            else self.semantic_encoder
+            self.fixed_semantic_encoder if self.hparams.infer_with_fixed else self.semantic_encoder
         )
         with torch.no_grad():
             if self.spatial_inferer is not None:
