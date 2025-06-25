@@ -398,6 +398,42 @@ def calculate_derived_data_dynamics_independent(
         left_index=True,
         right_index=True,
     )
+
+    # add the number of nuclei that overlap the most with each cell
+    # (this can be used as a filter later so we only measure cells
+    # with a single clearly distinguishable nuclei)
+    big_table["nuclei_seg_in_cdh5_seg_frac"] = big_table["nuclei_seg_in_cdh5_seg_frac"].transform(
+        lambda x: stringified_floatlist_to_floatlist(x, to_tuple=True)
+    )
+    big_table["num_nuclei_with_most_overlap"] = big_table["nuclei_seg_in_cdh5_seg_frac"].transform(
+        len
+    )
+
+    # add the nuclei centroids relative to the cell centroids
+    big_table["nuc_pos_rel_cell_X"], big_table["nuc_pos_rel_cell_Y"] = (
+        get_nuclei_rel_to_cell_position(
+            big_table["centroid_X"],
+            big_table["centroid_Y"],
+            big_table["nuc_with_most_overlap_0_centroid_X"],
+            big_table["nuc_with_most_overlap_0_centroid_Y"],
+        )
+    )
+
+    # get the angles and magnitudes of the nuclei relative positions
+    big_table["nuc_pos_rel_cell_magnitude"] = np.linalg.norm(
+        [big_table["nuc_pos_rel_cell_X"], big_table["nuc_pos_rel_cell_Y"]], axis=0
+    )
+    big_table["nuc_pos_rel_cell_angle"] = np.arctan2(
+        big_table["nuc_pos_rel_cell_Y"], big_table["nuc_pos_rel_cell_X"]
+    )
+    big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
+    big_table["nuc_pos_rel_cell_angle_rel_to_flow"] = big_table["nuc_pos_rel_cell_angle"].transform(
+        lambda x: make_orientation_relative_to_flow(x)
+    )
+    big_table["nuc_pos_rel_cell_angle_deg_rel_to_flow"] = np.rad2deg(
+        big_table["nuc_pos_rel_cell_angle_rel_to_flow"]
+    )
+
     return big_table
 
 
@@ -600,13 +636,22 @@ def make_orientation_relative_to_flow(orientation: float) -> float:
     )
 
 
+def get_nuclei_rel_to_cell_position(
+    nuclei_centroid_x: float | np.ndarray | pd.Series,
+    nuclei_centroid_y: float | np.ndarray | pd.Series,
+    cell_centroid_x: float | np.ndarray | pd.Series,
+    cell_centroid_y: float | np.ndarray | pd.Series,
+) -> tuple[float | np.ndarray | pd.Series, float | np.ndarray | pd.Series]:
+
+    dx = cell_centroid_x - nuclei_centroid_x
+    dy = cell_centroid_y - nuclei_centroid_y
+
+    return dx, dy
+
+
 def add_cell_segmentation_path_column(
     big_table: pd.DataFrame,
 ) -> pd.DataFrame:
-    # seg_path_per_pos_dict = {
-    #     pos: get_segmentation_path_dict(ds_nm, pos)
-    #     for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys()
-    # }
     seg_path_per_pos_dict = dict()
     for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys():  # type: ignore
         seg_path_per_pos_dict[pos] = get_segmentation_path_dict(ds_nm, pos)  # type: ignore

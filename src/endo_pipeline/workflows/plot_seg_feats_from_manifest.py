@@ -233,7 +233,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     segprops_manifest = get_segmentation_features_manifest([dataset_name])
 
     # apply the data filter
-    segprops_manifest = segprops_manifest[segprops_manifest["filter_global"]]
+    segprops_manifest = segprops_manifest[~segprops_manifest["filter_global"]]
 
     # make basic plots for each dataset
     for (dataset_nm, pos), df_group in tqdm(
@@ -264,6 +264,9 @@ def main(dataset_names: str | None = None) -> None:
     for dataset in dataset_name_list:
         # process dataset below will both load and plot the data
         process_dataset(dataset, out_dir)
+
+    # save git versioning info
+    save_git_versioning_info(out_dir, Path(__file__).stem, verbose=False)
 
 
 if __name__ == "__main__":
