@@ -194,7 +194,8 @@ def get_manifest_for_dynamics_workflows(
     # load manifest data for dataset ds_name
     # and filter to only valid timepoints
     df = manifest_io.get_diffae_manifest(ds_config, filter_to_valid=True)
-
+    if df is None:
+        raise ValueError(f"No DiffAE manifest data found for dataset {ds_config.name}")
     # add crop index column
     df = add_crop_index(df)
 
