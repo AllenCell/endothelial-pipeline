@@ -108,6 +108,9 @@ class DatasetConfig:
     diffae_tracking_integration_fmsid: str | None = None
     """FMS ID for diffusion autoencoder tracking integration."""
 
+    immunofluorescence_manifest_fmsid: str | None = None
+    """FMS ID for immunofluorescence manifest."""
+
     is_reference: bool = False
     """True if dataset is used as a reference dataset, False otherwise."""
 
