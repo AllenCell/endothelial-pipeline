@@ -789,7 +789,7 @@ def process_and_plot_tracking_data(
 def main(
     dataset_name: str | None = None,
     n_proc: int = 1,
-    verbose: bool = True,
+    verbose: bool = False,
     make_plots: bool = False,
 ) -> None:
 
