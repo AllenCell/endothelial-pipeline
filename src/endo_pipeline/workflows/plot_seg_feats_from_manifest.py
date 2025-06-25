@@ -267,7 +267,7 @@ def main(dataset_names: str | None = None, n_proc: int = 1) -> None:
             list(
                 tqdm(
                     executor.map(
-                        process_dataset, zip(dataset_name_list, [out_dir] * len(dataset_name_list))
+                        process_dataset, dataset_name_list, [out_dir] * len(dataset_name_list)
                     ),
                     total=len(dataset_name_list),
                     desc="Creating plots (MP)",
