@@ -240,6 +240,25 @@ def get_reference_datasets() -> list[str]:
     ]
 
 
+@deprecated(
+    """
+With the switch to loading dataset configs using the DatasetConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing dataset info
+is directly from loaded DatasetConfig objects. These configs can be loaded using
+one of the following:
+
+        configs.dataset_config.load_all_datasets
+        configs.dataset_config.load_single_dataset(dataset_name)
+        configs.dataset_config.load_reference_datasets
+
+Fields can then be accessed using dot notation:
+
+        dataset.field
+
+Available fields and descriptions for each field for DatasetConfig objects are
+provided in configs.dataset_config.
+"""
+)
 def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     """Load specific dataset information from the config file."""
     config = load_config()
