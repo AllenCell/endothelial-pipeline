@@ -1,7 +1,7 @@
 import fire
 import numpy as np
 
-from cellsmap.util import manifest_io
+from cellsmap.util import manifest_io_temp
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.library.analyze.diffae_features import ddd_main
@@ -41,7 +41,7 @@ def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None
 
     # save out PCA object (need later for analysis
     # and summary of fit dynamical systems model)
-    manifest_io.save_pca_model(pca, savedir)
+    manifest_io_temp.save_pca_model(pca, savedir)
 
     # set args for 3D viz
     # get time between frames

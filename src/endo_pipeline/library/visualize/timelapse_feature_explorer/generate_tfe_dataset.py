@@ -2,7 +2,7 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from cellsmap.util.manifest_io import get_cell_mean_features_manifest
+from cellsmap.util.manifest_io_temp import get_cell_mean_features_manifest
 from src.endo_pipeline.configs.dataset_io import get_segmentation_features_manifest
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,

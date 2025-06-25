@@ -9,7 +9,7 @@ import pandas as pd
 from bioio import BioImage
 from skimage.measure import regionprops_table
 
-from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
+from cellsmap.util.manifest_io_temp import get_feature_cols, load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (

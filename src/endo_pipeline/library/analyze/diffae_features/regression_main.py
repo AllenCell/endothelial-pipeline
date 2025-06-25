@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
+from cellsmap.util import manifest_io_temp
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize import viz_base
@@ -67,7 +67,7 @@ def kramers_moyal_train_test_one_dataset(
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
     # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = manifest_io.get_feature_cols(df_proj)
+    feat_cols_all = manifest_io_temp.get_feature_cols(df_proj)
     feat_cols = [feat_cols_all[i] for i in pcs]
     ndim = len(pcs)
 
@@ -219,7 +219,7 @@ def build_kramers_moyal_train_test(
     # get list of datasets with DiffAE manifest data
     # using timelapse_only=True to restrict to datasets
     # that are live, timelapse datasets
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
+    list_of_datasets = manifest_io_temp.list_datasets_with_manifest(
         "diffae_manifest_fmsid", timelapse_only=True
     )
 

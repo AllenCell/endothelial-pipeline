@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io as mio
+from cellsmap.util import manifest_io_temp as mio
 from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import gen_potential

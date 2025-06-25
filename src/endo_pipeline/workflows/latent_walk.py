@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.util.manifest_io import (
+from cellsmap.util.manifest_io_temp import (
     get_diffae_manifest,
     get_feature_cols,
     load_pca_model,
