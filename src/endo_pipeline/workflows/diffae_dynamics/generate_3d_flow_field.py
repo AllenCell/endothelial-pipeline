@@ -3,14 +3,18 @@ import numpy as np
 
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.configs.dataset_config import (
+    DatasetConfig,
+    load_reference_datasets,
+    load_single_dataset,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
-def main(datasets_to_use: list | None = None) -> None:
+def main(datasets_to_use: list[DatasetConfig] | None = None) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the
     DiffAE crop-based features for each of the single flow datasets.
@@ -26,13 +30,14 @@ def main(datasets_to_use: list | None = None) -> None:
     # if not provided in command line, run
     # on default list of datasets
     if datasets_to_use is None:
-        datasets_to_use = [
+        list_of_datasets = [
             "20241120_20X",
             "20250409_20X",
             "20241217_20X",
             "20250319_20X",
             "20250326_20X",
         ]
+        datasets_to_use = [load_single_dataset(dataset_name) for dataset_name in list_of_datasets]
     pca = manifest_pca.fit_pca()
 
     # plot scatter of PCA components
@@ -41,19 +46,19 @@ def main(datasets_to_use: list | None = None) -> None:
     #   (or default list, if not specified)
     # get timepoints to use for scatter plots
     # all timepoints except no flow
-    pca_refs = get_reference_datasets()
+    pca_ref_configs = load_reference_datasets()
     restrict_no_flow = True  # restrict plot to subset of no flow timepoints
 
     # get timepoints to use for scatter plots
     # this can definitely be written into a wrapper function
     # maybe make a dictionary instead of a list?
     timepoints_refs = preprocessing.get_timepoints_for_plotting_pcs(
-        pca_refs, restrict_no_flow=restrict_no_flow
+        pca_ref_configs, restrict_no_flow=restrict_no_flow
     )
 
     # scatter plot of pca reference datasets
     fig, _ = manifest_viz.plot_pc_scatter(
-        pca, pca_refs, timepoints_to_use=timepoints_refs  # pca reference datasets
+        pca, pca_ref_configs, timepoints_to_use=timepoints_refs  # pca reference datasets
     )
     viz_base.save_plot(fig, fig_savedir + "/pca_scatter_ref")
 
@@ -65,12 +70,12 @@ def main(datasets_to_use: list | None = None) -> None:
     viz_base.save_plot(fig, fig_savedir + "/pca_scatter_all")
 
     # load default config, get kernel params
-    config = dynamics_io.load_dynamics_config("default")
-    kernel_params = config["kramers_moyal"]["kernel_params"]
+    dynamics_config = dynamics_io.load_dynamics_config("default")
+    kernel_params = dynamics_config["kramers_moyal"]["kernel_params"]
 
     # get time between frames
     # in minutes
-    dt = config["dt"]
+    dt = dynamics_config["dt"]
 
     # time span for the ODE solver
     # units for time steps are in minutes

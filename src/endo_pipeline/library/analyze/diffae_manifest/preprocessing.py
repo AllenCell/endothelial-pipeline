@@ -3,8 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs.dataset_config import load_single_dataset
-from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
+from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_single_dataset
 
 
 def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False) -> pd.DataFrame:
@@ -33,7 +32,7 @@ def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False)
     return df
 
 
-def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) -> dict:
+def get_dataset_descriptions(list_of_datasets: list[DatasetConfig], simple: bool = False) -> dict:
     """
     Get descriptive metadata for each dataset given in the list of datasets.
 
@@ -41,7 +40,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
         e.g., "48_hours_at_30_dyncm2".
 
     Inputs:
-    - list_of_datasets: list, list of dataset names to get descriptions for
+    - list_of_datasets: list, list of configs for datasets to get descriptions for
         - Each string should match the appropriate dataset name in data_config.yaml
     - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
 
@@ -52,9 +51,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
 
     # initialize dictionary to store descriptions
     description_dic = {}
-    for name in list_of_datasets:
-        data_config = load_single_dataset(name)  # get dataset info from data_config.yaml
-
+    for data_config in list_of_datasets:
         flow_config = data_config.flow  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
 
@@ -83,7 +80,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
         description = "_".join(
             [time_str[i] + "_" + shear_rate_str[i] for i in range(num_flows)]
         )  # concatenate time and shear rate for each flow condition
-        description_dic[name] = description  # add description to dictionary
+        description_dic[data_config.name] = description  # add description to dictionary
 
     return description_dic
 
@@ -170,7 +167,9 @@ def project_manifest_to_pcs(
     return df_
 
 
-def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = None) -> pd.DataFrame:
+def get_manifest_for_dynamics_workflows(
+    ds_config: DatasetConfig, pca: Pipeline | None = None
+) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
     in the stochastic dynamics workflow. Adds crop index column to DataFrame,
@@ -193,7 +192,7 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = Non
     """
     # load manifest data for dataset ds_name
     # and filter to only valid timepoints
-    df = manifest_io.get_diffae_manifest(ds_name, filter_to_valid=True)
+    df = manifest_io.get_diffae_manifest(ds_config, filter_to_valid=True)
 
     # add crop index column
     df = add_crop_index(df)
@@ -243,7 +242,7 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
 
 
 def get_timepoints_for_plotting_pcs(
-    list_of_datasets: list[str],
+    list_of_configs: list[DatasetConfig],
     restrict_no_flow: bool = True,
     no_flow_name: str = "20241217_20X",
 ) -> dict:
@@ -258,12 +257,12 @@ def get_timepoints_for_plotting_pcs(
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
 
-    for name in list_of_datasets:
+    for config in list_of_configs:
         # get range of valid timepoints for each dataset
         # loaded from data_config.yaml
-        timepoint_dict = get_valid_timepoints(name)
-        starts = timepoint_dict.get("start", 0)
-        stops = timepoint_dict.get("stop", 0)
+        timepoints = config.valid_timepoints
+        starts = timepoints.start
+        stops = timepoints.stop
         timepoints_list = []
         for start, stop in zip(starts, stops, strict=False):
             # hard coded because this is the no-flow dataset that
@@ -271,7 +270,7 @@ def get_timepoints_for_plotting_pcs(
             # the one with the two sets of timepoints
             # if this changes, we can updated this to not be
             # hardcoded (i.e., check if shear stress is 0 in config)
-            if name == no_flow_name and restrict_no_flow:
+            if config.name == no_flow_name and restrict_no_flow:
                 # restrict to only first set of no flow timepoints
                 if start == 0:
                     timepoints_list.append([start, stop])
@@ -279,5 +278,5 @@ def get_timepoints_for_plotting_pcs(
                     continue
             else:
                 timepoints_list.append([start, stop])
-        timepoints_to_use[name] = timepoints_list
+        timepoints_to_use[config.name] = timepoints_list
     return timepoints_to_use

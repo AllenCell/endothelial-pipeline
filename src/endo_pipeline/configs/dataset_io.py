@@ -21,6 +21,8 @@ from typing import Any, Literal
 
 import fire
 
+from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_single_dataset
+
 
 def get_config_dir() -> Path:
     """Get path to the config directory."""
@@ -312,11 +314,21 @@ def get_zarr_dir(dataset_name: str) -> str:
 
 
 def get_zarr_path(
-    dataset_name: str,
+    dataset_config: DatasetConfig | None = None,
+    dataset_name: str | None = None,
     zarr_name: str | None | None = None,
 ) -> dict[str, str]:
     """Get the zarr file paths for a given dataset."""
-    data_dir = get_zarr_dir(dataset_name)
+    # Making the input parameters more flexible to allow
+    # for either a dataset config object or a dataset name.
+    # This should be temporary, but I didn't want to
+    # change other functions that use this function
+    # that I don't have ownership of.
+    if dataset_config is None:
+        if dataset_name is None:
+            raise ValueError("Either dataset_config or dataset_name must be provided.")
+        dataset_config = load_single_dataset(dataset_name)
+    data_dir = dataset_config.zarr_path
     zarr_paths = {}
     if zarr_name:
         filepath = Path(data_dir) / zarr_name
@@ -335,7 +347,7 @@ def get_available_channels(
     dataset_name: str, zarr_name: str | None | None = None
 ) -> dict[str, list[str]]:
     """Get the available channels for a given dataset."""
-    zarr_paths = get_zarr_path(dataset_name, zarr_name)
+    zarr_paths = get_zarr_path(dataset_name=dataset_name, zarr_name=zarr_name)
     channel_names = {}
     for filename, filepath in zarr_paths.items():
         reader = BioImage(filepath)

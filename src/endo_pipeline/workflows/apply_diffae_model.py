@@ -10,16 +10,14 @@ from cyto_dl.api import CytoDLModel
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_config import (
+    DatasetConfig,
     get_available_datasets,
+    load_all_datasets,
+    load_reference_datasets,
     load_single_dataset,
     save_dataset_config,
 )
-from src.endo_pipeline.configs.dataset_io import (
-    extract_P,
-    get_model_info,
-    get_reference_datasets,
-    get_zarr_path,
-)
+from src.endo_pipeline.configs.dataset_io import extract_P, get_model_info, get_zarr_path
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 
@@ -62,9 +60,9 @@ def generate_overrides(
     return overrides
 
 
-def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int = 0):
+def generate_zarr_csv(dataset_config: DatasetConfig, save_path: str, resolution_level: int = 0):
     # generate csv with paths to zarr files
-    df = pd.DataFrame({"path": sorted(get_zarr_path(dataset_name).values())})
+    df = pd.DataFrame({"path": sorted(get_zarr_path(dataset_config=dataset_config).values())})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
     data_path = str(save_path / "dataset.csv")
@@ -101,7 +99,7 @@ def update_prediction_with_meta(
 
 def apply_model_single(
     model_name: str,
-    dataset_name: str,
+    dataset_config: DatasetConfig,
     resolution_level: int = 0,
     upload_to_fms: bool = True,
     save_path: Union[str, Path] = None,
@@ -114,8 +112,8 @@ def apply_model_single(
     ----------
     model_name: str
         Name of the model from `model_config.yaml` to apply.
-    dataset_name: str
-        Name of the dataset from `data_config.yaml` to apply the model to.
+    dataset_config: DatasetConfig
+        Dataset config object for dataset to apply the model to.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
@@ -133,7 +131,7 @@ def apply_model_single(
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = save_path or model_path / dataset_name
+    save_path = save_path or model_path / dataset_config.name
     save_path.mkdir(parents=True, exist_ok=True)
 
     # load model
@@ -141,14 +139,14 @@ def apply_model_single(
     model.load_config_from_file(path_dict["config_path"])
 
     # create zarr dataset
-    data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
+    data_path = generate_zarr_csv(dataset_config, save_path, resolution_level)
     # apply overrides
     overrides = generate_overrides(
         overrides,
         save_path=save_path,
         data_path=data_path,
         ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=dataset_name,
+        dataset_name=dataset_config.name,
         model_name=model_name,
     )
     model.override_config(overrides)
@@ -156,7 +154,7 @@ def apply_model_single(
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
     prediction_path = update_prediction_with_meta(
-        dataset_name=dataset_name,
+        dataset_name=dataset_config.name,
         model_name=model_name,
         crop_size=crop_size,
         mlflow_id=mlflow_id,
@@ -166,7 +164,7 @@ def apply_model_single(
     if upload_to_fms:
         file_id = save_file_to_fms(
             prediction_path,
-            dataset_name,
+            dataset_config.name,
             get_cytodl_commit_hash(mlflow_id, model_path),
             misc_notes="",
             mlflow_run_id=mlflow_id,
@@ -174,7 +172,6 @@ def apply_model_single(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset(dataset_name)
         dataset_config.diffae_manifest_fmsid = file_id
         save_dataset_config(dataset_config)
 
@@ -213,18 +210,18 @@ def apply_model(
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if regex:
-        all_datasets = get_available_datasets()
-        dataset_names = [name for name in all_datasets if re.search(regex, name)]
+        all_datasets = load_all_datasets()
+        dataset_configs = [config for config in all_datasets if re.search(regex, config.name)]
         print(f"Found {dataset_names} matching regex '{regex}'")
     else:
         if dataset_names == "reference":
-            dataset_names = get_reference_datasets()
+            dataset_configs = load_reference_datasets()
         elif isinstance(dataset_names, str):
-            dataset_names = [dataset_names]
-    for name in dataset_names:
+            dataset_configs = [load_single_dataset(dataset_names)]
+    for config in dataset_configs:
         apply_model_single(
             model_name=model_name,
-            dataset_name=name,
+            dataset_config=config,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             save_path=save_path,

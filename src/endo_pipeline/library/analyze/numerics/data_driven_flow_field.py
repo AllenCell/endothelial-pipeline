@@ -7,13 +7,14 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as manifest_io
+from src.endo_pipeline.configs.dataset_config import DatasetConfig
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 
 
 def set_3d_bounds_from_data(
-    list_of_datasets: list[str],
+    list_of_datasets: list[DatasetConfig],
     pca: Pipeline,
     col_names: Literal["pc", "feat"] = "pc",
 ) -> list[np.ndarray]:
@@ -25,7 +26,7 @@ def set_3d_bounds_from_data(
     on a fixed set of reference datasets.
 
     Inputs:
-    - list_of_datasets: list of dataset names to use
+    - list_of_datasets: list of dataset configs to use
     - pca: PCA model to use for transforming the data
     - col_names: which columns to use for bounds
         - "pc": data is coming from a workflow where
@@ -53,8 +54,8 @@ def set_3d_bounds_from_data(
     # initialize bounds
     bounds_ = [[100, -100], [100, -100], [100, -100]]
 
-    for name in list_of_datasets:
-        df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
+    for config in list_of_datasets:
+        df = preprocessing.get_manifest_for_dynamics_workflows(config, pca)
         # get column names for features
         feat_cols = manifest_io.get_feature_cols(df)
         match col_names:
@@ -314,7 +315,7 @@ def convert_coordinates_from_volume_to_pc(
 
 
 def get_and_viz_ddff(
-    name: str,
+    data_config: DatasetConfig,
     pca: Pipeline,
     kernel_params: dict,
     dt: float,
@@ -332,7 +333,7 @@ def get_and_viz_ddff(
     and output summary figures and vtk files for visualization.
 
     Inputs:
-    - name: name of the dataset to process
+    - data_config: config of the dataset to process
     - pca: PCA model to use for transforming the data
     - kernel_params: parameters for the kernel-based
         estimation of Kramers-Moyal coefficients
@@ -364,7 +365,7 @@ def get_and_viz_ddff(
             two stable fixed points for these conditions)
     """
     # load dataframe and get top 3 PCs
-    df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
+    df = preprocessing.get_manifest_for_dynamics_workflows(data_config, pca)
     feat_cols = manifest_io.get_feature_cols(df)[:3]
 
     # get list of per-crop trajectories, the corresponding
@@ -380,7 +381,7 @@ def get_and_viz_ddff(
     flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
     # save flow field dictionary as npy
     np.save(
-        output_savedir + f"flow_field_dict_{name}.npy",
+        output_savedir + f"flow_field_dict_{data_config.name}.npy",
         flow_field_dict,  # type: ignore
         allow_pickle=True,
     )
@@ -394,13 +395,13 @@ def get_and_viz_ddff(
     )
     # save diffusion field dictionary as npy
     np.save(
-        output_savedir + f"diffusion_field_dict_{name}.npy",
+        output_savedir + f"diffusion_field_dict_{data_config.name}.npy",
         diffusion_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
-        diffusion_field_dict, vtk_savedir + f"diffusion_field_{name}.vtk"
+        diffusion_field_dict, vtk_savedir + f"diffusion_field_{data_config.name}.vtk"
     )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
@@ -413,7 +414,7 @@ def get_and_viz_ddff(
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
-    if name == "20250319_20X" or name == "20250326_20X":
+    if data_config.name == "20250319_20X" or data_config.name == "20250326_20X":
         init = np.array([1.1, 0.0, -0.2])
         time_span = [0, 5000]
         traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
@@ -424,7 +425,7 @@ def get_and_viz_ddff(
 
 
 def ddff_main(
-    list_of_datasets: list[str],
+    list_of_datasets: list[DatasetConfig],
     pca: Pipeline,
     kernel_params: dict,
     dt: float,
@@ -439,7 +440,7 @@ def ddff_main(
     the "data-driven flow field" (DDFF) for a list of datasets.
 
     Inputs:
-    - list_of_datasets: list of dataset names to process
+    - list_of_datasets: list of dataset configs to process
     - pca: PCA model to use for transforming the data
     - kernel_params: parameters for the kernel-based
         estimation of Kramers-Moyal coefficients
@@ -470,10 +471,10 @@ def ddff_main(
     # initialize dict to save trajectories
     # used for crop reconstruction
     traj_dict = {}
-    for name in list_of_datasets:
-        print(f"******** Processing dataset: {name} ******** \n")
+    for config in list_of_datasets:
+        print(f"******** Processing dataset: {config.name} ******** \n")
         traj = get_and_viz_ddff(
-            name,
+            config,
             pca,
             kernel_params,
             dt,
@@ -487,7 +488,7 @@ def ddff_main(
         )
 
         # save out using dataset descriptions
-        condition = condition_dict[name]
+        condition = condition_dict[config.name]
         traj_dict[condition] = traj
 
     np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)  # type: ignore

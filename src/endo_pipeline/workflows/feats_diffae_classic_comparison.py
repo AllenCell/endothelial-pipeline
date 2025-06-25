@@ -486,6 +486,8 @@ def make_all_plots(
 def main() -> None:
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Making note that this is another place where
+    # a deprecated function is used
     dataset_name_list = get_reference_datasets()
 
     for dataset_name in dataset_name_list:
