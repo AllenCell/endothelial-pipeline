@@ -78,11 +78,8 @@ class DatasetConfig:
     brightfield_channel_index: int
     """Index of the brightfield channel."""
 
-    nuclear_label_free_seg_path: str | None = None
-    """Path to nuclear label free segmentation."""
-
-    nuclear_stain_seg_path: str | None = None
-    """Path to nuclear stain segmentation."""
+    channel_405_index: int | None = None
+    """Index of the 405 channel."""
 
     channel_488_index: int | None = None
     """Index of the 488 channel."""
@@ -93,8 +90,11 @@ class DatasetConfig:
     channel_640_index: int | None = None
     """Index of the 640 channel."""
 
-    channel_405_index: int | None = None
-    """Index of the 405 channel."""
+    nuclear_label_free_seg_path: str | None = None
+    """Path to nuclear label free segmentation."""
+
+    nuclear_stain_seg_path: str | None = None
+    """Path to nuclear stain segmentation."""
 
     nuclear_seg_manifest_fmsid: str | None = None
     """FMS ID for nuclear segmentation manifest."""
