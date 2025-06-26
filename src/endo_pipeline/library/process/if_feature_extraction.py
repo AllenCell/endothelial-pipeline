@@ -2,12 +2,14 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from skimage.measure import label, regionprops
+from skimage.feature import graycomatrix, graycoprops
+from skimage.measure import label, regionprops, shannon_entropy
 
 from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process.image_processing import (
     background_subtract,
     max_proj,
+    normalize_image,
     sum_proj,
 )
 
@@ -78,6 +80,68 @@ def extract_morphological_props(
     ]
 
 
+def calculate_glcm_features(image: np.ndarray) -> dict:
+    """
+    Calculate GLCM features for a given image.
+
+    Args:
+        image (np.ndarray): Input image, should be a 2D grayscale image.
+
+    Returns:
+        dict: A dictionary containing GLCM features
+        (ie. contrast, correlation, energy, and homogeneity)
+    """
+    normalized_image = normalize_image(image)
+
+    glcm = graycomatrix(
+        normalized_image,
+        distances=[1],  # distance of 1 pixel
+        angles=[0, np.pi / 4, np.pi / 2],  # horizontal, diagonal, vertical
+        symmetric=True,
+        normed=True,
+    )
+    glcm_features = {
+        "contrast": graycoprops(glcm, "contrast")[0, 0],
+        "correlation": graycoprops(glcm, "correlation")[0, 0],
+        "energy": graycoprops(glcm, "energy")[0, 0],
+        "homogeneity": graycoprops(glcm, "homogeneity")[0, 0],
+    }
+    return glcm_features
+
+
+def compute_projection_properties(p: Any, channel: str, proj_type: str) -> dict[str, float]:
+    """
+    Compute statistical properties of a given projection for a specific channel.
+
+    Args:
+        p (Any): A region property object containing intensity image data.
+        channel (str): The name of the channel.
+        proj_type (str): The type of projection (e.g., "sum", "max").
+
+    Returns:
+        Dict[str, float]: A dictionary containing computed statistical properties for the given
+                         projection. Keys are formatted as "{channel}_{statistic}_{proj_type}_proj".
+    """
+    glcm_features = calculate_glcm_features(p.intensity_image)
+
+    return {
+        f"{channel}_std_{proj_type}_proj": np.std(p.intensity_image),
+        f"{channel}_sum_{proj_type}_proj": np.sum(p.intensity_image),
+        f"{channel}_mean_{proj_type}_proj": p.mean_intensity,
+        f"{channel}_median_{proj_type}_proj": np.median(p.intensity_image),
+        f"{channel}_max_{proj_type}_proj": p.max_intensity,
+        f"{channel}_min_{proj_type}_proj": p.min_intensity,
+        f"{channel}_25th_percentile_{proj_type}_proj": np.percentile(p.intensity_image, 25),
+        f"{channel}_50th_percentile_{proj_type}_proj": np.percentile(p.intensity_image, 50),
+        f"{channel}_75th_percentile_{proj_type}_proj": np.percentile(p.intensity_image, 75),
+        f"{channel}_entropy_{proj_type}_proj": shannon_entropy(p.intensity_image),
+        f"{channel}_glcm_contrast_{proj_type}_proj": glcm_features["contrast"],
+        f"{channel}_glcm_correlation_{proj_type}_proj": glcm_features["correlation"],
+        f"{channel}_glcm_energy_{proj_type}_proj": glcm_features["energy"],
+        f"{channel}_glcm_homogeneity_{proj_type}_proj": glcm_features["homogeneity"],
+    }
+
+
 def extract_if_channel_props(
     label_image: np.ndarray, channel: str, raw_image: np.ndarray
 ) -> list[dict[str, float]]:
@@ -110,24 +174,8 @@ def extract_if_channel_props(
     return [
         {
             "label": p_sum.label,
-            f"{channel}_std_sum_proj": np.std(p_sum.intensity_image),
-            f"{channel}_sum_sum_proj": np.sum(p_sum.intensity_image),
-            f"{channel}_mean_sum_proj": p_sum.mean_intensity,
-            f"{channel}_median_sum_proj": p_sum.median_intensity,
-            f"{channel}_max_sum_proj": p_sum.max_intensity,
-            f"{channel}_min_sum_proj": p_sum.min_intensity,
-            f"{channel}_25th_percentile_sum_proj": p_sum.percentile_intensity(25),
-            f"{channel}_50th_percentile_sum_proj": p_sum.percentile_intensity(50),
-            f"{channel}_75th_percentile_sum_proj": p_sum.percentile_intensity(75),
-            f"{channel}_std_max_proj": np.std(p_max.intensity_image),
-            f"{channel}_sum_max_proj": np.sum(p_max.intensity_image),
-            f"{channel}_mean_max_proj": p_max.mean_intensity,
-            f"{channel}_median_max_proj": p_max.median_intensity,
-            f"{channel}_max_max_proj": p_max.max_intensity,
-            f"{channel}_min_max_proj": p_max.min_intensity,
-            f"{channel}_25th_percentile_max_proj": p_max.percentile_intensity(25),
-            f"{channel}_50th_percentile_max_proj": p_max.percentile_intensity(50),
-            f"{channel}_75th_percentile_max_proj": p_max.percentile_intensity(75),
+            **compute_projection_properties(p_sum, channel, "sum"),
+            **compute_projection_properties(p_max, channel, "max"),
         }
         for p_sum, p_max in zip(props_sum_proj, props_max_proj, strict=True)
     ]

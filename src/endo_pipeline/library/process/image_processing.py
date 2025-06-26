@@ -105,3 +105,30 @@ def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> 
     img = np.clip(img, camera_offset, None)
     img = img - camera_offset  # Set any negative values to zero
     return img
+
+
+def normalize_image(image: np.ndarray, target_max: int = 255) -> np.ndarray:
+    """
+    Normalize the image to a specific range (e.g., 0 to 255).
+    8-bit images typically have pixel values in the range of 0 to 255, but this method preserves
+    the original dynamic range of the image while scaling it to the target maximum value instead
+    of clipping the values.
+
+    Args:
+        image (np.ndarray): Input image.
+        target_max (int): The target maximum value for normalization (e.g., 255 for 8-bit).
+
+    Returns:
+        np.ndarray: Normalized image within the target range.
+    """
+    # Calculate the minimum and maximum pixel values of the original image
+    min_val = np.min(image)
+    max_val = np.max(image)
+
+    # Normalize the image to the target range (0 to target_max)
+    normalized_image = (image - min_val) / (max_val - min_val) * target_max
+
+    if normalized_image.max() <= 255:
+        normalized_image = normalized_image.astype(np.uint8)
+
+    return normalized_image

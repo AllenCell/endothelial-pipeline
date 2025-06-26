@@ -92,17 +92,17 @@ def main(datasets: list[str], testing: bool = False) -> None:
         print(f"Starting workflow for dataset: {dataset}")
 
         # Step 1: Run feature extraction
-        df: pd.DataFrame = run_nuclei_feature_extraction(dataset)
+        df = run_nuclei_feature_extraction(dataset)
 
         # Step 2: Save to CSV
-        save_path: str = save_manifest_to_csv(dataset, df)
+        save_path = save_manifest_to_csv(dataset, df)
 
         if testing:
             print("Testing mode enabled. Skipping fms upload and dataset config update")
             continue
 
         # Step 3: Upload to FMS
-        fms_id: str = upload_manifest_to_fms(save_path, dataset)
+        fms_id = upload_manifest_to_fms(save_path, dataset)
 
         # Step 4: Update dataset configuration
         update_dataset_config(dataset, fms_id)
