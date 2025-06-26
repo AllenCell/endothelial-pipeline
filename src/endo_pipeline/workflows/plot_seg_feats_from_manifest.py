@@ -144,6 +144,22 @@ def plot_tracking_data(
             (0, None),
             f"{dataset_name}_P{position}_num_nuclei.png",
         ),
+        (
+            "time_hours",
+            "nuc_pos_rel_cell_magnitude",
+            "Time (hours)",
+            "Distance Between Nuclei and Cell Centroid (px)",
+            (0, None),
+            f"{dataset_name}_P{position}_num_nuclei.png",
+        ),
+        (
+            "time_hours",
+            "nuc_pos_rel_cell_angle_deg_rel_to_flow",
+            "Time (hours)",
+            "Nuclei-Cell Centroid Alignment (deg)",
+            (0, 90),
+            f"{dataset_name}_P{position}_num_nuclei.png",
+        ),
     ]
     for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
         out_subdir_plots = out_dir / f"{y_key}/{dataset_name}"
