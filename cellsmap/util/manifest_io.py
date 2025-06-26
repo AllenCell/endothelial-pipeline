@@ -5,7 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import dataset_config, dataset_io
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.configs.dataset_config import DatasetConfig
 
 try:
