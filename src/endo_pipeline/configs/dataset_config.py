@@ -108,6 +108,9 @@ class DatasetConfig:
     diffae_tracking_integration_fmsid: str | None = None
     """FMS ID for diffusion autoencoder tracking integration."""
 
+    immunofluorescence_manifest_fmsid: str | None = None
+    """FMS ID for immunofluorescence manifest."""
+
     is_reference: bool = False
     """True if dataset is used as a reference dataset, False otherwise."""
 
@@ -192,17 +195,15 @@ def load_reference_dataset_configs() -> list[DatasetConfig]:
     return reference_datasets
 
 
-def load_single_dataset_config(dataset_name: str) -> DatasetConfig | None:
+def load_single_dataset_config(dataset_name: str) -> DatasetConfig:
     """Load single dataset config by name."""
 
     config_dir = get_config_dir()
     config_file = config_dir / "datasets" / f"{dataset_name}.yaml"
 
     if not config_file.exists():
-        logger.warning(
-            "Dataset [ %s ] not found at config directory [ %s ]", dataset_name, config_dir
-        )
-        return None
+        logger.error("Dataset [ %s ] could not be loaded", dataset_name)
+        raise FileNotFoundError(f"No such file '{config_file}'")
     else:
         logger.debug("Loaded dataset [ %s ]", dataset_name)
         return YAMLDecoder(DatasetConfig).decode(config_file.read_text())
