@@ -14,7 +14,7 @@ from cellsmap.util.manifest_io import (
     get_track_diffae_manifest,
 )
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import load_reference_dataset_configs
+from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_reference_dataset_configs
 from src.endo_pipeline.configs.dataset_io import (
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
@@ -168,12 +168,12 @@ def get_grid_bounds(flow_field_dict: dict) -> list:
     return bounds
 
 
-def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
+def get_and_process_diffae_data(dataset_config: DatasetConfig) -> pd.DataFrame:
     # read in the grid crop-based diffae features
-    diffae_grid_crops = get_diffae_manifest(dataset_name)
+    diffae_grid_crops = get_diffae_manifest(dataset_config)
     diffae_grid_crops = diffae_preproc.add_crop_index(diffae_grid_crops)
     diffae_grid_crops = diffae_preproc.add_description_column(
-        diffae_grid_crops, dataset_name, simple=True
+        diffae_grid_crops, dataset_config, simple=True
     )  # add description column (e.g., 48hr_High)
 
     # in Erin's code in workflows/flow_field3d/preprocessing.py
