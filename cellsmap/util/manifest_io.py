@@ -5,7 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import dataset_config, dataset_io
+from src.endo_pipeline.configs import ModelConfig, ModelManifest, dataset_io
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -218,3 +218,28 @@ def load_pca_model(savedir: str) -> Pipeline:
     with open(savedir + "pca_model.pkl", "rb") as f:
         pca = pickle.load(f)
     return pca
+
+
+def get_model_manifest(dataset_name: str, model_config: ModelConfig) -> ModelManifest:
+    """
+    Get model manifest for a given dataset and model configuration.
+
+    Inputs:
+    - dataset_name: str, name of the dataset
+    - model_config: ModelConfig, configuration of the model
+
+    Outputs:
+    - ModelManifest, containing dataset name and fmsid
+    """
+    if model_config.manifest_fmsids is None:
+        raise ValueError(f"No manifest fmsids found in model config for dataset {dataset_name}")
+
+    # search the ModelConfig.manifest_fmsids for the
+    # ModelManifest element with dataset_name matching
+    # the input dataset_name
+    for manifest in model_config.manifest_fmsids:
+        if manifest.dataset_name == dataset_name:
+            return manifest
+
+    # if no manifest found, raise an error
+    raise ValueError(f"No manifest found for dataset {dataset_name} in model config")
