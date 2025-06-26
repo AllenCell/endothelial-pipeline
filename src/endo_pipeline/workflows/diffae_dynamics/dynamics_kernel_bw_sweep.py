@@ -4,6 +4,7 @@ import numpy as np
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import ddd_main
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
@@ -29,6 +30,9 @@ def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None
             "20250326_20X",  # 45hr 15 dyn
         ]
 
+    dataset_config_list = [
+        load_single_dataset_config(dataset_name) for dataset_name in list_of_datasets
+    ]
     # get output subdirectory for intermediate workflow outputs
     # if directory does not exist, get_output_path
     # function will create it
@@ -45,8 +49,8 @@ def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None
 
     # set args for 3D viz
     # get time between frames
-    config = dynamics_io.load_dynamics_config("default")
-    dt = config["dt"]
+    dynamics_config = dynamics_io.load_dynamics_config("default")
+    dt = dynamics_config["dt"]
 
     # time span for the ODE solver
     # units for time steps are in minutes
@@ -92,16 +96,18 @@ def main(list_of_datasets: list[str] | None = None, bw_range: list[float] | None
 
         # loop through datasets, get flow field
         # estimates, and save out figures
-        for name in list_of_datasets:
-            print(f"\nComputing 2D drift and diffusion fields for dataset {name}")
+        for ds_config in dataset_config_list:
+            print(f"\nComputing 2D drift and diffusion fields for dataset {ds_config.name}")
 
             # 2D viz outputs
-            ddd_main.get_and_analyze_ddd(name, pca, kernel_params, fig_savedir_kernel, config)
+            ddd_main.get_and_analyze_ddd(
+                ds_config, pca, kernel_params, fig_savedir_kernel, dynamics_config
+            )
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
         data_driven_flow_field.ddff_main(
-            list_of_datasets,
+            dataset_config_list,
             pca,
             kernel_params,
             dt,

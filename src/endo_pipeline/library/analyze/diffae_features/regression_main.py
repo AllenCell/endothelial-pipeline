@@ -246,7 +246,7 @@ def build_kramers_moyal_train_test(
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_config.name, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_config, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
