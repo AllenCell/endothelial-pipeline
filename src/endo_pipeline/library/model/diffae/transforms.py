@@ -2,10 +2,12 @@ from collections.abc import Sequence
 from copy import deepcopy
 
 import numpy as np
+import torch
 from monai.transforms import CenterSpatialCropd, Rotated, Transform
 from omegaconf import ListConfig
 
 
+# making a comment that this class is currently unused
 class MinStdCropd(Transform):
     """
     Select a slice of an image based on the
@@ -16,7 +18,7 @@ class MinStdCropd(Transform):
         self,
         keys: list | str,
         offset: int = 5,
-        axes: tuple[int] = (-1, -2),
+        axes: tuple[int, int] = (-1, -2),
         channel: int = 0,
     ):
         super().__init__()
@@ -84,7 +86,7 @@ class RotateRanged(Transform):
         self.n_steps = n_steps
         self.cropper = CenterSpatialCropd(keys=self.keys, roi_size=roi_size)
 
-    def _split_dict(self, dict):
+    def _split_dict(self, dict: dict):
         """Split channels of keys into a list of dictionaries."""
         meta_keys = {k: v for k, v in dict.items() if k not in self.keys}
         n_channels = dict[self.keys[0]].shape[0]
@@ -102,7 +104,7 @@ class RotateRanged(Transform):
                 new_data[i][k] = deepcopy(elem)
         return new_data
 
-    def __call__(self, input_dict):
+    def __call__(self, input_dict: dict[str, torch.Tensor]) -> list[dict[str, torch.Tensor]]:
         """
         Parameters
         ----------
@@ -116,6 +118,6 @@ class RotateRanged(Transform):
             )
             rotations = self.cropper(rotations)
             for key in self.keys:
-                rotations[key].meta.update({"theta": theta})
+                rotations[key].meta.update({"theta": theta})  # type: ignore
             new_data += self._split_dict(rotations)
         return new_data

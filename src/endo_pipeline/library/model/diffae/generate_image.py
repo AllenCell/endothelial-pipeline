@@ -10,7 +10,7 @@ from src.endo_pipeline.library.model.mlflow import load_mlflow_model
 
 def generate_from_coords(
     model_name: str,
-    coords: list[list[float]],
+    coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
 ) -> np.ndarray:
@@ -29,7 +29,13 @@ def generate_from_coords(
     average: bool
         Whether to average the generated images.
     """
-    coords_np = np.array(coords)
+    if not isinstance(coords, np.ndarray):
+        if isinstance(coords, list):
+            coords_np = np.array(coords)
+        else:
+            raise ValueError("coords must be a numpy array or a list of lists")
+    else:
+        coords_np = coords
     mlflow_id = get_model_info(model_name)["mlflow_run_id"]
     model_path = Path(get_output_path(f"models/{model_name}"))
     model = load_mlflow_model(mlflow_id, save_path=model_path)

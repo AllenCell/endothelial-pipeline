@@ -78,7 +78,7 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
     """
     Select timepoints from a dataframe annotated as valid
-    if annotation is present, otherwise use all teimpoints.
+    if annotation is present, otherwise use all timepoints.
 
     Inputs:
     - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
@@ -166,8 +166,8 @@ def list_datasets_with_manifest(
         else:
             print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
-    for dataset_name in all_datasets:
-        dataset_info = dataset_config.load_single_dataset_config(dataset_name)
+    all_datasets = dataset_config.load_all_dataset_configs()
+    for dataset_info in all_datasets:
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
@@ -179,9 +179,9 @@ def list_datasets_with_manifest(
         else:
             manifest_fmsid = dataset_info.diffae_manifest_fmsid
         if manifest_fmsid != "":
-            dataset_list.append(dataset_name)
+            dataset_list.append(dataset_info.name)
             if verbose:
-                print(f" - {dataset_name}")
+                print(f" - {dataset_info.name}")
     return dataset_list
 
 

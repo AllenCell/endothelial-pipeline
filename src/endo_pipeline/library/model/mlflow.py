@@ -7,7 +7,7 @@ from hydra.utils import get_class
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
 
 
-def _get_options(available_artifacts, patterns):
+def _get_options(available_artifacts: list[str], patterns: list[str]) -> str:
     """
     Find artifacts that match a pattern. If exactly one match is found,
     return it. Otherwise raise an error.
@@ -29,7 +29,7 @@ def _get_options(available_artifacts, patterns):
 
 def _get_available_artifacts(
     run_id: str,
-    artifact_path: str,
+    artifact_path: str | Path,
     tracking_uri: str = DEFAULT_TRACKING_URI,
     verbose: bool = True,
     _current_recursion_level: int = 0,  # Internal parameter to manage verbose printing
@@ -160,8 +160,8 @@ def download_mlflow_artifact(
 def download_model(
     run_id: str,
     save_path: str | Path,
-    checkpoint_path: str | None = None,
-    config_path: str | None = None,
+    checkpoint_path: str | Path | None = None,
+    config_path: str | Path | None = None,
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> dict:
     """
@@ -225,5 +225,5 @@ def load_mlflow_model(
         config = yaml.safe_load(f)
 
     model_class = get_class(config["model"]["_target_"])
-    model = model_class.load_from_checkpoint(save_path / checkpoint_path)
+    model = model_class.load_from_checkpoint(save_path / checkpoint_path)  # type: ignore
     return model
