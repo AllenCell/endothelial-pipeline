@@ -12,12 +12,9 @@ from skimage.measure import regionprops_table
 from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_single_dataset_config, save_dataset_config
-from src.endo_pipeline.configs.dataset_io import (
-    extract_T,
-    get_cdh5_classic_segmentation_path,
-    get_model_info,
-)
+from src.endo_pipeline.configs import load_single_model_config
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config, save_dataset_config
+from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
 from src.endo_pipeline.workflows.apply_diffae_model import apply_model_single
@@ -343,7 +340,7 @@ def measure_per_cell_features(
     spatial_pc_info.to_parquet(feats_path)
 
     if upload_to_fms:
-        mlflow_id = get_model_info(model_name)["mlflow_run_id"]
+        mlflow_id = load_single_model_config(model_name).mlflow_run_id
         model_path = Path(get_output_path(f"models/{model_name}"))
 
         file_id = save_file_to_fms(

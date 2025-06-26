@@ -1,9 +1,3 @@
-diffae_04_10:
-  mlflow_run_id: ae7f25b4109c47809d3e2ed1b7120e50
-diffae_finetuned_for_fixed:
-  mlflow_run_id: 6a04a60d1ed3404d9cbcca436ca6c0f3
-live_fixed_finetune_template:
-  mlflow_run_id: a5b6274c683948b5a3e6ef892b0c88d5
 nuc_pred_labelfree:
   model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess
 nuc_pred_labelfree_retrained_20250327:

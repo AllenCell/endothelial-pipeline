@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_model_info
+from src.endo_pipeline.configs import load_single_model_config
 from src.endo_pipeline.library.model.mlflow import load_mlflow_model
 
 
@@ -36,7 +36,8 @@ def generate_from_coords(
             raise ValueError("coords must be a numpy array or a list of lists")
     else:
         coords_np = coords
-    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
+
+    mlflow_id = load_single_model_config(model_name).mlflow_run_id
     model_path = Path(get_output_path(f"models/{model_name}"))
     model = load_mlflow_model(mlflow_id, save_path=model_path)
 

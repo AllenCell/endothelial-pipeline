@@ -10,8 +10,8 @@ from cyto_dl.api import CytoDLModel
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_single_dataset_config, save_dataset_config
-from src.endo_pipeline.configs.dataset_io import get_model_info
+from src.endo_pipeline.configs import load_single_model_config
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config, save_dataset_config
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
@@ -133,7 +133,7 @@ def compare_paired_features(
     **alignment_kwargs : Dict[str, Any]
         Additional arguments for the alignment function.
     """
-    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
+    mlflow_id = load_single_model_config(model_name).mlflow_run_id
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
