@@ -5,7 +5,11 @@ import pandas as pd
 from skimage.measure import label, regionprops
 
 from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.library.process.image_processing import background_subtract, sum_proj
+from src.endo_pipeline.library.process.image_processing import (
+    background_subtract,
+    max_proj,
+    sum_proj,
+)
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain_seg_path"
@@ -61,6 +65,13 @@ def extract_morphological_props(
             "area": p.area,
             "centroid_y": p.centroid[0],
             "centroid_x": p.centroid[1],
+            "perimeter": p.perimeter,
+            "solidity": p.solidity,
+            "major_axis_length": p.major_axis_length,
+            "minor_axis_length": p.minor_axis_length,
+            "aspect_ratio": (
+                p.major_axis_length / p.minor_axis_length if p.minor_axis_length > 0 else np.nan
+            ),
             "eccentricity": p.eccentricity,
         }
         for p in props
@@ -89,21 +100,36 @@ def extract_if_channel_props(
 
     # Compute the sum projection along the Z-axis
     sum_projection = sum_proj(background_subtracted, axis=2)[0, 0, :, :]  # return 2D image YX
+    max_projection = max_proj(background_subtracted, axis=2)[0, 0, :, :]  # return 2D image YX
 
     # Extract region properties using the sum projection as the intensity image
-    props = regionprops(label_image, intensity_image=sum_projection)
+    props_sum_proj = regionprops(label_image, intensity_image=sum_projection)
+    props_max_proj = regionprops(label_image, intensity_image=max_projection)
 
-    # Return a list of dictionaries containing the extracted properties
+    # Return a list of dictionaries containing the extracted properties for both projections
     return [
         {
-            "label": p.label,
-            f"{channel}_sum_proj_std": np.std(p.intensity_image),
-            f"{channel}_total_sum_proj": np.sum(p.intensity_image),
-            f"{channel}_mean_sum_proj": p.mean_intensity,
-            f"{channel}_max_sum_proj": p.max_intensity,
-            f"{channel}_min_sum_proj": p.min_intensity,
+            "label": p_sum.label,
+            f"{channel}_std_sum_proj": np.std(p_sum.intensity_image),
+            f"{channel}_sum_sum_proj": np.sum(p_sum.intensity_image),
+            f"{channel}_mean_sum_proj": p_sum.mean_intensity,
+            f"{channel}_median_sum_proj": p_sum.median_intensity,
+            f"{channel}_max_sum_proj": p_sum.max_intensity,
+            f"{channel}_min_sum_proj": p_sum.min_intensity,
+            f"{channel}_25th_percentile_sum_proj": p_sum.percentile_intensity(25),
+            f"{channel}_50th_percentile_sum_proj": p_sum.percentile_intensity(50),
+            f"{channel}_75th_percentile_sum_proj": p_sum.percentile_intensity(75),
+            f"{channel}_std_max_proj": np.std(p_max.intensity_image),
+            f"{channel}_sum_max_proj": np.sum(p_max.intensity_image),
+            f"{channel}_mean_max_proj": p_max.mean_intensity,
+            f"{channel}_median_max_proj": p_max.median_intensity,
+            f"{channel}_max_max_proj": p_max.max_intensity,
+            f"{channel}_min_max_proj": p_max.min_intensity,
+            f"{channel}_25th_percentile_max_proj": p_max.percentile_intensity(25),
+            f"{channel}_50th_percentile_max_proj": p_max.percentile_intensity(50),
+            f"{channel}_75th_percentile_max_proj": p_max.percentile_intensity(75),
         }
-        for p in props
+        for p_sum, p_max in zip(props_sum_proj, props_max_proj, strict=True)
     ]
 
 
