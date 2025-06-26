@@ -10,7 +10,11 @@ from cyto_dl.api import CytoDLModel
 from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import load_single_dataset_config, save_dataset_config
+from src.endo_pipeline.configs.dataset_config import (
+    DatasetConfig,
+    load_single_dataset_config,
+    save_dataset_config,
+)
 from src.endo_pipeline.configs.dataset_io import extract_P, get_model_info
 from src.endo_pipeline.library.model.diffae.apply_diffae_model import (
     get_cytodl_commit_hash,
@@ -92,9 +96,9 @@ def centroid_to_bbox(df: pd.DataFrame):
     return df
 
 
-def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
+def preprocess_manifest(dataset_config: DatasetConfig, save_dir: str) -> str:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = load_single_dataset_config(dataset_name).tracking_integration_fmsid
+    fms_id = dataset_config.tracking_integration_fmsid
     df = get_dataframe_by_fmsid(fms_id)
     # convert centroids to bounding boxes
     df = centroid_to_bbox(df)
@@ -153,7 +157,7 @@ def update_prediction_with_meta(
 
 def apply_model_single(
     model_name: str,
-    dataset_name: str,
+    dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
@@ -167,14 +171,14 @@ def apply_model_single(
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = save_path or model_path / dataset_name
+    save_path = save_path or model_path / dataset_config.name
     save_path.mkdir(parents=True, exist_ok=True)
 
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    data_path = preprocess_manifest(dataset_name, save_path)
+    data_path = preprocess_manifest(dataset_config, save_path)
 
     # apply overrides
     overrides = generate_overrides(
@@ -182,14 +186,14 @@ def apply_model_single(
         save_path=save_path,
         data_path=data_path,
         ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=dataset_name,
+        dataset_name=dataset_config.name,
         model_name=model_name,
     )
     model.override_config(overrides)
     model.predict()
 
     prediction_path = update_prediction_with_meta(
-        dataset_name=dataset_name,
+        dataset_name=dataset_config.name,
         model_name=model_name,
         mlflow_id=mlflow_id,
         save_path=save_path,
@@ -199,7 +203,7 @@ def apply_model_single(
     if upload_to_fms:
         file_id = save_file_to_fms(
             prediction_path,
-            dataset_name,
+            dataset_config.name,
             commit_hash,
             misc_notes="",
             mlflow_run_id=mlflow_id,
@@ -207,7 +211,6 @@ def apply_model_single(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset_config(dataset_name)
         dataset_config.diffae_tracking_integration_fmsid = file_id
         save_dataset_config(dataset_config)
 
@@ -245,11 +248,13 @@ def apply_model(
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if isinstance(dataset_names, str):
-        dataset_names = [dataset_names]
-    for name in dataset_names:
+        dataset_configs = [load_single_dataset_config(dataset_names)]
+    elif isinstance(dataset_names, Sequence):
+        dataset_configs = [load_single_dataset_config(name) for name in dataset_names]
+    for config in dataset_configs:
         apply_model_single(
             model_name=model_name,
-            dataset_name=name,
+            dataset_config=config,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
             overrides=overrides,

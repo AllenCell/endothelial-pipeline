@@ -61,16 +61,16 @@ def main(config_name: str = "default") -> None:
 
     # loop through datasets, get flow field
     # estimates, and save out figures
-    list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
+    list_of_datasets = manifest_io.load_dataset_configs_with_manifest("diffae_manifest_fmsid")
 
-    for name in list_of_datasets:
-        if name in ds_to_skip:
-            print(f"**** Skipping dataset {name} **** \n")
+    for data_config in list_of_datasets:
+        if data_config.name in ds_to_skip:
+            print(f"**** Skipping dataset {data_config.name} **** \n")
             continue
-        print(f"Computing drift and diffusion fields for dataset {name}")
+        print(f"Computing drift and diffusion fields for dataset {data_config.name}")
 
         ddd_main.get_and_analyze_ddd(
-            name,
+            data_config,
             pca,
             kernel_params,
             fig_savedir,

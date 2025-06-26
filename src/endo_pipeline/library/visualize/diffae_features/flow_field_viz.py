@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -214,6 +215,7 @@ def plot_flow_field_slices(
     flow_field_dict: dict,
     df_cond: pd.DataFrame | None,
     fig_savedir: str | None,
+    dataset_description: str,
     pc_vals: tuple[Any, Any] | None = None,
     color: str = "black",
     norm: bool = True,
@@ -312,19 +314,17 @@ def plot_flow_field_slices(
     plt.show()
 
     if fig_savedir is not None:
-        # if data provided, get
-        # get the condition name
+        # if data provided, use
+        # the dataset description
         # for saving the plot
-        if df_cond is not None:
-            name = df_cond["dataset"].unique()[0]
-            condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
-        else:
-            condition = "from_data"
+        # else, use "from_data"
+        if df_cond is None:
+            dataset_description = "from_data"
         viz_base.save_plot(
-            fig, filename=fig_savedir + f"flow_field_{condition}", dpi=300
+            fig, filename=fig_savedir + f"flow_field_{dataset_description}", dpi=300
         )  # save the figure
         viz_base.save_plot(
-            fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
+            fig_, filename=fig_savedir + f"flow_field_streamplot_{dataset_description}", dpi=300
         )  # save the figure
 
     return fig, ax
@@ -343,13 +343,13 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     # this is for the purposes of generating
     # the plot for the SAC slides
     # Can work to generalize this later
-    list_of_datasets = [
-        "20250409_20X",
-        "20241120_20X",
-        "20250319_20X",
+    list_of_dataset_configs = [
+        load_single_dataset_config("20250409_20X"),
+        load_single_dataset_config("20241120_20X"),
+        load_single_dataset_config("20250319_20X"),
     ]
 
-    conditions = preprocessing.get_dataset_descriptions(list_of_datasets, simple=True)
+    conditions = preprocessing.get_dataset_descriptions(list_of_dataset_configs, simple=True)
 
     # initialize plots
     fig, ax = viz_base.init_subplots(figsize=(14, 5))
@@ -357,7 +357,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     # get bounds of the grid - load one of the flow field objects
     # saved in main function
     flow_field_dict = np.load(
-        output_savedir + f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
+        output_savedir + f"flow_field_dict_{list_of_dataset_configs[0].name}.npy", allow_pickle=True
     ).item()
     xmin, xmax = (
         flow_field_dict["grid"][0][0, 0, 0],
@@ -374,10 +374,10 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     bounds_ = [(xmin, xmax), (ymin, ymax), (zmin, zmax)]
 
     # loop through the datasets and plot the fixed points
-    for name in list_of_datasets:
-        condition = conditions[name]
+    for data_config in list_of_dataset_configs:
+        condition = conditions[data_config.name]
         coords = traj_dict[condition]
-        scatter_color = manifest_viz.get_dataset_color(name)
+        scatter_color = manifest_viz.get_dataset_color(data_config.name)
 
         if type(coords) is np.ndarray:  # single attractor
             # get last point of trajectory
@@ -410,6 +410,7 @@ def flow_field_viz_main(
     df_cond: pd.DataFrame,
     traj: np.ndarray,
     fig_savedir: str,
+    dataset_description: str,
 ) -> None:
     """
     Plot all relvant 2D summary plots
@@ -429,10 +430,12 @@ def flow_field_viz_main(
         Shape: (n_points, n_dimensions)
     - fig_savedir: str
         Directory to save the figures.
+    - dataset_description: str
+        Description of the dataset for saving the figures.
+        e.g., 48hr High Shear Stress, 48hr Low Shear Stress, etc.
     """
-    # dataset flow condition for saving the figures
+    # dataset name for saving the figures
     name = df_cond["dataset"].unique()[0]
-    condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
@@ -440,7 +443,9 @@ def flow_field_viz_main(
 
     # baseline visualization: plot flow field slices
     # (quiver plot with scatter of data, streamplot)
-    plot_flow_field_slices(flow_field_dict, df_cond, fig_savedir, pc_vals=pc_vals)
+    plot_flow_field_slices(
+        flow_field_dict, df_cond, fig_savedir, dataset_description, pc_vals=pc_vals
+    )
 
     ###### additional plots for visualization of flow field #######
     # 1) last point of trajectory over flow field
@@ -503,7 +508,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
+    viz_base.save_plot(fig, fig_savedir + f"flow_field_{dataset_description}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
@@ -512,7 +517,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
+    viz_base.save_plot(fig, fig_savedir + f"flow_field_{dataset_description}_traj", dpi=300)
 
     # 3) trajectory with equally spaced interpolated points
     interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
@@ -526,5 +531,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300)
+    viz_base.save_plot(
+        fig, fig_savedir + f"flow_field_{dataset_description}_traj_interpolated", dpi=300
+    )
     return

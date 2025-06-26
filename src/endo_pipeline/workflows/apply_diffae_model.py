@@ -228,6 +228,8 @@ def apply_model(
             dataset_configs = load_reference_dataset_configs()
         elif isinstance(dataset_names, str):
             dataset_configs = [load_single_dataset_config(dataset_names)]
+        elif isinstance(dataset_names, Sequence):
+            dataset_configs = [load_single_dataset_config(name) for name in dataset_names]
     for config in dataset_configs:
         apply_model_single(
             model_name=model_name,

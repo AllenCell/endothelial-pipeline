@@ -412,7 +412,10 @@ def get_and_viz_ddff(
     traj = solve_ddff_ode(flow_field_dict, init, time_span)
 
     # call main flow field viz function (makes and saves plots)
-    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir)
+    dataset_description = preprocessing.get_dataset_descriptions([data_config], simple=True)[
+        data_config.name
+    ]
+    flow_field_viz.flow_field_viz_main(flow_field_dict, df, traj, fig_savedir, dataset_description)
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
