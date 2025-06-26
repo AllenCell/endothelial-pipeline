@@ -1,6 +1,6 @@
 import re
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, Sequence, Union
 
 import fire
 import pandas as pd
@@ -9,13 +9,16 @@ from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_config import (
+    get_available_dataset_names,
+    load_single_dataset_config,
+    save_dataset_config,
+)
 from src.endo_pipeline.configs.dataset_io import (
     extract_P,
-    get_available_datasets,
     get_model_info,
     get_reference_datasets,
     get_zarr_path,
-    update_dataset_config,
 )
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
@@ -25,15 +28,17 @@ ZARR_BF_CHANNEL = 1
 
 
 def generate_overrides(
-    user_overrides,
+    user_overrides: dict,
     save_path: str,
     data_path: str,
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
-) -> Dict:
+) -> dict:
+    """Generate overrides for the CytoDLModel configuration."""
     overrides = {
-        # train and val dataloaders are unnecessary for prediction and might be slow to instantiate (e.g. if they cache data)
+        # train and val dataloaders are unnecessary for prediction
+        # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": 128,
@@ -60,6 +65,7 @@ def generate_overrides(
 
 
 def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int = 0):
+    """Generate a CSV file with paths to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     df = pd.DataFrame({"path": sorted(get_zarr_path(dataset_name).values())})
     df["channel"] = ZARR_BF_CHANNEL
@@ -76,6 +82,7 @@ def update_prediction_with_meta(
     mlflow_id: str,
     save_path: Path,
 ):
+    """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     prediction_path = save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
     pred_df = pd.read_parquet(prediction_path)
@@ -101,8 +108,8 @@ def apply_model_single(
     dataset_name: str,
     resolution_level: int = 0,
     upload_to_fms: bool = True,
-    save_path: Union[str, Path] = None,
-    overrides: Union[str, Dict] = {},
+    save_path: str | Path | None = None,
+    overrides: str | dict | None = None,
 ):
     """
     Apply a DiffAE model to a single dataset.
@@ -117,9 +124,9 @@ def apply_model_single(
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
-    save_path: str
+    save_path: str or Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict
+    overrides: str or dict or None
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if not torch.cuda.is_available():
@@ -169,10 +176,11 @@ def apply_model_single(
             mlflow_run_id=mlflow_id,
         )
 
-        update_dataset_config(
-            dataset_name,
-            {"diffae_manifest_fmsid": file_id},
-        )
+        # update dataset config with the FMS ID
+        # of the prediction file
+        dataset_config = load_single_dataset_config(dataset_name)
+        dataset_config.diffae_manifest_fmsid = file_id
+        save_dataset_config(dataset_config)
 
     return prediction_path
 
@@ -180,15 +188,20 @@ def apply_model_single(
 def apply_model(
     model_name: str,
     dataset_names: str | Sequence[str] = [],
-    regex: str = None,
+    regex: str | None = None,
     resolution_level: int = 0,
     upload_to_fms: bool = True,
-    save_path: Union[str, Path] = None,
-    overrides: Union[str, Dict] = {},
+    save_path: str | Path | None = None,
+    overrides: str | dict | None = None,
 ):
     """
     Apply a model to a multiple datasets.
-    Example usage: uv run src/endo_pipeline/workflows/apply_model.py --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+
+    Example usage:
+    ```
+    uv run src/endo_pipeline/workflows/apply_model.py
+    --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+    ```
 
 
     Parameters
@@ -196,22 +209,23 @@ def apply_model(
     model_name: str
         Name of the model from `model_config.yaml` to apply.
     dataset_names: str
-        Names of the datasets from `data_config.yaml` to apply the model to. If "reference", all reference datasets will be used.
+        Names of the datasets from `data_config.yaml` to apply the model to.
+        If "reference", all reference datasets will be used.
     regex: str
-        Regex to filter datasets by name. If provided, only datasets matching the regex will be used.
+        Regex to filter datasets by name. If provided, only datasets matching
+        the regex will be used.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
-    save_path: str
+    save_path: str | Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict
+    overrides: str or dict or None
         Overrides to apply to the model config. By default, no overrides are applied
     """
     if regex:
-        dataset_names = [
-            name for name in get_available_datasets(verbose=False) if re.search(regex, name)
-        ]
+        all_datasets = get_available_dataset_names()
+        dataset_names = [name for name in all_datasets if re.search(regex, name)]
         print(f"Found {dataset_names} matching regex '{regex}'")
     else:
         if dataset_names == "reference":
