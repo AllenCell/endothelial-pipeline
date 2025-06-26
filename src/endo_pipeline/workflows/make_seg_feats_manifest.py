@@ -146,6 +146,13 @@ def add_filter_columns(
     max_area_change: float = 0.1,
     min_num_valid_points_per_track: int = 20,
 ) -> pd.DataFrame:
+    """
+    These filter columns are `True` if an entry should be dropped, therefore
+    keeping anything where a filter is `False`.
+    E.g. to remove entries where cells touch the image border you can take
+    `big_table[big_table["filter_edge_FOV"] == False]`
+    (or equivalently: `big_table[~big_table["filter_edge_FOV"]]`)
+    """
 
     # get the number of segmentations in total and per timepoint
     num_rows_before_filtering = len(big_table)
