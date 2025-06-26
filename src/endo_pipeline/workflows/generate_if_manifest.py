@@ -77,8 +77,6 @@ def update_dataset_config(dataset: str, fms_id: str) -> None:
         ValueError: If the dataset configuration cannot be loaded.
     """
     dataset_config = load_single_dataset_config(dataset)
-    if dataset_config is None:
-        raise ValueError(f"Dataset configuration for '{dataset}' could not be loaded.")
     dataset_config.immunofluorescence_manifest_fmsid = fms_id
     save_dataset_config(dataset_config)
 
