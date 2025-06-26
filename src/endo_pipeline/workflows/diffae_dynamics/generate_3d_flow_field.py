@@ -10,7 +10,7 @@ from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
-def main(datasets_to_use: list | None = None) -> None:
+def main(datasets_to_use: str | list[str] | None = None) -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the
     DiffAE crop-based features for each of the single flow datasets.
@@ -23,13 +23,17 @@ def main(datasets_to_use: list | None = None) -> None:
     fig_savedir = get_output_path(workflow_fig_folder, verbose=False)
     vtk_savedir = get_output_path(workflow_vtk_folder, verbose=False)
 
-    # if not provided in command line, run
-    # on default list of datasets
-    if datasets_to_use is None:
+    if isinstance(datasets_to_use, str):
+        # if a single dataset is provided, convert to list
+        datasets_to_use = [datasets_to_use]
+    elif datasets_to_use is None:
+        # if not provided in command line, run
+        # on default list of datasets
         datasets_to_use = [
             "20241120_20X",
             "20250409_20X",
             "20241217_20X",
+            "20250428_20X",
             "20250319_20X",
             "20250326_20X",
         ]
