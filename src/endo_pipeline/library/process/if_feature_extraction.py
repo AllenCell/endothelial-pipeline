@@ -82,7 +82,8 @@ def extract_morphological_props(
 
 def calculate_glcm_features(image: np.ndarray) -> dict:
     """
-    Calculate GLCM features for a given image.
+    Calculate GLCM ("grey-level co-occurrence matrix") features are calculated
+    to describe the texture of an image.
 
     Args:
         image (np.ndarray): Input image, should be a 2D grayscale image.
