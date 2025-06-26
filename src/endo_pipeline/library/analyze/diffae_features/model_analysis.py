@@ -131,26 +131,28 @@ def model_data_comparison(
     """
 
     # get list of timelapse datasets with DiffAE manifest data
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
+    list_of_datasets = manifest_io.load_dataset_configs_with_manifest(
         "diffae_manifest_fmsid", timelapse_only=True
     )
 
-    for ds_name in list_of_datasets:
+    for ds_config in list_of_datasets:
         # if we don't want to fit model using this dataset, skip it
-        if ds_name in ds_to_skip:
-            print("**** Skipping dataset", ds_name, "**** \n")
+        if ds_config.name in ds_to_skip:
+            print("**** Skipping dataset", ds_config.name, "**** \n")
             continue
 
-        print("**** Running model analysis for dataset", ds_name, "**** \n")
+        print("**** Running model analysis for dataset", ds_config.name, "**** \n")
 
         # load DiffAE feature data from this one dataset,
         # with outliers labeled and features
         # projected onto principal component axes
         # as defined by fit PCA object pca
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_config, pca=pca)
 
         # split out data by flow condition
-        df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name, verbose=False)
+        df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+            df_proj, ds_config, verbose=False
+        )
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
@@ -182,18 +184,18 @@ def model_data_comparison(
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
             sup_title = fig2.texts[0].get_text()
-            sup_title = ds_name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
+            sup_title = ds_config.name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
             # save figures
             viz_base.save_plot(
                 fig1,
-                fig_savedir + ds_name + "_phase_portrait_shear_" + str(int(shear_list[j])),
+                fig_savedir + ds_config.name + "_phase_portrait_shear_" + str(int(shear_list[j])),
             )
             viz_base.save_plot(
                 fig2,
-                fig_savedir + ds_name + "_stationary_dist_shear_" + str(int(shear_list[j])),
+                fig_savedir + ds_config.name + "_stationary_dist_shear_" + str(int(shear_list[j])),
             )
 
 
