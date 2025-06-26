@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs.dataset_config import get_available_dataset_names
 
 
 def test_load_config():
@@ -11,7 +12,7 @@ def test_load_config():
     assert "20241016_20X" in config
 
 
-@pytest.mark.parametrize("dataset_name", dataset_io.get_available_datasets(verbose=False))
+@pytest.mark.parametrize("dataset_name", get_available_dataset_names())
 def test_load_all_datasets(dataset_name: str):
     channels = dataset_io.get_available_channels(dataset_name)
     # channels should be a per-position dictionary

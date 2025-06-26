@@ -1,10 +1,10 @@
 import pytest
 
-from src.endo_pipeline.configs import dataset_io
-from cellsmap.util.dataset_io import get_available_channels
+from src.endo_pipeline.configs.dataset_config import get_available_dataset_names
+from src.endo_pipeline.configs.dataset_io import get_available_channels
 
 
-@pytest.mark.parametrize("dataset_name", dataset_io.get_available_datasets(verbose=False))
+@pytest.mark.parametrize("dataset_name", get_available_dataset_names())
 def test_channel_names_consistency(dataset_name: str) -> None:
     """
     Test that all reader.channel_names are the same for a given dataset.
