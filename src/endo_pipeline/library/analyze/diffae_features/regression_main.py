@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
+from src.endo_pipeline.configs.dataset_config import DatasetConfig
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize import viz_base
@@ -11,7 +12,7 @@ from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 def kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
-    ds_name: str,
+    ds_config: DatasetConfig,
     pcs: list,
     num_bins: list,
     dt: float,
@@ -38,8 +39,7 @@ def kramers_moyal_train_test_one_dataset(
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-    - ds_name: name of the dataset (used to split out data by
-        flow condition, acessed via data_config.yaml)
+    - ds_config: DatasetConfig object containing dataset metadata
     - pcs: list of principal component axes to project data onto for
         Kramers-Moyal analysis (e.g., [0,1] for first two principal components)
     - num_bins: list of number of bins to use for histogramming
@@ -72,7 +72,7 @@ def kramers_moyal_train_test_one_dataset(
     ndim = len(pcs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name)
+    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_config)
     num_flow = len(shear_list)
 
     drift_km = []
@@ -118,7 +118,7 @@ def kramers_moyal_train_test_one_dataset(
         fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
         viz_base.save_plot(
             fig,
-            filename=fig_savedir + f"kmcs_all_{ds_name}_flow_{j}",
+            filename=fig_savedir + f"kmcs_all_{ds_config.name}_flow_{j}",
             format=".png",
             dpi=500,
         )
@@ -128,7 +128,7 @@ def kramers_moyal_train_test_one_dataset(
             fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             viz_base.save_plot(
                 fig,
-                filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",
+                filename=fig_savedir + f"kmcs_drift_{ds_config.name}_flow_{j}",
                 format=".png",
                 dpi=500,
             )
@@ -216,10 +216,10 @@ def build_kramers_moyal_train_test(
         - 'u_test': test flow conditions
     The train test sets are concatenated across all datasets in the dataframe.
     """
-    # get list of datasets with DiffAE manifest data
+    # get list of dataset configs with DiffAE manifest data
     # using timelapse_only=True to restrict to datasets
     # that are live, timelapse datasets
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
+    list_of_datasets = manifest_io.load_dataset_configs_with_manifest(
         "diffae_manifest_fmsid", timelapse_only=True
     )
 
@@ -235,24 +235,24 @@ def build_kramers_moyal_train_test(
 
     # for each dataset, generate train test sets for drift and diffusion estimates
     # (Kramers-Moyal coefficients, Y and V, respectively)
-    for ds_name in list_of_datasets:
+    for ds_config in list_of_datasets:
         # skip specified datasets when building train test sets
-        if ds_name in ds_to_skip:
-            print("**** Skipping dataset", ds_name, "**** \n")
+        if ds_config.name in ds_to_skip:
+            print("**** Skipping dataset", ds_config.name, "**** \n")
             continue
 
-        print("**** Generating train/test sets for dataset", ds_name, "**** \n")
+        print("**** Generating train/test sets for dataset", ds_config.name, "**** \n")
 
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_config.name, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
             kramers_moyal_train_test_one_dataset(
                 df_proj,
-                ds_name,
+                ds_config,
                 pcs,
                 num_bins,
                 dt,

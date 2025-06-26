@@ -12,13 +12,22 @@ pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 15.74]]
-channel_488_index: 0
-brightfield_channel_index: 1
 n_total_positions: 6
-notes: ''
+brightfield_channel_index: 1
+channel_405_index: null
+channel_488_index: 0
+channel_561_index: null
+channel_640_index: null
 nuclear_label_free_seg_path: null
+nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: 5b56ac5942f74709af9b79c56ffb21c3
+tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: null
+is_reference: false
 valid_timepoints:
   start: [129]
   stop: [345]
+cell_mean_features: null
+include_scenes: null
+notes: ''

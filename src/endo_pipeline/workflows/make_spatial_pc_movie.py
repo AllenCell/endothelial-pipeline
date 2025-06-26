@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import dask
 import dask.array as da
@@ -12,7 +12,7 @@ from skimage.measure import regionprops_table
 from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import load_single_dataset, save_dataset_config
+from src.endo_pipeline.configs.dataset_config import load_single_dataset_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
     extract_T,
     get_cdh5_classic_segmentation_path,
@@ -56,7 +56,7 @@ def create_frame(shape, df, feat_cols):
 
 
 def get_physical_pixel_sizes(filename):
-    """Get resolution level 1 physical pixel sizes from a zarr file"""
+    """Get resolution level 1 physical pixel sizes from a zarr file."""
     im = BioImage(filename)
     im.set_resolution_level(1)
     return im.physical_pixel_sizes
@@ -64,7 +64,8 @@ def get_physical_pixel_sizes(filename):
 
 def get_segmentation_path_at_T(dataset_name: str, position: int, timepoint: int) -> Path:
     """
-    Temporary helper function to extract timepoints based on local path until segmentation paths are in data manifest
+    Temporary helper function to extract timepoints based on local
+    path until segmentation paths are in data manifest.
     """
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     seg_path = [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint][
@@ -81,7 +82,8 @@ def _get_per_cell_features(
     timepoint: str,
 ) -> pd.DataFrame:
     """
-    Given a list of spatial features, rearrange them into an image and extract the mean value within each segmentation region.
+    Rearrange a list of spatial features into an image and
+    extract the mean value within each segmentation region.
     """
     movie_shape_y, movie_shape_x = data.end_y.max(), data.end_x.max()
 
@@ -95,7 +97,8 @@ def _get_per_cell_features(
     segmentation = BioImage(segmentation_path).get_image_dask_data("YX").compute()
     segmentation = segmentation[::2, ::2]
 
-    # pad spatial_pcs to segmentation size with nans so cells overlapping the edge of the image have nan for mean
+    # pad spatial_pcs to segmentation size with nans
+    # so cells overlapping the edge of the image have nan for mean
     spatial_pcs = np.pad(
         spatial_pcs,
         (
@@ -112,7 +115,7 @@ def _get_per_cell_features(
         regionprops_table(
             segmentation,
             intensity_image=spatial_pcs.transpose(1, 2, 0),
-            properties=["label"] + measurement_cols,
+            properties=["label", measurement_cols],
         )
     )
 
@@ -133,12 +136,14 @@ def get_feats(
     save_dir: str,
     overlap: float = 0.75,
     resolution_level: int = 0,
-    overrides: Dict[str, Any] = {},
-    pca_dir: Optional[str] = None,
-    n_pcs: Optional[int] = None,
+    overrides: dict[str, Any] | None = None,
+    pca_dir: str | None = None,
+    n_pcs: int | None = None,
 ):
     """
-    Apply a model to a dataset and return the features. If PCA is used, apply PCA to the features.
+    Apply a model to a dataset and return the features.
+
+    If PCA is used, apply PCA to the features.
     """
     overrides = load_overrides(overrides)
     # apply model with specified overlap
@@ -153,6 +158,7 @@ def get_feats(
     )
     # load model predictions and apply PCA
     data = pd.read_parquet(feats_path)
+    feat_cols = get_feature_cols(data)
 
     if pca_dir is not None:
         pca = load_pca_model(pca_dir)
@@ -169,23 +175,33 @@ def get_feats(
         # use the PCA components as the features
         feat_cols = pc_columns
 
-    return data, get_feature_cols(data)
+    return data, feat_cols
 
 
 def generate_spatial_feature_movie(
     model_name: str,
     dataset_name: str,
-    pca_dir: Optional[str] = None,
+    pca_dir: str | None = None,
     overlap: float = 0.75,
     resolution_level: int = 0,
-    n_pcs: Optional[int] = None,
-    overrides: Dict[str, Any] = {},
+    n_pcs: int | None = None,
+    overrides: dict[str, Any] | None = None,
 ):
     """
-    Function to generate a spatial movie of PCA features from a model's predictions. Saves out a `timepoint * pc  * y * x` zarr file for each position in the dataset with an overlay of the brightfield standard deviation projection and max projection of the fluorescent channel.
+    Generate a spatial movie of PCA features from a model's predictions.
+
+    Saves out a `timepoint * pc  * y * x` zarr file for each position
+    in the dataset with an overlay of the brightfield standard deviation
+    projection and max projection of the fluorescent channel.
     The movie is saved in the `models/{model_name}/spatial_pcs/{dataset_name}` directory.
 
-    Example usage: python src/endo_pipeline/workflows/make_spatial_pc_movie.py generate_spatial_feature_movie --model_name diffae_04_10 --dataset_name 20241016_20X --pca_dir //allen/aics/users/erin.angelini/git-repos/cellsmap/results/stochastic_dynamics/default/outputs/ --overlap 0.5 --resolution_level 0 --n_pcs 3
+    Example usage:
+    ```
+    python src/endo_pipeline/workflows/make_spatial_pc_movie.py generate_spatial_feature_movie
+    --model_name diffae_04_10 --dataset_name 20241016_20X
+    --pca_dir /path/to/cellsmap/results/stochastic_dynamics/default/outputs/
+    --overlap 0.5 --resolution_level 0 --n_pcs 3
+    ```
 
     Parameters
     ----------
@@ -194,14 +210,17 @@ def generate_spatial_feature_movie(
     dataset_name: str
         Name of the dataset from `data_config.yaml` to apply the model to.
     pca_dir: Optional[str]
-        Directory where a fitted PCA model is stored. If none is passed, original model features will beused for visualization.
+        Directory where a fitted PCA model is stored. If none is passed, original model
+        features will beused for visualization.
     overlap: float
-        Overlap between sliding windows during inference. Default is 0.75. Higher overlaps will givemore spatial resolution but take longer for inference.
+        Overlap between sliding windows during inference. Default is 0.75. Higher overlaps
+        will givemore spatial resolution but take longer for inference.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     n_pcs: Optional[int]
-        Number of PCA components to use. Default is None, which will use all components.This argument is only used if `pca_dir` is not None.
-    overrides: Dict[str, Any]
+        Number of PCA components to use. Default is None, which will use all components.
+        This argument is only used if `pca_dir` is not None.
+    overrides: Dict[str, Any] | None
         Dictionary of overrides to apply to the model. Default is {}.
     """
     save_dir = Path(get_output_path(f"models/{model_name}/spatial_pcs/{dataset_name}"))
@@ -266,13 +285,19 @@ def measure_per_cell_features(
     overlap: float = 0.9,
     resolution_level: int = 0,
     upload_to_fms: bool = False,
-    n_pcs: Optional[int] = None,
-    pca_dir: Optional[str] = None,
+    n_pcs: int | None = None,
+    pca_dir: str | None = None,
 ):
     """
-    Create spatial feature movie and take within-mask mean of each feature for each cell in the segmentation for use in TFE visualization
+    Create spatial feature movie and take within-mask mean of each feature
+    for each cell in the segmentation for use in TFE visualization.
 
-    Example usage: python make_spatial_pc_movie.py measure_per_cell_features --model_name diffae_04_10 --dataset_name 20241016_20X --overlap 0.5 --resolution_level 0 --n_pcs 3
+    Example usage:
+    ```
+    python make_spatial_pc_movie.py measure_per_cell_features
+    --model_name diffae_04_10 --dataset_name 20241016_20X --overlap 0.5
+    --resolution_level 0 --n_pcs 3
+    ```
 
     Parameters
     ----------
@@ -281,15 +306,19 @@ def measure_per_cell_features(
     model_name: str
         Name of the model from `model_config.yaml` to apply.
     overlap: float
-        Overlap between sliding windows during inference. Default is 0.9. Higher overlaps will give more spatial resolution but take longer for inference.
+        Overlap between sliding windows during inference. Default is 0.9.
+        Higher overlaps will give more spatial resolution but take longer for inference.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
-        Whether to upload the resulting features to FMS and update the data config with the resulting FMS id. Default is False.
+        Whether to upload the resulting features to FMS and update the data config
+        with the resulting FMS id. Default is False.
     n_pcs: Optional[int]
-        Number of PCA components to use. Default is None, which will use all components. This argument is only used if `pca_dir` is not None.
+        Number of PCA components to use. Default is None, which will use all components.
+        This argument is only used if `pca_dir` is not None.
     pca_dir: Optional[str]
-        Directory where a fitted PCA model is stored. If none is passed, original model features will be used for visualization.
+        Directory where a fitted PCA model is stored. If none is passed, original model
+        features will be used for visualization.
     """
     save_dir = Path(get_output_path(f"models/{model_name}/cell_pcs/{dataset_name}"))
     data, feat_cols = get_feats(
@@ -327,7 +356,7 @@ def measure_per_cell_features(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset(dataset_name)
+        dataset_config = load_single_dataset_config(dataset_name)
         dataset_config.cell_mean_features = file_id
         save_dataset_config(dataset_config)
 

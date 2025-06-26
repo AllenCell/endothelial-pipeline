@@ -78,8 +78,8 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_valid_subset(df: pd.DataFrame, config: DatasetConfig, verbose: bool = True) -> pd.DataFrame:
     """
-    Select timepoints from a dataframe annotated as
-    valid if annotation is present, otherwise use all teimpoints.
+    Select timepoints from a dataframe annotated as valid
+    if annotation is present, otherwise use all timepoints.
 
     Inputs:
     - df: pd.DataFrame, containing the metadata
@@ -163,16 +163,16 @@ def get_feature_cols(df: pd.DataFrame) -> list:
     return feat_cols
 
 
-def list_datasets_with_manifest(
+def load_dataset_configs_with_manifest(
     manifest_name: str,
     verbose: bool = False,
     timelapse_only: bool = False,
-) -> list:
+) -> list[DatasetConfig]:
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid'
     or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_config.get_available_datasets()
+    all_datasets = dataset_config.load_all_dataset_configs()
 
     if verbose:
         manifest_type = (
@@ -183,24 +183,21 @@ def list_datasets_with_manifest(
         else:
             print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
-    for dataset_name in all_datasets:
-        dataset_info = dataset_config.load_single_dataset(dataset_name)
-        if dataset_info is None:
-            raise ValueError(f"Dataset {dataset_name} not found in dataset config directory.")
+    for dataset_config in all_datasets:
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
-        time_interval_in_minutes = dataset_info.time_interval_in_minutes
+        time_interval_in_minutes = dataset_config.time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
         if manifest_name == "nuclear_seg_manifest_fmsid":
-            manifest_fmsid = dataset_info.nuclear_seg_manifest_fmsid
+            manifest_fmsid = dataset_config.nuclear_seg_manifest_fmsid
         else:
-            manifest_fmsid = dataset_info.diffae_manifest_fmsid
+            manifest_fmsid = dataset_config.diffae_manifest_fmsid
         if manifest_fmsid != "":
-            dataset_list.append(dataset_name)
+            dataset_list.append(dataset_config)
             if verbose:
-                print(f" - {dataset_name}")
+                print(f" - {dataset_config.name}")
     return dataset_list
 
 
