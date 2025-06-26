@@ -689,7 +689,6 @@ def process_and_plot_tracking_data(
     dataset_name: str,
     out_dir: str | Path,
     verbose: bool = False,
-    plot_figures: bool = False,
 ) -> None:
 
     # make the output directory
@@ -830,9 +829,7 @@ def main(
             desc="Processing datasets (1P)",
             unit="datasets",
         ):
-            process_and_plot_tracking_data(
-                dataset_name, out_dir, verbose=verbose, plot_figures=make_plots
-            )
+            process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
 
 
 if __name__ == "__main__":
