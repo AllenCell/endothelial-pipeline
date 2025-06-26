@@ -5,6 +5,8 @@ import numpy as np
 from bioio import BioImage
 from skimage import exposure
 
+CAMERA_OFFSET = 100  # Camera offset value set in our hardware configuration
+
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
     """Get the best Z slice from the brightfield image for a given frame."""
@@ -82,9 +84,11 @@ def contrast_stretching(
     return stretched_image
 
 
-def background_subtract(img: np.ndarray, camera_offset: int = 100) -> np.ndarray:
+def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> np.ndarray:
     """
-    Background subtract the image by clipping values below a camera offset.
+    Background subtract the image by clipping values below a camera offset. The camera offset
+    of 100 is the value set in our hardware configuration, therefore this is the minimum value
+    of intensity that should be used for analysis purposes.
 
     Parameters
     ----------
