@@ -5,7 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs import dataset_config, dataset_io
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -44,9 +44,7 @@ def get_valid_path(fpath) -> str:
 
 
 def read_file_to_dataframe(path: str) -> pd.DataFrame:
-    """
-    Reads a file into a pandas dataframe
-    """
+    """Read a file into a pandas dataframe."""
     if path.endswith("csv"):
         return pd.read_csv(path)
     elif path.endswith("parquet"):
@@ -79,7 +77,8 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
     """
-    Select timepoints from a dataframe annotated as valid if annotation is present, otherwise use all teimpoints
+    Select timepoints from a dataframe annotated as valid
+    if annotation is present, otherwise use all timepoints.
 
     Inputs:
     - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
@@ -99,7 +98,7 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) 
         if verbose:
             print(f"Valid timepoints for dataset {dataset_name}: ")
         tps = []
-        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"]):
+        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"], strict=True):
             tps.extend(list(range(start, stop + 1)))
             if verbose:
                 print(f"   - {start} to {stop}")
@@ -139,7 +138,8 @@ def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
 
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
-    Extract columns corresponding to DiffAE model features from dataframe (loaded DiffAE manifest).
+    Extract columns corresponding to DiffAE model
+    features from dataframe (loaded DiffAE manifest).
     """
     feat_cols = [c for c in df.columns if c.startswith("feat_")]
     feat_cols = sorted(feat_cols, key=lambda x: int(x.split("_")[1]))
@@ -152,9 +152,10 @@ def list_datasets_with_manifest(
     timelapse_only: bool = False,
 ) -> list:
     """
-    List all dataset names that have a 'nuclear_seg_manifest_fmsid' or 'diffae_manifest_fmsid'.
+    List all dataset names that have a 'nuclear_seg_manifest_fmsid'
+    or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_io.get_available_datasets(verbose=False)
+    all_datasets = dataset_config.get_available_dataset_names()
 
     if verbose:
         manifest_type = (
@@ -165,18 +166,22 @@ def list_datasets_with_manifest(
         else:
             print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
-    for dataset_name in all_datasets:
-        dataset_info = dataset_io.get_dataset_info(dataset_name)
+    all_datasets = dataset_config.load_all_dataset_configs()
+    for dataset_info in all_datasets:
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
-        time_interval_in_minutes = dataset_info.get("time_interval_in_minutes", -1.0)
+        time_interval_in_minutes = dataset_info.time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
-        if manifest_name in dataset_info and dataset_info[manifest_name] != "":
-            dataset_list.append(dataset_name)
+        if manifest_name == "nuclear_seg_manifest_fmsid":
+            manifest_fmsid = dataset_info.nuclear_seg_manifest_fmsid
+        else:
+            manifest_fmsid = dataset_info.diffae_manifest_fmsid
+        if manifest_fmsid != "":
+            dataset_list.append(dataset_info.name)
             if verbose:
-                print(f" - {dataset_name}")
+                print(f" - {dataset_info.name}")
     return dataset_list
 
 

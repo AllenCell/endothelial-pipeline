@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import numpy as np
 import torch
@@ -11,12 +10,14 @@ from src.endo_pipeline.library.model.mlflow import load_mlflow_model
 
 def generate_from_coords(
     model_name: str,
-    coords: List[List[float]],
+    coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
 ) -> np.ndarray:
     """
-    Generates a synthetic image from a list of coordinates in the latent space of a model.
+    Generate a synthetic image from a list of coordinates
+    in the latent space of a model.
+
     Parameters
     ----------
     model_name: str
@@ -28,29 +29,40 @@ def generate_from_coords(
     average: bool
         Whether to average the generated images.
     """
-    coords = np.array(coords)
+    if not isinstance(coords, np.ndarray):
+        if isinstance(coords, list):
+            coords_np = np.array(coords)
+        else:
+            raise ValueError("coords must be a numpy array or a list of lists")
+    else:
+        coords_np = coords
     mlflow_id = get_model_info(model_name)["mlflow_run_id"]
     model_path = Path(get_output_path(f"models/{model_name}"))
     model = load_mlflow_model(mlflow_id, save_path=model_path)
 
-    coords = torch.from_numpy(coords).float()
+    coords_torch = torch.from_numpy(coords_np).float()
 
     # move model and inputs to gpu if available
     if torch.cuda.is_available():
-        coords = coords.to("cuda")
-        model = model.to("cuda")
+        coords_ = coords_torch.to("cuda")
+        model_ = model.to("cuda")
+    else:
+        coords_ = coords_torch
+        model_ = model
 
-    walk_img = model.generate_from_latent(
-        coords, n_noise_samples=n_noise_samples, average=average, save=False
+    walk_img = model_.generate_from_latent(
+        coords_, n_noise_samples=n_noise_samples, average=average, save=False
     )
     return walk_img
 
 
 def generate_from_coords_batch(
-    model_name: str, coords_batch: List[List[List[float]]]
-) -> tuple[np.ndarray]:
+    model_name: str, coords_batch: np.ndarray | list[list[list[float]]]
+) -> list[np.ndarray]:
     """
-    Generates synthetic images from a batch of coordinates in the latent space of a model.
+    Generate synthetic images from a batch of coordinates
+    in the latent space of a model.
+
     Parameters
     ----------
     model_name: str

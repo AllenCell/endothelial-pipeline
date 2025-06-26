@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-import src.endo_pipeline.configs.dataset_io as dio
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal
 
 
@@ -87,7 +87,7 @@ def get_traj_by_flow(
     """
 
     # load flow information from data_config.yaml
-    flow_info = dio.get_flow_info(ds_name)
+    flow_info = dataset_io.get_flow_info(ds_name)
 
     # split out data by flow condition,
     # starting with first flow condition
@@ -98,7 +98,7 @@ def get_traj_by_flow(
     if len(flow_info) > 1:
         # get frame number where flow condition
         # changes (reported in hours in data_config.yaml)
-        change_frame = dio.get_flow_change_frame(ds_name)
+        change_frame = dataset_io.get_flow_change_frame(ds_name)
         # get second shear stress condition
         second_shear = float(flow_info[1][-1])
         shear_list.append(second_shear)

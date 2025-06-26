@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io as mio
+from cellsmap.util import manifest_io
 from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import gen_potential
@@ -83,7 +83,7 @@ def model_data_comparison_one_dataset(
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
     # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = mio.get_feature_cols(stationary_data)
+    feat_cols_all = manifest_io.get_feature_cols(stationary_data)
     feat_cols = [feat_cols_all[i] for i in pcs]
     p_hist = regression_helper.get_stationary_hist(stationary_data, feat_cols, bins)
 
@@ -131,7 +131,9 @@ def model_data_comparison(
     """
 
     # get list of timelapse datasets with DiffAE manifest data
-    list_of_datasets = mio.list_datasets_with_manifest("diffae_manifest_fmsid", timelapse_only=True)
+    list_of_datasets = manifest_io.list_datasets_with_manifest(
+        "diffae_manifest_fmsid", timelapse_only=True
+    )
 
     for ds_name in list_of_datasets:
         # if we don't want to fit model using this dataset, skip it
