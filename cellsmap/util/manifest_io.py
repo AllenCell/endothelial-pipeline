@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.configs.dataset_config import DatasetConfig
+from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_all_dataset_configs
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -172,7 +172,7 @@ def load_dataset_configs_with_manifest(
     List all dataset names that have a 'nuclear_seg_manifest_fmsid'
     or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_config.load_all_dataset_configs()
+    all_datasets = load_all_dataset_configs()
 
     if verbose:
         manifest_type = (
