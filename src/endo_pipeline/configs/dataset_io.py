@@ -345,9 +345,9 @@ def get_available_channels(
 
 def get_channel_names(dataset_name: str) -> list[str]:
     """
-    Retrieve the list of channel names for a specific dataset.
-    All positions have the same channels available so we can use the first position
-    to get the channel names. The test `check_zarr_channels` in validates this.
+    Retrieve the list of channel names for a specific dataset. The test check_zarr_channels
+    validates that all positions have the same channels within a dataset so we can use the
+    first position to get the channel names.
 
     Args:
         dataset_name (str): The name of the dataset.
