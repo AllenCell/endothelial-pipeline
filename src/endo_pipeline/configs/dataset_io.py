@@ -21,7 +21,7 @@ from typing import Any, Literal
 
 import fire
 
-from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_single_dataset
+from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_single_dataset_config
 
 
 def get_config_dir() -> Path:
@@ -327,7 +327,7 @@ def get_zarr_path(
     if dataset_config is None:
         if dataset_name is None:
             raise ValueError("Either dataset_config or dataset_name must be provided.")
-        dataset_config = load_single_dataset(dataset_name)
+        dataset_config = load_single_dataset_config(dataset_name)
     data_dir = dataset_config.zarr_path
     zarr_paths = {}
     if zarr_name:
