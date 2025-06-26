@@ -11,11 +11,21 @@ use_cases: []
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: -1.0
-flow: [[0, -1, 0]]
-channel_488_index: 0
-brightfield_channel_index: 1
+flow: [[0, -1, 0.0]]
 n_total_positions: 50
-notes: ''
+brightfield_channel_index: 1
+channel_405_index: null
+channel_488_index: 0
+channel_561_index: null
+channel_640_index: null
 nuclear_label_free_seg_path: null
+nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: ''
+tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: null
+is_reference: false
+valid_timepoints: null
+cell_mean_features: null
+include_scenes: null
+notes: ''
