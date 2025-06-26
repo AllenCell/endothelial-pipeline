@@ -9,7 +9,7 @@ from .dataset_config_io import (
     validate_all_dataset_configs,
     validate_single_dataset_config,
 )
-from .model_config import ModelConfig
+from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,

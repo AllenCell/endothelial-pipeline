@@ -19,3 +19,9 @@ class ModelConfig:
     """MLFlow run id for model."""
 
     manifest_fmsids: list[ModelManifest]
+
+    training_datasets: list[str] | None = None
+
+    train_manifest_fmsid: str | None = None
+
+    val_manifest_fmsid: str | None = None
