@@ -1,6 +1,6 @@
 import pytest
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
 from cellsmap.util.dataset_io import get_available_channels
 
 
