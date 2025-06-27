@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any
 
 import cv2
 import fire
@@ -57,10 +58,12 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
 def sift_preprocess(img: np.ndarray) -> np.ndarray:
     """
     Preprocess the image for SIFT feature detection with percentile clipping and 0-1 normalization
+
     Parameters
     ----------
     img : np.ndarray
         The input image.
+
     Returns
     -------
     img : np.ndarray
@@ -73,7 +76,7 @@ def sift_preprocess(img: np.ndarray) -> np.ndarray:
 
 def template_matching(
     image: np.ndarray, template: np.ndarray, scale: int = 3
-) -> Tuple[np.ndarray, float]:
+) -> tuple[np.ndarray, float]:
     """
     Register a small moving image to a larger fixed image using a multi-scale sliding window correlation. NOTE that the moving image is assumed to be smaller than the fixed image.
     """
@@ -108,6 +111,7 @@ def template_registration(
 ) -> tf.SimilarityTransform:
     """
     Registers a moving image to a fixed image using template matching
+
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -139,9 +143,10 @@ def template_registration(
 
 def _get_sift(
     image: np.ndarray, upsampling: int = 1, sigma_min: int = 2
-) -> Tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
+) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
     """
     Detects SIFT keypoints and descriptors in the given image.
+
     Parameters
     ----------
     image : np.ndarray
@@ -150,6 +155,7 @@ def _get_sift(
         The number of times to upsample the image before detecting keypoints.
     sigma_min : int
         The minimum standard deviation for Gaussian smoothing.
+
     Returns
     -------
     keypoints : np.ndarray
@@ -172,6 +178,7 @@ def sift_registration(
 ) -> tf.SimilarityTransform | None:
     """
     Registers a moving image to a fixed image using SIFT keypoint matching and RANSAC. Returns a similarity transform if successful, otherwise None.
+
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -243,6 +250,7 @@ def warp(
 ) -> np.ndarray:
     """
     Warps the moving image to align with the fixed image using the provided transformation model.
+
     Parameters
     ----------
     model (skimage.transform.SimilarityTransform): The transformation model.
@@ -283,7 +291,7 @@ def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[floa
     return resized_image_moving
 
 
-def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Remove NaN values present in the XY border of either of the passed images. It is assumed that
     the XY locations of the NaN values are the same across all Z slices if the images are 3D.
@@ -322,7 +330,7 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
     plt.close()
 
 
-def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Remove NaN values present in the XY border of either of the passed images. It is assumed that
     the XY locations of the NaN values are the same across all Z slices if the images are 3D.
@@ -339,12 +347,12 @@ def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> Tuple[np.ndarray, n
 
 
 def align(
-    moving_image_path: Union[str, Path],
-    fixed_image_path: Union[str, Path],
+    moving_image_path: str | Path,
+    fixed_image_path: str | Path,
     savedir: Path,
     alignment_method: str,
     align_fluo: bool = True,
-    **alignment_kwargs: Dict[str, Any],
+    **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
     Aligns a moving image to a fixed image using blob detection and registration.
@@ -364,8 +372,8 @@ def align(
     **alignment_kwargs (Dict[str, Any]):
         Additional arguments for the alignment function.
 
-    Returns:
-    --------
+    Returns
+    -------
     pd.DataFrame: DataFrame containing the paths to the aligned images.
     """
     print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
@@ -380,7 +388,7 @@ def align(
         "template": template_registration,
     }[alignment_method]
 
-    aligned_files: Dict[str, list[str]] = {"fixed": [], "moving": []}
+    aligned_files: dict[str, list[str]] = {"fixed": [], "moving": []}
 
     if align_fluo:
         aligned_files["fixed_fluo"] = []
@@ -459,7 +467,7 @@ def align_all_positions(
     savedir: Path,
     alignment_method: str,
     align_fluo: bool = True,
-    **alignment_kwargs: Dict[str, Any],
+    **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
     Aligns all positions of the moving dataset to the fixed dataset.
@@ -497,7 +505,7 @@ def align_all_positions(
                 alignment_method=alignment_method,
                 **alignment_kwargs,
             )
-            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files)
+            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=False)
         ]
     )
     return data
@@ -509,7 +517,7 @@ def plot_paired_features(
     moving_features: pd.DataFrame,
     moving_name: str,
     save_path: Path,
-    pca_dir: None | Union[str, Path],
+    pca_dir: None | str | Path,
 ) -> None:
     """
     Plot the PCA features of the fixed and moving images
@@ -535,7 +543,7 @@ def plot_paired_features(
         ax[i].set_ylim(min_, max_)
         ax[i].set_aspect("equal", adjustable="box")
     fig.tight_layout()
-    fig.savefig(save_path / f"paired_features.png", dpi=300)
+    fig.savefig(save_path / "paired_features.png", dpi=300)
     fig.clf()
     plt.close(fig)
 
@@ -579,8 +587,8 @@ def compare_paired_features(
     pca_dir: str | None,
     align_fluo: bool = True,
     align_only: bool = False,
-    overrides: Dict[str, Any] = {},
-    **alignment_kwargs: Dict[str, Any],
+    overrides: dict[str, Any] = {},
+    **alignment_kwargs: dict[str, Any],
 ) -> None:
     """
     Compare the features of two paired datasets using a trained model through registration, crop extraction, and PCA
@@ -704,7 +712,9 @@ def main(
 ) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
+
     Parameters
+    ----------
     ----------"
     pca_dir : str | None
         Path to the PCA model directory. If None, PCA will be calculated from existing features"
@@ -719,7 +729,9 @@ def main(
             "20250214_pairedPostFixation",
         ],
     }
-    for fixed, moving in zip(datasets_live_fixed["fixed"], datasets_live_fixed["moving"]):
+    for fixed, moving in zip(
+        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=False
+    ):
         compare_paired_features(
             # use model finetuned for fixation
             fixed_finetuned_model_name,
@@ -735,7 +747,7 @@ def main(
         "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
         "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
     }
-    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"]):
+    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=False):
         compare_paired_features(
             model_name,
             fixed,

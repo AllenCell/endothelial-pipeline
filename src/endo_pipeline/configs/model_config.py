@@ -3,6 +3,8 @@ from dataclasses import dataclass
 
 @dataclass
 class ModelManifest:
+    """Model manifest information for a dataset."""
+
     dataset_name: str
     """Name of the dataset for which the model was applied."""
 
