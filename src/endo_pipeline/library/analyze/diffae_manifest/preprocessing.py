@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs.dataset_config import load_single_dataset_config
+from src.endo_pipeline.configs import load_single_dataset_config
 from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
 
 
