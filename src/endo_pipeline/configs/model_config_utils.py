@@ -1,5 +1,6 @@
 import logging
 
+from .dataset_config import DatasetConfig
 from .dataset_config_io import get_available_dataset_names, load_all_dataset_configs
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import load_single_model_config
@@ -7,7 +8,7 @@ from .model_config_io import load_single_model_config
 logger = logging.getLogger(__name__)
 
 
-def get_model_manifest(dataset_name: str, model_config: ModelConfig) -> ModelManifest:
+def get_model_manifest(dataset_config: DatasetConfig, model_config: ModelConfig) -> ModelManifest:
     """
     Get model manifest for a given dataset and model configuration.
 
@@ -24,17 +25,19 @@ def get_model_manifest(dataset_name: str, model_config: ModelConfig) -> ModelMan
 
     # search the ModelConfig.manifest_fmsids for the
     # ModelManifest element with dataset_name matching
-    # the input dataset_name
+    # the input dataset_config.name
     for manifest in model_config.manifest_fmsids:
-        if manifest.dataset_name == dataset_name:
+        if manifest.dataset_name == dataset_config.name:
             return manifest
 
     # if no manifest found, raise an error
     logger.error(
-        "No manifest found for dataset %s in model config %s", dataset_name, model_config.name
+        "No manifest found for dataset %s in model config %s",
+        dataset_config.name,
+        model_config.name,
     )
     raise FileNotFoundError(
-        f"No manifest found for dataset {dataset_name} in model config {model_config.name}"
+        f"No manifest found for dataset {dataset_config.name} in model config {model_config.name}"
     )
 
 
@@ -67,7 +70,7 @@ def list_datasets_with_model_manifest(
             # this will throw an error if the manifest is not found
             try:
                 model_config = load_single_model_config(model_name)
-                model_manifest = get_model_manifest(dataset_info.name, model_config)
+                model_manifest = get_model_manifest(dataset_info, model_config)
             except:
                 model_manifest = None
         if model_manifest is not None:

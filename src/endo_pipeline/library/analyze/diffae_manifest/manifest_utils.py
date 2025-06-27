@@ -59,7 +59,7 @@ def load_model_manifest_dataframe(
 ) -> pd.DataFrame:
     """Load manifest data for a given dataset and model."""
     model_config = load_single_model_config(model_name)
-    fmsid = get_model_manifest(dataset_config.name, model_config).fmsid
+    fmsid = get_model_manifest(dataset_config, model_config).fmsid
     df = get_dataframe_by_fmsid(fmsid)
     if filter_to_valid:
         df = get_valid_subset(df, dataset_config, verbose=False)
