@@ -2,6 +2,7 @@ import logging
 
 from .dataset_config_io import get_available_dataset_names, load_all_dataset_configs
 from .model_config import ModelConfig, ModelManifest
+from .model_config_io import load_single_model_config
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,8 @@ def list_datasets_with_model_manifest(
         else:
             # this will throw an error if the manifest is not found
             try:
-                model_manifest = get_model_manifest(dataset_info.name, model_name)
+                model_config = load_single_model_config(model_name)
+                model_manifest = get_model_manifest(dataset_info.name, model_config)
             except:
                 model_manifest = None
         if model_manifest is not None:
