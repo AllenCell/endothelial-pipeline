@@ -16,10 +16,7 @@ from src.endo_pipeline.configs import (
     save_dataset_config,
 )
 from src.endo_pipeline.configs.dataset_io import extract_P
-from src.endo_pipeline.library.model.diffae.apply_diffae_model import (
-    get_cytodl_commit_hash,
-    load_overrides,
-)
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 
 ZARR_BF_CHANNEL = 1
