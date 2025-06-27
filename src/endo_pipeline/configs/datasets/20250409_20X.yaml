@@ -21,7 +21,6 @@ channel_640_index: null
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250409_20X
 nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
-diffae_manifest_fmsid: 2979ed0ac60c492db40511ea0b0bef6b
 tracking_integration_fmsid: 2d95d16b473d4c849c6cf744c7dc6486
 diffae_tracking_integration_fmsid: 3e7dd9a9e4a040f8afb1bef774abb04b
 immunofluorescence_manifest_fmsid: null
