@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.configs import load_reference_dataset_configs
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils import (
     get_feature_cols,
     load_model_manifest_dataframe,
@@ -33,11 +33,14 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
         pipe (Pipeline): Fitted PCA pipeline (may include scaling)
     """
     # first, get list of reference datasets to use for PCA
-    reference_datasets = get_reference_datasets()
+    reference_datasets = load_reference_dataset_configs()
     if verbose:
         print(f"\nReference datasets for PCA: {reference_datasets}")
     data_ref = pd.concat(
-        [load_model_manifest_dataframe(name, filter_to_valid=True) for name in reference_datasets],
+        [
+            load_model_manifest_dataframe(config, filter_to_valid=True)
+            for config in reference_datasets
+        ],
         ignore_index=True,
     )
 
