@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs.dataset_config import DatasetConfig
+from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field

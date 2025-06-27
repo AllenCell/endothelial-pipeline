@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
-from src.endo_pipeline.configs.dataset_config import load_single_dataset_config
+from src.endo_pipeline.configs import load_single_dataset_config
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar

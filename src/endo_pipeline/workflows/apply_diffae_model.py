@@ -9,7 +9,7 @@ from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import (
+from src.endo_pipeline.configs import (
     DatasetConfig,
     load_all_dataset_configs,
     load_reference_dataset_configs,

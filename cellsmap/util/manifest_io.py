@@ -5,8 +5,7 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_all_dataset_configs
+from src.endo_pipeline.configs import DatasetConfig, dataset_io, load_all_dataset_configs
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet

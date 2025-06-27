@@ -15,7 +15,7 @@ from cellsmap.util.manifest_io import (
     save_pca_model,
 )
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import load_reference_dataset_configs
+from src.endo_pipeline.configs import load_reference_dataset_configs
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
 

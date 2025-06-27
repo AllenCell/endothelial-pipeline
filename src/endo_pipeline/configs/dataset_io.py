@@ -21,7 +21,7 @@ from typing import Any, Literal
 
 import fire
 
-from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_single_dataset_config
+from src.endo_pipeline.configs import DatasetConfig, load_single_dataset_config
 
 
 def get_config_dir() -> Path:

@@ -14,7 +14,7 @@ from cellsmap.util.manifest_io import (
     get_track_diffae_manifest,
 )
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_config import DatasetConfig, load_reference_dataset_configs
+from src.endo_pipeline.configs import DatasetConfig, load_reference_dataset_configs
 from src.endo_pipeline.configs.dataset_io import (
     get_segmentation_features_manifest,
     ipython_cli_flexecute,

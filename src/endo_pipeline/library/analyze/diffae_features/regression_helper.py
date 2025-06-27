@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.configs.dataset_config import DatasetConfig
+from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal
 
 

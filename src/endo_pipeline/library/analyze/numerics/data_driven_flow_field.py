@@ -7,7 +7,7 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as manifest_io
-from src.endo_pipeline.configs.dataset_config import DatasetConfig
+from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
