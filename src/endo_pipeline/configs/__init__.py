@@ -19,4 +19,3 @@ from .model_config_io import (
     validate_all_model_configs,
     validate_single_model_config,
 )
-from .model_config_utils import get_model_manifest
