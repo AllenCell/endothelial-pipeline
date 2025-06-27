@@ -70,8 +70,8 @@ def load_single_model_config(model_name: str) -> ModelConfig:
     config_file = config_dir / f"{model_name}.yaml"
 
     if not config_file.exists():
-        logger.warning("Model [ %s ] not found at config directory [ %s ]", model_name, config_dir)
-        raise FileNotFoundError(f"Model config file [ {config_file} ] does not exist.")
+        logger.error("Model [ %s ] could not be loaded", model_name)
+        raise FileNotFoundError(f"No such file '{config_file}'")
     else:
         logger.debug("Loaded model [ %s ]", model_name)
         return YAMLDecoder(ModelConfig).decode(config_file.read_text())
