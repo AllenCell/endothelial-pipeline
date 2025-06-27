@@ -96,6 +96,7 @@ def compare_paired_features(
     align_fluo: bool = True,
     align_only: bool = False,
     overrides: dict[str, Any] | None = None,
+    upload_features_to_FMS: bool = False,
     **alignment_kwargs: dict[str, Any],
 ) -> None:
     """
@@ -122,14 +123,18 @@ def compare_paired_features(
     pca_dir : str | None
         Path to the PCA model directory.
         If None, PCA will be calculated from existing features
+    align_only : bool
+        If True, only align the images and do not extract features or project to PCA.
     overrides : Union[Dict, None], optional
         Overrides for the model configuration, by default {}.
         One relevant override is `model.spatial_inferer.splitter.overlap`,
         which determines the percent overlap of patches extracted during
         sliding window inference and can increase the number of samples
         used for the dataset comparison.
-    align_only : bool
-        If True, only align the images and do not extract features or project to PCA.
+    upload_features_to_FMS : bool
+        Whether to upload validation data features to FMS. We may iteratre on analysis
+        without changing features and therefore should default to not rewriting a new
+        feature manifest every time this workflow is run.
     **alignment_kwargs : Dict[str, Any]
         Additional arguments for the alignment function.
     """
@@ -195,21 +200,27 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
-        fixed_features_path,
-        fixed_dataset_name,
-        mlflow_id,
-        model_path,
-    )
     moving_features_path = str(
         save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
-        moving_features_path,
-        moving_dataset_name,
-        mlflow_id,
-        model_path,
-    )
+
+    import pdb
+
+    pdb.set_trace()
+    if upload_features_to_FMS:
+        print("Uploading fixed and live dataset feature manifests to FMS")
+        add_fmsid_to_config(
+            fixed_features_path,
+            fixed_dataset_name,
+            mlflow_id,
+            model_path,
+        )
+        add_fmsid_to_config(
+            moving_features_path,
+            moving_dataset_name,
+            mlflow_id,
+            model_path,
+        )
 
     # load features for comparison
     fixed_features = pd.read_parquet(fixed_features_path)
@@ -271,6 +282,8 @@ def main(
             align_only=align_only,
         )
 
+    """
+    Commenting out: we don't currently need this
     datasets_20x_40x = {
         "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
         "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
@@ -285,6 +298,7 @@ def main(
             overrides=overrides,
             align_only=align_only,
         )
+    """
 
 
 if __name__ == "__main__":
