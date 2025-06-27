@@ -2,12 +2,13 @@ import numpy as np
 from bioio.writers import OmeTiffWriter
 
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import load_single_model_config
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 
 
-def main() -> None:
+def main(model_name: str = "diffae_04_10") -> None:
     """
     Reconstruct crops from latent space coordinates
     along trajectories output by the flow field 3D workflow
@@ -23,7 +24,7 @@ def main() -> None:
     reducer = manifest_pca.fit_pca(num_pcs=3)
 
     # Model we want to use to generate reconstructed crops
-    model_name = "diffae_04_10"
+    model_config = load_single_model_config(model_name)
 
     traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
 
@@ -67,7 +68,7 @@ def main() -> None:
 
     # pass into DiffAE model to generate reconstructed crops
     # using single noise input (generate images in batch)
-    walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
+    walk_imgs = generate_from_coords_batch(model_config, latent_coords_batch)
 
     for walk_img, condition in zip(walk_imgs, condition_list, strict=False):
         # save out stack of images as tif

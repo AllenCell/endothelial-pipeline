@@ -4,12 +4,12 @@ import numpy as np
 import torch
 
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_model_info
+from src.endo_pipeline.configs import ModelConfig
 from src.endo_pipeline.library.model.mlflow import load_mlflow_model
 
 
 def generate_from_coords(
-    model_name: str,
+    model_config: ModelConfig,
     coords: np.ndarray | list[list[float]],
     n_noise_samples: int = 1,
     average: bool = False,
@@ -36,8 +36,8 @@ def generate_from_coords(
             raise ValueError("coords must be a numpy array or a list of lists")
     else:
         coords_np = coords
-    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
-    model_path = Path(get_output_path(f"models/{model_name}"))
+    mlflow_id = model_config.mlflow_run_id
+    model_path = Path(get_output_path(f"models/{model_config.name}"))
     model = load_mlflow_model(mlflow_id, save_path=model_path)
 
     coords_torch = torch.from_numpy(coords_np).float()
@@ -57,7 +57,7 @@ def generate_from_coords(
 
 
 def generate_from_coords_batch(
-    model_name: str, coords_batch: np.ndarray | list[list[list[float]]]
+    model_config: ModelConfig, coords_batch: np.ndarray | list[list[list[float]]]
 ) -> list[np.ndarray]:
     """
     Generate synthetic images from a batch of coordinates
@@ -72,7 +72,7 @@ def generate_from_coords_batch(
     """
 
     coords_concat = np.concatenate(coords_batch, axis=0)
-    img = generate_from_coords(model_name, coords=coords_concat)
+    img = generate_from_coords(model_config, coords=coords_concat)
     walk_imgs = np.split(img, len(coords_batch))
 
     return walk_imgs
