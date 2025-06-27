@@ -13,8 +13,6 @@ manifest_fmsids:
   fmsid: e7f3e9715e254bd7a89b956d7db304d2
 - dataset_name: 20250110_paired40X
   fmsid: bf2005ff545d4602b4f8fa21b895c970
-- dataset_name: 20250122_SMAD1
-  fmsid: 17f900047bfe46cf9f34f72817f9dda8
 - dataset_name: 20250214_pairedPostFixation
   fmsid: 6a9682a9ebbe472383a9dffe686f062c
 - dataset_name: 20250214_pairedPreFixation
