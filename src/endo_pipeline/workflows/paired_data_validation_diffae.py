@@ -8,15 +8,16 @@ import pandas as pd
 from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.manifest_io import load_pca_model
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
-    load_single_dataset_config,
+    ModelConfig,
+    ModelManifest,
     load_single_model_config,
-    save_dataset_config,
+    save_model_config,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.analyze.fms_utils import save_file_to_fms
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
@@ -59,8 +60,8 @@ def plot_paired_features(
 
 
 def add_fmsid_to_config(
-    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
-) -> None:
+    prediction_path: str, dataset_name: str, model_config: ModelConfig, model_path: Path
+) -> ModelConfig:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for the given dataset.
 
@@ -78,16 +79,25 @@ def add_fmsid_to_config(
     file_id = save_file_to_fms(
         prediction_path,
         dataset_name,
-        get_cytodl_commit_hash(mlflow_id, model_path),
+        get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
         misc_notes="",
-        mlflow_run_id=mlflow_id,
+        mlflow_run_id=model_config.mlflow_run_id,
     )
 
-    # update dataset config with the FMS ID
+    # update model config with the FMS ID
     # of the prediction file
-    dataset_config = load_single_dataset_config(dataset_name)
-    dataset_config.diffae_manifest_fmsid = file_id
-    save_dataset_config(dataset_config)
+    model_manifest = ModelManifest(
+        dataset_name=dataset_name,
+        fmsid=file_id,
+    )
+    manifest_fmsids = model_config.manifest_fmsids
+    if manifest_fmsids is None:
+        manifest_fmsids = [model_manifest]
+    else:
+        manifest_fmsids.append(model_manifest)
+    model_config.manifest_fmsids = manifest_fmsids
+    save_model_config(model_config)
+    return model_config
 
 
 def compare_paired_features(
@@ -136,7 +146,8 @@ def compare_paired_features(
     **alignment_kwargs : Dict[str, Any]
         Additional arguments for the alignment function.
     """
-    mlflow_id = load_single_model_config(model_name).mlflow_run_id
+    model_config = load_single_model_config(model_name)
+    mlflow_id = model_config.mlflow_run_id
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
@@ -198,19 +209,19 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
+    model_config = add_fmsid_to_config(
         fixed_features_path,
         fixed_dataset_name,
-        mlflow_id,
+        model_config,
         model_path,
     )
     moving_features_path = str(
         save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
+    _ = add_fmsid_to_config(
         moving_features_path,
         moving_dataset_name,
-        mlflow_id,
+        model_config,
         model_path,
     )
 

@@ -2,7 +2,7 @@ import fire
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.configs import dynamics_io, list_datasets_with_model_manifest
 from src.endo_pipeline.library.analyze.diffae_features import ddd_main
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.visualize import viz_base
@@ -61,7 +61,7 @@ def main(config_name: str = "default") -> None:
 
     # loop through datasets, get flow field
     # estimates, and save out figures
-    list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
+    list_of_datasets = list_datasets_with_model_manifest(timelapse_only=True)
 
     for name in list_of_datasets:
         if name in ds_to_skip:

@@ -201,6 +201,17 @@ def get_feature_cols(df: pd.DataFrame) -> list:
     return feat_cols
 
 
+@deprecated(
+    """
+
+Ignore this warning if you are using this in nuclear segmentation analysis.
+
+This function is deprecated and will be removed in the future.
+
+It has been moved to `src.endo_pipeline.library.config.model_config_utils`.
+
+"""
+)
 def list_datasets_with_manifest(
     manifest_name: str,
     verbose: bool = False,
