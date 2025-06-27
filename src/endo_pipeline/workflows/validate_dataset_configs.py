@@ -30,6 +30,7 @@ from src.endo_pipeline.configs import (
 
 # %%
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 # %%
 for dataset_name in get_available_dataset_names():
