@@ -796,7 +796,6 @@ def main(
     dataset_name: str | None = None,
     n_proc: int = 1,
     verbose: bool = False,
-    make_plots: bool = False,
 ) -> None:
 
     out_dir = get_output_path(Path(__file__).stem, verbose=False)
