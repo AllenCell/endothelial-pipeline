@@ -12,14 +12,10 @@ from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
     get_available_dataset_names,
     load_single_dataset_config,
+    load_single_model_config,
     save_dataset_config,
 )
-from src.endo_pipeline.configs.dataset_io import (
-    extract_P,
-    get_model_info,
-    get_reference_datasets,
-    get_zarr_path,
-)
+from src.endo_pipeline.configs.dataset_io import extract_P, get_reference_datasets, get_zarr_path
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 
@@ -133,7 +129,7 @@ def apply_model_single(
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
     # download model from mlflow
-    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
+    mlflow_id = load_single_model_config(model_name).mlflow_run_id
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
