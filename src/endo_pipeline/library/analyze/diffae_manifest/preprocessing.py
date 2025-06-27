@@ -2,8 +2,12 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import DatasetConfig, load_single_dataset_config
+from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils import (
+    get_feature_cols,
+    load_model_manifest_dataframe,
+)
 
 
 def add_description_column(
@@ -154,7 +158,7 @@ def project_manifest_to_pcs(
     # this is assuming that there are 8 feature columns,
     # will need to change if this is not the case
     if feat_cols is None:
-        feat_cols = manifest_io.get_feature_cols(df)
+        feat_cols = get_feature_cols(df)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
@@ -194,9 +198,8 @@ def get_manifest_for_dynamics_workflows(
     """
     # load manifest data for dataset ds_name
     # and filter to only valid timepoints
-    df = manifest_io.get_diffae_manifest(ds_config, filter_to_valid=True)
-    if df is None:
-        raise ValueError(f"No DiffAE manifest data found for dataset {ds_config.name}")
+    df = load_model_manifest_dataframe(ds_config, filter_to_valid=True)
+
     # add crop index column
     df = add_crop_index(df)
 
