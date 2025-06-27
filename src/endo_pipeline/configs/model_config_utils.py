@@ -41,7 +41,7 @@ def get_model_manifest(dataset_config: DatasetConfig, model_config: ModelConfig)
     )
 
 
-def list_datasets_with_model_manifest(
+def load_datasets_with_model_manifest(
     model_name: str = "diffae_04_10",
     verbose: bool = False,
     timelapse_only: bool = False,
@@ -74,7 +74,7 @@ def list_datasets_with_model_manifest(
             except:
                 model_manifest = None
         if model_manifest is not None:
-            dataset_list.append(dataset_info.name)
+            dataset_list.append(dataset_info)
             if verbose:
                 print(f" - {dataset_info.name}")
     return dataset_list

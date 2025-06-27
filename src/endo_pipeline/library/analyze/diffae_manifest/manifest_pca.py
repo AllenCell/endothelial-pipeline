@@ -35,7 +35,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     # first, get list of reference datasets to use for PCA
     reference_datasets = load_reference_dataset_configs()
     if verbose:
-        print(f"\nReference datasets for PCA: {reference_datasets}")
+        print(f"\nReference datasets for PCA: {[dataset.name for dataset in reference_datasets]}")
     data_ref = pd.concat(
         [
             load_model_manifest_dataframe(config, filter_to_valid=True)

@@ -2,9 +2,8 @@ import fire
 import numpy as np
 
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.configs.dataset_config import (
-    DatasetConfig,
+from src.endo_pipeline.configs import (
+    dynamics_io,
     load_reference_dataset_configs,
     load_single_dataset_config,
 )

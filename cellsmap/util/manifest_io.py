@@ -212,7 +212,8 @@ Ignore this warning if you are using this in nuclear segmentation analysis.
 
 This function is deprecated and will be removed in the future.
 
-It has been moved to `src.endo_pipeline.library.config.model_config_utils`.
+It has been moved to `src.endo_pipeline.library.config.model_config_utils`
+and renamed `load_datasets_with_model_manifest`.
 
 """
 )

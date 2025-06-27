@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import DatasetConfig, load_datasets_with_model_manifest
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize import viz_base
@@ -219,9 +219,7 @@ def build_kramers_moyal_train_test(
     # get list of dataset configs with DiffAE manifest data
     # using timelapse_only=True to restrict to datasets
     # that are live, timelapse datasets
-    list_of_datasets = manifest_io.load_dataset_configs_with_manifest(
-        "diffae_manifest_fmsid", timelapse_only=True
-    )
+    list_of_datasets = load_datasets_with_model_manifest(timelapse_only=True)
 
     # initialize lists to store train test sets for each dataset
     x_train_list = []
