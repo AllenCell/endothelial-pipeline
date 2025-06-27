@@ -1,0 +1,6 @@
+name: diffae_finetuned_for_fixed
+mlflow_run_id: 6a04a60d1ed3404d9cbcca436ca6c0f3
+manifest_fmsids: null
+training_datasets: null
+train_manifest_fmsid: null
+test_manifest_fmsid: null

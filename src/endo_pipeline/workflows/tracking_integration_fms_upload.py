@@ -2,8 +2,8 @@ import subprocess
 from pathlib import Path
 from typing import Literal
 
-from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
 from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+from src.endo_pipeline.library.analyze.fms_utils.fms_upload import save_file_to_fms
 
 """
 This is a rough script to get track integration for Benji and Erin

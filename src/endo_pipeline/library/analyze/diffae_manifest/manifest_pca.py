@@ -4,8 +4,11 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils import (
+    get_feature_cols,
+    load_model_manifest_dataframe,
+)
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -34,10 +37,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     if verbose:
         print(f"\nReference datasets for PCA: {reference_datasets}")
     data_ref = pd.concat(
-        [
-            manifest_io.get_diffae_manifest(name, filter_to_valid=True)
-            for name in reference_datasets
-        ],
+        [load_model_manifest_dataframe(name, filter_to_valid=True) for name in reference_datasets],
         ignore_index=True,
     )
 
@@ -54,7 +54,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    feature_cols = manifest_io.get_feature_cols(data_ref)
+    feature_cols = get_feature_cols(data_ref)
     pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
     if verbose:  # print explained variance ratios

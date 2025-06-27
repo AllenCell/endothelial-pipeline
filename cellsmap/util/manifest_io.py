@@ -3,6 +3,7 @@ import pickle
 import platform
 
 import pandas as pd
+from deprecated import deprecated
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import dataset_config, dataset_io
@@ -14,6 +15,12 @@ except ImportError:
     fms = None
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+It has been moved to `src.endo_pipeline.library.analyze.fms_utils`.
+"""
+)
 def replace_base_url(file_path: str) -> str:
     """
     Replace the base URL 'production.files.allencell.org' with '/allen/programs/allencell/data/proj0/' in the given file path.
@@ -34,6 +41,12 @@ def replace_base_url(file_path: str) -> str:
         raise ValueError(f"The base URL '{base_url}' was not found in the provided file path.")
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+It has been moved to `src.endo_pipeline.library.analyze.fms_utils`.
+"""
+)
 def get_valid_path(fpath) -> str:
     """
     Converts a FMS path to one that can be read cross-platform
@@ -43,6 +56,13 @@ def get_valid_path(fpath) -> str:
     return fpath
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+
+It has been moved to `src.endo_pipeline.library.analyze.fms_utils`.
+"""
+)
 def read_file_to_dataframe(path: str) -> pd.DataFrame:
     """Read a file into a pandas dataframe."""
     if path.endswith("csv"):
@@ -55,6 +75,13 @@ def read_file_to_dataframe(path: str) -> pd.DataFrame:
         raise ValueError(f"Unknown format {path.split('.')[-1]}")
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+
+It has been moved to `src.endo_pipeline.library.analyze.fms_utils`.
+"""
+)
 def get_dataframe_by_fmsid(fmsid: str) -> pd.DataFrame:
     if fms is not None and os.path.exists("/allen/aics"):
         annotations = {FileLevelMetadataKeys.FILE_ID.value: fmsid}
@@ -75,6 +102,13 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+
+It has been moved to `src.endo_pipeline.library.analyze.diffae_manifest.preprocessing`.
+"""
+)
 def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
     """
     Select timepoints from a dataframe annotated as valid
@@ -107,6 +141,19 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) 
     return df[df.valid]
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+
+With the switch to tracking model manifest data using the ModelManifest dataclass
+the recommended pattern for uploading the features for a dataset from a particular
+model is to use the `src.endo_pipeline.configs.get_model_manifest` function.
+
+This particular function has been refactored, renamed
+`load_model_manifest_dataframe`, and moved to
+`src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils`.
+"""
+)
 def get_diffae_manifest(dataset_name: str, filter_to_valid: bool = False) -> pd.DataFrame:
     fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
     if fmsid == "" or fmsid is None:
@@ -136,6 +183,14 @@ def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
         return None
 
 
+@deprecated(
+    """
+This function is deprecated and will be removed in the future.
+
+It has been moved to `src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils`.
+
+"""
+)
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
     Extract columns corresponding to DiffAE model

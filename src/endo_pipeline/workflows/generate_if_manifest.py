@@ -2,10 +2,10 @@ import argparse
 
 import pandas as pd
 
-from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_single_dataset_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import get_git_versioning_info
+from src.endo_pipeline.library.analyze.fms_utils.fms_upload import save_file_to_fms
 from src.endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
 
 """

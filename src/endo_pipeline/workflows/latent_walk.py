@@ -8,15 +8,14 @@ import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.util.manifest_io import (
-    get_diffae_manifest,
-    get_feature_cols,
-    load_pca_model,
-    save_pca_model,
-)
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
+from cellsmap.util.manifest_io import load_pca_model, save_pca_model
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils import (
+    get_feature_cols,
+    load_model_manifest_dataframe,
+)
 
 # from src.endo_pipeline.library.analyze.diffae_manifest
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
@@ -150,7 +149,10 @@ def generate_latent_walk(
     save_dir = get_output_path(f"models/{model_name}")
 
     reference_manifests = pd.concat(
-        [get_diffae_manifest(name, filter_to_valid=True) for name in get_reference_datasets()]
+        [
+            load_model_manifest_dataframe(name, filter_to_valid=True)
+            for name in get_reference_datasets()
+        ]
     )
 
     feature_cols = get_feature_cols(reference_manifests)

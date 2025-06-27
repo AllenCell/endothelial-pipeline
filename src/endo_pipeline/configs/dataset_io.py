@@ -555,6 +555,15 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
+@deprecated(
+    """
+    This function is deprecated and will be removed in a future version.
+
+    The preferred method is to use a DatasetConfig object directly instead
+    of a dataset name. Then the valid timepoints can be accessed using:
+    `dataset_config.valid_timepoints`
+"""
+)
 def get_valid_timepoints(dataset_name: str) -> dict:
     """
     Get the frames marked for use in DiffAE feature
@@ -929,7 +938,7 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# model methods
+# add deprecated decorator to this function
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -938,6 +947,7 @@ def get_available_models() -> list[str]:
     return model_names
 
 
+# add deprecated decorator to this function
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
@@ -945,6 +955,7 @@ def get_model_info(model_name: str) -> dict[str, Any]:
     return config[model_name]
 
 
+# this does not get called anywhere
 def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
     dataset_info = get_dataset_info(dataset_name)
     return pd.read_csv(dataset_info["features"][model_name])

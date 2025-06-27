@@ -8,11 +8,7 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.util.manifest_io import (
-    get_diffae_manifest,
-    get_feature_cols,
-    get_track_diffae_manifest,
-)
+from cellsmap.util.manifest_io import get_track_diffae_manifest
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     get_reference_datasets,
@@ -23,6 +19,10 @@ from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_utils import (
+    get_feature_cols,
+    load_model_manifest_dataframe,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
@@ -170,7 +170,7 @@ def get_grid_bounds(flow_field_dict: dict) -> list:
 
 def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
     # read in the grid crop-based diffae features
-    diffae_grid_crops = get_diffae_manifest(dataset_name)
+    diffae_grid_crops = load_model_manifest_dataframe(dataset_name)
     diffae_grid_crops = diffae_preproc.add_crop_index(diffae_grid_crops)
     diffae_grid_crops = diffae_preproc.add_description_column(
         diffae_grid_crops, dataset_name, simple=True
