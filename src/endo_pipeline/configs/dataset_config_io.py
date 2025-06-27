@@ -3,10 +3,10 @@
 import logging
 from pathlib import Path
 
+import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
 from src.endo_pipeline.configs import DatasetConfig
-from src.endo_pipeline.configs.config_io import yaml_encoder
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,9 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
 
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset.name}.yaml"
+
+    def yaml_encoder(data):
+        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)
     config_file.write_text(content)
