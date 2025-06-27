@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
+from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
@@ -12,20 +13,20 @@ from src.endo_pipeline.library.visualize import viz_base
 
 
 def ddd_model_analysis(
-    name: str,
+    ds_config: DatasetConfig,
     model: list[Callable],
     stationary_data: pd.DataFrame,
     shear: float,
     pcs: list[int],
     bins: list[np.ndarray],
     fig_savedir: str,
-    config: dict,
+    dynamics_config: dict,
 ) -> None:
     """
     Generate and save figures analyzing the data-driven dynamics model.
 
     Inputs:
-    - name (str): name of dataset
+    - ds_config (DatasetConfig): dataset configuration object
     - model (list[Callable]): list of callable functions
         representing the drift and diffusion estimates
         for the data-driven dynamics model
@@ -39,7 +40,7 @@ def ddd_model_analysis(
     - bins (list[np.ndarray]): list of bin edges for the histogram
         plots
     - fig_savedir (str): directory to save figures
-    - config (dict): configuration dictionary
+    - dynamics_config (dict): configuration dictionary
         Loaded from dynamics_config.yaml
     - stationary_frames: list of int, optional, if provided,
     restrict data to only these frames
@@ -57,9 +58,9 @@ def ddd_model_analysis(
     """
     # for phase plane plots, grid is fixed and
     # set in the config file dynamics_config.yaml
-    pplane_xlim = config["plt_xlim"]["pplane"]
-    pplane_ylim = config["plt_ylim"]["pplane"]
-    num_pts_pplane = config["num_pts_pplane"]
+    pplane_xlim = dynamics_config["plt_xlim"]["pplane"]
+    pplane_ylim = dynamics_config["plt_ylim"]["pplane"]
+    num_pts_pplane = dynamics_config["num_pts_pplane"]
 
     pplane_xvec = np.linspace(pplane_xlim[0], pplane_xlim[1], num_pts_pplane + 1)
     pplane_yvec = np.linspace(pplane_ylim[0], pplane_ylim[1], num_pts_pplane + 1)
@@ -77,23 +78,30 @@ def ddd_model_analysis(
 
     # add title to histogram plots
     sup_title = fig2.texts[0].get_text()
-    sup_title = name + f", {shear} dyn/cm$^2$ \n" + sup_title
+    sup_title = ds_config.name + f", {shear} dyn/cm$^2$ \n" + sup_title
     fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
 
     # save figures
-    viz_base.save_plot(fig1, fig_savedir + name + f"_ddff_phase_portrait_shear_{int(shear)}")
-    viz_base.save_plot(fig2, fig_savedir + name + f"_ddff_stationary_dist_shear_{int(shear)}")
-    return
+    viz_base.save_plot(
+        fig1, fig_savedir + ds_config.name + f"_ddff_phase_portrait_shear_{int(shear)}"
+    )
+    viz_base.save_plot(
+        fig2, fig_savedir + ds_config.name + f"_ddff_stationary_dist_shear_{int(shear)}"
+    )
 
 
 def get_and_analyze_ddd(
-    name: str, pca: Pipeline, kernel_params: dict | None, fig_savedir: str, config: dict
+    ds_config: DatasetConfig,
+    pca: Pipeline,
+    kernel_params: dict | None,
+    fig_savedir: str,
+    dynamics_config: dict,
 ) -> None:
     """
     Get and analyze data-driven dynamics for a given dataset.
 
     Inputs:
-    - name (str): name of dataset
+    - ds_config (DatasetConfig): dataset configuration object
     - pca (Pipeline): fit PCA object
         Used to project data into PCA space
     - kernel_params (dict): parameters for kernel method
@@ -103,7 +111,7 @@ def get_and_analyze_ddd(
             See library.analyze.kramersmoyal.km_kernels
         - "bandwidth": bandwidth for kernel function
     - fig_savedir (str): directory to save figures
-    - config (dict): configuration dictionary
+    - dynamics_config (dict): configuration dictionary
         Loaded from dynamics_config.yaml
     - stationary_frames: list of int, optional, if provided,
         restrict data to only these frames
@@ -119,28 +127,28 @@ def get_and_analyze_ddd(
     # unpack relevant parameters from config:
 
     # which PCs to analyze (2D)
-    pcs = config["pcs_to_analyze"]
+    pcs = dynamics_config["pcs_to_analyze"]
     # time step (in minutes)
-    dt = config["dt"]
+    dt = dynamics_config["dt"]
 
     # bin limits for ddff and histogram
     # fixed across all datasets
-    bin_xlim = config["plt_xlim"]["hist"]
-    bin_ylim = config["plt_ylim"]["hist"]
-    num_bins_hist = config["num_bins_hist"]
+    bin_xlim = dynamics_config["plt_xlim"]["hist"]
+    bin_ylim = dynamics_config["plt_ylim"]["hist"]
+    num_bins_hist = dynamics_config["num_bins_hist"]
     # get bins edges and centers
     bins, centers = regression_helper.get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
 
     # load the data for the given name
     # and preprocess it
-    df_proj = preprocessing.get_manifest_for_dynamics_workflows(name, pca=pca)
+    df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_config, pca=pca)
 
     # just get PCs of interest
     feat_cols_all = manifest_io.get_feature_cols(df_proj)
     feat_cols = [feat_cols_all[i] for i in pcs]
 
     # split out data by flow condition
-    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, name)
+    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_config)
     num_flow = len(shear_list)
 
     # get drift and diffusion estimates
@@ -187,12 +195,12 @@ def get_and_analyze_ddd(
         # call main model analysis function
         # for the data driven dynamics workflow
         ddd_model_analysis(
-            name,
+            ds_config,
             [drift_, diffusion_],
             df_by_flow[j],
             shear_list[j],
             pcs,
             bins,
             fig_savedir,
-            config,
+            dynamics_config,
         )

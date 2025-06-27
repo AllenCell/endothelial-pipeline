@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bioio import BioImage
 
-from src.endo_pipeline.configs import dataset_io, get_available_dataset_names
+from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs.dataset_config import get_available_dataset_names
 from src.endo_pipeline.configs.dataset_io import get_available_channels
 
 

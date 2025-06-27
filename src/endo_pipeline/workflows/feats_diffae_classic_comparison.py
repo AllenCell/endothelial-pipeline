@@ -14,8 +14,8 @@ from cellsmap.util.manifest_io import (
     get_track_diffae_manifest,
 )
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import DatasetConfig, load_reference_dataset_configs
 from src.endo_pipeline.configs.dataset_io import (
-    get_reference_datasets,
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
 )
@@ -168,12 +168,12 @@ def get_grid_bounds(flow_field_dict: dict) -> list:
     return bounds
 
 
-def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
+def get_and_process_diffae_data(dataset_config: DatasetConfig) -> pd.DataFrame:
     # read in the grid crop-based diffae features
-    diffae_grid_crops = get_diffae_manifest(dataset_name)
+    diffae_grid_crops = get_diffae_manifest(dataset_config)
     diffae_grid_crops = diffae_preproc.add_crop_index(diffae_grid_crops)
     diffae_grid_crops = diffae_preproc.add_description_column(
-        diffae_grid_crops, dataset_name, simple=True
+        diffae_grid_crops, dataset_config, simple=True
     )  # add description column (e.g., 48hr_High)
 
     # in Erin's code in workflows/flow_field3d/preprocessing.py
@@ -486,16 +486,18 @@ def make_all_plots(
 def main() -> None:
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
     out_dir.mkdir(parents=True, exist_ok=True)
-    dataset_name_list = get_reference_datasets()
+    # Making note that this is another place where
+    # a deprecated function is used
+    dataset_config_list = load_reference_dataset_configs()
 
-    for dataset_name in dataset_name_list:
+    for dataset_config in dataset_config_list:
         # create subdirectory to save track-based trajectories to
         out_subdir_traj = out_dir / "trajectories_track_based"
         out_subdir_traj.mkdir(parents=True, exist_ok=True)
 
-        df_all_positions = get_merged_table(dataset_name)
+        df_all_positions = get_merged_table(dataset_config.name)
         if df_all_positions is None:
-            print(f"Dataset {dataset_name} is missing one or more data tables. Skipping...")
+            print(f"Dataset {dataset_config.name} is missing one or more data tables. Skipping...")
             continue
 
         print("cleaning up merged table...")
@@ -506,7 +508,7 @@ def main() -> None:
         pca = fit_pca()
 
         # read in the grid crop-based diffae features
-        diffae_grid_crops = get_manifest_for_dynamics_workflows(dataset_name, pca)
+        diffae_grid_crops = get_manifest_for_dynamics_workflows(dataset_config, pca)
 
         # add the PC columns to the track-based DiffAE table
         # (the grid-based DiffAE table already has them, but
@@ -518,7 +520,7 @@ def main() -> None:
         )
 
         # use the full set of datasets to be analyzed for the bounds
-        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
+        bounds = ddff.set_3d_bounds_from_data(dataset_config_list, pca, col_names="feat")
 
         print("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
@@ -528,13 +530,13 @@ def main() -> None:
         print("getting trajectory and flow field for tracks-based crops...")
         traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds, col_names="pc")
         # save the trajectory data from the track-based crops
-        np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
+        np.save(out_subdir_traj / f"{dataset_config.name}_traj_tracks.npy", traj_tracks)
 
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops
         make_all_plots(
             out_dir,
-            dataset_name,
+            dataset_config.name,
             diffae_grid_crops,
             traj_grids,
             flow_field_dict_grids,
