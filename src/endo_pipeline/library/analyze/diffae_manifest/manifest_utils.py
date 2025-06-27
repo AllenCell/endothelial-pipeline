@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig, get_model_manifest
+from src.endo_pipeline.configs import DatasetConfig, get_model_manifest, load_single_model_config
 from src.endo_pipeline.library.analyze.fms_utils import get_dataframe_by_fmsid
 
 
@@ -53,7 +53,8 @@ def load_model_manifest_dataframe(
     dataset_name: str, model_name: str = "diffae_04_10", filter_to_valid: bool = False
 ) -> pd.DataFrame:
     """Load manifest data for a given dataset and model."""
-    fmsid = get_model_manifest(dataset_name, model_name).fmsid
+    model_config = load_single_model_config(model_name)
+    fmsid = get_model_manifest(dataset_name, model_config).fmsid
     df = get_dataframe_by_fmsid(fmsid)
     if filter_to_valid:
         df = get_valid_subset(df, dataset_name, verbose=False)
