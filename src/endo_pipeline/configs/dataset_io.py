@@ -87,15 +87,15 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 configs is to use one of the following replacement methods. If you need configs
 for all datasets, use:
 
-        configs.dataset_config.load_all_dataset_configs
+        configs.load_all_dataset_configs
 
 If you need the config for a single dataset, use:
 
-        configs.dataset_config.load_single_dataset_config(dataset_name)
+        configs.load_single_dataset_config(dataset_name)
 
 If you need only need dataset names, use:
 
-        configs.dataset_config.get_available_dataset_names
+        configs.get_available_dataset_names
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -127,7 +127,7 @@ configs is to directly adjust values in the config:
 
 The dataset config can then be saved using:
 
-        configs.dataset_config.save_dataset_config(dataset)
+        configs.save_dataset_config(dataset)
 """
 )
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
@@ -165,7 +165,7 @@ configs is to directly adjust values in the config:
 
 The dataset config can then be saved using:
 
-        configs.dataset_config.save_dataset_config(dataset)
+        configs.save_dataset_config(dataset)
 """
 )
 def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
@@ -193,7 +193,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 1. If you need a list of available datasets by name, before selecting specific
    dataset(s) to load, use the following replacement method:
 
-        configs.dataset_config.get_available_dataset_names
+        configs.get_available_dataset_names
 
    instead of:
 
@@ -201,12 +201,12 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    Individual dataset(s) can then be loaded with:
 
-        configs.dataset_config.load_single_dataset_config(dataset_name)
+        configs.load_single_dataset_config(dataset_name)
 
 2. If you want to load all available datasets, use the following method to load
    configs for all available datasets:
 
-        configs.dataset_config.load_all_dataset_configs
+        configs.load_all_dataset_configs
 """
 )
 def get_available_datasets(verbose: bool = True) -> list[str]:
@@ -224,7 +224,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing reference
 datasets is to use the following replacement method:
 
-        configs.dataset_config.load_reference_dataset_configs
+        configs.load_reference_dataset_configs
 
 which will load the reference dataset objects (not the dataset names). If you
 need the names of the reference datasets, access the .name field of the
@@ -247,9 +247,9 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 is directly from loaded DatasetConfig objects. These configs can be loaded using
 one of the following:
 
-        configs.dataset_config.load_all_dataset_configs
-        configs.dataset_config.load_single_dataset_config(dataset_name)
-        configs.dataset_config.load_reference_dataset_configs
+        configs.load_all_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+        configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
 
@@ -340,6 +340,26 @@ def get_available_channels(
     for filename, filepath in zarr_paths.items():
         reader = BioImage(filepath)
         channel_names[filename] = reader.channel_names
+    return channel_names
+
+
+def get_channel_names(dataset_name: str) -> list[str]:
+    """
+    Retrieve the list of channel names for a specific dataset. The function
+    test_channel_names_consistency validates that all positions have the same channels
+    within a dataset so we can use the first position to get the channel names.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+
+    Returns:
+        list[str]: A list of channel names available in the dataset at the specified position.
+    """
+    zarr_name = get_zarr_name(dataset_name, position=0)
+    zarr_paths = get_zarr_path(dataset_name, zarr_name)
+    path_of_interest = zarr_paths[zarr_name]
+    reader = BioImage(path_of_interest)
+    channel_names = reader.channel_names
     return channel_names
 
 
@@ -578,9 +598,23 @@ def get_fmsid(dataset_name: str) -> str:
     return dataset_info["fmsid"]
 
 
-def get_nuclear_prediction_path(dataset_name: str, position: int) -> str:
+def get_nuclear_prediction_path(
+    dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
+) -> str:
+    """
+    Get the file path for the nuclear prediction data for a specific dataset and position.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+        position (int): The position index within the dataset.
+        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
+            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
+
+    Returns:
+        str: The file path to the nuclear prediction data for the specified dataset and position.
+    """
     dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info["nuclear_label_free_seg_path"]
+    base_path = dataset_info[nuc_seg_type]
     position_path = f"{base_path}/P{position}/"
     return position_path
 
@@ -590,11 +624,25 @@ def load_nuclei_prediction(
     position: int,
     T: int,
     dim_order: str = "ZYX",
+    nuc_seg_type: str = "nuclear_label_free_seg_path",
 ) -> dask.array.Array:
     """
-    Load the nuclei prediction for a given dataset, position, and timepoint.
+    Load the nuclei prediction data as a Dask array for a given dataset, position, and timepoint.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+        position (int): The position index within the dataset.
+        T (int): The timepoint index to load.
+        dim_order (str, optional): The dimension order of the data (e.g., "ZYX").
+            Defaults to "ZYX".
+        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
+            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
+
+    Returns:
+        dask.array.Array: A Dask array containing the nuclei prediction data for the specified
+        dataset, position, and timepoint. If the file is not found, an empty Dask array is returned.
     """
-    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position))
+    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position, nuc_seg_type))
     nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
     nuc_path = nuc_path_dict[T]
 

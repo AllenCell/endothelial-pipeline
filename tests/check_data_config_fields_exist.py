@@ -1,6 +1,7 @@
 import pytest
 
 from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs.dataset_config import get_available_dataset_names
 
 CONFIG_DATA_FIELDS = [
     "original_path",
@@ -22,7 +23,7 @@ CONFIG_DATA_FIELDS = [
 ]
 
 
-@pytest.mark.parametrize("dataset_name", dataset_io.get_available_datasets())
+@pytest.mark.parametrize("dataset_name", get_available_dataset_names())
 def check_all_fields_exist(dataset_name: str) -> bool:
     """
     Check if a field exists in the dataset config data.
