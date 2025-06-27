@@ -21,8 +21,6 @@ from typing import Any, Literal
 
 import fire
 
-from src.endo_pipeline.configs import DatasetConfig, load_single_dataset_config
-
 
 def get_config_dir() -> Path:
     """Get path to the config directory."""
@@ -89,15 +87,15 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 configs is to use one of the following replacement methods. If you need configs
 for all datasets, use:
 
-        configs.dataset_config.load_all_dataset_configs
+        configs.load_all_dataset_configs
 
 If you need the config for a single dataset, use:
 
-        configs.dataset_config.load_single_dataset_config(dataset_name)
+        configs.load_single_dataset_config(dataset_name)
 
 If you need only need dataset names, use:
 
-        configs.dataset_config.get_available_dataset_names
+        configs.get_available_dataset_names
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -129,7 +127,7 @@ configs is to directly adjust values in the config:
 
 The dataset config can then be saved using:
 
-        configs.dataset_config.save_dataset_config(dataset)
+        configs.save_dataset_config(dataset)
 """
 )
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
@@ -167,7 +165,7 @@ configs is to directly adjust values in the config:
 
 The dataset config can then be saved using:
 
-        configs.dataset_config.save_dataset_config(dataset)
+        configs.save_dataset_config(dataset)
 """
 )
 def update_dataset_config(dataset_name: str, new_config: dict[str, Any]) -> None:
@@ -195,7 +193,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 1. If you need a list of available datasets by name, before selecting specific
    dataset(s) to load, use the following replacement method:
 
-        configs.dataset_config.get_available_dataset_names
+        configs.get_available_dataset_names
 
    instead of:
 
@@ -203,12 +201,12 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    Individual dataset(s) can then be loaded with:
 
-        configs.dataset_config.load_single_dataset_config(dataset_name)
+        configs.load_single_dataset_config(dataset_name)
 
 2. If you want to load all available datasets, use the following method to load
    configs for all available datasets:
 
-        configs.dataset_config.load_all_dataset_configs
+        configs.load_all_dataset_configs
 """
 )
 def get_available_datasets(verbose: bool = True) -> list[str]:
@@ -226,7 +224,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing reference
 datasets is to use the following replacement method:
 
-        configs.dataset_config.load_reference_dataset_configs
+        configs.load_reference_dataset_configs
 
 which will load the reference dataset objects (not the dataset names). If you
 need the names of the reference datasets, access the .name field of the
@@ -249,9 +247,9 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 is directly from loaded DatasetConfig objects. These configs can be loaded using
 one of the following:
 
-        configs.dataset_config.load_all_dataset_configs
-        configs.dataset_config.load_single_dataset_config(dataset_name)
-        configs.dataset_config.load_reference_dataset_configs
+        configs.load_all_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+        configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
 
@@ -314,21 +312,11 @@ def get_zarr_dir(dataset_name: str) -> str:
 
 
 def get_zarr_path(
-    dataset_config: DatasetConfig | None = None,
-    dataset_name: str | None = None,
+    dataset_name: str,
     zarr_name: str | None | None = None,
 ) -> dict[str, str]:
     """Get the zarr file paths for a given dataset."""
-    # Making the input parameters more flexible to allow
-    # for either a dataset config object or a dataset name.
-    # This should be temporary, but I didn't want to
-    # change other functions that use this function
-    # that I don't have ownership of.
-    if dataset_config is None:
-        if dataset_name is None:
-            raise ValueError("Either dataset_config or dataset_name must be provided.")
-        dataset_config = load_single_dataset_config(dataset_name)
-    data_dir = dataset_config.zarr_path
+    data_dir = get_zarr_dir(dataset_name)
     zarr_paths = {}
     if zarr_name:
         filepath = Path(data_dir) / zarr_name
@@ -347,7 +335,7 @@ def get_available_channels(
     dataset_name: str, zarr_name: str | None | None = None
 ) -> dict[str, list[str]]:
     """Get the available channels for a given dataset."""
-    zarr_paths = get_zarr_path(dataset_name=dataset_name, zarr_name=zarr_name)
+    zarr_paths = get_zarr_path(dataset_name, zarr_name)
     channel_names = {}
     for filename, filepath in zarr_paths.items():
         reader = BioImage(filepath)
@@ -567,6 +555,15 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
+@deprecated(
+    """
+    This function is deprecated and will be removed in a future version.
+
+    The preferred method is to use a DatasetConfig object directly instead
+    of a dataset name. Then the valid timepoints can be accessed using:
+    `dataset_config.valid_timepoints`
+"""
+)
 def get_valid_timepoints(dataset_name: str) -> dict:
     """
     Get the frames marked for use in DiffAE feature
@@ -926,10 +923,6 @@ def fire_parse_generate_dataset_name_list(
     To enter a list of datasets to analyze, use the following format:
     '\"20241016_20X\",\"20241120_20X\"'
     """
-    # making a note here that this calls a deprecated function
-    # and this is an instance where calling `load_reference_datasets`
-    # would not necessarily be appropriate
-    # need to come back to this once we have a global config
     if fire_dataset_name_input is None:
         dataset_name_list = get_reference_datasets()
     else:
@@ -945,7 +938,7 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# model methods
+# add deprecated decorator to this function
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -954,6 +947,7 @@ def get_available_models() -> list[str]:
     return model_names
 
 
+# add deprecated decorator to this function
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
@@ -961,6 +955,7 @@ def get_model_info(model_name: str) -> dict[str, Any]:
     return config[model_name]
 
 
+# this does not get called anywhere
 def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
     dataset_info = get_dataset_info(dataset_name)
     return pd.read_csv(dataset_info["features"][model_name])

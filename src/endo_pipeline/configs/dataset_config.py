@@ -95,9 +95,6 @@ class DatasetConfig:
     nuclear_seg_manifest_fmsid: str | None = None
     """FMS ID for nuclear segmentation manifest."""
 
-    diffae_manifest_fmsid: str | None = None
-    """FMS ID for diffusion autoencoder manifest."""
-
     tracking_integration_fmsid: str | None = None
     """FMS ID for tracking integration."""
 
