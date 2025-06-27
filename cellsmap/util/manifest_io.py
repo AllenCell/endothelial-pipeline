@@ -5,7 +5,13 @@ import platform
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import ModelConfig, ModelManifest, dataset_io
+from src.endo_pipeline.configs import (
+    ModelConfig,
+    ModelManifest,
+    dataset_io,
+    get_available_dataset_names,
+    load_all_dataset_configs,
+)
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -155,7 +161,7 @@ def list_datasets_with_manifest(
     List all dataset names that have a 'nuclear_seg_manifest_fmsid'
     or 'diffae_manifest_fmsid'.
     """
-    all_datasets = dataset_config.get_available_dataset_names()
+    all_datasets = get_available_dataset_names()
 
     if verbose:
         manifest_type = (
@@ -166,7 +172,7 @@ def list_datasets_with_manifest(
         else:
             print(f"Available datasets with {manifest_type} manifest data: ")
     dataset_list = []
-    all_datasets = dataset_config.load_all_dataset_configs()
+    all_datasets = load_all_dataset_configs()
     for dataset_info in all_datasets:
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
@@ -218,28 +224,3 @@ def load_pca_model(savedir: str) -> Pipeline:
     with open(savedir + "pca_model.pkl", "rb") as f:
         pca = pickle.load(f)
     return pca
-
-
-def get_model_manifest(dataset_name: str, model_config: ModelConfig) -> ModelManifest:
-    """
-    Get model manifest for a given dataset and model configuration.
-
-    Inputs:
-    - dataset_name: str, name of the dataset
-    - model_config: ModelConfig, configuration of the model
-
-    Outputs:
-    - ModelManifest, containing dataset name and fmsid
-    """
-    if model_config.manifest_fmsids is None:
-        raise ValueError(f"No manifest fmsids found in model config for dataset {dataset_name}")
-
-    # search the ModelConfig.manifest_fmsids for the
-    # ModelManifest element with dataset_name matching
-    # the input dataset_name
-    for manifest in model_config.manifest_fmsids:
-        if manifest.dataset_name == dataset_name:
-            return manifest
-
-    # if no manifest found, raise an error
-    raise ValueError(f"No manifest found for dataset {dataset_name} in model config")
