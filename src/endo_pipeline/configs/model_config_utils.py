@@ -1,6 +1,6 @@
 import logging
 
-from configs import ModelConfig, ModelManifest
+from .model_config import ModelConfig, ModelManifest
 
 logger = logging.getLogger(__name__)
 
