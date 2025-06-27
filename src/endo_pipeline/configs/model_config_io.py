@@ -7,7 +7,6 @@ import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
 from src.endo_pipeline.configs import ModelConfig
-from src.endo_pipeline.configs.config_io import yaml_encoder
 
 logger = logging.getLogger(__name__)
 
