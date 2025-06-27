@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 
+import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
 from src.endo_pipeline.configs import ModelConfig
@@ -82,6 +83,9 @@ def save_model_config(model: ModelConfig) -> None:
 
     config_dir = get_model_config_dir()
     config_file = config_dir / f"{model.name}.yaml"
+
+    def yaml_encoder(data):
+        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     content = YAMLEncoder(ModelConfig, post_encoder_func=yaml_encoder).encode(model)
     config_file.write_text(content)
