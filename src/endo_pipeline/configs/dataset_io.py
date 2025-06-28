@@ -1064,12 +1064,6 @@ def get_model_info(model_name: str) -> dict[str, Any]:
     return config[model_name]
 
 
-# this does not get called anywhere
-def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
-    dataset_info = get_dataset_info(dataset_name)
-    return pd.read_csv(dataset_info["features"][model_name])
-
-
 # Other miscellaneous methods
 def ipython_cli_flexecute(
     function: Callable[..., Any],
