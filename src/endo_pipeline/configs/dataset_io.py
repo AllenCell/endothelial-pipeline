@@ -267,11 +267,6 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     return config[dataset_name]
 
 
-def get_frame(filename: str) -> int:
-    """Get frame number from filename"""
-    return int(str(filename).split(".")[0][-4:])
-
-
 def get_flow(dataset_name: str, frame_number: float) -> int | float:
     """
     Get shear stress level at frame frame_number from the data config.
