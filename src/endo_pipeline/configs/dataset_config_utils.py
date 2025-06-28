@@ -35,7 +35,7 @@ def get_nuclear_prediction_path(
             logger.error(
                 "Dataset [ %s ] does not have a nuclear label free segmentation path", dataset.name
             )
-            raise ValueError(f"'nuclear_label_free_seg_path' is None")
+            raise ValueError("'nuclear_label_free_seg_path' is None")
         else:
             return Path(dataset.nuclear_label_free_seg_path) / f"P{position}"
     elif nuc_seg_type == "stain":
@@ -43,9 +43,9 @@ def get_nuclear_prediction_path(
             logger.error(
                 "Dataset [ %s ] does not have nuclear stain segmentation path", dataset.name
             )
-            raise ValueError(f"'nuclear_stain_seg_path' is None")
+            raise ValueError("'nuclear_stain_seg_path' is None")
         else:
             return Path(dataset.nuclear_stain_seg_path) / f"P{position}"
     else:
         logger.error("Nuclear segmentation type [ %s ] is not valid", nuc_seg_type)
-        raise ValueError(f"'nuc_seg_type' must be 'label_free' or 'stain'")
+        raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
