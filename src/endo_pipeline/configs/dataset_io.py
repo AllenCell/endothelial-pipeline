@@ -305,6 +305,19 @@ def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
     return flow_in_frames
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.zarr_path
+"""
+)
 def get_zarr_dir(dataset_name: str) -> str:
     """Get the directory path for the zarr files of a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
@@ -410,6 +423,19 @@ def get_specific_channel_order(dataset_name: str) -> tuple:
     return gfp_index, bf_index, index_405, index_561, index_640
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.n_total_positions
+"""
+)
 def get_total_number_of_positions(dataset_name: str) -> int:
     """
     Get the total number of positions in a dataset.
@@ -488,21 +514,73 @@ def load_dataset_position_as_dask_array(
     return img_dask_arr
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.duration
+"""
+)
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["duration"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.pixel_size_xy_in_um
+"""
+)
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["pixel_size_xy_in_um"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.time_interval_in_minutes
+"""
+)
 def get_time_interval_in_minutes(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["time_interval_in_minutes"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.flow
+"""
+)
 def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["flow"]
@@ -555,6 +633,19 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.valid_timepoints
+"""
+)
 def get_valid_timepoints(dataset_name: str) -> dict:
     """
     Get the frames marked for use in DiffAE feature
@@ -575,6 +666,19 @@ def get_dim_map(dim_order: str) -> dict:
     return dim_map
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.original_path
+"""
+)
 def get_original_path(dataset_name: str) -> Path:
     """
     Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
@@ -583,16 +687,55 @@ def get_original_path(dataset_name: str) -> Path:
     return Path(dataset_info["original_path"])
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.barcode
+"""
+)
 def get_barcode(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["barcode"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.microscope
+"""
+)
 def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["microscope"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.fmsid
+"""
+)
 def get_fmsid(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["fmsid"]
