@@ -373,6 +373,19 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     return zarr_name
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+Then use this replacement method:
+
+        configs.get_specific_channel_order(dataset)
+"""
+)
 def get_specific_channel_order(dataset_name: str) -> tuple:
     """Get the specific channel order for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
