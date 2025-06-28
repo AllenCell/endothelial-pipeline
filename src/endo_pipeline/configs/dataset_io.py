@@ -267,24 +267,6 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     return config[dataset_name]
 
 
-def get_flow(dataset_name: str, frame_number: float) -> int | float:
-    """
-    Get shear stress level at frame frame_number from the data config.
-
-    Parameters
-    ----------
-        frame_number: the time at which to get the flow value.
-
-    Returns
-    -------
-        flow: the flow value at time frame_number in dyn/cm^2.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info["flow"]
-    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= frame_number < t_stop]
-    return int(flows[0]) if flows else np.nan
-
-
 def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
     """Get flow information in frames for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
