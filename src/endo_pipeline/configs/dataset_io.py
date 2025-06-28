@@ -1005,21 +1005,6 @@ def get_segmentation_features_manifest(
     return seg_feat_dataframe
 
 
-def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
-    """
-    Get the cell track integration manifest for a given dataset.
-    The integration manifest is a CSV file that contains the
-    track_id, centroids, zarr paths, and crop size of a subset
-    of the tracked segmentations of a dataset.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info["cell_track_integration_manifest_fmsid"]
-    integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
-    if not integration_path.exists():
-        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
-    return pd.read_csv(integration_path, sep="\t")
-
-
 # fire argparsing methods
 def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
     if isinstance(fire_str_or_list_like_input, str):
