@@ -716,6 +716,19 @@ def get_fmsid(dataset_name: str) -> str:
     return dataset_info["fmsid"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_single_dataset_config(dataset_name)
+
+Then use this replacement method:
+
+        configs.get_nuclear_prediction_path(dataset, channel, nuc_seg_type)
+"""
+)
 def get_nuclear_prediction_path(
     dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
 ) -> str:
