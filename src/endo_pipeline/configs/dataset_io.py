@@ -267,21 +267,6 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     return config[dataset_name]
 
 
-def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
-    """Get flow information in frames for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info["flow"]
-    flow_in_frames = [
-        (
-            round(t_start * 60 / dataset_info["time_interval_in_minutes"]),
-            round(t_stop * 60 / dataset_info["time_interval_in_minutes"]),
-            flow,
-        )
-        for t_start, t_stop, flow in flow_info
-    ]
-    return flow_in_frames
-
-
 @deprecated(
     """
 Use one of the following methods to load the dataset config:
