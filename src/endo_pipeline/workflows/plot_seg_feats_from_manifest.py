@@ -120,14 +120,14 @@ def plot_seg_manifest_data(
             (0, None),
             f"{dataset_name}_P{position}_num_tracks.png",
         ),
-        (
-            "time_hours",
-            "centroid_velocity_angle_deg",
-            "Time (hours)",
-            "Centroid Velocity Orientation (deg)",
-            (-180, 180),
-            f"{dataset_name}_P{position}_centroid_velocity_angles.png",
-        ),
+        # (
+        #     "time_hours",
+        #     "centroid_velocity_angle_deg",
+        #     "Time (hours)",
+        #     "Centroid Velocity Orientation (deg)",
+        #     (-180, 180),
+        #     f"{dataset_name}_P{position}_centroid_velocity_angles.png",
+        # ),
         (
             "time_hours",
             "centroid_velocity_magnitude",
