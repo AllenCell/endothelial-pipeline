@@ -225,11 +225,11 @@ def plot_seg_manifest_data(
         data=big_table_subset,
         x="time_hours",
         y="centroid_velocity_angle_deg",
-        binwidth=(0.5, 1),
+        binwidth=(0.5, 5),
         ax=ax,
     )
     ax.set_xlim(0, big_table_subset["time_hours"].max())
-    ax.set_ylim(0, 90)
+    ax.set_ylim(-180, 180)
     ax.set_title(f"{dataset_name} P{position}")
     ax.set_xlabel("Time (hours)")
     ax.set_ylabel("Centroid Velocity Orientation (deg)")
@@ -249,6 +249,7 @@ def plot_seg_manifest_data(
         x="time_hours",
         y="centroid_velocity_magnitude",
         binwidth=(0.5, None),  # type: ignore
+        log_scale=(False, True),
         ax=ax,
     )
     ax.set_xlim(0, big_table_subset["time_hours"].max())
