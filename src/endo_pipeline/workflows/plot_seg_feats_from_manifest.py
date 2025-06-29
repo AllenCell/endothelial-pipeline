@@ -57,7 +57,7 @@ def plot_per_position(
     return
 
 
-def plot_tracking_data(
+def plot_seg_manifest_data(
     big_table_subset: pd.DataFrame, dataset_name: str, position: int, out_dir: Path
 ) -> None:
     vel_mag_mean = big_table_subset["centroid_velocity_magnitude"].mean()
@@ -122,17 +122,17 @@ def plot_tracking_data(
         ),
         (
             "time_hours",
-            "centroid_velocity_angle_deg_rel_to_flow",
+            "centroid_velocity_angle_deg",
             "Time (hours)",
-            "Centroid Velocity Alignment (deg)",
-            (0, 90),
+            "Centroid Velocity Orientation (deg)",
+            (-180, 180),
             f"{dataset_name}_P{position}_centroid_velocity_angles.png",
         ),
         (
             "time_hours",
             "centroid_velocity_magnitude",
             "Time (hours)",
-            "Centroid Velocity Magnitude (px/frame)",
+            "Centroid Velocity Magnitude (um/minute)",
             (0, vel_mag_mean + 2 * vel_mag_std),
             f"{dataset_name}_P{position}_centroid_velocity_magnitudes.png",
         ),
@@ -144,22 +144,22 @@ def plot_tracking_data(
             (0, None),
             f"{dataset_name}_P{position}_num_nuclei.png",
         ),
-        (
-            "time_hours",
-            "nuc_pos_rel_cell_magnitude",
-            "Time (hours)",
-            "Distance Between Nuclei and Cell Centroid (px)",
-            (0, None),
-            f"{dataset_name}_P{position}_cell_nuc_dist.png",
-        ),
-        (
-            "time_hours",
-            "nuc_pos_rel_cell_angle_deg",
-            "Time (hours)",
-            "Nuclei-Cell Centroid Orientation (deg)",
-            (-180, 180),
-            f"{dataset_name}_P{position}_cell_nuc_orientation.png",
-        ),
+        # (
+        #     "time_hours",
+        #     "nuc_pos_rel_cell_magnitude",
+        #     "Time (hours)",
+        #     "Distance Between Nuclei and Cell Centroid (px)",
+        #     (0, None),
+        #     f"{dataset_name}_P{position}_cell_nuc_dist.png",
+        # ),
+        # (
+        #     "time_hours",
+        #     "nuc_pos_rel_cell_angle_deg",
+        #     "Time (hours)",
+        #     "Nuclei-Cell Centroid Orientation (deg)",
+        #     (-180, 180),
+        #     f"{dataset_name}_P{position}_cell_nuc_orientation.png",
+        # ),
     ]
     for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
         out_subdir_plots = out_dir / f"{y_key}/{dataset_name}"
@@ -190,6 +190,74 @@ def plot_tracking_data(
     plt.tight_layout()
     fig.savefig(
         out_subdir_plots / f"{dataset_name}_P{position}_alignments_violin.png",
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    # plot alignment vs time as a histogram instead of violinplot
+    out_subdir_plots = out_dir / f"alignment_hist/{dataset_name}"
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.histplot(
+        data=big_table_subset,
+        x="time_hours",
+        y="alignment_deg_rel_to_flow",
+        binwidth=(0.5, 1),
+        ax=ax,
+    )
+    ax.set_xlim(0, big_table_subset["time_hours"].max())
+    ax.set_ylim(0, 90)
+    ax.set_title(f"{dataset_name} P{position}")
+    ax.set_xlabel("Time (hours)")
+    ax.set_ylabel("Alignment (deg)")
+    plt.tight_layout()
+    fig.savefig(
+        out_subdir_plots / f"{dataset_name}_P{position}_alignments_hist.png",
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    # plot the centroid velocities over time as 2D histograms
+    out_subdir_plots = out_dir / f"cell_centroid_velocity_orientations/{dataset_name}"
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.histplot(
+        data=big_table_subset,
+        x="time_hours",
+        y="centroid_velocity_angle_deg",
+        binwidth=(0.5, 1),
+        ax=ax,
+    )
+    ax.set_xlim(0, big_table_subset["time_hours"].max())
+    ax.set_ylim(0, 90)
+    ax.set_title(f"{dataset_name} P{position}")
+    ax.set_xlabel("Time (hours)")
+    ax.set_ylabel("Centroid Velocity Orientation (deg)")
+    plt.tight_layout()
+    fig.savefig(
+        out_subdir_plots / f"{dataset_name}_P{position}_centroid_velocity_orientations_hist.png",
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    # plot the centroid velocities over time as 2D histograms
+    out_subdir_plots = out_dir / f"cell_centroid_velocity_magnitudes/{dataset_name}"
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.histplot(
+        data=big_table_subset,
+        x="time_hours",
+        y="centroid_velocity_magnitude",
+        binwidth=(0.5, None),  # type: ignore
+        ax=ax,
+    )
+    ax.set_xlim(0, big_table_subset["time_hours"].max())
+    ax.set_title(f"{dataset_name} P{position}")
+    ax.set_xlabel("Time (hours)")
+    ax.set_ylabel("Centroid Velocity Magnitude (um/minute)")
+    plt.tight_layout()
+    fig.savefig(
+        out_subdir_plots / f"{dataset_name}_P{position}_centroid_velocity_magnitudes_hist.png",
         bbox_inches="tight",
     )
     plt.close(fig)
@@ -244,6 +312,54 @@ def plot_tracking_data(
     )
     plt.close(fig)
 
+    # plot distribution orientations of nuclei
+    # centroids relative to cell centroids
+    out_subdir_plots = out_dir / f"nuc_rel_cell_centroid_angle/{dataset_name}"
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.histplot(
+        data=big_table_subset,
+        x="time_hours",
+        y="nuc_pos_rel_cell_angle_deg",
+        binwidth=(0.5, 5),
+        ax=ax,
+    )
+    ax.set_xlim(0, big_table_subset["time_hours"].max())
+    ax.set_ylim(-180, 180)
+    ax.set_title(f"{dataset_name} P{position}")
+    ax.set_xlabel("Time (hours)")
+    ax.set_ylabel("Nuclei-Cell Centroid Orientation (deg)")
+    plt.tight_layout()
+    fig.savefig(
+        out_subdir_plots / f"{dataset_name}_P{position}_cell_nuc_orientation.png",
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    # plot distribution magnitudes of nuclei
+    # centroids relative to cell centroids
+    out_subdir_plots = out_dir / f"nuc_rel_cell_centroid_magnitude/{dataset_name}"
+    out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots()
+    sns.histplot(
+        data=big_table_subset,
+        x="time_hours",
+        y="nuc_pos_rel_cell_magnitude",
+        binwidth=(0.5, None),  # type: ignore
+        log_scale=(False, True),
+        ax=ax,
+    )
+    ax.set_xlim(0, big_table_subset["time_hours"].max())
+    ax.set_title(f"{dataset_name} P{position}")
+    ax.set_xlabel("Time (hours)")
+    ax.set_ylabel("Distance Between Nuclei and Cell Centroid (px)")
+    plt.tight_layout()
+    fig.savefig(
+        out_subdir_plots / f"{dataset_name}_P{position}_cell_nuc_dist.png",
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
 
 def process_dataset(dataset_name: str, out_dir: Path) -> None:
     # load the segmentation features table
@@ -263,7 +379,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
         df_group = calculate_derived_data_dynamics_dependent(df_group)
 
         # make some plots
-        plot_tracking_data(
+        plot_seg_manifest_data(
             df_group,
             dataset_name=dataset_nm,
             position=pos,

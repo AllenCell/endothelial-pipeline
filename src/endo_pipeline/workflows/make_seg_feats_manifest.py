@@ -495,12 +495,18 @@ def calculate_derived_data_dynamics_dependent(
         big_table["centroid_dy_dt"], big_table["centroid_dx_dt"]
     )
     big_table["centroid_velocity_angle_deg"] = np.rad2deg(big_table["centroid_velocity_angle"])
-    big_table["centroid_velocity_angle_rel_to_flow"] = big_table[
-        "centroid_velocity_angle"
-    ].transform(lambda x: make_orientation_relative_to_flow(x))
-    big_table["centroid_velocity_angle_deg_rel_to_flow"] = np.rad2deg(
-        big_table["centroid_velocity_angle_rel_to_flow"]
-    )
+
+    # TODO THE METHOD BELOW FOR GETTING THE ANGLE RELATIVE
+    # TO FLOW IS INCORRECT SINCE THE ORIGIN AND RANGE
+    # OF big_table["centroid_velocity_angle"] IS DIFFERENT
+    # FROM THAT OF big_table["orientation"]...
+    # EITHER REMOVE OR CORRECT THEM!!!
+    # big_table["centroid_velocity_angle_rel_to_flow"] = big_table[
+    #     "centroid_velocity_angle"
+    # ].transform(lambda x: make_orientation_relative_to_flow(x))
+    # big_table["centroid_velocity_angle_deg_rel_to_flow"] = np.rad2deg(
+    #     big_table["centroid_velocity_angle_rel_to_flow"]
+    # )
 
     big_table["dalignment_dt_deg_rel_to_flow"] = (
         big_table["alignment_deg_rel_to_flow"].diff() / big_table["time_minutes"].diff()
