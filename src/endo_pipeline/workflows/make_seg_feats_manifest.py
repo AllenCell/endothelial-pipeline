@@ -434,12 +434,17 @@ def calculate_derived_data_dynamics_independent(
         big_table["nuc_pos_rel_cell_Y"], big_table["nuc_pos_rel_cell_X"]
     )
     big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
-    big_table["nuc_pos_rel_cell_angle_rel_to_flow"] = big_table["nuc_pos_rel_cell_angle"].transform(
-        lambda x: make_orientation_relative_to_flow(x)
-    )
-    big_table["nuc_pos_rel_cell_angle_deg_rel_to_flow"] = np.rad2deg(
-        big_table["nuc_pos_rel_cell_angle_rel_to_flow"]
-    )
+    # TODO THE METHOD BELOW FOR GETTING THE ANGLE RELATIVE
+    # TO FLOW IS INCORRECT SINCE THE ORIGIN AND RANGE
+    # OF big_table["nuc_pos_rel_cell_angle"] IS DIFFERENT
+    # FROM THAT OF big_table["orientation"]...
+    # EITHER REMOVE OR CORRECT THEM!!!
+    # big_table["nuc_pos_rel_cell_angle_rel_to_flow"] = big_table["nuc_pos_rel_cell_angle"].transform(
+    #     lambda x: make_orientation_relative_to_flow(x)
+    # )
+    # big_table["nuc_pos_rel_cell_angle_deg_rel_to_flow"] = np.rad2deg(
+    #     big_table["nuc_pos_rel_cell_angle_rel_to_flow"]
+    # )
 
     return big_table
 
@@ -634,6 +639,12 @@ def restrict_orientation_to_positive(orientation: float) -> float:
 
 
 def make_orientation_relative_to_flow(orientation: float) -> float:
+    """
+    Changes 0 degrees from being the positive Y-axis (up)
+    to being the positive X-axis (to the right).
+    Also adjusts the range of possible angles from being
+    between -pi/2 and pi/2 to being between 0 and pi/2.
+    """
     # you can visualize this process as folding a paper circle in half
     # (the top half) and then rotating this half circle 90 degrees to
     # the right, and then folding it in half again so you are only

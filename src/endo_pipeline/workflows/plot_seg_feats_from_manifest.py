@@ -150,15 +150,15 @@ def plot_tracking_data(
             "Time (hours)",
             "Distance Between Nuclei and Cell Centroid (px)",
             (0, None),
-            f"{dataset_name}_P{position}_num_nuclei.png",
+            f"{dataset_name}_P{position}_cell_nuc_dist.png",
         ),
         (
             "time_hours",
-            "nuc_pos_rel_cell_angle_deg_rel_to_flow",
+            "nuc_pos_rel_cell_angle_deg",
             "Time (hours)",
-            "Nuclei-Cell Centroid Alignment (deg)",
-            (0, 90),
-            f"{dataset_name}_P{position}_num_nuclei.png",
+            "Nuclei-Cell Centroid Orientation (deg)",
+            (-180, 180),
+            f"{dataset_name}_P{position}_cell_nuc_orientation.png",
         ),
     ]
     for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
