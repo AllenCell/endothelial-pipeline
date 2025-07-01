@@ -40,7 +40,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     output_dir = Path(__file__).resolve().parents[3] / "results"
 
     if include_timestamp:
-        timestamp = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d")
+        timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
         output_path = Path(output_dir, timestamp, Path(workflow_name).stem, *subdirs)
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
