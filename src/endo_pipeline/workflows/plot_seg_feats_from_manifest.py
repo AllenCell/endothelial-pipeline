@@ -39,8 +39,9 @@ def plot_per_position(
     ), f'Only a single position allowed in df_group, position found: {df_group["position"].unique()}'
     position = df_group["position"].unique()[0]
 
-    ax_height = 6
-    ax_width = 6 * (1 + 5 ** (1 / 2)) / 2
+    # set the plot shape to the golden ratio
+    ax_height = 3
+    ax_width = ax_height * (1 + 5 ** (1 / 2)) / 2
 
     fig, ax = plt.subplots(nrows=num_positions, figsize=(ax_width, ax_height * num_positions))
     ax.set_title(f"{dataset_name} P{position}")
