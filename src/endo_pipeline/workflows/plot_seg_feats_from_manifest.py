@@ -17,6 +17,10 @@ from src.endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
 
+# set the plot shape to the golden ratio
+AX_HEIGHT = 3
+AX_WIDTH = AX_HEIGHT * (1 + 5 ** (1 / 2)) / 2
+
 
 def plot_per_position(
     df_group: pd.DataFrame,
@@ -39,11 +43,7 @@ def plot_per_position(
     ), f'Only a single position allowed in df_group, position found: {df_group["position"].unique()}'
     position = df_group["position"].unique()[0]
 
-    # set the plot shape to the golden ratio
-    ax_height = 3
-    ax_width = ax_height * (1 + 5 ** (1 / 2)) / 2
-
-    fig, ax = plt.subplots(nrows=num_positions, figsize=(ax_width, ax_height * num_positions))
+    fig, ax = plt.subplots(nrows=num_positions, figsize=(AX_WIDTH, AX_HEIGHT * num_positions))
     ax.set_title(f"{dataset_name} P{position}")
     sns.lineplot(data=df_group, x=x_key, y=y_key, ax=ax)
     ax.set_xlabel(x_label)
@@ -198,7 +198,7 @@ def plot_seg_manifest_data(
     # plot alignment vs time as a histogram instead of violinplot
     out_subdir_plots = out_dir / f"alignment_hist/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
         data=big_table_subset,
         x="time_hours",
@@ -221,7 +221,7 @@ def plot_seg_manifest_data(
     # plot the centroid velocities over time as 2D histograms
     out_subdir_plots = out_dir / f"cell_centroid_velocity_orientations/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
         data=big_table_subset,
         x="time_hours",
@@ -250,7 +250,7 @@ def plot_seg_manifest_data(
     # plot the centroid velocities over time as 2D histograms
     out_subdir_plots = out_dir / f"cell_centroid_velocity_magnitudes/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
         data=big_table_subset,
         x="time_hours",
@@ -273,7 +273,7 @@ def plot_seg_manifest_data(
     # plot alignment vs change in alignment over time
     out_subdir_plots = out_dir / f"alignment_phase/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.scatterplot(
         data=big_table_subset,
         x="alignment_deg_rel_to_flow",
@@ -298,7 +298,7 @@ def plot_seg_manifest_data(
     # plot alignment vs time with track_id as hue
     out_subdir_plots = out_dir / f"alignments_by_track/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.scatterplot(
         data=big_table_subset,
         x="time_hours",
@@ -324,7 +324,7 @@ def plot_seg_manifest_data(
     # centroids relative to cell centroids
     out_subdir_plots = out_dir / f"nuc_rel_cell_centroid_angle/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
         data=big_table_subset,
         x="time_hours",
@@ -354,7 +354,7 @@ def plot_seg_manifest_data(
     # centroids relative to cell centroids
     out_subdir_plots = out_dir / f"nuc_rel_cell_centroid_magnitude/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
         data=big_table_subset,
         x="time_hours",
