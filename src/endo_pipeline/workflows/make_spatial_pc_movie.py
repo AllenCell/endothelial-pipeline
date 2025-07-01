@@ -149,7 +149,7 @@ def get_feats(
     # apply model with specified overlap
     overrides.update({"model.spatial_inferer.splitter.overlap": overlap})
     feats_path = apply_model_single(
-        model_name,
+        load_single_model_config(model_name),
         dataset_name,
         resolution_level=resolution_level,
         overrides=overrides,

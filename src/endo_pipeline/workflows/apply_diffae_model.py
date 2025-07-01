@@ -9,7 +9,8 @@ from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
-    ModelManifest,
+    ModelConfig,
+    add_model_manifest,
     get_available_dataset_names,
     load_single_model_config,
     save_model_config,
@@ -100,13 +101,13 @@ def update_prediction_with_meta(
 
 
 def apply_model_single(
-    model_name: str,
+    model_config: ModelConfig,
     dataset_name: str,
     resolution_level: int = 0,
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     overrides: str | dict | None = None,
-):
+) -> Path:
     """
     Apply a DiffAE model to a single dataset.
 
@@ -129,8 +130,8 @@ def apply_model_single(
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
     # download model from mlflow
-    mlflow_id = load_single_model_config(model_name).mlflow_run_id
-    model_path = Path(get_output_path(f"models/{model_name}"))
+    mlflow_id = model_config.mlflow_run_id
+    model_path = Path(get_output_path(f"models/{model_config.name}"))
     path_dict = download_model(mlflow_id, model_path)
 
     save_path = save_path or model_path / dataset_name
@@ -149,7 +150,7 @@ def apply_model_single(
         data_path=data_path,
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_name,
-        model_name=model_name,
+        model_name=model_config.name,
     )
     model.override_config(overrides)
     model.predict()
@@ -157,7 +158,7 @@ def apply_model_single(
 
     prediction_path = update_prediction_with_meta(
         dataset_name=dataset_name,
-        model_name=model_name,
+        model_name=model_config.name,
         crop_size=crop_size,
         mlflow_id=mlflow_id,
         save_path=save_path,
@@ -174,17 +175,9 @@ def apply_model_single(
 
         # update model config with the FMS ID
         # of the prediction file
-        model_manifest = ModelManifest(
-            dataset_name=dataset_name,
-            fmsid=file_id,
-        )
-        model_config = load_single_model_config(model_name)
-        manifest_fmsids = model_config.manifest_fmsids
-        if manifest_fmsids is None:
-            manifest_fmsids = [model_manifest]
-        else:
-            manifest_fmsids.append(model_manifest)
-        model_config.manifest_fmsids = manifest_fmsids
+        model_config = add_model_manifest(dataset_name, file_id, model_config)
+
+        # save updated model config
         save_model_config(model_config)
 
     return prediction_path
@@ -239,7 +232,7 @@ def apply_model(
             dataset_names = [dataset_names]
     for name in dataset_names:
         apply_model_single(
-            model_name=model_name,
+            model_config=load_single_model_config(model_name),
             dataset_name=name,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,

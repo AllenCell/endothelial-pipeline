@@ -555,15 +555,6 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
-@deprecated(
-    """
-    This function is deprecated and will be removed in a future version.
-
-    The preferred method is to use a DatasetConfig object directly instead
-    of a dataset name. Then the valid timepoints can be accessed using:
-    `dataset_config.valid_timepoints`
-"""
-)
 def get_valid_timepoints(dataset_name: str) -> dict:
     """
     Get the frames marked for use in DiffAE feature

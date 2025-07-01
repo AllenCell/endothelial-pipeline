@@ -1,10 +1,40 @@
 import logging
 
-from .dataset_config_io import get_available_dataset_names, load_all_dataset_configs
+from .dataset_config_io import load_single_dataset_config
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import load_single_model_config
 
 logger = logging.getLogger(__name__)
+
+
+def add_model_manifest(dataset_name: str, fmsid: str, model_config: ModelConfig) -> ModelConfig:
+    """
+    Add a model manifest to the model configuration.
+
+    Inputs:
+    - dataset_name: str, name of the dataset
+    - fmsid: str, FMS ID of the manifest file
+    - model_config: ModelConfig, configuration of the model
+
+    Outputs:
+    - ModelConfig, updated with the new manifest
+    """
+
+    # build a ModelManifest object
+    add_model_manifest = ModelManifest(
+        dataset_name=dataset_name,
+        fmsid=fmsid,
+    )
+
+    # add the manifest to the model config
+    manifest_fmsids = model_config.manifest_fmsids
+    if manifest_fmsids is None:
+        manifest_fmsids = []
+    manifest_fmsids.append(add_model_manifest)
+    model_config.manifest_fmsids = manifest_fmsids
+
+    # return the updated model config
+    return model_config
 
 
 def get_model_manifest(dataset_name: str, model_config: ModelConfig) -> ModelManifest:
@@ -47,31 +77,34 @@ def list_datasets_with_model_manifest(
     List all dataset names that have manifest data
     for a given model.
     """
-    all_datasets = get_available_dataset_names()
-
-    if verbose:
-        if timelapse_only:
-            print(f"Available timelapse datasets with {model_name} manifest data: ")
-        else:
-            print(f"Available datasets with {model_name} manifest data: ")
+    model_manifest = load_single_model_config(model_name).manifest_fmsids
     dataset_list = []
-    all_datasets = load_all_dataset_configs()
-    for dataset_info in all_datasets:
+
+    # if model_manifest is None, return an empty list
+    if model_manifest is None:
+        logger.warning("No manifest fmsids found for model [ %s ]", model_name)
+        return dataset_list
+
+    # else, loop through the model_manifest
+    for manifest in model_manifest:
+        dataset_name = manifest.dataset_name
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
-        time_interval_in_minutes = dataset_info.time_interval_in_minutes
+        time_interval_in_minutes = load_single_dataset_config(dataset_name).time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
+
+        # add the dataset name to the list
+        # if verbose, print the dataset name
+        dataset_list.append(dataset_name)
+
+    # if verbose, log the dataset names
+    if verbose:
+        if timelapse_only:
+            logger.info("Timelapse datasets with manifest data for model [ %s ]:", model_name)
         else:
-            # this will throw an error if the manifest is not found
-            try:
-                model_config = load_single_model_config(model_name)
-                model_manifest = get_model_manifest(dataset_info.name, model_config)
-            except:
-                model_manifest = None
-        if model_manifest is not None:
-            dataset_list.append(dataset_info.name)
-            if verbose:
-                print(f" - {dataset_info.name}")
+            logger.info("All datasets with manifest data for model [ %s ]:", model_name)
+        logger.info("\n".join(dataset_list))
+
     return dataset_list

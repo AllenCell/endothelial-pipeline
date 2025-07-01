@@ -11,7 +11,7 @@ from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
     ModelConfig,
-    ModelManifest,
+    add_model_manifest,
     load_single_model_config,
     save_model_config,
 )
@@ -86,16 +86,7 @@ def add_fmsid_to_config(
 
     # update model config with the FMS ID
     # of the prediction file
-    model_manifest = ModelManifest(
-        dataset_name=dataset_name,
-        fmsid=file_id,
-    )
-    manifest_fmsids = model_config.manifest_fmsids
-    if manifest_fmsids is None:
-        manifest_fmsids = [model_manifest]
-    else:
-        manifest_fmsids.append(model_manifest)
-    model_config.manifest_fmsids = manifest_fmsids
+    model_config = add_model_manifest(dataset_name, file_id, model_config)
     save_model_config(model_config)
     return model_config
 
