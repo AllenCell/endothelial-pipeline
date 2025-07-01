@@ -206,6 +206,7 @@ def plot_seg_manifest_data(
         binwidth=(0.5, 1),
         ax=ax,
     )
+    ax.set_yticks(range(0, 91, 15))
     ax.set_xlim(0, big_table_subset["time_hours"].max())
     ax.set_ylim(0, 90)
     ax.set_title(f"{dataset_name} P{position}")
@@ -235,6 +236,7 @@ def plot_seg_manifest_data(
         ax.axhline(ang, color="black", linestyle="--", linewidth=1)
     for ang in perpendicular_angles:
         ax.axhline(ang, color="black", linestyle=":", linewidth=1)
+    ax.set_yticks(range(-180, 181, 90))
     ax.set_xlim(0, big_table_subset["time_hours"].max())
     ax.set_ylim(-180, 180)
     ax.set_title(f"{dataset_name} P{position}")
@@ -338,6 +340,7 @@ def plot_seg_manifest_data(
         ax.axhline(ang, color="black", linestyle="--", linewidth=1)
     for ang in perpendicular_angles:
         ax.axhline(ang, color="black", linestyle=":", linewidth=1)
+    ax.set_yticks(range(-180, 181, 90))
     ax.set_xlim(0, big_table_subset["time_hours"].max())
     ax.set_ylim(-180, 180)
     ax.set_title(f"{dataset_name} P{position}")
