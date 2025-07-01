@@ -229,6 +229,12 @@ def plot_seg_manifest_data(
         binwidth=(0.5, 5),
         ax=ax,
     )
+    parallel_angles = [-180, 0, 180]
+    perpendicular_angles = [-90, 90]
+    for ang in parallel_angles:
+        ax.axhline(ang, color="black", linestyle="--", linewidth=1)
+    for ang in perpendicular_angles:
+        ax.axhline(ang, color="black", linestyle=":", linewidth=1)
     ax.set_xlim(0, big_table_subset["time_hours"].max())
     ax.set_ylim(-180, 180)
     ax.set_title(f"{dataset_name} P{position}")
@@ -326,6 +332,12 @@ def plot_seg_manifest_data(
         binwidth=(0.5, 5),
         ax=ax,
     )
+    parallel_angles = [-180, 0, 180]
+    perpendicular_angles = [-90, 90]
+    for ang in parallel_angles:
+        ax.axhline(ang, color="black", linestyle="--", linewidth=1)
+    for ang in perpendicular_angles:
+        ax.axhline(ang, color="black", linestyle=":", linewidth=1)
     ax.set_xlim(0, big_table_subset["time_hours"].max())
     ax.set_ylim(-180, 180)
     ax.set_title(f"{dataset_name} P{position}")
