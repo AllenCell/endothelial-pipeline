@@ -125,6 +125,27 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract zarr path from data config and add it
+    as its own column to the dataframe.
+    Note that df must be a DataFrame containing
+    manifest data from a single dataset.
+
+    This is needed for the current manifests loaded
+    via manifest_io.load_manifest_to_df().
+    """
+    # load config for the dataset
+    ds_config = load_single_dataset_config(df["dataset"].iloc[0])
+    # get zarr path for the dataset from config
+    zarr_path = ds_config.zarr_path
+    # get last part of the zarr path (date_fmsid)
+    name_fmsid = zarr_path.split("/")[-1]
+    # add zarr path for each FOV as column
+    df["zarr_path"] = df.position.apply(lambda x: f"{zarr_path}/{name_fmsid}_{x}.ome.zarr")
+    return df
+
+
 def project_manifest_to_pcs(
     df: pd.DataFrame,
     pca: Pipeline,

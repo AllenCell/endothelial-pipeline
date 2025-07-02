@@ -6,8 +6,6 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import (
-    ModelConfig,
-    ModelManifest,
     dataset_io,
     get_available_dataset_names,
     load_all_dataset_configs,
