@@ -22,9 +22,9 @@ from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
 
 # %%
 def main(
-    list_of_datasets: str | list[str] | None = None,
+    dataset_names: str | list[str] | None = None,
     pc_axis: int = 1,
-    pc_val: float = 0.5,
+    pc_val: float = 0.25,
     frame_range: list = [250, 300],
 ) -> None:
     """
@@ -73,16 +73,16 @@ def main(
     # if directory does not exist, get_output_path function will create it
     workflow_fig_folder = f"{workflow_name}/figs"
     fig_savedir = get_output_path(workflow_fig_folder)
-    orig_crop_savedir = get_output_path(fig_savedir + "original_crops")
-    recon_crop_savedir = get_output_path(fig_savedir + "reconstructed_crops")
 
-    if isinstance(list_of_datasets, str):
-        list_of_datasets = [list_of_datasets]
-    elif list_of_datasets is None:
+    if isinstance(dataset_names, str):
+        list_of_datasets = [dataset_names]
+    elif dataset_names is None:
         list_of_datasets = manifest_io.list_datasets_with_manifest(
             "diffae_manifest_fmsid", verbose=True, timelapse_only=True
         )
         list_of_datasets = [name for name in list_of_datasets if "mito" not in name]
+    else:
+        list_of_datasets = dataset_names
 
     num_bins = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
@@ -125,10 +125,6 @@ def main(
             + f"{frame_range[0]} and {frame_range[1]}: {num_filtered_points}"
         )
 
-        # for now, only save out up to 10 (testing workflow)
-        if num_filtered_points > 12:
-            print(f"Number of crops in bin exceeds 12, limiting to 12 for testing")
-            num_filtered_points = 12
         # get the first num_filtered_points coordinates from the dataframe
         df_filtered = df_filtered.iloc[:num_filtered_points]
 
@@ -143,8 +139,7 @@ def main(
         # get and save out crops corresponding to
         # the rows in the filtered dataframe
         original_crop_list = get_original_crops_in_dataframe(
-            df_filtered,
-            orig_crop_savedir,
+            df_filtered, orig_crop_savedir, save_crops=False
         )
 
         fig, _ = plot_crop_montage(original_crop_list)
