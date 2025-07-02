@@ -7,6 +7,19 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+def get_output_dir() -> Path:
+    """
+    Get path to output directory.
+
+    Returns
+    -------
+    :
+        Path object for output directory.
+    """
+
+    return Path(__file__).resolve().parents[3] / "results"
+
+
 def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool = True) -> Path:
     """
     Create output directory for given workflow.
@@ -34,10 +47,10 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     Returns
     -------
     :
-        Path object for output
+        Path object for output.
     """
 
-    output_dir = Path(__file__).resolve().parents[3] / "results"
+    output_dir = get_output_dir()
 
     if include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
