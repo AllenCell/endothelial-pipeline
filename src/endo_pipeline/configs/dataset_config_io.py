@@ -32,10 +32,10 @@ def validate_all_dataset_configs() -> None:
     dataset_names = get_available_dataset_names()
 
     for dataset_name in dataset_names:
-        validate_single_dataset_config(dataset_name)
+        validate_dataset_config(dataset_name)
 
 
-def validate_single_dataset_config(dataset_name: str) -> None:
+def validate_dataset_config(dataset_name: str) -> None:
     """Validate given dataset config against defined schema."""
 
     config_dir = get_dataset_config_dir()

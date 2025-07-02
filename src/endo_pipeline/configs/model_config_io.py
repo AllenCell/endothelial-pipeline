@@ -32,10 +32,10 @@ def validate_all_model_configs() -> None:
     model_names = get_available_model_names()
 
     for model_name in model_names:
-        validate_single_model_config(model_name)
+        validate_model_config(model_name)
 
 
-def validate_single_model_config(model_name: str) -> None:
+def validate_model_config(model_name: str) -> None:
     """Validate given model config against defined schema."""
 
     config_dir = get_model_config_dir()
