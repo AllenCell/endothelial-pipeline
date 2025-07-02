@@ -11,7 +11,7 @@ from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
-    load_single_dataset_config,
+    load_dataset_config,
     load_single_model_config,
     save_dataset_config,
 )
@@ -95,7 +95,7 @@ def centroid_to_bbox(df: pd.DataFrame):
 
 def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = load_single_dataset_config(dataset_name).tracking_integration_fmsid
+    fms_id = load_dataset_config(dataset_name).tracking_integration_fmsid
     df = get_dataframe_by_fmsid(fms_id)
     # convert centroids to bounding boxes
     df = centroid_to_bbox(df)
@@ -208,7 +208,7 @@ def apply_model_single(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset_config(dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
         dataset_config.diffae_tracking_integration_fmsid = file_id
         save_dataset_config(dataset_config)
 

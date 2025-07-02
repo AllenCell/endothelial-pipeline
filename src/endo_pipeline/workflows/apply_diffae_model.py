@@ -11,7 +11,7 @@ from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
     get_available_dataset_names,
-    load_single_dataset_config,
+    load_dataset_config,
     load_single_model_config,
     save_dataset_config,
 )
@@ -174,7 +174,7 @@ def apply_model_single(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset_config(dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
         dataset_config.diffae_manifest_fmsid = file_id
         save_dataset_config(dataset_config)
 

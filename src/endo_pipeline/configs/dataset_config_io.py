@@ -57,7 +57,7 @@ def load_all_dataset_configs() -> list[DatasetConfig]:
 
     dataset_names = get_available_dataset_names()
 
-    datasets = [load_single_dataset_config(name) for name in dataset_names]
+    datasets = [load_dataset_config(name) for name in dataset_names]
     logger.info("Loaded all available datasets [ %s ]", " | ".join(dataset_names))
 
     return datasets
@@ -75,7 +75,7 @@ def load_reference_dataset_configs() -> list[DatasetConfig]:
     return reference_datasets
 
 
-def load_single_dataset_config(dataset_name: str) -> DatasetConfig:
+def load_dataset_config(dataset_name: str) -> DatasetConfig:
     """Load single dataset config by name."""
 
     config_dir = get_dataset_config_dir()

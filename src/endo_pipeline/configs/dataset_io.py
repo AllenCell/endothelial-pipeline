@@ -91,7 +91,7 @@ for all datasets, use:
 
 If you need the config for a single dataset, use:
 
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 If you need only need dataset names, use:
 
@@ -201,7 +201,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    Individual dataset(s) can then be loaded with:
 
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 2. If you want to load all available datasets, use the following method to load
    configs for all available datasets:
@@ -248,7 +248,7 @@ is directly from loaded DatasetConfig objects. These configs can be loaded using
 one of the following:
 
         configs.load_all_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
         configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
