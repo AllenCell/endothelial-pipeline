@@ -1,8 +1,11 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
+from bioio.writers import OmeTiffWriter
 
+from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_single_model_config
 from src.endo_pipeline.library.model.mlflow import load_mlflow_model
@@ -77,3 +80,36 @@ def generate_from_coords_batch(
     walk_imgs = np.split(img, len(coords_batch))
 
     return walk_imgs
+
+
+def get_reconstructed_crops_in_dataframe(df: pd.DataFrame, output_dir: Path) -> None:
+    """
+    Reconstruct crops from each latent coordinate
+    given in the input dataframe.
+    """
+    # get coordinates (feature columns) from the dataframe,
+    # convert to list of lists for input into DiffAE model
+    num_points = df.shape[0]
+    latent_coords = []
+    feat_cols = manifest_io.get_feature_cols(df)
+    for i in range(num_points):
+        latent_coords.append(df[feat_cols].iloc[i].tolist())
+
+    # pass into DiffAE model to generate reconstructed crops
+    walk_img = generate_from_coords_batch(
+        "diffae_04_10", latent_coords
+    )  # output is a numpy array: (# coords x 128 x 128), greyscale image
+
+    # save out each image in the array as a tiff
+    for i in range(num_points):
+        # get dataset name frame number, position, and crop index from the dataframe
+        ds_name = df["dataset"].iloc[i]
+        frame_number = df["frame_number"].iloc[i]
+        position = df["position"].iloc[i]
+        crop_index = df["crop_index"].iloc[i]
+        # filename convention same as get_crops_in_dataframe
+        filename = f"{ds_name}_{position}_T{frame_number}_crop_{crop_index}.tiff"
+        # save out the reconstructed image
+        OmeTiffWriter.save(walk_img[i], output_dir + filename, overwrite=True)
+
+    return walk_img
