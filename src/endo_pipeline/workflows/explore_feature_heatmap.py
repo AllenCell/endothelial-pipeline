@@ -1,5 +1,6 @@
 # %%
 import fire
+import matplotlib.pyplot as plt
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
@@ -18,10 +19,14 @@ from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
     plot_principal_component_histogram,
 )
 
+
 # %%
-
-
-def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 300]):
+def main(
+    list_of_datasets: str | list[str] | None = None,
+    pc_axis: int = 1,
+    pc_val: float = 0.5,
+    frame_range: list = [250, 300],
+) -> None:
     """
     Main function to run the PC heatmap workflow.
     For each dataset with Diff AE manifest data, this function:
@@ -37,7 +42,7 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
                     (saves .csv file out to .results/crop_visualization/outputs/)
 
     Inputs:
-    - pc_to_explore: int
+    - pc_axis: int
         The principal component to filter by (0-indexed).
         For example, if you want to filter by a particular value of
           the 2nd PC, set this to 1.
@@ -71,10 +76,13 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
     orig_crop_savedir = get_output_path(fig_savedir + "original_crops")
     recon_crop_savedir = get_output_path(fig_savedir + "reconstructed_crops")
 
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", verbose=True, timelapse_only=True
-    )
-    list_of_datasets = [name for name in list_of_datasets if "mito" not in name]
+    if isinstance(list_of_datasets, str):
+        list_of_datasets = [list_of_datasets]
+    elif list_of_datasets is None:
+        list_of_datasets = manifest_io.list_datasets_with_manifest(
+            "diffae_manifest_fmsid", verbose=True, timelapse_only=True
+        )
+        list_of_datasets = [name for name in list_of_datasets if "mito" not in name]
 
     num_bins = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
@@ -88,21 +96,21 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
         # get manifest data with crop index column added
         # but not projected to PCA space (keep original feature space)
         df = get_manifest_for_dynamics_workflows(ds_name, pca=pca, filter_to_valid=False)
-        hist_array, bin_edges, df = component_heatmaps.get_histogram_by_component(
+
+        # get heatmap data for the first 3 PCs over time
+        _, bin_edges, df = component_heatmaps.get_histogram_by_component(
             df, num_bins, bin_limits=bin_limits, feat_cols=manifest_io.get_feature_cols(df)[:3]
         )
 
         # plot histogram of PCs for each component
-        fig, _ = plot_principal_component_histogram(hist_array, bin_edges)
-        fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir + f"{ds_name}_pc_histogram")
+        # fig, _ = plot_principal_component_histogram(hist_array, bin_edges)
+        # fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)
+        # viz_base.save_plot(fig, fig_savedir + f"{ds_name}_pc_histogram")
 
-        if ds_name != "20250319_20X":
-            continue
         # get dataframe of crops with bin_{latent_dim} == bin_index(latent_val),
         # where bin_index is the index of the bin that contains latent_val
         # in the bin edges over the given latent dimension
-        df_filtered = component_heatmaps.get_df_by_bin_value(df, pc_to_explore, pc_val, bin_edges)
+        df_filtered = component_heatmaps.get_df_by_bin_value(df, pc_axis, pc_val, bin_edges)
 
         # select timepoints within the given range
         df_filtered = df_filtered[
@@ -112,7 +120,7 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
 
         num_filtered_points = df_filtered.shape[0]
         print(
-            f"Number of crops in bin along PC {pc_to_explore+1} "
+            f"Number of crops in bin along PC{pc_axis+1} "
             + f"containing value {pc_val} between frames "
             + f"{frame_range[0]} and {frame_range[1]}: {num_filtered_points}"
         )
@@ -125,7 +133,12 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
         df_filtered = df_filtered.iloc[:num_filtered_points]
 
         # save out dataframe to csv
-        df_filtered.to_csv(output_savedir + f"{ds_name}_dataframe.csv")
+        df_filtered.to_csv(
+            output_savedir
+            + f"{ds_name}_dataframe_PC{pc_axis+1}_val"
+            + "p".join(str(pc_val).split("."))
+            + ".csv"
+        )
 
         # get and save out crops corresponding to
         # the rows in the filtered dataframe
@@ -135,7 +148,16 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
         )
 
         fig, _ = plot_crop_montage(original_crop_list)
-        viz_base.save_plot(fig, fig_savedir + f"{ds_name}_original_crops_montage")
+        fig.suptitle(f"Dataset: {ds_name}, PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=25)
+        plt.tight_layout()
+        plt.show()
+        viz_base.save_plot(
+            fig,
+            fig_savedir
+            + f"{ds_name}_original_crops_montage_"
+            + f"PC{pc_axis+1}_val"
+            + "p".join(str(pc_val).split(".")),
+        )
 
         # get and save out reconstructed crops
         # corresponding to the rows in the filtered dataframe
