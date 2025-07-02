@@ -14,7 +14,7 @@ from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,
     load_all_model_configs,
-    load_single_model_config,
+    load_model_config,
     save_model_config,
     validate_all_model_configs,
     validate_single_model_config,
