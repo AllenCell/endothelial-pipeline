@@ -1,3 +1,4 @@
+# %%
 import fire
 
 from cellsmap.util import manifest_io
@@ -12,6 +13,7 @@ from src.endo_pipeline.library.model.diffae.generate_image import (
 )
 from src.endo_pipeline.library.process.get_images import get_original_crops_in_dataframe
 from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.visualize.crop_montage import plot_crop_montage
 from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
     plot_principal_component_histogram,
 )
@@ -110,9 +112,9 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
         )
 
         # for now, only save out up to 10 (testing workflow)
-        if num_filtered_points > 10:
-            print(f"Number of crops in bin exceeds 10, limiting to 10 for testing")
-            num_filtered_points = 10
+        if num_filtered_points > 12:
+            print(f"Number of crops in bin exceeds 12, limiting to 12 for testing")
+            num_filtered_points = 12
         # get the first num_filtered_points coordinates from the dataframe
         df_filtered = df_filtered.iloc[:num_filtered_points]
 
@@ -121,14 +123,17 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
 
         # get and save out crops corresponding to
         # the rows in the filtered dataframe
-        get_original_crops_in_dataframe(
+        original_crop_list = get_original_crops_in_dataframe(
             df_filtered,
             orig_crop_savedir,
         )
 
+        fig, _ = plot_crop_montage(original_crop_list)
+        viz_base.save_plot(fig, fig_savedir + f"{ds_name}_original_crops_montage")
+
         # get and save out reconstructed crops
         # corresponding to the rows in the filtered dataframe
-        # get_reconstructed_crops_in_dataframe(
+        # reconstructed_crop_array = get_reconstructed_crops_in_dataframe(
         #     df_filtered,
         #     recon_crop_savedir,
         #     )
