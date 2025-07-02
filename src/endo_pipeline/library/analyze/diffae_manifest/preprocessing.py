@@ -190,7 +190,11 @@ def project_manifest_to_pcs(
     return df_
 
 
-def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = None) -> pd.DataFrame:
+def get_manifest_for_dynamics_workflows(
+    ds_name: str,
+    pca: Pipeline | None = None,
+    filter_to_valid: bool = True,
+) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
     in the stochastic dynamics workflow. Adds crop index column to DataFrame,
@@ -213,7 +217,7 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = Non
     """
     # load manifest data for dataset ds_name
     # and filter to only valid timepoints
-    df = manifest_io.get_diffae_manifest(ds_name, filter_to_valid=True)
+    df = manifest_io.get_diffae_manifest(ds_name, filter_to_valid=filter_to_valid)
 
     # add crop index column
     df = add_crop_index(df)

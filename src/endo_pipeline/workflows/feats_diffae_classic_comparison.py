@@ -28,6 +28,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.analyze.numerics.component_heatmaps import get_3d_bounds_from_data
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_quiver_slices,
@@ -518,7 +519,7 @@ def main() -> None:
         )
 
         # use the full set of datasets to be analyzed for the bounds
-        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
+        bounds = get_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
 
         print("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(

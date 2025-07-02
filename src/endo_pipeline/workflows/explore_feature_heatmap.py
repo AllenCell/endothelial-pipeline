@@ -18,8 +18,9 @@ from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
     plot_principal_component_histogram,
 )
 
-
 # %%
+
+
 def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 300]):
     """
     Main function to run the PC heatmap workflow.
@@ -70,20 +71,25 @@ def main(pc_to_explore: int = 3, pc_val: float = 0.5, frame_range: list = [250, 
     orig_crop_savedir = get_output_path(fig_savedir + "original_crops")
     recon_crop_savedir = get_output_path(fig_savedir + "reconstructed_crops")
 
-    list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
+    list_of_datasets = manifest_io.list_datasets_with_manifest(
+        "diffae_manifest_fmsid", verbose=True, timelapse_only=True
+    )
+    list_of_datasets = [name for name in list_of_datasets if "mito" not in name]
 
     num_bins = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
     pca = fit_pca()
-    bin_limits = component_heatmaps.set_8d_bounds_from_data(list_of_datasets, pca)
+    bin_limits = component_heatmaps.get_3d_bounds_from_data(
+        list_of_datasets, pca, col_names="feat", filter_to_valid=False
+    )
 
     for ds_name in list_of_datasets:
         print(f"Processing dataset: {ds_name}")
         # get manifest data with crop index column added
         # but not projected to PCA space (keep original feature space)
-        df = get_manifest_for_dynamics_workflows(ds_name, pca=None)
+        df = get_manifest_for_dynamics_workflows(ds_name, pca=pca, filter_to_valid=False)
         hist_array, bin_edges, df = component_heatmaps.get_histogram_by_component(
-            df, num_bins, bin_limits=bin_limits[:3], feat_cols=manifest_io.get_feature_cols(df)[:3]
+            df, num_bins, bin_limits=bin_limits, feat_cols=manifest_io.get_feature_cols(df)[:3]
         )
 
         # plot histogram of PCs for each component

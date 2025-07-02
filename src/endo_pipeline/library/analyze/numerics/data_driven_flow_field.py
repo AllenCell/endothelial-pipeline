@@ -9,74 +9,8 @@ from sklearn.pipeline import Pipeline
 import cellsmap.util.manifest_io as manifest_io
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.numerics.component_heatmaps import get_3d_bounds_from_data
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
-
-
-def set_3d_bounds_from_data(
-    list_of_datasets: list[str],
-    pca: Pipeline,
-    col_names: Literal["pc", "feat"] = "pc",
-) -> list[np.ndarray]:
-    """
-    Set bounds for 3D state space based on the bounds
-    of the features in the datasets. The 3D state space
-    is based on the first three principal components
-    of the input pca Pipeline object, which is fit
-    on a fixed set of reference datasets.
-
-    Inputs:
-    - list_of_datasets: list of dataset names to use
-    - pca: PCA model to use for transforming the data
-    - col_names: which columns to use for bounds
-        - "pc": data is coming from a workflow where
-            the column names have been re-named to
-            reflect that the features are projected
-            onto the first three principal components
-            (i.e., column names in df pc1, pc2, pc3)
-        - "feat": data is coming from a workflow where
-            the column names are the original feature names
-            and the data have been over-written with the
-            features projected onto the full set of
-            principal components (i.e., column name feat_i
-            indicates projection onto the i-th principal component)
-        - this input will become deprecated in the future,
-            when the dataframes will always clearly label
-            what is an original feature and what is a
-            projected feature
-
-    Outputs:
-    - bounds: list of numpy arrays with the bounds
-        for each dimension in the 3D state space
-        - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
-    """
-    num_dims = 3
-    # initialize bounds
-    bounds_ = [[100, -100], [100, -100], [100, -100]]
-
-    for name in list_of_datasets:
-        df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
-        # get column names for features
-        feat_cols = manifest_io.get_feature_cols(df)
-        match col_names:
-            case "pc":
-                # get the PCs
-                x_proj = pca.transform(df[feat_cols].values)
-                # add PCs to dataframe
-                num_pcs = x_proj.shape[1]
-                pc_cols: list = []
-                for pc in range(num_pcs):
-                    pc_col_name = f"pc{pc+1}"
-                    pc_cols.append(pc_col_name)
-                cols = pc_cols
-            case "feat":
-                cols = feat_cols
-        for j in range(num_dims):
-            bounds_[j][0] = min(bounds_[j][0], df[cols[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[cols[j]].max())
-
-    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
-
-    return bounds
 
 
 def compute_extrapolated_vector_field(
@@ -459,7 +393,7 @@ def ddff_main(
             of what other files are saved out for each dataset
     """
     # get bins for KMCs
-    bounds = set_3d_bounds_from_data(list_of_datasets, pca, col_names="feat")
+    bounds = get_3d_bounds_from_data(list_of_datasets, pca, col_names="feat")
     num_bins = [50, 50, 50]
     bins, centers = regression_helper.get_bins(num_bins, bin_limits=bounds)
 

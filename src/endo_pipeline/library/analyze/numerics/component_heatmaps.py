@@ -1,24 +1,26 @@
-from typing import Tuple
+from typing import Literal, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util.manifest_io import get_diffae_manifest, get_feature_cols
+from cellsmap.util.manifest_io import get_feature_cols
 from src.endo_pipeline.library.analyze.diffae_features.regression_helper import get_bins
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     df_to_array,
-    project_manifest_to_pcs,
+    get_manifest_for_dynamics_workflows,
 )
 
 
-def set_8d_bounds_from_data(
+def get_3d_bounds_from_data(
     list_of_datasets: list[str],
-    pca: Pipeline | None = None,
+    pca: Pipeline,
+    col_names: Literal["pc", "feat"] = "pc",
+    filter_to_valid: bool = True,
 ) -> list[np.ndarray]:
     """
-    Set bounds for ND state space based on the bounds
-    of the features in the datasets. The ND state space
+    Set bounds for 3D state space based on the bounds
+    of the features in the datasets. The 3D state space
     is based on the first three principal components
     of the input pca Pipeline object, which is fit
     on a fixed set of reference datasets.
@@ -26,40 +28,61 @@ def set_8d_bounds_from_data(
     Inputs:
     - list_of_datasets: list of dataset names to use
     - pca: PCA model to use for transforming the data
-        optional, if None, will not transform the data
-        and will use the original feature data
-        to compute the bounds
+    - col_names: which columns to use for bounds
+        - "pc": data is coming from a workflow where
+            the column names have been re-named to
+            reflect that the features are projected
+            onto the first three principal components
+            (i.e., column names in df pc1, pc2, pc3)
+        - "feat": data is coming from a workflow where
+            the column names are the original feature names
+            and the data have been over-written with the
+            features projected onto the full set of
+            principal components (i.e., column name feat_i
+            indicates projection onto the i-th principal component)
+        - this input will become deprecated in the future,
+            when the dataframes will always clearly label
+            what is an original feature and what is a
+            projected feature
 
     Outputs:
     - bounds: list of numpy arrays with the bounds
         for each dimension in the 3D state space
         - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
     """
+    num_dims = 3
     # initialize bounds
-    bounds_ = [[np.inf, -np.inf] for _ in range(8)]
+    bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
     for name in list_of_datasets:
-        df = get_diffae_manifest(name, filter_to_valid=False)
+        df = get_manifest_for_dynamics_workflows(name, pca, filter_to_valid=filter_to_valid)
         # get column names for features
         feat_cols = get_feature_cols(df)
-        # if pca is not None, project the manifest to PCs
-        # and overwrite the feature columns
-        # i.e., feat_i will be the i-th PC
-        if pca is not None:
-            df = project_manifest_to_pcs(
-                df, pca=pca, overwrite_feature_columns=True, feat_cols=feat_cols
-            )
-        for j in range(8):
-            bounds_[j][0] = min(bounds_[j][0], df[feat_cols[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[feat_cols[j]].max())
+        match col_names:
+            case "pc":
+                # get the PCs
+                x_proj = pca.transform(df[feat_cols].values)
+                # add PCs to dataframe
+                num_pcs = x_proj.shape[1]
+                pc_cols: list = []
+                for pc in range(num_pcs):
+                    pc_col_name = f"pc{pc+1}"
+                    pc_cols.append(pc_col_name)
+                cols = pc_cols
+                df[cols] = x_proj  # add PCs to dataframe
+            case "feat":
+                cols = feat_cols
+        for j in range(num_dims):
+            bounds_[j][0] = min(bounds_[j][0], df[cols[j]].min())
+            bounds_[j][1] = max(bounds_[j][1], df[cols[j]].max())
 
-    bounds = [np.array(bounds_[i]) for i in range(8)]
+    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 
     return bounds
 
 
 def get_histogram_by_component(
-    df: pd.DataFrame, num_bins: int, bin_limits=list[int], feat_cols: list[str] | None = None
+    df: pd.DataFrame, num_bins: int, bin_limits=list[np.ndarray], feat_cols: list[str] | None = None
 ) -> Tuple[np.ndarray, list[np.ndarray], pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
