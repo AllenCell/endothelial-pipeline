@@ -76,6 +76,7 @@ for name in get_available_model_names():
                 "Failed to load dataset config for [ %s ]",
                 dataset_name,
             )
+            raise
 
         # Check if manifests can be loaded by the given FMSID
         try:
@@ -104,6 +105,7 @@ for name in get_available_model_names():
                 "Failed to load dataset config for [ %s ]",
                 dataset_name,
             )
+            raise
 
 
 # %%
