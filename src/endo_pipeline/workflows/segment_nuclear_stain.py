@@ -7,7 +7,8 @@ from cellpose import models
 from skimage.color import label2rgb
 
 from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.util import dataset_io, set_output
+from cellsmap.util import set_output
+from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process import get_images, image_processing
 
 """

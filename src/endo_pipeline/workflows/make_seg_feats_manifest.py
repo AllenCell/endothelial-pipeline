@@ -11,7 +11,8 @@ from bioio import BioImage
 from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import (
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
@@ -22,7 +23,6 @@ from cellsmap.util.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
 )
-from cellsmap.util.set_output import get_output_path
 
 
 def merge_measured_segmentation_features_tables(

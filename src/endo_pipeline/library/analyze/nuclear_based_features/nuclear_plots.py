@@ -8,8 +8,8 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 from matplotlib.lines import Line2D
 from skimage.measure import label
 
-from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.library.visualize import viz_base
 
 
 def plot_flow_over_time_per_dataset(dataset_name_list: list[str], fig_savedir: str) -> None:
@@ -53,7 +53,7 @@ def plot_flow_over_time_per_dataset(dataset_name_list: list[str], fig_savedir: s
     plt.ylabel("Flow (dyn/cm²)")
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.show()
-    vb.save_plot(fig, fig_savedir + "flow_over_time.png", dpi=72)
+    viz_base.save_plot(fig, fig_savedir + "flow_over_time.png", dpi=72)
 
 
 def plot_number_of_nuclei_per_fov(df: pd.DataFrame, dataset: str, fig_savedir: str) -> None:
@@ -99,7 +99,7 @@ def plot_number_of_nuclei_per_fov(df: pd.DataFrame, dataset: str, fig_savedir: s
     plt.title(f"{dataset}")
     plt.legend(title="Position", loc="lower left")
     plt.show()
-    vb.save_plot(
+    viz_base.save_plot(
         fig,
         filename=fig_savedir + f"number_of_detected_nuclei_per_frame{dataset}",
         dpi=72,
@@ -156,7 +156,7 @@ def plot_number_of_nuclei_per_dataset(df_list: list[pd.DataFrame], fig_savedir: 
     plt.legend(handles=legend_elements, title="Dataset", loc="lower left")
     plt.show()
     print("Plotting complete. Saving figure...")
-    vb.save_plot(
+    viz_base.save_plot(
         fig,
         filename=fig_savedir + "number_of_detected_nuclei_per_frame_all_datasets",
         dpi=72,
@@ -240,7 +240,7 @@ def visualize_nuclear_seg(
     plt.suptitle(f"Dataset: {dataset} Frame: {frame} Position: {position} Flow: {flow} dyn/cm²")
     plt.tight_layout()
     plt.show()
-    vb.save_plot(
+    viz_base.save_plot(
         fig,
         filename=fig_savedir + f"nuclear_segmentation_overlay_{dataset}_{position}_{frame}",
         dpi=72,

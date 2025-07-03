@@ -1,0 +1,6 @@
+nuc_pred_labelfree:
+  model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/bf_std_model_no_preprocess
+nuc_pred_labelfree_retrained_20250327:
+  model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250327/bf_std_model_no_preprocess_retrained
+nuc_pred_labelfree_retrained_20250419-18_13:
+  model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250419-18_13/CellPose_default_nuclei_model_finetuning/models/labelfree_nuc_pred_20250419-18_13

@@ -1,0 +1,32 @@
+name: 20250402_20X
+original_path: //allen/programs/allencell/data/proj0/269/7fb/469/95b/849/efa/440/8f1/b7d/e37/90/20250402_GE00007594_20X_timelapse_sldy/20250402_GE00007594_20X_timelapse_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250402_90e37b7d8f1440efa84995b4697fb269
+fmsid: 90e37b7d8f1440efa84995b4697fb269
+barcode: GE00007594
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+microscope: 3i
+shear_stress_regime: 48hr_low
+use_cases: []
+pixel_size_xy_in_um: 0.382
+duration: 571
+time_interval_in_minutes: 5.0
+flow: [[0, 570, 5.85]]
+n_total_positions: 6
+brightfield_channel_index: 1
+channel_405_index: null
+channel_488_index: 0
+channel_561_index: null
+channel_640_index: null
+nuclear_label_free_seg_path: null
+nuclear_stain_seg_path: null
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: ef883577f6014f8cab3452cf2205864d
+tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: null
+immunofluorescence_manifest_fmsid: null
+is_reference: false
+valid_timepoints: null
+cell_mean_features: null
+include_scenes: null
+notes: cells become extremely crowded at end of video

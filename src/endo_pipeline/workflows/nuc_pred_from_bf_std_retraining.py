@@ -15,13 +15,13 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import (
     get_dataset_info,
     get_original_path,
     ipython_cli_flexecute,
     load_config,
 )
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,

@@ -1,9 +1,8 @@
 import pickle
-from typing import Any
 
 import numpy as np
 
-from cellsmap.util.dataset_io import load_config_src
+from src.endo_pipeline.configs.dataset_io import load_config
 
 
 def load_dynamics_config(config_name: str = "default") -> dict:
@@ -19,7 +18,7 @@ def load_dynamics_config(config_name: str = "default") -> dict:
     - config: dict, config dictionary.
     """
     # Load config file
-    configs = load_config_src("dynamics")
+    configs = load_config("dynamics")
 
     # Find the config with the given name
     for config in configs:

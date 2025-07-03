@@ -5,6 +5,8 @@ import numpy as np
 from bioio import BioImage
 from skimage import exposure
 
+CAMERA_OFFSET = 100  # Camera offset value set in our hardware configuration
+
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
     """Get the best Z slice from the brightfield image for a given frame."""
@@ -33,6 +35,12 @@ def max_proj(stack: da.Array, axis: int) -> np.ndarray:
     """Get the maximum projection of the brightfield stack as a Dask array."""
     max_proj = stack.max(axis)  # Max projection along the Z-axis
     return max_proj.compute()
+
+
+def sum_proj(stack: da.Array, axis: int) -> np.ndarray:
+    """Get the sum projection of the brightfield stack as a Dask array."""
+    sum_proj = stack.sum(axis)  # Sum projection along the Z-axis
+    return sum_proj.compute()
 
 
 def std_dev(stack: da.Array, axis: int) -> np.ndarray:
@@ -74,3 +82,53 @@ def contrast_stretching(
 
     stretched_image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
     return stretched_image
+
+
+def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> np.ndarray:
+    """
+    Background subtract the image by clipping values below a camera offset. The camera offset
+    of 100 is the value set in our hardware configuration, therefore this is the minimum value
+    of intensity that should be used for analysis purposes.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        The input image array.
+    camera_offset : int, optional
+        The camera offset value to subtract from the image, by default 100.
+
+    Returns
+    -------
+    np.ndarray
+        The background-subtracted image.
+    """
+    img = np.clip(img, camera_offset, None)
+    img = img - camera_offset  # Set any negative values to zero
+    return img
+
+
+def normalize_image(image: np.ndarray, target_max: int = 255) -> np.ndarray:
+    """
+    Normalize the image to a specific range (e.g., 0 to 255).
+    8-bit images typically have pixel values in the range of 0 to 255, but this method preserves
+    the original dynamic range of the image while scaling it to the target maximum value instead
+    of clipping the values.
+
+    Args:
+        image (np.ndarray): Input image.
+        target_max (int): The target maximum value for normalization (e.g., 255 for 8-bit).
+
+    Returns:
+        np.ndarray: Normalized image within the target range.
+    """
+    # Calculate the minimum and maximum pixel values of the original image
+    min_val = np.min(image)
+    max_val = np.max(image)
+
+    # Normalize the image to the target range (0 to target_max)
+    normalized_image = (image - min_val) / (max_val - min_val) * target_max
+
+    if normalized_image.max() <= 255:
+        normalized_image = normalized_image.astype(np.uint8)
+
+    return normalized_image

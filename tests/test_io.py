@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from cellsmap.util import dataset_io
+from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs.dataset_config import get_available_dataset_names
 
 
 def test_load_config():
@@ -11,9 +12,7 @@ def test_load_config():
     assert "20241016_20X" in config
 
 
-@pytest.mark.parametrize(
-    "dataset_name", dataset_io.get_available_datasets(verbose=False)
-)
+@pytest.mark.parametrize("dataset_name", get_available_dataset_names())
 def test_load_all_datasets(dataset_name: str):
     channels = dataset_io.get_available_channels(dataset_name)
     # channels should be a per-position dictionary
@@ -29,9 +28,7 @@ def test_load_all_datasets(dataset_name: str):
     data = dataset_io.load_dataset(dataset_name, channels)
     for k, v in data.items():
         assert v is not None, f"Dataset {dataset_name} {k} returned None"
-        assert (
-            v.shape[0] > 0
-        ), f"Dataset {dataset_name} {k} has an unexpected shape: {v.shape}"
+        assert v.shape[0] > 0, f"Dataset {dataset_name} {k} has an unexpected shape: {v.shape}"
         assert all(
             dim > 0 for dim in v.shape
         ), f"Dataset {dataset_name} {k} has invalid dimensions: {v.shape}"
@@ -63,9 +60,7 @@ def test_load_dataset():
         assert position_data.shape == (3, 1, 25, 1712, 1744)
 
     # check start point specification
-    movie = dataset_io.load_dataset(
-        "20241016_20X", channels=["BF"], time_start=1, time_end=2
-    )
+    movie = dataset_io.load_dataset("20241016_20X", channels=["BF"], time_start=1, time_end=2)
     for position_data in movie.values():
         assert position_data.shape == (2, 1, 25, 1712, 1744)
 

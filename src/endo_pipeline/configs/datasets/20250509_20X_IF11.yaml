@@ -1,0 +1,32 @@
+name: 20250509_20X_IF11
+original_path: //allen/programs/allencell/data/proj0/c49/e0a/d24/790/d6e/f5b/44d/1bf/7a5/378/1d/20250509_GE00007882_20X_sldy/20250509_GE00007882_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_1d3787a51bf44df5bd6e790d24e0ac49
+fmsid: 1d3787a51bf44df5bd6e790d24e0ac49
+barcode: GE00007882
+cell_lines: [AICS-126]
+live_or_fixed_sample: fixed
+microscope: 3i
+shear_stress_regime: 24hr_no_flow
+use_cases: [immunofluorescence]
+pixel_size_xy_in_um: 0.382
+duration: 1
+time_interval_in_minutes: -1.0
+flow: [[0, -1, 0.0]]
+n_total_positions: 2
+brightfield_channel_index: 4
+channel_405_index: 0
+channel_488_index: 1
+channel_561_index: 2
+channel_640_index: 3
+nuclear_label_free_seg_path: null
+nuclear_stain_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF11
+nuclear_seg_manifest_fmsid: ''
+diffae_manifest_fmsid: fb35d1ad725f46fe99ff959fea7c4e52
+tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: ''
+immunofluorescence_manifest_fmsid: cbd9a16111494e05b322b45689a9edc3
+is_reference: false
+valid_timepoints: null
+cell_mean_features: null
+include_scenes: null
+notes: Secondary only immunofluorescence control
