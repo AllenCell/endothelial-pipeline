@@ -929,7 +929,7 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# add deprecated decorator to this function
+# model methods
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -938,7 +938,6 @@ def get_available_models() -> list[str]:
     return model_names
 
 
-# add deprecated decorator to this function
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
@@ -946,7 +945,6 @@ def get_model_info(model_name: str) -> dict[str, Any]:
     return config[model_name]
 
 
-# this does not get called anywhere
 def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
     dataset_info = get_dataset_info(dataset_name)
     return pd.read_csv(dataset_info["features"][model_name])
