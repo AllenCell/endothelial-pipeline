@@ -1045,7 +1045,7 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# model methods
+# add deprecated decorator to this function
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -1054,6 +1054,7 @@ def get_available_models() -> list[str]:
     return model_names
 
 
+# add deprecated decorator to this function
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
