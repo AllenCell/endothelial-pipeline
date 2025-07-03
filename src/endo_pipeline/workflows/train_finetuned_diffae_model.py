@@ -10,7 +10,7 @@ from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, get
 
 
 def _generate_overrides(
-    user_overrides,
+    user_overrides: dict | None,
     save_path: Path,
     train_data_path: str,
     val_data_path: str,
@@ -49,7 +49,8 @@ def _generate_overrides(
             }
         },
     }
-    overrides.update(user_overrides)
+    if user_overrides is not None:
+        overrides.update(user_overrides)
     return overrides
 
 
@@ -57,7 +58,7 @@ def main(
     model_name: str = "diffae_04_10",
     dataset_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
     model_template_name: str = "live_fixed_finetune_template",
-    overrides: dict[str, Any] = {},
+    user_overrides: dict[str, Any] | None = None,
 ):
     """
     Finetune a DiffAE model with paired live/fixed data.
@@ -65,13 +66,18 @@ def main(
     Parameters
     ----------
     dataset_type: Literal['live_fixed', '20x_40x']
-        The type of dataset to use for finetuning. This should match the dataset type used during the `paired_data_validation` step.
+        The type of dataset to use for finetuning. This should match the dataset
+        type used during the `paired_data_validation` step.
     model_name: str
-        The name of the model to use for finetuning. This should correspond to a directory in `outputs/models/` and match the model name used during the `paired_data_validation` step.
+        The name of the model to use for finetuning. This should correspond to a
+        directory in `results/models/` and match the model name used during the
+        `paired_data_validation` step.
     model_template_name: str
-        The name of the model template to use for finetuning. This should correspond to a model in `model_config.yaml`
-    overrides: dict[str, Any]
-        Additional overrides for the training configuration. This can include any parameters that can be set in the config file, such as learning rate, batch size, etc.
+        The name of the model template to use for finetuning.
+        This should correspond to a model in `src/endo_pipeline/configs/model`
+    user_overrides: dict[str, Any]
+        Additional overrides for the training configuration. This can include any
+        parameters that can be set in the config file, such as learning rate, batch size, etc.
     """
     save_dir = Path(
         get_output_path(f"finetune_paired_dataset/finetune_{model_name}_on_{dataset_type}")
@@ -85,7 +91,7 @@ def main(
     download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, save_dir)
 
     overrides = _generate_overrides(
-        user_overrides=overrides,
+        user_overrides=user_overrides,
         save_path=save_dir,
         train_data_path=manifest_path / "train.csv",
         val_data_path=manifest_path / "val.csv",
