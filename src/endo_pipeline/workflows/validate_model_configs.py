@@ -105,7 +105,6 @@ for name in get_available_model_names():
                 "Failed to load dataset config for [ %s ]",
                 dataset_name,
             )
-            raise
 
 
 # %%

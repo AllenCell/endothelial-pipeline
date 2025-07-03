@@ -64,6 +64,12 @@ def read_file_to_dataframe(path: str) -> pd.DataFrame:
 def get_dataframe_by_fmsid(fmsid: str) -> pd.DataFrame:
     if fms is not None and os.path.exists("/allen/aics"):
         annotations = {FileLevelMetadataKeys.FILE_ID.value: fmsid}
+        record_list = list(fms.find(annotations=annotations))
+        if len(record_list) == 0:
+            raise FileNotFoundError(
+                f"No records found for FMS ID {fmsid}. "
+                "Please check the FMS ID and ensure it is correct."
+            )
         record = list(fms.find(annotations=annotations))[0]
         file_path = replace_base_url(record.path)
         path = get_valid_path(file_path)
