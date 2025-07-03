@@ -24,8 +24,8 @@ from bioio import BioImage
 
 from src.endo_pipeline.configs import (
     get_available_dataset_names,
-    load_single_dataset_config,
-    validate_single_dataset_config,
+    load_dataset_config,
+    validate_dataset_config,
 )
 
 # %%
@@ -37,10 +37,10 @@ for dataset_name in get_available_dataset_names():
     logger.info(f"Running validation for dataset [ {dataset_name} ]")
 
     # Validate dataset config schema.
-    validate_single_dataset_config(dataset_name)
+    validate_dataset_config(dataset_name)
 
     # Load dataset config.
-    dataset = load_single_dataset_config(dataset_name)
+    dataset = load_dataset_config(dataset_name)
 
     # Check if file at original path exists and can be opened.
     try:
