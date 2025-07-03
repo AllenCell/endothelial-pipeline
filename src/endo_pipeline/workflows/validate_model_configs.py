@@ -56,6 +56,7 @@ for name in get_available_model_names():
             model_config.mlflow_run_id,
             str(e),
         )
+        raise
 
     # Check if all datasets with manifests for this model
     # Have a DatasetConfig and can be loaded from FMS
@@ -75,7 +76,6 @@ for name in get_available_model_names():
                 "Failed to load dataset config for [ %s ]",
                 dataset_name,
             )
-            raise
 
         # Check if manifests can be loaded by the given FMSID
         try:
@@ -104,7 +104,6 @@ for name in get_available_model_names():
                 "Failed to load dataset config for [ %s ]",
                 dataset_name,
             )
-            raise
 
 
 # %%
