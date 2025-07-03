@@ -12,7 +12,7 @@ from src.endo_pipeline.configs import (
     ModelConfig,
     add_model_manifest,
     get_available_dataset_names,
-    load_single_model_config,
+    load_model_config,
     save_model_config,
 )
 from src.endo_pipeline.configs.dataset_io import extract_P, get_reference_datasets, get_zarr_path
@@ -232,7 +232,7 @@ def apply_model(
             dataset_names = [dataset_names]
     for name in dataset_names:
         apply_model_single(
-            model_config=load_single_model_config(model_name),
+            model_config=load_model_config(model_name),
             dataset_name=name,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,

@@ -5,7 +5,7 @@ import fire
 from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_single_model_config
+from src.endo_pipeline.configs import load_model_config
 from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, get_ckpt_path
 
 
@@ -86,7 +86,7 @@ def main(
     manifest_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
 
     # download model to finetune
-    finetune_run_id = load_single_model_config(model_name).mlflow_run_id
+    finetune_run_id = load_model_config(model_name).mlflow_run_id
     diffae_ckpt_path = get_ckpt_path(run_id=finetune_run_id)
     download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, save_dir)
 
@@ -99,7 +99,7 @@ def main(
     )
 
     # download template config
-    template_run_id = load_single_model_config(model_template_name).mlflow_run_id
+    template_run_id = load_model_config(model_template_name).mlflow_run_id
     download_mlflow_artifact(
         run_id=template_run_id, artifact_path="config/train.yaml", dst_path=save_dir
     )

@@ -8,11 +8,7 @@ import torch
 from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import (
-    load_single_dataset_config,
-    load_single_model_config,
-    save_dataset_config,
-)
+from src.endo_pipeline.configs import load_dataset_config, load_model_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import extract_P
 from src.endo_pipeline.library.analyze.fms_utils import get_dataframe_by_fmsid, save_file_to_fms
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
@@ -94,7 +90,7 @@ def centroid_to_bbox(df: pd.DataFrame):
 
 def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = load_single_dataset_config(dataset_name).tracking_integration_fmsid
+    fms_id = load_dataset_config(dataset_name).tracking_integration_fmsid
     df = get_dataframe_by_fmsid(fms_id)
     # convert centroids to bounding boxes
     df = centroid_to_bbox(df)
@@ -163,7 +159,7 @@ def apply_model_single(
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
     # download model from mlflow
-    mlflow_id = load_single_model_config(model_name).mlflow_run_id
+    mlflow_id = load_model_config(model_name).mlflow_run_id
     model_path = Path(get_output_path(f"models/{model_name}"))
     path_dict = download_model(mlflow_id, model_path)
 
@@ -207,7 +203,7 @@ def apply_model_single(
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_single_dataset_config(dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
         dataset_config.diffae_tracking_integration_fmsid = file_id
         save_dataset_config(dataset_config)
 

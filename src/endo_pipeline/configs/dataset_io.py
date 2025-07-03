@@ -91,7 +91,7 @@ for all datasets, use:
 
 If you need the config for a single dataset, use:
 
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 If you need only need dataset names, use:
 
@@ -201,7 +201,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    Individual dataset(s) can then be loaded with:
 
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 2. If you want to load all available datasets, use the following method to load
    configs for all available datasets:
@@ -248,7 +248,7 @@ is directly from loaded DatasetConfig objects. These configs can be loaded using
 one of the following:
 
         configs.load_all_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
         configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
@@ -267,44 +267,19 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     return config[dataset_name]
 
 
-def get_frame(filename: str) -> int:
-    """Get frame number from filename"""
-    return int(str(filename).split(".")[0][-4:])
-
-
-def get_flow(dataset_name: str, frame_number: float) -> int | float:
+@deprecated(
     """
-    Get shear stress level at frame frame_number from the data config.
+Use one of the following methods to load the dataset config:
 
-    Parameters
-    ----------
-        frame_number: the time at which to get the flow value.
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
 
-    Returns
-    -------
-        flow: the flow value at time frame_number in dyn/cm^2.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info["flow"]
-    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= frame_number < t_stop]
-    return int(flows[0]) if flows else np.nan
+The field can then be accessed using:
 
-
-def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
-    """Get flow information in frames for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info["flow"]
-    flow_in_frames = [
-        (
-            round(t_start * 60 / dataset_info["time_interval_in_minutes"]),
-            round(t_stop * 60 / dataset_info["time_interval_in_minutes"]),
-            flow,
-        )
-        for t_start, t_stop, flow in flow_info
-    ]
-    return flow_in_frames
-
-
+        dataset.zarr_path
+"""
+)
 def get_zarr_dir(dataset_name: str) -> str:
     """Get the directory path for the zarr files of a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
@@ -398,6 +373,19 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     return zarr_name
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+Then use this replacement method:
+
+        configs.get_specific_channel_order(dataset)
+"""
+)
 def get_specific_channel_order(dataset_name: str) -> tuple:
     """Get the specific channel order for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
@@ -410,6 +398,19 @@ def get_specific_channel_order(dataset_name: str) -> tuple:
     return gfp_index, bf_index, index_405, index_561, index_640
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.n_total_positions
+"""
+)
 def get_total_number_of_positions(dataset_name: str) -> int:
     """
     Get the total number of positions in a dataset.
@@ -488,21 +489,73 @@ def load_dataset_position_as_dask_array(
     return img_dask_arr
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.duration
+"""
+)
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["duration"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.pixel_size_xy_in_um
+"""
+)
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["pixel_size_xy_in_um"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.time_interval_in_minutes
+"""
+)
 def get_time_interval_in_minutes(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["time_interval_in_minutes"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.flow
+"""
+)
 def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["flow"]
@@ -555,6 +608,19 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.valid_timepoints
+"""
+)
 def get_valid_timepoints(dataset_name: str) -> dict:
     """
     Get the frames marked for use in DiffAE feature
@@ -575,6 +641,19 @@ def get_dim_map(dim_order: str) -> dict:
     return dim_map
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.original_path
+"""
+)
 def get_original_path(dataset_name: str) -> Path:
     """
     Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
@@ -583,21 +662,73 @@ def get_original_path(dataset_name: str) -> Path:
     return Path(dataset_info["original_path"])
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.barcode
+"""
+)
 def get_barcode(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["barcode"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.microscope
+"""
+)
 def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["microscope"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.fmsid
+"""
+)
 def get_fmsid(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["fmsid"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+Then use this replacement method:
+
+        configs.get_nuclear_prediction_path(dataset, channel, nuc_seg_type)
+"""
+)
 def get_nuclear_prediction_path(
     dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
 ) -> str:
@@ -874,21 +1005,6 @@ def get_segmentation_features_manifest(
     return seg_feat_dataframe
 
 
-def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
-    """
-    Get the cell track integration manifest for a given dataset.
-    The integration manifest is a CSV file that contains the
-    track_id, centroids, zarr paths, and crop size of a subset
-    of the tracked segmentations of a dataset.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info["cell_track_integration_manifest_fmsid"]
-    integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
-    if not integration_path.exists():
-        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
-    return pd.read_csv(integration_path, sep="\t")
-
-
 # fire argparsing methods
 def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
     if isinstance(fire_str_or_list_like_input, str):
@@ -944,12 +1060,6 @@ def get_model_info(model_name: str) -> dict[str, Any]:
     if model_name not in config:
         raise ValueError(f"Model {model_name} not found in config file")
     return config[model_name]
-
-
-# this does not get called anywhere
-def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
-    dataset_info = get_dataset_info(dataset_name)
-    return pd.read_csv(dataset_info["features"][model_name])
 
 
 # Other miscellaneous methods

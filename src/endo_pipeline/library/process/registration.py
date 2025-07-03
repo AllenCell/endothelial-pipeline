@@ -24,10 +24,10 @@ from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
     ModelConfig,
     ModelManifest,
-    load_single_model_config,
+    load_model_config,
     save_model_config,
 )
-from src.endo_pipeline.configs.dataset_io import get_zarr_path, update_dataset_config
+from src.endo_pipeline.configs.dataset_io import get_zarr_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.analyze.fms_utils import save_file_to_fms
@@ -597,7 +597,7 @@ def add_fmsid_to_config(
 
 
 def compare_paired_features(
-    model_name: str,
+    model_config: ModelConfig,
     fixed_dataset_name: str,
     moving_dataset_name: str,
     alignment_method: str,
@@ -629,9 +629,8 @@ def compare_paired_features(
     **alignment_kwargs : Dict[str, Any]
         Additional arguments for the alignment function.
     """
-    model_config = load_single_model_config(model_name)
     mlflow_id = model_config.mlflow_run_id
-    model_path = Path(get_output_path(f"models/{model_name}"))
+    model_path = Path(get_output_path(f"models/{model_config.name}"))
     path_dict = download_model(mlflow_id, model_path)
 
     save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
@@ -666,7 +665,7 @@ def compare_paired_features(
         data_path=str(data_save_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=fixed_dataset_name,
-        model_name=model_name,
+        model_name=model_config.name,
     )
 
     # load model
@@ -683,14 +682,14 @@ def compare_paired_features(
         data_path=str(data_save_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=moving_dataset_name,
-        model_name=model_name,
+        model_name=model_config.name,
     )
     model.override_config(overrides)
     model.predict()
 
     # compare paired features
     fixed_features_path = str(
-        save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
+        save_path / f"predict_{fixed_dataset_name}_{model_config.name}_features.parquet"
     )
     model_config = add_fmsid_to_config(
         fixed_features_path,
@@ -699,7 +698,7 @@ def compare_paired_features(
         model_path,
     )
     moving_features_path = str(
-        save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
+        save_path / f"predict_{moving_dataset_name}_{model_config.name}_features.parquet"
     )
     _ = add_fmsid_to_config(
         moving_features_path,
@@ -752,7 +751,7 @@ def main(
     ):
         compare_paired_features(
             # use model finetuned for fixation
-            fixed_finetuned_model_name,
+            load_model_config(fixed_finetuned_model_name),
             fixed,
             moving,
             alignment_method="sift",
@@ -767,7 +766,7 @@ def main(
     }
     for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=False):
         compare_paired_features(
-            model_name,
+            load_model_config(model_name),
             fixed,
             moving,
             alignment_method="template",
