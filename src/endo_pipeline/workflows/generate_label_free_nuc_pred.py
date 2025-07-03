@@ -18,6 +18,8 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
+DEVICE_USED_PRINTED = False
+
 
 # Predict nuclei from brightfield images using the retrained CellPose model
 def generate_results(args: dict) -> None:
@@ -62,10 +64,17 @@ def generate_results(args: dict) -> None:
         img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
-        model_config = load_config(config_type="model")
-        nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            # Load the model configuration
+            model_config = load_config(config_type="model")
+            nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
 
         gpu = core.use_gpu()
+        global DEVICE_USED_PRINTED
+        if DEVICE_USED_PRINTED == False:
+            print(f" - using device: {'GPU' if gpu else 'CPU'}")
+            DEVICE_USED_PRINTED = True
 
         model_path = Path(nuclei_model["model_path"])
         # cellpose is throwing a warning about typed storage here and I don't
@@ -162,9 +171,6 @@ def main(
         use_sldy_data=use_sldy_data,
         verbose=verbose,
     )
-
-    gpu = core.use_gpu()
-    print(f" - using device: {'GPU' if gpu else 'CPU'}")
 
     if n_proc > 1:
         if __name__ == "__main__":
