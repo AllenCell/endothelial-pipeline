@@ -13,9 +13,9 @@ duration: 481
 time_interval_in_minutes: 1.0
 flow: [[0, 30, 6.16], [31, 480, 21.7]]
 n_total_positions: 1
+channel_488_index: 0
 brightfield_channel_index: 1
 channel_405_index: null
-channel_488_index: 0
 channel_561_index: null
 channel_640_index: null
 nuclear_label_free_seg_path: null

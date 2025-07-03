@@ -35,16 +35,16 @@ dataset = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
     name="unique_dataset_name",
     original_path="/path/to/original/dataset",
-    zarr_path="/path/to/zarr/dataset",
-    fmsid="FMS ID",
-    barcode="Dataset LabKey barcode",
-    cell_lines=["AICS-XXX", "AICS-XXX"],
+    zarr_path="//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/DATE_FMSID",
+    fmsid="FMSID",
+    barcode="labkey_barcode",
+    cell_lines=["AICS-126"],
     live_or_fixed_sample="live",
     # live_or_fixed_sample="fixed",
     # live_or_fixed_sample="fixed-methanol",
     microscope="3i",
     # microscope="Nikon",
-    shear_stress_regime="Shear stress regime the dataset was collected under",
+    shear_stress_regime="shear_stress_regime",
     use_cases=[
         # "classic_segmentation",
         # "feasibility",
@@ -53,15 +53,15 @@ dataset = DatasetConfig(
         # "measurement",
         # "nuclear_label_free_predictions",
     ],
-    pixel_size_xy_in_um=0.0,
+    pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
     time_interval_in_minutes=0.0,
     flow=[(0, 0, 0.0)],
     n_total_positions=0,
-    brightfield_channel_index=0,
+    channel_488_index=0,
+    brightfield_channel_index=1,
     # ============================ OPTIONAL FIELDS =============================
     # channel_405_index=0,
-    # channel_488_index=0,
     # channel_561_index=0,
     # channel_640_index=0,
     # nuclear_label_free_seg_path="/path/to/nuclear/label/free/segmentation",
@@ -74,7 +74,9 @@ dataset = DatasetConfig(
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # cell_mean_features="FMS ID for cell mean features",
     # include_scenes=[0, 0, 0],
-    # notes="Notes about the dataset",
+    # notes="",
 )
 
 save_dataset_config(dataset)
+
+# %%
