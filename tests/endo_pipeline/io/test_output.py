@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from src.endo_pipeline.io.save import get_output_path
+from src.endo_pipeline.io.output import get_output_path
 
 
 @pytest.fixture
