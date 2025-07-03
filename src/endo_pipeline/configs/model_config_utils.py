@@ -1,8 +1,8 @@
 import logging
 
-from .dataset_config_io import load_single_dataset_config
+from .dataset_config_io import load_dataset_config
 from .model_config import ModelConfig, ModelManifest
-from .model_config_io import load_single_model_config
+from .model_config_io import load_model_config
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ def list_datasets_with_model_manifest(
     List all dataset names that have manifest data
     for a given model.
     """
-    model_manifest = load_single_model_config(model_name).manifest_fmsids
+    model_manifest = load_model_config(model_name).manifest_fmsids
     dataset_list = []
 
     # if model_manifest is None, return an empty list
@@ -91,7 +91,7 @@ def list_datasets_with_model_manifest(
         # get time_interval_in_minutes - any dataset
         # that is fixed or is a 20X/40X pair has default
         # time_interval_in_minutes of -1.0, so we skip
-        time_interval_in_minutes = load_single_dataset_config(dataset_name).time_interval_in_minutes
+        time_interval_in_minutes = load_dataset_config(dataset_name).time_interval_in_minutes
         if timelapse_only and time_interval_in_minutes < 0:
             continue
 
