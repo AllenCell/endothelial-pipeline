@@ -273,7 +273,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -379,7 +379,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 Then use this replacement method:
 
@@ -404,7 +404,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -495,7 +495,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -513,7 +513,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -531,7 +531,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -549,7 +549,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -614,7 +614,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -647,7 +647,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -668,7 +668,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -686,7 +686,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -704,7 +704,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
 
@@ -722,7 +722,7 @@ Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
         configs.load_reference_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 Then use this replacement method:
 
