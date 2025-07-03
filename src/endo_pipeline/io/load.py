@@ -1,7 +1,6 @@
 """Methods for loading inputs."""
 
 import logging
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -62,7 +61,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
         File loaded as dataframe.
     """
 
-    if not os.path.exists("/allen"):
+    if not Path("//allen").exists():
         logger.error("Workflow unable to access [ /allen ] drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
@@ -84,7 +83,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
 
     # Loading from local path.
     fms_bucket_name = "production.files.allencell.org"
-    local_fms_path = "/allen/programs/allencell/data/proj0/"
+    local_fms_path = "//allen/programs/allencell/data/proj0/"
     local_path = Path(record[0].path.replace(fms_bucket_name, local_fms_path))
 
     return load_local_path_as_dataframe(local_path)
