@@ -6,13 +6,13 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from cellsmap.util.dataset_io import (
+from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
     save_git_versioning_info,
 )
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
