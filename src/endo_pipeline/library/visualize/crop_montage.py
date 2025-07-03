@@ -9,11 +9,11 @@ def plot_crop_montage(
 ) -> tuple[plt.Figure, np.ndarray]:
     """Plot a montage of 12 crops from a larger image."""
 
+    # only plot up to max_num_crops crops
     num_crops = min(len(list_of_crops), max_num_crops)
+    list_of_crops_ = list_of_crops[:num_crops]
 
-    fig, ax = plt.subplots(10, 10, figsize=(16, 16))
-    for i, crop in enumerate(list_of_crops):
-        if i >= num_crops:
-            break
+    fig, ax = plt.subplots(10, 10, figsize=(32, 32))
+    for i, crop in enumerate(list_of_crops_):
         ax[i // 10, i % 10].imshow(crop[channel_index, 0], cmap="gray")
     return fig, ax

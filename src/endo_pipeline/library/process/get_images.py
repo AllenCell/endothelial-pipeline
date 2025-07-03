@@ -101,11 +101,12 @@ def get_original_crops_in_dataframe(
                 axis=0,  # Stack along the channel axis
             )
 
+            image_seq.append(multichannel_image)
+
             # Save as a multichannel TIFF
             if save_crops:
                 filename = f"{dataset}_{position}_T{timepoint}_crop_{index}.tiff"
                 tifffile.imwrite(output_dir + filename, multichannel_image)
-                image_seq.append(multichannel_image)
 
     return image_seq
 

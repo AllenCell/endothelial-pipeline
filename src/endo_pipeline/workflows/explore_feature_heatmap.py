@@ -73,6 +73,8 @@ def main(
     # if directory does not exist, get_output_path function will create it
     workflow_fig_folder = f"{workflow_name}/figs"
     fig_savedir = get_output_path(workflow_fig_folder)
+    orig_crop_savedir = get_output_path(f"{fig_savedir}/original_crops/")
+    recon_crop_savedir = get_output_path(f"{fig_savedir}/reconstructed_crops/")
 
     if isinstance(dataset_names, str):
         list_of_datasets = [dataset_names]
@@ -143,7 +145,7 @@ def main(
         )
 
         fig, _ = plot_crop_montage(original_crop_list)
-        fig.suptitle(f"Dataset: {ds_name}, PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=25)
+        fig.suptitle(f"Dataset: {ds_name}, PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
         plt.tight_layout()
         plt.show()
         viz_base.save_plot(
