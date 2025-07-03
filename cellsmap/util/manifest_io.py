@@ -111,10 +111,10 @@ def get_dataframe_by_fmsid(fmsid: str) -> pd.DataFrame:
 This method is deprecated and will be removed. Use the following pattern to load
 nuclear manifests:
 
-    from src.endo_pipeline.configs import load_single_dataset_config
+    from src.endo_pipeline.configs import load_dataset_config
     from src.endo_pipeline.io import load_dataframe_from_fms
 
-    dataset = load_single_dataset_config(dataset_name)
+    dataset = load_dataset_config(dataset_name)
     load_dataframe_from_fms(dataset.nuclear_seg_manifest_fmsid)
 """
 )
@@ -164,7 +164,7 @@ DiffAE manifests:
     from src.endo_pipeline.configs import load_model_config, get_model_manifest
     from src.endo_pipeline.io import load_dataframe_from_fms
 
-    model_config = load_single_model_config(model_name)
+    model_config = load_model_config(model_name)
     model_manifest = get_model_manifest(dataset_name, model_config)
     dataframe = load_dataframe_from_fms(model_manifest.fmsid)
 
@@ -189,10 +189,10 @@ def get_diffae_manifest(dataset_name: str, filter_to_valid: bool = False) -> pd.
 This method is deprecated and will be removed. Use the following pattern to load
 DiffAE tracking manifests:
 
-    from src.endo_pipeline.configs import load_single_dataset_config
+    from src.endo_pipeline.configs import load_dataset_config
     from src.endo_pipeline.io import load_dataframe_from_fms
 
-    dataset = load_single_dataset_config(dataset_name)
+    dataset = load_dataset_config(dataset_name)
     load_dataframe_from_fms(dataset.diffae_tracking_integration_fmsid)
 """
 )
@@ -210,10 +210,10 @@ def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
 This method is deprecated and will be removed. Use the following pattern to load
 DiffAE tracking manifests:
 
-    from src.endo_pipeline.configs import load_single_dataset_config
+    from src.endo_pipeline.configs import load_dataset_config
     from src.endo_pipeline.io import load_dataframe_from_fms
 
-    dataset = load_single_dataset_config(dataset_name)
+    dataset = load_dataset_config(dataset_name)
     load_dataframe_from_fms(dataset.cell_mean_features)
 """
 )
