@@ -219,9 +219,7 @@ def build_kramers_moyal_train_test(
     # get list of datasets with DiffAE manifest data
     # using timelapse_only=True to restrict to datasets
     # that are live, timelapse datasets
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", timelapse_only=True
-    )
+    list_of_datasets = manifest_io.list_datasets_with_manifest(timelapse_only=True)
 
     # initialize lists to store train test sets for each dataset
     x_train_list = []

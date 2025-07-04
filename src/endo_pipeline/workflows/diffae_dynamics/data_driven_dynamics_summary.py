@@ -61,7 +61,7 @@ def main(config_name: str = "default") -> None:
 
     # loop through datasets, get flow field
     # estimates, and save out figures
-    list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
+    list_of_datasets = manifest_io.list_datasets_with_manifest()
 
     for name in list_of_datasets:
         if name in ds_to_skip:
