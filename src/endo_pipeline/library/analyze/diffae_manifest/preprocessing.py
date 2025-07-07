@@ -232,7 +232,7 @@ def get_manifest_for_dynamics_workflows(
         return df
 
 
-def df_to_array_one_dataset(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
+def df_to_array(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
     of shape num_crops x num_timepoints x num_features.
@@ -263,50 +263,6 @@ def df_to_array_one_dataset(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
     # check that array shape is correct
     assert feats.shape == (num_crop, num_time, len(feat_cols))
 
-    return feats
-
-
-def df_to_array(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
-    """
-    Convert DataFrame of features for multiple datasets to array
-    of shape num_crops x (sum[num_timepoints_per_dataset]) x num_features.
-
-    Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for multiple datasets
-        - DataFrame should have metadata columns for crop_index,
-         dataset, and frame_number
-    - feat_cols: list, list of feature columns to convert to array
-
-    Outputs:
-    - feats: np.ndarray, array of feature data for all crops
-        at all timepoints in multiple datasets
-        - shape is num_crops x (sum[num_timepoints_per_dataset]) x num_features
-    """
-
-    assert "crop_index" in df.columns, "DataFrame must have a column for crop_index"
-    assert "frame_number" in df.columns, "DataFrame must have a column for frame_number"
-    assert "dataset" in df.columns, "DataFrame must have a column for dataset"
-
-    # this function is a wrapper for df_to_array_one_dataset
-    # check if only one dataset is present in the DataFrame
-    # then just call df_to_array_one_dataset
-    # else, loop over each dataset in the DataFrame
-
-    if df["dataset"].nunique() == 1:
-        # if only one dataset, call df_to_array_one_dataset
-        return df_to_array_one_dataset(df, feat_cols)
-
-    # loop over each dataset in the DataFrame
-    # using groupby to get each dataset separately
-    array_list = []
-    for _, df_group in df.groupby("dataset"):
-        # get number of crops and timepoints for this dataset
-        feats_single = df_to_array_one_dataset(df_group, feat_cols)
-        # append to list of arrays
-        array_list.append(feats_single)
-
-    # concatenate all arrays along the first axis (crops)
-    feats = np.concatenate(array_list, axis=0)
     return feats
 
 

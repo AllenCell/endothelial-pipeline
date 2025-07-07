@@ -107,7 +107,7 @@ def main(
     _, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
         df_all_datasets,
         num_bins,
-        bin_limits=bin_limits,
+        bin_limits,
         feat_cols=manifest_io.get_feature_cols(df_all_datasets)[:3],
     )
 

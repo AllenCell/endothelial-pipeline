@@ -1,4 +1,4 @@
-from typing import Literal, Tuple
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -81,45 +81,34 @@ def get_3d_bounds_from_data(
     return bounds
 
 
-def get_histogram_by_component(
-    df: pd.DataFrame, num_bins: int, bin_limits=list[np.ndarray], feat_cols: list[str] | None = None
-) -> Tuple[np.ndarray, list[np.ndarray], pd.DataFrame]:
+def get_histogram_by_component_one_dataset(
+    df: pd.DataFrame, bin_edges=list[np.ndarray], feat_cols: list[str] | None = None
+) -> tuple[np.ndarray, list[np.ndarray], pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
 
     Input:
     - df: pd.DataFrame, feature data for a single dataset
-    - num_bins: int, number of bins to use for histogram
-        - right now, this is the same for all components
+    - bin_edges: list[np.ndarray], bin edges for each component
+    - feat_cols: list[str] | None, column names of the features to use
+        - if None, use all feature columns in the dataframe
 
     Output:
     - hist_array: np.ndarray, histogram values for each component as a function of time
         - shape (num_features, num_bins, num_frames)
-    - bin_edges: list[np.ndarray], bin edges for each component
     - df: pd.DataFrame, updated dataframe with columns of what
         bin each crop at frame_number t is in along the given latent dimension
     """
 
-    # get column names for extracting feature data for a single dataset
-    if feat_cols is None:
-        # use all feature columns in the dataframe
-        feat_cols = get_feature_cols(df)
     num_feats = len(feat_cols)
-    assert (
-        len(bin_limits) == num_feats
-    ), f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
-
     num_frames = df["frame_number"].nunique()
+    num_bins = bin_edges[0].shape[0] - 1  # number of bins is one less than number of edges
 
     feats = df_to_array(df, feat_cols)  # get array of just the feature data
 
     hist_array = np.zeros(
         (num_feats, num_bins, num_frames)
     )  # histogram values for each component as a function of time
-
-    bin_edges = [
-        get_bins([num_bins], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
-    ]
 
     for t in range(num_frames):
         # loop over latent components
@@ -143,7 +132,56 @@ def get_histogram_by_component(
         df[f"bin_{dim}"] = df[f"bin_{dim}"].astype(int)
 
     # return the histogram array and the updated dataframe
-    return hist_array, bin_edges, df
+    return hist_array, df
+
+
+def get_histogram_by_component(
+    df: pd.DataFrame,
+    num_bins: int,
+    bin_limits: list[np.ndarray],
+    feat_cols: list[str] | None = None,
+) -> tuple[list[np.ndarray], list[np.ndarray], pd.DataFrame]:
+    """
+    Get histogram of feature data at each timepoint for each latent component
+    across all datasets in the input dataframe.
+
+    Input:
+    - df: pd.DataFrame, feature data for multiple datasets
+    - num_bins: int, number of bins to use for histogram
+        - right now, this is the same for all components
+    - bin_limits: list[np.ndarray], bin limits for each component
+    - feat_cols: list[str] | None, column names of the features to use
+    """
+    # get column names for extracting feature data for a single dataset
+    if feat_cols is None:
+        # use all feature columns in the dataframe
+        feat_cols = get_feature_cols(df)
+        num_feats = len(feat_cols)
+
+    # check that bin_limits is provided and matches the number of features
+    assert (
+        len(bin_limits) == num_feats
+    ), f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
+
+    # get bin edges for each feature dimension
+    bin_edges = [
+        get_bins([num_bins], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
+    ]
+
+    # loop over each dataset in the dataframe
+    # get histogram / bin indices for each dataset
+    hist_array_list = []
+    df_list = []
+    for _, df_group in df.groupby("dataset"):
+        hist_array, df_group_ = get_histogram_by_component_one_dataset(
+            df_group, bin_edges, feat_cols
+        )
+        df_list.append(df_group_)
+        hist_array_list.append(hist_array)
+
+    df_all_datasets_binned = pd.concat(df_list, ignore_index=True)
+
+    return hist_array_list, bin_edges, df_all_datasets_binned
 
 
 def get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
