@@ -49,12 +49,18 @@ for name in get_available_model_names():
     # Check if model exists in MLFlow.
     try:
         model_ckpt = get_ckpt_path(model_config.mlflow_run_id, DEFAULT_TRACKING_URI)
-    except Exception as e:
+    except FileNotFoundError:
         logger.error(
-            "Failed to find checkpoint for model [ %s ] from MLflow run ID [ %s ]: %s",
+            "Failed to find checkpoint for model [ %s ] from MLflow run ID [ %s ]",
             name,
             model_config.mlflow_run_id,
-            str(e),
+        )
+        raise
+    except ValueError:
+        logger.error(
+            "Failed to load model [ %s ] from MLflow run ID [ %s ]",
+            name,
+            model_config.mlflow_run_id,
         )
         raise
 
@@ -68,16 +74,8 @@ for name in get_available_model_names():
         # Load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
-        # Check if manifests can be loaded by the given FMSID
-        try:
-            df = get_dataframe_by_fmsid(dataset_manifest.fmsid)
-        except FileNotFoundError:
-            logger.error(
-                "Failed to load manifest for dataset [ %s ] with FMSID [ %s ]",
-                dataset_name,
-                dataset_manifest.fmsid,
-            )
-            raise
+        # load dataframe from FMS
+        df = load_dataframe_from_fms(dataset_manifest.fmsid)
 
     # Check if all training datasets have a DatasetConfig
     logger.info("Validating training datasets...")
@@ -85,16 +83,7 @@ for name in get_available_model_names():
         logger.debug("Validating dataset [ %s ]", dataset_name)
 
         # Load dataset config
-        try:
-            logger.debug("Loading dataset config for [ %s ]", dataset_name)
-            # This will raise an error if the dataset does not exist
-            # or is not valid.
-            dataset_config = load_dataset_config(dataset_name)
-        except FileNotFoundError:
-            logger.error(
-                "Failed to load dataset config for [ %s ]",
-                dataset_name,
-            )
+        dataset_config = load_dataset_config(dataset_name)
 
 
 # %%
