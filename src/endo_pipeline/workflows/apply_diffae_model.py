@@ -15,12 +15,7 @@ from src.endo_pipeline.configs import (
     load_model_config,
     save_dataset_config,
 )
-from src.endo_pipeline.configs.dataset_io import (
-    extract_P,
-    get_model_info,
-    get_reference_datasets,
-    get_zarr_path,
-)
+from src.endo_pipeline.configs.dataset_io import extract_P, get_reference_datasets, get_zarr_path
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 

@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Validate dataset configs
+# # Validate model configs
 
 # %% [markdown]
 """
@@ -21,17 +21,17 @@ if __name__ != "__main__":
 # %%
 import logging
 
-from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from src.endo_pipeline.configs import (
     get_available_model_names,
     load_dataset_config,
     load_model_config,
     validate_model_config,
 )
+from src.endo_pipeline.io import load_dataframe_from_fms
 from src.endo_pipeline.library.model.mlflow import get_ckpt_path
 
 # %%
-default_tracking_uri = "https://production.int.allencell.org/mlflow/"
+DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -48,7 +48,7 @@ for name in get_available_model_names():
 
     # Check if model exists in MLFlow.
     try:
-        model_ckpt = get_ckpt_path(model_config.mlflow_run_id, default_tracking_uri)
+        model_ckpt = get_ckpt_path(model_config.mlflow_run_id, DEFAULT_TRACKING_URI)
     except Exception as e:
         logger.error(
             "Failed to find checkpoint for model [ %s ] from MLflow run ID [ %s ]: %s",
@@ -66,17 +66,7 @@ for name in get_available_model_names():
         dataset_name = dataset_manifest.dataset_name
 
         # Load dataset config
-        try:
-            logger.debug("Loading dataset config for [ %s ]", dataset_name)
-            # This will raise an error if the dataset does not exist
-            # or is not valid.
-            dataset_config = load_dataset_config(dataset_name)
-        except FileNotFoundError:
-            logger.error(
-                "Failed to load dataset config for [ %s ]",
-                dataset_name,
-            )
-            raise
+        dataset_config = load_dataset_config(dataset_name)
 
         # Check if manifests can be loaded by the given FMSID
         try:
