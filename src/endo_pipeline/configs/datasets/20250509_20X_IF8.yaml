@@ -6,7 +6,7 @@ barcode: GE00007879
 cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 microscope: 3i
-shear_stress_regime: intermediate
+shear_stress_regime: 24hr_intermediate
 use_cases: [immunofluorescence]
 pixel_size_xy_in_um: 0.382
 duration: 1
@@ -24,7 +24,7 @@ nuclear_seg_manifest_fmsid: ''
 diffae_manifest_fmsid: 61e57753a9fa4c63903791346c399e9a
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: ''
-immunofluorescence_manifest_fmsid: 8c18cd98c4a347f692edc4d0fe432b55
+immunofluorescence_manifest_fmsid: adb1631cc19b42fb9e01112bc0feea76
 is_reference: false
 valid_timepoints: null
 cell_mean_features: null
