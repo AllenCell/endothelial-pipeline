@@ -24,9 +24,13 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     """
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
-    output_savedir = get_output_path(workflow_name, "outputs", include_timestamp=False)
-    fig_savedir = get_output_path(workflow_name, "figs", include_timestamp=False)
-    vtk_savedir = get_output_path(workflow_name, "outputs", "vtk", include_timestamp=False)
+    output_savedir = get_output_path(
+        workflow_name, "model_name", "outputs", include_timestamp=False
+    )
+    fig_savedir = get_output_path(workflow_name, "model_name", "figs", include_timestamp=False)
+    vtk_savedir = get_output_path(
+        workflow_name, "model_name", "outputs", "vtk", include_timestamp=False
+    )
 
     if isinstance(datasets_to_use, str):
         # if a single dataset is provided, convert to list
@@ -65,7 +69,7 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
 
     # scatter plot of pca reference datasets
     fig, _ = manifest_viz.plot_pc_scatter(pca, pca_ref_manifests, timepoints_to_use=timepoints_refs)
-    viz_base.save_plot(fig, fig_savedir + "/pca_scatter_ref")
+    viz_base.save_plot(fig, fig_savedir / "pca_scatter_ref")
 
     # scatter plot of all datasets specified in command line
     model_manifests = [
@@ -75,7 +79,7 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
         pca,
         model_manifests,  # all datasets specified and all timepoints
     )
-    viz_base.save_plot(fig, fig_savedir + "/pca_scatter_all")
+    viz_base.save_plot(fig, fig_savedir / "pca_scatter_all")
 
     # load default config, get kernel params
     dynamics_config = dynamics_io.load_dynamics_config("default")

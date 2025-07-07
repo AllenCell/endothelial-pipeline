@@ -482,7 +482,7 @@ def ddff_main(
     for dataset in model_manifests:
         print(f"******** Processing dataset: {dataset.dataset_name} ******** \n")
         traj = get_and_viz_ddff(
-            name,
+            dataset,
             pca,
             kernel_params,
             dt,
@@ -496,10 +496,10 @@ def ddff_main(
         )
 
         # save out using dataset descriptions
-        condition = condition_dict[name]
+        condition = condition_dict[dataset.dataset_name]
         traj_dict[condition] = traj
 
-    np.save(output_savedir + "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
+    np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
 
     # generate plot of stable fixed points
     # for low, high, and 12dyn datasets

@@ -321,10 +321,10 @@ def plot_flow_field_slices(
         else:
             condition = "from_data"
         viz_base.save_plot(
-            fig, filename=fig_savedir + f"flow_field_{condition}", dpi=300
+            fig, filename=fig_savedir / f"flow_field_{condition}", dpi=300
         )  # save the figure
         viz_base.save_plot(
-            fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
+            fig_, filename=fig_savedir / f"flow_field_streamplot_{condition}", dpi=300
         )  # save the figure
 
     return fig, ax
@@ -503,7 +503,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
@@ -512,7 +512,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_traj", dpi=300)
 
     # 3) trajectory with equally spaced interpolated points
     interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
@@ -526,5 +526,5 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_traj_interpolated", dpi=300)
     return

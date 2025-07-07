@@ -228,7 +228,7 @@ def get_manifest_for_dynamics_workflows(
     # load manifest data for dataset ds_name
     # and filter to only valid timepoints
     df = load_dataframe_from_fms(model_manifest.fmsid)
-    df_valid = get_valid_subset(df, model_manifest.dataset_name)
+    df_valid = get_valid_subset(df, model_manifest.dataset_name, verbose=False)
 
     # add crop index column
     df_with_crop = add_crop_index(df_valid)
