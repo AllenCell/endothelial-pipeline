@@ -697,12 +697,12 @@ def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     return seg_path_dict
 
 
-def process_and_plot_tracking_data_multiproc_wrapper(args: Sequence) -> None:
+def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
     dataset_name, out_dir, verbose = args
-    process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
+    create_segmentation_measured_feature_manifest(dataset_name, out_dir, verbose=verbose)
 
 
-def process_and_plot_tracking_data(
+def create_segmentation_measured_feature_manifest(
     dataset_name: str,
     out_dir: str | Path,
     verbose: bool = False,
@@ -830,7 +830,7 @@ def main(
             )
             list(
                 tqdm(
-                    pool.imap(process_and_plot_tracking_data_multiproc_wrapper, args),
+                    pool.imap(create_seg_measured_feat_manifest_multiproc_wrapper, args),
                     total=len(dataset_name_list),
                     desc="Processing datasets (MP)",
                     unit="datasets",
@@ -845,7 +845,7 @@ def main(
             desc="Processing datasets (1P)",
             unit="datasets",
         ):
-            process_and_plot_tracking_data(dataset_name, out_dir, verbose=verbose)
+            create_segmentation_measured_feature_manifest(dataset_name, out_dir, verbose=verbose)
 
 
 if __name__ == "__main__":
