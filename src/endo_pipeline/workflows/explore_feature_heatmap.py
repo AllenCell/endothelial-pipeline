@@ -2,6 +2,7 @@
 import fire
 import matplotlib.pyplot as plt
 import pandas as pd
+import torch
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
@@ -26,6 +27,7 @@ def main(
     dataset_names: str | list[str] | None = None,
     pc_axis: int = 1,
     pc_val: float = 0.25,
+    plot_heatmap: bool = False,
     frame_range: list | None = None,
 ) -> None:
     """
@@ -43,6 +45,8 @@ def main(
                     (saves .csv file out to .results/crop_visualization/outputs/)
 
     Inputs:
+    - dataset_names: str or list of str
+        The name(s) of the dataset(s) to use for the workflow.
     - pc_axis: int
         The principal component to filter by (0-indexed).
         For example, if you want to filter by a particular value of
@@ -53,15 +57,17 @@ def main(
           component of the PC coordinates ~= 0.5, set this to 0.5.
           The filtering is done by binning the PCs and
             getting the bin index that contains pc_val.
-    - frame_range: list of int
+    - plot_heatmap: bool = False
+        Whether to plot the histogram of the first 3 PCs for each dataset.
+    - frame_range: list of int | None = None
         The range of timepoints to filter by.
         For example, if you want to filter by crops between frames 225 and 275,
           set this to [225, 275].
+        If None, no filtering is done by timepoints.
 
     Outputs:
     - None, but saves out images and csv files to the appropriate directories.
         (See above for details.)
-
     """
 
     # get output subdirectory for intermediate workflow outputs (set in config file dynamics_config.yaml)
@@ -101,21 +107,20 @@ def main(
     df_all_datasets = pd.concat(df_list, ignore_index=True)
 
     # get heatmap data for the first 3 PCs over time
-    # first return argument is the heatmap array
-    # rename _ to hist_array and uncomment lines 114-116
-    # if we want to viz the heatmap again
-    _, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
+    # and update the dataframe with binning information
+    hist_array_list, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
         df_all_datasets,
         num_bins,
         bin_limits,
         feat_cols=manifest_io.get_feature_cols(df_all_datasets)[:3],
     )
 
-    # comment out heat map viz
-    # plot histogram of PCs for each component
-    # fig, _ = plot_principal_component_histogram(hist_array, bin_edges)
-    # fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)
-    # viz_base.save_plot(fig, fig_savedir + f"{ds_name}_pc_histogram")
+    # plot histogram of PCs for each component (optional)
+    if plot_heatmap:
+        for i, ds_name in enumerate(list_of_datasets):
+            fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
+            fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)
+            viz_base.save_plot(fig, fig_savedir + f"{ds_name}_pc_histogram")
 
     # get dataframe of crops with bin_{latent_dim} == bin_index(latent_val),
     # where bin_index is the index of the bin that contains latent_val
@@ -130,15 +135,6 @@ def main(
             (df_filtered["frame_number"] >= frame_range[0])
             & (df_filtered["frame_number"] <= frame_range[1])
         ]
-
-    # optional print statement?
-    # might want to remove this
-    num_filtered_points = df_filtered.shape[0]
-    print(
-        f"Number of crops in bin along PC{pc_axis+1} "
-        + f"containing value {pc_val} between frames "
-        + f"{frame_range[0]} and {frame_range[1]}: {num_filtered_points}"
-    )
 
     # save out dataframe to csv
     # do we need to do this?
@@ -158,7 +154,7 @@ def main(
     viz_base.save_plot(
         fig,
         fig_savedir
-        + f"{ds_name}_original_bf_crops_montage_"
+        + f"original_bf_crops_montage_"
         + f"PC{pc_axis+1}_val"
         + "p".join(str(pc_val).split(".")),
     )
@@ -171,27 +167,32 @@ def main(
     viz_base.save_plot(
         fig,
         fig_savedir
-        + f"{ds_name}_original_cdh5_crops_montage_"
+        + f"original_cdh5_crops_montage_"
         + f"PC{pc_axis+1}_val"
         + "p".join(str(pc_val).split(".")),
     )
 
     # get reconstructed ve-cad crops
     # corresponding to the rows in the filtered dataframe
-    # add in try / except checking if GPU is available
-    reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_filtered)
+    # this requires a GPU to run, so
+    # we check if a GPU is available before running this part
+    gpu_available = torch.cuda.is_available()
+    if gpu_available:
+        reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_filtered)
 
-    fig, _ = plot_crop_montage(reconstructed_crop_list, channel_index=None)
-    fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
-    plt.tight_layout()
-    plt.show()
-    viz_base.save_plot(
-        fig,
-        fig_savedir
-        + f"{ds_name}_reconstructed_cdh5_crops_montage_"
-        + f"PC{pc_axis+1}_val"
-        + "p".join(str(pc_val).split(".")),
-    )
+        fig, _ = plot_crop_montage(reconstructed_crop_list, channel_index=None)
+        fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
+        plt.tight_layout()
+        plt.show()
+        viz_base.save_plot(
+            fig,
+            fig_savedir
+            + f"reconstructed_cdh5_crops_montage_"
+            + f"PC{pc_axis+1}_val"
+            + "p".join(str(pc_val).split(".")),
+        )
+    else:
+        print("GPU not available, skipping reconstruction of crops.")
 
 
 if __name__ == "__main__":

@@ -156,7 +156,8 @@ def get_histogram_by_component(
     if feat_cols is None:
         # use all feature columns in the dataframe
         feat_cols = get_feature_cols(df)
-        num_feats = len(feat_cols)
+
+    num_feats = len(feat_cols)
 
     # check that bin_limits is provided and matches the number of features
     assert (
