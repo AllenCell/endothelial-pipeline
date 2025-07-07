@@ -23,15 +23,6 @@ from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
 from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
-"""
-This workflow is used to calulcate the uncertainty and correction of PC values calculated on fixed data
-for integration into analyses of live data.
-The error is calculated for any single PC for any dataset by:
-    1. Plotting the PC values for the two experiments against each other
-    2. Fitting a 2-std dev confidence ellipse to the set of PC values from the paired experiments
-    3. Projecting the height of the confidence ellipse onto the y-axis to get an error value
-"""
-
 
 def add_paired_fixed_live_data_fmsid_to_config(
     prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
@@ -54,8 +45,7 @@ def add_paired_fixed_live_data_fmsid_to_config(
         mlflow_run_id=mlflow_id,
     )
 
-    # update dataset config with the FMS ID
-    # of the prediction file
+    # Update dataset config with the FMS ID of the prediction file
     dataset_config = load_single_dataset_config(dataset_name)
     dataset_config.diffae_manifest_fmsid = file_id
     save_dataset_config(dataset_config)
