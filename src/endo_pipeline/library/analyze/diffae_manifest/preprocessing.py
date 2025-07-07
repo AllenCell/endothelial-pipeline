@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import ModelManifest, load_dataset_config
+from src.endo_pipeline.configs import DatasetConfig, ModelManifest, load_dataset_config
 from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
 from src.endo_pipeline.io import load_dataframe_from_fms
 
@@ -277,7 +277,7 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
 
 
 def get_timepoints_for_plotting_pcs(
-    list_of_datasets: list[str],
+    list_of_datasets: list[DatasetConfig],
     restrict_no_flow: bool = True,
     no_flow_name: str = "20241217_20X",
 ) -> dict:
@@ -292,20 +292,20 @@ def get_timepoints_for_plotting_pcs(
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
 
-    for name in list_of_datasets:
+    for dataset in list_of_datasets:
         # get range of valid timepoints for each dataset
         # loaded from data_config.yaml
-        timepoint_dict = get_valid_timepoints(name)
-        starts = timepoint_dict.get("start", 0)
-        stops = timepoint_dict.get("stop", 0)
+        timepoint_dict = dataset.valid_timepoints
+        starts = timepoint_dict.start
+        stops = timepoint_dict.stop
         timepoints_list = []
-        for start, stop in zip(starts, stops, strict=False):
+        for start, stop in zip(starts, stops, strict=True):
             # hard coded because this is the no-flow dataset that
             # we are using for fitting the PCs, and specifically
             # the one with the two sets of timepoints
             # if this changes, we can updated this to not be
             # hardcoded (i.e., check if shear stress is 0 in config)
-            if name == no_flow_name and restrict_no_flow:
+            if dataset.name == no_flow_name and restrict_no_flow:
                 # restrict to only first set of no flow timepoints
                 if start == 0:
                     timepoints_list.append([start, stop])
@@ -313,5 +313,5 @@ def get_timepoints_for_plotting_pcs(
                     continue
             else:
                 timepoints_list.append([start, stop])
-        timepoints_to_use[name] = timepoints_list
+        timepoints_to_use[dataset.name] = timepoints_list
     return timepoints_to_use

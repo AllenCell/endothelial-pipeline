@@ -1,6 +1,6 @@
 import logging
 
-from .dataset_config_io import load_dataset_config
+from .dataset_config_io import load_dataset_config, load_reference_dataset_configs
 from .model_config import ModelConfig, ModelManifest
 
 logger = logging.getLogger(__name__)
@@ -91,3 +91,34 @@ def get_timelapse_model_manifests(model_config: ModelConfig) -> list[ModelManife
         timelapse_manifests.append(manifest)
 
     return timelapse_manifests
+
+
+def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelManifest]:
+    """
+    Get the list of model manifests that are reference datasets for PCA.
+
+    Inputs:
+    - model_config: ModelConfig, configuration of the model
+
+    Outputs:
+    - list of ModelManifest, containing only reference datasets for PCA
+    """
+
+    # load data configs to get reference datasets
+    reference_datasets = load_reference_dataset_configs()
+    # list of model manifests
+    model_manifests = []
+    for dataset in reference_datasets:
+        # check if the dataset is in the model config
+        try:
+            model_manifests.append(get_model_manifest(dataset.name, model_config))
+        except FileNotFoundError:
+            logger.warning(
+                "Do not have manifests for all PCA reference datasets in model config %s.",
+                model_config.name,
+            )
+            continue
+    if len(model_manifests) == 0:
+        logger.error("No reference datasets found for PCA in model config %s.", model_config.name)
+        raise FileNotFoundError("Insufficient reference datasets for PCA.")
+    return model_manifests

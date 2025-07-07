@@ -7,11 +7,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import (
-    get_model_manifest,
-    load_model_config,
-    load_reference_dataset_configs,
-)
+from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.io import load_dataframe_from_fms
 
 logger = logging.getLogger(__name__)
@@ -42,22 +38,7 @@ def fit_pca(
     """
     # load model config to get avaiable manifest names
     model_config = load_model_config(model_name)
-    # load data configs to get reference datasets
-    reference_datasets = load_reference_dataset_configs()
-    # list of model manifests
-    model_manifests = []
-    for dataset in reference_datasets:
-        # check if the dataset is in the model config
-        try:
-            model_manifests.append(get_model_manifest(dataset.name, model_config))
-        except FileNotFoundError:
-            logger.warning(
-                f"Do not have manifests for all PCA reference datasets in model config {model_name}. "
-            )
-            continue
-    if len(model_manifests) == 0:
-        logger.error("No reference datasets found for PCA in model config %s", model_name)
-        raise FileNotFoundError("Insufficient reference datasets for PCA.")
+    model_manifests = get_pca_reference_model_manifests(model_config)
     if verbose:
         print(
             f"\nReference datasets for PCA: {[manifest.dataset_name for manifest in model_manifests]}\n"

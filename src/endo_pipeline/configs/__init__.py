@@ -23,6 +23,7 @@ from .model_config_io import (
 from .model_config_utils import (
     add_model_manifest,
     get_model_manifest,
+    get_pca_reference_model_manifests,
     get_timelapse_model_manifests,
 )
 

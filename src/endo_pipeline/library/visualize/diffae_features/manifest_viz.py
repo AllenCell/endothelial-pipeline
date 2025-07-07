@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
 import cellsmap.util.manifest_io as mio
+from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize import viz_base
@@ -65,7 +66,7 @@ def get_dataset_color(name: str) -> str:
 
 def plot_pc_scatter(
     pca: Pipeline,
-    datasets_to_use: list[str],
+    datasets_to_use: list[ModelManifest],
     timepoints_to_use: dict[str, list[list]] | None = None,
 ) -> tuple:
     """
@@ -86,14 +87,14 @@ def plot_pc_scatter(
 
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
 
-    for name in datasets_to_use:
+    for dataset in datasets_to_use:
         # load dataframe and get top 3 PCs
-        df = preprocessing.get_manifest_for_dynamics_workflows(name, pca)
+        df = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca)
         feat_cols = mio.get_feature_cols(df)[:3]
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:
-            frame_ranges = timepoints_to_use[name]
+            frame_ranges = timepoints_to_use[dataset.dataset_name]
             timepoints = []
             for frame_range in frame_ranges:
                 timepoints.extend(list(range(frame_range[0], frame_range[1] + 1)))
@@ -102,7 +103,7 @@ def plot_pc_scatter(
             df = df[df["valid"]]
 
         # get color for the dataset
-        color = get_dataset_color(name)
+        color = get_dataset_color(dataset.dataset_name)
 
         # first plot: PC1 v PC2
         ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01, color=color)
