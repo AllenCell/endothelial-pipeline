@@ -3,8 +3,41 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
+from src.endo_pipeline.io import load_dataframe_from_fms
+
+
+def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
+    """
+    Select timepoints from a dataframe annotated as valid
+    if annotation is present, otherwise use all timepoints.
+
+    Inputs:
+    - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
+    - dataset_name: str, name of the dataset to get valid timepoints for
+
+    Outputs:
+    - df: pd.DataFrame, subset of the input dataframe containing only the valid timepoints
+    """
+    df["valid"] = False
+    # check that the necessary datasets are present for fitting PCA
+    valid_timepoints = load_dataset_config(dataset_name).valid_timepoints
+    if valid_timepoints is None:
+        if verbose:
+            print(f"Using all timepoints from dataset {dataset_name} for analysis")
+        df["valid"] = True
+    else:
+        if verbose:
+            print(f"Valid timepoints for dataset {dataset_name}: ")
+        tps = []
+        for start, stop in zip(valid_timepoints.start, valid_timepoints.stop, strict=True):
+            tps.extend(list(range(start, stop + 1)))
+            if verbose:
+                print(f"   - {start} to {stop}")
+        valid_subset = df.frame_number.isin(tps)
+        df["valid"] = valid_subset
+    return df[df.valid]
 
 
 def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False) -> pd.DataFrame:
@@ -169,7 +202,9 @@ def project_manifest_to_pcs(
     return df_
 
 
-def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = None) -> pd.DataFrame:
+def get_manifest_for_dynamics_workflows(
+    model_manifest: ModelManifest, pca: Pipeline | None = None
+) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
     in the stochastic dynamics workflow. Adds crop index column to DataFrame,
@@ -184,27 +219,27 @@ def get_manifest_for_dynamics_workflows(ds_name: str, pca: Pipeline | None = Non
         - if None, do not project feature data onto PCA axes
 
     Outputs:
-    - df: pd.DataFrame, DataFrame of feature data for crops
-        from dataset ds_name
+    - pd.DataFrame of feature data for crops
+        from input model_manifest
         - projected onto PC axes if pca is not None
         - restricted to stationary frames if
             stationary_frames is not None
     """
     # load manifest data for dataset ds_name
     # and filter to only valid timepoints
-    df = manifest_io.get_diffae_manifest(ds_name, filter_to_valid=True)
+    df = load_dataframe_from_fms(model_manifest.fmsid)
+    df_valid = get_valid_subset(df, model_manifest.dataset_name)
 
     # add crop index column
-    df = add_crop_index(df)
+    df_with_crop = add_crop_index(df_valid)
 
     if pca is None:
         # do not project feature data onto PCA axes
-        return df
+        return df_with_crop
 
     else:
         # project feature data onto PC axes
-        df = project_manifest_to_pcs(df, pca)
-        return df
+        return project_manifest_to_pcs(df_with_crop, pca)
 
 
 def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 from time import time
 from typing import Any
 
@@ -9,6 +10,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
+from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.numerics import gen_potential
@@ -98,13 +100,13 @@ def model_data_comparison_one_dataset(
 
 def model_data_comparison(
     model: list[Callable],
-    fig_savedir: str,
+    model_manifests: list[ModelManifest],
     pca: Pipeline,
     pcs: list,
     bins: list,
-    ds_to_skip: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
+    fig_savedir: Path,
 ) -> None:
     """
     Compare model fit to data for all datasets in manifest,
@@ -130,25 +132,19 @@ def model_data_comparison(
     - None, saves figures to fig_savedir
     """
 
-    # get list of timelapse datasets with DiffAE manifest data
-    list_of_datasets = manifest_io.list_datasets_with_manifest(timelapse_only=True)
+    for dataset in model_manifests:
+        print("**** Running model analysis for dataset", dataset.dataset_name, "**** \n")
 
-    for ds_name in list_of_datasets:
-        # if we don't want to fit model using this dataset, skip it
-        if ds_name in ds_to_skip:
-            print("**** Skipping dataset", ds_name, "**** \n")
-            continue
-
-        print("**** Running model analysis for dataset", ds_name, "**** \n")
-
-        # load DiffAE feature data from this one dataset,
-        # with outliers labeled and features
-        # projected onto principal component axes
-        # as defined by fit PCA object pca
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        # load DiffAE feature data from this one dataset
+        # projected onto principal component axes as defined
+        # by fit PCA object pca. Restrict to stationary frames if provided
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca=pca)
 
         # split out data by flow condition
-        df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name, verbose=False)
+        # split out data by flow condition
+        df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+            df_proj, load_dataset_config(dataset.dataset_name)
+        )
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
@@ -180,18 +176,18 @@ def model_data_comparison(
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
             sup_title = fig2.texts[0].get_text()
-            sup_title = ds_name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
+            sup_title = f"{dataset.dataset_name},  {shear_list[j]} dyn/cm$^2$ \n" + sup_title
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
             # save figures
             viz_base.save_plot(
                 fig1,
-                fig_savedir + ds_name + "_phase_portrait_shear_" + str(int(shear_list[j])),
+                fig_savedir / f"{dataset.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
             )
             viz_base.save_plot(
                 fig2,
-                fig_savedir + ds_name + "_stationary_dist_shear_" + str(int(shear_list[j])),
+                fig_savedir / f"{dataset.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
             )
 
 
@@ -260,7 +256,7 @@ def run_fixed_point_analysis(
     shear_range: np.ndarray,
     pcs: list,
     plt_lims: list,
-    fig_savedir: str,
+    fig_savedir: Path,
 ) -> None:
     """
     Run fixed point analysis for a given drift function
@@ -286,7 +282,7 @@ def run_fixed_point_analysis(
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
     figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pcs, plt_lims)
     for i in range(len(figs)):
-        viz_base.save_plot(figs[i], fig_savedir + f"fixed_points_by_shear_{i}")
+        viz_base.save_plot(figs[i], fig_savedir / f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
@@ -357,7 +353,7 @@ def run_epr_analysis(
     bins: list,
     centers: list,
     shear_range: np.ndarray,
-    fig_savedir: str,
+    fig_savedir: Path,
     additive_noise: bool,
 ) -> None:
     """
@@ -385,7 +381,7 @@ def run_epr_analysis(
     epr = get_epr(model, bins, centers, shear_range, additive_noise)
     fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
     plt.show()
-    viz_base.save_plot(fig, fig_savedir + "epr")
+    viz_base.save_plot(fig, fig_savedir / "epr")
 
 
 def run_gen_potential_analysis(
@@ -396,7 +392,7 @@ def run_gen_potential_analysis(
     pcs: list,
     downsample_quiver: int,
     normed: bool,
-    fig_savedir: str,
+    fig_savedir: Path,
     additive_noise: bool,
 ) -> None:
     """
@@ -457,7 +453,7 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir + f"gp_shear_{ii}")
+        viz_base.save_plot(fig, fig_savedir / f"gp_shear_{ii}")
 
         #### plot gradient/flux decomposition ####
 
@@ -491,4 +487,4 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir + f"gp_decomp_shear_{ii}")
+        viz_base.save_plot(fig, fig_savedir / f"gp_decomp_shear_{ii}")

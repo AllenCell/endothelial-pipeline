@@ -20,7 +20,11 @@ from .model_config_io import (
     validate_all_model_configs,
     validate_model_config,
 )
-from .model_config_utils import add_model_manifest, get_model_manifest
+from .model_config_utils import (
+    add_model_manifest,
+    get_model_manifest,
+    get_timelapse_model_manifests,
+)
 
 __all__ = [
     "DatasetConfig",

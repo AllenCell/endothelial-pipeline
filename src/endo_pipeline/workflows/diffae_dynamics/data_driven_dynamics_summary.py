@@ -1,8 +1,8 @@
 import fire
 
 from cellsmap.util import manifest_io
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import ddd_main
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.visualize import viz_base

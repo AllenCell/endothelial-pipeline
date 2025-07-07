@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal
 
 
@@ -63,7 +65,7 @@ def get_bins(
 
 
 def get_traj_by_flow(
-    df_proj: pd.DataFrame, ds_name: str, verbose: bool = True
+    df_proj: pd.DataFrame, ds_config: DatasetConfig, verbose: bool = True
 ) -> tuple[list, list]:
     """
     Get crop-based feature data (Diffusion AE output) for
@@ -73,8 +75,9 @@ def get_traj_by_flow(
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-    - ds_name: name of the dataset (used to split out data
-        by flow condition, acessed via data_config.yaml)
+    - ds_config: DatasetConfig object containing dataset configuration
+        (used to get flow information)
+    - verbose: boolean, if True, print information about flow conditions
 
     Outputs:
     - data_all: list of dataframes, each containing
@@ -87,7 +90,7 @@ def get_traj_by_flow(
     """
 
     # load flow information from data_config.yaml
-    flow_info = dataset_io.get_flow_info(ds_name)
+    flow_info = ds_config.flow
 
     # split out data by flow condition,
     # starting with first flow condition
@@ -98,7 +101,7 @@ def get_traj_by_flow(
     if len(flow_info) > 1:
         # get frame number where flow condition
         # changes (reported in hours in data_config.yaml)
-        change_frame = dataset_io.get_flow_change_frame(ds_name)
+        change_frame = flow_info[0][-1]
         # get second shear stress condition
         second_shear = float(flow_info[1][-1])
         shear_list.append(second_shear)
@@ -361,3 +364,30 @@ def get_stationary_hist(
         raise ValueError("Only 1D or 2D data currently supported.")
 
     return p_hist
+
+
+def save_train_test(train_test_dict: dict, savedir: str | Path) -> None:
+    """
+    Save train test data to file in savedir, using `numpy.savez` function.
+
+    Inputs:
+    - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
+    - savedir: str|Path, directory to save the file.
+
+    Outputs:
+    - None, save the file to savedir.
+    """
+    np.savez(savedir / "train_test_data", **train_test_dict)
+
+
+def load_train_test(file_path: str | Path) -> dict:
+    """
+    Load train test data from file_path.
+
+    Inputs:
+    - file_path: str|Path, path to the file containing train test data.
+
+    Outputs:
+    - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
+    """
+    return dict(np.load(file_path, allow_pickle=True))

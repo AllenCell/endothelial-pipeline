@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
+from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.visualize import viz_base
@@ -16,7 +19,7 @@ def kramers_moyal_train_test_one_dataset(
     num_bins: list,
     dt: float,
     train_frac: float,
-    fig_savedir: str,
+    fig_savedir: Path,
     kernel_params: dict | None = None,
 ) -> tuple[
     np.ndarray,
@@ -48,8 +51,8 @@ def kramers_moyal_train_test_one_dataset(
     - dt: time step between data points
         (used to compute Kramers-Moyal coefficients)
     - train_frac: fraction of data to use for training
-    - method: method to use for computing Kramers-Moyal
-        coefficients ('kernel' or 'histogram', default is 'kernel')
+    - fig_savedir: directory to save figures
+    - kernel_params: dictionary of parameters for kernel method
 
     Outputs:
     - x_train: training data for Kramers-Moyal coefficients
@@ -72,7 +75,9 @@ def kramers_moyal_train_test_one_dataset(
     ndim = len(pcs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name)
+    df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+        df_proj, load_dataset_config(ds_name)
+    )
     num_flow = len(shear_list)
 
     drift_km = []
@@ -118,7 +123,7 @@ def kramers_moyal_train_test_one_dataset(
         fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
         viz_base.save_plot(
             fig,
-            filename=fig_savedir + f"kmcs_all_{ds_name}_flow_{j}",
+            filename=fig_savedir / f"kmcs_all_{ds_name}_flow_{j}",
             format=".png",
             dpi=500,
         )
@@ -128,7 +133,7 @@ def kramers_moyal_train_test_one_dataset(
             fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             viz_base.save_plot(
                 fig,
-                filename=fig_savedir + f"kmcs_drift_{ds_name}_flow_{j}",
+                filename=fig_savedir / f"kmcs_drift_{ds_name}_flow_{j}",
                 format=".png",
                 dpi=500,
             )
@@ -169,11 +174,11 @@ def kramers_moyal_train_test_one_dataset(
 
 
 def build_kramers_moyal_train_test(
+    model_manifests: list[ModelManifest],
     pca: Pipeline,
     pcs: list[int],
     num_bins: list[int],
     dt: float,
-    ds_to_skip: list[str],
     fig_savedir: str,
     train_frac: float = 0.8,
     kernel_params: dict | None = None,
@@ -183,22 +188,18 @@ def build_kramers_moyal_train_test(
     (drift and diffusion estimates) for all datasets in the dataframe df.
 
     Inputs:
-    - df: pandas dataframe containing all datasets
-        (loaded manifest file with DiffAE output)
+    - model_manifest: ModelManifest object containing the list of datasets
+        and fmsids to load manifest feature data to use for Kramers-Moyal analysis
     - pca: PCA object used to project data onto principal component axes
         (sklearn.pipeline.Pipeline, can include scaling as pre-processing step)
-    - PCs: list of principal component axes to use for Kramers-Moyal analysis
-    - Nbins: list of number of bins to use for histogramming data to compute
+    - pcs: list of principal component axes to use for Kramers-Moyal analysis
+    - num_bins: list of number of bins to use for histogramming data to compute
         the Kramers-Moyal coefficients
         (conditional averages computed in each bin)
     - dt: time step between data points
         (used to compute Kramers-Moyal coefficients)
-    - ds_to_skip: list of dataset names to skip when building
-        train test sets (e.g., if a dataset is known to be problematic)
     - fig_savedir: directory to save figures
     - train_frac: fraction of data to use for training (default is 0.8)
-    - method: method to use for computing Kramers-Moyal coefficients
-        ('kernel' or 'histogram', default is 'kernel')
     - kernel_params: dictionary of parameters for kernel method
         (default is None, which uses default parameters if method is 'kernel')
 
@@ -216,10 +217,6 @@ def build_kramers_moyal_train_test(
         - 'u_test': test flow conditions
     The train test sets are concatenated across all datasets in the dataframe.
     """
-    # get list of datasets with DiffAE manifest data
-    # using timelapse_only=True to restrict to datasets
-    # that are live, timelapse datasets
-    list_of_datasets = manifest_io.list_datasets_with_manifest(timelapse_only=True)
 
     # initialize lists to store train test sets for each dataset
     x_train_list = []
@@ -233,24 +230,19 @@ def build_kramers_moyal_train_test(
 
     # for each dataset, generate train test sets for drift and diffusion estimates
     # (Kramers-Moyal coefficients, Y and V, respectively)
-    for ds_name in list_of_datasets:
-        # skip specified datasets when building train test sets
-        if ds_name in ds_to_skip:
-            print("**** Skipping dataset", ds_name, "**** \n")
-            continue
-
-        print("**** Generating train/test sets for dataset", ds_name, "**** \n")
+    for dataset in model_manifests:
+        print("**** Generating train/test sets for dataset", dataset.dataset_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
             kramers_moyal_train_test_one_dataset(
                 df_proj,
-                ds_name,
+                dataset.dataset_name,
                 pcs,
                 num_bins,
                 dt,

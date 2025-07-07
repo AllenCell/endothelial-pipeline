@@ -1,5 +1,6 @@
 import logging
 
+from .dataset_config_io import load_dataset_config
 from .model_config import ModelConfig, ModelManifest
 
 logger = logging.getLogger(__name__)
@@ -65,3 +66,28 @@ def add_model_manifest(model_config: ModelConfig, dataset_name: str, fmsid: str)
     model_config.manifest_fmsids.append(new_manifest)
 
     return model_config
+
+
+def get_timelapse_model_manifests(model_config: ModelConfig) -> list[ModelManifest]:
+    """
+    Get the list of model manifests that are timelapse datasets.
+
+    Inputs:
+    - model_config: ModelConfig, configuration of the model
+
+    Outputs:
+    - list of ModelManifest, containing only timelapse datasets
+    """
+    if model_config.manifest_fmsids is None:
+        logger.error("No manifests for model config %s", model_config.name)
+        raise FileNotFoundError(f"No manifest fmsids found in model config {model_config.name}")
+
+    # filter manifests to only include timelapse datasets
+    timelapse_manifests = []
+    for manifest in model_config.manifest_fmsids:
+        data_config = load_dataset_config(manifest.dataset_name)
+        if data_config.time_interval_in_minutes < 0:
+            continue
+        timelapse_manifests.append(manifest)
+
+    return timelapse_manifests
