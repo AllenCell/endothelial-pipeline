@@ -1,3 +1,5 @@
+import random
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -11,7 +13,8 @@ def plot_crop_montage(
 
     # only plot up to max_num_crops crops
     num_crops = min(len(list_of_crops), max_num_crops)
-    list_of_crops_ = list_of_crops[:num_crops]
+    # take a random sample of these crops
+    list_of_crops_ = random.sample(list_of_crops, num_crops)
 
     fig, ax = plt.subplots(10, 10, figsize=(32, 32))
     for i, crop in enumerate(list_of_crops_):

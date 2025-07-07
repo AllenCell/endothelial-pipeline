@@ -48,9 +48,7 @@ def get_crop(
     return img_crop
 
 
-def get_original_crops_in_dataframe(
-    df: pd.DataFrame, output_dir: Path, save_crops: bool = True
-) -> list[np.ndarray]:
+def get_original_crops_in_dataframe(df: pd.DataFrame) -> list[np.ndarray]:
     """
     Get crops of original images from the dataframe for a
     given dataset and save them as multichannel TIFF files.
@@ -102,11 +100,6 @@ def get_original_crops_in_dataframe(
             )
 
             image_seq.append(multichannel_image)
-
-            # Save as a multichannel TIFF
-            if save_crops:
-                filename = f"{dataset}_{position}_T{timepoint}_crop_{index}.tiff"
-                tifffile.imwrite(output_dir + filename, multichannel_image)
 
     return image_seq
 

@@ -82,7 +82,7 @@ def generate_from_coords_batch(
     return walk_imgs
 
 
-def get_reconstructed_crops_in_dataframe(df: pd.DataFrame, output_dir: Path) -> None:
+def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> None:
     """
     Reconstruct crops from each latent coordinate
     given in the input dataframe.

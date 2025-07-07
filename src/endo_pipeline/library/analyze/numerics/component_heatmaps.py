@@ -187,7 +187,7 @@ def get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
 
 
 def get_df_by_bin_value(
-    df: pd.DataFrame, latent_dim: int, latent_val: float, bin_edges: list[np.ndarray]
+    df: pd.DataFrame, pc_axis: int, pc_val: float, bin_edges: list[np.ndarray]
 ) -> pd.DataFrame:
     """
     Given a dataframe and a latent dimension,
@@ -198,8 +198,8 @@ def get_df_by_bin_value(
 
     Example:
     - df = pd.DataFrame({'bin_0': [0, 1, 0], 'bin_1': [1, 1, 2]})
-    - latent_dim = 0
-    - latent_val = 0.2
+    - pc_axis = 0
+    - pc_val = 0.2
     - bin_edges = np.array([0, 0.5, 1])
         - get_index_from_value(latent_val, bin_edges) = 0
         - looking for 'bin_0' == 0
@@ -211,22 +211,22 @@ def get_df_by_bin_value(
 
     Input:
     - df: pd.DataFrame, dataframe to filter
-    - latent_dim: int, dimension to filter by
-    - latent_val: float, value to filter by
+    - pc_axis: int, dimension to filter by
+    - pc_val: float, value to filter by
 
     Output:
     - df: pd.DataFrame, filtered dataframe
     """
 
     # get the bin edges for the given latent dimension
-    bin_edges_1d = bin_edges[latent_dim]
+    bin_edges_1d = bin_edges[pc_axis]
 
     # get the bin index for the given latent value
     # and find the crops that fall into that bin
-    bin_idx = get_index_from_value(latent_val, bin_edges_1d)
+    bin_idx = get_index_from_value(pc_val, bin_edges_1d)
 
     # filter the dataframe to only include rows
     # with bin_{latent_dim} == bin_idx
-    df_bin = df.loc[df[f"bin_{latent_dim}"] == bin_idx]
+    df_bin = df.loc[df[f"bin_{pc_axis}"] == bin_idx]
 
     return df_bin
