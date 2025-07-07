@@ -1,6 +1,6 @@
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Sequence
 
 import cv2
 import fire
