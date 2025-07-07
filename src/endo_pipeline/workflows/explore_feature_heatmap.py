@@ -74,8 +74,6 @@ def main(
     # if directory does not exist, get_output_path function will create it
     workflow_fig_folder = f"{workflow_name}/figs"
     fig_savedir = get_output_path(workflow_fig_folder)
-    orig_crop_savedir = get_output_path(f"{fig_savedir}/original_crops/")
-    recon_crop_savedir = get_output_path(f"{fig_savedir}/reconstructed_crops/")
 
     if isinstance(dataset_names, str):
         list_of_datasets = [dataset_names]
