@@ -13,9 +13,9 @@ duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 28.83]]
 n_total_positions: 6
+channel_488_index: 0
 brightfield_channel_index: 1
 channel_405_index: null
-channel_488_index: 0
 channel_561_index: null
 channel_640_index: null
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241120_20X
