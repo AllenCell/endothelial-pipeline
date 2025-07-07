@@ -13,9 +13,9 @@ duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 21.35]]
 n_total_positions: 6
+channel_488_index: 0
 brightfield_channel_index: 1
 channel_405_index: null
-channel_488_index: 0
 channel_561_index: null
 channel_640_index: null
 nuclear_label_free_seg_path: null
@@ -29,4 +29,5 @@ is_reference: true
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null
-notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become overgrown earlier than in previous timelapse experiments (~25h)
+notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become
+  overgrown earlier than in previous timelapse experiments (~25h)
