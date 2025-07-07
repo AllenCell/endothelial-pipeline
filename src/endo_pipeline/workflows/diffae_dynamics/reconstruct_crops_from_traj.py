@@ -1,23 +1,24 @@
+import fire
 import numpy as np
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 
 
-def main() -> None:
+def main(model_name: str = "diffae_04_10") -> None:
     """
     Reconstruct crops from latent space coordinates
     along trajectories output by the flow field 3D workflow
     (`generate_flow_field.py`).
     """
     # Create output folder if does not exist yet
-    workflow_crop_folder = "flow_field_3d/figs/crops"
-    workflow_output_folder = "flow_field_3d/outputs"
-    output_savedir = get_output_path(workflow_output_folder, verbose=False)
-    crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
+    output_savedir = get_output_path(
+        "flow_field_3d", model_name, "outputs", include_timestamp=False
+    )
+    crop_savedir = get_output_path("flow_field_3d", model_name, "crops", include_timestamp=False)
 
     # Get fit (3D) PCA object from manifest
     reducer = manifest_pca.fit_pca(num_pcs=3)
@@ -77,4 +78,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

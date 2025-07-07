@@ -27,9 +27,9 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     output_savedir = get_output_path(
         workflow_name, "model_name", "outputs", include_timestamp=False
     )
-    fig_savedir = get_output_path(workflow_name, "model_name", "figs", include_timestamp=False)
+    fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=False)
     vtk_savedir = get_output_path(
-        workflow_name, "model_name", "outputs", "vtk", include_timestamp=False
+        workflow_name, model_name, "outputs", "vtk", include_timestamp=False
     )
 
     if isinstance(datasets_to_use, str):
