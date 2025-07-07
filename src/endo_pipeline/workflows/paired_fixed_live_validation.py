@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Any
 
-import fire
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -66,7 +65,6 @@ def apply_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
     model_name: str = "diffae_finetuned_for_fixed",
-    align_only: bool = False,
     align_fluo: bool = True,
     upload_features_to_FMS: bool = False,
 ) -> tuple[Path, str, str]:
@@ -74,13 +72,17 @@ def apply_model_paired_fixed_live(
     Align paired fixed and live data and apply a diffAE model to extract features.
 
     Args:
-    live_dataset_name (str): Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
-    fixed_dataset_name (str): Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
-    model_name (str): The name of the model finetuned for fixation.
-    align_only (bool): If True, only align the images and do not extract features or project to PCA. Defaults to False.
-    align_fluo(bool): Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    upload_features_to_FMS (bool): Whether to upload validation data features to FMS. We may iteratre on analysis
-    without changing features and therefore should default to not rewriting a new feature manifest every time this workflow is run.
+        live_dataset_name (str): Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
+        fixed_dataset_name (str): Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
+        model_name (str): The name of the model finetuned for fixation.
+        align_fluo(bool): Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
+        upload_features_to_FMS (bool): Whether to upload validation data features to FMS. We may iteratre on analysis
+        without changing features and therefore should default to not rewriting a new feature manifest every time this workflow is run.
+
+    Returns:
+        Path: local path to parent directory where intermediate data is saved
+        str: local path where fixed data features are saved in a parquet file
+        str: local path where live data features are saved in a parquet file
     """
 
     # Get diffAE model
@@ -102,14 +104,9 @@ def apply_model_paired_fixed_live(
             alignment_method="sift",
             align_fluo=align_fluo,
         )
-        # channel used for inference is in the aligned images, which are single channel
+        # Channel used for inference is in the aligned images, which are single channel
         data["channel"] = 0
         data.to_csv(data_save_path, index=False)
-
-    if align_only:
-        print(
-            f"Aligned images saved to {save_path}. Skipping feature extraction and PCA projection."
-        )
 
     # Apply on fixed images
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
@@ -124,13 +121,13 @@ def apply_model_paired_fixed_live(
         model_name=model_name,
     )
 
-    # load diffAE model
+    # Load diffAE model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
     model.override_config(fixed_overrides)
     model.predict()
 
-    # apply on moving images
+    # Apply on moving images
     overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
     overrides = generate_overrides(
         overrides,
@@ -181,9 +178,13 @@ def project_paired_fixed_live_data_into_ref_PC_space(
         fixed_features_path str: Path to the fixed features manifest.
         live_features_path str: Path to the live features manifest.
         pca_dir (str | Path | None): Directory containing the PCA model. If None, a new PCA model is fitted.
+
+    Returns:
+        pd.DataFrame: dataframe containing PCs for fixed data
+        pd.DataFrame: dataframe containing PCs for live data
     """
 
-    # load features for comparison
+    # load pc features for fixed and live data
     fixed_features = pd.read_parquet(fixed_features_path)
     live_features = pd.read_parquet(live_features_path)
 
@@ -203,15 +204,40 @@ def get_paired_fixed_live_validation_features(
     live_features: pd.DataFrame,
     n_std: int = 2,
 ) -> tuple[tuple, tuple]:
+    """
+    Use a confidence ellipse to define the linear model mapping between PC values for live and fixed
+    data and determine the uncertainty in the fixed PC values based on this mapping. The confidence
+    ellipse is oriented with its major axis along the direction of highest variation in the data; a
+    line colinear with this axis is used to define a linear model for mapping between fixed and live
+    data. The y-projection of the minor axis gives our uncertainty in the fixed PC value based on
+    this model.
 
+    Args:
+        pc (int): PC to analyze
+        fixed_features (pd.DataFrame): dataframe containing PCs for fixed data
+        live_features (pd.DataFrame): dataframe containing PCs for live data
+        n_std (int): number of standard deviations wide to make the confidence ellipse
+
+    Returns:
+        tuple: raw fixed and live data
+        tuple: confidence-ellipse based validation features to plot
+    """
+
+    # Format live and fixed features as needed for analysis and calculated the mean of each
     x, y = live_features[f"pc{pc}"].values, fixed_features[f"pc{pc}"].values
     mean_x = np.mean(x)
     mean_y = np.mean(y)
     center = (float(mean_x), float(mean_y))
 
+    # Get covaraince matrix of live and fixed data then calculate its eigenvectors and eigenvalues
     data = [[live, fixed] for live, fixed in zip(x, y)]
     covariance_matrix = np.cov(data, rowvar=False)
     eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
+
+    # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated eigenvalues
+    # give the lengths of the ellipse axes.
+    # A linear colinear with the major axis of the ellipse is our linear model mapping between live and fixed data
+    # for this PC value
     width = 2 * n_std * np.sqrt(eigenvalues[0])
     height = 2 * n_std * np.sqrt(eigenvalues[1])
     angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
@@ -237,14 +263,26 @@ def plot_paired_fixed_live_validation_features(
     paired_validation_features: tuple[Any],
     color_list: list[str] = ["#5F9ED1", "#FF800E", "#C85200"],
 ) -> None:
+    """
+    Plot the raw fixed and live data for a given PC along with a unity line for reference
+    and the validation features, including the 2-sigma confidence ellipse, linear
+    model mapping between fixed and live data and the error bar for the given PC.
 
+    Args:
+        save_path (Path): local path to parent directory where results are saved
+        pc (int): number PC (1-8) to analyze
+        raw_data (tuple): live (first element) and fixed (second element) PC data
+        paired_validation_features (tuple): set of all validation needed for plotting
+        color_list (list): list of hex codes for three colors used in plots
+    """
+
+    # Get raw fixed (y) and live (x) PC data and its lower and upper limits
     x, y = raw_data
     min_ = min(x.min(), y.min())
     max_ = max(x.max(), y.max())
 
+    # Get all validation features
     center, height, angle, slope, intercept, ellipse = paired_validation_features
-    y_model_min = slope * min_ + intercept
-    y_model_max = slope * max_ + intercept
 
     # Create scatter plot of PC data from two experiments
     plt.clf()
@@ -260,6 +298,8 @@ def plot_paired_fixed_live_validation_features(
     ax.add_patch(ellipse)
 
     # Plot linear model along major axis of ellipse
+    y_model_min = slope * min_ + intercept
+    y_model_max = slope * max_ + intercept
     plt.plot(
         [min_, max_],
         [y_model_min, y_model_max],
