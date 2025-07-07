@@ -4,8 +4,6 @@ from src.endo_pipeline.configs import dynamics_io, get_timelapse_model_manifests
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import ddd_main
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.visualize import viz_base
-from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
@@ -19,14 +17,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     # make save directory for workflow outputs
     # (set in config file dynamics_config.yaml)
     print("\n", "*** Running workflow using config: ", dynamics_config_name, "\n")
-    config = dynamics_io.load_dynamics_config(dynamics_config_name)
-
-    # get output subdirectory for intermediate workflow outputs
-    # (set in config file dynamics_config.yaml)
-    # if directory does not exist, get_output_path function will create it
-    savedir = get_output_path(
-        "stochastic_dynamics", dynamics_config_name, model_name, "outputs", include_timestamp=False
-    )
+    dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
 
     # get output subdirectory for figures that workflow outputs
     # (set in config file dynamics_config.yaml)
@@ -41,7 +32,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     #### Get data driven flow fields (kernel method) ####
     # load inputs from dynamics_config.yaml
-    kramers_moyal_config = config["kramers_moyal"]
+    kramers_moyal_config = dynamics_config["kramers_moyal"]
     kernel_params = None
     if "kernel_params" in kramers_moyal_config:
         kernel_params = kramers_moyal_config["kernel_params"]
@@ -62,7 +53,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
             pca,
             kernel_params,
             fig_savedir,
-            config,
+            dynamics_config,
         )
 
 

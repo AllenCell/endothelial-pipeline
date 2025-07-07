@@ -6,6 +6,7 @@ from src.endo_pipeline.configs import (
     dynamics_io,
     get_model_manifest,
     get_pca_reference_model_manifests,
+    load_dataset_config,
     load_model_config,
     load_reference_dataset_configs,
 )
@@ -51,7 +52,8 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     # all timepoints except no flow
     model_config = load_model_config(model_name)
     pca_ref_manifests = get_pca_reference_model_manifests(model_config)
-    pca_ref_configs = load_reference_dataset_configs()
+    # pca_ref_configs = load_reference_dataset_configs()
+    pca_ref_configs = [load_dataset_config(manifest.dataset_name) for manifest in pca_ref_manifests]
     restrict_no_flow = True  # restrict plot to subset of no flow timepoints
 
     # get timepoints to use for scatter plots
@@ -62,9 +64,7 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     )
 
     # scatter plot of pca reference datasets
-    fig, _ = manifest_viz.plot_pc_scatter(
-        pca, pca_ref_manifests, timepoints_to_use=timepoints_refs  # pca reference datasets
-    )
+    fig, _ = manifest_viz.plot_pc_scatter(pca, pca_ref_manifests, timepoints_to_use=timepoints_refs)
     viz_base.save_plot(fig, fig_savedir + "/pca_scatter_ref")
 
     # scatter plot of all datasets specified in command line
