@@ -32,10 +32,10 @@ def validate_all_dataset_configs() -> None:
     dataset_names = get_available_dataset_names()
 
     for dataset_name in dataset_names:
-        validate_single_dataset_config(dataset_name)
+        validate_dataset_config(dataset_name)
 
 
-def validate_single_dataset_config(dataset_name: str) -> None:
+def validate_dataset_config(dataset_name: str) -> None:
     """Validate given dataset config against defined schema."""
 
     config_dir = get_dataset_config_dir()
@@ -57,7 +57,7 @@ def load_all_dataset_configs() -> list[DatasetConfig]:
 
     dataset_names = get_available_dataset_names()
 
-    datasets = [load_single_dataset_config(name) for name in dataset_names]
+    datasets = [load_dataset_config(name) for name in dataset_names]
     logger.info("Loaded all available datasets [ %s ]", " | ".join(dataset_names))
 
     return datasets
@@ -75,7 +75,7 @@ def load_reference_dataset_configs() -> list[DatasetConfig]:
     return reference_datasets
 
 
-def load_single_dataset_config(dataset_name: str) -> DatasetConfig:
+def load_dataset_config(dataset_name: str) -> DatasetConfig:
     """Load single dataset config by name."""
 
     config_dir = get_dataset_config_dir()
@@ -104,7 +104,3 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
 
     content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)
     config_file.write_text(content)
-
-
-if __name__ == "__main__":
-    validate_all_dataset_configs()

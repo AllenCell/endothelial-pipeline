@@ -7,7 +7,6 @@ from src.endo_pipeline.configs.dataset_io import (
     get_dataset_info,
     get_original_path,
     get_specific_channel_order,
-    get_total_number_of_positions,
 )
 
 
@@ -58,7 +57,8 @@ def get_delayed_array_for_position(
     channel_names : list
         A list of channel names.
     number_positions : int, optional
-        The total number of positions in the dataset. Default is 6.
+        The total number of positions in the dataset. Take every nth position in time to create
+        the Dask array.
     scene_index : int, optional
         The scene index. You can find the scene names (in their indexed order)
         using `BioImage(get_original_path(dataset_name)).scenes`. Default is 0.
@@ -79,7 +79,6 @@ def get_delayed_array_for_position(
     img.set_scene(int(scene_index))
     # Get the timepoints for the specified position
     t_final = img.dims.T  #  the total number of timepoints in "img"; if testing set low t_final
-    number_positions = get_total_number_of_positions(dataset_name)
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
     index_488, bf_index, index_405, index_561, index_640 = get_specific_channel_order(dataset_name)
