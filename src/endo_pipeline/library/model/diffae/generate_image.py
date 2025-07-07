@@ -100,16 +100,9 @@ def get_reconstructed_crops_in_dataframe(df: pd.DataFrame, output_dir: Path) -> 
         "diffae_04_10", latent_coords
     )  # output is a numpy array: (# coords x 128 x 128), greyscale image
 
-    # save out each image in the array as a tiff
+    # convert to list of numpy arrays
+    walk_img_list = []
     for i in range(num_points):
-        # get dataset name frame number, position, and crop index from the dataframe
-        ds_name = df["dataset"].iloc[i]
-        frame_number = df["frame_number"].iloc[i]
-        position = df["position"].iloc[i]
-        crop_index = df["crop_index"].iloc[i]
-        # filename convention same as get_crops_in_dataframe
-        filename = f"{ds_name}_{position}_T{frame_number}_crop_{crop_index}.tiff"
-        # save out the reconstructed image
-        OmeTiffWriter.save(walk_img[i], output_dir + filename, overwrite=True)
+        walk_img_list.append(walk_img[i])
 
-    return walk_img
+    return walk_img_list

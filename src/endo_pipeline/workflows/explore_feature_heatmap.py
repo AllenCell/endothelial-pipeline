@@ -151,17 +151,41 @@ def main(
         viz_base.save_plot(
             fig,
             fig_savedir
-            + f"{ds_name}_original_crops_montage_"
+            + f"{ds_name}_original_bf_crops_montage_"
+            + f"PC{pc_axis+1}_val"
+            + "p".join(str(pc_val).split(".")),
+        )
+
+        # cdh5 contact sheet
+        fig, _ = plot_crop_montage(original_crop_list, channel_index=0)
+        fig.suptitle(f"Dataset: {ds_name}, PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
+        plt.tight_layout()
+        plt.show()
+        viz_base.save_plot(
+            fig,
+            fig_savedir
+            + f"{ds_name}_original_cdh5_crops_montage_"
             + f"PC{pc_axis+1}_val"
             + "p".join(str(pc_val).split(".")),
         )
 
         # get and save out reconstructed crops
         # corresponding to the rows in the filtered dataframe
-        # reconstructed_crop_array = get_reconstructed_crops_in_dataframe(
-        #     df_filtered,
-        #     recon_crop_savedir,
-        #     )
+        reconstructed_crop_list = get_reconstructed_crops_in_dataframe(
+            df_filtered,
+            recon_crop_savedir,
+        )
+
+        fig, _ = plot_crop_montage(reconstructed_crop_list, channel_index=None)
+        plt.tight_layout()
+        plt.show()
+        viz_base.save_plot(
+            fig,
+            fig_savedir
+            + f"{ds_name}_reconstructed_crops_montage_"
+            + f"PC{pc_axis+1}_val"
+            + "p".join(str(pc_val).split(".")),
+        )
 
 
 if __name__ == "__main__":
