@@ -104,7 +104,3 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
 
     content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)
     config_file.write_text(content)
-
-
-if __name__ == "__main__":
-    validate_all_dataset_configs()
