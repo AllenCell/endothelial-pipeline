@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -175,9 +177,9 @@ def feature_density(
             ax.set_ylim(0, ylim)
             plt.tight_layout()
             plt.show()
-            fname = f"/{feature}_{dataset_name}_poolpos{pool_positions}_density_plot"
-            output_dir = save_dir + fname
-            save_plot(fig, output_dir, transparent=True)
+            fname = f"{feature}_{dataset_name}_poolpos{pool_positions}_density_plot"
+            output_dir = save_dir / fname
+            save_plot(fig, str(output_dir), transparent=True)
             plt.close(fig)
 
     if not per_dataset:
@@ -189,13 +191,18 @@ def feature_density(
         plt.tight_layout()
         plt.show()
 
-        fname = f"/{feature}_poolpos{pool_positions}_all_datasets_density_plot"
-        output_dir = save_dir + fname
-        save_plot(fig, output_dir, transparent=True)
+        fname = f"{feature}_poolpos{pool_positions}_all_datasets_density_plot"
+        output_dir = save_dir / fname
+        save_plot(fig, str(output_dir), transparent=True)
 
 
 def plot_channel_intensity_histograms(
-    df: pd.DataFrame, df_all: pd.DataFrame, column_names: list, dataset: str, positions: list
+    df: pd.DataFrame,
+    df_all: pd.DataFrame,
+    column_names: list,
+    dataset: str,
+    positions: list,
+    save_dir: Path,
 ) -> None:
     """
     Plot a 1 x n grid of histograms for the given column names,
@@ -207,6 +214,7 @@ def plot_channel_intensity_histograms(
         column_names (list): List of column names to plot histograms for.
         dataset (str): The dataset name to include in the titles.
         positions (list): List of positions to plot overlapping histograms.
+        save_dir (Path): Directory to save the plot.
     """
     n = len(column_names)
     bins = 75
@@ -257,6 +265,8 @@ def plot_channel_intensity_histograms(
         axes[i].legend(fontsize=10)
 
     plt.show()
+    output_path = save_dir / f"{dataset}_intensity_histograms.png"
+    save_plot(fig, str(output_path), transparent=True)
 
 
 def feature_boxplot_vs_flowrate(
@@ -337,8 +347,8 @@ def feature_boxplot_vs_flowrate(
     plt.tight_layout()
     plt.show()
 
-    output_path = f"{save_dir}/{feature}_vs_flowrate_boxplot.png"
-    save_plot(ax.figure, output_path, transparent=True)
+    output_path = save_dir / f"{feature}_vs_flowrate_boxplot.png"
+    save_plot(ax.figure, str(output_path), transparent=True)
     plt.close()
 
 

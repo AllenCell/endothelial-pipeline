@@ -1,9 +1,9 @@
 # %%
 from cellsmap.util.manifest_io import get_manifest
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.io.output import get_output_path
 from src.endo_pipeline.library.analyze.immunofluorescence import filter, plot
 
-output_dir = get_output_path("immunofluorescence_analysis/SMAD1")
+output_dir = get_output_path("immunofluorescence_analysis", "SMAD1")
 # %%
 IF_SMAD_DATASETS = [
     "20250509_20X_IF2",
@@ -52,8 +52,9 @@ for dataset in IF_SMAD_DATASETS:
         ["NucViolet_mean_sum_proj", "SMAD1_mean_sum_proj", PLOT_FEAT],
         dataset,
         positions=[0, 1],
+        save_dir=output_dir,
     )
-
+# %%
 plot.feature_density(
     df_all=if_manifest,
     dataset_name_list=IF_SMAD_DATASETS,
