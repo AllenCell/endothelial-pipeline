@@ -3,7 +3,8 @@
 
 # %% [markdown]
 """
-Validate all existing ML models by checking config schemas and loading checkpoint files. \
+Validate all existing ML models by checking config schemas and loading checkpoint files.
+\
 \
 This script requires the extra `ml_workflows` dependencies to run.
 If these dependencies are not installed, you can run the following command:
@@ -14,13 +15,12 @@ and then run this notebook. \
 \
 For each dataset config in the `configs/models` directory, confirm:
 
-- All dataset configs follow the schema defined by `ModelConfig`
-- All MLflow run IDs exist and can be opened (load checkpoint)
+- All dataset configs follow the schema defined by `ModelConfig`.
+- All MLflow run IDs exist and can be opened (load checkpoint).
 - All datasets in the `ModelManifest` are valid (have a `DatasetConfig`)
-    and can be loaded (load manifest from the model via FMS)
-- All datasets in the `training_datasets` list have a `DatasetConfig`
-
-"""
+    and can be loaded (load manifest from the model via FMS).
+- All datasets in the `training_datasets` list have a `DatasetConfig`.
+"""  # noqa: D415, D400
 # %%
 if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
