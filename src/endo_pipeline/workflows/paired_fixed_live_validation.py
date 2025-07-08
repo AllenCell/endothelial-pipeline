@@ -58,10 +58,9 @@ def add_paired_fixed_live_data_fmsid_to_config(
         mlflow_run_id=model_config.mlflow_run_id
     )
 
-    # Update dataset config with the FMS ID of the prediction file
-    dataset_config = load_single_dataset_config(dataset_name)
-    dataset_config.diffae_manifest_fmsid = file_id
-    save_dataset_config(dataset_config)
+    # Update the model config with the FMS ID of the prediction file
+    model_config_updated = add_model_manifest(model_config, dataset_name, file_id)
+    return model_config_updated
 
 
 def apply_model_paired_fixed_live(
