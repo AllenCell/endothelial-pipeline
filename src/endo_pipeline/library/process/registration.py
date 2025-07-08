@@ -22,8 +22,8 @@ from tqdm import tqdm, trange
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_model_config
-from src.endo_pipeline.configs.dataset_io import get_zarr_path, update_dataset_config
+from src.endo_pipeline.configs import add_model_manifest, load_model_config, save_model_config
+from src.endo_pipeline.configs.dataset_io import get_zarr_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
@@ -548,8 +548,8 @@ def plot_paired_features(
     plt.close(fig)
 
 
-def add_fmsid_to_config(
-    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
+def add_fmsid_to_model_config(
+    prediction_path: str, dataset_name: str, model_name: str, mlflow_id: str, model_path: Path
 ) -> None:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for the given dataset.
@@ -573,10 +573,15 @@ def add_fmsid_to_config(
         mlflow_run_id=mlflow_id,
     )
 
-    update_dataset_config(
+    # add new manifest to model config
+    model_config = add_model_manifest(
+        load_model_config(model_name),
         dataset_name,
-        {"diffae_manifest_fmsid": file_id},
+        file_id,
     )
+
+    # save the updated model config
+    save_model_config(model_config)
 
 
 def compare_paired_features(
@@ -674,9 +679,10 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
+    add_fmsid_to_model_config(
         fixed_features_path,
         fixed_dataset_name,
+        model_name,
         mlflow_id,
         model_path,
     )

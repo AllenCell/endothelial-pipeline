@@ -7,11 +7,11 @@ from deprecated import deprecated
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import (
-    ModelConfig,
-    ModelManifest,
     dataset_io,
     get_available_dataset_names,
+    get_model_manifest,
     load_all_dataset_configs,
+    load_model_config,
 )
 
 try:
@@ -173,11 +173,16 @@ inf cellsmap.util.manifest_io directly. Note that this call may as part of
 changes to the dataset config.
 """
 )
-def get_diffae_manifest(dataset_name: str, filter_to_valid: bool = False) -> pd.DataFrame:
-    fmsid = dataset_io.get_dataset_info(dataset_name)["diffae_manifest_fmsid"]
-    if fmsid == "" or fmsid is None:
-        print(f"No DiffAE manifest found for dataset {dataset_name}")
-        return None
+def get_diffae_manifest(
+    dataset_name: str,
+    model_name: str = "diffae_04_10",
+    filter_to_valid: bool = False,
+) -> pd.DataFrame:
+    model_manifest = get_model_manifest(
+        dataset_name=dataset_name,
+        model_config=load_model_config(model_name),
+    )
+    fmsid = model_manifest.fmsid
     df = get_dataframe_by_fmsid(fmsid)
     if filter_to_valid:
         df = get_valid_subset(df, dataset_name, verbose=False)
@@ -237,13 +242,13 @@ def get_feature_cols(df: pd.DataFrame) -> list:
 
 
 def list_datasets_with_manifest(
-    manifest_name: str,
+    manifest_name: str = "diffae_04_10",
     verbose: bool = False,
     timelapse_only: bool = False,
 ) -> list:
     """
     List all dataset names that have a 'nuclear_seg_manifest_fmsid'
-    or 'diffae_manifest_fmsid'.
+    or fmsid for Diff AE features (loaded via ModelManifest from model config).
     """
     all_datasets = get_available_dataset_names()
 
@@ -267,8 +272,12 @@ def list_datasets_with_manifest(
         if manifest_name == "nuclear_seg_manifest_fmsid":
             manifest_fmsid = dataset_info.nuclear_seg_manifest_fmsid
         else:
-            manifest_fmsid = dataset_info.diffae_manifest_fmsid
-        if manifest_fmsid != "":
+            model_manifest = get_model_manifest(
+                dataset_name=dataset_info.name,
+                model_config=load_model_config(manifest_name),
+            )
+            manifest_fmsid = model_manifest.fmsid
+        if manifest_fmsid != "" or manifest_fmsid is not None:
             dataset_list.append(dataset_info.name)
             if verbose:
                 print(f" - {dataset_info.name}")

@@ -67,7 +67,6 @@ dataset = DatasetConfig(
     # nuclear_label_free_seg_path="/path/to/nuclear/label/free/segmentation",
     # nuclear_stain_seg_path="/path/to/nuclear/stain/segmentation",
     # nuclear_seg_manifest_fmsid="FMS ID for nuclear segmentation manifest",
-    # diffae_manifest_fmsid="FMS ID for diffusion autoencoder manifest",
     # tracking_integration_fmsid="FMS ID for tracking integration",
     # diffae_tracking_integration_fmsid="FMS ID for diffusion autoencoder tracking integration",
     # is_reference=False,

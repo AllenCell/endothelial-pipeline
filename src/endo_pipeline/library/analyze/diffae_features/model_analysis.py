@@ -131,9 +131,7 @@ def model_data_comparison(
     """
 
     # get list of timelapse datasets with DiffAE manifest data
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", timelapse_only=True
-    )
+    list_of_datasets = manifest_io.list_datasets_with_manifest(timelapse_only=True)
 
     for ds_name in list_of_datasets:
         # if we don't want to fit model using this dataset, skip it
