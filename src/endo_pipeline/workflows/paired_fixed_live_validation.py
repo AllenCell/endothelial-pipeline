@@ -31,11 +31,16 @@ def add_paired_fixed_live_data_fmsid_to_config(
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
     of paired fixed and live data.
 
-    Args:
-        prediction_path (str): Path to the prediction file.
-        dataset_name (str): Name of the dataset to update in config
-        mlflow_id (str): MLflow ID of the model used for prediction.
-        model_path (Path): Path to the model directory. Used for extracting the commit hash.
+    Parameters
+    ----------
+    prediction_path : str
+        Path to the prediction file
+    dataset_name : str
+        Name of the dataset to update in config
+    mlflow_id : str
+        MLflow ID of the model used for prediction.
+    model_path : Path
+        Path to the model directory. Used for extracting the commit hash.
     """
     file_id = save_file_to_fms(
         prediction_path,
@@ -61,18 +66,29 @@ def apply_model_paired_fixed_live(
     """
     Align paired fixed and live data and apply a diffAE model to extract features.
 
-    Args:
-        live_dataset_name (str): Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
-        fixed_dataset_name (str): Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
-        model_name (str): The name of the model finetuned for fixation.
-        align_fluo(bool): Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-        upload_features_to_FMS (bool): Whether to upload validation data features to FMS. We may iteratre on analysis
-        without changing features and therefore should default to not rewriting a new feature manifest every time this workflow is run.
+    Parameters
+    ----------
+    live_dataset_name : str
+        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
+    fixed_dataset_name : str
+        Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
+    model_name : str
+        The name of the model finetuned for fixation.
+    align_fluo : bool
+        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
+    upload_features_to_FMS : bool
+        Whether to upload validation data features to FMS. We may iteratre on analysis
+        without changing features and therefore should default to not rewriting a new feature manifest every time
+        this workflow is run.
 
-    Returns:
-        Path: local path to parent directory where intermediate data is saved
-        str: local path where fixed data features are saved in a parquet file
-        str: local path where live data features are saved in a parquet file
+    Returns
+    -------
+    save_path: Path
+        Local path to parent directory where intermediate data is saved
+    fixed_features_path : str
+        Local path where fixed data features are saved in a parquet file
+    live_feature_path: str
+        Local path where live data features are saved in a parquet file
     """
 
     # Get diffAE model
@@ -164,14 +180,21 @@ def project_paired_fixed_live_data_into_ref_PC_space(
     Project features from applying fine tuned diffAE model to fixed and live data into
     reference PC space.
 
-    Args:
-        fixed_features_path str: Path to the fixed features manifest.
-        live_features_path str: Path to the live features manifest.
-        pca_dir (str | Path | None): Directory containing the PCA model. If None, a new PCA model is fitted.
+    Parameters
+    ----------
+    fixed_features_path : str
+        Path to the fixed features manifest
+    live_features_path : str
+        Path to the live features manifest
+    pca_dir : str | Path | None
+        Directory containing the PCA model. If None, a new PCA model is fitted
 
-    Returns:
-        pd.DataFrame: dataframe containing PCs for fixed data
-        pd.DataFrame: dataframe containing PCs for live data
+    Returns
+    -------
+    fixed_pc_features: pd.DataFrame
+        Dataframe containing PCs for fixed data
+    live_pc_features: pd.DataFrame
+        Dataframe containing PCs for live data
     """
 
     # load pc features for fixed and live data
@@ -202,15 +225,23 @@ def get_paired_fixed_live_validation_features(
     data. The y-projection of the minor axis gives our uncertainty in the fixed PC value based on
     this model.
 
-    Args:
-        pc (int): PC to analyze
-        fixed_features (pd.DataFrame): dataframe containing PCs for fixed data
-        live_features (pd.DataFrame): dataframe containing PCs for live data
-        n_std (int): number of standard deviations wide to make the confidence ellipse
+    Parameters
+    ----------
+    pc : int
+        PC to analyze
+    fixed_features : pd.DataFrame)
+        Dataframe containing PCs for fixed data
+    live_features : pd.DataFrame
+        Dataframe containing PCs for live data
+    n_std : int
+        Number of standard deviations wide to make the confidence ellipse
 
-    Returns:
-        tuple: raw fixed and live data
-        tuple: confidence-ellipse based validation features to plot
+    Returns
+    -------
+    x, y : tuple
+        Live and fixed data respectively
+    center, height, angle, slope, intercept, ellipse : tuple
+        Confidence-ellipse based validation features to plot
     """
 
     # Format live and fixed features as needed for analysis and calculated the mean of each
@@ -258,12 +289,18 @@ def plot_paired_fixed_live_validation_features(
     and the validation features, including the 2-sigma confidence ellipse, linear
     model mapping between fixed and live data and the error bar for the given PC.
 
-    Args:
-        save_path (Path): local path to parent directory where results are saved
-        pc (int): number PC (1-8) to analyze
-        raw_data (tuple): live (first element) and fixed (second element) PC data
-        paired_validation_features (tuple): set of all validation needed for plotting
-        color_list (list): list of hex codes for three colors used in plots
+    Parameters
+    ----------
+    save_path : Path
+        Local path to parent directory where results are saved
+    pc : int
+        Number PC (1-8) to analyze
+    raw_data : tuple
+        Live (first element) and fixed (second element) PC data
+    paired_validation_features : tuple
+        Set of all validation needed for plotting
+    color_list : list
+        List of hex codes for three colors used in plots
     """
 
     # Get raw fixed (y) and live (x) PC data and its lower and upper limits
