@@ -96,12 +96,24 @@ for name in get_available_model_names():
         df = load_dataframe_from_fms(dataset_manifest.fmsid)
 
     # Check if all training datasets have a DatasetConfig
+    # catch raised error and log a warning instead:
+    # right now, the `diffae_04_10` model has training
+    # datasets that do not have a DatasetConfig
+    # this workflow can be updated if we deprecate this model
     logger.info("Validating training datasets...")
     for dataset_name in model_config.training_datasets:
         logger.debug("Validating dataset [ %s ]", dataset_name)
 
-        # Load dataset config
-        dataset_config = load_dataset_config(dataset_name)
+        try:
+            # Load dataset config
+            dataset_config = load_dataset_config(dataset_name)
+        except FileNotFoundError:
+            logger.warning(
+                "Training dataset [ %s ] for model [ %s ] does not have a DatasetConfig",
+                dataset_name,
+                name,
+            )
+            continue
 
     logger.info("Validation for model [ %s ] completed successfully", name)
 # %%
