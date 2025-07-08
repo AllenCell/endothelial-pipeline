@@ -3,8 +3,15 @@
 
 # %% [markdown]
 """
-Validate all existing ML models by checking config schemas and loading checkpoint files.
-
+Validate all existing ML models by checking config schemas and loading checkpoint files. \
+\
+This script requires the extra `ml_workflows` dependencies to run.
+If these dependencies are not installed, you can run the following command:
+```
+uv sync --extras ml_workflows
+```
+and then run this notebook. \
+\
 For each dataset config in the `configs/models` directory, confirm:
 
 - All dataset configs follow the schema defined by `ModelConfig`
@@ -18,6 +25,15 @@ For each dataset config in the `configs/models` directory, confirm:
 if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
+# try to import the ml_workflows extra dependencies
+# if this fails, raise an ImportError with a helpful message
+try:
+    import src.endo_pipeline.library.model.mlflow  # noqa: F401
+except ImportError as e:
+    raise ImportError(
+        "This notebook requires the `ml_workflows` extra dependencies to run. "
+        "Please install them with `uv sync --extras ml_workflows` and try again."
+    ) from e
 # %%
 import logging
 
