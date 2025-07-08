@@ -45,9 +45,8 @@ def fit_pca(
     model_manifests = get_pca_reference_model_manifests(model_config)
     if verbose:
         print(
-            f"\nReference datasets for PCA: {[
-                manifest.dataset_name for manifest in model_manifests
-            ]}\n"
+            "\nReference datasets for PCA:",
+            f"{[manifest.dataset_name for manifest in model_manifests]}\n",
         )
     data_ref = pd.concat(
         [load_dataframe_from_fms(manifest.fmsid) for manifest in model_manifests],
