@@ -16,9 +16,9 @@ For each dataset config in the `configs/models` directory, confirm:
 
 - All dataset configs follow the schema defined by `ModelConfig`
 - All MLflow run IDs exist and can be opened (load checkpoint)
-- All datasets in the ModelManifest are valid (have a DatasetConfig)
+- All datasets in the `ModelManifest` are valid (have a `DatasetConfig`)
     and can be loaded (load manifest from the model via FMS)
-- All datasets in the training_datasets list have a DatasetConfig
+- All datasets in the `training_datasets` list have a `DatasetConfig`
 
 """
 # %%
