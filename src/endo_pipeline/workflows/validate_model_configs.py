@@ -103,5 +103,5 @@ for name in get_available_model_names():
         # Load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
-
+    logger.info("Validation for model [ %s ] completed successfully", name)
 # %%
