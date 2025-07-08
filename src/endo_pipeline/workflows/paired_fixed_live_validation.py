@@ -30,8 +30,11 @@ from src.endo_pipeline.configs import (
 )
 
 def add_paired_fixed_live_data_fmsid_to_config(
-    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
-) -> None:
+    prediction_path: Path
+    dataset_name: str,
+    model_config, ModelConfig,
+    model_path: Path
+) -> ModelConfig:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
     of paired fixed and live data.
