@@ -1,7 +1,32 @@
 # %%
 from aicsfiles import FileManagementSystem
+from deprecated import deprecated
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed.
+
+1. To upload files without an associated model, using the following pattern:
+
+    from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
+    from src.endo_pipeline.config import load_dataset_config
+
+    dataset = load_dataset_config(dataset_name)
+    annotations = build_fms_annotations(dataset)
+    file_id = upload_file_to_fms(path, annotations)
+
+2. To upload files without an associated model, using the following pattern:
+
+    from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
+    from src.endo_pipeline.configs import load_dataset_config, load_model_config
+
+    dataset = load_dataset_config(dataset_name)
+    model = load_model_config(model_name)
+    annotations = build_fms_annotations(dataset, model=model)
+    file_id = upload_file_to_fms(path, annotations)
+"""
+)
 def save_file_to_fms(
     file_path: str,
     dataset: str,
