@@ -110,8 +110,7 @@ def apply_model_paired_fixed_live(
     )
 
     # Set directory for aligned data
-    save_path = model_path / f"{fixed_dataset_name}_vs_{live_dataset_name}"
-    save_path.mkdir(parents=True, exist_ok=True)
+    save_path = get_output_path("models",model_name,f"{fixed_dataset_name}_vs_{live_dataset_name}")
     data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
 
     # Align data if saved aligned data not already stored
