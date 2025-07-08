@@ -1,14 +1,12 @@
 import fire
 import numpy as np
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
     dynamics_io,
     get_model_manifest,
     get_pca_reference_model_manifests,
     load_dataset_config,
     load_model_config,
-    load_reference_dataset_configs,
 )
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing

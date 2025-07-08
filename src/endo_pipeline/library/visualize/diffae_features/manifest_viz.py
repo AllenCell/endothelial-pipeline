@@ -3,7 +3,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
-import cellsmap.util.manifest_io as mio
+from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
@@ -90,7 +90,7 @@ def plot_pc_scatter(
     for dataset in datasets_to_use:
         # load dataframe and get top 3 PCs
         df = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca)
-        feat_cols = mio.get_feature_cols(df)[:3]
+        feat_cols = manifest_io.get_feature_cols(df)[:3]
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:
