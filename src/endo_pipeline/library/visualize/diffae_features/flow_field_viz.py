@@ -337,7 +337,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     on the same plot.
     """
 
-    traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
+    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 
     # hard coded list of datasets
     # this is for the purposes of generating

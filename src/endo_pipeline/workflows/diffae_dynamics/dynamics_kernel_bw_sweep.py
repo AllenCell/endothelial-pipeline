@@ -9,7 +9,7 @@ from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 
 
 def main(
-    list_of_datasets: list[str] | None = None,
+    list_of_datasets: str | list[str] | None = None,
     model_name: str = "diffae_04_10",
     bw_range: list[float] | None = None,
 ) -> None:
@@ -31,6 +31,9 @@ def main(
             "20250319_20X",  # 45hr 12 dyn
             "20250326_20X",  # 45hr 15 dyn
         ]
+    elif isinstance(list_of_datasets, str):
+        # if a single dataset is specified, convert to list
+        list_of_datasets = [list_of_datasets]
 
     # for building output paths
     # if directory does not exist, get_output_path
