@@ -23,7 +23,7 @@ nuclear_stain_seg_path: //allen/aics/endothelial/morphological_features/segmenta
 nuclear_seg_manifest_fmsid: ''
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: ''
-immunofluorescence_manifest_fmsid: 2a0db89cdcc0498c860973b9cd3bfae4
+immunofluorescence_manifest_fmsid: 6c7106af434f41a89ef749cc2a82bad5
 is_reference: false
 valid_timepoints: null
 cell_mean_features: null

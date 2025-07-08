@@ -1,6 +1,7 @@
 import os
 import pickle
 import platform
+from typing import Literal
 
 import pandas as pd
 from deprecated import deprecated
@@ -96,7 +97,13 @@ This method is deprecated and will be removed. Use the following pattern:
 def get_dataframe_by_fmsid(fmsid: str) -> pd.DataFrame:
     if fms is not None and os.path.exists("/allen/aics"):
         annotations = {FileLevelMetadataKeys.FILE_ID.value: fmsid}
-        record = list(fms.find(annotations=annotations))[0]
+        record_list = list(fms.find(annotations=annotations))
+        if len(record_list) == 0:
+            raise FileNotFoundError(
+                f"No records found for FMS ID {fmsid}. "
+                "Please check the FMS ID and ensure it is correct."
+            )
+        record = record_list[0]
         file_path = replace_base_url(record.path)
         path = get_valid_path(file_path)
     else:
@@ -196,6 +203,71 @@ def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
     else:
         print(f"No cell mean features manifest found for dataset {dataset_name}")
         return None
+
+
+def fetch_manifest(dataset_name: str, manifest_name: str) -> pd.DataFrame:
+    """
+    Fetch a manifest DataFrame for a given dataset and manifest name. Handles throwing errors.
+
+    Args:
+        dataset_name (str): The name of the dataset for which the manifest is to be fetched.
+        manifest_name (str): The key used to retrieve the manifest FMS ID from the dataset information.
+
+    Returns:
+        df (pd.DataFrame): The manifest DataFrame if the FMS ID is found and valid.
+    """
+    fmsid = dataset_io.get_dataset_info(dataset_name).get(manifest_name)
+    if not fmsid:
+        raise ValueError(
+            f"Manifest FMS ID not found for dataset '{dataset_name}' \
+                         with manifest name '{manifest_name}'. Check dataset configuration."
+        )
+
+    df = get_dataframe_by_fmsid(fmsid)
+    if df.empty:
+        raise ValueError(
+            f"Manifest DataFrame is empty for dataset '{dataset_name}' \
+                         with manifest name '{manifest_name}'. Check for local FMS copy on Vast"
+        )
+
+    return df
+
+
+def get_manifest(
+    dataset_name: str | list[str],
+    manifest_type: Literal[
+        "nuclear_seg_manifest_fmsid",
+        "diffae_manifest_fmsid",
+        "tracking_integration_fmsid",
+        "diffae_tracking_integration_fmsid",
+        "immunofluorescence_manifest_fmsid",
+        "cell_mean_features",
+    ],
+) -> pd.DataFrame:
+    """
+    Get the manifest for a given dataset name (or list of dataset names) and manifest type.
+
+    Args:
+        dataset_name (Union[str, List[str]]): Name of the dataset to retrieve the manifest for.
+                                              Use "all" to get manifests for all datasets, or
+                                              provide a list of dataset names.
+        manifest_type (Literal): The name of the manifest to retrieve.
+
+    Returns:
+        pd.DataFrame: A concatenated DataFrame of all manifests if `dataset_name` is "all" or a list,
+                      or the manifest DataFrame for the specified dataset.
+    """
+    if dataset_name == "all":
+        dataset_list = list_datasets_with_manifest(
+            manifest_type
+        )  # although this function doesnt do what it should
+    elif isinstance(dataset_name, list):
+        dataset_list = dataset_name
+    else:
+        dataset_list = [dataset_name]
+
+    dataframe_list = [fetch_manifest(dataset, manifest_type) for dataset in dataset_list]
+    return pd.concat(dataframe_list, ignore_index=True)
 
 
 def get_feature_cols(df: pd.DataFrame) -> list:

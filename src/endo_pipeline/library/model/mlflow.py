@@ -21,7 +21,7 @@ def _get_options(available_artifacts: list[str], patterns: list[str]) -> str:
                 f"Multiple artifacts found for pattern {p}: {matches}."
                 + "Please specify the artifact path."
             )
-    raise ValueError(
+    raise FileNotFoundError(
         f"None of the patterns {patterns} matched any artifacts."
         + f"Available artifacts: {available_artifacts}"
     )

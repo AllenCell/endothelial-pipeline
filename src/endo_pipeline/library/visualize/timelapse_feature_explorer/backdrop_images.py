@@ -14,6 +14,9 @@ from src.endo_pipeline.library.process.image_processing import (
     bf_std_dev,
     contrast_stretching,
     gfp_max_proj,
+    max_proj_405,
+    max_proj_561,
+    max_proj_640,
 )
 
 
@@ -25,6 +28,7 @@ def process_frame(
     position: int,
     backdrop: str,
     output_dir: Path,
+    method: str,
 ) -> None:
     """
     For an individual frame in the dataset, create and save the desired backdrop image
@@ -35,7 +39,10 @@ def process_frame(
     image_to_save = func(img, frame)
 
     # Contrast stretch 0 to 255 range
-    image_contrasted = contrast_stretching(image_to_save, method="percentile")
+    image_contrasted = contrast_stretching(
+        image_to_save,
+        method=method,
+    )
 
     # Convert to 8-bit unsigned int
     image_contrasted = np.clip(image_contrasted, 0, 255).astype(np.uint8)
@@ -54,6 +61,7 @@ def generate_backdrops(
     position: int,
     backdrops: list[str],
     output_dir: Path,
+    method: str = "percentile",
 ) -> None:
     """
     Generate and save backdrop images to be viewed together with the colorized
@@ -70,6 +78,9 @@ def generate_backdrops(
         "bf_slice": bf_slice,
         "bf_std_dev": bf_std_dev,
         "gfp_max_proj": gfp_max_proj,
+        "max_proj_405": max_proj_405,
+        "max_proj_561": max_proj_561,
+        "max_proj_640": max_proj_640,
     }
 
     for backdrop, func in backdrop_functions.items():
@@ -87,6 +98,7 @@ def generate_backdrops(
                         position,
                         backdrop,
                         output_dir,
+                        method,
                     )
                     for frame in range(img.shape[0])
                 ]
