@@ -46,7 +46,7 @@ def identify_edge_nuclei(label_mask: np.ndarray, bounding_box: tuple) -> bool:
     """
     Identify if a labeled region touches the border of the image.
     Args:
-        label_mask (np.ndarray): A labeled image representing the size of the feild of view.
+        label_mask (np.ndarray): The labeled image used to identify the boundary of the FOV.
         bounding_box (tuple): A tuple representing the bounding box of the labeled region
     Returns:
         bool: True if the labeled region touches the border of the image, False otherwise.
