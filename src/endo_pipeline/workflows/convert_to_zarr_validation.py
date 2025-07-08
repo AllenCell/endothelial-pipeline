@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bioio import BioImage
 
-from src.endo_pipeline.configs import dataset_io, get_available_dataset_names
-from src.endo_pipeline.configs.dataset_io import get_available_channels
+from src.endo_pipeline.configs import get_available_dataset_names, load_dataset_config
+from src.endo_pipeline.configs.dataset_io import get_available_channels, get_zarr_path
 
 
 # %%
@@ -64,14 +64,16 @@ def get_channel_crop(
 # %%
 # Quickly visualize crop in first position,
 # first timepoint of each zarr to confirm channel order is correct
-for dataset_name in dataset_io.get_available_datasets():
-    fmsid = dataset_io.get_fmsid(dataset_name)
-    barcode = dataset_io.get_barcode(dataset_name)
+
+for dataset_name in get_available_dataset_names():
+    config = load_dataset_config(dataset_name)
+    fmsid = config.fmsid
+    barcode = config.barcode
     print(f"dataset: {dataset_name}")
     print(f"fmsid: {fmsid}")
     print(f"barcode: {barcode}")
 
-    zarr_paths = dataset_io.get_zarr_path(dataset_name)
+    zarr_paths = get_zarr_path(dataset_name)
     for _, position_path in zarr_paths.items():
         img = BioImage(position_path)
         print(f"image shape: {img.shape}")
@@ -96,3 +98,5 @@ for dataset_name in dataset_io.get_available_datasets():
             ax.imshow(channel_projections[c], cmap="gray")
             ax.set_title(f"{dataset_name} - Channel {c} ({channel_names[c]})")
         plt.show()
+
+# %%
