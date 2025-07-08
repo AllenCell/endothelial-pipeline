@@ -11,9 +11,6 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
 )
 from src.endo_pipeline.library.analyze.numerics import component_heatmaps
-from src.endo_pipeline.library.model.diffae.generate_image import (
-    get_reconstructed_crops_in_dataframe,
-)
 from src.endo_pipeline.library.process.get_images import get_original_crops_in_dataframe
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.crop_montage import plot_crop_montage
@@ -31,11 +28,12 @@ def main(
     frame_range: list | None = None,
 ) -> None:
     """
-    Main function to run the PC heatmap workflow.
+    Run the PC heatmap workflow.
+
     For each dataset with Diff AE manifest data, this function:
         - generates histograms of PC features (saves .png out to .results/crop_visualization/figs/)
         - filters for crops based on the given input value of a given PC dimension
-           and a given range of timepoints and does the following:
+        and a given range of timepoints and does the following:
                 - gets the corresponding crops from the original images
                     (saves .tiff files out to .results/crop_visualization/figs/original_crops/)
                 - reconstructs the crops by passing the PC space coordinates
@@ -50,19 +48,19 @@ def main(
     - pc_axis: int
         The principal component to filter by (0-indexed).
         For example, if you want to filter by a particular value of
-          the 2nd PC, set this to 1.
+        the 2nd PC, set this to 1.
     - pc_val: float
         The value of the PC dimension to filter by.
         For example, if you want to filter by crops with pc_to_explore
-          component of the PC coordinates ~= 0.5, set this to 0.5.
-          The filtering is done by binning the PCs and
+        component of the PC coordinates ~= 0.5, set this to 0.5.
+        The filtering is done by binning the PCs and
             getting the bin index that contains pc_val.
     - plot_heatmap: bool = False
         Whether to plot the histogram of the first 3 PCs for each dataset.
     - frame_range: list of int | None = None
         The range of timepoints to filter by.
         For example, if you want to filter by crops between frames 225 and 275,
-          set this to [225, 275].
+        set this to [225, 275].
         If None, no filtering is done by timepoints.
 
     Outputs:
@@ -154,7 +152,7 @@ def main(
     viz_base.save_plot(
         fig,
         fig_savedir
-        + f"original_bf_crops_montage_"
+        + "original_bf_crops_montage_"
         + f"PC{pc_axis+1}_val"
         + "p".join(str(pc_val).split(".")),
     )
@@ -167,7 +165,7 @@ def main(
     viz_base.save_plot(
         fig,
         fig_savedir
-        + f"original_cdh5_crops_montage_"
+        + "original_cdh5_crops_montage_"
         + f"PC{pc_axis+1}_val"
         + "p".join(str(pc_val).split(".")),
     )
@@ -178,6 +176,10 @@ def main(
     # we check if a GPU is available before running this part
     gpu_available = torch.cuda.is_available()
     if gpu_available:
+        from src.endo_pipeline.library.model.diffae.generate_image import (
+            get_reconstructed_crops_in_dataframe,
+        )
+
         reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_filtered)
 
         fig, _ = plot_crop_montage(reconstructed_crop_list, channel_index=None)
@@ -187,7 +189,7 @@ def main(
         viz_base.save_plot(
             fig,
             fig_savedir
-            + f"reconstructed_cdh5_crops_montage_"
+            + "reconstructed_cdh5_crops_montage_"
             + f"PC{pc_axis+1}_val"
             + "p".join(str(pc_val).split(".")),
         )
