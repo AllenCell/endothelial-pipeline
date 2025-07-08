@@ -1,7 +1,6 @@
-from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import cv2
 import fire
@@ -58,12 +57,10 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
 def sift_preprocess(img: np.ndarray) -> np.ndarray:
     """
     Preprocess the image for SIFT feature detection with percentile clipping and 0-1 normalization
-
     Parameters
     ----------
     img : np.ndarray
         The input image.
-
     Returns
     -------
     img : np.ndarray
@@ -111,7 +108,6 @@ def template_registration(
 ) -> tf.SimilarityTransform:
     """
     Registers a moving image to a fixed image using template matching
-
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -146,7 +142,6 @@ def _get_sift(
 ) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
     """
     Detects SIFT keypoints and descriptors in the given image.
-
     Parameters
     ----------
     image : np.ndarray
@@ -155,7 +150,6 @@ def _get_sift(
         The number of times to upsample the image before detecting keypoints.
     sigma_min : int
         The minimum standard deviation for Gaussian smoothing.
-
     Returns
     -------
     keypoints : np.ndarray
@@ -178,7 +172,6 @@ def sift_registration(
 ) -> tf.SimilarityTransform | None:
     """
     Registers a moving image to a fixed image using SIFT keypoint matching and RANSAC. Returns a similarity transform if successful, otherwise None.
-
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -250,7 +243,6 @@ def warp(
 ) -> np.ndarray:
     """
     Warps the moving image to align with the fixed image using the provided transformation model.
-
     Parameters
     ----------
     model (skimage.transform.SimilarityTransform): The transformation model.
@@ -372,8 +364,8 @@ def align(
     **alignment_kwargs (Dict[str, Any]):
         Additional arguments for the alignment function.
 
-    Returns
-    -------
+    Returns:
+    --------
     pd.DataFrame: DataFrame containing the paths to the aligned images.
     """
     print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
@@ -505,7 +497,7 @@ def align_all_positions(
                 alignment_method=alignment_method,
                 **alignment_kwargs,
             )
-            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=False)
+            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True)
         ]
     )
     return data
@@ -718,9 +710,7 @@ def main(
 ) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
-
     Parameters
-    ----------
     ----------"
     pca_dir : str | None
         Path to the PCA model directory. If None, PCA will be calculated from existing features"
@@ -736,7 +726,7 @@ def main(
         ],
     }
     for fixed, moving in zip(
-        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=False
+        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=True
     ):
         compare_paired_features(
             # use model finetuned for fixation
@@ -753,7 +743,7 @@ def main(
         "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
         "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
     }
-    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=False):
+    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=True):
         compare_paired_features(
             model_name,
             fixed,

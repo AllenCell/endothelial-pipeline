@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -22,14 +22,14 @@ class ModelConfig:
     mlflow_run_id: str
     """MLFlow run id for model."""
 
-    manifest_fmsids: list[ModelManifest] | None = None
+    manifest_fmsids: list[ModelManifest] = field(default_factory=list)
     """
     List of manifest FMS IDs for datasets with features obtained from the model.
 
     (i.e., as obtained from the `apply_diffae_model` workflow)
     """
 
-    training_datasets: list[str] | None = None
+    training_datasets: list[str] = field(default_factory=list)
     """List of datasets used for training the model."""
 
     train_manifest_fmsid: str | None = None
