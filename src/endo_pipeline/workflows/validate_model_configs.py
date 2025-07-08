@@ -104,16 +104,20 @@ for name in get_available_model_names():
     for dataset_name in model_config.training_datasets:
         logger.debug("Validating dataset [ %s ]", dataset_name)
 
-        try:
+        if name == "diffae_04_10":
+            try:
+                # Load dataset config
+                dataset_config = load_dataset_config(dataset_name)
+            except FileNotFoundError:
+                logger.warning(
+                    "Training dataset [ %s ] for model [ %s ] does not have a DatasetConfig",
+                    dataset_name,
+                    name,
+                )
+                continue
+        else:
             # Load dataset config
             dataset_config = load_dataset_config(dataset_name)
-        except FileNotFoundError:
-            logger.warning(
-                "Training dataset [ %s ] for model [ %s ] does not have a DatasetConfig",
-                dataset_name,
-                name,
-            )
-            continue
 
     logger.info("Validation for model [ %s ] completed successfully", name)
 # %%
