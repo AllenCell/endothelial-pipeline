@@ -23,10 +23,7 @@ def main(model_name: str = "diffae_04_10") -> None:
     # Get fit (3D) PCA object from manifest
     reducer = manifest_pca.fit_pca(num_pcs=3)
 
-    # Model we want to use to generate reconstructed crops
-    model_name = "diffae_04_10"
-
-    traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
+    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 
     # Reconstruction of crops from latent space
     # coordinates via DiffAE model

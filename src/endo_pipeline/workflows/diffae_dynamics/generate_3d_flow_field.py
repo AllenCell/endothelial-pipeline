@@ -24,9 +24,7 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     """
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
-    output_savedir = get_output_path(
-        workflow_name, "model_name", "outputs", include_timestamp=False
-    )
+    output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=False)
     fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=False)
     vtk_savedir = get_output_path(
         workflow_name, model_name, "outputs", "vtk", include_timestamp=False
