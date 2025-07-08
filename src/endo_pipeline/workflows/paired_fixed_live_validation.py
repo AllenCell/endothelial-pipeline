@@ -53,9 +53,9 @@ def add_paired_fixed_live_data_fmsid_to_config(
     file_id = save_file_to_fms(
         prediction_path,
         dataset_name,
-        get_cytodl_commit_hash(mlflow_id, model_path),
+        get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
         misc_notes="",
-        mlflow_run_id=mlflow_id,
+        mlflow_run_id=model_config.mlflow_run_id
     )
 
     # Update dataset config with the FMS ID of the prediction file
