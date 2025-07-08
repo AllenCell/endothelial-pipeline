@@ -10,8 +10,12 @@ from numpy.typing import ArrayLike
 
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from src.endo_pipeline.configs import load_dataset_config, save_dataset_config
-from src.endo_pipeline.configs.dataset_io import get_model_info
+from src.endo_pipeline.configs import (
+    ModelConfig,
+    add_model_manifest,
+    load_model_config,
+    save_model_config,
+)
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
@@ -22,8 +26,8 @@ from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
 
 def add_paired_fixed_live_data_fmsid_to_config(
-    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
-) -> None:
+    prediction_path: Path, dataset_name: str, model_config, ModelConfig, model_path: Path
+) -> ModelConfig:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
     of paired fixed and live data.
@@ -42,15 +46,14 @@ def add_paired_fixed_live_data_fmsid_to_config(
     file_id = save_file_to_fms(
         prediction_path,
         dataset_name,
-        get_cytodl_commit_hash(mlflow_id, model_path),
+        get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
         misc_notes="",
-        mlflow_run_id=mlflow_id,
+        mlflow_run_id=model_config.mlflow_run_id,
     )
 
-    # Update dataset config with the FMS ID of the prediction file
-    dataset_config = load_dataset_config(dataset_name)
-    dataset_config.diffae_manifest_fmsid = file_id
-    save_dataset_config(dataset_config)
+    # Update the model config with the FMS ID of the prediction file
+    model_config_updated = add_model_manifest(model_config, dataset_name, file_id)
+    return model_config_updated
 
 
 def apply_model_paired_fixed_live(
@@ -89,13 +92,17 @@ def apply_model_paired_fixed_live(
     """
 
     # Get diffAE model
-    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
-    model_path = Path(get_output_path(f"models/{model_name}"))
-    path_dict = download_model(mlflow_id, model_path)
+    # load model config
+    model_config = load_model_config(model_name)
+
+    # Load DiffAE model
+    model_path = get_output_path("models", model_name)  # new get_output_path function
+    path_dict = download_model(model_config.mlflow_run_id, model_path)
 
     # Set directory for aligned data
-    save_path = model_path / f"{fixed_dataset_name}_vs_{live_dataset_name}"
-    save_path.mkdir(parents=True, exist_ok=True)
+    save_path = get_output_path(
+        "models", model_name, f"{fixed_dataset_name}_vs_{live_dataset_name}"
+    )
     data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{live_dataset_name}.csv"
 
     # Align data if saved aligned data not already stored
@@ -143,27 +150,24 @@ def apply_model_paired_fixed_live(
     model.override_config(overrides)
     model.predict()
 
-    fixed_features_path = str(
-        save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
-    )
-    live_features_path = str(
-        save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
-    )
+    fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
+    live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
 
     if upload_features_to_FMS:
         print("Uploading fixed and live dataset feature manifests to FMS")
-        add_paired_fixed_live_data_fmsid_to_config(
+        model_config_updated_with_fixed = add_paired_fixed_live_data_fmsid_to_config(
             fixed_features_path,
             fixed_dataset_name,
-            mlflow_id,
+            model_config,
             model_path,
         )
-        add_paired_fixed_live_data_fmsid_to_config(
+        model_config_updated_with_live = add_paired_fixed_live_data_fmsid_to_config(
             live_features_path,
             live_dataset_name,
-            mlflow_id,
+            model_config_updated_with_fixed,
             model_path,
         )
+        save_model_config(model_config_updated_with_live)
 
     return save_path, fixed_features_path, live_features_path
 
