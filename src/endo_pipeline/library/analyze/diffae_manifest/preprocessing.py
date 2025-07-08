@@ -293,24 +293,31 @@ def get_timepoints_for_plotting_pcs(
 
     for dataset in list_of_datasets:
         # get range of valid timepoints for each dataset
-        # loaded from data_config.yaml
+        # loaded from dataset config
         timepoint_dict = dataset.valid_timepoints
-        starts = timepoint_dict.start
-        stops = timepoint_dict.stop
-        timepoints_list = []
-        for start, stop in zip(starts, stops, strict=True):
-            # hard coded because this is the no-flow dataset that
-            # we are using for fitting the PCs, and specifically
-            # the one with the two sets of timepoints
-            # if this changes, we can updated this to not be
-            # hardcoded (i.e., check if shear stress is 0 in config)
-            if dataset.name == no_flow_name and restrict_no_flow:
-                # restrict to only first set of no flow timepoints
-                if start == 0:
-                    timepoints_list.append([start, stop])
+
+        # if no valid timepoints are specified, use all timepoints
+        if timepoint_dict is None:
+            timepoints_list = [[0, dataset.flow[0][1]]]
+
+        # otherwise, get the start and stop timepoints
+        else:
+            starts = timepoint_dict.start
+            stops = timepoint_dict.stop
+            timepoints_list = []
+            for start, stop in zip(starts, stops, strict=True):
+                # hard coded because this is the no-flow dataset that
+                # we are using for fitting the PCs, and specifically
+                # the one with the two sets of timepoints
+                # if this changes, we can updated this to not be
+                # hardcoded (i.e., check if shear stress is 0 in config)
+                if dataset.name == no_flow_name and restrict_no_flow:
+                    # restrict to only first set of no flow timepoints
+                    if start == 0:
+                        timepoints_list.append([start, stop])
+                    else:
+                        continue
                 else:
-                    continue
-            else:
-                timepoints_list.append([start, stop])
+                    timepoints_list.append([start, stop])
         timepoints_to_use[dataset.name] = timepoints_list
     return timepoints_to_use

@@ -8,13 +8,13 @@ import pysindy as ps
 from src.endo_pipeline.library.analyze.numerics import fp_solvers
 
 
-def save_sde_model(model_dict: dict, savedir: str | Path) -> None:
+def save_sde_model(model_dict: dict, savedir: Path) -> None:
     """
     Save fit SDE model to file in savedir.
 
     Inputs:
     - model_dict: dict, dictionary containing fit drift and diffusion functions.
-    - savedir: str|Path, directory to save the file.
+    - savedir: Path, directory to save the file.
 
     Outputs:
     - None, save the file to savedir.
@@ -23,12 +23,12 @@ def save_sde_model(model_dict: dict, savedir: str | Path) -> None:
         pickle.dump(model_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_sde_model(file_path: str | Path) -> dict:
+def load_sde_model(file_path: Path) -> dict:
     """
     Load fit SDE model from file_path.
 
     Inputs:
-    - file_path: str|Path, path to the file containing fit drift and diffusion functions.
+    - file_path: Path, path to the file containing fit drift and diffusion functions.
 
     Outputs:
     - model_dict: dict, dictionary containing fit drift and diffusion functions.

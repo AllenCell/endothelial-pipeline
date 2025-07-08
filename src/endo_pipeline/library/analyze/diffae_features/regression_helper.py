@@ -366,13 +366,13 @@ def get_stationary_hist(
     return p_hist
 
 
-def save_train_test(train_test_dict: dict, savedir: str | Path) -> None:
+def save_train_test(train_test_dict: dict, savedir: Path) -> None:
     """
     Save train test data to file in savedir, using `numpy.savez` function.
 
     Inputs:
     - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
-    - savedir: str|Path, directory to save the file.
+    - savedir: Path, directory to save the file.
 
     Outputs:
     - None, save the file to savedir.
@@ -380,12 +380,12 @@ def save_train_test(train_test_dict: dict, savedir: str | Path) -> None:
     np.savez(savedir / "train_test_data", **train_test_dict)
 
 
-def load_train_test(file_path: str | Path) -> dict:
+def load_train_test(file_path: Path) -> dict:
     """
     Load train test data from file_path.
 
     Inputs:
-    - file_path: str|Path, path to the file containing train test data.
+    - file_path: Path, path to the file containing train test data.
 
     Outputs:
     - train_test_dict: dict, dictionary containing train and test data (numpy arrays).

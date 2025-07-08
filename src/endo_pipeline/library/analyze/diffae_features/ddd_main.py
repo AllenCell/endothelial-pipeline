@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,7 @@ def ddd_model_analysis(
     shear: float,
     pcs: list[int],
     bins: list[np.ndarray],
-    fig_savedir: str,
+    fig_savedir: Path,
     config: dict,
 ) -> None:
     """
@@ -39,7 +40,7 @@ def ddd_model_analysis(
         the first two principal components
     - bins (list[np.ndarray]): list of bin edges for the histogram
         plots
-    - fig_savedir (str): directory to save figures
+    - fig_savedir (Path): directory to save figures
     - config (dict): configuration dictionary
         Loaded from dynamics_config.yaml
     - stationary_frames: list of int, optional, if provided,
@@ -93,7 +94,7 @@ def get_and_analyze_ddd(
     model_manifest: ModelManifest,
     pca: Pipeline,
     kernel_params: dict | None,
-    fig_savedir: str,
+    fig_savedir: Path,
     dynamics_config: dict,
 ) -> None:
     """
@@ -110,7 +111,7 @@ def get_and_analyze_ddd(
         - "kernel": kernel function to use
             See library.analyze.kramersmoyal.km_kernels
         - "bandwidth": bandwidth for kernel function
-    - fig_savedir (str): directory to save figures
+    - fig_savedir (Path): directory to save figures
     - dynamics_config (dict): configuration dictionary
         Loaded from dynamics_config.yaml
 

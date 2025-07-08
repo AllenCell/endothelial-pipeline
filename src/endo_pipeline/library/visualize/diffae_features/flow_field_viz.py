@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -213,7 +214,7 @@ def plot_streamplot_slices(
 def plot_flow_field_slices(
     flow_field_dict: dict,
     df_cond: pd.DataFrame | None,
-    fig_savedir: str | None,
+    fig_savedir: Path | None,
     pc_vals: tuple[Any, Any] | None = None,
     color: str = "black",
     norm: bool = True,
@@ -233,7 +234,7 @@ def plot_flow_field_slices(
     - df_cond: pd.DataFrame
         DataFrame containing the data to be plotted.
         If None, no data is plotted.
-    - fig_savedir: str
+    - fig_savedir: Path
         Directory to save the figures.
         If None, no figures are saved.
     - pc_vals: tuple of floats
@@ -330,7 +331,7 @@ def plot_flow_field_slices(
     return fig, ax
 
 
-def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> None:
+def plot_stable_fixed_points_together(fig_savedir: Path, output_savedir: Path) -> None:
     """
     Generate plot of fixed points of the low,
     high, and intermediate (12dyn) shear stress conditions
@@ -357,7 +358,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     # get bounds of the grid - load one of the flow field objects
     # saved in main function
     flow_field_dict = np.load(
-        output_savedir + f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
+        output_savedir / f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
     ).item()
     xmin, xmax = (
         flow_field_dict["grid"][0][0, 0, 0],
@@ -402,14 +403,14 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     plt.show()
 
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + "fixed_points_plot", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / "fixed_points_plot", dpi=300)
 
 
 def flow_field_viz_main(
     flow_field_dict: dict,
     df_cond: pd.DataFrame,
     traj: np.ndarray,
-    fig_savedir: str,
+    fig_savedir: Path,
 ) -> None:
     """
     Plot all relvant 2D summary plots
@@ -427,7 +428,7 @@ def flow_field_viz_main(
     - traj: np.ndarray
         The trajectory of the data to be plotted.
         Shape: (n_points, n_dimensions)
-    - fig_savedir: str
+    - fig_savedir: Path
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures

@@ -17,7 +17,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def fit_pca(
-    model_name="diffae_04_10", num_pcs: int = 8, scale: bool = False, verbose: bool = True
+    model_name: str = "diffae_04_10", num_pcs: int = 8, scale: bool = False, verbose: bool = True
 ) -> Pipeline:
     """
     Fit PCA model to fixed set of reference datasets.

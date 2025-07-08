@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
@@ -325,9 +326,9 @@ def get_and_viz_ddff(
     centers: list[np.ndarray],
     time_span: list,
     init: np.ndarray,
-    fig_savedir: str,
-    vtk_savedir: str,
-    output_savedir: str,
+    fig_savedir: Path,
+    vtk_savedir: Path,
+    output_savedir: Path,
 ) -> np.ndarray | list[np.ndarray]:
     """
     Get 3D flow field (drift coefficient) from data
@@ -435,9 +436,9 @@ def ddff_main(
     dt: float,
     time_span: list,
     init: np.ndarray,
-    fig_savedir: str,
-    vtk_savedir: str,
-    output_savedir: str,
+    fig_savedir: Path,
+    vtk_savedir: Path,
+    output_savedir: Path,
 ) -> None:
     """
     Run main workflow for computing and visualizing

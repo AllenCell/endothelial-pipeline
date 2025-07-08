@@ -179,7 +179,7 @@ def build_kramers_moyal_train_test(
     pcs: list[int],
     num_bins: list[int],
     dt: float,
-    fig_savedir: str,
+    fig_savedir: Path,
     train_frac: float = 0.8,
     kernel_params: dict | None = None,
 ) -> dict:
