@@ -71,7 +71,7 @@ def main(model_name: str = "diffae_04_10") -> None:
         # save out stack of images as tif
         print("Saving reconstructed crops for condition: ", condition)
         tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
-        OmeTiffWriter.save(walk_img, crop_savedir + tif_name, overwrite=True)
+        OmeTiffWriter.save(walk_img, crop_savedir / tif_name, overwrite=True)
 
 
 if __name__ == "__main__":
