@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
@@ -18,25 +18,6 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
-
-
-def configure_logging(out_dir: Path, logger: logging.Logger, verbose: bool = True) -> None:
-    logging.basicConfig(
-        filename=out_dir / f"{out_dir.name}.log",
-        filemode="a",  # append to the log file instead of rewriting it
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,  # sets the level to be recorded in log file
-    )
-
-    # Add the output handler to the logger
-    output_handler = logging.StreamHandler()
-    # Set the verbosity to be printed
-    if verbose:
-        output_handler.setLevel(logging.INFO)
-    else:
-        output_handler.setLevel(logging.WARNING)
-    logger.addHandler(output_handler)  # needed to print in ipython
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model

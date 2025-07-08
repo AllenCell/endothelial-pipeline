@@ -1,3 +1,4 @@
+import logging
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -6,13 +7,13 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
     save_git_versioning_info,
 )
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
@@ -413,8 +414,10 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
     print(f"Processing: {dataset_name_list}")
 
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=True))
+    out_dir = get_output_path(Path(__file__).stem)
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    configure_logging(out_dir, logger, verbose=True)
 
     if n_proc > 1:
         with ProcessPoolExecutor(max_workers=n_proc) as executor:
@@ -444,4 +447,5 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)

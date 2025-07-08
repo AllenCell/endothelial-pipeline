@@ -12,7 +12,6 @@ from bioio import BioImage
 from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     extract_T,
     fire_parse_generate_dataset_name_list,
@@ -24,8 +23,7 @@ from src.endo_pipeline.configs.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
 )
-
-logger = logging.getLogger(__name__)
+from src.endo_pipeline.io import configure_logging, get_output_path
 
 
 def merge_measured_segmentation_features_tables(
@@ -779,15 +777,12 @@ def main(
     n_proc: int = 1,
     verbose: bool = False,
 ) -> None:
-    # Set the logging level
-    if verbose:
-        logger.setLevel(level=logging.INFO)
-    else:
-        logger.setLevel(level=logging.WARNING)
 
     out_dir = get_output_path(Path(__file__).stem)
+    configure_logging(out_dir, logger, verbose)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    logger.info(f"datasets to analyze: {dataset_name_list}")
 
     if n_proc > 1:
         n_proc = min(n_proc, len(dataset_name_list))
@@ -818,4 +813,5 @@ def main(
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)
