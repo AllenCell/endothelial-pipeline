@@ -22,7 +22,7 @@ AX_HEIGHT = 3
 AX_WIDTH = AX_HEIGHT * (1 + 5 ** (1 / 2)) / 2
 
 
-def plot_per_position(
+def lineplot_per_position(
     df_group: pd.DataFrame,
     x_key: str,
     y_key: str,
@@ -33,6 +33,34 @@ def plot_per_position(
     y_lims: tuple = (None, None),
     show_plot: bool = False,
 ) -> None:
+    """
+    This function will save a standardized lineplot from the dataframe df_group.
+    x_key and y_key are the column names that you want to plot along the x-axis
+    and y-axis, respectively.
+    df_group is expected to contain a single dataset and a single position.
+
+    Parameters
+    ----------
+    df_group : pd.DataFrame
+        The dataframe containing the data to plot.
+    x_key : str
+        The column name for the x-axis data.
+    y_key : str
+        The column name for the y-axis data.
+    filepath_out : str | Path
+        The file path where the plot will be saved.
+    x_label : str | None, optional
+        The label for the x-axis, will use x_key as the default.
+    y_label : str | None, optional
+        The label for the y-axis, will use y_key as the default.
+    x_lims : tuple, optional
+        The limits for the x-axis as a (min, max) tuple.
+    y_lims : tuple, optional
+        The limits for the y-axis as a (min, max) tuple.
+    show_plot : bool, optional
+        Whether to show the plot after saving it. Default is False.
+    """
+
     num_positions = df_group["position"].nunique()
     assert (
         len(df_group["dataset_name"].unique()) == 1
@@ -125,7 +153,7 @@ def plot_seg_manifest_data(
             "time_hours",
             "centroid_velocity_magnitude",
             "Time (hours)",
-            "Centroid Velocity Magnitude (um/minute)",
+            "Centroid Velocity Magnitude (um/min)",
             (0, vel_mag_mean + 2 * vel_mag_std),
             f"{dataset_name}_P{position}_centroid_velocity_magnitudes.png",
         ),
@@ -141,7 +169,7 @@ def plot_seg_manifest_data(
     for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
         out_subdir_plots = out_dir / f"{y_key}/{dataset_name}"
         out_subdir_plots.mkdir(parents=True, exist_ok=True)
-        plot_per_position(
+        lineplot_per_position(
             big_table_subset,
             x_key=x_key,
             y_key=y_key,
@@ -233,7 +261,7 @@ def plot_seg_manifest_data(
         data=big_table_subset,
         x="time_hours",
         y="centroid_velocity_magnitude",
-        binwidth=(0.5, None),  # type: ignore
+        binwidth=(0.5, None),  # type: ignore[arg-type]
         log_scale=(False, True),
         ax=ax,
     )
@@ -338,7 +366,7 @@ def plot_seg_manifest_data(
         data=big_table_subset,
         x="time_hours",
         y="nuc_pos_rel_cell_magnitude",
-        binwidth=(0.5, None),  # type: ignore
+        binwidth=(0.5, None),  # type: ignore[arg-type]
         log_scale=(False, True),
         ax=ax,
     )
@@ -365,7 +393,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     for (dataset_nm, pos), df_group in tqdm(
         segprops_manifest.groupby(["dataset_name", "position"]),
         total=len(segprops_manifest.groupby(["dataset_name", "position"])),
-        desc=f"Plotting features: {dataset_name}",  # type: ignore
+        desc=f"Plotting features: {dataset_name}",
         unit="position",
     ):
         # calculate the dynamics-dependent features
@@ -405,7 +433,7 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
         for dataset in tqdm(
             dataset_name_list,
             total=len(dataset_name_list),
-            desc=f"Getting nuclei features (SP)",  # type: ignore
+            desc="Creating plots (SP)",
             unit="dataset",
         ):
             # process dataset below will both load and plot the data

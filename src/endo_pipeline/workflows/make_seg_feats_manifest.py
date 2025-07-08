@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from multiprocessing import Pool
 from pathlib import Path
@@ -17,16 +18,18 @@ from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
-    get_measured_segmentation_data_raws,
+    get_measured_segmentation_table_raws,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def merge_measured_segmentation_features_tables(
-    segprops_df: pd.DataFrame,
+    cellprops_df: pd.DataFrame,
     tracking_df: pd.DataFrame,
     nucprops_df: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -39,7 +42,7 @@ def merge_measured_segmentation_features_tables(
     """
     big_table = pd.merge(
         left=tracking_df,
-        right=segprops_df,
+        right=cellprops_df,
         left_on=["dataset_name", "position", "T", "label"],
         right_on=["dataset_name", "position", "T", "cell_label"],
     )
@@ -236,9 +239,7 @@ def add_filter_columns(
     return big_table
 
 
-def calculate_derived_data_dynamics_independent(
-    big_table: pd.DataFrame, verbose: bool = False
-) -> pd.DataFrame:
+def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.DataFrame:
     """
     This function uses the existing columns in the data table to calculate
     other features about the data such as dimensionalizing data and
@@ -270,17 +271,17 @@ def calculate_derived_data_dynamics_independent(
     }
 
     # add the shear stress regime to the data table
-    print("Adding shear stress regime...") if verbose else None
+    logger.info("Adding shear stress regime...")
     big_table["shear_stress_regime"] = big_table["dataset_name"].transform(
         lambda dataset_name: shear_stress_regime_map[dataset_name]
     )
 
     # dimensionalize the time column
-    print("Adding time intervals per timepoint...") if verbose else None
+    logger.info("Adding time intervals per timepoint...")
     big_table["time_resolution_minutes"] = big_table["dataset_name"].transform(
         lambda dataset_name: time_res_map[dataset_name]
     )
-    print("Calculating time in minutes and hours...") if verbose else None
+    logger.info("Calculating time in minutes and hours...")
     big_table["time_minutes"] = big_table["image_index"] * big_table["time_resolution_minutes"]
     big_table["time_hours"] = big_table["time_minutes"] / 60
     # (NOTE the image index column is produced in the
@@ -304,7 +305,7 @@ def calculate_derived_data_dynamics_independent(
     ).transform("size")
 
     # add the columns for the fold change in area
-    print("Calculating locally-normalized area...") if verbose else None
+    logger.info("Calculating locally-normalized area...")
     sigma = 2.0
     big_table["gaussian_sigma_for_area_smoothing"] = sigma
     big_table["smoothed_area_normd"] = big_table.groupby(["dataset_name", "position", "track_id"])[
@@ -316,20 +317,20 @@ def calculate_derived_data_dynamics_independent(
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
-    print("Adding number of tracks for each timepoint...") if verbose else None
+    logger.info("Adding number of tracks for each timepoint...")
     big_table["num_unique_tracks_before_filtering_at_T"] = big_table.groupby(
         ["dataset_name", "position", "T"]
     )["track_id"].transform(lambda x: x.nunique())
 
     # add the duration of each track
-    print("Calculating track durations...") if verbose else None
+    logger.info("Calculating track durations...")
     big_table["track_duration"] = big_table.groupby(["dataset_name", "position", "track_id"])[
         "image_index"
     ].transform(lambda t: t.max() - t.min())
 
     # add column for orientation in degrees of the
     # ellipse fitted to each segmentation in degrees
-    print("Converting orientation to degrees...") if verbose else None
+    logger.info("Converting orientation to degrees...")
     big_table["alignment_rel_to_flow"] = big_table["orientation"].transform(
         lambda x: make_orientation_relative_to_flow(x)
     )
@@ -337,14 +338,14 @@ def calculate_derived_data_dynamics_independent(
 
     # add column for nematic order and aspect ratio
     # to compare to Saurabhs modeling results
-    print("Calculating nematic order and aspect ratio...") if verbose else None
+    logger.info("Calculating nematic order and aspect ratio...")
     big_table["nematic_order"] = big_table["orientation"].transform(
         lambda x: get_nematic_order(x - np.pi / 2)
     )
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
     # dimensionalize the area
-    print("Dimensionalizing area and perimeter...") if verbose else None
+    logger.info("Dimensionalizing area and perimeter...")
     big_table["pixel_size_xy_in_um"] = big_table["dataset_name"].transform(
         lambda dataset_name: um_per_px_map[dataset_name]
     )
@@ -353,7 +354,7 @@ def calculate_derived_data_dynamics_independent(
 
     # add a column for the number of neighbors
     # touching each region that is being tracked
-    print("Calculating number of neighbors...") if verbose else None
+    logger.info("Calculating number of neighbors...")
     big_table["neighboring_cell_labels"] = big_table["neighboring_cell_labels"].transform(
         lambda x: stringified_floatlist_to_floatlist(x)
     )
@@ -368,7 +369,7 @@ def calculate_derived_data_dynamics_independent(
         zarr_name = get_zarr_name(ds_nm, pos)
         zarr_path = Path(get_zarr_path(ds_nm, zarr_name)[zarr_name])
 
-        print(f"getting image size for {ds_nm} position {pos}...") if verbose else None
+        logger.info(f"getting image size for {ds_nm} position {pos}...")
         # NOTE the zarr paths are not working for 20241203_9db6173b3da7452b91756b6e86b0da61_P3
         try:
             img = BioImage(zarr_path)
@@ -377,7 +378,7 @@ def calculate_derived_data_dynamics_independent(
                 zip(img.channel_names, range(len(img.channel_names)), strict=False)
             )
         except:
-            print("loading zarr failed, falling back to original path...")
+            logger.error("loading zarr failed, falling back to original path...")
             og_path = get_original_path(ds_nm)
             img = BioImage(og_path)
             channel_index = dict(zip(["EGFP", "BF"], range(len(img.channel_names)), strict=False))
@@ -398,7 +399,7 @@ def calculate_derived_data_dynamics_independent(
                 columns=new_cols[tuple(df.name)].keys(),
                 data=new_cols[tuple(df.name)],
                 index=df.index,
-            ),  # type: ignore
+            ),  # type: ignore[call-overload]
             include_groups=False,
         )
         .droplevel([0, 1]),
@@ -438,9 +439,7 @@ def calculate_derived_data_dynamics_independent(
     return big_table
 
 
-def calculate_derived_data_dynamics_dependent(
-    big_table: pd.DataFrame, verbose: bool = False
-) -> pd.DataFrame:
+def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.DataFrame:
     """
     NOTE: The accuracy of these metrics are affected by how
     clean the data in the table is, therefore it should only
@@ -449,7 +448,7 @@ def calculate_derived_data_dynamics_dependent(
     """
     # recalculate the centroid speeds of each track
     # after filtering
-    print("Calculating centroid velocities...") if verbose else None
+    logger.info("Calculating centroid velocities...")
     big_table[["centroid_y", "centroid_x"]] = (
         big_table["centroid"].transform(lambda c: stringified_floatlist_to_floatlist(c)).tolist()
     )
@@ -460,23 +459,23 @@ def calculate_derived_data_dynamics_dependent(
             ["centroid_x_um", "centroid_y_um", "time_minutes"]
         ]
         .apply(
-            lambda df: pd.DataFrame(  # type: ignore
+            lambda df: pd.DataFrame(  # type: ignore[arg-type, return-value]
                 columns=["centroid_dx_dt", "centroid_dy_dt"],
                 data=zip(
                     *get_centroid_velocity(
-                        df["centroid_x_um"].values,  # type: ignore
-                        df["centroid_y_um"].values,  # type: ignore
-                        df["time_minutes"].values,  # type: ignore
+                        df["centroid_x_um"].values,  # type: ignore[arg-type, call-overload, return-value]
+                        df["centroid_y_um"].values,  # type: ignore[arg-type, call-overload, return-value]
+                        df["time_minutes"].values,  # type: ignore[arg-type, call-overload, return-value]
                     ),
                     strict=False,
-                ),  # type: ignore
+                ),  # type: ignore[return-value]
                 index=df.index,
             )
         )
         .droplevel([0, 1, 2])
     )
 
-    print("Calculating centroid velocity magnitude and angle...") if verbose else None
+    logger.info("Calculating centroid velocity magnitude and angle...")
     big_table["centroid_velocity_magnitude"] = np.linalg.norm(
         [big_table["centroid_dx_dt"], big_table["centroid_dy_dt"]], axis=0
     )
@@ -491,7 +490,7 @@ def calculate_derived_data_dynamics_dependent(
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
-    print("Adding number of tracks for each timepoint...") if verbose else None
+    logger.info("Adding number of tracks for each timepoint...")
     big_table["num_tracks_at_T"] = big_table.groupby(["dataset_name", "position", "T"])[
         "track_id"
     ].transform(lambda x: x.nunique())
@@ -654,8 +653,8 @@ def add_cell_segmentation_path_column(
     big_table: pd.DataFrame,
 ) -> pd.DataFrame:
     seg_path_per_pos_dict = dict()
-    for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys():  # type: ignore
-        seg_path_per_pos_dict[pos] = get_segmentation_path_dict(ds_nm, pos)  # type: ignore
+    for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys():  # type: ignore[arg-type, misc]
+        seg_path_per_pos_dict[pos] = get_segmentation_path_dict(ds_nm, pos)  # type: ignore[has-type]
     big_table["cdh5_classic_segmentation_path"] = big_table.apply(
         lambda df: (seg_path_per_pos_dict[df["position"]][df["T"]].as_posix()), axis=1
     )
@@ -675,14 +674,13 @@ def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
 
 
 def create_seg_measured_feat_manifest_multiproc_wrapper(args: Sequence) -> None:
-    dataset_name, out_dir, verbose = args
-    create_segmentation_measured_feature_manifest(dataset_name, out_dir, verbose=verbose)
+    dataset_name, out_dir = args
+    create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
 
 def create_segmentation_measured_feature_manifest(
     dataset_name: str,
     out_dir: str | Path,
-    verbose: bool = False,
 ) -> None:
 
     # make the output directory
@@ -690,44 +688,41 @@ def create_segmentation_measured_feature_manifest(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # load the tracking data and the segmentation feature data
-    tracking_df = get_measured_segmentation_data_raws(
+    tracking_df = get_measured_segmentation_table_raws(
         dataset_name_list=[dataset_name],
         kind="cdh5_tracking",
         as_dask=False,
     )
-    segprops_df = get_measured_segmentation_data_raws(
+    segprops_df = get_measured_segmentation_table_raws(
         dataset_name_list=[dataset_name],
         kind="cdh5_segmentations",
         as_dask=False,
     )
-    nucprops_df = get_measured_segmentation_data_raws(
+    nucprops_df = get_measured_segmentation_table_raws(
         dataset_name_list=[dataset_name],
         kind="nuclei_labelfree",
         as_dask=False,
     )
     if tracking_df.empty or segprops_df.empty or nucprops_df.empty:
-        print(
+        logger.info(
             f"No tracking data or segmentation properties data found for {dataset_name}. Skipping..."
         )
         return
     else:
-        print(f"Working on {dataset_name}...") if verbose else None
+        logger.info(f"Working on {dataset_name}...")
 
     # combine the tracking data with the segmentation
     # properties data
-    (print("Combining tracking data with segmentation properties data...") if verbose else None)
+    logger.info("Combining tracking data with segmentation properties data...")
     big_table = merge_measured_segmentation_features_tables(segprops_df, tracking_df, nucprops_df)
 
     # add some columns to the data table that are
     # calculated from existing columns and do not
     # depend on dynamics / require clean tracks
-    (
-        print("Calculating dynamics-independent metrics from existing measurements...")
-        if verbose
-        else None
-    )
+    logger.info("Calculating dynamics-independent metrics from existing measurements...")
+
     big_table = add_cell_segmentation_path_column(big_table)
-    big_table = calculate_derived_data_dynamics_independent(big_table, verbose)
+    big_table = calculate_derived_data_dynamics_independent(big_table)
 
     # add the size of the crop used to get DiffAE features at full res
     crop_size = 256
@@ -736,11 +731,10 @@ def create_segmentation_measured_feature_manifest(
     # filter the segprops data to remove regions that
     # touch the image borders and keep only tracks that
     # have a minimum number of datapoints after this
-    (
-        print("Filtering out regions that touch the image borders and tracks that are too short...")
-        if verbose
-        else None
+    logger.info(
+        "Filtering out regions that touch the image borders and tracks that are too short..."
     )
+
     big_table = add_filter_columns(big_table, out_dir, min_track_duration=24, max_area_change=0.1)
     big_table_filtered = big_table[~big_table["filter_global"]]
 
@@ -757,21 +751,15 @@ def create_segmentation_measured_feature_manifest(
     # orientation in degrees, velocities, nematic order,
     # aspect ratio, number of tracks (i.e. approximate
     # number of detected cells)
-    (
-        print("Calculating dynamics-dependent metrics from existing measurements...")
-        if verbose
-        else None
-    )
+    logger.info("Calculating dynamics-dependent metrics from existing measurements...")
+
     big_table_filtered = calculate_derived_data_dynamics_dependent(
-        big_table_filtered.copy(deep=True), verbose
+        big_table_filtered.copy(deep=True)
     )
 
     # create a subset of the data that is used for cell track integration
-    (
-        print("Outputting a subset of the cell tracking data for integration with landscapes...")
-        if verbose
-        else None
-    )
+    logger.info("Outputting a subset of the cell tracking data for integration with landscapes...")
+
     out_dir_for_integration = Path(out_dir) / "single_cell_track_integration/"
     out_dir_for_integration.mkdir(parents=True, exist_ok=True)
     out_path_integration_table = (
@@ -791,8 +779,13 @@ def main(
     n_proc: int = 1,
     verbose: bool = False,
 ) -> None:
+    # Set the logging level
+    if verbose:
+        logger.setLevel(level=logging.INFO)
+    else:
+        logger.setLevel(level=logging.WARNING)
 
-    out_dir = get_output_path(Path(__file__).stem, verbose=False)
+    out_dir = get_output_path(Path(__file__).stem)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
@@ -802,7 +795,6 @@ def main(
             args = zip(
                 dataset_name_list,
                 [out_dir] * len(dataset_name_list),
-                [verbose] * len(dataset_name_list),
                 strict=False,
             )
             list(
@@ -822,7 +814,7 @@ def main(
             desc="Processing datasets (1P)",
             unit="datasets",
         ):
-            create_segmentation_measured_feature_manifest(dataset_name, out_dir, verbose=verbose)
+            create_segmentation_measured_feature_manifest(dataset_name, out_dir)
 
 
 if __name__ == "__main__":

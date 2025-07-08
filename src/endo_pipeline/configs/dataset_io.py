@@ -974,7 +974,7 @@ def get_measurement_data_raws(
     return measurement_dataframe
 
 
-def get_measured_segmentation_data_raws(
+def get_measured_segmentation_table_raws(
     dataset_name_list: list,
     kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
     as_dask: bool = False,

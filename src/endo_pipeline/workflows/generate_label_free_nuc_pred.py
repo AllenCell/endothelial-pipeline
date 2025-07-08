@@ -1,3 +1,4 @@
+import logging
 import warnings
 from multiprocessing import Pool
 from pathlib import Path
@@ -18,13 +19,13 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
-DEVICE_USED_PRINTED = False
+device_used_printed_global = False
+logger = logging.getLogger(__name__)
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model
 def generate_results(args: dict) -> None:
 
-    verbose = args["verbose"]
     dataset_name = args["dataset_name"]
     create_validation = args["validation_image"]
     img_path = args["input_path"]
@@ -41,14 +42,12 @@ def generate_results(args: dict) -> None:
         / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose_overlay.ome.tiff'
     )
 
-    if verbose:
-        print(
-            f'Working on dataset {args["dataset_name"]}, T = {args["T"]}, scene = {args["scene_index"]}...'
-        )
+    logger.info(
+        f'Working on dataset {args["dataset_name"]}, T = {args["T"]}, scene = {args["scene_index"]}...'
+    )
 
     if (args["overwrite"] == False) and out_path.exists():
-        if verbose:
-            print(" - output already exists, skipping...")
+        logger.info(" - output already exists, skipping...")
         return
 
     else:
@@ -71,10 +70,10 @@ def generate_results(args: dict) -> None:
             nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
 
         gpu = core.use_gpu()
-        global DEVICE_USED_PRINTED
-        if DEVICE_USED_PRINTED == False:
-            print(f" - using device: {'GPU' if gpu else 'CPU'}")
-            DEVICE_USED_PRINTED = True
+        global device_used_printed_global
+        if not device_used_printed_global:
+            logger.info(f" - using device: {'GPU' if gpu else 'CPU'}")
+            device_used_printed_global = True
 
         model_path = Path(nuclei_model["model_path"])
         # cellpose is throwing a warning about typed storage here and I don't
@@ -88,8 +87,7 @@ def generate_results(args: dict) -> None:
         bf_std_arr = bf_std_dask_arr.squeeze().compute()
 
         # Predict nuclei from brightfield images
-        if verbose:
-            print(" - predicting nuclei from brightfield standard deviation projections...")
+        logger.info(" - predicting nuclei from brightfield standard deviation projections...")
 
         masks_bf_std = model_bf_stdproject.eval(
             bf_std_arr,
@@ -101,8 +99,7 @@ def generate_results(args: dict) -> None:
 
         # Save a nuclei prediction image
         images_out = [masks_bf_std[0].squeeze()]
-        if verbose:
-            print(" - saving image...")
+        logger.info(" - saving image...")
 
         images_out_metadata = {
             "image_name": dataset_name,
@@ -127,8 +124,7 @@ def generate_results(args: dict) -> None:
 
             # Construct and save a multichannel image
             images_out = [bf_good_contrast_arr, bf_std_arr, masks_bf_std[0].squeeze()]
-            if verbose:
-                print(" - saving validation image...")
+            logger.info(" - saving validation image...")
 
             images_out_metadata = {
                 "image_name": dataset_name,
@@ -153,6 +149,12 @@ def main(
     To enter a list of datasets to analyze, use the following format:
     '\"20241016_20X\",\"20241120_20X\"'
     """
+    # Set the logging level
+    if verbose:
+        logger.setLevel(level=logging.INFO)
+    else:
+        logger.setLevel(level=logging.WARNING)
+
     # Set the output directory
     out_dir = Path(get_output_path(Path(__file__).stem))
 
@@ -169,7 +171,6 @@ def main(
         is_test=is_test,
         image_validation_frequency=48,
         use_sldy_data=use_sldy_data,
-        verbose=verbose,
     )
 
     if n_proc > 1:
