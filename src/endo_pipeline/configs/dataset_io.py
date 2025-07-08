@@ -979,6 +979,21 @@ def get_measured_segmentation_table(
     kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
     as_dask: bool = False,
 ) -> pd.DataFrame:
+    """
+    Loads one of the available kinds of segmentation features tables
+    for a given dataset.
+    Different kinds of segmentation features tables include:
+    - cdh5_segmentations: properties for segmentations based on cdh5
+        - includes cell segmentation centroids, orientations, number of neighbors,
+            neighbor information, elongation, and other properties
+        - does not contain dynamics-dependent features such as velocities
+            (those can be computed from this dataset with
+            src.endo_pipeline.workflows.make_seg_feats_manifest.calculate_derived_data_dynamics_dependent
+    - nuclei_labelfree: properties for segmentations based on nuclei label-free
+        - primarily predicted nuclei centroids
+    - cdh5_tracking: properties for segmentations based on cdh5 tracking
+        - primarily contains tracking IDs mapped to segmentations label IDs
+    """
     match kind:
         case "cdh5_segmentations":
             base_path = Path(

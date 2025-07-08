@@ -10,7 +10,6 @@ from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_ima
 )
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
-    add_filter_columns,
     calculate_derived_data_dynamics_dependent,
 )
 

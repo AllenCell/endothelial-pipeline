@@ -439,6 +439,17 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
 def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.DataFrame:
     """
+    This function calculates dynamics-dependent features and
+    adds them to the main segmentation features table.
+    Added columns include:
+    - centroid_dx_dt: cdh5-based cell segmentation centroid velocity in x (units in um/min)
+    - centroid_dy_dt: cdh5_based cell segmentation centroid velocity in y (units in um/min)
+    - centroid_velocity_magnitude: magnitude of the cdh5-based cell segmentation centroid velocity
+    - centroid_velocity_angle: the angle of the cdh5-based cell segmentation centroid velocity (from -pi to pi with 0 being to the right)
+    - dalignment_dt_deg_rel_to_flow: the change in alignment angle (in degrees/min)
+    - num_tracks_at_T: the number of tracks at a given timepoint per dataset per position
+        (this number is affected by any filtering that was done to the passed in table)
+
     NOTE: The accuracy of these metrics are affected by how
     clean the data in the table is, therefore it should only
     be used after filtering out incorrect segmentations from
