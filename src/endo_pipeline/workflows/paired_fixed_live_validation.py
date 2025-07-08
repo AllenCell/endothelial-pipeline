@@ -163,18 +163,19 @@ def apply_model_paired_fixed_live(
 
     if upload_features_to_FMS:
         print("Uploading fixed and live dataset feature manifests to FMS")
-        add_paired_fixed_live_data_fmsid_to_config(
-            fixed_features_path,
-            fixed_dataset_name,
-            mlflow_id,
-            model_path,
-        )
-        add_paired_fixed_live_data_fmsid_to_config(
-            live_features_path,
-            live_dataset_name,
-            mlflow_id,
-            model_path,
-        )
+        model_config_updated_with_fixed = add_paired_fixed_live_data_fmsid_to_config(
+                    fixed_features_path,
+                    fixed_dataset_name,
+                    model_config,
+                    model_path,
+              )
+        model_config_updated_with_live = add_paired_fixed_live_data_fmsid_to_config(
+                live_features_path,
+                live_dataset_name,
+                model_config_updated_with_fixed,
+                model_path,
+           )
+        save_model_config(model_config_updated_with_live)
 
     return save_path, fixed_features_path, live_features_path
 
