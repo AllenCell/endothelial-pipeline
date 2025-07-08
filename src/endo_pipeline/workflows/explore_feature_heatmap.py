@@ -151,7 +151,7 @@ df_sample = df_filtered.sample(
 # the rows in the filtered dataframe
 crop_list, df_sample_sorted = get_crops_in_dataframe(df_sample)
 # %%
-fig, _ = plot_crop_montage(crop_list)
+fig, _ = plot_crop_montage(crop_list, df_sample_sorted, pc_axis)
 fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
 plt.tight_layout()
 plt.show()
@@ -162,9 +162,9 @@ viz_base.save_plot(
     + f"PC{pc_axis+1}_val"
     + "p".join(str(pc_val).split(".")),
 )
-
+# %%
 # cdh5 contact sheet
-fig, _ = plot_crop_montage(crop_list, channel_index=2)
+fig, _ = plot_crop_montage(crop_list, df_sample_sorted, pc_axis, channel_index=2)
 fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
 plt.tight_layout()
 plt.show()
@@ -175,7 +175,7 @@ viz_base.save_plot(
     + f"PC{pc_axis+1}_val"
     + "p".join(str(pc_val).split(".")),
 )
-
+# %%
 # get reconstructed ve-cad crops
 # corresponding to the rows in the filtered dataframe
 # this requires a GPU to run, so
@@ -188,7 +188,9 @@ if gpu_available:
 
     reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_filtered)
 
-    fig, _ = plot_crop_montage(reconstructed_crop_list, channel_index=None)
+    fig, _ = plot_crop_montage(
+        reconstructed_crop_list, df_sample_sorted, pc_axis, channel_index=None
+    )
     fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
     plt.tight_layout()
     plt.show()
