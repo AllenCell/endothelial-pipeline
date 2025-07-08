@@ -3,7 +3,7 @@ import numpy as np
 from bioio.writers import OmeTiffWriter
 
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 
@@ -21,7 +21,7 @@ def main(model_name: str = "diffae_04_10") -> None:
     crop_savedir = get_output_path("flow_field_3d", model_name, "crops", include_timestamp=False)
 
     # Get fit (3D) PCA object from manifest
-    reducer = manifest_pca.fit_pca(num_pcs=3)
+    reducer = fit_pca(num_pcs=3)
 
     traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 

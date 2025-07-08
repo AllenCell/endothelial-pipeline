@@ -96,13 +96,13 @@ def main(
         # and get only the decimal part
         bw_str = f"{bw:.3f}".split(".")[1]
         fig_savedir_kernel = get_output_path(
-            workflow_name, f"bw_{bw_str}", "figs", include_timestamp=False
+            workflow_name, model_name, f"bw_{bw_str}", "figs", include_timestamp=False
         )
         output_savedir_kernel = get_output_path(
-            workflow_name, f"bw_{bw_str}", "outputs", include_timestamp=False
+            workflow_name, model_name, f"bw_{bw_str}", "outputs", include_timestamp=False
         )
         vtk_savedir_kernel = get_output_path(
-            workflow_name, f"bw_{bw_str}", "outputs", "vtks", include_timestamp=False
+            workflow_name, model_name, f"bw_{bw_str}", "outputs", "vtks", include_timestamp=False
         )
 
         # loop through datasets, get flow field
