@@ -21,6 +21,8 @@ from typing import Any, Literal
 
 import fire
 
+from src.endo_pipeline.configs.dataset_config_io import load_dataset_config
+
 
 def get_config_dir() -> Path:
     """Get path to the config directory."""
@@ -601,11 +603,39 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     float
         The flow value for the specified frame.
     """
-    flow_list = get_flow_info(dataset_name)
+    config = load_dataset_config(dataset_name)
+    flow_list = config.flow
     for t_start, t_stop, flow in flow_list:
         if t_start <= frame <= t_stop:
             return flow
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
+
+
+def add_flow_to_dataframe(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Add flow in dyn/cm^2 to a DataFrame containing dataset information.
+    Currently does not work for datasets with -1 as the timepoint.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing dataset information, including 'dataset_name' and 'frame'.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with an additional 'flow' column containing flow values for each frame.
+    """
+    # Group by dataset_name and image_index, calculate flow once per group
+    flow_mapping = df.groupby(["dataset_name", "image_index"]).apply(
+        lambda group: get_flow_for_frame(group.name[0], group.name[1])
+    )
+
+    # Map the calculated flow values back to the original DataFrame
+    df["sheer_stress"] = df.set_index(["dataset_name", "image_index"]).index.map(flow_mapping)
+    return df
 
 
 @deprecated(

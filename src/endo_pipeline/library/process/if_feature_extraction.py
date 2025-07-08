@@ -42,6 +42,23 @@ def get_labeled_nuclei(
     return label(seg_image)
 
 
+def identify_edge_nuclei(label_mask: np.ndarray, bounding_box: tuple) -> bool:
+    """
+    Identify if a labeled region touches the border of the image.
+    Args:
+        label_mask (np.ndarray): The labeled image used to identify the boundary of the FOV.
+        bounding_box (tuple): A tuple representing the bounding box of the labeled region
+    Returns:
+        bool: True if the labeled region touches the border of the image, False otherwise.
+    """
+    image_height, image_width = label_mask.shape
+    minr, minc, maxr, maxc = bounding_box
+
+    touches_border = minr == 0 or minc == 0 or maxr == image_height or maxc == image_width
+
+    return touches_border
+
+
 def extract_morphological_props(
     label_image: np.ndarray, dataset: str, position: int
 ) -> list[dict[str, Any]]:
@@ -75,6 +92,7 @@ def extract_morphological_props(
                 p.major_axis_length / p.minor_axis_length if p.minor_axis_length > 0 else np.nan
             ),
             "eccentricity": p.eccentricity,
+            "touches_border": identify_edge_nuclei(label_image, p.bbox),
         }
         for p in props
     ]
