@@ -18,7 +18,7 @@ from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
     get_dataset_info,
-    get_measured_segmentation_table_raws,
+    get_measured_segmentation_table,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
@@ -688,17 +688,17 @@ def create_segmentation_measured_feature_manifest(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # load the tracking data and the segmentation feature data
-    tracking_df = get_measured_segmentation_table_raws(
+    tracking_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="cdh5_tracking",
         as_dask=False,
     )
-    segprops_df = get_measured_segmentation_table_raws(
+    segprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="cdh5_segmentations",
         as_dask=False,
     )
-    nucprops_df = get_measured_segmentation_table_raws(
+    nucprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="nuclei_labelfree",
         as_dask=False,

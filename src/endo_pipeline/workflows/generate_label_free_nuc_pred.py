@@ -8,9 +8,9 @@ from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
@@ -19,8 +19,24 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
-device_used_printed_global = False
-logger = logging.getLogger(__name__)
+
+def configure_logging(out_dir: Path, logger: logging.Logger, verbose: bool = True) -> None:
+    logging.basicConfig(
+        filename=out_dir / f"{out_dir.name}.log",
+        filemode="a",  # append to the log file instead of rewriting it
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,  # sets the level to be recorded in log file
+    )
+
+    # Add the output handler to the logger
+    output_handler = logging.StreamHandler()
+    # Set the verbosity to be printed
+    if verbose:
+        output_handler.setLevel(logging.INFO)
+    else:
+        output_handler.setLevel(logging.WARNING)
+    logger.addHandler(output_handler)  # needed to print in ipython
 
 
 # Predict nuclei from brightfield images using the retrained CellPose model
@@ -149,17 +165,13 @@ def main(
     To enter a list of datasets to analyze, use the following format:
     '\"20241016_20X\",\"20241120_20X\"'
     """
-    # Set the logging level
-    if verbose:
-        logger.setLevel(level=logging.INFO)
-    else:
-        logger.setLevel(level=logging.WARNING)
 
-    # Set the output directory
-    out_dir = Path(get_output_path(Path(__file__).stem))
+    out_dir = get_output_path(Path(__file__).stem)
+    configure_logging(out_dir, logger, verbose)
 
     # Build a list of datasets to analyze
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    logger.info(f"datasets to analyze: {dataset_name_list}")
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)
@@ -175,6 +187,7 @@ def main(
 
     if n_proc > 1:
         if __name__ == "__main__":
+            logger.info("Starting multiprocessing...")
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
@@ -186,11 +199,15 @@ def main(
                 pool.close()
                 pool.join()
     else:
+        logger.info("Starting single-core processing...")
         for dataset_name_and_args in tqdm(analysis_queue, desc="Predicting nuclei (1P)"):
             generate_results(dataset_name_and_args)
 
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.info("...done analysis.")
+    print("\N{MICROSCOPE}")
 
 
 if __name__ == "__main__":
+    device_used_printed_global = False
+    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)
