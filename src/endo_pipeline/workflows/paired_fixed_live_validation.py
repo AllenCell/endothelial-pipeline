@@ -99,9 +99,15 @@ def apply_model_paired_fixed_live(
     """
 
     # Get diffAE model
-    mlflow_id = get_model_info(model_name)["mlflow_run_id"]
-    model_path = Path(get_output_path(f"models/{model_name}"))
-    path_dict = download_model(mlflow_id, model_path)
+    # load model config
+    model_config = load_model_config(model_name)
+
+    # Load DiffAE model
+    model_path = get_output_path("models",model_name) # new get_output_path function
+    path_dict = download_model(
+        model_config.mlflow_run_id,
+        model_path
+    )
 
     # Set directory for aligned data
     save_path = model_path / f"{fixed_dataset_name}_vs_{live_dataset_name}"
