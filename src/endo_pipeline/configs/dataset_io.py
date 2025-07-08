@@ -616,6 +616,7 @@ def add_flow_to_dataframe(
 ) -> pd.DataFrame:
     """
     Add flow in dyn/cm^2 to a DataFrame containing dataset information.
+    Currently does not work for datasets with -1 as the timepoint.
 
     Parameters
     ----------
