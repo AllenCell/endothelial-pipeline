@@ -25,15 +25,7 @@ For each dataset config in the `configs/models` directory, confirm:
 if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
-# try to import the ml_workflows extra dependencies
-# if this fails, raise an ImportError with a helpful message
-try:
-    import src.endo_pipeline.library.model.mlflow  # noqa: F401
-except ImportError as e:
-    raise ImportError(
-        "This notebook requires the `ml_workflows` extra dependencies to run. "
-        "Please install them with `uv sync --extras ml_workflows` and try again."
-    ) from e
+
 # %%
 import logging
 
@@ -44,7 +36,17 @@ from src.endo_pipeline.configs import (
     validate_model_config,
 )
 from src.endo_pipeline.io import load_dataframe_from_fms
-from src.endo_pipeline.library.model.mlflow import get_ckpt_path
+
+# try to import from a module that requires
+# the ml_workflows extra dependencies
+# if this fails, raise an ImportError with a helpful message
+try:
+    from src.endo_pipeline.library.model.mlflow import get_ckpt_path
+except ImportError as e:
+    raise ImportError(
+        "This notebook requires the `ml_workflows` extra dependencies to run. "
+        "Please install them with `uv sync --extras ml_workflows` and try again."
+    ) from e
 
 # %%
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
