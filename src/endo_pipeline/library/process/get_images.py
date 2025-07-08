@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import tifffile
 from bioio import BioImage
+from tqdm import tqdm
 
 from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process.image_processing import (
@@ -48,60 +49,72 @@ def get_crop(
     return img_crop
 
 
-def get_original_crops_in_dataframe(df: pd.DataFrame) -> list[np.ndarray]:
+def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[list[np.ndarray], pd.DataFrame]:
     """
-    Get crops of original images from the dataframe for a
+    Get crops of images from the dataframe for a
     given dataset and save them as multichannel TIFF files.
-    Return these crops as a list of numpy arrays.
+    Return these crops as a list of numpy arrays and a dataframe
+    matching the order of the list.
     """
-    # initialize dataset name and
-    # list of images to return
+    # Initialize dataset name and list of images to return
     dataset = df["dataset"].iloc[0]
     image_seq = []
+    sorted_rows = []  # List to store rows in the same order as images
 
-    # loop through each position in the dataframe
-    for position, _ in df.groupby("position"):
-        p = dataset_io.extract_P(position)
-        img = get_zarr_img_for_dataset(dataset, p)
-        for index, row in df.iterrows():
-            timepoint = row["frame_number"]
-            crop = get_crop(
-                img,
-                channel=None,
-                timepoint=timepoint,
-                start_x=row["start_x"],
-                start_y=row["start_y"],
-                crop_size_x=row["crop_size_x"],
-                crop_size_y=row["crop_size_y"],
-            )
+    # Create an overall progress bar for all rows in the dataframe
+    with tqdm(total=len(df), desc="Processing crops") as pbar:
+        # Loop through each position in the dataframe
+        for position, df_pos in df.groupby("position"):
+            p = dataset_io.extract_P(position)
+            img = get_zarr_img_for_dataset(dataset, p)
 
-            # Extract channels once
-            bf_channel = crop[:, 1, :, :, :]  # Brightfield channel
-            gfp_channel = crop[:, 0, :, :, :]  # GFP channel
+            # Loop through rows of the current group (rows corresponding to the current position)
+            for index, row in df_pos.iterrows():
+                timepoint = row["frame_number"]
+                crop = get_crop(
+                    img,
+                    channel=None,
+                    timepoint=timepoint,
+                    start_x=row["start_x"],
+                    start_y=row["start_y"],
+                    crop_size_x=row["crop_size_x"],
+                    crop_size_y=row["crop_size_y"],
+                )
 
-            # Perform operations on the extracted channels
-            bf_max_projection = max_proj(bf_channel, 1)
-            bf_std_deviation = std_dev(bf_channel, 1)
-            gfp_max_projection = max_proj(gfp_channel, 1)
+                # Extract channels once
+                bf_channel = crop[:, 1, :, :, :]  # Brightfield channel
+                gfp_channel = crop[:, 0, :, :, :]  # GFP channel
 
-            # contrast stretch
-            bf_max_proj_contrast = contrast_stretching(bf_max_projection, method="percentile")
-            bf_std_dev_contrast = contrast_stretching(bf_std_deviation, method="percentile")
-            gfp_max_proj_contrast = contrast_stretching(gfp_max_projection, method="percentile")
+                # Perform operations on the extracted channels
+                bf_max_projection = max_proj(bf_channel, 1)
+                bf_std_deviation = std_dev(bf_channel, 1)
+                gfp_max_projection = max_proj(gfp_channel, 1)
 
-            # Combine the processed images into a multichannel array
-            multichannel_image = np.stack(
-                [
-                    bf_max_proj_contrast,
-                    bf_std_dev_contrast,
-                    gfp_max_proj_contrast,
-                ],
-                axis=0,  # Stack along the channel axis
-            )
+                # Contrast stretch
+                bf_max_proj_contrast = contrast_stretching(bf_max_projection, method="percentile")
+                bf_std_dev_contrast = contrast_stretching(bf_std_deviation, method="percentile")
+                gfp_max_proj_contrast = contrast_stretching(gfp_max_projection, method="percentile")
 
-            image_seq.append(multichannel_image)
+                # Combine the processed images into a multichannel array
+                multichannel_image = np.stack(
+                    [
+                        bf_max_proj_contrast,
+                        bf_std_dev_contrast,
+                        gfp_max_proj_contrast,
+                    ],
+                    axis=0,  # Stack along the channel axis
+                )
 
-    return image_seq
+                image_seq.append(multichannel_image)
+                sorted_rows.append(row)  # Append the row to maintain order
+
+                # Update the overall progress bar
+                pbar.update(1)
+
+    # Create a new dataframe from the sorted rows
+    df_sorted = pd.DataFrame(sorted_rows).reset_index(drop=True)
+
+    return image_seq, df_sorted
 
 
 def add_position(df: pd.DataFrame) -> pd.DataFrame:
