@@ -22,7 +22,12 @@ from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
 from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
-
+from src.endo_pipeline.configs import (
+    add_model_manifest,
+    load_model_config,
+    ModelConfig,
+    save_model_config
+)
 
 def add_paired_fixed_live_data_fmsid_to_config(
     prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
