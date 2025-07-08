@@ -53,13 +53,13 @@ def init_subplots(
     return fig, ax
 
 
-def save_plot(fig: plt.Figure, filename: Path, format: str = ".png", dpi: int = 450) -> None:
+def save_plot(fig: plt.Figure, filename: str | Path, format: str = ".png", dpi: int = 450) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
 
     Input:
     - fig: plt.Figure, the figure to save
-    - filename: str, the filepath to save the figure
+    - filename: str | Path, the filepath to save the figure
         (includes file name, but NOT the file extension)
     - format: str (default='.png'), the file format to save the figure
     - dpi: int (default=450), the resolution of the figure in
@@ -68,6 +68,8 @@ def save_plot(fig: plt.Figure, filename: Path, format: str = ".png", dpi: int = 
     Output:
     - None, saves the figure to the specified file
     """
+    if isinstance(filename, str):
+        filename = Path(filename)
     if format == ".png":
         fig.savefig(filename, dpi=dpi, bbox_inches="tight")
     else:
