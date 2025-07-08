@@ -158,12 +158,8 @@ def apply_model_paired_fixed_live(
     model.override_config(overrides)
     model.predict()
 
-    fixed_features_path = str(
-        save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
-    )
-    live_features_path = str(
-        save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
-    )
+    fixed_features_path = save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
+    live_features_path = save_path / f"predict_{live_dataset_name}_{model_name}_features.parquet"
 
     if upload_features_to_FMS:
         print("Uploading fixed and live dataset feature manifests to FMS")
