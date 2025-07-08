@@ -4,7 +4,6 @@ from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import DatasetConfig, ModelManifest, load_dataset_config
-from src.endo_pipeline.configs.dataset_io import get_valid_timepoints
 from src.endo_pipeline.io import load_dataframe_from_fms
 
 

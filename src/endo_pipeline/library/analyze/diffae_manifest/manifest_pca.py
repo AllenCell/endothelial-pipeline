@@ -26,6 +26,10 @@ def fit_pca(
     by calling the `get_reference_datasets` function.
 
     Args:
+        model_name (str): Name of the model to use for PCA.
+            This is used to load the model config and get
+            the reference datasets for PCA.
+            Default is "diffae_04_10".
         num_pcs (int, optional): Number of principal components
             to keep (default: 8, i.e., full PCA)
         scale (bool, optional): Whether to scale the data before
@@ -41,7 +45,9 @@ def fit_pca(
     model_manifests = get_pca_reference_model_manifests(model_config)
     if verbose:
         print(
-            f"\nReference datasets for PCA: {[manifest.dataset_name for manifest in model_manifests]}\n"
+            f"\nReference datasets for PCA: {[
+                manifest.dataset_name for manifest in model_manifests
+            ]}\n"
         )
     data_ref = pd.concat(
         [load_dataframe_from_fms(manifest.fmsid) for manifest in model_manifests],
