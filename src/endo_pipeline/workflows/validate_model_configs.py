@@ -51,6 +51,9 @@ except ImportError as e:
 # %%
 DEFAULT_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
 
+# filter out INFO-level messages from srrc.endo_pipeline.io.input
+logging.getLogger("src.endo_pipeline.io.input").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
