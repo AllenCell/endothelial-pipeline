@@ -43,13 +43,13 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     # filter out datasets that are not timelapse
     # and load model manifests
-    model_manifests = get_timelapse_model_manifests(model_config)
+    model_manifest_list = get_timelapse_model_manifests(model_config)
 
-    for dataset in model_manifests:
-        print(f"Computing drift and diffusion fields for dataset {dataset.dataset_name}")
+    for model_manifest in model_manifest_list:
+        print(f"Computing drift and diffusion fields for dataset {model_manifest.dataset_name}")
 
         ddd_main.get_and_analyze_ddd(
-            dataset,
+            model_manifest,
             pca,
             kernel_params,
             fig_savedir,

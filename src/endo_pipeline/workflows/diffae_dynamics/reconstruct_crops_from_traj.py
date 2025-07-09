@@ -35,10 +35,10 @@ def main(model_name: str = "diffae_04_10") -> None:
     # an environment with the ML dependencies.
 
     latent_coords_batch = []
-    condition_list = []
-    for condition in traj_dict.keys():
+    experimental_condition_list = []
+    for experimental_condition in traj_dict.keys():
         # get full mean trajectory
-        coords = traj_dict[condition]
+        coords = traj_dict[experimental_condition]
 
         if isinstance(coords, np.ndarray):
             # interpolate points evenly spaced along the trajectory
@@ -49,7 +49,7 @@ def main(model_name: str = "diffae_04_10") -> None:
                 interpolated_points, reducer
             )
             latent_coords_batch.append(latent_coords)
-            condition_list.append(condition)
+            experimental_condition_list.append(experimental_condition)
 
         elif isinstance(coords, list):
             for jj, coord in enumerate(coords):
@@ -61,16 +61,18 @@ def main(model_name: str = "diffae_04_10") -> None:
                     interpolated_points, reducer
                 )
                 latent_coords_batch.append(latent_coords)
-                condition_list.append(f"{condition}_{jj}")
+                experimental_condition_list.append(f"{experimental_condition}_{jj}")
 
     # pass into DiffAE model to generate reconstructed crops
     # using single noise input (generate images in batch)
     walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
 
-    for walk_img, condition in zip(walk_imgs, condition_list, strict=False):
+    for walk_img, experimental_condition in zip(
+        walk_imgs, experimental_condition_list, strict=False
+    ):
         # save out stack of images as tif
-        print("Saving reconstructed crops for condition: ", condition)
-        tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
+        print("Saving reconstructed crops for condition: ", experimental_condition)
+        tif_name = f"{experimental_condition}_interpolated_trajectory_reconstructed_crops.tif"
         OmeTiffWriter.save(walk_img, crop_savedir / tif_name, overwrite=True)
 
 

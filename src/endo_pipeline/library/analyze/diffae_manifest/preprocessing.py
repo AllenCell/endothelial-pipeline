@@ -39,7 +39,9 @@ def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) 
     return df[df.valid]
 
 
-def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False) -> pd.DataFrame:
+def add_description_column(
+    df: pd.DataFrame, dataset_name: str, simple: bool = False
+) -> pd.DataFrame:
     """
     Add description column to DataFrame df.
     (Descriptions are currently based on the dataset name.).
@@ -57,10 +59,10 @@ def add_description_column(df: pd.DataFrame, ds_name: str, simple: bool = False)
         dataset with added description column
     """
     # get descriptions for each dataset name
-    description = get_dataset_descriptions([ds_name], simple=simple)
+    description = get_dataset_descriptions([dataset_name], simple=simple)
 
     # add description column to DataFrame
-    df["description"] = description[ds_name]  # add description to DataFrame
+    df["description"] = description[dataset_name]  # add description to DataFrame
 
     return df
 
@@ -84,8 +86,8 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
 
     # initialize dictionary to store descriptions
     description_dic = {}
-    for name in list_of_datasets:
-        data_config = load_dataset_config(name)  # get dataset info from data_config.yaml
+    for dataset_name in list_of_datasets:
+        data_config = load_dataset_config(dataset_name)  # get dataset info from data_config.yaml
         flow_config = data_config.flow  # get flow conditions for dataset
         num_flows = len(flow_config)  # number of flow conditions in dataset
 
@@ -114,7 +116,7 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
         description = "_".join(
             [time_str[i] + "_" + shear_rate_str[i] for i in range(num_flows)]
         )  # concatenate time and shear rate for each flow condition
-        description_dic[name] = description  # add description to dictionary
+        description_dic[dataset_name] = description  # add description to dictionary
 
     return description_dic
 
@@ -241,13 +243,13 @@ def get_manifest_for_dynamics_workflows(
         return project_manifest_to_pcs(df_with_crop, pca)
 
 
-def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
+def df_to_array(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
     of shape num_crops x num_timepoints x num_features.
 
     Inputs:
-    - df_: pd.DataFrame, DataFrame of feature data for one dataset
+    - df: pd.DataFrame, DataFrame of feature data for one dataset
         - DataFrame should have metadata columns for crop_index and T
 
     Outputs:
@@ -255,16 +257,16 @@ def df_to_array(df_: pd.DataFrame, feat_cols: list) -> np.ndarray:
         at all timepoints in one dataset
         - shape is num_crops x num_timepoints x num_features
     """
-    assert "crop_index" in df_.columns, "DataFrame must have a column for crop_index"
-    assert "frame_number" in df_.columns, "DataFrame must have a column for frame_number"
+    assert "crop_index" in df.columns, "DataFrame must have a column for crop_index"
+    assert "frame_number" in df.columns, "DataFrame must have a column for frame_number"
 
-    num_time = df_["frame_number"].nunique()  # number of timepoints in the movie
-    num_crop = df_["crop_index"].nunique()  # number of crops made at each timepoint
+    num_time = df["frame_number"].nunique()  # number of timepoints in the movie
+    num_crop = df["crop_index"].nunique()  # number of crops made at each timepoint
 
     # get array of num crops x num timepoints x num PCs
     feats = np.array(
         [
-            df_[df_["crop_index"] == ii].sort_values(by="frame_number")[feat_cols].values
+            df[df["crop_index"] == ii].sort_values(by="frame_number")[feat_cols].values
             for ii in range(num_crop)
         ]
     )
@@ -291,14 +293,14 @@ def get_timepoints_for_plotting_pcs(
     # initialize dictionary to store timepoints for each dataset
     timepoints_to_use = {}
 
-    for dataset in list_of_datasets:
+    for dataset_config in list_of_datasets:
         # get range of valid timepoints for each dataset
         # loaded from dataset config
-        timepoint_dict = dataset.valid_timepoints
+        timepoint_dict = dataset_config.valid_timepoints
 
         # if no valid timepoints are specified, use all timepoints
         if timepoint_dict is None:
-            timepoints_list = [[0, dataset.flow[0][1]]]
+            timepoints_list = [[0, dataset_config.flow[0][1]]]
 
         # otherwise, get the start and stop timepoints
         else:
@@ -311,7 +313,7 @@ def get_timepoints_for_plotting_pcs(
                 # the one with the two sets of timepoints
                 # if this changes, we can updated this to not be
                 # hardcoded (i.e., check if shear stress is 0 in config)
-                if dataset.name == no_flow_name and restrict_no_flow:
+                if dataset_config.name == no_flow_name and restrict_no_flow:
                     # restrict to only first set of no flow timepoints
                     if start == 0:
                         timepoints_list.append([start, stop])
@@ -319,5 +321,5 @@ def get_timepoints_for_plotting_pcs(
                         continue
                 else:
                     timepoints_list.append([start, stop])
-        timepoints_to_use[dataset.name] = timepoints_list
+        timepoints_to_use[dataset_config.name] = timepoints_list
     return timepoints_to_use

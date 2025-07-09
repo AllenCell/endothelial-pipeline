@@ -73,11 +73,11 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     # filter out datasets that are not timelapse
     # and load model manifests
-    model_manifests = get_timelapse_model_manifests(model_config)
+    model_manifest_list = get_timelapse_model_manifests(model_config)
 
     # build train-test data for regression
     train_test_dict = regression_main.build_kramers_moyal_train_test(
-        model_manifests,
+        model_manifest_list,
         pca,
         pcs,
         num_bins,

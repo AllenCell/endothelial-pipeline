@@ -14,7 +14,7 @@ from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 def kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
-    ds_name: str,
+    dataset_name: str,
     pcs: list,
     num_bins: list,
     dt: float,
@@ -41,7 +41,7 @@ def kramers_moyal_train_test_one_dataset(
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-    - ds_name: name of the dataset (used to split out data by
+    - dataset_name: name of the dataset (used to split out data by
         flow condition, acessed via data_config.yaml)
     - pcs: list of principal component axes to project data onto for
         Kramers-Moyal analysis (e.g., [0,1] for first two principal components)
@@ -76,7 +76,7 @@ def kramers_moyal_train_test_one_dataset(
 
     # split out data by flow condition
     df_by_flow, shear_list = regression_helper.get_traj_by_flow(
-        df_proj, load_dataset_config(ds_name)
+        df_proj, load_dataset_config(dataset_name)
     )
     num_flow = len(shear_list)
 
@@ -123,7 +123,7 @@ def kramers_moyal_train_test_one_dataset(
         fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
         viz_base.save_plot(
             fig,
-            filename=fig_savedir / f"kmcs_all_{ds_name}_flow_{j}",
+            filename=fig_savedir / f"kmcs_all_{dataset_name}_flow_{j}",
             format=".png",
             dpi=500,
         )
@@ -133,7 +133,7 @@ def kramers_moyal_train_test_one_dataset(
             fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             viz_base.save_plot(
                 fig,
-                filename=fig_savedir / f"kmcs_drift_{ds_name}_flow_{j}",
+                filename=fig_savedir / f"kmcs_drift_{dataset_name}_flow_{j}",
                 format=".png",
                 dpi=500,
             )
@@ -174,7 +174,7 @@ def kramers_moyal_train_test_one_dataset(
 
 
 def build_kramers_moyal_train_test(
-    model_manifests: list[ModelManifest],
+    model_manifest_list: list[ModelManifest],
     pca: Pipeline,
     pcs: list[int],
     num_bins: list[int],
@@ -188,7 +188,7 @@ def build_kramers_moyal_train_test(
     (drift and diffusion estimates) for all datasets in the dataframe df.
 
     Inputs:
-    - model_manifest: list of ModelManifest objects used
+    - model_manifest_list: list of ModelManifest objects used
         to load manifest feature data to use for Kramers-Moyal analysis
     - pca: PCA object used to project data onto principal component axes
         (sklearn.pipeline.Pipeline, can include scaling as pre-processing step)
@@ -230,19 +230,19 @@ def build_kramers_moyal_train_test(
 
     # for each dataset, generate train test sets for drift and diffusion estimates
     # (Kramers-Moyal coefficients, Y and V, respectively)
-    for dataset in model_manifests:
-        print("**** Generating train/test sets for dataset", dataset.dataset_name, "**** \n")
+    for model_manifest in model_manifest_list:
+        print("**** Generating train/test sets for dataset", model_manifest.dataset_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
             kramers_moyal_train_test_one_dataset(
                 df_proj,
-                dataset.dataset_name,
+                model_manifest.dataset_name,
                 pcs,
                 num_bins,
                 dt,

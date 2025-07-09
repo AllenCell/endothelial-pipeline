@@ -42,14 +42,14 @@ def fit_pca(
     """
     # load model config to get avaiable manifest names
     model_config = load_model_config(model_name)
-    model_manifests = get_pca_reference_model_manifests(model_config)
+    model_manifest_list = get_pca_reference_model_manifests(model_config)
     if verbose:
         print(
             "\nReference datasets for PCA:",
-            f"{[manifest.dataset_name for manifest in model_manifests]}\n",
+            f"{[model_manifest.dataset_name for model_manifest in model_manifest_list]}\n",
         )
     data_ref = pd.concat(
-        [load_dataframe_from_fms(manifest.fmsid) for manifest in model_manifests],
+        [load_dataframe_from_fms(model_manifest.fmsid) for model_manifest in model_manifest_list],
         ignore_index=True,
     )
 

@@ -50,9 +50,12 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     # get timepoints to use for scatter plots
     # all timepoints except no flow
     model_config = load_model_config(model_name)
-    pca_ref_manifests = get_pca_reference_model_manifests(model_config)
+    pca_ref_model_manifest_list = get_pca_reference_model_manifests(model_config)
     # pca_ref_configs = load_reference_dataset_configs()
-    pca_ref_configs = [load_dataset_config(manifest.dataset_name) for manifest in pca_ref_manifests]
+    pca_ref_configs = [
+        load_dataset_config(model_manifest.dataset_name)
+        for model_manifest in pca_ref_model_manifest_list
+    ]
     restrict_no_flow = True  # restrict plot to subset of no flow timepoints
 
     # get timepoints to use for scatter plots
@@ -63,16 +66,18 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     )
 
     # scatter plot of pca reference datasets
-    fig, _ = manifest_viz.plot_pc_scatter(pca, pca_ref_manifests, timepoints_to_use=timepoints_refs)
+    fig, _ = manifest_viz.plot_pc_scatter(
+        pca, pca_ref_model_manifest_list, timepoints_to_use=timepoints_refs
+    )
     viz_base.save_plot(fig, fig_savedir / "pca_scatter_ref")
 
     # scatter plot of all datasets specified in command line
-    model_manifests = [
+    model_manifest_list = [
         get_model_manifest(dataset_name, model_config) for dataset_name in datasets_to_use
     ]
     fig, _ = manifest_viz.plot_pc_scatter(
         pca,
-        model_manifests,  # all datasets specified and all timepoints
+        model_manifest_list,  # all datasets specified and all timepoints
     )
     viz_base.save_plot(fig, fig_savedir / "pca_scatter_all")
 
@@ -96,7 +101,7 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     init = np.array([-0.1, -0.7, -0.1])
 
     data_driven_flow_field.ddff_main(
-        model_manifests,
+        model_manifest_list,
         pca,
         kernel_params,
         dt,

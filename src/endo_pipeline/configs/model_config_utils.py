@@ -24,9 +24,9 @@ def get_model_manifest(dataset_name: str, model_config: ModelConfig) -> ModelMan
     # search the ModelConfig.manifest_fmsids for the
     # ModelManifest element with dataset_name matching
     # the input dataset_name
-    for manifest in model_config.manifest_fmsids:
-        if manifest.dataset_name == dataset_name:
-            return manifest
+    for model_manifest in model_config.manifest_fmsids:
+        if model_manifest.dataset_name == dataset_name:
+            return model_manifest
 
     # if no manifest found, raise an error
     logger.error(
@@ -83,14 +83,14 @@ def get_timelapse_model_manifests(model_config: ModelConfig) -> list[ModelManife
         raise FileNotFoundError(f"No manifest fmsids found in model config {model_config.name}")
 
     # filter manifests to only include timelapse datasets
-    timelapse_manifests = []
-    for manifest in model_config.manifest_fmsids:
-        data_config = load_dataset_config(manifest.dataset_name)
+    timelapse_manifest_list = []
+    for model_manifest in model_config.manifest_fmsids:
+        data_config = load_dataset_config(model_manifest.dataset_name)
         if data_config.time_interval_in_minutes < 0:
             continue
-        timelapse_manifests.append(manifest)
+        timelapse_manifest_list.append(model_manifest)
 
-    return timelapse_manifests
+    return timelapse_manifest_list
 
 
 def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelManifest]:
@@ -105,13 +105,13 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
     """
 
     # load data configs to get reference datasets
-    reference_datasets = load_reference_dataset_configs()
+    reference_dataset_config_list = load_reference_dataset_configs()
     # list of model manifests
     model_manifests = []
-    for dataset in reference_datasets:
+    for dataset_config in reference_dataset_config_list:
         # check if the dataset is in the model config
         try:
-            model_manifests.append(get_model_manifest(dataset.name, model_config))
+            model_manifests.append(get_model_manifest(dataset_config.name, model_config))
         except FileNotFoundError:
             logger.warning(
                 "Do not have manifests for all PCA reference datasets in model config %s.",

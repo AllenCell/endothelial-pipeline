@@ -97,7 +97,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     drift = model_eval.vector_field_function(drift_model)
     diffusion = model_eval.vector_field_function(diff_model)
 
-    my_sde_model = [drift, diffusion]
+    sde_model = [drift, diffusion]
 
     #################### Load model manifest data ###################
     # get model config from model name
@@ -105,14 +105,14 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     # filter out datasets that are not timelapse
     # and load model manifests
-    model_manifests = get_timelapse_model_manifests(model_config)
+    model_manifest_list = get_timelapse_model_manifests(model_config)
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset
     pca = fit_pca()
     model_analysis.model_data_comparison(
-        my_sde_model,
-        model_manifests,
+        sde_model,
+        model_manifest_list,
         pca,
         pcs,
         bins,
@@ -131,7 +131,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     #### Entropy production rate as a function of shear stress ####
     model_analysis.run_epr_analysis(
-        my_sde_model, bins, centers, shear_range_fpt, fig_savedir, additive_noise
+        sde_model, bins, centers, shear_range_fpt, fig_savedir, additive_noise
     )
 
     #### Generalized potential energy landscape ####

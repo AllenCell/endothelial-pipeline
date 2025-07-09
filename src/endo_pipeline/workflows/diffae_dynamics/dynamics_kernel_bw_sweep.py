@@ -80,7 +80,7 @@ def main(
 
     # filter out datasets that are not timelapse
     # and load model manifests
-    model_manifests = [get_model_manifest(name, model_config) for name in list_of_datasets]
+    model_manifest_list = [get_model_manifest(name, model_config) for name in list_of_datasets]
 
     # loop over bandwidths
     for bw in logspace_bw:
@@ -107,18 +107,20 @@ def main(
 
         # loop through datasets, get flow field
         # estimates, and save out figures
-        for dataset in model_manifests:
-            print(f"\nComputing 2D drift and diffusion fields for dataset {dataset.dataset_name}")
+        for model_manifest in model_manifest_list:
+            print(
+                f"\nComputing 2D drift and diffusion fields for dataset {model_manifest.dataset_name}"
+            )
 
             # 2D viz outputs
             ddd_main.get_and_analyze_ddd(
-                dataset, pca, kernel_params, fig_savedir_kernel, dynamics_config
+                model_manifest, pca, kernel_params, fig_savedir_kernel, dynamics_config
             )
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
         data_driven_flow_field.ddff_main(
-            model_manifests,
+            model_manifest_list,
             pca,
             kernel_params,
             dt,

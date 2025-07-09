@@ -23,13 +23,13 @@ def main(list_of_datasets: str | list[str] | None = None, model_name: str = "dif
     if list_of_datasets is None:
         # filter out datasets that are not timelapse
         # and load model manifests
-        model_manifests = get_timelapse_model_manifests(model_config)
+        model_manifest_list = get_timelapse_model_manifests(model_config)
     else:
         if isinstance(list_of_datasets, str):
             # if a single dataset is specified, convert to list
             list_of_datasets = [list_of_datasets]
         # load manifests for the specified datasets
-        model_manifests = [
+        model_manifest_list = [
             get_model_manifest(ds_name, model_config) for ds_name in list_of_datasets
         ]
 
@@ -49,25 +49,25 @@ def main(list_of_datasets: str | list[str] | None = None, model_name: str = "dif
     bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]
     bins = regression_helper.get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
 
-    for dataset in model_manifests:
-        print(f"Processing dataset: {dataset.dataset_name}")
-        df_ds = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca=None)
-        feat_cols = manifest_io.get_feature_cols(df_ds)
-        feats = preprocessing.df_to_array(df_ds, feat_cols)
+    for model_manifest in model_manifest_list:
+        print(f"Processing dataset: {model_manifest.dataset_name}")
+        df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=None)
+        feat_cols = manifest_io.get_feature_cols(df)
+        feats = preprocessing.df_to_array(df, feat_cols)
         fig, _ = manifest_viz.plot_latent_component_mean(feats)
-        fig.suptitle(f"Dataset: {dataset.dataset_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir / f"{dataset.dataset_name}_latent_mean")
+        fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
+        viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_latent_mean")
 
         fig, _ = manifest_viz.plot_latent_component_histogram(feats)
-        fig.suptitle(f"Dataset: {dataset.dataset_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir / f"{dataset.dataset_name}_latent_histogram")
+        fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
+        viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_latent_histogram")
 
-        df_proj = preprocessing.project_manifest_to_pcs(df_ds, pca)
+        df_proj = preprocessing.project_manifest_to_pcs(df, pca)
         feats = preprocessing.df_to_array(df_proj, feat_cols)[..., :3]  # only looking at top 3 PCs
 
         fig, _ = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
-        fig.suptitle(f"Dataset: {dataset.dataset_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir / f"{dataset.dataset_name}_pc_histogram")
+        fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
+        viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_pc_histogram")
 
 
 if __name__ == "__main__":

@@ -430,7 +430,7 @@ def get_and_viz_ddff(
 
 
 def ddff_main(
-    model_manifests: list[ModelManifest],
+    model_manifest_list: list[ModelManifest],
     pca: Pipeline,
     kernel_params: dict,
     dt: float,
@@ -445,7 +445,7 @@ def ddff_main(
     the "data-driven flow field" (DDFF) for a list of datasets.
 
     Inputs:
-    - model_manifests: list of ModelManifest objects
+    - model_manifest_list: list of ModelManifest objects
         - each manifest contains the dataset name and
             the fmsid of the model manifest for the dataset
     - pca: PCA model to use for transforming the data
@@ -467,23 +467,23 @@ def ddff_main(
             of what other files are saved out for each dataset
     """
     # get bins for KMCs
-    bounds = set_3d_bounds_from_data(model_manifests, pca, col_names="feat")
+    bounds = set_3d_bounds_from_data(model_manifest_list, pca, col_names="feat")
     num_bins = [50, 50, 50]
     bins, centers = regression_helper.get_bins(num_bins, bin_limits=bounds)
 
     # get experimental condition
     # descriptions of each dataset
     condition_dict = preprocessing.get_dataset_descriptions(
-        [dataset.dataset_name for dataset in model_manifests], simple=True
+        [model_manifest.dataset_name for model_manifest in model_manifest_list], simple=True
     )
 
     # initialize dict to save trajectories
     # used for crop reconstruction
     traj_dict = {}
-    for dataset in model_manifests:
-        print(f"******** Processing dataset: {dataset.dataset_name} ******** \n")
+    for model_manifest in model_manifest_list:
+        print(f"******** Processing dataset: {model_manifest.dataset_name} ******** \n")
         traj = get_and_viz_ddff(
-            dataset,
+            model_manifest,
             pca,
             kernel_params,
             dt,
@@ -497,7 +497,7 @@ def ddff_main(
         )
 
         # save out using dataset descriptions
-        condition = condition_dict[dataset.dataset_name]
+        condition = condition_dict[model_manifest.dataset_name]
         traj_dict[condition] = traj
 
     np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
