@@ -25,10 +25,10 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     """
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
-    output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=True)
-    fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=True)
+    output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=False)
+    fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=False)
     vtk_savedir = get_output_path(
-        workflow_name, model_name, "outputs", "vtk", include_timestamp=True
+        workflow_name, model_name, "outputs", "vtk", include_timestamp=False
     )
 
     if isinstance(dataset_names, str):

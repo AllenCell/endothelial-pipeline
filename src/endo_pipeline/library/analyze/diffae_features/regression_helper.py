@@ -349,7 +349,7 @@ def get_stationary_hist(
 
     # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
-        # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
+        # data frame_number > frame_index, all rows, select pcs
         p_hist, _, _ = np.histogram2d(
             stationary_data[pc_column_names[0]],
             stationary_data[pc_column_names[1]],

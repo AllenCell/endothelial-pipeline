@@ -270,8 +270,8 @@ def plot_flow_field_slices(
             mean_over_crops_ = df_cond.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops_.iloc[-1]
-            pc3_val = mean_over_crops["feat_2"].mean()
-            pc2_val = mean_over_crops["feat_1"].mean()
+            pc3_val = mean_over_crops["pc2"].mean()
+            pc2_val = mean_over_crops["pc1"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -290,8 +290,8 @@ def plot_flow_field_slices(
         dataset_name = sequence_to_scalar(df_cond["dataset"])
         scatter_color = manifest_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.15)
-        ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.15)
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -479,8 +479,8 @@ def flow_field_viz_main(
     # get the color for the scatter plot
     scatter_color = manifest_viz.get_dataset_color(name)
     # plot scatter of data overlaid on quiver plot
-    ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.05)
-    ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
 
     # plot last point of trajectory

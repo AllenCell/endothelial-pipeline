@@ -86,7 +86,7 @@ def model_data_comparison_one_dataset(
     # for extracting just the axes (specified via pcs) we want
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
-    # we want to extract columns 'feat_0' and 'feat_1'
+    # we want to extract columns 'pc1' and 'pc2'
     pc_column_names = get_pc_column_names(stationary_data, pc_axes)
     p_hist = regression_helper.get_stationary_hist(stationary_data, pc_column_names, bins)
 
