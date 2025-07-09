@@ -1,9 +1,40 @@
+import pickle
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 import pysindy as ps
 
 from src.endo_pipeline.library.analyze.numerics import fp_solvers
+
+
+def save_sde_model(model_dict: dict, savedir: Path) -> None:
+    """
+    Save fit SDE model to file in savedir.
+
+    Inputs:
+    - model_dict: dict, dictionary containing fit drift and diffusion functions.
+    - savedir: Path, directory to save the file.
+
+    Outputs:
+    - None, save the file to savedir.
+    """
+    with open(savedir / "drift_diffusion_model.pkl", "wb") as f:
+        pickle.dump(model_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_sde_model(file_path: Path) -> dict:
+    """
+    Load fit SDE model from file_path.
+
+    Inputs:
+    - file_path: Path, path to the file containing fit drift and diffusion functions.
+
+    Outputs:
+    - model_dict: dict, dictionary containing fit drift and diffusion functions.
+    """
+    with open(file_path, "rb") as f:
+        return pickle.load(f)
 
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:

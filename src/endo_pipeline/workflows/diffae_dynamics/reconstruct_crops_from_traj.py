@@ -1,31 +1,29 @@
+import fire
 import numpy as np
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
+from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
 
 
-def main() -> None:
+def main(model_name: str = "diffae_04_10") -> None:
     """
     Reconstruct crops from latent space coordinates
     along trajectories output by the flow field 3D workflow
     (`generate_flow_field.py`).
     """
     # Create output folder if does not exist yet
-    workflow_crop_folder = "flow_field_3d/figs/crops"
-    workflow_output_folder = "flow_field_3d/outputs"
-    output_savedir = get_output_path(workflow_output_folder, verbose=False)
-    crop_savedir = get_output_path(workflow_crop_folder, verbose=False)
+    output_savedir = get_output_path(
+        "flow_field_3d", model_name, "outputs", include_timestamp=False
+    )
+    crop_savedir = get_output_path("flow_field_3d", model_name, "crops", include_timestamp=False)
 
     # Get fit (3D) PCA object from manifest
-    reducer = manifest_pca.fit_pca(num_pcs=3)
+    reducer = fit_pca(num_pcs=3)
 
-    # Model we want to use to generate reconstructed crops
-    model_name = "diffae_04_10"
-
-    traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
+    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 
     # Reconstruction of crops from latent space
     # coordinates via DiffAE model
@@ -37,10 +35,10 @@ def main() -> None:
     # an environment with the ML dependencies.
 
     latent_coords_batch = []
-    condition_list = []
-    for condition in traj_dict.keys():
+    experimental_condition_list = []
+    for experimental_condition in traj_dict.keys():
         # get full mean trajectory
-        coords = traj_dict[condition]
+        coords = traj_dict[experimental_condition]
 
         if isinstance(coords, np.ndarray):
             # interpolate points evenly spaced along the trajectory
@@ -51,7 +49,7 @@ def main() -> None:
                 interpolated_points, reducer
             )
             latent_coords_batch.append(latent_coords)
-            condition_list.append(condition)
+            experimental_condition_list.append(experimental_condition)
 
         elif isinstance(coords, list):
             for jj, coord in enumerate(coords):
@@ -63,18 +61,20 @@ def main() -> None:
                     interpolated_points, reducer
                 )
                 latent_coords_batch.append(latent_coords)
-                condition_list.append(f"{condition}_{jj}")
+                experimental_condition_list.append(f"{experimental_condition}_{jj}")
 
     # pass into DiffAE model to generate reconstructed crops
     # using single noise input (generate images in batch)
     walk_imgs = generate_from_coords_batch(model_name, latent_coords_batch)
 
-    for walk_img, condition in zip(walk_imgs, condition_list, strict=False):
+    for walk_img, experimental_condition in zip(
+        walk_imgs, experimental_condition_list, strict=False
+    ):
         # save out stack of images as tif
-        print("Saving reconstructed crops for condition: ", condition)
-        tif_name = f"{condition}_interpolated_trajectory_reconstructed_crops.tif"
-        OmeTiffWriter.save(walk_img, crop_savedir + tif_name, overwrite=True)
+        print("Saving reconstructed crops for condition: ", experimental_condition)
+        tif_name = f"{experimental_condition}_interpolated_trajectory_reconstructed_crops.tif"
+        OmeTiffWriter.save(walk_img, crop_savedir / tif_name, overwrite=True)
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

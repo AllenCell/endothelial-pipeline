@@ -1,12 +1,16 @@
 import fire
 import pysindy as ps
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.library.analyze.diffae_features import model_fitting
+from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.analyze.diffae_features import (
+    model_eval,
+    model_fitting,
+    regression_helper,
+)
 
 
-def main(config_name: str = "default") -> None:
+def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
     Fit SINDy (polynomial regression) models for drift
     and diffusion terms using the training data generated
@@ -14,8 +18,10 @@ def main(config_name: str = "default") -> None:
     (cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py).
 
     Input:
-    - config_name (str): Name of the configuration to load from dynamics_config.yaml.
+    - dynamics_config_name (str): Name of the configuration to load from dynamics_config.yaml.
         Default is "default".
+    - model_name (str): Name of the model that manifest data is loaded
+        and analyzed for. Default is "diffae_04_10".
 
     Output:
     - Saves the trained models for drift and diffusion terms in a specified directory.
@@ -24,24 +30,25 @@ def main(config_name: str = "default") -> None:
         diffusion terms, respectively.
     """
     ################### Load configs from dynamics_config ###################
-    config = dynamics_io.load_dynamics_config(config_name)
+    dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
 
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it
-    workflow_output_folder = "stochastic_dynamics/" + config["name"] + "/outputs"
-    savedir = get_output_path(workflow_output_folder, verbose=False)
+    savedir = get_output_path(
+        "stochastic_dynamics", dynamics_config_name, model_name, "outputs", include_timestamp=False
+    )
 
     # get inputs for regression from config
-    pcs = config["pcs_to_analyze"]
-    dt = config["dt"]
-    drift_deg = config["polynomial_lib"]["drift_feats"]
-    diff_deg = config["polynomial_lib"]["diffusion_feats"]
-    param_deg_drift = config["polynomial_lib"]["drift_param"]
-    param_deg_diff = config["polynomial_lib"]["diffusion_param"]
+    pcs = dynamics_config["pcs_to_analyze"]
+    dt = dynamics_config["dt"]
+    drift_deg = dynamics_config["polynomial_lib"]["drift_feats"]
+    diff_deg = dynamics_config["polynomial_lib"]["diffusion_feats"]
+    param_deg_drift = dynamics_config["polynomial_lib"]["drift_param"]
+    param_deg_diff = dynamics_config["polynomial_lib"]["diffusion_param"]
 
     ################### Load train test data from file ###################
-    train_test_dict = dynamics_io.load_train_test(savedir + "train_test_data.npz")
+    train_test_dict = regression_helper.load_train_test(savedir / "train_test_data.npz")
 
     ################### Build SINDy libraries ###################
     # for fitting model of drift and diffusion terms
@@ -94,7 +101,7 @@ def main(config_name: str = "default") -> None:
 
     ################### Save trained models ###################
     model_dict = {"drift_model": drift_model, "diff_model": diff_model}
-    dynamics_io.save_model(model_dict, savedir)
+    model_eval.save_sde_model(model_dict, savedir)
 
 
 if __name__ == "__main__":
