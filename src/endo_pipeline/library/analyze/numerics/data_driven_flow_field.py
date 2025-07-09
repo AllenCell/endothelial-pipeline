@@ -441,7 +441,7 @@ def ddff_main(
             of what other files are saved out for each dataset
     """
     # get bins for KMCs
-    bounds = set_3d_bounds_from_data(model_manifest_list, pca, col_names="feat")
+    bounds = set_3d_bounds_from_data(model_manifest_list, pca)
     num_bins = [50, 50, 50]
     bins, centers = regression_helper.get_bins(num_bins, bin_limits=bounds)
 
