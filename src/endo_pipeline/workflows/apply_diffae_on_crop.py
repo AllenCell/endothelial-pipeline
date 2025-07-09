@@ -7,24 +7,28 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
+    add_model_manifest,
     load_dataset_config,
     load_model_config,
-    save_dataset_config,
+    save_model_config,
 )
 from src.endo_pipeline.configs.dataset_io import extract_P
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model.apply_model import (
+    apply_model_single,
+    get_cytodl_commit_hash,
+    load_overrides,
+)
 from src.endo_pipeline.library.model.mlflow import download_model
 
 ZARR_BF_CHANNEL = 1
 
 
-def generate_overrides(
+def generate_overrides_for_track_based_crops(
     user_overrides: dict[str, Any],
     save_path: str,
     data_path: str,
@@ -95,10 +99,10 @@ def centroid_to_bbox(df: pd.DataFrame):
     return df
 
 
-def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
+def preprocess_tracking_manifest(dataset_config: DatasetConfig, save_dir: str) -> str:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = load_dataset_config(dataset_name).tracking_integration_fmsid
-    df = get_dataframe_by_fmsid(fms_id)
+    fms_id = dataset_config.tracking_integration_fmsid
+    df = load_dataframe_from_fms(fms_id)
     # convert centroids to bounding boxes
     df = centroid_to_bbox(df)
 
@@ -128,12 +132,14 @@ def preprocess_manifest(dataset_name: str, save_dir: str) -> str:
     return save_path
 
 
-def update_prediction_with_meta(
+def update_prediction_from_tracks_with_metadata(
     dataset_name: str, model_name: str, mlflow_id: str, save_path: Path
 ):
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
-    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_crop_features.parquet"
+    prediction_path = (
+        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features.parquet"
+    )
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
@@ -154,46 +160,67 @@ def update_prediction_with_meta(
     return prediction_path
 
 
-def apply_model_single(
-    model_name: str,
-    dataset_name: str,
+def __apply_model_single(
+    model_config: ModelConfig,
+    dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
 ):
-    """Apply a model to a single dataset."""
+    """
+    Apply a DiffAE model to a single dataset with
+    cell segmentation and tracking.
+
+    Parameters
+    ----------
+    model_config: ModelConfig
+        Configuration of the model to apply.
+    dataset_config: DatasetConfig
+        Configuration of the dataset to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 0 (highest resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    save_path: str or Path | None
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict or None
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
     # download model from mlflow
-    mlflow_id = load_model_config(model_name).mlflow_run_id
-    model_path = get_output_path("models", model_name)
+    mlflow_id = model_config.mlflow_run_id
+    model_path = get_output_path("models", model_config.name)
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = save_path or model_path / dataset_name
-    save_path.mkdir(parents=True, exist_ok=True)
+    if save_path is None:
+        # if no save path is provided, use the default path
+        save_path = get_output_path(
+            "models", model_config.name, dataset_config.name, include_timestamp=False
+        )
 
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    data_path = preprocess_manifest(dataset_name, save_path)
+    data_path = preprocess_tracking_manifest(dataset_config, save_path)
 
     # apply overrides
-    overrides = generate_overrides(
+    overrides = generate_overrides_for_track_based_crops(
         overrides,
         save_path=save_path,
         data_path=data_path,
         ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=dataset_name,
-        model_name=model_name,
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
     )
     model.override_config(overrides)
     model.predict()
 
-    prediction_path = update_prediction_with_meta(
-        dataset_name=dataset_name,
-        model_name=model_name,
+    prediction_path = update_prediction_from_tracks_with_metadata(
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
         mlflow_id=mlflow_id,
         save_path=save_path,
     )
@@ -202,22 +229,23 @@ def apply_model_single(
     if upload_to_fms:
         file_id = save_file_to_fms(
             prediction_path,
-            dataset_name,
+            dataset_config.name,
             commit_hash,
             misc_notes="",
             mlflow_run_id=mlflow_id,
         )
 
-        # update dataset config with the FMS ID
-        # of the prediction file
-        dataset_config = load_dataset_config(dataset_name)
-        dataset_config.diffae_tracking_integration_fmsid = file_id
-        save_dataset_config(dataset_config)
+        # add new manifest to model config
+        model_config = add_model_manifest(
+            model_config,
+            dataset_config.name,
+            file_id,
+        )
 
-    return prediction_path
+    return model_config
 
 
-def apply_model(
+def main(
     model_name: str,
     dataset_names: Sequence[str],
     upload_to_fms: bool = True,
@@ -249,15 +277,27 @@ def apply_model(
     """
     if isinstance(dataset_names, str):
         dataset_names = [dataset_names]
-    for name in dataset_names:
-        apply_model_single(
-            model_name=model_name,
-            dataset_name=name,
+    dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
+
+    # load model config
+    model_config = load_model_config(model_name)
+
+    # apply model to each dataset
+    for dataset_config in dataset_config_list:
+        model_config = apply_model_single(
+            generate_overrides=generate_overrides_for_track_based_crops,
+            update_prediction_with_metadata=update_prediction_from_tracks_with_metadata,
+            generate_dataframe_for_prediction=preprocess_tracking_manifest,
+            model_config=model_config,
+            dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
             overrides=overrides,
         )
 
+    # save the updated model config
+    save_model_config(model_config)
+
 
 if __name__ == "__main__":
-    fire.Fire(apply_model)
+    fire.Fire(main)

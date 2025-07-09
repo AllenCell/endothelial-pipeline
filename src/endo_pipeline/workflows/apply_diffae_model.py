@@ -1,4 +1,3 @@
-import re
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -17,16 +16,20 @@ from src.endo_pipeline.configs import (
     load_reference_dataset_configs,
     save_model_config,
 )
-from src.endo_pipeline.configs.dataset_io import extract_P, get_reference_datasets, get_zarr_path
+from src.endo_pipeline.configs.dataset_io import extract_P
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model.apply_model import (
+    apply_model_single,
+    get_cytodl_commit_hash,
+    load_overrides,
+)
 from src.endo_pipeline.library.model.mlflow import download_model
 
 # the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1
 
 
-def generate_overrides(
+def generate_overrides_for_random_crop_features(
     user_overrides: dict,
     save_path: str,
     data_path: str,
@@ -74,7 +77,7 @@ def generate_zarr_csv(dataset_config: DatasetConfig, save_path: str, resolution_
     return data_path
 
 
-def update_prediction_with_meta(
+def update_prediction_from_crops_with_metadata(
     dataset_name: str,
     model_name: str,
     crop_size: Sequence[int],
@@ -103,7 +106,7 @@ def update_prediction_with_meta(
     return prediction_path
 
 
-def apply_model_single(
+def __apply_model_single(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 0,
@@ -149,8 +152,9 @@ def apply_model_single(
 
     # create zarr dataset
     data_path = generate_zarr_csv(dataset_config, save_path, resolution_level)
+
     # apply overrides
-    overrides = generate_overrides(
+    overrides = generate_overrides_for_random_crop_features(
         overrides,
         save_path=save_path,
         data_path=data_path,
@@ -162,7 +166,7 @@ def apply_model_single(
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
-    prediction_path = update_prediction_with_meta(
+    prediction_path = update_prediction_from_crops_with_metadata(
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         crop_size=crop_size,
@@ -190,7 +194,7 @@ def apply_model_single(
     return model_config
 
 
-def apply_model(
+def main(
     model_name: str,
     dataset_names: str | Sequence[str] = "reference",
     resolution_level: int = 0,
@@ -232,9 +236,15 @@ def apply_model(
             dataset_names = [dataset_names]
         dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
+    # load model config
     model_config = load_model_config(model_name)
+
+    # apply model to each dataset
     for dataset_config in dataset_config_list:
         model_config = apply_model_single(
+            generate_overrides=generate_overrides_for_random_crop_features,
+            update_prediction_with_metadata=update_prediction_from_crops_with_metadata,
+            generate_dataframe_for_prediction=generate_zarr_csv,
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
@@ -248,4 +258,4 @@ def apply_model(
 
 
 if __name__ == "__main__":
-    fire.Fire(apply_model)
+    fire.Fire(main)
