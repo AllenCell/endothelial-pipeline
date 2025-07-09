@@ -162,10 +162,9 @@ def get_nuclei_features_from_image(
         ]
         for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
             nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
-            # for dim in ["X", "Y"]:
             for dim_index, dim in enumerate(seg_dim_order):
                 nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
-                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[::-1][dim_index]
+                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[dim_index]
                 )
 
         nuc_feats_ls.append(nuc_feats)

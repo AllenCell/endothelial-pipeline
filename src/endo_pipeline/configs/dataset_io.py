@@ -21,6 +21,8 @@ from typing import Any, Literal
 
 import fire
 
+from src.endo_pipeline.configs.dataset_config_io import load_dataset_config
+
 
 def get_config_dir() -> Path:
     """Get path to the config directory."""
@@ -601,11 +603,39 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     float
         The flow value for the specified frame.
     """
-    flow_list = get_flow_info(dataset_name)
+    config = load_dataset_config(dataset_name)
+    flow_list = config.flow
     for t_start, t_stop, flow in flow_list:
         if t_start <= frame <= t_stop:
             return flow
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
+
+
+def add_flow_to_dataframe(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Add flow in dyn/cm^2 to a DataFrame containing dataset information.
+    Currently does not work for datasets with -1 as the timepoint.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing dataset information, including 'dataset_name' and 'frame'.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with an additional 'flow' column containing flow values for each frame.
+    """
+    # Group by dataset_name and image_index, calculate flow once per group
+    flow_mapping = df.groupby(["dataset_name", "image_index"]).apply(
+        lambda group: get_flow_for_frame(group.name[0], group.name[1])
+    )
+
+    # Map the calculated flow values back to the original DataFrame
+    df["sheer_stress"] = df.set_index(["dataset_name", "image_index"]).index.map(flow_mapping)
+    return df
 
 
 @deprecated(
@@ -974,11 +1004,71 @@ def get_measurement_data_raws(
     return measurement_dataframe
 
 
+def get_measured_segmentation_table(
+    dataset_name_list: list,
+    kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
+    as_dask: bool = False,
+) -> pd.DataFrame:
+    """
+    Loads one of the available kinds of segmentation features tables
+    for a given dataset.
+    Different kinds of segmentation features tables include:
+    - cdh5_segmentations: properties for segmentations based on cdh5
+        - includes cell segmentation centroids, orientations, number of neighbors,
+            neighbor information, elongation, and other properties
+        - does not contain dynamics-dependent features such as velocities
+            (those can be computed from this dataset with
+            src.endo_pipeline.workflows.make_seg_feats_manifest.calculate_derived_data_dynamics_dependent
+    - nuclei_labelfree: properties for segmentations based on nuclei label-free
+        - primarily predicted nuclei centroids
+    - cdh5_tracking: properties for segmentations based on cdh5 tracking
+        - primarily contains tracking IDs mapped to segmentations label IDs
+    """
+    match kind:
+        case "cdh5_segmentations":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/cdh5_get_measured_features"
+            )
+            data_suffix = "segprops"
+        case "nuclei_labelfree":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/nuc_labelfree_get_measured_features"
+            )
+            data_suffix = "nuclei_features"
+        case "cdh5_tracking":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
+            )
+            data_suffix = "tracking"
+        case _:
+            raise ValueError(
+                f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
+            )
+    table_reader = dd if as_dask else pd
+    measured_data_list = []
+    for dataset_name in dataset_name_list:
+        data_path = base_path / f"{dataset_name}_{data_suffix}.tsv"
+        if data_path.exists():
+            # open the data tables
+            measured_data = table_reader.read_csv(data_path, sep="\t")
+            # include path to file that this data was loaded from
+            measured_data[f"source_measured_table_path-{kind}"] = data_path.as_posix()
+            measured_data_list.append(measured_data)
+        else:
+            print(f"No {kind} data found for {dataset_name}. Skipping...")
+            continue
+    # concatenate the dataframes into a single dataframe and return it
+    if measured_data_list:
+        measured_dataframe = table_reader.concat(measured_data_list, axis=0, ignore_index=True)
+    else:  # create an empty dataframe
+        measured_dataframe = table_reader.DataFrame.from_dict({})
+    return measured_dataframe
+
+
 def get_segmentation_features_manifest(
     dataset_name_list: list, as_dask: bool = False
 ) -> pd.DataFrame:
     """
-    NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
     Get the segmentation features manifest for a given dataset.
     The manifest is a TSV file that contains the measurements
     from the tracked segmentations of a dataset.

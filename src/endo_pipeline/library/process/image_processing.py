@@ -31,6 +31,27 @@ def gfp_max_proj(img: BioImage, frame: int) -> np.ndarray:
     return gfp_max_proj.compute()
 
 
+def max_proj_405(img: BioImage, frame: int) -> np.ndarray:
+    """Get the maximum projection of the NucViolet channel for a given frame."""
+    channel_405 = img.get_image_dask_data("ZYX", C=2, T=frame)
+    channel_405_max_proj = channel_405.max(axis=0)
+    return channel_405_max_proj.compute()
+
+
+def max_proj_561(img: BioImage, frame: int) -> np.ndarray:
+    """Get the maximum projection of the SOX17 channel for a given frame."""
+    channel_561 = img.get_image_dask_data("ZYX", C=3, T=frame)
+    channel_561_max_proj = channel_561.max(axis=0)
+    return channel_561_max_proj.compute()
+
+
+def max_proj_640(img: BioImage, frame: int) -> np.ndarray:
+    """Get the maximum projection of the SMAD1 or NR2F2 channel for a given frame."""
+    channel_640 = img.get_image_dask_data("ZYX", C=4, T=frame)
+    channel_640_max_proj = channel_640.max(axis=0)
+    return channel_640_max_proj.compute()
+
+
 def max_proj(stack: da.Array, axis: int) -> np.ndarray:
     """Get the maximum projection of the brightfield stack as a Dask array."""
     max_proj = stack.max(axis)  # Max projection along the Z-axis

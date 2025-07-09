@@ -14,7 +14,7 @@ def main(list_of_datasets: list[str] | None = None) -> None:
     feature dynamics for a specified list of datasets.
     """
     if list_of_datasets is None:
-        list_of_datasets = manifest_io.list_datasets_with_manifest("diffae_manifest_fmsid")
+        list_of_datasets = manifest_io.list_datasets_with_manifest()
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
     # if directory does not exist, get_output_path function will create it

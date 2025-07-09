@@ -1,7 +1,6 @@
-from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import cv2
 import fire
@@ -22,8 +21,8 @@ from tqdm import tqdm, trange
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_model_config
-from src.endo_pipeline.configs.dataset_io import get_zarr_path, update_dataset_config
+from src.endo_pipeline.configs import add_model_manifest, load_model_config, save_model_config
+from src.endo_pipeline.configs.dataset_io import get_zarr_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
@@ -58,12 +57,10 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
 def sift_preprocess(img: np.ndarray) -> np.ndarray:
     """
     Preprocess the image for SIFT feature detection with percentile clipping and 0-1 normalization
-
     Parameters
     ----------
     img : np.ndarray
         The input image.
-
     Returns
     -------
     img : np.ndarray
@@ -111,7 +108,6 @@ def template_registration(
 ) -> tf.SimilarityTransform:
     """
     Registers a moving image to a fixed image using template matching
-
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -146,7 +142,6 @@ def _get_sift(
 ) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
     """
     Detects SIFT keypoints and descriptors in the given image.
-
     Parameters
     ----------
     image : np.ndarray
@@ -155,7 +150,6 @@ def _get_sift(
         The number of times to upsample the image before detecting keypoints.
     sigma_min : int
         The minimum standard deviation for Gaussian smoothing.
-
     Returns
     -------
     keypoints : np.ndarray
@@ -178,7 +172,6 @@ def sift_registration(
 ) -> tf.SimilarityTransform | None:
     """
     Registers a moving image to a fixed image using SIFT keypoint matching and RANSAC. Returns a similarity transform if successful, otherwise None.
-
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -250,7 +243,6 @@ def warp(
 ) -> np.ndarray:
     """
     Warps the moving image to align with the fixed image using the provided transformation model.
-
     Parameters
     ----------
     model (skimage.transform.SimilarityTransform): The transformation model.
@@ -372,8 +364,8 @@ def align(
     **alignment_kwargs (Dict[str, Any]):
         Additional arguments for the alignment function.
 
-    Returns
-    -------
+    Returns:
+    --------
     pd.DataFrame: DataFrame containing the paths to the aligned images.
     """
     print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
@@ -505,7 +497,7 @@ def align_all_positions(
                 alignment_method=alignment_method,
                 **alignment_kwargs,
             )
-            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=False)
+            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True)
         ]
     )
     return data
@@ -548,8 +540,8 @@ def plot_paired_features(
     plt.close(fig)
 
 
-def add_fmsid_to_config(
-    prediction_path: str, dataset_name: str, mlflow_id: str, model_path: Path
+def add_fmsid_to_model_config(
+    prediction_path: str, dataset_name: str, model_name: str, mlflow_id: str, model_path: Path
 ) -> None:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for the given dataset.
@@ -573,10 +565,15 @@ def add_fmsid_to_config(
         mlflow_run_id=mlflow_id,
     )
 
-    update_dataset_config(
+    # add new manifest to model config
+    model_config = add_model_manifest(
+        load_model_config(model_name),
         dataset_name,
-        {"diffae_manifest_fmsid": file_id},
+        file_id,
     )
+
+    # save the updated model config
+    save_model_config(model_config)
 
 
 def compare_paired_features(
@@ -674,9 +671,10 @@ def compare_paired_features(
     fixed_features_path = str(
         save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
     )
-    add_fmsid_to_config(
+    add_fmsid_to_model_config(
         fixed_features_path,
         fixed_dataset_name,
+        model_name,
         mlflow_id,
         model_path,
     )
@@ -712,9 +710,7 @@ def main(
 ) -> None:
     """ "
     Main function to compare paired features of fixed and moving images using a trained model.
-
     Parameters
-    ----------
     ----------"
     pca_dir : str | None
         Path to the PCA model directory. If None, PCA will be calculated from existing features"
@@ -730,7 +726,7 @@ def main(
         ],
     }
     for fixed, moving in zip(
-        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=False
+        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=True
     ):
         compare_paired_features(
             # use model finetuned for fixation
@@ -747,7 +743,7 @@ def main(
         "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
         "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
     }
-    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=False):
+    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=True):
         compare_paired_features(
             model_name,
             fixed,
