@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.io import load_dataframe_from_fms
 
-from .diffae_manifest_utils import get
+from .diffae_manifest_utils import get_feature_column_names
 
 logger = logging.getLogger(__name__)
 
