@@ -22,11 +22,10 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     """
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
-    output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=False)
-    fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=False)
-    vtk_savedir = get_output_path(
-        workflow_name, model_name, "outputs", "vtk", include_timestamp=False
-    )
+    workflow_output_path = get_output_path(workflow_name, model_name, include_timestamp=False)
+    output_savedir = workflow_output_path / "outputs"
+    fig_savedir = workflow_output_path / "figs"
+    vtk_savedir = output_savedir / "vtk"
 
     if isinstance(datasets_to_use, str):
         # if a single dataset is provided, convert to list

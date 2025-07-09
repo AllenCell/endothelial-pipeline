@@ -188,8 +188,8 @@ def build_kramers_moyal_train_test(
     (drift and diffusion estimates) for all datasets in the dataframe df.
 
     Inputs:
-    - model_manifest: ModelManifest object containing the list of datasets
-        and fmsids to load manifest feature data to use for Kramers-Moyal analysis
+    - model_manifest: list of ModelManifest objects used
+        to load manifest feature data to use for Kramers-Moyal analysis
     - pca: PCA object used to project data onto principal component axes
         (sklearn.pipeline.Pipeline, can include scaling as pre-processing step)
     - pcs: list of principal component axes to use for Kramers-Moyal analysis
