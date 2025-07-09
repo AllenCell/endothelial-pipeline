@@ -78,7 +78,7 @@ def ddd_model_analysis(
     )
 
     # add title to histogram plots
-    sup_title = fig2.texts[0].get_text()
+
     sup_title = f"{dataset_name}, {shear} dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
     fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
 
