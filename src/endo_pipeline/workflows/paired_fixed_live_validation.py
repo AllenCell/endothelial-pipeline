@@ -26,7 +26,7 @@ from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
 
 def add_paired_fixed_live_data_fmsid_to_config(
-    prediction_path: Path, dataset_name: str, model_config, ModelConfig, model_path: Path
+    prediction_path: Path, dataset_name: str, model_config: ModelConfig, model_path: Path
 ) -> ModelConfig:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
