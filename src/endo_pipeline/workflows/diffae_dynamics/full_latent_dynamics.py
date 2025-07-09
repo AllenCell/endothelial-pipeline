@@ -1,6 +1,5 @@
 import fire
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import (
     get_model_manifest,
     get_timelapse_model_manifests,

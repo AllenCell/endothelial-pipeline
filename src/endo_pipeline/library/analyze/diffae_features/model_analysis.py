@@ -178,7 +178,8 @@ def model_data_comparison(
 
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
-            sup_title = f"{model_manifest.dataset_name},  {shear_list[j]} dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+            sup_title = f"{model_manifest.dataset_name},  {shear_list[j]} \
+                  dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
@@ -486,7 +487,7 @@ def run_gen_potential_analysis(
         )
         ax.set_xlabel(f"PC{pc_axes[0] + 1}")
         ax.set_ylabel(f"PC{pc_axes[1] + 1}")
-        ax.set_title(f"Shear stress: {u:.2f} dyn/cm$^2$")
+        ax.set_title(f"Shear stress: {shear:.2f} dyn/cm$^2$")
         fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
         plt.show()
 

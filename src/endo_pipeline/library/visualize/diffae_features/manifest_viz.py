@@ -3,7 +3,6 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
