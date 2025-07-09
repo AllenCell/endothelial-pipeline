@@ -14,77 +14,13 @@ from src.endo_pipeline.configs.dataset_io import (
     save_git_versioning_info,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
+from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    hist_2D_per_position,
+    lineplot_per_position,
+)
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
-
-# set the plot shape to the golden ratio
-AX_HEIGHT = 3
-AX_WIDTH = AX_HEIGHT * (1 + 5 ** (1 / 2)) / 2
-
-
-def lineplot_per_position(
-    df_group: pd.DataFrame,
-    x_key: str,
-    y_key: str,
-    filepath_out: str | Path,
-    x_label: str | None = None,
-    y_label: str | None = None,
-    x_lims: tuple = (None, None),
-    y_lims: tuple = (None, None),
-    show_plot: bool = False,
-) -> None:
-    """
-    This function will save a standardized lineplot from the dataframe df_group.
-    x_key and y_key are the column names that you want to plot along the x-axis
-    and y-axis, respectively.
-    df_group is expected to contain a single dataset and a single position.
-
-    Parameters
-    ----------
-    df_group : pd.DataFrame
-        The dataframe containing the data to plot.
-    x_key : str
-        The column name for the x-axis data.
-    y_key : str
-        The column name for the y-axis data.
-    filepath_out : str | Path
-        The file path where the plot will be saved.
-    x_label : str | None, optional
-        The label for the x-axis, will use x_key as the default.
-    y_label : str | None, optional
-        The label for the y-axis, will use y_key as the default.
-    x_lims : tuple, optional
-        The limits for the x-axis as a (min, max) tuple.
-    y_lims : tuple, optional
-        The limits for the y-axis as a (min, max) tuple.
-    show_plot : bool, optional
-        Whether to show the plot after saving it. Default is False.
-    """
-
-    num_positions = df_group["position"].nunique()
-    assert (
-        len(df_group["dataset_name"].unique()) == 1
-    ), f'Only a single dataset allowed in df_group, datasets found: {df_group["dataset_name"].unique()}'
-    dataset_name = df_group["dataset_name"].unique()[0]
-    assert (
-        len(df_group["position"].unique()) == 1
-    ), f'Only a single position allowed in df_group, position found: {df_group["position"].unique()}'
-    position = df_group["position"].unique()[0]
-
-    fig, ax = plt.subplots(nrows=num_positions, figsize=(AX_WIDTH, AX_HEIGHT * num_positions))
-    ax.set_title(f"{dataset_name} P{position}")
-    sns.lineplot(data=df_group, x=x_key, y=y_key, ax=ax)
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    ax.set_xlim(*x_lims)
-    ax.set_ylim(*y_lims)
-    plt.tight_layout()
-    fig.savefig(filepath_out, bbox_inches="tight")
-
-    if not show_plot:
-        plt.close(fig)
-    return
 
 
 def plot_seg_manifest_data(
@@ -93,7 +29,7 @@ def plot_seg_manifest_data(
     vel_mag_mean = big_table_subset["centroid_velocity_magnitude"].mean()
     vel_mag_std = big_table_subset["centroid_velocity_magnitude"].std()
     # things_to_plot are tuples of (x_key, y_key, x_label, y_label, y_lim, filename_out)
-    things_to_plot = [
+    feats_to_plot = [
         (
             "time_hours",
             "alignment_deg_rel_to_flow",
@@ -167,7 +103,7 @@ def plot_seg_manifest_data(
             f"{dataset_name}_P{position}_num_nuclei.png",
         ),
     ]
-    for x_key, y_key, x_label, y_label, y_lims, filename_out in things_to_plot:
+    for x_key, y_key, x_label, y_label, y_lims, filename_out in feats_to_plot:
         out_subdir_plots = out_dir / f"{y_key}/{dataset_name}"
         out_subdir_plots.mkdir(parents=True, exist_ok=True)
         lineplot_per_position(
@@ -180,29 +116,13 @@ def plot_seg_manifest_data(
             y_lims=y_lims,
         )
 
-    t_range = range(0, 1000, 36)
-    out_subdir_plots = out_dir / f"violin/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(18, 12))
-    sns.violinplot(
-        data=big_table_subset.query("image_index in @t_range"),
-        x="time_hours",
-        y="alignment_deg_rel_to_flow",
-        ax=ax,
-    )
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Alignment (deg)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_alignments_violin.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
     # plot alignment vs time as a histogram instead of violinplot
     out_subdir_plots = out_dir / f"alignment_hist/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
+    hist_2D_per_position()
+
+    # NOTE WORKING HERE
+
     fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
         data=big_table_subset,
