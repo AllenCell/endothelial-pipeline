@@ -9,7 +9,7 @@ from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 
 
 def main(
-    list_of_datasets: str | list[str] | None = None,
+    dataset_names: str | list[str] | None = None,
     model_name: str = "diffae_04_10",
     bw_range: list[float] | None = None,
 ) -> None:
@@ -23,17 +23,17 @@ def main(
 
     # if not provided in command line, run
     # on default list of datasets
-    if list_of_datasets is None:
-        list_of_datasets = [
+    if dataset_names is None:
+        dataset_names = [
             "20241120_20X",  # 48hr High
             "20241217_20X",  # 48hr No
             "20250409_20X",  # 45hr Low
             "20250319_20X",  # 45hr 12 dyn
             "20250326_20X",  # 45hr 15 dyn
         ]
-    elif isinstance(list_of_datasets, str):
+    elif isinstance(dataset_names, str):
         # if a single dataset is specified, convert to list
-        list_of_datasets = [list_of_datasets]
+        dataset_names = [dataset_names]
 
     # for building output paths
     # if directory does not exist, get_output_path
@@ -80,7 +80,9 @@ def main(
 
     # filter out datasets that are not timelapse
     # and load model manifests
-    model_manifest_list = [get_model_manifest(name, model_config) for name in list_of_datasets]
+    model_manifest_list = [
+        get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
+    ]
 
     # loop over bandwidths
     for bw in logspace_bw:

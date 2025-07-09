@@ -47,10 +47,10 @@ def add_description_column(
     (Descriptions are currently based on the dataset name.).
 
     Inputs:
-    - df: pd.DataFrame, DataFrame of feature data for dataset ds_name
+    - df: pd.DataFrame, DataFrame of feature data for dataset dataset_name
         - IMPORTANT: DataFrame must be restricted to one dataset only,
             as identified by the dataset_name column
-    - ds_name: str, name of dataset to add description for
+    - dataset_name: str, name of dataset to add description for
     - simple (optional): bool, whether to use simple description
         (e.g., "48hr_High")
 
@@ -174,14 +174,13 @@ def project_manifest_to_pcs(
         for dataset_name, T, FOV_ID, start_x, start_y
     - pca: Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
         - can include any preprocessing steps before PCA, e.g., scaling
-    - ds_name: str, name of dataset to project feature data for
-        - This string must match the dataset name in the dataset_name column of df, same
-           as the name of the dataset in data_config.yaml
+    - overwrite_feature_columns: bool, whether to overwrite feature columns
+        with features projected onto PCA axes
     - feature_cols: list, custom list of feature columns to project onto PCA axes
 
     Outputs:
     - df_: pd.DataFrame, DataFrame of feature data for crops from
-        dataset ds_name projected onto PCA axes
+        dataset dataset_name projected onto PCA axes
     """
     # feature columns to project onto PCA axes,
     # currently all columns except metadata columns
@@ -212,9 +211,8 @@ def get_manifest_for_dynamics_workflows(
     and projects feature data onto PC axes.
 
     Inputs:
-    - ds_name: str, name of dataset to load manifest data for
-        - This string must match the dataset name in the dataset_name column of df, same
-           as the name of the dataset in data_config.yaml
+    - model_manifest: ModelManifest, manifest information for loading feature from
+        a given model for a give dataset
     - pca: Pipeline or None
         - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
         - if None, do not project feature data onto PCA axes
@@ -226,7 +224,7 @@ def get_manifest_for_dynamics_workflows(
         - restricted to stationary frames if
             stationary_frames is not None
     """
-    # load manifest data for dataset ds_name
+    # load manifest data from FMS
     # and filter to only valid timepoints
     df = load_dataframe_from_fms(model_manifest.fmsid)
     df_valid = get_valid_subset(df, model_manifest.dataset_name, verbose=False)

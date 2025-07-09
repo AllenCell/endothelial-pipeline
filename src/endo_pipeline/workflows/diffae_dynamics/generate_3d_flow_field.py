@@ -15,7 +15,7 @@ from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
-def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
+def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the
     DiffAE crop-based features for each of the single flow datasets.
@@ -27,13 +27,13 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
     fig_savedir = workflow_output_path / "figs"
     vtk_savedir = output_savedir / "vtk"
 
-    if isinstance(datasets_to_use, str):
+    if isinstance(dataset_names, str):
         # if a single dataset is provided, convert to list
-        datasets_to_use = [datasets_to_use]
-    elif datasets_to_use is None:
+        dataset_names = [dataset_names]
+    elif dataset_names is None:
         # if not provided in command line, run
         # on default list of datasets
-        datasets_to_use = [
+        dataset_names = [
             "20241120_20X",
             "20250409_20X",
             "20241217_20X",
@@ -73,7 +73,7 @@ def main(datasets_to_use: str | list[str] | None = None, model_name: str = "diff
 
     # scatter plot of all datasets specified in command line
     model_manifest_list = [
-        get_model_manifest(dataset_name, model_config) for dataset_name in datasets_to_use
+        get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
     ]
     fig, _ = manifest_viz.plot_pc_scatter(
         pca,

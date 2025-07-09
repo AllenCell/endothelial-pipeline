@@ -65,17 +65,17 @@ def get_bins(
 
 
 def get_traj_by_flow(
-    df_proj: pd.DataFrame, ds_config: DatasetConfig, verbose: bool = True
+    df_proj: pd.DataFrame, dataset_config: DatasetConfig, verbose: bool = True
 ) -> tuple[list, list]:
     """
     Get crop-based feature data (Diffusion AE output) for
-    different flow conditions present in dataset ds_name.
+    different flow conditions present in a dataset.
 
     Inputs:
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-    - ds_config: DatasetConfig object containing dataset configuration
+    - dataset_config: DatasetConfig object containing dataset configuration
         (used to get flow information)
     - verbose: boolean, if True, print information about flow conditions
 
@@ -90,7 +90,7 @@ def get_traj_by_flow(
     """
 
     # load flow information from data_config.yaml
-    flow_info = ds_config.flow
+    flow_info = dataset_config.flow
 
     # split out data by flow condition,
     # starting with first flow condition

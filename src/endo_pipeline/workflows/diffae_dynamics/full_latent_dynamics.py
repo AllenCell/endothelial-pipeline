@@ -13,24 +13,24 @@ from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
-def main(list_of_datasets: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
+def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
     """
     Run base visualization of Diff AE latent space
     feature dynamics for a specified list of datasets.
     """
     # get model config from model name
     model_config = load_model_config(model_name)
-    if list_of_datasets is None:
+    if dataset_names is None:
         # filter out datasets that are not timelapse
         # and load model manifests
         model_manifest_list = get_timelapse_model_manifests(model_config)
     else:
-        if isinstance(list_of_datasets, str):
+        if isinstance(dataset_names, str):
             # if a single dataset is specified, convert to list
-            list_of_datasets = [list_of_datasets]
+            dataset_names = [dataset_names]
         # load manifests for the specified datasets
         model_manifest_list = [
-            get_model_manifest(ds_name, model_config) for ds_name in list_of_datasets
+            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
         ]
 
     # get output subdirectory for intermediate workflow outputs
