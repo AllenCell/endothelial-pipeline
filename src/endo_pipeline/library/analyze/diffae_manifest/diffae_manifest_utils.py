@@ -149,3 +149,13 @@ def get_pc_column_names(df: pd.DataFrame, pc_axes: list[int] | None = None) -> l
         pc_column_names = [pc_column_names[i] for i in pc_axes]
 
     return pc_column_names
+
+
+def get_feature_column_names(df: pd.DataFrame) -> list:
+    """
+    Extract columns corresponding to DiffAE model
+    features from dataframe (loaded DiffAE manifest).
+    """
+    feature_column_names = [c for c in df.columns if c.startswith("feat_")]
+    feature_column_names = sorted(feature_column_names, key=lambda x: int(x.split("_")[1]))
+    return feature_column_names

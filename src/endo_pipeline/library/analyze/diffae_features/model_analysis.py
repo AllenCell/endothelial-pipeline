@@ -9,10 +9,12 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.analyze.numerics import gen_potential
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
@@ -22,7 +24,7 @@ def model_data_comparison_one_dataset(
     sde_model: list[Callable],
     stationary_data: pd.DataFrame,
     shear: float,
-    pcs: list,
+    pc_axes: list,
     bins: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
@@ -42,7 +44,7 @@ def model_data_comparison_one_dataset(
         only the frames where the data are stationary
     - shear: float, shear stress at which to evaluate model
         (this is the shear stress from the data)
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
     - pplane_xvec: np.ndarray, x values for phase portrait
@@ -68,8 +70,8 @@ def model_data_comparison_one_dataset(
         verbose=False,
     )
 
-    ax1.set_xlabel(f"PC{pcs[0] + 1}")
-    ax1.set_ylabel(f"PC{pcs[1] + 1}")
+    ax1.set_xlabel(f"PC{pc_axes[0] + 1}")
+    ax1.set_ylabel(f"PC{pc_axes[1] + 1}")
     ax1.set_title("Shear stress = " + str(shear) + " dyn/cm$^2$")
     plt.show()
 
@@ -85,15 +87,14 @@ def model_data_comparison_one_dataset(
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
     # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = manifest_io.get_feature_cols(stationary_data)
-    feat_cols = [feat_cols_all[i] for i in pcs]
-    p_hist = regression_helper.get_stationary_hist(stationary_data, feat_cols, bins)
+    pc_column_names = get_pc_column_names(stationary_data, pc_axes)
+    p_hist = regression_helper.get_stationary_hist(stationary_data, pc_column_names, bins)
 
     fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
 
     for j in range(2):
-        ax2[j].set_xlabel(f"PC{pcs[0] + 1}")
-        ax2[j].set_ylabel(f"PC{pcs[1] + 1}")
+        ax2[j].set_xlabel(f"PC{pc_axes[0] + 1}")
+        ax2[j].set_ylabel(f"PC{pc_axes[1] + 1}")
 
     return fig1, ax1, fig2, ax2
 
@@ -102,7 +103,7 @@ def model_data_comparison(
     sde_model: list[Callable],
     model_manifest_list: list[ModelManifest],
     pca: Pipeline,
-    pcs: list,
+    pc_axes: list,
     bins: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
@@ -121,7 +122,7 @@ def model_data_comparison(
         containing feature data information for one dataset
     - pca: Pipeline object, PCA object fit to feature data
         (can include scaling)
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
     - ds_to_skip: list of str, dataset names to skip
@@ -169,7 +170,7 @@ def model_data_comparison(
                 sde_model,
                 stationary_data,
                 shear_list[j],
-                pcs,
+                pc_axes,
                 bins,
                 pplane_xvec,
                 pplane_yvec,
@@ -257,7 +258,7 @@ def get_fixed_points_by_shear(
 def run_fixed_point_analysis(
     drift_function: Callable,
     shear_range: np.ndarray,
-    pcs: list,
+    pc_axes: list,
     plt_lims: list,
     fig_savedir: Path,
 ) -> None:
@@ -272,7 +273,7 @@ def run_fixed_point_analysis(
     - drift_function: Callable, drift function
     - shear_range: np.ndarray, shear stresses at
         which to evaluate fixed points
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - plt_lims: list of np.ndarrays, limits for
         excluding fixed points outside of plotting range
@@ -283,7 +284,7 @@ def run_fixed_point_analysis(
     """
     print("*** Running fixed point analysis...\n")
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
-    figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pcs, plt_lims)
+    figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pc_axes, plt_lims)
     for i in range(len(figs)):
         viz_base.save_plot(figs[i], fig_savedir / f"fixed_points_by_shear_{i}")
 
@@ -392,7 +393,7 @@ def run_gen_potential_analysis(
     bins: list,
     centers: list,
     shear_range: np.ndarray,
-    pcs: list,
+    pc_axes: list,
     downsample_quiver: int,
     normed: bool,
     fig_savedir: Path,
@@ -412,7 +413,7 @@ def run_gen_potential_analysis(
         for each dimension of state space
     - shear_range: np.ndarray, shear stresses
         at which to evaluate entropy production rate
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - downsample_quiver: int, downsample factor for
         quiver plot of gradient/flux decomposition
@@ -449,8 +450,8 @@ def run_gen_potential_analysis(
         fig, ax = dynamics_viz.plot_gen_potential_2d(
             potential, centers[0], centers[1], cmap="jet", surf=False
         )
-        ax.set_xlabel(f"PC{pcs[0] + 1}")
-        ax.set_ylabel(f"PC{pcs[1] + 1}")
+        ax.set_xlabel(f"PC{pc_axes[0] + 1}")
+        ax.set_ylabel(f"PC{pc_axes[1] + 1}")
         ax.set_title(f"Shear stress: {shear:.2f} dyn/cm$^2$")
         fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
         plt.show()
@@ -483,8 +484,8 @@ def run_gen_potential_analysis(
             normed=normed,
             downsample=downsample_quiver,
         )
-        ax.set_xlabel(f"PC{pcs[0] + 1}")
-        ax.set_ylabel(f"PC{pcs[1] + 1}")
+        ax.set_xlabel(f"PC{pc_axes[0] + 1}")
+        ax.set_ylabel(f"PC{pc_axes[1] + 1}")
         ax.set_title(f"Shear stress: {u:.2f} dyn/cm$^2$")
         fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
         plt.show()

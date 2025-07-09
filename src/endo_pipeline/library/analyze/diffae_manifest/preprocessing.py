@@ -10,6 +10,8 @@ from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils imp
     get_valid_subset,
 )
 
+from .diffae_manifest_utils import get_feature_column_names
+
 
 def add_description_column(
     df: pd.DataFrame, dataset_name: str, simple: bool = False
@@ -98,12 +100,9 @@ def project_manifest_to_pcs(
     - df_: pd.DataFrame, DataFrame of feature data for crops from
         dataset dataset_name projected onto PCA axes
     """
-    # feature columns to project onto PCA axes,
-    # currently all columns except metadata columns
-    # this is assuming that there are 8 feature columns,
-    # will need to change if this is not the case
+    # get names of feature columns to project onto PCA axes
     if feat_cols is None:
-        feat_cols = manifest_io.get_feature_cols(df)
+        feat_cols = get_feature_column_names(df)
 
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
@@ -153,7 +152,7 @@ def get_manifest_for_dynamics_workflows(
         return project_manifest_to_pcs(df_with_crop, pca)
 
 
-def df_to_array(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
+def df_to_array(df: pd.DataFrame, column_names: list) -> np.ndarray:
     """
     Convert DataFrame of features corresponding to one dataset to array
     of shape num_crops x num_timepoints x num_features.
@@ -161,6 +160,8 @@ def df_to_array(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data for one dataset
         - DataFrame should have metadata columns for crop_index and T
+    - column_names: list[str], list of column names for features to include
+        in output array
 
     Outputs:
     - feats: np.ndarray, array of feature data for all crops
@@ -176,12 +177,12 @@ def df_to_array(df: pd.DataFrame, feat_cols: list) -> np.ndarray:
     # get array of num crops x num timepoints x num PCs
     feats = np.array(
         [
-            df[df["crop_index"] == ii].sort_values(by="frame_number")[feat_cols].values
+            df[df["crop_index"] == ii].sort_values(by="frame_number")[column_names].values
             for ii in range(num_crop)
         ]
     )
 
     # check that array shape is correct
-    assert feats.shape == (num_crop, num_time, len(feat_cols))
+    assert feats.shape == (num_crop, num_time, len(column_names))
 
     return feats

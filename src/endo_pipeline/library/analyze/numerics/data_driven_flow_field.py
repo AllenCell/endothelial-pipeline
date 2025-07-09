@@ -13,14 +13,14 @@ from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_dataset_descriptions,
+    get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 
 
 def set_3d_bounds_from_data(
-    model_manifests: list[ModelManifest],
+    model_manifest_list: list[ModelManifest],
     pca: Pipeline,
-    col_names: Literal["pc", "feat"] = "pc",
 ) -> list[np.ndarray]:
     """
     Set bounds for 3D state space based on the bounds
@@ -34,22 +34,7 @@ def set_3d_bounds_from_data(
         - each manifest contains the dataset name and
             the fmsid of the model manifest for the dataset
     - pca: PCA model to use for transforming the data
-    - col_names: which columns to use for bounds
-        - "pc": data is coming from a workflow where
-            the column names have been re-named to
-            reflect that the features are projected
-            onto the first three principal components
-            (i.e., column names in df pc1, pc2, pc3)
-        - "feat": data is coming from a workflow where
-            the column names are the original feature names
-            and the data have been over-written with the
-            features projected onto the full set of
-            principal components (i.e., column name feat_i
-            indicates projection onto the i-th principal component)
-        - this input will become deprecated in the future,
-            when the dataframes will always clearly label
-            what is an original feature and what is a
-            projected feature
+
 
     Outputs:
     - bounds: list of numpy arrays with the bounds
@@ -60,26 +45,13 @@ def set_3d_bounds_from_data(
     # initialize bounds
     bounds_ = [[100, -100], [100, -100], [100, -100]]
 
-    for dataset in model_manifests:
-        df = preprocessing.get_manifest_for_dynamics_workflows(dataset, pca)
+    for model_manifest in model_manifest_list:
+        df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca)
         # get column names for features
-        feat_cols = manifest_io.get_feature_cols(df)
-        match col_names:
-            case "pc":
-                # get the PCs
-                x_proj = pca.transform(df[feat_cols].values)
-                # add PCs to dataframe
-                num_pcs = x_proj.shape[1]
-                pc_cols: list = []
-                for pc in range(num_pcs):
-                    pc_col_name = f"pc{pc+1}"
-                    pc_cols.append(pc_col_name)
-                cols = pc_cols
-            case "feat":
-                cols = feat_cols
+        pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
         for j in range(num_dims):
-            bounds_[j][0] = min(bounds_[j][0], df[cols[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[cols[j]].max())
+            bounds_[j][0] = min(bounds_[j][0], df[pc_column_names[j]].min())
+            bounds_[j][1] = max(bounds_[j][1], df[pc_column_names[j]].max())
 
     bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 
@@ -372,11 +344,11 @@ def get_and_viz_ddff(
     """
     # load dataframe and get top 3 PCs
     df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca)
-    feat_cols = manifest_io.get_feature_cols(df)[:3]
+    pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = regression_helper.get_traj_and_diff(df, feat_cols)
+    traj_list, d_traj_list = regression_helper.get_traj_and_diff(df, pc_column_names)
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
     drift_km, diff_km = regression_helper.get_kramers_moyal(

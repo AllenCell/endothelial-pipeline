@@ -5,10 +5,12 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.visualize import viz_base
 
@@ -18,7 +20,7 @@ def ddd_model_analysis(
     sde_model: list[Callable],
     stationary_data: pd.DataFrame,
     shear: float,
-    pcs: list[int],
+    pc_axes: list[int],
     bins: list[np.ndarray],
     fig_savedir: Path,
     config: dict,
@@ -35,7 +37,7 @@ def ddd_model_analysis(
         at one flow condition within that dataset, restricted to
         only the frames where the data are stationary
     - shear (float): shear stress value for the dataset
-    - pcs (list[int]): list of principal components to analyze
+    - pc_axes (list[int]): list of principal components to analyze
         e.g., if pcs = [0,1], analyzing data projected onto
         the first two principal components
     - bins (list[np.ndarray]): list of bin edges for the histogram
@@ -71,7 +73,7 @@ def ddd_model_analysis(
         sde_model,
         stationary_data,
         shear,
-        pcs,
+        pc_axes,
         bins,
         pplane_xvec,
         pplane_yvec,
@@ -122,7 +124,7 @@ def get_and_analyze_ddd(
     # unpack relevant parameters from config:
 
     # which PCs to analyze (2D)
-    pcs = dynamics_config["pcs_to_analyze"]
+    pc_axes = dynamics_config["pcs_to_analyze"]
     # time step (in minutes)
     dt = dynamics_config["dt"]
 
@@ -139,9 +141,8 @@ def get_and_analyze_ddd(
     # by fit PCA object pca. Restrict to stationary frames if provided
     df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
-    # just get PCs of interest
-    feat_cols_all = manifest_io.get_feature_cols(df_proj)
-    feat_cols = [feat_cols_all[i] for i in pcs]
+    # get pc columns for axes of interest
+    pc_column_names = get_pc_column_names(df_proj, pc_axes)
 
     # split out data by flow condition
     df_by_flow, shear_list = regression_helper.get_traj_by_flow(
@@ -156,7 +157,7 @@ def get_and_analyze_ddd(
     for j in range(num_flow):
         # get list of per-crop trajectories and list
         # of the corresponding displacement vectors
-        traj_list, d_traj_list = regression_helper.get_traj_and_diff(df_by_flow[j], feat_cols)
+        traj_list, d_traj_list = regression_helper.get_traj_and_diff(df_by_flow[j], pc_column_names)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
         drift_km, diff_km = regression_helper.get_kramers_moyal(
@@ -197,7 +198,7 @@ def get_and_analyze_ddd(
             [drift_, diffusion_],
             df_by_flow[j],
             shear_list[j],
-            pcs,
+            pc_axes,
             bins,
             fig_savedir,
             dynamics_config,

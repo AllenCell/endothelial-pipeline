@@ -325,7 +325,7 @@ def train_test_all(
 
 def get_stationary_hist(
     stationary_data: pd.DataFrame,
-    feat_cols: list,
+    pc_column_names: list[str],
     bins: list,
 ) -> np.ndarray:
     """
@@ -334,8 +334,9 @@ def get_stationary_hist(
     Inputs:
     - stationary_data: pandas DataFrame containing the
         dataset of interest restricted to stationary frames
-    - feat_cols: list of feature column names
-        (used to extract feature data from the dataframe data)
+    - pc_column_names: list of strings, names of the
+        columns in the DataFrame that contain the
+        principal component features (feature columns)
     - bins: list of number of bins in each dimension
         (list of length ndim, where ndim is the
         number of dimensions of the feature space)
@@ -344,20 +345,20 @@ def get_stationary_hist(
     - p_hist: numpy array, stationary histogram
         of the data in feature space
     """
-    ndim = len(feat_cols)
+    ndim = len(pc_column_names)
 
     # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
         # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
         p_hist, _, _ = np.histogram2d(
-            stationary_data[feat_cols[0]],
-            stationary_data[feat_cols[1]],
+            stationary_data[pc_column_names[0]],
+            stationary_data[pc_column_names[1]],
             bins,
             density=True,
         )
     elif ndim == 1:
         p_hist, _ = np.histogram(
-            stationary_data[feat_cols[0]],
+            stationary_data[pc_column_names[0]],
             bins[0],
             density=True,
         )

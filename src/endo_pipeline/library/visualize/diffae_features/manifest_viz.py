@@ -7,6 +7,9 @@ from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.visualize import viz_base
 
 
@@ -90,7 +93,7 @@ def plot_pc_scatter(
     for model_manifest in model_manifest_list:
         # load dataframe and get top 3 PCs
         df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca)
-        feat_cols = manifest_io.get_feature_cols(df)[:3]
+        pc_column_names = get_pc_column_names(df, [0, 1, 2])
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:
@@ -106,12 +109,16 @@ def plot_pc_scatter(
         color = get_dataset_color(model_manifest.dataset_name)
 
         # first plot: PC1 v PC2
-        ax[0].scatter(df[feat_cols[0]], df[feat_cols[1]], alpha=0.75, s=0.01, color=color)
+        ax[0].scatter(
+            df[pc_column_names[0]], df[pc_column_names[1]], alpha=0.75, s=0.01, color=color
+        )
         ax[0].set_xlabel("PC1")
         ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
-        ax[1].scatter(df[feat_cols[0]], df[feat_cols[2]], alpha=0.75, s=0.01, color=color)
+        ax[1].scatter(
+            df[pc_column_names[0]], df[pc_column_names[2]], alpha=0.75, s=0.01, color=color
+        )
         ax[1].set_xlabel("PC1")
         ax[1].set_ylabel("PC3")
 
