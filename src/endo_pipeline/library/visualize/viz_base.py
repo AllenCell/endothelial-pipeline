@@ -76,6 +76,8 @@ def save_plot(
     """
     if isinstance(filename, str):
         filename = Path(filename + format)
+    if not filename.suffix:
+        filename = filename.with_suffix(format)
     if format == ".png":
         fig.savefig(filename, dpi=dpi, bbox_inches="tight")
     else:
