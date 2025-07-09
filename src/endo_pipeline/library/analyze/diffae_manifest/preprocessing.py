@@ -4,12 +4,12 @@ from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.io import load_dataframe_from_fms
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+
+from .diffae_manifest_utils import (
     get_dataset_descriptions,
+    get_feature_column_names,
     get_valid_subset,
 )
-
-from .diffae_manifest_utils import get_feature_column_names
 
 
 def add_description_column(
