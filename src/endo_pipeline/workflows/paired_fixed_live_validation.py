@@ -38,8 +38,8 @@ def add_paired_fixed_live_data_fmsid_to_config(
         Path to the prediction file
     dataset_name : str
         Name of the dataset to update in config
-    mlflow_id : str
-        MLflow ID of the model used for prediction.
+    model_config : ModelConfig
+        Config file for the chosen model
     model_path : Path
         Path to the model directory. Used for extracting the commit hash.
     """
@@ -59,7 +59,7 @@ def add_paired_fixed_live_data_fmsid_to_config(
 def apply_model_paired_fixed_live(
     fixed_dataset_name: str,
     live_dataset_name: str,
-    model_name: str = "diffae_finetuned_for_fixed",
+    model_name: str,
     align_fluo: bool = True,
     upload_features_to_FMS: bool = False,
 ) -> tuple[Path, Path, Path]:
@@ -68,10 +68,10 @@ def apply_model_paired_fixed_live(
 
     Parameters
     ----------
-    live_dataset_name : str
-        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
     fixed_dataset_name : str
         Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
+    live_dataset_name : str
+        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
     model_name : str
         The name of the model finetuned for fixation.
     align_fluo : bool
@@ -85,9 +85,9 @@ def apply_model_paired_fixed_live(
     -------
     save_path: Path
         Local path to parent directory where intermediate data is saved
-    fixed_features_path : str
+    fixed_features_path : Path
         Local path where fixed data features are saved in a parquet file
-    live_feature_path: str
+    live_feature_path: Path
         Local path where live data features are saved in a parquet file
     """
 
@@ -173,8 +173,8 @@ def apply_model_paired_fixed_live(
 
 
 def project_paired_fixed_live_data_into_ref_PC_space(
-    fixed_features_path: str = "fixed_features.parquet",
-    live_features_path: str = "live_features.parquet",
+    fixed_features_path: Path = "fixed_features.parquet",
+    live_features_path: Path = "live_features.parquet",
     pca_dir: str | Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -183,9 +183,9 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
     Parameters
     ----------
-    fixed_features_path : str
+    fixed_features_path : Path
         Path to the fixed features manifest
-    live_features_path : str
+    live_features_path : Path
         Path to the live features manifest
     pca_dir : str | Path | None
         Directory containing the PCA model. If None, a new PCA model is fitted
@@ -383,9 +383,10 @@ if __name__ == "__main__":
 
     live_dataset_name: str = "20250214_pairedPreFixation"
     fixed_dataset_name: str = "20250214_pairedPostFixation"
+    model_name: str = "diffae_finetuned_for_fixed"
 
     save_path, fixed_features_path, live_features_path = apply_model_paired_fixed_live(
-        fixed_dataset_name, live_dataset_name
+        fixed_dataset_name, live_dataset_name, model_name
     )
     fixed_features, live_features = project_paired_fixed_live_data_into_ref_PC_space(
         fixed_features_path, live_features_path
