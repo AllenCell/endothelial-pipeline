@@ -4,10 +4,12 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
@@ -69,9 +71,8 @@ def kramers_moyal_train_test_one_dataset(
     # for extracting just the axes (specified via PCs)
     # we want from the resulting dataframe
     # e.g., if we are just analyzing the first two PCs,
-    # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = manifest_io.get_feature_cols(df_proj)
-    feat_cols = [feat_cols_all[i] for i in pcs]
+    # we want to extract columns 'pc1' and 'pc2'
+    pc_column_names = get_pc_column_names(df_proj, pcs)
     ndim = len(pcs)
 
     # split out data by flow condition
@@ -101,7 +102,7 @@ def kramers_moyal_train_test_one_dataset(
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
         traj_list, d_traj_list = regression_helper.get_traj_and_diff(
-            stationary_data, feat_cols=feat_cols
+            stationary_data, pc_column_names=pc_column_names
         )
 
         # get bins for histogramming
@@ -234,8 +235,8 @@ def build_kramers_moyal_train_test(
         print("**** Generating train/test sets for dataset", model_manifest.dataset_name, "**** \n")
 
         # load DiffAE feature data from this one dataset
-        # projected onto principal component axes as defined
-        # by fit PCA object pca. Restrict to stationary frames if provided
+        # and get features projected onto principal component axes
+        # as defined by fit PCA object pca.
         df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
         # get train test split for this dataset

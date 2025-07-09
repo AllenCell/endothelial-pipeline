@@ -125,7 +125,7 @@ def get_traj_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
+def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
     Get list of per-crop trajectories, the corresponding
     displacement vectors, and time differences along
@@ -136,8 +136,9 @@ def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
         Should have a column for time and a column for
         the crop index. This data should be for one
         dataset and one flow condition.
-    - feat_cols: list of feature column names
-        (used to extract feature data from the dataframe X)
+    - pc_column_names: list of strings, names of the
+        columns in the DataFrame that contain the
+        PC features (feature columns).
 
     Outputs:
     - traj_list: list of numpy arrays, each array is the
@@ -164,12 +165,12 @@ def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
         data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
 
         # get displacement vectors and time differences for each crop
-        d_traj = np.diff(data_crop[feat_cols].values, axis=0)
+        d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
 
         # append data to lists:
         # trajectory and displacement vectors
         # leave off last timepoint for trajectory
-        traj_list.append(data_crop[feat_cols].values)
+        traj_list.append(data_crop[pc_column_names].values)
         d_traj_list.append(d_traj)
 
     return traj_list, d_traj_list
