@@ -69,7 +69,7 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[list[np.ndarray], pd.DataF
             img = get_zarr_img_for_dataset(dataset, p)
 
             # Loop through rows of the current group (rows corresponding to the current position)
-            for index, row in df_pos.iterrows():
+            for _, row in df_pos.iterrows():
                 timepoint = row["frame_number"]
                 crop = get_crop(
                     img,
