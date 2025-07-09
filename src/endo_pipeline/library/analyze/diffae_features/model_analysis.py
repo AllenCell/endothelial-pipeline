@@ -61,8 +61,8 @@ def model_data_comparison_one_dataset(
     f2 = model_eval.vector_field_component(drift, 1)
 
     fig1, ax1 = pplane.phase_portrait(
-        lambda x1, x2: f1([x1, x2], u),
-        lambda x1, x2: f2([x1, x2], u),
+        lambda x1, x2: f1([x1, x2], shear),
+        lambda x1, x2: f2([x1, x2], shear),
         pplane_xvec,
         pplane_yvec,
         verbose=False,
@@ -70,7 +70,7 @@ def model_data_comparison_one_dataset(
 
     ax1.set_xlabel(f"PC{pcs[0] + 1}")
     ax1.set_ylabel(f"PC{pcs[1] + 1}")
-    ax1.set_title("Shear stress = " + str(u) + " dyn/cm$^2$")
+    ax1.set_title("Shear stress = " + str(shear) + " dyn/cm$^2$")
     plt.show()
 
     centers = [0.5 * (bins[i][1:] + bins[i][:-1]) for i in range(len(bins))]
