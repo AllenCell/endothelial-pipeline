@@ -111,8 +111,8 @@ def main(
         # estimates, and save out figures
         for model_manifest in model_manifest_list:
             print(
-                f"\nComputing 2D drift and diffusion fields \
-                    for dataset {model_manifest.dataset_name}"
+                "\nComputing 2D drift and diffusion fields",
+                f"for dataset {model_manifest.dataset_name}",
             )
 
             # 2D viz outputs

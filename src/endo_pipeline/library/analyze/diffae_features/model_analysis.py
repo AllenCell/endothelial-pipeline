@@ -178,8 +178,10 @@ def model_data_comparison(
 
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
-            sup_title = f"{model_manifest.dataset_name},  {shear_list[j]} \
-                  dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+            sup_title = (
+                f"{model_manifest.dataset_name},  {shear_list[j]}"
+                "dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+            )
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
