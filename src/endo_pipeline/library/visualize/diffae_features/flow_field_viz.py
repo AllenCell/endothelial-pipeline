@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_dataset_descriptions,
+)
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize import viz_base
@@ -318,7 +320,7 @@ def plot_flow_field_slices(
         # for saving the plot
         if df_cond is not None:
             name = df_cond["dataset"].unique()[0]
-            condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
+            condition = get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
         viz_base.save_plot(
@@ -350,7 +352,7 @@ def plot_stable_fixed_points_together(fig_savedir: Path, output_savedir: Path) -
         "20250319_20X",
     ]
 
-    conditions = preprocessing.get_dataset_descriptions(list_of_datasets, simple=True)
+    conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
     fig, ax = viz_base.init_subplots(figsize=(14, 5))
@@ -433,7 +435,7 @@ def flow_field_viz_main(
     """
     # dataset flow condition for saving the figures
     name = df_cond["dataset"].unique()[0]
-    condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
+    condition = get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory

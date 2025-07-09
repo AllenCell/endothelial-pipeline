@@ -11,6 +11,9 @@ from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_dataset_descriptions,
+)
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 
 
@@ -473,7 +476,7 @@ def ddff_main(
 
     # get experimental condition
     # descriptions of each dataset
-    condition_dict = preprocessing.get_dataset_descriptions(
+    condition_dict = get_dataset_descriptions(
         [model_manifest.dataset_name for model_manifest in model_manifest_list], simple=True
     )
 
