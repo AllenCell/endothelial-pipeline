@@ -62,7 +62,7 @@ def apply_model_paired_fixed_live(
     model_name: str = "diffae_finetuned_for_fixed",
     align_fluo: bool = True,
     upload_features_to_FMS: bool = False,
-) -> tuple[Path, str, str]:
+) -> tuple[Path, Path, Path]:
     """
     Align paired fixed and live data and apply a diffAE model to extract features.
 
