@@ -78,7 +78,7 @@ def get_timelapse_model_manifests(model_config: ModelConfig) -> list[ModelManife
     Outputs:
     - list of ModelManifest, containing only timelapse datasets
     """
-    if model_config.manifest_fmsids is None:
+    if len(model_config.manifest_fmsids) == 0:
         logger.error("No manifests for model config %s", model_config.name)
         raise FileNotFoundError(f"No manifest fmsids found in model config {model_config.name}")
 
