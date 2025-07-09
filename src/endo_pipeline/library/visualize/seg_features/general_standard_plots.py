@@ -14,13 +14,13 @@ def lineplot_per_position(
     df_group: pd.DataFrame,
     x_key: str,
     y_key: str,
-    filepath_out: str | Path,
     x_label: str | None = None,
     y_label: str | None = None,
     x_lims: tuple = (None, None),
     y_lims: tuple = (None, None),
+    kwargs: dict | None = None,
     show_plot: bool = False,
-) -> None:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     This function will save a standardized lineplot from the dataframe df_group.
     x_key and y_key are the column names that you want to plot along the x-axis
@@ -60,34 +60,32 @@ def lineplot_per_position(
     ), f'Only a single position allowed in df_group, positions found: {df_group["position"].unique()}'
     position = df_group["position"].unique()[0]
 
-    fig, ax = plt.subplots(nrows=num_positions, figsize=(AX_WIDTH, AX_HEIGHT))
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     ax.set_title(f"{dataset_name} P{position}")
-    sns.lineplot(data=df_group, x=x_key, y=y_key, ax=ax)
+    sns.lineplot(data=df_group, x=x_key, y=y_key, ax=ax, kwargs=kwargs)
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_xlim(*x_lims)
     ax.set_ylim(*y_lims)
     plt.tight_layout()
-    fig.savefig(filepath_out, bbox_inches="tight")
 
     if not show_plot:
         plt.close(fig)
-    return
+    return fig, ax
 
 
 def hist_2D_per_position(
     df_group: pd.DataFrame,
     x_key: str,
     y_key: str,
-    filepath_out: str | Path,
     x_label: str | None = None,
     y_label: str | None = None,
     x_lims: tuple | Literal["tight"] = (None, None),
     y_lims: tuple | Literal["tight"] = (None, None),
-    bin_width: tuple[int, int] | None = None,
+    bin_width: tuple[float, float] | None = None,
     kwargs: dict | None = None,
     show_plot: bool = False,
-) -> None:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     x_lims: tuple | Literal["tight"]
         Set the limits for the x-axis.
@@ -114,13 +112,16 @@ def hist_2D_per_position(
         y=y_key,
         binwidth=bin_width,
         ax=ax,
+        kwargs=kwargs,
     )
     ax.set_yticks(range(0, 91, 15))
     ax.set_xlim(*x_lims)
     ax.set_ylim(*y_lims)
     ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Alignment (deg)")
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
     plt.tight_layout()
-    fig.savefig(filepath_out, bbox_inches="tight")
-    plt.close(fig)
+
+    if not show_plot:
+        plt.close(fig)
+    return fig, ax

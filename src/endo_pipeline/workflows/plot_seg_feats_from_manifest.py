@@ -24,7 +24,11 @@ from src.endo_pipeline.workflows.make_seg_feats_manifest import (
 
 
 def plot_seg_manifest_data(
-    big_table_subset: pd.DataFrame, dataset_name: str, position: int, out_dir: Path
+    # seg_feats_df_subset: pd.DataFrame,
+    big_table_subset: pd.DataFrame,
+    dataset_name: str,
+    position: int,
+    out_dir: Path,
 ) -> None:
     vel_mag_mean = big_table_subset["centroid_velocity_magnitude"].mean()
     vel_mag_std = big_table_subset["centroid_velocity_magnitude"].std()
@@ -104,24 +108,41 @@ def plot_seg_manifest_data(
         ),
     ]
     for x_key, y_key, x_label, y_label, y_lims, filename_out in feats_to_plot:
-        out_subdir_plots = out_dir / f"{y_key}/{dataset_name}"
+        out_subdir_plots = out_dir / "lineplots" / f"{y_key}/{dataset_name}"
         out_subdir_plots.mkdir(parents=True, exist_ok=True)
-        lineplot_per_position(
+        fig, ax = lineplot_per_position(
             big_table_subset,
             x_key=x_key,
             y_key=y_key,
-            filepath_out=out_subdir_plots / filename_out,
             x_label=x_label,
             y_label=y_label,
             y_lims=y_lims,
         )
+        fig.savefig(out_subdir_plots / filename_out)
 
     # plot alignment vs time as a histogram instead of violinplot
     out_subdir_plots = out_dir / f"alignment_hist/{dataset_name}"
     out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    hist_2D_per_position()
+    for x_key, y_key, x_label, y_label, y_lims, filename_out in feats_to_plot:
+        out_subdir_plots = out_dir / "histplots" / f"{y_key}/{dataset_name}"
+        out_subdir_plots.mkdir(parents=True, exist_ok=True)
+
+        fig, ax = hist_2D_per_position(
+            big_table_subset,
+            x_key=x_key,
+            y_key=y_key,
+            x_label=x_label,
+            y_label=y_label,
+            x_lims=(0, big_table_subset["time_hours"].max()),
+            y_lims=y_lims,
+            bin_width=(0.5, 1),
+        )
+        fig.savefig(out_subdir_plots / filename_out, bbox_inches="tight")
 
     # NOTE WORKING HERE
+    # add x_lims to the list of tuples
+    # also consider turning the list of
+    # tuples into a dictionary
 
     fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.histplot(
