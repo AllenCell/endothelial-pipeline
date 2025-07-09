@@ -8,14 +8,17 @@ import torch
 from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import (
+    DatasetConfig,
+    ModelConfig,
     add_model_manifest,
-    get_available_dataset_names,
+    load_dataset_config,
     load_model_config,
+    load_reference_dataset_configs,
     save_model_config,
 )
 from src.endo_pipeline.configs.dataset_io import extract_P, get_reference_datasets, get_zarr_path
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 
@@ -60,10 +63,10 @@ def generate_overrides(
     return overrides
 
 
-def generate_zarr_csv(dataset_name: str, save_path: str, resolution_level: int = 0):
-    """Generate a CSV file with paths to Zarr files for the given dataset."""
+def generate_zarr_csv(dataset_config: DatasetConfig, save_path: str, resolution_level: int = 0):
+    """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
-    df = pd.DataFrame({"path": sorted(get_zarr_path(dataset_name).values())})
+    df = pd.DataFrame({"path": dataset_config.zarr_path})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
     data_path = str(save_path / "dataset.csv")
@@ -93,6 +96,7 @@ def update_prediction_with_meta(
     pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
+    # NOTE: this calls a function from dataset_io that we probably want to move to a more general location
     pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
@@ -100,22 +104,22 @@ def update_prediction_with_meta(
 
 
 def apply_model_single(
-    model_name: str,
-    dataset_name: str,
+    model_config: ModelConfig,
+    dataset_config: DatasetConfig,
     resolution_level: int = 0,
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     overrides: str | dict | None = None,
-):
+) -> ModelConfig:
     """
     Apply a DiffAE model to a single dataset.
 
     Parameters
     ----------
-    model_name: str
-        Name of the model from `model_config.yaml` to apply.
-    dataset_name: str
-        Name of the dataset from `data_config.yaml` to apply the model to.
+    model_config: ModelConfig
+        Configuration of the model to apply.
+    dataset_config: DatasetConfig
+        Configuration of the dataset to apply the model to.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
@@ -129,44 +133,48 @@ def apply_model_single(
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     overrides = load_overrides(overrides)
     # download model from mlflow
-    mlflow_id = load_model_config(model_name).mlflow_run_id
-    model_path = Path(get_output_path(f"models/{model_name}"))
+    mlflow_id = model_config.mlflow_run_id
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
 
-    save_path = save_path or model_path / dataset_name
-    save_path.mkdir(parents=True, exist_ok=True)
+    if save_path is None:
+        # if no save path is provided, use the default path
+        save_path = get_output_path(
+            "models", model_config.name, dataset_config.name, include_timestamp=False
+        )
 
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
     # create zarr dataset
-    data_path = generate_zarr_csv(dataset_name, save_path, resolution_level)
+    data_path = generate_zarr_csv(dataset_config, save_path, resolution_level)
     # apply overrides
     overrides = generate_overrides(
         overrides,
         save_path=save_path,
         data_path=data_path,
         ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=dataset_name,
-        model_name=model_name,
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
     )
     model.override_config(overrides)
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
     prediction_path = update_prediction_with_meta(
-        dataset_name=dataset_name,
-        model_name=model_name,
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
         crop_size=crop_size,
         mlflow_id=mlflow_id,
         save_path=save_path,
     )
 
     if upload_to_fms:
+        # note that this function will be deprecated in the future
         file_id = save_file_to_fms(
             prediction_path,
-            dataset_name,
+            dataset_config.name,
             get_cytodl_commit_hash(mlflow_id, model_path),
             misc_notes="",
             mlflow_run_id=mlflow_id,
@@ -174,21 +182,17 @@ def apply_model_single(
 
         # add new manifest to model config
         model_config = add_model_manifest(
-            load_model_config(model_name),
-            dataset_name,
+            model_config,
+            dataset_config.name,
             file_id,
         )
 
-        # save the updated model config
-        save_model_config(model_config)
-
-    return prediction_path
+    return model_config
 
 
 def apply_model(
     model_name: str,
-    dataset_names: str | Sequence[str] = [],
-    regex: str | None = None,
+    dataset_names: str | Sequence[str] = "reference",
     resolution_level: int = 0,
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
@@ -211,9 +215,6 @@ def apply_model(
     dataset_names: str
         Names of the datasets from `data_config.yaml` to apply the model to.
         If "reference", all reference datasets will be used.
-    regex: str
-        Regex to filter datasets by name. If provided, only datasets matching
-        the regex will be used.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
     upload_to_fms: bool
@@ -223,24 +224,27 @@ def apply_model(
     overrides: str or dict or None
         Overrides to apply to the model config. By default, no overrides are applied
     """
-    if regex:
-        all_datasets = get_available_dataset_names()
-        dataset_names = [name for name in all_datasets if re.search(regex, name)]
-        print(f"Found {dataset_names} matching regex '{regex}'")
+    # default is to apply to all reference datasets
+    if dataset_names == "reference":
+        dataset_config_list = load_reference_dataset_configs()
     else:
-        if dataset_names == "reference":
-            dataset_names = get_reference_datasets()
-        elif isinstance(dataset_names, str):
+        if isinstance(dataset_names, str):
             dataset_names = [dataset_names]
-    for name in dataset_names:
-        apply_model_single(
-            model_name=model_name,
-            dataset_name=name,
+        dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
+
+    model_config = load_model_config(model_name)
+    for dataset_config in dataset_config_list:
+        model_config = apply_model_single(
+            model_config=model_config,
+            dataset_config=dataset_config,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
             overrides=overrides,
         )
+
+    # save out updated model config
+    save_model_config(model_config)
 
 
 if __name__ == "__main__":

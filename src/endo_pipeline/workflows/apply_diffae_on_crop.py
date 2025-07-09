@@ -9,9 +9,15 @@ from cyto_dl.api import CytoDLModel
 
 from cellsmap.util.manifest_io import get_dataframe_by_fmsid
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_dataset_config, load_model_config, save_dataset_config
+from src.endo_pipeline.configs import (
+    DatasetConfig,
+    ModelConfig,
+    load_dataset_config,
+    load_model_config,
+    save_dataset_config,
+)
 from src.endo_pipeline.configs.dataset_io import extract_P
+from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 
@@ -161,7 +167,7 @@ def apply_model_single(
     overrides = load_overrides(overrides)
     # download model from mlflow
     mlflow_id = load_model_config(model_name).mlflow_run_id
-    model_path = Path(get_output_path(f"models/{model_name}"))
+    model_path = get_output_path("models", model_name)
     path_dict = download_model(mlflow_id, model_path)
 
     save_path = save_path or model_path / dataset_name
