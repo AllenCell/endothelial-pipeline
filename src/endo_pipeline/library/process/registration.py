@@ -28,7 +28,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import proj
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
-from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
+from src.endo_pipeline.workflows.apply_diffae_model_on_random_crops import generate_overrides
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1

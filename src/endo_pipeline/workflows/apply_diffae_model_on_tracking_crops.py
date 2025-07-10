@@ -17,11 +17,7 @@ from src.endo_pipeline.configs import (
     save_model_config,
 )
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
-from src.endo_pipeline.library.model.apply_model import (
-    apply_model_single,
-    get_cytodl_commit_hash,
-    load_overrides,
-)
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
 
@@ -86,7 +82,7 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
-def centroid_to_bbox(df: pd.DataFrame):
+def centroid_to_bbox(df: pd.DataFrame) -> pd.DataFrame:
     """
     Convert centroids to bounding boxes.
 
@@ -134,7 +130,7 @@ def preprocess_tracking_manifest(dataset_config: DatasetConfig, save_dir: str) -
 
 def update_prediction_from_tracks_with_metadata(
     dataset_name: str, model_name: str, mlflow_id: str, save_path: Path
-):
+) -> Path:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     prediction_path = (
@@ -162,13 +158,13 @@ def update_prediction_from_tracks_with_metadata(
     return prediction_path
 
 
-def __apply_model_single(
+def apply_model_single(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
-):
+) -> ModelConfig:
     """
     Apply a DiffAE model to a single dataset with
     cell segmentation and tracking.
@@ -253,7 +249,7 @@ def main(
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     overrides: str | dict | None = None,
-):
+) -> None:
     """
     Apply a model to a multiple datasets.
 
@@ -287,9 +283,6 @@ def main(
     # apply model to each dataset
     for dataset_config in dataset_config_list:
         model_config = apply_model_single(
-            generate_overrides=generate_overrides_for_track_based_crops,
-            update_prediction_with_metadata=update_prediction_from_tracks_with_metadata,
-            generate_dataframe_for_prediction=preprocess_tracking_manifest,
             model_config=model_config,
             dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,

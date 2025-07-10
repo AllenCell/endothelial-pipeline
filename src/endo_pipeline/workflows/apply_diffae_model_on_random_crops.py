@@ -17,11 +17,7 @@ from src.endo_pipeline.configs import (
     save_model_config,
 )
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.model.apply_model import (
-    apply_model_single,
-    get_cytodl_commit_hash,
-    load_overrides,
-)
+from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
 
@@ -66,7 +62,9 @@ def generate_overrides_for_random_crop_features(
     return overrides
 
 
-def generate_zarr_csv(dataset_config: DatasetConfig, save_path: str, resolution_level: int = 0):
+def generate_zarr_csv(
+    dataset_config: DatasetConfig, save_path: str, resolution_level: int = 0
+) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     df = pd.DataFrame({"path": dataset_config.zarr_path})
@@ -83,7 +81,7 @@ def update_prediction_from_crops_with_metadata(
     crop_size: Sequence[int],
     mlflow_id: str,
     save_path: Path,
-):
+) -> Path:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     prediction_path = save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
@@ -108,7 +106,7 @@ def update_prediction_from_crops_with_metadata(
     return prediction_path
 
 
-def __apply_model_single(
+def apply_model_single(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 0,
@@ -203,7 +201,7 @@ def main(
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     overrides: str | dict | None = None,
-):
+) -> None:
     """
     Apply a model to a multiple datasets.
 
@@ -244,9 +242,6 @@ def main(
     # apply model to each dataset
     for dataset_config in dataset_config_list:
         model_config = apply_model_single(
-            generate_overrides=generate_overrides_for_random_crop_features,
-            update_prediction_with_metadata=update_prediction_from_crops_with_metadata,
-            generate_dataframe_for_prediction=generate_zarr_csv,
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
