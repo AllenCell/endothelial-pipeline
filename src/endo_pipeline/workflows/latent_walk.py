@@ -8,7 +8,7 @@ import pandas as pd
 from bioio.writers import OmeTiffWriter
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import get_pca_reference_model_manifests
+from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_feature_column_names,
@@ -44,7 +44,7 @@ def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     return walk_img
 
 
-def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
+def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[list, list]:
     """
     Generate a latent walk based on standard deviation
     or min/max of each dimension.
@@ -81,7 +81,7 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
 
 def get_pca_coords(
     data: np.ndarray, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
-) -> tuple[np.ndarray, list]:
+) -> tuple[list, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
 
@@ -104,7 +104,7 @@ def get_pca_coords(
     return walk, ranges
 
 
-def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
+def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[list, list]:
     """
     Generate latent coordinates and corresponding values for a latent walk.
 
@@ -168,7 +168,8 @@ def main(
 
     pca = fit_pca()
 
-    reference_dataset_model_manifests = get_pca_reference_model_manifests(model_name)
+    model_config = load_model_config(model_name)
+    reference_dataset_model_manifests = get_pca_reference_model_manifests(model_config)
 
     if use_pcs:
         # perform latent walk along the principal components
