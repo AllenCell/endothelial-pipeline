@@ -1,7 +1,5 @@
 from src.endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_intergration
-from src.endo_pipeline.library.visualize.viz_validate_fixed_live_pcs_for_integration import (
-    plot_paired_fixed_live_validation_features,
-)
+from src.endo_pipeline.library.visualize import viz_validate_pcs_for_integration
 
 if __name__ == "__main__":
     """
@@ -50,7 +48,7 @@ if __name__ == "__main__":
 
         # Plot raw data for paired fixed and live PC values as well as confidence ellipse,
         # linear model mapping between fixed and live data and uncertainty.
-        plot_paired_fixed_live_validation_features(
+        viz_validate_pcs_for_integration.plot_paired_fixed_live_validation_features(
             save_path,
             pc,
             raw_data,
