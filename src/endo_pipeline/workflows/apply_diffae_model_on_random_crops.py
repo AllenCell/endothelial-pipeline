@@ -16,7 +16,7 @@ from src.endo_pipeline.configs import (
     load_reference_dataset_configs,
     save_model_config,
 )
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
@@ -178,13 +178,17 @@ def apply_model_single(
     )
 
     if upload_to_fms:
-        # note that this function will be deprecated in the future
-        file_id = save_file_to_fms(
-            str(prediction_path),
-            dataset_config.name,
-            get_cytodl_commit_hash(mlflow_id, model_path),
-            misc_notes="",
-            mlflow_run_id=mlflow_id,
+        dataset_annotations = build_fms_annotations(
+            dataset_config,
+            include_timestamp=False,
+            include_git_info=False,
+            model=model_config,
+            additional_notes=get_cytodl_commit_hash(mlflow_id, model_path),
+        )
+        file_id = upload_file_to_fms(
+            prediction_path,
+            annotations=dataset_annotations,
+            file_type="parquet",
         )
 
         # add new manifest to model config
