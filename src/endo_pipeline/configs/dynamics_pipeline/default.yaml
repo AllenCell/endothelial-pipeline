@@ -1,0 +1,20 @@
+name: default
+pcs_to_analyze: [0, 1]
+dt: 5
+kramers_moyal:
+  num_bins: [70, 70]
+  bandwidth: 0.075
+  kernel: gaussian
+sindy_parameters:
+  drift_feat_degree: 4
+  diffusion_feat_degree: 4
+  drift_param_degree: 6
+  diffusion_param_degree: 6
+num_points_pplane: 50
+num_bins_histogram: [50, 50]
+num_bins_landscape: [60, 60]
+shear_stress_range: [4.0, 30.0]
+num_shear_fixed_points: 30
+num_shear_landscape: 15
+quiver_downsample_factor: 10
+norm_vectors: false

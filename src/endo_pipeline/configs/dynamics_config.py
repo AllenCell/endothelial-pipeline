@@ -59,12 +59,10 @@ class DynamicsConfig:
     dt: float = 5
     """Time interval between frames minutes."""
 
-    kramers_moyal: KramersMoyalParameters = field(default_factory=lambda: KramersMoyalParameters)
+    kramers_moyal: KramersMoyalParameters = field(default_factory=KramersMoyalParameters)
     """Parameters for Kramers-Moyal coefficient estimation."""
 
-    sindy_parameters: SINDyRegressionParameters = field(
-        default_factory=lambda: SINDyRegressionParameters
-    )
+    sindy_parameters: SINDyRegressionParameters = field(default_factory=SINDyRegressionParameters)
     """Configuration for polynomial regression using SINDy."""
 
     num_points_pplane: int = 50
