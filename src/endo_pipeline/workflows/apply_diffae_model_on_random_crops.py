@@ -90,14 +90,15 @@ def update_prediction_from_crops_with_metadata(
     pred_df["model_name"] = model_name
     pred_df["mlflow_id"] = mlflow_id
 
-    # NOTE: the current model loads images at resolution level 0 and downsamples in the transforms.
+    # note: the current model loads images at resolution
+    # level 0 and downsamples in the transforms.
     pred_df["resolution_level"] = 1
 
     pred_df["end_y"] = pred_df["start_y"] + crop_size[0]
     pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    # NOTE: this calls a function from dataset_io that we probably want to move to a more general location
+
     pred_df["position"] = pred_df["filename_or_obj"].apply(
         lambda s: extract_position_from_filepath(s, int_only=False)
     )
