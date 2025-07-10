@@ -2,12 +2,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-TAGS = ["b"]
+TAGS = ["tag2"]
 
 
 def main(*, param1: str, param2: int) -> None:
     """
-    Description of production workflow 5. Example of keyword-only arguments. Tags: b
+    Description of production workflow 5. Example of keyword-only arguments.
 
     Parameters
     ----------

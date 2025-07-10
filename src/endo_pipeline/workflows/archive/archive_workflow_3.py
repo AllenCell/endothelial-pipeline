@@ -2,12 +2,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-TAGS = ["a"]
+TAGS = ["tag1"]
 
 
 def main(param1: str, param2: int) -> None:
     """
-    Description of archived workflow 3. Tags: a
+    Description of archived workflow 3.
 
     Parameters
     ----------

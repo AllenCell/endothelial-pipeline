@@ -2,12 +2,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-TAGS = ["a", "b", "c"]
+TAGS = ["tag1", "tag2", "tag4"]
 
 
 def main(param1: str, param2: int, param3: bool, param4: str = "DEFAULT") -> None:
     """
-    Description of production workflow 3. Tags: a, b, c
+    Description of production workflow 3.
 
     Parameters
     ----------

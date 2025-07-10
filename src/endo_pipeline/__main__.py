@@ -6,12 +6,16 @@ from typing import Annotated
 
 import cyclopts
 from cyclopts import App, Group, Parameter, validators
+from rich.console import Console
 
 app = App(
     help="Endothelial pipeline CLI",
     version_flags=[],
     default_parameter=Parameter(negative=()),
+    console=Console(),
 )
+
+tags: dict[str, list[str]] = {}
 
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
@@ -41,8 +45,10 @@ def entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING, show_default=False)] = False,
     debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING, show_default=False)] = False,
-    show_archive: Annotated[bool, Parameter(show_default=False)] = False,
-    config: Path = Path("config.yaml"),
+    show_archive: Annotated[bool, Parameter(alias="-a", show_default=False)] = False,
+    show_tags: Annotated[bool, Parameter(alias="-t", show_default=False)] = False,
+    filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
+    config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
 ) -> None:
     """
     Parameters
@@ -55,6 +61,10 @@ def entrypoint(
         Show debug logging.
     show_archive
         Show available archived workflows.
+    show_tags
+        Show all available workflow tags.
+    filter_tag
+        Filter workflows by given tag.
     config
         Path to user configuration file.
     """
@@ -72,6 +82,13 @@ def entrypoint(
         if show_archive and subapp.group and subapp.group[0].name == ARCHIVED_WORKFLOWS.name:
             subapp.show = True
 
+        if subapp.name[0] in tags:
+            if show_tags:
+                subapp.help = f"| {' | '.join(tags[subapp.name[0]])} |{subapp.help}"
+
+            if filter_tag:
+                subapp.show = filter_tag in tags[subapp.name[0]] and subapp.show
+
     app(tokens)
 
 
@@ -84,6 +101,7 @@ def build_cli_group(group: Group, directory: str, show: bool) -> None:
         relative_path = module_path.relative_to(Path(__file__).resolve().parents[2])
         name = relative_path.stem.replace("_", "-")
         module = importlib.import_module(".".join(relative_path.with_suffix("").parts))
+        tags[name] = module.TAGS if hasattr(module, "TAGS") else []
         app.command(name=name, group=group, show=show)(module.main)
 
 

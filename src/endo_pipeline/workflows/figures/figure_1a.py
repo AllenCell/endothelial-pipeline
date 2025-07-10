@@ -2,12 +2,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-TAGS = ["fig1", "a"]
+TAGS = ["fig1", "tag1"]
 
 
 def main() -> None:
     """
-    Workflow to produce Figure 1B. Tags: fig1, a
+    Workflow to produce Figure 1A.
     """
 
     logger.debug(f"debug message")
