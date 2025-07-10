@@ -3,7 +3,6 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pandas as pd
-import seaborn as sns
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
@@ -15,8 +14,11 @@ from src.endo_pipeline.configs.dataset_io import (
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    hist_2D_per_position,
-    lineplot_per_position,
+    get_seg_feat_plot_args,
+    hist_2D_per_dataset,
+    lineplot_per_dataset,
+    mark_parallel,
+    mark_perpendicular,
 )
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -27,301 +29,70 @@ def plot_seg_manifest_data(
     # seg_feats_df_subset: pd.DataFrame,
     big_table_subset: pd.DataFrame,
     dataset_name: str,
-    position: int,
+    # position: int,
     out_dir: Path,
+    show_plot: bool = False,
 ) -> None:
-    vel_mag_mean = big_table_subset["centroid_velocity_magnitude"].mean()
-    vel_mag_std = big_table_subset["centroid_velocity_magnitude"].std()
-    # things_to_plot are tuples of (x_key, y_key, x_label, y_label, y_lim, filename_out)
-    feats_to_plot = [
-        (
-            "time_hours",
-            "alignment_deg_rel_to_flow",
-            "Time (hours)",
-            "Alignment (deg)",
-            (0, 90),
-            f"{dataset_name}_P{position}_alignments.png",
-        ),
-        (
-            "time_hours",
-            "eccentricity",
-            "Time (hours)",
-            "Eccentricity",
-            (0, 1),
-            f"{dataset_name}_P{position}_eccentricities.png",
-        ),
-        (
-            "time_hours",
-            "nematic_order",
-            "Time (hours)",
-            "Nematic Order",
-            (-1, 1),
-            f"{dataset_name}_P{position}_nematic_order.png",
-        ),
-        (
-            "time_hours",
-            "aspect_ratio",
-            "Time (hours)",
-            "Aspect Ratio",
-            (0, None),
-            f"{dataset_name}_P{position}_aspect_ratio.png",
-        ),
-        (
-            "time_hours",
-            "area",
-            "Time (hours)",
-            "Area (px**2)",
-            (0, None),
-            f"{dataset_name}_P{position}_region_areas.png",
-        ),
-        (
-            "time_hours",
-            "number_of_neighbors",
-            "Time (hours)",
-            "Number of Neighbors",
-            (0, None),
-            f"{dataset_name}_P{position}_num_neighbors.png",
-        ),
-        (
-            "time_hours",
-            "num_tracks_at_T",
-            "Time (hours)",
-            "Number of Cell Tracks",
-            (0, None),
-            f"{dataset_name}_P{position}_num_tracks.png",
-        ),
-        (
-            "time_hours",
-            "centroid_velocity_magnitude",
-            "Time (hours)",
-            "Centroid Velocity Magnitude (um/min)",
-            (0, vel_mag_mean + 2 * vel_mag_std),
-            f"{dataset_name}_P{position}_centroid_velocity_magnitudes.png",
-        ),
-        (
-            "time_hours",
-            "total_nuclei_count_at_T",
-            "Time (hours)",
-            "Number of Predicted Nuclei",
-            (0, None),
-            f"{dataset_name}_P{position}_num_nuclei.png",
-        ),
+
+    feats_to_plot_y = [
+        "alignment_deg",
+        "nematic_order",
+        "eccentricity",
+        "aspect_ratio",
+        "area_um2",
+        "num_neighbors",
+        "centroid_velocity_magnitude",
+        "centroid_velocity_orientation_deg",
+        "cell_nuc_dist",
+        "cell_nuc_orientation_deg",
     ]
-    for x_key, y_key, x_label, y_label, y_lims, filename_out in feats_to_plot:
+    feats_to_plot_y_lineplot_only = [
+        "num_nuclei",
+        "num_tracks",
+    ]
+
+    feats_plot_args = get_seg_feat_plot_args()
+
+    for feat in feats_to_plot_y + feats_to_plot_y_lineplot_only:
+        y_key = feat
         out_subdir_plots = out_dir / "lineplots" / f"{y_key}/{dataset_name}"
         out_subdir_plots.mkdir(parents=True, exist_ok=True)
-        fig, ax = lineplot_per_position(
+        fig, ax = lineplot_per_dataset(
             big_table_subset,
-            x_key=x_key,
-            y_key=y_key,
-            x_label=x_label,
-            y_label=y_label,
-            y_lims=y_lims,
+            x_column_name=feats_plot_args["time_hrs"]["column_name"],
+            y_column_name=feats_plot_args[feat]["column_name"],
+            x_label=feats_plot_args["time_hrs"]["label"],
+            y_label=feats_plot_args[feat]["label"],
+            y_lims=feats_plot_args[feat]["lims"],
         )
-        fig.savefig(out_subdir_plots / filename_out)
+        fig.savefig(out_subdir_plots / feats_plot_args[feat]["filename_out"], bbox_inches="tight")
+
+        if not show_plot:
+            plt.close(fig)
 
     # plot alignment vs time as a histogram instead of violinplot
-    out_subdir_plots = out_dir / f"alignment_hist/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    for x_key, y_key, x_label, y_label, y_lims, filename_out in feats_to_plot:
+    for feat in feats_to_plot_y:
         out_subdir_plots = out_dir / "histplots" / f"{y_key}/{dataset_name}"
         out_subdir_plots.mkdir(parents=True, exist_ok=True)
 
-        fig, ax = hist_2D_per_position(
+        fig, ax = hist_2D_per_dataset(
             big_table_subset,
-            x_key=x_key,
-            y_key=y_key,
-            x_label=x_label,
-            y_label=y_label,
-            x_lims=(0, big_table_subset["time_hours"].max()),
-            y_lims=y_lims,
-            bin_width=(0.5, 1),
+            x_column_name=feats_plot_args["time_hrs"]["column_name"],
+            y_column_name=feats_plot_args[feat]["column_name"],
+            x_label=feats_plot_args["time_hrs"]["label"],
+            y_label=feats_plot_args[feat]["label"],
+            x_lims=feats_plot_args["time_hrs"]["lims"],
+            y_lims=feats_plot_args[feat]["lims"],
+            bin_width=(feats_plot_args["time_hrs"]["lims"], feats_plot_args[feat]["bin_width"]),
         )
-        fig.savefig(out_subdir_plots / filename_out, bbox_inches="tight")
+        if "orientation" in y_key:
+            ax = mark_parallel(ax)
+            ax = mark_perpendicular(ax)
 
-    # NOTE WORKING HERE
-    # add x_lims to the list of tuples
-    # also consider turning the list of
-    # tuples into a dictionary
+        fig.savefig(out_subdir_plots / feats_plot_args[feat]["filename_out"], bbox_inches="tight")
 
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.histplot(
-        data=big_table_subset,
-        x="time_hours",
-        y="alignment_deg_rel_to_flow",
-        binwidth=(0.5, 1),
-        ax=ax,
-    )
-    ax.set_yticks(range(0, 91, 15))
-    ax.set_xlim(0, big_table_subset["time_hours"].max())
-    ax.set_ylim(0, 90)
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Alignment (deg)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_alignments_hist.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
-    # plot the centroid velocities over time as 2D histograms
-    out_subdir_plots = out_dir / f"cell_centroid_velocity_orientations/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.histplot(
-        data=big_table_subset,
-        x="time_hours",
-        y="centroid_velocity_angle_deg",
-        binwidth=(0.5, 5),
-        ax=ax,
-    )
-    parallel_angles = [-180, 0, 180]
-    perpendicular_angles = [-90, 90]
-    for ang in parallel_angles:
-        ax.axhline(ang, color="black", linestyle="--", linewidth=1)
-    for ang in perpendicular_angles:
-        ax.axhline(ang, color="black", linestyle=":", linewidth=1)
-    ax.set_yticks(range(-180, 181, 90))
-    ax.set_xlim(0, big_table_subset["time_hours"].max())
-    ax.set_ylim(-180, 180)
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Centroid Velocity Orientation (deg)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_centroid_velocity_orientations_hist.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
-    # plot the centroid velocities over time as 2D histograms
-    out_subdir_plots = out_dir / f"cell_centroid_velocity_magnitudes/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.histplot(
-        data=big_table_subset,
-        x="time_hours",
-        y="centroid_velocity_magnitude",
-        binwidth=(0.5, None),  # type: ignore[arg-type]
-        log_scale=(False, True),
-        ax=ax,
-    )
-    ax.set_xlim(0, big_table_subset["time_hours"].max())
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Centroid Velocity Magnitude (um/minute)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_centroid_velocity_magnitudes_hist.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
-    # plot alignment vs change in alignment over time
-    out_subdir_plots = out_dir / f"alignment_phase/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.scatterplot(
-        data=big_table_subset,
-        x="alignment_deg_rel_to_flow",
-        y="dalignment_dt_deg_rel_to_flow",
-        hue="track_id",
-        palette="flare",
-        alpha=0.5,
-        marker=".",
-        legend=False,
-        ax=ax,
-    )
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Alignment (deg)")
-    ax.set_ylabel("Alignment Change (deg/min)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_alignments_phase.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
-    # plot alignment vs time with track_id as hue
-    out_subdir_plots = out_dir / f"alignments_by_track/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.scatterplot(
-        data=big_table_subset,
-        x="time_hours",
-        y="alignment_deg_rel_to_flow",
-        hue="track_id",
-        alpha=0.5,
-        marker=".",
-        lw=0,
-        legend=False,
-        ax=ax,
-    )
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Alignment (deg)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_alignments_by_track.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
-    # plot distribution orientations of nuclei
-    # centroids relative to cell centroids
-    out_subdir_plots = out_dir / f"nuc_rel_cell_centroid_angle/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.histplot(
-        data=big_table_subset,
-        x="time_hours",
-        y="nuc_pos_rel_cell_angle_deg",
-        binwidth=(0.5, 5),
-        ax=ax,
-    )
-    parallel_angles = [-180, 0, 180]
-    perpendicular_angles = [-90, 90]
-    for ang in parallel_angles:
-        ax.axhline(ang, color="black", linestyle="--", linewidth=1)
-    for ang in perpendicular_angles:
-        ax.axhline(ang, color="black", linestyle=":", linewidth=1)
-    ax.set_yticks(range(-180, 181, 90))
-    ax.set_xlim(0, big_table_subset["time_hours"].max())
-    ax.set_ylim(-180, 180)
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Nuclei-Cell Centroid Orientation (deg)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_cell_nuc_orientation.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-
-    # plot distribution magnitudes of nuclei
-    # centroids relative to cell centroids
-    out_subdir_plots = out_dir / f"nuc_rel_cell_centroid_magnitude/{dataset_name}"
-    out_subdir_plots.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.histplot(
-        data=big_table_subset,
-        x="time_hours",
-        y="nuc_pos_rel_cell_magnitude",
-        binwidth=(0.5, None),  # type: ignore[arg-type]
-        log_scale=(False, True),
-        ax=ax,
-    )
-    ax.set_xlim(0, big_table_subset["time_hours"].max())
-    ax.set_title(f"{dataset_name} P{position}")
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel("Distance Between Nuclei and Cell Centroid (px)")
-    plt.tight_layout()
-    fig.savefig(
-        out_subdir_plots / f"{dataset_name}_P{position}_cell_nuc_dist.png",
-        bbox_inches="tight",
-    )
-    plt.close(fig)
+        if not show_plot:
+            plt.close(fig)
 
 
 def process_dataset(dataset_name: str, out_dir: Path) -> None:
@@ -343,9 +114,9 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
 
         # make some plots
         plot_seg_manifest_data(
-            df_group,
+            big_table_subset=df_group,
             dataset_name=dataset_nm,
-            position=pos,
+            # position=pos,
             out_dir=out_dir,
         )
 
@@ -353,6 +124,7 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
 def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    dataset_name_list = [dataset_name_list[0]]
     print(f"Processing: {dataset_name_list}")
 
     out_dir = get_output_path(Path(__file__).stem)

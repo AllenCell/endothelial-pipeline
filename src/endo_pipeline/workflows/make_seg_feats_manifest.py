@@ -25,6 +25,8 @@ from src.endo_pipeline.configs.dataset_io import (
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
 
+logger = logging.getLogger(__name__)
+
 
 def merge_measured_segmentation_features_tables(
     cellprops_df: pd.DataFrame,
@@ -824,5 +826,4 @@ def main(
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)
