@@ -8,12 +8,14 @@ from matplotlib.patches import Ellipse
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
+    DatasetConfig,
     ModelConfig,
     add_model_manifest,
+    load_dataset_config,
     load_model_config,
     save_model_config,
 )
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
@@ -23,7 +25,10 @@ from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
 
 def add_paired_fixed_live_data_fmsid_to_config(
-    prediction_path: Path, dataset_name: str, model_config: ModelConfig, model_path: Path
+    prediction_path: Path,
+    dataset_config: DatasetConfig,
+    model_config: ModelConfig,
+    model_path: Path,
 ) -> ModelConfig:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
@@ -33,8 +38,8 @@ def add_paired_fixed_live_data_fmsid_to_config(
     ----------
     prediction_path : str
         Path to the prediction file
-    dataset_name : str
-        Name of the dataset to update in config
+    dataset_config : DatasetConfig
+        Config file for the dataset
     model_config : ModelConfig
         Config file for the chosen model
     model_path : Path
@@ -45,16 +50,24 @@ def add_paired_fixed_live_data_fmsid_to_config(
     model_config_updated : ModelConfig
         Updated model config with the FMS ID of the prediction file added to the dataset manifest
     """
-    file_id = save_file_to_fms(
+    # build FMS annotations
+    dataset_annotations = build_fms_annotations(
+        dataset_config,
+        include_timestamp=False,
+        include_git_info=False,
+        model=model_config,
+        additional_notes=get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
+    )
+
+    # upload prediction file to FMS and get file ID
+    file_id = upload_file_to_fms(
         prediction_path,
-        dataset_name,
-        get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
-        misc_notes="",
-        mlflow_run_id=model_config.mlflow_run_id,
+        annotations=dataset_annotations,
+        file_type="parquet",
     )
 
     # Update the model config with the FMS ID of the prediction file
-    model_config_updated = add_model_manifest(model_config, dataset_name, file_id)
+    model_config_updated = add_model_manifest(model_config, dataset_config.name, file_id)
     return model_config_updated
 
 
@@ -92,6 +105,10 @@ def apply_model_paired_fixed_live(
     live_feature_path: Path
         Local path where live data features are saved in a parquet file
     """
+
+    # Get dataset configs
+    fixed_dataset_config = load_dataset_config(fixed_dataset_name)
+    live_dataset_config = load_dataset_config(live_dataset_name)
 
     # Get diffAE model
     # load model config
@@ -159,13 +176,13 @@ def apply_model_paired_fixed_live(
         print("Uploading fixed and live dataset feature manifests to FMS")
         model_config_updated_with_fixed = add_paired_fixed_live_data_fmsid_to_config(
             fixed_features_path,
-            fixed_dataset_name,
+            fixed_dataset_config,
             model_config,
             model_path,
         )
         model_config_updated_with_live = add_paired_fixed_live_data_fmsid_to_config(
             live_features_path,
-            live_dataset_name,
+            live_dataset_config,
             model_config_updated_with_fixed,
             model_path,
         )
