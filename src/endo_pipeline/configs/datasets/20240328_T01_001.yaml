@@ -12,7 +12,7 @@ use_cases: [nuclear_label_free_predictions]
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: -1.0
-flow: [[0, -1, 0.0]]
+flow: [[0, 0, 0.0]]
 n_total_positions: 10
 channel_488_index: 5
 brightfield_channel_index: 4
