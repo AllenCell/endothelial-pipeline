@@ -31,6 +31,14 @@ def gfp_max_proj(img: BioImage, frame: int) -> np.ndarray:
     return gfp_max_proj.compute()
 
 
+def get_single_bf_plane(stack: da.Array) -> np.ndarray:
+    """Get a single best Z plane from the brightfield stack."""
+    stdevs = [plane.std().compute() for plane in stack.squeeze()]
+    best_plane = max(0, np.argmin(stdevs) - 5)  # move 5 planes down to have contrast
+    bf_plane = stack[best_plane]
+    return bf_plane.compute()
+
+
 def max_proj(stack: da.Array, axis: int) -> np.ndarray:
     """Get the maximum projection of the brightfield stack as a Dask array."""
     max_proj = stack.max(axis)  # Max projection along the Z-axis

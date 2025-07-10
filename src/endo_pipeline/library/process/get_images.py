@@ -11,6 +11,7 @@ from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process.image_processing import (
     contrast_stretching,
     get_global_custom_range,
+    get_single_bf_plane,
     max_proj,
     std_dev,
 )
@@ -88,13 +89,15 @@ def get_crops_in_dataframe(
                 gfp_channel = crop[:, 0, :, :, :]  # GFP channel
 
                 # Perform operations on the extracted channels
-                bf_single_slice = max_proj(bf_channel, 1)
-                bf_std_deviation = std_dev(bf_channel, 1)
-                gfp_max_projection = max_proj(gfp_channel, 1)
+                bf_single_slice = get_single_bf_plane(bf_channel.squeeze())
+                bf_max_projection = max_proj(bf_channel.squeeze(), 0)
+                bf_std_deviation = std_dev(bf_channel.squeeze(), 0)
+                gfp_max_projection = max_proj(gfp_channel.squeeze(), 0)
 
                 if contrast_crops_individually:
                     # Contrast stretch
                     bf_single_slice = contrast_stretching(bf_single_slice, "percentile")
+                    bf_max_projection = contrast_stretching(bf_max_projection, "percentile")
                     bf_std_deviation = contrast_stretching(bf_std_deviation, "percentile")
                     gfp_max_projection = contrast_stretching(gfp_max_projection, "percentile")
 
@@ -102,6 +105,7 @@ def get_crops_in_dataframe(
                 multichannel_image = np.stack(
                     [
                         bf_single_slice,
+                        bf_max_projection,
                         bf_std_deviation,
                         gfp_max_projection,
                     ],
@@ -131,14 +135,7 @@ def get_channel_from_list(crop_list: list, channel_index: int) -> list[np.ndarra
     Returns:
         list[np.ndarray]: List of extracted channels with shape (Y, X).
     """
-    extracted_channels = []
-    for crop in crop_list:
-        # Extract the specified channel
-        channel = crop[channel_index]
-        # Remove singleton dimensions to get (Y, X)
-        channel_2d = np.squeeze(channel, axis=0)
-        extracted_channels.append(channel_2d)
-    return extracted_channels
+    return [crop[channel_index] for crop in crop_list]
 
 
 def global_contrast_crop_list_channel(
