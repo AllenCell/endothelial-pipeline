@@ -5,65 +5,80 @@ from pathlib import Path
 from typing import Annotated
 
 import cyclopts
-from cyclopts import App, Group, Parameter
+from cyclopts import App, Group, Parameter, validators
 
-app = App(help="Endothelial pipeline CLI", default_parameter=Parameter(negative=()))
+app = App(
+    help="Endothelial pipeline CLI",
+    version_flags=[],
+    default_parameter=Parameter(negative=()),
+)
+
+FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
+PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
+DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
+ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
+
+SETTINGS = Group("Settings", sort_key=100)
+LOGGING = (SETTINGS, Group(validator=validators.MutuallyExclusive()))
 
 
-def cli():
-    command_group = Group("Settings", sort_key=100)
-    app["--help"].group = command_group
-    app["--version"].group = command_group
-    app.meta.group_parameters = command_group
+def cli() -> None:
+    """Entrypoint CLI."""
 
-    build_cli_group("Group A", "group_a", 0, True)
-    build_cli_group("Group B", "group_b", 1, False)
-    build_cli_group("Group C", "group_c", 2, False)
+    app["--help"].group = SETTINGS
+    app.meta.group_parameters = SETTINGS
+
+    build_cli_group(FIGURE_WORKFLOWS, "figures", True)
+    build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
+    build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
+    build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
 
     app.meta()
 
 
 @app.meta.default
-def entry(
+def entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", show_default=False)] = False,
-    show_b: Annotated[bool, Parameter(show_default=False)] = False,
-    show_c: Annotated[bool, Parameter(show_default=False)] = False,
+    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING, show_default=False)] = False,
+    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING, show_default=False)] = False,
+    show_archive: Annotated[bool, Parameter(show_default=False)] = False,
     config: Path = Path("config.yaml"),
-):
-    """Help string for this demo application.
-
+) -> None:
+    """
     Parameters
     ----------
+    *tokens
+        Workflow and workflow arguments.
     verbose
-        Show additional logging
-    show_b
-        Show available Group B workflows.
-    show_c
-        Show available Group C workflows.
+        Show verbose logging.
+    debug
+        Show debug logging.
+    show_archive
+        Show available archived workflows.
     config
         Path to user configuration file.
     """
 
-    if verbose:
+    if debug:
         setup_logging(logging.DEBUG)
+    elif verbose:
+        setup_logging(logging.INFO)
     else:
         setup_logging(logging.WARNING)
 
-    app.config = cyclopts.config.Yaml(config)
+    app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
 
     for subapp in app.meta.subapps:
-        if show_b and subapp.group and subapp.group[0].name == "Group B":
-            subapp.show = True
-        if show_c and subapp.group and subapp.group[0].name == "Group C":
+        if show_archive and subapp.group and subapp.group[0].name == ARCHIVED_WORKFLOWS.name:
             subapp.show = True
 
     app(tokens)
 
 
-def build_cli_group(group_name: str, workflows_name: str, sort_key: int, show: bool):
-    group = Group(group_name, sort_key=sort_key)
-    workflows_path = Path(__file__).resolve().parent / "workflows" / workflows_name
+def build_cli_group(group: Group, directory: str, show: bool) -> None:
+    """Create CLI command group by automatically importing modules from directory."""
+
+    workflows_path = Path(__file__).resolve().parent / "workflows" / directory
 
     for module_path in workflows_path.glob("*py"):
         relative_path = module_path.relative_to(Path(__file__).resolve().parents[2])
@@ -73,7 +88,9 @@ def build_cli_group(group_name: str, workflows_name: str, sort_key: int, show: b
 
 
 class CustomStreamLoggingFormatter(logging.Formatter):
-    def __init__(self):
+    """Custom class for formatting stream logging with colored levels."""
+
+    def __init__(self) -> None:
         super().__init__()
         self.format_template = (
             "%(asctime)s - %(name)s - \033[COLORm%(levelname)s\033[0m - %(message)s"
@@ -86,13 +103,17 @@ class CustomStreamLoggingFormatter(logging.Formatter):
             logging.CRITICAL: self.format_template.replace("COLOR", "31;1;4"),
         }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
+        """Format logging record with colored levels."""
+
         log_format = self.formats.get(record.levelno)
         formatter = logging.Formatter(log_format, datefmt="%Y-%m-%d %H:%M:%S")
         return formatter.format(record)
 
 
-def setup_logging(level):
+def setup_logging(level: int) -> None:
+    """Set up logging handlers and assign logging levels."""
+
     logger = logging.getLogger("src.endo_pipeline")
     logger.setLevel(logging.DEBUG)
 
@@ -112,8 +133,6 @@ def setup_logging(level):
 
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
-
-    return logger
 
 
 if __name__ == "__main__":
