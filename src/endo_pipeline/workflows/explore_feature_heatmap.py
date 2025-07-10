@@ -142,85 +142,53 @@ df_sample = df_filtered.sample(
 # %%
 # get and save out crops corresponding to
 # the rows in the filtered dataframe
-crop_list, df_sample_sorted = get_crops_in_dataframe(df_sample)
-# %%
-bf_slice_list = global_contrast_crop_list_channel(crop_list, 0, "percentile")
-bf_max_proj_list = global_contrast_crop_list_channel(crop_list, 1, "percentile")
-std_dev_list = global_contrast_crop_list_channel(crop_list, 2, "percentile")
-cdh5_list = global_contrast_crop_list_channel(crop_list, 3, "percentile")
-# %%
-plot_crop_montage(
-    bf_slice_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="bf_slice_g",
-    channel_index=None,
-    save_dir=fig_savedir,
-)
-# %%
-plot_crop_montage(
-    bf_max_proj_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="bf_max_proj_g",
-    channel_index=None,
-    save_dir=fig_savedir,
-)
-plot_crop_montage(
-    std_dev_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="stddev_bf_g",
-    channel_index=None,
-    save_dir=fig_savedir,
-)
-plot_crop_montage(
-    cdh5_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="cdh5_g",
-    channel_index=None,
-    save_dir=fig_savedir,
-)
+crop_list, df_sample_sorted = get_crops_in_dataframe(
+    df_sample
+)  # Define channel indices and corresponding image content names
+channels = [
+    (0, "bf_slice_g"),
+    (1, "bf_max_proj_g"),
+    (2, "stddev_bf_g"),
+    (3, "cdh5_g"),
+]
 
-# %%
+# Generate contrast-adjusted crop lists and plot montages
+for channel_index, image_content in channels:
+    crop_list_channel = global_contrast_crop_list_channel(crop_list, channel_index, "percentile")
+    plot_crop_montage(
+        crop_list_channel,
+        df_sample_sorted,
+        pc_axis,
+        pc_val,
+        image_content=image_content,
+        channel_index=None,
+        save_dir=fig_savedir,
+    )
+
+# Get crops with individual contrast adjustment
 ind_contrast_crop_list, df_sample_sorted = get_crops_in_dataframe(
     df_sample, contrast_crops_individually=True
 )
-plot_crop_montage(
-    ind_contrast_crop_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="bf_max_proj_ind",
-    channel_index=0,
-    save_dir=fig_savedir,
-)
-# %%
-plot_crop_montage(
-    ind_contrast_crop_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="stddev_bf_ind",
-    channel_index=1,
-    save_dir=fig_savedir,
-)
-plot_crop_montage(
-    ind_contrast_crop_list,
-    df_sample_sorted,
-    pc_axis,
-    pc_val,
-    image_content="cdh5_ind",
-    channel_index=2,
-    save_dir=fig_savedir,
-)
 
-# %%
+# Define channel indices and corresponding image content names for individual contrast
+ind_channels = [
+    (0, "bf_max_proj_ind"),
+    (1, "stddev_bf_ind"),
+    (2, "cdh5_ind"),
+]
+
+# Plot montages for individual contrast-adjusted crops
+for channel_index, image_content in ind_channels:
+    plot_crop_montage(
+        ind_contrast_crop_list,
+        df_sample_sorted,
+        pc_axis,
+        pc_val,
+        image_content=image_content,
+        channel_index=channel_index,
+        save_dir=fig_savedir,
+    )
+
 # %%
 # get reconstructed ve-cad crops
 # corresponding to the rows in the filtered dataframe
@@ -249,72 +217,3 @@ else:
 # %%
 # if __name__ == "__main__":
 #     fire.Fire(main)
-
-# %%
-# def get_crops_in_dataframe(
-#     df: pd.DataFrame, contrast_crops_individually: bool = False
-# ) -> tuple[list[np.ndarray], pd.DataFrame]:
-#     """
-#     Get crops of images from the dataframe for a
-#     given dataset and save them as multichannel TIFF files.
-#     Return these crops as a list of numpy arrays and a dataframe
-#     matching the order of the list.
-#     """
-# Initialize dataset name and list of images to return
-
-from pathlib import Path
-from typing import Literal, Sequence
-
-import dask.array as da
-import numpy as np
-import pandas as pd
-from bioio import BioImage
-from tqdm import tqdm
-
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.library.process.image_processing import (
-    contrast_stretching,
-    get_global_custom_range,
-    get_single_bf_plane,
-    max_proj,
-    std_dev,
-)
-
-# %%
-df = df_sample.copy()
-
-dataset = df["dataset"].iloc[0]
-crop_list = []
-sorted_rows = []  # List to store rows in the same order as images
-
-# Create an overall progress bar for all rows in the dataframe
-with tqdm(total=len(df), desc="Processing crops") as pbar:
-    # Loop through each position in the dataframe
-    for position, df_pos in df.groupby("position"):
-        p = dataset_io.extract_P(position)
-        img = get_zarr_img_for_dataset(dataset, p)
-
-        # Loop through rows of the current group (rows corresponding to the current position)
-        for _, row in df_pos.iterrows():
-            timepoint = row["frame_number"]
-            crop = get_crop(
-                img,
-                channel=None,
-                timepoint=timepoint,
-                start_x=row["start_x"],
-                start_y=row["start_y"],
-                crop_size_x=row["crop_size_x"],
-                crop_size_y=row["crop_size_y"],
-            )
-
-            # Extract channels once
-            bf_channel = crop[:, 1, :, :, :]  # Brightfield channel
-            gfp_channel = crop[:, 0, :, :, :]  # GFP channel
-
-            # Perform operations on the extracted channels
-            bf_single_slice = get_single_bf_plane(bf_channel.squeeze())
-            bf_max_project = max_proj(bf_channel, 1)
-            bf_std_deviation = std_dev(bf_channel, 1)
-            gfp_max_projection = max_proj(gfp_channel, 1)
-            break
-# %%
