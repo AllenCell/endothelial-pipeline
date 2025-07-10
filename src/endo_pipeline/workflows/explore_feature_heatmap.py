@@ -10,7 +10,10 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
 )
 from src.endo_pipeline.library.analyze.numerics import component_heatmaps
-from src.endo_pipeline.library.process.get_images import get_crops_in_dataframe
+from src.endo_pipeline.library.process.get_images import (
+    get_crops_in_dataframe,
+    global_contrast_crop_list_channel,
+)
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.crop_montage import plot_crop_montage
 from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
@@ -150,21 +153,67 @@ df_sample = df_filtered.sample(
 # the rows in the filtered dataframe
 crop_list, df_sample_sorted = get_crops_in_dataframe(df_sample)
 # %%
+bf_list = global_contrast_crop_list_channel(crop_list, channel_index=0)
+std_dev_list = global_contrast_crop_list_channel(crop_list, channel_index=1)
+cdh5_list = global_contrast_crop_list_channel(crop_list, channel_index=2)
+# %%
 plot_crop_montage(
-    crop_list,
+    bf_list,
     df_sample_sorted,
     pc_axis,
     pc_val,
-    image_content="stddev_bf",
+    image_content="bf_max_proj_g",
+    channel_index=None,
+    save_dir=fig_savedir,
+)
+plot_crop_montage(
+    std_dev_list,
+    df_sample_sorted,
+    pc_axis,
+    pc_val,
+    image_content="stddev_bf_g",
+    channel_index=None,
+    save_dir=fig_savedir,
+)
+plot_crop_montage(
+    cdh5_list,
+    df_sample_sorted,
+    pc_axis,
+    pc_val,
+    image_content="cdh5_g",
+    channel_index=None,
+    save_dir=fig_savedir,
+)
+
+# %%
+ind_contrast_crop_list, df_sample_sorted = get_crops_in_dataframe(
+    df_sample, contrast_crops_individually=True
+)
+plot_crop_montage(
+    ind_contrast_crop_list,
+    df_sample_sorted,
+    pc_axis,
+    pc_val,
+    image_content="bf_max_proj_ind",
+    channel_index=0,
+    save_dir=fig_savedir,
+)
+# %%
+plot_crop_montage(
+    ind_contrast_crop_list,
+    df_sample_sorted,
+    pc_axis,
+    pc_val,
+    image_content="stddev_bf_ind",
     channel_index=1,
     save_dir=fig_savedir,
 )
 plot_crop_montage(
-    crop_list,
+    ind_contrast_crop_list,
     df_sample_sorted,
     pc_axis,
     pc_val,
-    image_content="cdh5",
+    image_content="cdh5_ind",
     channel_index=2,
     save_dir=fig_savedir,
 )

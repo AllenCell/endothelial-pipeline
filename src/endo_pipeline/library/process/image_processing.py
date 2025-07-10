@@ -54,34 +54,46 @@ def contrast_stretching(
     method: Literal["min-max", "percentile"] = "percentile",
     low_percentile: int = 1,
     high_percentile: int = 99,
+    custom_range: tuple[float, float] = None,
 ) -> np.ndarray:
     """
-    Apply contrast stretching to an image.
+    Contrast stretching with selectable method.
 
     Parameters
     ----------
-    image : ndarray
-        The input image for contrast stretching.
-    method : str
-        The method of contrast stretching ('min-max' or 'percentile').
-    low_percentile : int
-        The low percentile for percentile contrast stretching.
-    high_percentile : int
-        The high percentile for percentile contrast stretching.
+    image : np.ndarray
+        The input image array.
+    method : str, optional
+        - 'min-max': stretch between min and max
+        - 'percentile': stretch between percentiles
+    low_percentile : int, optional
+        The lower percentile for contrast stretching (default is 1).
+    high_percentile : int, optional
+        The upper percentile for contrast stretching (default is 99).
+    custom_range : tuple, optional
+        A custom range (low, high) for contrast stretching.
+        If provided, overrides the method-specific ranges.
+        Useful for applying the same range across multiple images.
 
     Returns
     -------
-    ndarray
-        The contrast-stretched image.
+    np.ndarray
+        The contrast-stretched image as an 8-bit unsigned integer array.
     """
     if method == "min-max":
-        low = image.min()
-        high = image.max()
+        low, high = image.min(), image.max()
+
     elif method == "percentile":
         low, high = np.percentile(image, (low_percentile, high_percentile))
 
-    stretched_image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
-    return stretched_image
+    else:
+        raise ValueError(f"Unsupported method: {method}")
+
+    if custom_range is not None:
+        low, high = custom_range
+
+    stretched = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
+    return stretched.astype(np.uint8)
 
 
 def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> np.ndarray:

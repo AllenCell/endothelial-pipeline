@@ -11,6 +11,7 @@ from tqdm import tqdm
 from src.endo_pipeline.configs import dataset_io
 from src.endo_pipeline.library.process.image_processing import (
     contrast_stretching,
+    get_global_custom_range,
     max_proj,
     std_dev,
 )
@@ -49,7 +50,9 @@ def get_crop(
     return img_crop
 
 
-def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[list[np.ndarray], pd.DataFrame]:
+def get_crops_in_dataframe(
+    df: pd.DataFrame, contrast_crops_individually: bool = False
+) -> tuple[list[np.ndarray], pd.DataFrame]:
     """
     Get crops of images from the dataframe for a
     given dataset and save them as multichannel TIFF files.
@@ -58,7 +61,7 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[list[np.ndarray], pd.DataF
     """
     # Initialize dataset name and list of images to return
     dataset = df["dataset"].iloc[0]
-    image_seq = []
+    crop_list = []
     sorted_rows = []  # List to store rows in the same order as images
 
     # Create an overall progress bar for all rows in the dataframe
@@ -86,26 +89,27 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[list[np.ndarray], pd.DataF
                 gfp_channel = crop[:, 0, :, :, :]  # GFP channel
 
                 # Perform operations on the extracted channels
-                bf_max_projection = max_proj(bf_channel, 1)
+                bf_single_slice = max_proj(bf_channel, 1)
                 bf_std_deviation = std_dev(bf_channel, 1)
                 gfp_max_projection = max_proj(gfp_channel, 1)
 
-                # Contrast stretch
-                bf_max_proj_contrast = contrast_stretching(bf_max_projection, method="percentile")
-                bf_std_dev_contrast = contrast_stretching(bf_std_deviation, method="percentile")
-                gfp_max_proj_contrast = contrast_stretching(gfp_max_projection, method="percentile")
+                if contrast_crops_individually:
+                    # Contrast stretch
+                    bf_single_slice = contrast_stretching(bf_single_slice, "percentile")
+                    bf_std_deviation = contrast_stretching(bf_std_deviation, "percentile")
+                    gfp_max_projection = contrast_stretching(gfp_max_projection, "percentile")
 
                 # Combine the processed images into a multichannel array
                 multichannel_image = np.stack(
                     [
-                        bf_max_proj_contrast,
-                        bf_std_dev_contrast,
-                        gfp_max_proj_contrast,
+                        bf_single_slice,
+                        bf_std_deviation,
+                        gfp_max_projection,
                     ],
                     axis=0,  # Stack along the channel axis
                 )
 
-                image_seq.append(multichannel_image)
+                crop_list.append(multichannel_image)
                 sorted_rows.append(row)  # Append the row to maintain order
 
                 # Update the overall progress bar
@@ -114,7 +118,49 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[list[np.ndarray], pd.DataF
     # Create a new dataframe from the sorted rows
     df_sorted = pd.DataFrame(sorted_rows).reset_index(drop=True)
 
-    return image_seq, df_sorted
+    return crop_list, df_sorted
+
+
+def get_channel_from_list(crop_list: list, channel_index: int) -> list[np.ndarray]:
+    """
+    Extract a specific channel from a list of crops and reduce the shape to (Y, X).
+
+    Args:
+        crop_list (list): List of crops, each crop is a numpy array with shape (C, Z, Y, X).
+        channel_index (int): Index of the channel to extract.
+
+    Returns:
+        list[np.ndarray]: List of extracted channels with shape (Y, X).
+    """
+    extracted_channels = []
+    for crop in crop_list:
+        # Extract the specified channel
+        channel = crop[channel_index]
+        # Remove singleton dimensions to get (Y, X)
+        channel_2d = np.squeeze(channel, axis=0)
+        extracted_channels.append(channel_2d)
+    return extracted_channels
+
+
+def global_contrast_crop_list_channel(crop_list: list, channel_index: int) -> list[np.ndarray]:
+    """
+    Apply the same contrast stretching to all crops in the list.
+
+    Args:
+        crop_list (list): List of crops to apply contrast stretching to.
+        channel_index (int): Index of the channel to apply contrast stretching on.
+
+    Returns:
+        contrasted_crops (list): List of crops with contrast stretching applied.
+    """
+    channel = get_channel_from_list(crop_list, channel_index)
+    low, high = get_global_custom_range(channel)
+
+    contrasted_channel = []
+    for crop in channel:
+        contrast_crop = contrast_stretching(crop, custom_range=(low, high))
+        contrasted_channel.append(contrast_crop)
+    return contrasted_channel
 
 
 def add_position(df: pd.DataFrame) -> pd.DataFrame:
