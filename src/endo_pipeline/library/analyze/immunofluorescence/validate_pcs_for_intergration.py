@@ -41,6 +41,11 @@ def add_paired_fixed_live_data_fmsid_to_config(
         Config file for the chosen model
     model_path : Path
         Path to the model directory. Used for extracting the commit hash.
+
+    Returns
+    -------
+    model_config_updated : ModelConfig
+        Updated model config with the FMS ID of the prediction file added to the dataset manifest
     """
     file_id = save_file_to_fms(
         prediction_path,
