@@ -9,7 +9,7 @@ AX_WIDTH = 4.5
 AX_HEIGHT = AX_WIDTH * 2 / 3
 
 
-def lineplot_per_dataset(
+def lineplot_of_feats(
     df_group: pd.DataFrame,
     x_column_name: str,
     y_column_name: str,
@@ -19,9 +19,10 @@ def lineplot_per_dataset(
     y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]] = (None, None),
     set_xticks: range | None = None,
     set_yticks: range | None = None,
-    hlines: list[float] | None = None,
-    vlines: list[float] | None = None,
-    kwargs: dict | None = None,
+    discrete_xticks: bool = False,
+    discrete_yticks: bool = False,
+    minor_ticks: Literal["x", "y", "xy"] | None = None,
+    kwargs: dict = dict(),
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     This function will save a standardized lineplot from the dataframe df_group.
@@ -42,12 +43,25 @@ def lineplot_per_dataset(
         The label for the x-axis, will use x_key as the default.
     y_label : str | None, optional
         The label for the y-axis, will use y_key as the default.
-    x_lims: tuple | Literal["tight"]
+    x_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
         Set the limits for the x-axis using a tuple of form (x_min, x_max).
-        If "tight", the limits will be set to the data min and max.
-    y_lims: tuple | Literal["tight"]
+        If "min" or "max", the limits will be set to the data min or max.
+    y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
         Set the limits for the y-axis using a tuple of form (y_min, y_max).
-        If "tight", the limits will be set to the data min and max.
+        If "min" or "max", the limits will be set to the data min or max.
+    set_xticks: range | None
+        Set the x-ticks for the plot. If None, the default ticks will be used.
+    set_yticks: range | None
+        Set the y-ticks for the plot. If None, the default ticks will be used.
+    discrete_xticks: bool
+        If True, the x-ticks will be set to discrete values (integers).
+    discrete_yticks: bool
+        If True, the y-ticks will be set to discrete values (integers).
+    minor_ticks: Literal["x", "y", "xy"] | None
+        If "x", "y", or "xy", minor ticks will be added to the respective axes.
+    kwargs: dict
+        Additional keyword arguments to pass to the seaborn lineplot function.
+        This can include parameters like `color`, `style`, `markers`, etc.
     """
 
     assert (
@@ -60,20 +74,34 @@ def lineplot_per_dataset(
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
 
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
+    sns.lineplot(data=df_group, x=x_column_name, y=y_column_name, ax=ax, **kwargs)
+
+    # adjust the axes limits and tick behavior
     x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
     x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]
     y_min = df_group[y_column_name].min() if y_lims[0] == "min" else y_lims[0]
     y_max = df_group[y_column_name].max() if y_lims[1] == "max" else y_lims[1]
-
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    ax.set_title(fig_title)
-    sns.lineplot(data=df_group, x=x_column_name, y=y_column_name, ax=ax, kwargs=kwargs)
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+    if minor_ticks:
+        if "x" in minor_ticks:
+            ax.xaxis.minorticks_on()
+        if "y" in minor_ticks:
+            ax.yaxis.minorticks_on()
     if set_xticks:
         ax.set_xticks(set_xticks)
     if set_yticks:
         ax.set_yticks(set_yticks)
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
+    if discrete_xticks:
+        ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax.xaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+    if discrete_yticks:
+        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax.yaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+
+    # set figure and axes titles
+    ax.set_title(fig_title)
     ax.set_xlabel(x_label or x_column_name)
     ax.set_ylabel(y_label or y_column_name)
     plt.tight_layout()
@@ -81,7 +109,7 @@ def lineplot_per_dataset(
     return fig, ax
 
 
-def hist_2D_per_dataset(
+def hist_2D_of_feats(
     df_group: pd.DataFrame,
     x_column_name: str,
     y_column_name: str,
@@ -91,6 +119,9 @@ def hist_2D_per_dataset(
     y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]] = (None, None),
     set_xticks: range | None = None,
     set_yticks: range | None = None,
+    discrete_xticks: bool = False,
+    discrete_yticks: bool = False,
+    minor_ticks: Literal["x", "y", "xy"] | None = None,
     bin_width: tuple[float, float] | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
@@ -105,12 +136,22 @@ def hist_2D_per_dataset(
         The label for the x-axis, will use x_key as the default.
     y_label : str | None, optional
         The label for the y-axis, will use y_key as the default.
-    x_lims: tuple | Literal["tight"]
+    x_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
         Set the limits for the x-axis using a tuple of form (x_min, x_max).
-        If "tight", the limits will be set to the data min and max.
-    y_lims: tuple | Literal["tight"]
+        If "min" or "max", the limits will be set to the data min or max.
+    y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
         Set the limits for the y-axis using a tuple of form (y_min, y_max).
-        If "tight", the limits will be set to the data min and max.
+        If "min" or "max", the limits will be set to the data min or max.
+    set_xticks: range | None
+        Set the x-ticks for the plot. If None, the default ticks will be used.
+    set_yticks: range | None
+        Set the y-ticks for the plot. If None, the default ticks will be used.
+    discrete_xticks: bool
+        If True, the x-ticks will be set to discrete values (integers).
+    discrete_yticks: bool
+        If True, the y-ticks will be set to discrete values (integers).
+    minor_ticks: Literal["x", "y", "xy"] | None
+        If "x", "y", or "xy", minor ticks will be added to the respective axes.
     bin_width: tuple[int, int] | None
         Set the bin width for the histogram using a (width_x, width_y)
         tuple. If None, the default bin width will be used.
@@ -126,13 +167,7 @@ def hist_2D_per_dataset(
         positions = positions[0]
     fig_title = f"{dataset_name} P{positions}"
 
-    x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
-    x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]
-    y_min = df_group[y_column_name].min() if y_lims[0] == "min" else y_lims[0]
-    y_max = df_group[y_column_name].max() if y_lims[1] == "max" else y_lims[1]
-
     fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    ax.set_title(fig_title)
     sns.histplot(
         data=df_group,
         x=x_column_name,
@@ -140,12 +175,32 @@ def hist_2D_per_dataset(
         binwidth=bin_width,
         ax=ax,
     )
+
+    # adjust the axes limits and tick behavior
+    x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
+    x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]
+    y_min = df_group[y_column_name].min() if y_lims[0] == "min" else y_lims[0]
+    y_max = df_group[y_column_name].max() if y_lims[1] == "max" else y_lims[1]
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+    if minor_ticks:
+        if "x" in minor_ticks:
+            ax.xaxis.minorticks_on()
+        if "y" in minor_ticks:
+            ax.yaxis.minorticks_on()
     if set_xticks:
         ax.set_xticks(set_xticks)
     if set_yticks:
         ax.set_yticks(set_yticks)
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
+    if discrete_xticks:
+        ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax.xaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+    if discrete_yticks:
+        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax.yaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+
+    # set figure and axes titles
+    ax.set_title(fig_title)
     ax.set_xlabel(x_label or x_column_name)
     ax.set_ylabel(y_label or y_column_name)
     plt.tight_layout()
@@ -154,6 +209,20 @@ def hist_2D_per_dataset(
 
 
 def mark_parallel(ax: plt.Axes) -> plt.Axes:
+    """
+    Draws horizontal lines at -180, 0, and 180 degrees
+    to mark the parallel angles.
+
+    Parameters
+    ----------
+    ax : plt.Axes
+        The axes object to mark the angles on.
+
+    Returns
+    -------
+    plt.Axes
+        The axes object with the marked angles.
+    """
     parallel_angles = [-180, 0, 180]
     for ang in parallel_angles:
         ax.axhline(ang, color="black", linestyle="--", linewidth=1)
@@ -161,6 +230,20 @@ def mark_parallel(ax: plt.Axes) -> plt.Axes:
 
 
 def mark_perpendicular(ax: plt.Axes) -> plt.Axes:
+    """
+    Draws horizontal lines at -90 and 90 degrees to mark
+    the perpendicular angles.
+
+    Parameters
+    ----------
+    ax : plt.Axes
+        The axes object to mark the angles on.
+
+    Returns
+    -------
+    plt.Axes
+        The axes object with the marked angles.
+    """
     perpendicular_angles = [-90, 90]
     for ang in perpendicular_angles:
         ax.axhline(ang, color="black", linestyle=":", linewidth=1)
@@ -168,13 +251,32 @@ def mark_perpendicular(ax: plt.Axes) -> plt.Axes:
 
 
 def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
+    """
+    Returns a dictionary of dictionaries representing the arguments
+    for plotting segmentation features.
+    The first level keys are a short name for the feature, and the
+    second level keys are the arguments for plotting.
+    Arguments include:
+        - column_name: The name of the column in the DataFrame.
+        - label: The label to use for the feature in the plot.
+        - lims: A tuple of (min, max) values for the axis limits.
+        - bin_width: The width of the bins for the histogram.
+        - ticks: A range of ticks to use for the axis.
+        - discrete_ticks: Whether the ticks should be discrete (True) or continuous (False).
+
+    Returns
+    -------
+    dict[str, dict[str, Any]]
+        A dictionary containing the plotting arguments for each feature.
+    """
     feat_args: dict[str, dict[str, Any]] = {
         "time_hrs": {
             "column_name": "time_hours",
             "label": "Time (h)",
             "lims": (0, "max"),
             "bin_width": 0.5,
-            "ticks": None,
+            "ticks": range(0, 49, 12),
+            "discrete_ticks": False,
         },
         "alignment_deg": {
             "column_name": "alignment_deg_rel_to_flow",
@@ -182,6 +284,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, 90),
             "bin_width": 1,
             "ticks": range(0, 91, 15),
+            "discrete_ticks": False,
         },
         "orientation_deg": {
             "column_name": "orientation_deg",
@@ -189,13 +292,15 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
+            "discrete_ticks": False,
         },
         "nematic_order": {
             "column_name": "nematic_order",
             "label": "Nematic Order",
-            "lims": (0, 1),
+            "lims": (-1, 1),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
         },
         "eccentricity": {
             "column_name": "eccentricity",
@@ -203,6 +308,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, 1),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
         },
         "aspect_ratio": {
             "column_name": "aspect_ratio",
@@ -210,6 +316,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
         },
         "area_um2": {
             "column_name": "area (um**2)",
@@ -217,13 +324,15 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
         },
         "num_neighbors": {
             "column_name": "number_of_neighbors",
             "label": "Number of Neighbors",
-            "lims": (0, None),
+            "lims": (0, "max"),
             "bin_width": 1,
             "ticks": None,
+            "discrete_ticks": True,
         },
         "centroid_velocity_magnitude": {
             "column_name": "centroid_velocity_magnitude",
@@ -231,6 +340,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
         },
         "centroid_velocity_orientation_deg": {
             "column_name": "centroid_velocity_angle_deg",
@@ -238,39 +348,39 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "lims": (-180, 181),
             "bin_width": 5,
             "ticks": range(0, 181, 90),
-        },
-        "num_nuclei": {
-            "column_name": "number_of_nuclei",
-            "label": "Number of Nuclei",
-            "lims": (0, None),
+            "discrete_ticks": False,
         },
         "cell_nuc_orientation_deg": {
-            "column_name": "nuclei_orientation_rel_cell_deg",
-            "label": "Nuclei Orientation Relative to Cell (deg)",
+            "column_name": "nuc_pos_rel_cell_angle_deg",
+            "label": "Nuclei Orientation (deg)",
             "lims": (-180, 180),
             "bin_width": 5,
             "ticks": range(-180, 181, 90),
+            "discrete_ticks": False,
         },
         "cell_nuc_dist": {
-            "column_name": "nuclei_rel_cell_centroid_magnitude",
-            "label": "Nuclei Relative to Cell Centroid (px)",
+            "column_name": "nuc_pos_rel_cell_magnitude",
+            "label": "Nuclei-Cell Centroid Distance (px)",
             "lims": (0, "max"),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": False,
         },
         "num_nuclei": {
             "column_name": "total_nuclei_count_at_T",
-            "label": "Total Nuclei Count at T",
+            "label": "Number of Nuclei",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": True,
         },
         "num_tracks": {
             "column_name": "num_tracks_at_T",
-            "label": "Number of Tracks at T",
+            "label": "Number of Tracks",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
+            "discrete_ticks": True,
         },
     }
 

@@ -15,8 +15,8 @@ from src.endo_pipeline.configs.dataset_io import (
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
-    hist_2D_per_dataset,
-    lineplot_per_dataset,
+    hist_2D_of_feats,
+    lineplot_of_feats,
     mark_parallel,
     mark_perpendicular,
 )
@@ -26,14 +26,34 @@ from src.endo_pipeline.workflows.make_seg_feats_manifest import (
 
 
 def plot_seg_manifest_data(
-    # seg_feats_df_subset: pd.DataFrame,
-    big_table_subset: pd.DataFrame,
+    seg_feats_df_subset: pd.DataFrame,
     dataset_name: str,
-    # position: int,
+    position: int,
     out_dir: Path,
     show_plot: bool = False,
 ) -> None:
+    """
+    Creates and saves line plots and histograms of select segmentation
+    features for a given dataset and position. Not all features are
+    plotted as histograms.
 
+    The features that are plotted are:
+    - alignment
+    - nematic order
+    - eccentricity
+    - aspect ratio
+    - area
+    - number of neighbors
+    - centroid velocity magnitude
+    - centroid velocity orientation
+    - cell-nucleus distance
+    - cell-nucleus orientation
+    - number of nuclei (line plot only)
+    - number of tracks (line plot only)
+    """
+
+    # choose which features to put on the y-axis
+    # (we will put time on the x-axis)
     feats_to_plot_y = [
         "alignment_deg",
         "nematic_order",
@@ -51,58 +71,82 @@ def plot_seg_manifest_data(
         "num_tracks",
     ]
 
+    # get the plotting arguments for the features
+    # (e.g. axis limits, axis titles, bin widths, etc.)
     feats_plot_args = get_seg_feat_plot_args()
 
     for feat in feats_to_plot_y + feats_to_plot_y_lineplot_only:
-        y_key = feat
-        out_subdir_plots = out_dir / "lineplots" / f"{y_key}/{dataset_name}"
-        out_subdir_plots.mkdir(parents=True, exist_ok=True)
-        fig, ax = lineplot_per_dataset(
-            big_table_subset,
+        filename_out = f"{dataset_name}_P{position}_{feat}.png"
+
+        # plot alignment vs time as line plots
+        out_subdir_lineplots = out_dir / "lineplots" / f"{feat}/{dataset_name}"
+        out_subdir_lineplots.mkdir(parents=True, exist_ok=True)
+
+        fig, ax = lineplot_of_feats(
+            df_group=seg_feats_df_subset,
             x_column_name=feats_plot_args["time_hrs"]["column_name"],
             y_column_name=feats_plot_args[feat]["column_name"],
             x_label=feats_plot_args["time_hrs"]["label"],
             y_label=feats_plot_args[feat]["label"],
             y_lims=feats_plot_args[feat]["lims"],
+            set_xticks=feats_plot_args["time_hrs"]["ticks"],
+            set_yticks=feats_plot_args[feat]["ticks"],
+            discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+            discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
+            minor_ticks="xy",
         )
-        fig.savefig(out_subdir_plots / feats_plot_args[feat]["filename_out"], bbox_inches="tight")
+        fig.savefig(out_subdir_lineplots / filename_out, bbox_inches="tight")
 
         if not show_plot:
             plt.close(fig)
 
-    # plot alignment vs time as a histogram instead of violinplot
-    for feat in feats_to_plot_y:
-        out_subdir_plots = out_dir / "histplots" / f"{y_key}/{dataset_name}"
-        out_subdir_plots.mkdir(parents=True, exist_ok=True)
+        if feat not in feats_to_plot_y_lineplot_only:
+            # plot alignment vs time as histograms
+            out_subdir_histplots = out_dir / "histplots" / f"{feat}/{dataset_name}"
+            out_subdir_histplots.mkdir(parents=True, exist_ok=True)
+            filename_out = f"{dataset_name}_P{position}_{feat}.png"
 
-        fig, ax = hist_2D_per_dataset(
-            big_table_subset,
-            x_column_name=feats_plot_args["time_hrs"]["column_name"],
-            y_column_name=feats_plot_args[feat]["column_name"],
-            x_label=feats_plot_args["time_hrs"]["label"],
-            y_label=feats_plot_args[feat]["label"],
-            x_lims=feats_plot_args["time_hrs"]["lims"],
-            y_lims=feats_plot_args[feat]["lims"],
-            bin_width=(feats_plot_args["time_hrs"]["lims"], feats_plot_args[feat]["bin_width"]),
-        )
-        if "orientation" in y_key:
-            ax = mark_parallel(ax)
-            ax = mark_perpendicular(ax)
+            fig, ax = hist_2D_of_feats(
+                seg_feats_df_subset,
+                x_column_name=feats_plot_args["time_hrs"]["column_name"],
+                y_column_name=feats_plot_args[feat]["column_name"],
+                x_label=feats_plot_args["time_hrs"]["label"],
+                y_label=feats_plot_args[feat]["label"],
+                x_lims=feats_plot_args["time_hrs"]["lims"],
+                y_lims=feats_plot_args[feat]["lims"],
+                set_xticks=feats_plot_args["time_hrs"]["ticks"],
+                set_yticks=feats_plot_args[feat]["ticks"],
+                discrete_xticks=feats_plot_args["time_hrs"]["discrete_ticks"],
+                discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
+                minor_ticks="xy",
+                bin_width=(
+                    feats_plot_args["time_hrs"]["bin_width"],
+                    feats_plot_args[feat]["bin_width"],
+                ),
+            )
+            if "orientation" in feat:
+                ax = mark_parallel(ax)
+                ax = mark_perpendicular(ax)
+            fig.savefig(out_subdir_histplots / filename_out, bbox_inches="tight")
 
-        fig.savefig(out_subdir_plots / feats_plot_args[feat]["filename_out"], bbox_inches="tight")
-
-        if not show_plot:
-            plt.close(fig)
+            if not show_plot:
+                plt.close(fig)
 
 
 def process_dataset(dataset_name: str, out_dir: Path) -> None:
+    """
+    Loads the segmentation features manifest for a given dataset,
+    calculates dynamic features, and generates and saves plots for
+    each position.
+    """
+
     # load the segmentation features table
     segprops_manifest = get_segmentation_features_manifest([dataset_name])
 
     # apply the data filter
     segprops_manifest = segprops_manifest[~segprops_manifest["filter_global"]]
 
-    # make basic plots for each dataset
+    # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(
         segprops_manifest.groupby(["dataset_name", "position"]),
         total=len(segprops_manifest.groupby(["dataset_name", "position"])),
@@ -114,17 +158,16 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
 
         # make some plots
         plot_seg_manifest_data(
-            big_table_subset=df_group,
+            seg_feats_df_subset=df_group,
             dataset_name=dataset_nm,
-            # position=pos,
+            position=pos,
             out_dir=out_dir,
         )
 
 
-def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
+def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False) -> None:
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-    dataset_name_list = [dataset_name_list[0]]
     print(f"Processing: {dataset_name_list}")
 
     out_dir = get_output_path(Path(__file__).stem)
@@ -154,6 +197,8 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
         ):
             # process dataset below will both load and plot the data
             process_dataset(dataset, out_dir)
+            if is_test:
+                break
 
     # save git versioning info
     save_git_versioning_info(out_dir, Path(__file__).stem, verbose=False)
