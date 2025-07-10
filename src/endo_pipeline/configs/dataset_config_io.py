@@ -58,11 +58,23 @@ def validate_dataset_config(dataset_name: str) -> None:
                 "If is_timelapse is False, duration must be equal to 1.",
                 dataset_name,
             )
+        if config.time_interval_in_minutes is not None:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is False, time_interval_in_minutes must be None.",
+                dataset_name,
+            )
     else:
         if config.duration <= 1:
             logger.error(
                 "Validation failed for dataset [ %s ]: "
                 "If is_timelapse is True, duration must be greater than 1.",
+                dataset_name,
+            )
+        if config.time_interval_in_minutes is None:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is True, time_interval_in_minutes must not be None.",
                 dataset_name,
             )
 

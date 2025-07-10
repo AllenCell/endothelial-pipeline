@@ -11,7 +11,7 @@ shear_stress_regime: 48hr_low
 use_cases: [model_training]
 pixel_size_xy_in_um: 0.382
 duration: 1
-time_interval_in_minutes: -1.0
+time_interval_in_minutes: null
 flow: [[0, 288, 6.0], [289, 576, 28.93]]
 n_total_positions: 10
 channel_488_index: 0

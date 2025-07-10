@@ -65,7 +65,7 @@ class DatasetConfig:
     duration: int
     """Duration of dataset in frames."""
 
-    time_interval_in_minutes: float
+    time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
     flow: list[tuple[int, int, float]]
