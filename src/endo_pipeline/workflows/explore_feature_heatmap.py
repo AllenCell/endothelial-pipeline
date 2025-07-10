@@ -144,9 +144,9 @@ df_sample = df_filtered.sample(
 # the rows in the filtered dataframe
 crop_list, df_sample_sorted = get_crops_in_dataframe(df_sample)
 # %%
-bf_list = global_contrast_crop_list_channel(crop_list, channel_index=0)
-std_dev_list = global_contrast_crop_list_channel(crop_list, channel_index=1)
-cdh5_list = global_contrast_crop_list_channel(crop_list, channel_index=2)
+bf_list = global_contrast_crop_list_channel(crop_list, 0, "percentile")
+std_dev_list = global_contrast_crop_list_channel(crop_list, 1, "percentile")
+cdh5_list = global_contrast_crop_list_channel(crop_list, 2, "percentile")
 # %%
 plot_crop_montage(
     bf_list,

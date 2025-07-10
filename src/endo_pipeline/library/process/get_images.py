@@ -141,19 +141,24 @@ def get_channel_from_list(crop_list: list, channel_index: int) -> list[np.ndarra
     return extracted_channels
 
 
-def global_contrast_crop_list_channel(crop_list: list, channel_index: int) -> list[np.ndarray]:
+def global_contrast_crop_list_channel(
+    crop_list: list,
+    channel_index: int,
+    contrast_method: Literal["min-max", "percentile"] = "percentile",
+) -> list[np.ndarray]:
     """
     Apply the same contrast stretching to all crops in the list.
 
     Args:
         crop_list (list): List of crops to apply contrast stretching to.
         channel_index (int): Index of the channel to apply contrast stretching on.
+        contrast_method (str): Method for contrast stretching.
 
     Returns:
         contrasted_crops (list): List of crops with contrast stretching applied.
     """
     channel = get_channel_from_list(crop_list, channel_index)
-    low, high = get_global_custom_range(channel)
+    low, high = get_global_custom_range(channel, method=contrast_method)
 
     contrasted_channel = []
     for crop in channel:
