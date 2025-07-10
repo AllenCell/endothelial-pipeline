@@ -47,7 +47,7 @@ class DynamicsConfig:
     name: str
     """Name of the configuration."""
 
-    pcs_to_analyze: list[str] = field(default_factory=lambda: [0, 1])
+    pcs_to_analyze: list[int] = field(default_factory=lambda: [0, 1])
     """
     List of principal components to include in analysis.
 
@@ -79,13 +79,22 @@ class DynamicsConfig:
     """Number of bins in each dimension to use for plotting probability landscape."""
 
     shear_stress_range: list[float] = field(default_factory=lambda: [4.0, 30.0])
-    """Range of shear stress values to use for plotting fixed points and landscape as a function of shear stress."""
+    """
+    Range of shear stress values to use for plotting fixed
+    points and landscape as a function of shear stress.
+    """
 
     num_shear_fixed_points: int = 30
-    """Number of shear stress values to sweep for plotting fixed points within shear_stress_range."""
+    """
+    Number of shear stress values to sweep for plotting
+    fixed points within shear_stress_range.
+    """
 
     num_shear_landscape: int = 15
-    """Number of shear stress values to sweep for plotting probability landscape within shear_stress_range."""
+    """
+    Number of shear stress values to sweep for plotting
+    probability landscape within shear_stress_range.
+    """
 
     quiver_downsample_factor: int = 10
     """Downsample factor for quiver plot on top of landscape to reduce number of arrows."""
