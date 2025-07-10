@@ -7,7 +7,7 @@ from deprecated import deprecated
     """
 This method is deprecated and will be removed.
 
-1. To upload files without an associated model, using the following pattern:
+1. To upload files without an associated model, use the following pattern:
 
     from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
     from src.endo_pipeline.config import load_dataset_config
@@ -16,7 +16,7 @@ This method is deprecated and will be removed.
     annotations = build_fms_annotations(dataset)
     file_id = upload_file_to_fms(path, annotations)
 
-2. To upload files without an associated model, using the following pattern:
+2. To upload files with an associated model, use the following pattern:
 
     from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
     from src.endo_pipeline.configs import load_dataset_config, load_model_config
