@@ -62,16 +62,20 @@ def generate_overrides_for_random_crop_features(
 
 
 def generate_zarr_csv(
-    dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 0
+    dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
-    zarr_path_list = list(str(Path(dataset_config.zarr_path).glob("*.zarr")))
+    # this replaces the call to get_zarr_path from dataset_io
+    zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
+    zarr_path_dict = {}
+    for path in zarr_path_list:
+        zarr_path_dict[path.name] = str(path)
 
-    df = pd.DataFrame({"path": sorted(zarr_path_list)})
+    df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
-    data_path = save_path / "dataset.csv"
+    data_path = str(save_path / "dataset.csv")
     df.to_csv(data_path, index=False)
     return data_path
 
@@ -111,7 +115,7 @@ def update_prediction_from_crops_with_metadata(
 def apply_model_single(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
-    resolution_level: int = 0,
+    resolution_level: int = 1,
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     overrides: str | dict | None = None,
@@ -126,7 +130,7 @@ def apply_model_single(
     dataset_config: DatasetConfig
         Configuration of the dataset to apply the model to.
     resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
+        Resolution level to apply the model at. Default is 1 (zarr sample resolution)
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str or Path | None
@@ -208,7 +212,7 @@ def apply_model_single(
 def main(
     model_name: str,
     dataset_names: str | Sequence[str] = "reference",
-    resolution_level: int = 0,
+    resolution_level: int = 1,
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
     overrides: str | dict | None = None,
@@ -231,7 +235,7 @@ def main(
         Names of the datasets from `data_config.yaml` to apply the model to.
         If "reference", all reference datasets will be used.
     resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
+        Resolution level to apply the model at. Default is 1 (zarr sample resolution).
     upload_to_fms: bool
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str | Path | None
