@@ -57,7 +57,11 @@ class DynamicsConfig:
     """
 
     dt: float = 5
-    """Time interval between frames minutes."""
+    """
+    Time interval between frames in preferred units.
+
+    Default is 5, which corresponds to 5 minutes between frames.
+    """
 
     kramers_moyal: KramersMoyalParameters = field(default_factory=KramersMoyalParameters)
     """Parameters for Kramers-Moyal coefficient estimation."""
