@@ -139,7 +139,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     # plot generalized potential energy landscape for
     # each shear stress specified in shear_range_gp
     model_analysis.run_gen_potential_analysis(
-        my_sde_model,
+        sde_model,
         bins_gp,
         centers_gp,
         shear_range_gp,
