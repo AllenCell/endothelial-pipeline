@@ -8,14 +8,12 @@ import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
 
-from cellsmap.util.manifest_io import (
-    get_diffae_manifest,
-    get_feature_cols,
-    load_pca_model,
-    save_pca_model,
-)
 from src.endo_pipeline.configs import get_pca_reference_model_manifests
-from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
+from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_feature_column_names,
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
@@ -156,8 +154,6 @@ def generate_latent_walk(
 
     reference_dataset_model_manifests = get_pca_reference_model_manifests(model_name)
 
-    feature_cols = get_feature_cols(reference_manifests)
-    data = reference_manifests[feature_cols].values
     if use_pcs:
         pca = fit_pca()
         manifest_dataframe = pd.concat(
@@ -166,9 +162,13 @@ def generate_latent_walk(
                 for model_manifest in reference_dataset_model_manifests
             ]
         )
-        walk, ranges = get_pca_coords(data, pca, num_pcs, sigma, n_steps)
+        pc_column_names = get_pc_column_names(manifest_dataframe, pc_axes=list(range(num_pcs)))
+        data_for_walk = manifest_dataframe[pc_column_names].values
+        walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
     else:
-        walk, ranges = get_latent_coords(data, sigma, n_steps)
+        feature_column_names = get_feature_column_names(manifest_dataframe)
+        data_for_walk = manifest_dataframe[feature_column_names].values
+        walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
 
     walk_img = generate_from_coords(model_name, walk, n_noise_samples=n_noise_samples)
 
