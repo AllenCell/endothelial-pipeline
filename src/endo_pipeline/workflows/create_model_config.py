@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Create Model config
+# # Create model config
 
 # %% [markdown]
 """

@@ -61,10 +61,10 @@ logging.basicConfig(level=logging.INFO)
 for name in get_available_model_names():
     logger.info(f"Running validation for model [ {name} ]")
 
-    # Validate dataset config schema.
+    # Validate model config schema.
     validate_model_config(name)
 
-    # Load dataset config.
+    # Load model config.
     model_config = load_model_config(name)
 
     # Check if model exists in MLFlow.
