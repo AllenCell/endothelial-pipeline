@@ -49,7 +49,7 @@ def main(model_name: str | None = None) -> None:
             continue
         # get all zarr files in zarr path
         # append to list of zarr file paths
-        glob_list = list(Path(zarr_path).glob("*zarr"))
+        glob_list = list(Path(zarr_path).glob("*zarr"))  # type: ignore[arg-type]
         zarr_file_paths.extend(glob_list)
 
     zarr_path_df = pd.DataFrame({"path": zarr_file_paths})

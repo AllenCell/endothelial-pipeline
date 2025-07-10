@@ -44,17 +44,15 @@ def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     return walk_img
 
 
-def get_walk(
-    data: pd.DataFrame, n_dims: int, sigma: float, n_steps: int
-) -> tuple[np.ndarray, list]:
+def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
     """
     Generate a latent walk based on standard deviation
     or min/max of each dimension.
 
     Parameters
     ----------
-    data: pd.DataFrame
-        DataFrame containing the data to be transformed.
+    data: np.ndarray
+        Numpy array containing the data to be traversed.
     n_dims: int
         Number of dimensions for the latent walk.
     sigma: float
@@ -82,15 +80,15 @@ def get_walk(
 
 
 def get_pca_coords(
-    data: pd.DataFrame, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
+    data: np.ndarray, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
 ) -> tuple[np.ndarray, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
 
     Parameters
     ----------
-    data: pd.DataFrame
-        DataFrame containing the data to be transformed.
+    data: np.ndarray
+        Numpy array containing the data to be transformed.
     pca: PCA
         PCA object fitted to the data.
     num_pcs: int
@@ -106,14 +104,14 @@ def get_pca_coords(
     return walk, ranges
 
 
-def get_latent_coords(data: pd.DataFrame, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
+def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
     """
     Generate latent coordinates and corresponding values for a latent walk.
 
     Parameters
     ----------
-    data: pd.DataFrame
-        DataFrame containing the data to be transformed.
+    data: np.ndarray
+        Numpy array containing the data to be transformed.
     sigma: float
         Range of values for the latent walk.
     n_steps: int
@@ -186,6 +184,12 @@ def main(
         walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
     else:
         # perform latent walk along the raw latent dimensions
+        manifest_dataframe = pd.concat(
+            [
+                get_manifest_for_dynamics_workflows(model_manifest, pca=None)
+                for model_manifest in reference_dataset_model_manifests
+            ]
+        )
         feature_column_names = get_feature_column_names(manifest_dataframe)
         data_for_walk = manifest_dataframe[feature_column_names].values
         walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
