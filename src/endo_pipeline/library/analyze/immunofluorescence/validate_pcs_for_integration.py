@@ -1,11 +1,9 @@
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
-from numpy.typing import ArrayLike
 
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms

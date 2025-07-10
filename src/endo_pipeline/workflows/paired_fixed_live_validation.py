@@ -1,4 +1,4 @@
-from src.endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_intergration
+from src.endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
 from src.endo_pipeline.library.visualize import viz_validate_pcs_for_integration
 
 if __name__ == "__main__":
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # Align paired fixed and live data and apply a diffAE model to extract features.
     save_path, fixed_features_path, live_features_path = (
-        validate_pcs_for_intergration.apply_model_paired_fixed_live(
+        validate_pcs_for_integration.apply_model_paired_fixed_live(
             fixed_dataset_name, live_dataset_name, model_name
         )
     )
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
     fixed_features, live_features = (
-        validate_pcs_for_intergration.project_paired_fixed_live_data_into_ref_PC_space(
+        validate_pcs_for_integration.project_paired_fixed_live_data_into_ref_PC_space(
             fixed_features_path, live_features_path
         )
     )
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
         # Construct confidence ellipse to determine fixed/live PC mapping and uncertainty
         raw_data, validation_data = (
-            validate_pcs_for_intergration.get_paired_fixed_live_validation_features(
+            validate_pcs_for_integration.get_paired_fixed_live_validation_features(
                 pc, fixed_features, live_features
             )
         )

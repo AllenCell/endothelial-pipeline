@@ -3,6 +3,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Ellipse
 from numpy.typing import ArrayLike
 
 
@@ -10,7 +11,7 @@ def plot_paired_fixed_live_validation_features(
     save_path: Path,
     pc: int,
     raw_data: tuple[ArrayLike, ArrayLike],
-    paired_validation_features: tuple[Any],
+    paired_validation_features: tuple[Any, Any, Any, Any, Any, Ellipse],
     color_list: list[str] = ["#5F9ED1", "#FF800E", "#C85200"],
 ) -> None:
     """
