@@ -5,6 +5,7 @@ fmsid: 88950f25ac924adbb9c7fa4aad55817e
 barcode: GE00007380
 cell_lines: [AICS-120]
 live_or_fixed_sample: live
+is_timelapse: true
 microscope: 3i
 shear_stress_regime: 24hr_high-to-24hr_low
 use_cases: []

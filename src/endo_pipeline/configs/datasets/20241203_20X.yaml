@@ -5,6 +5,7 @@ fmsid: 9db6173b3da7452b91756b6e86b0da61
 barcode: none
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
+is_timelapse: true
 microscope: 3i
 shear_stress_regime: 48hr_low
 use_cases: [classic_segmentation, measurement]

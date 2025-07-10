@@ -5,6 +5,7 @@ fmsid: 0cc6981b54f3483e9268900343a468c9
 barcode: GE00006992
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
+is_timelapse: true
 microscope: Nikon
 shear_stress_regime: 24hr_low-to-24hr_high
 use_cases: [feasibility]

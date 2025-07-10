@@ -51,6 +51,21 @@ def validate_dataset_config(dataset_name: str) -> None:
             config.name,
         )
 
+    if not config.is_timelapse:
+        if config.duration != 1:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is False, duration must be equal to 1.",
+                dataset_name,
+            )
+    else:
+        if config.duration <= 1:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is True, duration must be greater than 1.",
+                dataset_name,
+            )
+
 
 def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""

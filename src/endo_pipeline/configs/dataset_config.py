@@ -38,6 +38,9 @@ class DatasetConfig:
     live_or_fixed_sample: Literal["live", "fixed", "fixed-methanol"]
     """Experimental condition that dataset was collected under."""
 
+    is_timelapse: bool
+    """True if dataset is a timelapse dataset, False otherwise."""
+
     microscope: Literal["3i", "Nikon"]
     """Microscope that dataset was collected with."""
 

@@ -5,6 +5,7 @@ fmsid: 1d3787a51bf44df5bd6e790d24e0ac49
 barcode: GE00007882
 cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
+is_timelapse: false
 microscope: 3i
 shear_stress_regime: 24hr_no_flow
 use_cases: [immunofluorescence]
