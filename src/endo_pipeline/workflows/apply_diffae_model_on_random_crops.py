@@ -178,6 +178,7 @@ def apply_model_single(
     )
 
     if upload_to_fms:
+        # build FMS annotations
         dataset_annotations = build_fms_annotations(
             dataset_config,
             include_timestamp=False,
@@ -185,6 +186,8 @@ def apply_model_single(
             model=model_config,
             additional_notes=get_cytodl_commit_hash(mlflow_id, model_path),
         )
+
+        # upload prediction file to FMS and get file ID
         file_id = upload_file_to_fms(
             prediction_path,
             annotations=dataset_annotations,

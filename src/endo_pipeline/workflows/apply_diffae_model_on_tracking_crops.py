@@ -11,12 +11,17 @@ from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
-    add_model_manifest,
     load_dataset_config,
     load_model_config,
+    save_dataset_config,
     save_model_config,
 )
-from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
+from src.endo_pipeline.io import (
+    build_fms_annotations,
+    get_output_path,
+    load_dataframe_from_fms,
+    upload_file_to_fms,
+)
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
@@ -228,25 +233,28 @@ def apply_model_single(
         mlflow_id=mlflow_id,
         save_path=save_path,
     )
-    commit_hash = get_cytodl_commit_hash(mlflow_id, model_path)
 
     if upload_to_fms:
-        file_id = save_file_to_fms(
-            str(prediction_path),
-            dataset_config.name,
-            commit_hash,
-            misc_notes="",
-            mlflow_run_id=mlflow_id,
+        # build FMS annotations
+        dataset_annotations = build_fms_annotations(
+            dataset_config,
+            include_timestamp=False,
+            include_git_info=False,
+            model=model_config,
+            additional_notes=get_cytodl_commit_hash(mlflow_id, model_path),
         )
 
-        # add new manifest to model config
-        model_config = add_model_manifest(
-            model_config,
-            dataset_config.name,
-            file_id,
+        # upload prediction file to FMS and get file ID
+        file_id = upload_file_to_fms(
+            prediction_path,
+            annotations=dataset_annotations,
+            file_type="parquet",
         )
 
-    return model_config
+        # tracking integration FMS ID
+        # is stored in the dataset config
+        dataset_config.diffae_tracking_integration_fmsid = file_id
+        save_dataset_config(dataset_config)
 
 
 def main(
@@ -288,16 +296,13 @@ def main(
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
-        model_config = apply_model_single(
+        apply_model_single(
             model_config=model_config,
             dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
             overrides=overrides,
         )
-
-    # save the updated model config
-    save_model_config(model_config)
 
 
 if __name__ == "__main__":
