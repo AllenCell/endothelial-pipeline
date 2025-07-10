@@ -48,7 +48,7 @@ def generate_overrides_for_random_crop_features(
         "callbacks": None,
         "callbacks.prediction_saver": {
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
-            "save_dir": str(save_path),
+            "save_dir": save_path,
             "meta_keys": [
                 "T",
                 "start_y",
@@ -63,14 +63,14 @@ def generate_overrides_for_random_crop_features(
 
 
 def generate_zarr_csv(
-    dataset_config: DatasetConfig, save_path: str, resolution_level: int = 0
+    dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 0
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     df = pd.DataFrame({"path": dataset_config.zarr_path})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
-    data_path = str(save_path / "dataset.csv")
+    data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
 
@@ -146,6 +146,8 @@ def apply_model_single(
         save_path = get_output_path(
             "models", model_config.name, dataset_config.name, include_timestamp=False
         )
+    elif isinstance(save_path, str):
+        save_path = Path(save_path)
 
     # load model
     model = CytoDLModel()
@@ -157,8 +159,8 @@ def apply_model_single(
     # apply overrides
     overrides = generate_overrides_for_random_crop_features(
         overrides,
-        save_path=save_path,
-        data_path=data_path,
+        save_path=str(save_path),
+        data_path=str(data_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
@@ -178,7 +180,7 @@ def apply_model_single(
     if upload_to_fms:
         # note that this function will be deprecated in the future
         file_id = save_file_to_fms(
-            prediction_path,
+            str(prediction_path),
             dataset_config.name,
             get_cytodl_commit_hash(mlflow_id, model_path),
             misc_notes="",

@@ -6,6 +6,7 @@ import fire
 import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
+from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import get_pca_reference_model_manifests
 from src.endo_pipeline.io import get_output_path
@@ -17,12 +18,10 @@ from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_p
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
 )
-
-# from src.endo_pipeline.library.analyze.diffae_manifest
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
 
 
-def write_text(img, text):
+def write_text(img: np.ndarray, text: str) -> np.ndarray:
     """Write text on the image."""
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.5
@@ -35,7 +34,7 @@ def write_text(img, text):
     return img
 
 
-def write_pc_vals(walk_img, ranges):
+def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     """Write dimension index and value on image."""
     idx = 0
     for i, range_ in enumerate(ranges):
@@ -45,7 +44,9 @@ def write_pc_vals(walk_img, ranges):
     return walk_img
 
 
-def get_walk(data, n_dims, sigma, n_steps):
+def get_walk(
+    data: pd.DataFrame, n_dims: int, sigma: float, n_steps: int
+) -> tuple[np.ndarray, list]:
     """
     Generate a latent walk based on standard deviation
     or min/max of each dimension.
@@ -80,7 +81,9 @@ def get_walk(data, n_dims, sigma, n_steps):
     return walk, ranges
 
 
-def get_pca_coords(data, pca, num_pcs, sigma, n_steps) -> tuple[list, list]:
+def get_pca_coords(
+    data: pd.DataFrame, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
+) -> tuple[np.ndarray, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
 
@@ -103,7 +106,7 @@ def get_pca_coords(data, pca, num_pcs, sigma, n_steps) -> tuple[list, list]:
     return walk, ranges
 
 
-def get_latent_coords(data, sigma, n_steps) -> tuple[list, list]:
+def get_latent_coords(data: pd.DataFrame, sigma: float, n_steps: int) -> tuple[np.ndarray, list]:
     """
     Generate latent coordinates and corresponding values for a latent walk.
 
@@ -129,7 +132,7 @@ def main(
     use_pcs: bool = True,
     show_coords: bool = True,
     n_noise_samples: int = 1,
-):
+) -> None:
     """
     Create latent walk for a given model using PCA or model features.
 
