@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 
@@ -26,7 +26,7 @@ class SINDyRegressionParameters:
 class KramersMoyalParameters:
     """Parameters for estimation of 2D Kramers-Moyal coefficients."""
 
-    num_bins: list[int] = [75, 75]
+    num_bins: list[int] = field(default_factory=lambda: [70, 70])
     """Number of bins to use along each dimension."""
 
     bandwidth: float = 0.075
@@ -47,28 +47,34 @@ class DynamicsConfig:
     name: str
     """Name of the configuration."""
 
-    pcs_to_analyze: list[str] = [0, 1]
-    """List of principal components to include in analysis."""
+    pcs_to_analyze: list[str] = field(default_factory=lambda: [0, 1])
+    """
+    List of principal components to include in analysis.
+
+    This list should contain the indices of the principal components
+    that are to be analyzed. For example, [0, 1] means the first two
+    principal components will be included in the analysis.
+    """
 
     dt: float = 5
     """Time interval between frames minutes."""
 
-    kramers_moyal: KramersMoyalParameters = KramersMoyalParameters()
+    kramers_moyal: KramersMoyalParameters = field(default_factory=KramersMoyalParameters())
     """Parameters for Kramers-Moyal coefficient estimation."""
 
-    sindy_parameters: SINDyRegressionParameters = SINDyRegressionParameters()
+    sindy_parameters: SINDyRegressionParameters = field(default_factory=SINDyRegressionParameters())
     """Configuration for polynomial regression using SINDy."""
 
     num_points_pplane: int = 50
     """Number of points to use along both dimensions for grid in phase plane plots."""
 
-    num_bins_histogram: int[50, 50]
+    num_bins_histogram: list[int] = field(default_factory=lambda: [50, 50])
     """Number of bins in each dimension to use for plotting stationary histogram."""
 
-    num_bins_landscape: int = [60, 60]
+    num_bins_landscape: list[int] = field(default_factory=lambda: [60, 60])
     """Number of bins in each dimension to use for plotting probability landscape."""
 
-    shear_stress_range: list[float] = [4, 30]
+    shear_stress_range: list[float] = field(default_factory=lambda: [4.0, 30.0])
     """Range of shear stress values to use for plotting fixed points and landscape as a function of shear stress."""
 
     num_shear_fixed_points: int = 30
