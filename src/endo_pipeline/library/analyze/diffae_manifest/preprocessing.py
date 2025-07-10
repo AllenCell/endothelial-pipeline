@@ -106,7 +106,8 @@ def project_manifest_to_pcs(
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
-    pc_cols = [f"pc{pc+1}" for pc in range(len(feat_cols))]
+    num_pcs = len(pca.named_steps["pca"].components_)
+    pc_cols = [f"pc{pc+1}" for pc in range(num_pcs)]
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_

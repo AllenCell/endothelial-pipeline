@@ -66,7 +66,9 @@ def generate_zarr_csv(
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
-    df = pd.DataFrame({"path": dataset_config.zarr_path})
+    zarr_path_list = list(str(Path(dataset_config.zarr_path).glob("*.zarr")))
+
+    df = pd.DataFrame({"path": sorted(zarr_path_list)})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
     data_path = save_path / "dataset.csv"

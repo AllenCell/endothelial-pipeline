@@ -80,7 +80,7 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
 
 
 def get_pca_coords(
-    data: np.ndarray, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
+    pca_data: np.ndarray, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
 ) -> tuple[list, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
@@ -88,9 +88,7 @@ def get_pca_coords(
     Parameters
     ----------
     data: np.ndarray
-        Numpy array containing the data to be transformed.
-    pca: PCA
-        PCA object fitted to the data.
+        Numpy array containing the projected data onto PCA axes.
     num_pcs: int
         Number of principal components to use for the latent walk.
     sigma: float
@@ -98,7 +96,6 @@ def get_pca_coords(
     n_steps: int
         Number of steps in the latent walk.
     """
-    pca_data = pca.transform(data)
     walk, ranges = get_walk(pca_data, num_pcs, sigma, n_steps)
     walk = pca.inverse_transform(walk)
     return walk, ranges
@@ -164,16 +161,16 @@ def main(
         Number of noise samples to use for generating images.
         Default is 1.
     """
+    # set up output directory
     save_dir = get_output_path("models", model_name, include_timestamp=False)
 
-    pca = fit_pca()
-
+    # load model configuration and reference dataset manifests
     model_config = load_model_config(model_name)
     reference_dataset_model_manifests = get_pca_reference_model_manifests(model_config)
 
     if use_pcs:
         # perform latent walk along the principal components
-        pca = fit_pca()
+        pca = fit_pca(model_name=model_name, num_pcs=num_pcs)
         manifest_dataframe = pd.concat(
             [
                 get_manifest_for_dynamics_workflows(model_manifest, pca)
