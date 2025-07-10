@@ -1,6 +1,5 @@
 import fire
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import (
     get_model_manifest,
     get_timelapse_model_manifests,
@@ -9,6 +8,10 @@ from src.endo_pipeline.configs import (
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_feature_column_names,
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
@@ -52,8 +55,8 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     for model_manifest in model_manifest_list:
         print(f"Processing dataset: {model_manifest.dataset_name}")
         df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=None)
-        feat_cols = manifest_io.get_feature_cols(df)
-        feats = preprocessing.df_to_array(df, feat_cols)
+        feature_column_names = get_feature_column_names(df)
+        feats = preprocessing.df_to_array(df, feature_column_names)
         fig, _ = manifest_viz.plot_latent_component_mean(feats)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_latent_mean")
@@ -62,8 +65,9 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_latent_histogram")
 
-        df_proj = preprocessing.project_manifest_to_pcs(df, pca)
-        feats = preprocessing.df_to_array(df_proj, feat_cols)[..., :3]  # only looking at top 3 PCs
+        df_proj = preprocessing.project_manifest_to_pcs(df, pca, feat_cols=feature_column_names)
+        pc_column_names = get_pc_column_names(df_proj, pc_axes=[0, 1, 2])
+        feats = preprocessing.df_to_array(df_proj, pc_column_names)  # only looking at top 3 PCs
 
         fig, _ = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)

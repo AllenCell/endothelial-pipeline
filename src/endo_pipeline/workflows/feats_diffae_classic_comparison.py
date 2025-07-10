@@ -8,11 +8,7 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.util.manifest_io import (
-    get_diffae_manifest,
-    get_feature_cols,
-    get_track_diffae_manifest,
-)
+from cellsmap.util.manifest_io import get_diffae_manifest, get_track_diffae_manifest
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     get_reference_datasets,
@@ -34,19 +30,10 @@ from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 
-"""
-NOTE: I believe that the "feat_#" columns in the dataset loaded by
-get_manifest_for_dynamics_workflows are actually the PCs and thus
-do not need to have their PCs calculated here.
-The "feat_#" columns in the dataset loaded by get_track_diffae_manifest
-are the DiffAE features and do need to have their PCs calculated here.
-"""
-
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
     bounds: Pipeline,
-    col_names: Literal["pc", "feat"] = "pc",
 ) -> tuple[np.ndarray, dict]:
 
     # load default config, get kernel params
@@ -73,16 +60,7 @@ def get_traj_and_flowfield(
 
     # get the columns to use for calculating trajectories
     # and flow fields.
-    # NOTE I believe that the "features" columns in the
-    # datasets loaded by get_manifest_for_dynamics_workflows
-    # are actually the PCs
-    match col_names:
-        case "pc":
-            pc_cols = [f"pc{pc+1}" for pc in range(3)]
-            cols = pc_cols
-        case "feat":
-            feat_cols = get_feature_cols(df)[:3]
-            cols = feat_cols
+    cols = [f"pc{pc+1}" for pc in range(3)]
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
@@ -111,7 +89,6 @@ def get_valid_slice_indexes(
     df: pd.DataFrame,
     traj: np.ndarray,
     flow_field_dict: dict,
-    col_names: Literal["pc", "feat"] = "feat",
 ) -> tuple[np.ndarray, np.ndarray]:
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
@@ -131,13 +108,8 @@ def get_valid_slice_indexes(
             mean_over_crops = df.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
-            match col_names:
-                case "pc":
-                    pc3_val = mean_over_crops["pc3"].mean()
-                    pc2_val = mean_over_crops["pc2"].mean()
-                case "feat":
-                    pc3_val = mean_over_crops["feat2"].mean()
-                    pc2_val = mean_over_crops["feat1"].mean()
+            pc3_val = mean_over_crops["pc3"].mean()
+            pc2_val = mean_over_crops["pc2"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -518,15 +490,13 @@ def main() -> None:
         )
 
         # use the full set of datasets to be analyzed for the bounds
-        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
+        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca)
 
         print("getting trajectory and flow field for grid-based crops...")
-        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-            diffae_grid_crops, bounds, col_names="feat"
-        )
+        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)
 
         print("getting trajectory and flow field for tracks-based crops...")
-        traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds, col_names="pc")
+        traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds)
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
 
