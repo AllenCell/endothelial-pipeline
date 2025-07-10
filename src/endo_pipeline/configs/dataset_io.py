@@ -1288,6 +1288,13 @@ def extract_P(
     return position_value if int_only else f"P{position_value}"
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. To provide git versioning
+information when uploading files to FMS, use the `include_git_info=True` flag
+(`True` by default) in `src.endo_pipeline.io.build_fms_annotations`.
+"""
+)
 def get_git_versioning_info() -> dict[str, str]:
     """
     Return versioning info about the script, including the branch
@@ -1322,6 +1329,14 @@ def get_git_versioning_info() -> dict[str, str]:
     return git_branch_info
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Git versioning info should only
+be saved with files uploaded to FMS. Use the `include_git_info=True` flag
+(`True` by default) in `src.endo_pipeline.io.build_fms_annotations` to include
+git versioning info when uploading to FMS.
+"""
+)
 def save_git_versioning_info(
     out_dir: Path,
     filename_prefix: str,
