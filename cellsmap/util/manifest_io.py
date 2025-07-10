@@ -14,6 +14,7 @@ from src.endo_pipeline.configs import (
     load_all_dataset_configs,
     load_model_config,
 )
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import get_valid_subset
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -131,38 +132,6 @@ def get_nuclear_manifest(dataset_name: str) -> pd.DataFrame:
     return df
 
 
-def get_valid_subset(df: pd.DataFrame, dataset_name: str, verbose: bool = True) -> pd.DataFrame:
-    """
-    Select timepoints from a dataframe annotated as valid
-    if annotation is present, otherwise use all timepoints.
-
-    Inputs:
-    - df: pd.DataFrame, containing the metadata for the dataset name and timepoints
-    - dataset_name: str, name of the dataset to get valid timepoints for
-
-    Outputs:
-    - df: pd.DataFrame, subset of the input dataframe containing only the valid timepoints
-    """
-    df["valid"] = False
-    # check that the necessary datasets are present for fitting PCA
-    valid_timepoints = dataset_io.get_valid_timepoints(dataset_name)
-    if valid_timepoints is None:
-        if verbose:
-            print(f"Using all timepoints from dataset {dataset_name} for PCA")
-        df["valid"] = True
-    else:
-        if verbose:
-            print(f"Valid timepoints for dataset {dataset_name}: ")
-        tps = []
-        for start, stop in zip(valid_timepoints["start"], valid_timepoints["stop"], strict=True):
-            tps.extend(list(range(start, stop + 1)))
-            if verbose:
-                print(f"   - {start} to {stop}")
-        valid_subset = df.frame_number.isin(tps)
-        df["valid"] = valid_subset
-    return df[df.valid]
-
-
 @deprecated(
     """
 This method is deprecated and will be removed. Use the following pattern to load
@@ -175,9 +144,7 @@ DiffAE manifests:
     model_manifest = get_model_manifest(dataset_name, model_config)
     dataframe = load_dataframe_from_fms(model_manifest.fmsid)
 
-If dataset needs to be filtered to valid subset, use the get_valid_subset method
-inf cellsmap.util.manifest_io directly. Note that this call may as part of
-changes to the dataset config.
+If dataset needs to be filtered to valid subset, use the get_valid_subset method.
 """
 )
 def get_diffae_manifest(

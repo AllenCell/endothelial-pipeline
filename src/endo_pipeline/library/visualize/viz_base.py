@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -53,14 +54,18 @@ def init_subplots(
 
 
 def save_plot(
-    fig: plt.Figure, filename: str, format: str = ".png", dpi: int = 450, transparent: bool = False
+    fig: plt.Figure,
+    filename: str | Path,
+    format: str = ".png",
+    dpi: int = 450,
+    transparent: bool = False,
 ) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
 
     Input:
     - fig: plt.Figure, the figure to save
-    - filename: str, the filepath to save the figure
+    - filename: str | Path, the filepath to save the figure
         (includes file name, but NOT the file extension)
     - format: str (default='.png'), the file format to save the figure
     - dpi: int (default=450), the resolution of the figure in
@@ -69,7 +74,11 @@ def save_plot(
     Output:
     - None, saves the figure to the specified file
     """
+    if isinstance(filename, str):
+        filename = Path(filename + format)
+    if not filename.suffix:
+        filename = filename.with_suffix(format)
     if format == ".png":
-        fig.savefig(filename + format, dpi=dpi, bbox_inches="tight", transparent=transparent)
+        fig.savefig(filename, dpi=dpi, bbox_inches="tight")
     else:
-        fig.savefig(filename + format, bbox_inches="tight", transparent=transparent)
+        fig.savefig(filename, bbox_inches="tight")
