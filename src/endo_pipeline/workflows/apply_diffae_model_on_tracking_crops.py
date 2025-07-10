@@ -7,14 +7,12 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
     load_dataset_config,
     load_model_config,
     save_dataset_config,
-    save_model_config,
 )
 from src.endo_pipeline.io import (
     build_fms_annotations,
@@ -173,7 +171,7 @@ def apply_model_single(
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
-) -> ModelConfig:
+) -> None:
     """
     Apply a DiffAE model to a single dataset with
     cell segmentation and tracking.

@@ -6,7 +6,6 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
