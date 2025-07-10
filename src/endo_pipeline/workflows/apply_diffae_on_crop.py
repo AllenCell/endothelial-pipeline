@@ -16,7 +16,6 @@ from src.endo_pipeline.configs import (
     load_model_config,
     save_model_config,
 )
-from src.endo_pipeline.configs.dataset_io import extract_P
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 from src.endo_pipeline.library.model.apply_model import (
     apply_model_single,
@@ -24,6 +23,7 @@ from src.endo_pipeline.library.model.apply_model import (
     load_overrides,
 )
 from src.endo_pipeline.library.model.mlflow import download_model
+from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
 
 ZARR_BF_CHANNEL = 1
 
@@ -154,7 +154,9 @@ def update_prediction_from_tracks_with_metadata(
     )
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
+    pred_df["position"] = pred_df["filename_or_obj"].apply(
+        lambda s: extract_position_from_filepath(s, int_only=False)
+    )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path
@@ -191,7 +193,7 @@ def __apply_model_single(
     overrides = load_overrides(overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name)
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
 
     if save_path is None:

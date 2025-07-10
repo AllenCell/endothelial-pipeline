@@ -16,7 +16,6 @@ from src.endo_pipeline.configs import (
     load_reference_dataset_configs,
     save_model_config,
 )
-from src.endo_pipeline.configs.dataset_io import extract_P
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model.apply_model import (
     apply_model_single,
@@ -24,6 +23,7 @@ from src.endo_pipeline.library.model.apply_model import (
     load_overrides,
 )
 from src.endo_pipeline.library.model.mlflow import download_model
+from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
 
 # the zarr creation workflow always has brightfield as channel index 1
 ZARR_BF_CHANNEL = 1
@@ -100,7 +100,9 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
     # NOTE: this calls a function from dataset_io that we probably want to move to a more general location
-    pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
+    pred_df["position"] = pred_df["filename_or_obj"].apply(
+        lambda s: extract_position_from_filepath(s, int_only=False)
+    )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path

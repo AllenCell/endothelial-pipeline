@@ -14,9 +14,12 @@ from cellsmap.util.manifest_io import (
     load_pca_model,
     save_pca_model,
 )
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.configs import get_pca_reference_model_manifests
+from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+    get_manifest_for_dynamics_workflows,
+)
 
 # from src.endo_pipeline.library.analyze.diffae_manifest
 from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
@@ -147,21 +150,22 @@ def generate_latent_walk(
     show_coords: bool, optional
         Whether to show the dimension value to generate a given image. Default is True.
     """
-    save_dir = get_output_path(f"models/{model_name}")
+    save_dir = get_output_path("models", model_name, include_timestamp=False)
 
-    reference_manifests = pd.concat(
-        [get_diffae_manifest(name, filter_to_valid=True) for name in get_reference_datasets()]
-    )
+    pca = fit_pca()
+
+    reference_dataset_model_manifests = get_pca_reference_model_manifests(model_name)
 
     feature_cols = get_feature_cols(reference_manifests)
     data = reference_manifests[feature_cols].values
     if use_pcs:
-        # use fitted PCA if path to one is passed, otherwise fit a new one on the reference dataset
-        if pca_dir is None:
-            pca = fit_pca(num_pcs=num_pcs)
-            save_pca_model(pca, save_dir)
-        else:
-            pca = load_pca_model(pca_dir)
+        pca = fit_pca()
+        manifest_dataframe = pd.concat(
+            [
+                get_manifest_for_dynamics_workflows(model_manifest, pca)
+                for model_manifest in reference_dataset_model_manifests
+            ]
+        )
         walk, ranges = get_pca_coords(data, pca, num_pcs, sigma, n_steps)
     else:
         walk, ranges = get_latent_coords(data, sigma, n_steps)

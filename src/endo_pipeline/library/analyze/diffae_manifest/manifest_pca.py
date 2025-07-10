@@ -6,9 +6,10 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.io import load_dataframe_from_fms
+
+from .diffae_manifest_utils import get_feature_column_names
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ def fit_pca(
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    feature_cols = manifest_io.get_feature_cols(data_ref)
+    feature_cols = get_feature_column_names(data_ref)
     pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
     if verbose:  # print explained variance ratios
