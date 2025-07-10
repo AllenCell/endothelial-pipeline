@@ -4,19 +4,19 @@ from typing import Any, Literal
 import fire
 from cyto_dl.api import CytoDLModel
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_model_config
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, get_ckpt_path
 
 
-def _generate_overrides(
+def generate_overrides_for_finetuning(
     user_overrides: dict | None,
     save_path: Path,
     train_data_path: str,
     val_data_path: str,
     ckpt_path: str,
 ) -> dict:
-
+    """Generate overrides for finetuning a DiffAE model."""
     for subdir in ["logs", "checkpoints"]:
         (save_path / subdir).mkdir(parents=True, exist_ok=True)
 
@@ -79,18 +79,22 @@ def main(
         Additional overrides for the training configuration. This can include any
         parameters that can be set in the config file, such as learning rate, batch size, etc.
     """
-    save_dir = Path(
-        get_output_path(f"finetune_paired_dataset/finetune_{model_name}_on_{dataset_type}")
+    save_dir = get_output_path(
+        "finetune_paired_dataset",
+        "finetune_{model_name}_on_{dataset_type}",
+        include_timestamp=False,
     )
 
-    manifest_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
+    manifest_path = get_output_path(
+        f"finetune_paired_dataset/{dataset_type}", include_timestamp=False
+    )
 
     # download model to finetune
     finetune_run_id = load_model_config(model_name).mlflow_run_id
     diffae_ckpt_path = get_ckpt_path(run_id=finetune_run_id)
     download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, save_dir)
 
-    overrides = _generate_overrides(
+    overrides = generate_overrides_for_finetuning(
         user_overrides=user_overrides,
         save_path=save_dir,
         train_data_path=manifest_path / "train.csv",
