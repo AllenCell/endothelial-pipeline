@@ -4,7 +4,6 @@ from typing import Literal, Sequence
 import dask.array as da
 import numpy as np
 import pandas as pd
-import tifffile
 from bioio import BioImage
 from tqdm import tqdm
 

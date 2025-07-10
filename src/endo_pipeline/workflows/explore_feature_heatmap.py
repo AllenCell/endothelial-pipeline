@@ -75,16 +75,7 @@ pc_val: float = 0.25
 plot_heatmap: bool = False
 frame_range = None
 # %%
-# get output subdirectory for intermediate workflow outputs
-# if directory does not exist, get_output_path function will create it
-workflow_name = "crop_visualization"
-workflow_output_folder = f"{workflow_name}/outputs"
-output_savedir = get_output_path(workflow_output_folder)
-
-# get output subdirectory for figures that workflow outputs
-# if directory does not exist, get_output_path function will create it
-workflow_fig_folder = f"{workflow_name}/figs"
-fig_savedir = get_output_path(workflow_fig_folder)
+fig_savedir = get_output_path("crop_visualization")
 
 if isinstance(dataset_names, str):
     list_of_datasets = [dataset_names]

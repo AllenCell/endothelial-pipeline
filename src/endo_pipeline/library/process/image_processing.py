@@ -49,6 +49,40 @@ def std_dev(stack: da.Array, axis: int) -> np.ndarray:
     return std_dev.compute()
 
 
+def get_global_custom_range(
+    image_list: list[np.ndarray], method: Literal["min-max", "percentile"] = "percentile"
+) -> tuple[float, float]:
+    """Get the global minimum and maximum values across a list of images
+    for use in contrast stretching.
+
+    Parameters
+    ----------
+    image_list : list[np.ndarray]
+        List of images (numpy arrays) to compute the global range.
+    method : str
+        The method to use for calculating the range:
+        - 'min-max': Use global min and max values.
+        - 'percentile': Use percentiles to determine the range.
+
+    Returns
+    -------
+    tuple[float, float]
+        The global minimum and maximum values for contrast stretching.
+    """
+    if method == "min-max":
+        low = min(image.min() for image in image_list)
+        high = max(image.max() for image in image_list)
+
+    elif method == "percentile":
+        low = np.percentile(np.concatenate([image.flatten() for image in image_list]), 1)
+        high = np.percentile(np.concatenate([image.flatten() for image in image_list]), 99)
+
+    else:
+        raise ValueError(f"Unsupported method: {method}")
+
+    return low, high
+
+
 def contrast_stretching(
     image: np.ndarray,
     method: Literal["min-max", "percentile"] = "percentile",
