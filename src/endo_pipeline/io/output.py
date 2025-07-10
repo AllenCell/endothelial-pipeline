@@ -149,7 +149,7 @@ def build_fms_annotations(
         notes.append(f"Timestamp: {timestamp}")
 
     if include_git_info:
-        repo = Repo()
+        repo = Repo(search_parent_directories=True)
         notes.append(f"Branch: {repo.active_branch.name}")
         notes.append(f"Commit: {repo.commit().hexsha}")
 
