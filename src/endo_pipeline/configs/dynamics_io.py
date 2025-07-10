@@ -1,10 +1,15 @@
-import pickle
-
-import numpy as np
+from deprecated import deprecated
 
 from src.endo_pipeline.configs.dataset_io import load_config
 
 
+@deprecated(
+    """
+        This function is deprecated and will be removed in a future version.
+
+         Use methods from `dynamics_config_io` instead.
+         """,
+)
 def load_dynamics_config(config_name: str = "default") -> dict:
     """
     Load specific config from config file for running stochastic

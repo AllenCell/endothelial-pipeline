@@ -10,6 +10,7 @@ from .dataset_config_io import (
     validate_dataset_config,
 )
 from .dataset_config_utils import get_nuclear_prediction_path, get_specific_channel_order
+from .dynamics_config import DynamicsConfig, KramersMoyalParameters, SINDyRegressionParameters
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
