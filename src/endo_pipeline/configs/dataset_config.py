@@ -125,7 +125,7 @@ class DatasetConfig:
 
 
 @dataclass
-class DatasetConfigCollection:
+class DatasetCollectionConfig:
     """Dataset configuration collection for pipeline."""
 
     name: str
