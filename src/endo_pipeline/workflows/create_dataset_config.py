@@ -45,14 +45,6 @@ dataset = DatasetConfig(
     microscope="3i",
     # microscope="Nikon",
     shear_stress_regime="shear_stress_regime",
-    use_cases=[
-        # "classic_segmentation",
-        # "feasibility",
-        # "immunofluorescence",
-        # "model_training",
-        # "measurement",
-        # "nuclear_label_free_predictions",
-    ],
     pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
     time_interval_in_minutes=0.0,
@@ -69,7 +61,6 @@ dataset = DatasetConfig(
     # nuclear_seg_manifest_fmsid="FMS ID for nuclear segmentation manifest",
     # tracking_integration_fmsid="FMS ID for tracking integration",
     # diffae_tracking_integration_fmsid="FMS ID for diffusion autoencoder tracking integration",
-    # is_reference=False,
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # cell_mean_features="FMS ID for cell mean features",
     # include_scenes=[0, 0, 0],
