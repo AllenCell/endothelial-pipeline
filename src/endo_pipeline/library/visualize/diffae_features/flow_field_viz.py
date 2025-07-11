@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_dataset_descriptions,
+)
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize import viz_base
@@ -268,8 +270,8 @@ def plot_flow_field_slices(
             mean_over_crops_ = df_cond.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops_.iloc[-1]
-            pc3_val = mean_over_crops["feat_2"].mean()
-            pc2_val = mean_over_crops["feat_1"].mean()
+            pc3_val = mean_over_crops["pc2"].mean()
+            pc2_val = mean_over_crops["pc1"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -288,8 +290,8 @@ def plot_flow_field_slices(
         dataset_name = sequence_to_scalar(df_cond["dataset"])
         scatter_color = manifest_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.15)
-        ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.15)
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -318,7 +320,7 @@ def plot_flow_field_slices(
         # for saving the plot
         if df_cond is not None:
             name = df_cond["dataset"].unique()[0]
-            condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
+            condition = get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
         viz_base.save_plot(
@@ -350,7 +352,7 @@ def plot_stable_fixed_points_together(fig_savedir: Path, output_savedir: Path) -
         "20250319_20X",
     ]
 
-    conditions = preprocessing.get_dataset_descriptions(list_of_datasets, simple=True)
+    conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
     fig, ax = viz_base.init_subplots(figsize=(14, 5))
@@ -433,7 +435,7 @@ def flow_field_viz_main(
     """
     # dataset flow condition for saving the figures
     name = df_cond["dataset"].unique()[0]
-    condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
+    condition = get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
@@ -477,8 +479,8 @@ def flow_field_viz_main(
     # get the color for the scatter plot
     scatter_color = manifest_viz.get_dataset_color(name)
     # plot scatter of data overlaid on quiver plot
-    ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.05)
-    ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
 
     # plot last point of trajectory

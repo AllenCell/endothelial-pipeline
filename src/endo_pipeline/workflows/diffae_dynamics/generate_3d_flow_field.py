@@ -9,7 +9,10 @@ from src.endo_pipeline.configs import (
     load_model_config,
 )
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_timepoints_for_plotting_pcs,
+)
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
@@ -22,10 +25,11 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     """
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
-    workflow_output_path = get_output_path(workflow_name, model_name, include_timestamp=False)
-    output_savedir = workflow_output_path / "outputs"
-    fig_savedir = workflow_output_path / "figs"
-    vtk_savedir = output_savedir / "vtk"
+    output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=False)
+    fig_savedir = get_output_path(workflow_name, model_name, "figs", include_timestamp=False)
+    vtk_savedir = get_output_path(
+        workflow_name, model_name, "outputs", "vtk", include_timestamp=False
+    )
 
     if isinstance(dataset_names, str):
         # if a single dataset is provided, convert to list
@@ -61,7 +65,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     # get timepoints to use for scatter plots
     # this can definitely be written into a wrapper function
     # maybe make a dictionary instead of a list?
-    timepoints_refs = preprocessing.get_timepoints_for_plotting_pcs(
+    timepoints_refs = get_timepoints_for_plotting_pcs(
         pca_ref_configs, restrict_no_flow=restrict_no_flow
     )
 
