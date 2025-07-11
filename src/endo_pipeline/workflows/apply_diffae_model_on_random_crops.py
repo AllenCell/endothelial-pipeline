@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import fire
-import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
@@ -16,103 +15,20 @@ from src.endo_pipeline.configs import (
     save_model_config,
 )
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model.apply_model import (
+    apply_model_on_one_dataset,
+    get_cytodl_commit_hash,
+    load_overrides,
+)
 from src.endo_pipeline.library.model.mlflow import download_model
-from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
-
-# the zarr creation workflow always has brightfield as channel index 1
-ZARR_BF_CHANNEL = 1
-
-
-def generate_overrides_for_random_crop_features(
-    user_overrides: dict,
-    save_path: str,
-    data_path: str,
-    ckpt_path: str,
-    dataset_name: str,
-    model_name: str,
-) -> dict:
-    """Generate overrides for the CytoDLModel configuration."""
-    overrides = {
-        # train and val dataloaders are unnecessary for prediction
-        # and might be slow to instantiate (e.g. if they cache data)
-        "data.train_dataloaders": None,
-        "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 128,
-        "data.predict_dataloaders.dataset.csv_path": data_path,
-        "paths.output_dir": save_path,
-        # change checkpoint path to the one downloaded from mlflow
-        "checkpoint.ckpt_path": ckpt_path,
-        "checkpoint.strict": True,
-        "callbacks": None,
-        "callbacks.prediction_saver": {
-            "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
-            "save_dir": save_path,
-            "meta_keys": [
-                "T",
-                "start_y",
-                "start_x",
-                "filename_or_obj",
-            ],
-            "save_suffix": f"{dataset_name}_{model_name}_features",
-        },
-    }
-    overrides.update(user_overrides)
-    return overrides
+from src.endo_pipeline.library.model.model_inputs import (
+    generate_overrides_for_model_eval,
+    generate_zarr_csv,
+)
+from src.endo_pipeline.library.model.model_outputs import update_prediction_from_crops_with_metadata
 
 
-def generate_zarr_csv(
-    dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
-) -> Path:
-    """Generate a CSV file with path to Zarr files for the given dataset."""
-    # generate csv with paths to zarr files
-    # this replaces the call to get_zarr_path from dataset_io
-    zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
-    zarr_path_dict = {}
-    for path in zarr_path_list:
-        zarr_path_dict[path.name] = str(path)
-
-    df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
-    df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = resolution_level
-    data_path = str(save_path / "dataset.csv")
-    df.to_csv(data_path, index=False)
-    return data_path
-
-
-def update_prediction_from_crops_with_metadata(
-    dataset_name: str,
-    model_name: str,
-    crop_size: Sequence[int],
-    mlflow_id: str,
-    save_path: Path,
-) -> Path:
-    """Update the prediction file with metadata."""
-    # add model and dataset information to prediction file
-    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
-    pred_df = pd.read_parquet(prediction_path)
-    pred_df["dataset"] = dataset_name
-    pred_df["model_name"] = model_name
-    pred_df["mlflow_id"] = mlflow_id
-
-    # note: the current model loads images at resolution
-    # level 0 and downsamples in the transforms.
-    pred_df["resolution_level"] = 1
-
-    pred_df["end_y"] = pred_df["start_y"] + crop_size[0]
-    pred_df["end_x"] = pred_df["start_x"] + crop_size[1]
-    pred_df["crop_size_y"] = crop_size[0]
-    pred_df["crop_size_x"] = crop_size[1]
-
-    pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: extract_position_from_filepath(s, int_only=False)
-    )
-    pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
-    pred_df.to_parquet(prediction_path)
-    return prediction_path
-
-
-def apply_model_single(
+def _apply_model_single(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
@@ -162,7 +78,7 @@ def apply_model_single(
     data_path = generate_zarr_csv(dataset_config, save_path, resolution_level)
 
     # apply overrides
-    overrides = generate_overrides_for_random_crop_features(
+    overrides = generate_overrides_for_model_eval(
         overrides,
         save_path=str(save_path),
         data_path=str(data_path),
@@ -214,7 +130,6 @@ def main(
     dataset_names: str | Sequence[str] = "reference",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
-    save_path: str | Path | None = None,
     overrides: str | dict | None = None,
 ) -> None:
     """
@@ -256,12 +171,11 @@ def main(
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
-        model_config = apply_model_single(
+        model_config = apply_model_on_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
-            save_path=save_path,
             overrides=overrides,
         )
 

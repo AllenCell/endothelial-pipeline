@@ -1,7 +1,17 @@
 import json
 from pathlib import Path
 
-from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact
+import torch
+from cyto_dl.api import CytoDLModel
+
+from src.endo_pipeline.configs import DatasetConfig, ModelConfig, add_model_manifest
+from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, download_model
+from src.endo_pipeline.library.model.model_inputs import (
+    generate_overrides_for_model_eval,
+    generate_zarr_csv,
+)
+from src.endo_pipeline.library.model.model_outputs import update_prediction_from_crops_with_metadata
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -46,3 +56,96 @@ def load_overrides(overrides: str | dict | None) -> dict:
     elif not isinstance(overrides, dict):
         raise ValueError("Overrides must be a dictionary or a string")
     return overrides_dict
+
+
+def apply_model_on_one_dataset(
+    model_config: ModelConfig,
+    dataset_config: DatasetConfig,
+    resolution_level: int = 1,
+    upload_to_fms: bool = True,
+    overrides: str | dict | None = None,
+) -> ModelConfig:
+    """
+    Apply a DiffAE model to a single dataset.
+
+    Parameters
+    ----------
+    model_config: ModelConfig
+        Configuration of the model to apply.
+    dataset_config: DatasetConfig
+        Configuration of the dataset to apply the model to.
+    resolution_level: int
+        Resolution level to apply the model at. Default is 1 (zarr sample resolution)
+    upload_to_fms: bool
+        Whether to upload the prediction file to FMS. Default is True.
+    save_path: str or Path | None
+        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+    overrides: str or dict or None
+        Overrides to apply to the model config. By default, no overrides are applied
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
+    overrides = load_overrides(overrides)
+    # download model from mlflow
+    mlflow_id = model_config.mlflow_run_id
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
+    path_dict = download_model(mlflow_id, model_path)
+
+    # set default output path
+    save_path = get_output_path(
+        "models", model_config.name, dataset_config.name, include_timestamp=False
+    )
+
+    # load model
+    model = CytoDLModel()
+    model.load_config_from_file(path_dict["config_path"])
+
+    # create zarr dataset
+    data_path = generate_zarr_csv(dataset_config, save_path, resolution_level)
+
+    # apply overrides
+    overrides = generate_overrides_for_model_eval(
+        overrides,
+        save_path=str(save_path),
+        data_path=str(data_path),
+        ckpt_path=path_dict["checkpoint_path"],
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
+    )
+    model.override_config(overrides)
+    model.predict()
+    crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
+
+    prediction_path = update_prediction_from_crops_with_metadata(
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
+        crop_size=crop_size,
+        mlflow_id=mlflow_id,
+        save_path=save_path,
+    )
+
+    if upload_to_fms:
+        # build FMS annotations
+        dataset_annotations = build_fms_annotations(
+            dataset_config,
+            include_timestamp=False,
+            include_git_info=False,
+            model=model_config,
+            additional_notes=f"CytoDL commit hash: {get_cytodl_commit_hash(mlflow_id, model_path)}",
+        )
+
+        # upload prediction file to FMS and get file ID
+        file_id = upload_file_to_fms(
+            prediction_path,
+            annotations=dataset_annotations,
+            file_type="parquet",
+        )
+
+        # add new manifest to model config
+        model_config = add_model_manifest(
+            model_config,
+            dataset_config.name,
+            file_id,
+        )
+
+    return model_config

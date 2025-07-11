@@ -25,10 +25,12 @@ from src.endo_pipeline.configs import add_model_manifest, load_model_config, sav
 from src.endo_pipeline.configs.dataset_io import get_zarr_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
+from src.endo_pipeline.library.model.apply_model import (
+    generate_overrides_for_model_eval,
+    get_cytodl_commit_hash,
+)
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
-from src.endo_pipeline.workflows.apply_diffae_model_on_random_crops import generate_overrides
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -639,7 +641,7 @@ def compare_paired_features(
     # apply on fixed images
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
     fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
-    fixed_overrides = generate_overrides(
+    fixed_overrides = generate_overrides_for_model_eval(
         fixed_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
@@ -656,7 +658,7 @@ def compare_paired_features(
 
     # apply on moving images
     overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides(
+    overrides = generate_overrides_for_model_eval(
         overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),

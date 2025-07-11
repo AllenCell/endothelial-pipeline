@@ -20,7 +20,11 @@ from src.endo_pipeline.io import (
     load_dataframe_from_fms,
     upload_file_to_fms,
 )
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model.apply_model import (
+    generate_overrides_for_model_eval,
+    get_cytodl_commit_hash,
+    load_overrides,
+)
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.image_filepath_utils import extract_position_from_filepath
 
@@ -35,19 +39,22 @@ def generate_overrides_for_track_based_crops(
     dataset_name: str,
     model_name: str,
 ) -> dict[str, Any]:
-    """Generate overrides for the CytoDLModel configuration."""
-    overrides = {
-        # train and val dataloaders are unnecessary for prediction
-        # and might be slow to instantiate (e.g. if they cache data)
-        "data.train_dataloaders": None,
-        "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 128,
-        "data.predict_dataloaders.dataset.csv_path": data_path,
-        "paths.output_dir": save_path,
-        # change checkpoint path to the one downloaded from mlflow
-        "checkpoint.ckpt_path": ckpt_path,
-        "checkpoint.strict": True,
-        "callbacks": None,
+    """
+    Generate overrides for the CytoDLModel configuration
+    to evaluate model `model_name` on crops of
+    tracked objects in dataset `dataset_name`.
+    """
+    overrides = generate_overrides_for_model_eval(
+        user_overrides,
+        save_path=save_path,
+        data_path=data_path,
+        ckpt_path=ckpt_path,
+        dataset_name=dataset_name,
+        model_name=model_name,
+    )
+
+    # additional overrides specific to track-based crops
+    track_specific_overrides = {
         "callbacks.prediction_saver": {
             "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
             "save_dir": save_path,
@@ -60,7 +67,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_crop_features",
+            "save_suffix": f"{dataset_name}_{model_name}_track_based_features",
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
@@ -81,7 +88,7 @@ def generate_overrides_for_track_based_crops(
         # no spatial inferer needed
         "model.spatial_inferer": None,
     }
-    overrides.update(user_overrides)
+    overrides.update(track_specific_overrides)
     return overrides
 
 
