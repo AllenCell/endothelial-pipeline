@@ -102,7 +102,7 @@ types = [
 ]
 
 [project.scripts]
-endopipe = "src.endo_pipeline.__main__:cli"
+endopipe = "src.endo_pipeline.__main__:pipeline_cli"
 
 [build-system]
 requires = ["hatchling"]

@@ -1,5 +1,6 @@
 import importlib
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -8,11 +9,16 @@ import cyclopts
 from cyclopts import App, Group, Parameter, validators
 from rich.console import Console
 
-app = App(
+pipeline_app = App(
     help="Endothelial pipeline CLI",
     version_flags=[],
     default_parameter=Parameter(negative=()),
     console=Console(),
+)
+
+workflow_app = App(
+    version_flags=[],
+    usage="",
 )
 
 tags: dict[str, list[str]] = {}
@@ -26,22 +32,34 @@ SETTINGS = Group("Settings", sort_key=100)
 LOGGING = (SETTINGS, Group(validator=validators.MutuallyExclusive()))
 
 
-def cli() -> None:
-    """Entrypoint CLI."""
+def pipeline_cli() -> None:
+    """Pipeline CLI."""
 
-    app["--help"].group = SETTINGS
-    app.meta.group_parameters = SETTINGS
+    pipeline_app["--help"].group = SETTINGS
+    pipeline_app.meta.group_parameters = SETTINGS
 
     build_cli_group(FIGURE_WORKFLOWS, "figures", True)
     build_cli_group(PRODUCTION_WORKFLOWS, "production", True)
     build_cli_group(DEVELOPMENT_WORKFLOWS, "development", True)
     build_cli_group(ARCHIVED_WORKFLOWS, "archive", False)
 
-    app.meta()
+    pipeline_app.meta.default(pipeline_entrypoint)
+    pipeline_app.meta()
 
 
-@app.meta.default
-def entrypoint(
+def workflow_cli(workflow: Callable) -> None:
+    """Workflow CLI."""
+
+    workflow_app["--help"].group = SETTINGS
+    workflow_app.meta.group_parameters = SETTINGS
+
+    workflow_app.default(workflow)
+
+    workflow_app.meta.default(workflow_entrypoint)
+    workflow_app.meta()
+
+
+def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING, show_default=False)] = False,
     debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING, show_default=False)] = False,
@@ -76,20 +94,46 @@ def entrypoint(
     else:
         setup_logging(logging.WARNING)
 
-    app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
+    pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
 
-    for subapp in app.meta.subapps:
-        if show_archive and subapp.group and subapp.group[0].name == ARCHIVED_WORKFLOWS.name:
-            subapp.show = True
+    for app in pipeline_app.meta.subapps:
+        if show_archive and app.group and app.group[0].name == ARCHIVED_WORKFLOWS.name:
+            app.show = True
 
-        if subapp.name[0] in tags:
+        if app.name[0] in tags:
             if show_tags:
-                subapp.help = f"| {' | '.join(tags[subapp.name[0]])} |{subapp.help}"
+                app.help = f"| {' | '.join(tags[app.name[0]])} |{app.help}"
 
             if filter_tag:
-                subapp.show = filter_tag in tags[subapp.name[0]] and subapp.show
+                app.show = filter_tag in tags[app.name[0]] and app.show
 
-    app(tokens)
+    pipeline_app(tokens)
+
+
+def workflow_entrypoint(
+    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    verbose: Annotated[bool, Parameter(alias="-v", show_default=False, negative=())] = False,
+    debug: Annotated[bool, Parameter(alias="-vv", show_default=False, negative=())] = False,
+) -> None:
+    """
+    Parameters
+    ----------
+    *tokens
+        Workflow and workflow arguments.
+    verbose
+        Show verbose logging.
+    debug
+        Show debug logging.
+    """
+
+    if debug:
+        setup_logging(logging.DEBUG)
+    elif verbose:
+        setup_logging(logging.INFO)
+    else:
+        setup_logging(logging.WARNING)
+
+    workflow_app(tokens)
 
 
 def build_cli_group(group: Group, directory: str, show: bool) -> None:
@@ -102,7 +146,7 @@ def build_cli_group(group: Group, directory: str, show: bool) -> None:
         name = relative_path.stem.replace("_", "-")
         module = importlib.import_module(".".join(relative_path.with_suffix("").parts))
         tags[name] = module.TAGS if hasattr(module, "TAGS") else []
-        app.command(name=name, group=group, show=show)(module.main)
+        pipeline_app.command(name=name, group=group, show=show)(module.main)
 
 
 class CustomStreamLoggingFormatter(logging.Formatter):
@@ -132,7 +176,7 @@ class CustomStreamLoggingFormatter(logging.Formatter):
 def setup_logging(level: int) -> None:
     """Set up logging handlers and assign logging levels."""
 
-    logger = logging.getLogger("src.endo_pipeline")
+    logger = logging.getLogger("")
     logger.setLevel(logging.DEBUG)
 
     log_path = Path(__file__).resolve().parents[2] / "logs"
@@ -154,4 +198,4 @@ def setup_logging(level: int) -> None:
 
 
 if __name__ == "__main__":
-    cli()
+    pipeline_cli()
