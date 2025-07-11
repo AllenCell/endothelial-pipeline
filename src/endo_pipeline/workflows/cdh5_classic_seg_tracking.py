@@ -8,11 +8,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import (
-    get_labelfree_nuclei_prediction_model_name,
-    load_dataset_config,
-    load_model_config,
-)
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -24,12 +19,7 @@ from src.endo_pipeline.configs.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import (
-    build_fms_annotations,
-    configure_logging,
-    get_output_path,
-    upload_file_to_fms,
-)
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     sequence_to_scalar,
@@ -121,7 +111,6 @@ def main(
     use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
-    upload_to_fms: bool = False,
 ) -> None:
 
     out_dir = get_output_path(Path(__file__).stem)
@@ -177,23 +166,6 @@ def main(
                 file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
-
-            if upload_to_fms:
-                # upload the combined table to FMS
-                dataset_config = load_dataset_config(dataset_name)
-                model_name = get_labelfree_nuclei_prediction_model_name()
-                model_config = load_model_config(model_name)
-                annotations = build_fms_annotations(dataset_config, model=model_config)
-                env: Literal["stg", "prod"] = "stg" if is_test else "prod"
-                file_id = upload_file_to_fms(
-                    file_path=table_path_out,
-                    annotations=annotations,
-                    file_type="tsv",
-                    env=env,
-                )
-                logger.info(
-                    f"Uploaded tracking table to FMS - dataset:{dataset_name}, environment: {env}, file ID: {file_id}"
-                )
 
     logger.info("...done analysis.")
     print("\N{MICROSCOPE}")
