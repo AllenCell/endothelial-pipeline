@@ -40,14 +40,14 @@ def plot_crop_montage(
             # f"\n{df_sample_sorted['dataset'].iloc[i]}, "
             # f"{df_sample_sorted['frame_number'].iloc[i]}"
         )
-        ax[i // 10, i % 10].axis("off")  # Turn off axis ticks after setting the title
+        ax[i // 10, i % 10].axis("off")
     fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
     plt.tight_layout()
     plt.show()
     viz_base.save_plot(
         fig,
         save_dir
-        + f"{image_content}_crops_montage_"
-        + f"PC{pc_axis+1}_val"
-        + "p".join(str(pc_val).split(".")),
+        + f"PC{pc_axis+1}_val_"
+        + "p".join(str(pc_val).split("."))
+        + f"_{image_content}_crops_montage",
     )

@@ -50,28 +50,31 @@ def get_crop(
     return img_crop
 
 
-def get_crops_in_dataframe(
-    df: pd.DataFrame, contrast_crops_individually: bool = False
-) -> tuple[list[np.ndarray], pd.DataFrame]:
+def get_crops_in_dataframe(df: pd.DataFrame, contrast_crops_individually: bool = False) -> tuple[
+    list[np.ndarray],  # Brightfield single slice crops
+    list[np.ndarray],  # Brightfield max projection crops
+    list[np.ndarray],  # Brightfield standard deviation crops
+    list[np.ndarray],  # GFP max projection crops
+    pd.DataFrame,  # Sorted dataframe
+]:
     """
     Get crops of images from the dataframe for a
-    given dataset and save them as multichannel TIFF files.
-    Return these crops as a list of numpy arrays and a dataframe
-    matching the order of the list.
+    given dataset and save in individual lists for each channel.
     """
-    # Initialize dataset name and list of images to return
     dataset = df["dataset"].iloc[0]
-    crop_list = []
+
+    crops_bf_single_slice = []  # List to store brightfield single slice crops
+    crops_bf_max_projection = []  # List to store brightfield max projection crops
+    crops_bf_std_deviation = []  # List to store brightfield standard deviation crops
+    crops_gfp_max_projection = []  # List to store GFP max projection crops
     sorted_rows = []  # List to store rows in the same order as images
 
-    # Create an overall progress bar for all rows in the dataframe
     with tqdm(total=len(df), desc="Processing crops") as pbar:
         # Loop through each position in the dataframe
         for position, df_pos in df.groupby("position"):
             p = dataset_io.extract_P(position)
             img = get_zarr_img_for_dataset(dataset, p)
 
-            # Loop through rows of the current group (rows corresponding to the current position)
             for _, row in df_pos.iterrows():
                 timepoint = row["frame_number"]
                 crop = get_crop(
@@ -85,43 +88,36 @@ def get_crops_in_dataframe(
                 )
 
                 # Extract channels once
-                bf_channel = crop[:, 1, :, :, :]  # Brightfield channel
-                gfp_channel = crop[:, 0, :, :, :]  # GFP channel
+                bf_channel = crop[:, 1, :, :, :]
+                gfp_channel = crop[:, 0, :, :, :]
 
-                # Perform operations on the extracted channels
                 bf_single_slice = get_single_bf_plane(bf_channel.squeeze())
                 bf_max_projection = max_proj(bf_channel.squeeze(), 0)
                 bf_std_deviation = std_dev(bf_channel.squeeze(), 0)
                 gfp_max_projection = max_proj(gfp_channel.squeeze(), 0)
 
                 if contrast_crops_individually:
-                    # Contrast stretch
                     bf_single_slice = contrast_stretching(bf_single_slice, "percentile")
                     bf_max_projection = contrast_stretching(bf_max_projection, "percentile")
                     bf_std_deviation = contrast_stretching(bf_std_deviation, "percentile")
                     gfp_max_projection = contrast_stretching(gfp_max_projection, "percentile")
 
-                # Combine the processed images into a multichannel array
-                multichannel_image = np.stack(
-                    [
-                        bf_single_slice,
-                        bf_max_projection,
-                        bf_std_deviation,
-                        gfp_max_projection,
-                    ],
-                    axis=0,  # Stack along the channel axis
-                )
-
-                crop_list.append(multichannel_image)
-                sorted_rows.append(row)  # Append the row to maintain order
-
-                # Update the overall progress bar
+                crops_bf_single_slice.append(bf_single_slice)
+                crops_bf_max_projection.append(bf_max_projection)
+                crops_bf_std_deviation.append(bf_std_deviation)
+                crops_gfp_max_projection.append(gfp_max_projection)
+                sorted_rows.append(row)
                 pbar.update(1)
 
-    # Create a new dataframe from the sorted rows
     df_sorted = pd.DataFrame(sorted_rows).reset_index(drop=True)
 
-    return crop_list, df_sorted
+    return (
+        crops_bf_single_slice,
+        crops_bf_max_projection,
+        crops_bf_std_deviation,
+        crops_gfp_max_projection,
+        df_sorted,
+    )
 
 
 def get_channel_from_list(crop_list: list, channel_index: int) -> list[np.ndarray]:
@@ -140,7 +136,7 @@ def get_channel_from_list(crop_list: list, channel_index: int) -> list[np.ndarra
 
 def global_contrast_crop_list_channel(
     crop_list: list,
-    channel_index: int,
+    # channel_index: int,
     contrast_method: Literal["min-max", "percentile"] = "percentile",
 ) -> list[np.ndarray]:
     """
@@ -154,11 +150,11 @@ def global_contrast_crop_list_channel(
     Returns:
         contrasted_crops (list): List of crops with contrast stretching applied.
     """
-    channel = get_channel_from_list(crop_list, channel_index)
-    low, high = get_global_custom_range(channel, method=contrast_method)
+    # channel = get_channel_from_list(crop_list, channel_index)
+    low, high = get_global_custom_range(crop_list, method=contrast_method)
 
     contrasted_channel = []
-    for crop in channel:
+    for crop in crop_list:
         contrast_crop = contrast_stretching(crop, custom_range=(low, high))
         contrasted_channel.append(contrast_crop)
     return contrasted_channel
