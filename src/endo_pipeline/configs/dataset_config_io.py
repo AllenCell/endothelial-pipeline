@@ -122,11 +122,7 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset.name}.yaml"
 
-    def list_representer(dumper, data):
-        return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
     def yaml_encoder(data):
-        yaml.SafeDumper.add_representer(list, list_representer)
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)
