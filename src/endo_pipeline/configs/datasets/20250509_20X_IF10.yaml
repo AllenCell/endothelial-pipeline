@@ -24,7 +24,6 @@ nuclear_seg_manifest_fmsid: ''
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: ''
 immunofluorescence_manifest_fmsid: 6ffdd784c8544cbdba6c60c6b0f027e5
-is_reference: false
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null

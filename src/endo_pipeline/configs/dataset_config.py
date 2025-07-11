@@ -104,9 +104,6 @@ class DatasetConfig:
     immunofluorescence_manifest_fmsid: str | None = None
     """FMS ID for immunofluorescence manifest."""
 
-    is_reference: bool = False
-    """True if dataset is used as a reference dataset, False otherwise."""
-
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
 
