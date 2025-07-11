@@ -75,9 +75,7 @@ def generate_results(args: dict) -> None:
         model_path = Path(nuclei_model["model_path"])
         # cellpose is throwing a warning about typed storage here and I don't
         # think that I can do anything about it, so I will suppress it
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-            model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
+        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
         bf_std_dask_arr = img_arr.std(axis=dim_map["Z"], keepdims=True)

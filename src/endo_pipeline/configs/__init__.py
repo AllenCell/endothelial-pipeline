@@ -13,6 +13,7 @@ from .dataset_config_utils import get_nuclear_prediction_path, get_specific_chan
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
+    get_labelfree_nuclei_prediction_model_name,
     get_model_config_dir,
     load_all_model_configs,
     load_model_config,
@@ -53,4 +54,5 @@ __all__ = [
     "validate_all_model_configs",
     "validate_dataset_config",
     "validate_model_config",
+    "get_labelfree_nuclei_prediction_model_name",
 ]

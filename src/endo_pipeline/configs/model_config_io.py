@@ -90,5 +90,11 @@ def save_model_config(model: ModelConfig) -> None:
     config_file.write_text(content)
 
 
+def get_labelfree_nuclei_prediction_model_name() -> str:
+    """Get the name of the label-free nuclei prediction model."""
+
+    return "nuc_pred_labelfree_finetuned_20250419"
+
+
 if __name__ == "__main__":
     validate_all_model_configs()

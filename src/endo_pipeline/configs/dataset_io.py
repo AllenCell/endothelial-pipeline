@@ -1360,7 +1360,7 @@ def concatenate_and_save_feature_tables(
     sort_by_T: bool = True,
     check_saved_dataframe: bool = True,
     remove_initial_files_and_folders: bool = False,
-) -> None:
+) -> Path:
     """
     Concatenate the nuclei feature tables for all positions and
     timepoints for a given dataset in an out_dir and then saves
@@ -1380,15 +1380,15 @@ def concatenate_and_save_feature_tables(
         feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
     feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
 
+    # define the output path for the concatenated dataframe
+    if out_file_suffix:
+        out_file_suffix = (
+            f"_{out_file_suffix}" if not out_file_suffix.startswith("_") else f"{out_file_suffix}"
+        )
+    concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
+
     if feats_dfs:
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
-        if out_file_suffix:
-            out_file_suffix = (
-                f"_{out_file_suffix}"
-                if not out_file_suffix.startswith("_")
-                else f"{out_file_suffix}"
-            )
-        concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
         concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
     else:
         print(f"No feature tables found for {dataset_name}.")
@@ -1424,3 +1424,5 @@ def concatenate_and_save_feature_tables(
         else:
             print(f"Directory {dir_path} is not empty, skipping removal.")
             continue
+
+    return concatenated_df_out_path

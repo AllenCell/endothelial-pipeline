@@ -1,12 +1,18 @@
+import logging
 from collections.abc import Sequence
 from multiprocessing import Pool
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import (
+    get_labelfree_nuclei_prediction_model_name,
+    load_dataset_config,
+    load_model_config,
+)
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -19,11 +25,19 @@ from src.endo_pipeline.configs.dataset_io import (
     ipython_cli_flexecute,
     save_git_versioning_info,
 )
+from src.endo_pipeline.io import (
+    build_fms_annotations,
+    configure_logging,
+    get_output_path,
+    upload_file_to_fms,
+)
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     sequence_to_scalar,
 )
 from src.endo_pipeline.library.process.lib_tracking import run_tracking
+
+logger = logging.getLogger(__name__)
 
 
 def run_workflow(queue: Sequence) -> None:
@@ -106,11 +120,15 @@ def main(
     use_sldy_data: bool = False,
     is_test: bool = False,
     verbose: bool = False,
+    upload_to_fms: bool = False,
 ) -> None:
 
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(Path(__file__).stem)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+
+    configure_logging(out_dir, logger, verbose=verbose)
+    logger.info(f"datasets analyzed: {dataset_name_list}")
 
     analysis_queue = build_analysis_queue(
         dataset_name_list,
@@ -151,13 +169,30 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list, desc="Replacing individual tables with combined table..."
         ):
-            concatenate_and_save_feature_tables(
+            table_path_out = concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
                 out_file_suffix="tracking",
                 file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
+
+            if upload_to_fms:
+                # upload the combined table to FMS
+                dataset_config = load_dataset_config(dataset_name)
+                model_name = get_labelfree_nuclei_prediction_model_name()
+                model_config = load_model_config(model_name)
+                annotations = build_fms_annotations(dataset_config, model=model_config)
+                env: Literal["stg", "prod"] = "stg" if is_test else "prod"
+                file_id = upload_file_to_fms(
+                    file_path=table_path_out,
+                    annotations=annotations,
+                    file_type="tsv",
+                    env=env,
+                )
+                logger.info(
+                    f"Uploaded tracking table to FMS - dataset:{dataset_name}, environment: {env}, file ID: {file_id}"
+                )
 
         # save git versioning info
         save_git_versioning_info(
