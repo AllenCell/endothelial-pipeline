@@ -13,15 +13,15 @@ from src.endo_pipeline.configs.dataset_io import (
     save_git_versioning_info,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
+from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
 from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
     hist_2D_of_feats,
     lineplot_of_feats,
     mark_parallel,
     mark_perpendicular,
-)
-from src.endo_pipeline.workflows.make_seg_feats_manifest import (
-    calculate_derived_data_dynamics_dependent,
 )
 
 
