@@ -50,7 +50,7 @@ def get_crop(
     return img_crop
 
 
-def get_crops_in_dataframe(df: pd.DataFrame, contrast_crops_individually: bool = False) -> tuple[
+def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[
     list[np.ndarray],  # Brightfield single slice crops
     list[np.ndarray],  # Brightfield max projection crops
     list[np.ndarray],  # Brightfield standard deviation crops
@@ -88,24 +88,15 @@ def get_crops_in_dataframe(df: pd.DataFrame, contrast_crops_individually: bool =
                 )
 
                 # Extract channels once
-                bf_channel = crop[:, 1, :, :, :]
-                gfp_channel = crop[:, 0, :, :, :]
+                bf_channel = crop[:, 1, :, :, :].squeeze()
+                gfp_channel = crop[:, 0, :, :, :].squeeze()
 
-                bf_single_slice = get_single_bf_plane(bf_channel.squeeze())
-                bf_max_projection = max_proj(bf_channel.squeeze(), 0)
-                bf_std_deviation = std_dev(bf_channel.squeeze(), 0)
-                gfp_max_projection = max_proj(gfp_channel.squeeze(), 0)
+                # Process channels
+                crops_bf_single_slice.append(get_single_bf_plane(bf_channel))
+                crops_bf_max_projection.append(max_proj(bf_channel, 0))
+                crops_bf_std_deviation.append(std_dev(bf_channel, 0))
+                crops_gfp_max_projection.append(max_proj(gfp_channel, 0))
 
-                if contrast_crops_individually:
-                    bf_single_slice = contrast_stretching(bf_single_slice, "percentile")
-                    bf_max_projection = contrast_stretching(bf_max_projection, "percentile")
-                    bf_std_deviation = contrast_stretching(bf_std_deviation, "percentile")
-                    gfp_max_projection = contrast_stretching(gfp_max_projection, "percentile")
-
-                crops_bf_single_slice.append(bf_single_slice)
-                crops_bf_max_projection.append(bf_max_projection)
-                crops_bf_std_deviation.append(bf_std_deviation)
-                crops_gfp_max_projection.append(gfp_max_projection)
                 sorted_rows.append(row)
                 pbar.update(1)
 
@@ -134,9 +125,8 @@ def get_channel_from_list(crop_list: list, channel_index: int) -> list[np.ndarra
     return [crop[channel_index] for crop in crop_list]
 
 
-def global_contrast_crop_list_channel(
+def global_contrast_crop_list(
     crop_list: list,
-    # channel_index: int,
     contrast_method: Literal["min-max", "percentile"] = "percentile",
 ) -> list[np.ndarray]:
     """
@@ -150,12 +140,32 @@ def global_contrast_crop_list_channel(
     Returns:
         contrasted_crops (list): List of crops with contrast stretching applied.
     """
-    # channel = get_channel_from_list(crop_list, channel_index)
     low, high = get_global_custom_range(crop_list, method=contrast_method)
 
     contrasted_channel = []
     for crop in crop_list:
         contrast_crop = contrast_stretching(crop, custom_range=(low, high))
+        contrasted_channel.append(contrast_crop)
+    return contrasted_channel
+
+
+def individual_contrast_crop_list(
+    crop_list: list,
+    contrast_method: Literal["min-max", "percentile"] = "percentile",
+) -> list[np.ndarray]:
+    """
+    Apply individual contrast stretching to each crop in the list.
+
+    Args:
+        crop_list (list): List of crops to apply contrast stretching to.
+        contrast_method (str): Method for contrast stretching.
+
+    Returns:
+        contrasted_crops (list): List of crops with contrast stretching applied.
+    """
+    contrasted_channel = []
+    for crop in crop_list:
+        contrast_crop = contrast_stretching(crop, method=contrast_method)
         contrasted_channel.append(contrast_crop)
     return contrasted_channel
 

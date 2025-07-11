@@ -12,7 +12,8 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
 from src.endo_pipeline.library.analyze.numerics import component_heatmaps
 from src.endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
-    global_contrast_crop_list_channel,
+    global_contrast_crop_list,
+    individual_contrast_crop_list,
 )
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.crop_montage import plot_crop_montage
@@ -23,6 +24,7 @@ from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
 N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 N_NUM_CROPS = 100
 RANDOM_SEED = 42  # seed for reproducibility in sampling random crops
+
 
 # %%
 dataset_names = None
@@ -67,11 +69,7 @@ else:
 
 pca = fit_pca()
 
-bin_limits = component_heatmaps.get_3d_bounds_from_data(
-    list_of_datasets, pca, col_names="feat", filter_to_valid=False
-)
-
-# first load and concatenate datasets
+# load and concatenate datasets
 df_list = []
 for ds_name in list_of_datasets:
     # get manifest data with crop index column added
@@ -79,6 +77,10 @@ for ds_name in list_of_datasets:
     df_list.append(df)
 df_all_datasets = pd.concat(df_list, ignore_index=True)
 
+
+bin_limits = component_heatmaps.get_3d_bounds_from_data(
+    list_of_datasets, pca, col_names="feat", filter_to_valid=False
+)
 # get heatmap data for the first 3 PCs over time
 # and update the dataframe with binning information
 hist_array_list, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
@@ -88,33 +90,27 @@ hist_array_list, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_c
     feat_cols=manifest_io.get_feature_cols(df_all_datasets)[:3],
 )
 
-# plot histogram of PCs for each component (optional)
 if plot_heatmap:
     for i, ds_name in enumerate(list_of_datasets):
         fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
         fig.suptitle(f"Dataset: {ds_name}", y=0.95, fontsize=25)
         viz_base.save_plot(fig, fig_savedir + f"{ds_name}_pc_histogram")
 
-# get dataframe of crops with bin_{latent_dim} == bin_index(latent_val),
-# where bin_index is the index of the bin that contains latent_val
-# in the bin edges over the given latent dimension
+
 df_filtered = component_heatmaps.get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
-# select timepoints within the given range
-# this is just to filter number of crops we get
-# might want to remove this step in the future
 if frame_range is not None:
     df_filtered = df_filtered[
         (df_filtered["frame_number"] >= frame_range[0])
         & (df_filtered["frame_number"] <= frame_range[1])
     ]
-# Only get crops for the subset you want to visualize
 
 # randomly sample n_num_crops rows from the filtered dataframe
 df_sample = df_filtered.sample(
     n=N_NUM_CROPS, random_state=RANDOM_SEED, replace=False
 )  # replace False avoids duplicates
-# %%
+
+# get crop images
 (
     bf_single_slice,
     bf_max_projection,
@@ -122,34 +118,40 @@ df_sample = df_filtered.sample(
     gfp_max_projection,
     df_sample_sorted,
 ) = get_crops_in_dataframe(df_sample)
-(
-    bf_single_slice_ind,
-    bf_max_projection_ind,
-    bf_std_deviation_ind,
-    gfp_max_projection_ind,
-    df_sample_sorted,
-) = get_crops_in_dataframe(df_sample, contrast_crops_individually=True)
-# %%
-# Define individual crop lists for each channel
-bf_single_slice_global = global_contrast_crop_list_channel(bf_single_slice, "percentile")
-bf_max_projection_global = global_contrast_crop_list_channel(bf_max_projection, "percentile")
-bf_std_deviation_global = global_contrast_crop_list_channel(bf_std_deviation, "percentile")
-gfp_max_projection_global = global_contrast_crop_list_channel(gfp_max_projection, "percentile")
 
-# Map channels to their respective crop lists
-channels = [
-    (bf_single_slice_global, "bf_slice_global_contrast"),
-    (bf_max_projection_global, "bf_max_proj_global_contrast"),
-    (bf_std_deviation_global, "stddev_bf_global_contrast"),
-    (gfp_max_projection_global, "cdh5_global_contrast"),
-    (bf_single_slice_ind, "bf_slice_individual_contrast"),
-    (bf_max_projection_ind, "bf_max_proj_individual_contrast"),
-    (bf_std_deviation_ind, "stddev_bf_individual_contrast"),
-    (gfp_max_projection_ind, "cdh5_individual_contrast"),
-]
+# %%
+# Define crop types and their corresponding lists
+crop_types = {
+    "bf_slice": bf_single_slice,
+    "bf_max_proj": bf_max_projection,
+    "stddev_bf": bf_std_deviation,
+    "cdh5": gfp_max_projection,
+}
+
+# Generate global and individual contrast crop lists
+contrast_crops = {}
+for name, crop_list in crop_types.items():
+    contrast_crops[f"{name}_global_contrast"] = global_contrast_crop_list(crop_list, "percentile")
+    contrast_crops[f"{name}_ind_contrast"] = individual_contrast_crop_list(crop_list, "percentile")
+
+# Check for GPU availability
+gpu_available = torch.cuda.is_available()
+# If GPU is available, import the reconstruction function and add reconstructed crops
+if gpu_available:
+    from src.endo_pipeline.library.model.diffae.generate_image import (
+        get_reconstructed_crops_in_dataframe,
+    )
+
+    reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_filtered)
+    contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
+else:
+    print("GPU not available, skipping reconstruction of crops.")
+
+# Map channels to their respective crop lists and image content
+montage_images = [(crop_list, key) for key, crop_list in contrast_crops.items()]
 
 # Plot montages for each channel
-for crop_list_channel, image_content in channels:
+for crop_list_channel, image_content in montage_images:
     plot_crop_montage(
         crop_list_channel,
         df_sample_sorted,
@@ -159,25 +161,6 @@ for crop_list_channel, image_content in channels:
         channel_index=None,
         save_dir=fig_savedir,
     )
-
-gpu_available = torch.cuda.is_available()
-if gpu_available:
-    from src.endo_pipeline.library.model.diffae.generate_image import (
-        get_reconstructed_crops_in_dataframe,
-    )
-
-    reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_filtered)
-    plot_crop_montage(
-        reconstructed_crop_list,
-        df_sample_sorted,
-        pc_axis,
-        pc_val,
-        image_content="reconstructed_cdh5",
-        channel_index=None,
-        save_dir=fig_savedir,
-    )
-else:
-    print("GPU not available, skipping reconstruction of crops.")
 
 
 # %%
