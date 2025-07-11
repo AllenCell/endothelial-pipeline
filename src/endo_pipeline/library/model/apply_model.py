@@ -9,7 +9,7 @@ from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_
 from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, download_model
 from src.endo_pipeline.library.model.model_inputs import (
     generate_overrides_for_model_eval,
-    generate_zarr_csv,
+    generate_zarr_csv_for_model_eval,
 )
 from src.endo_pipeline.library.model.model_outputs import update_prediction_from_crops_with_metadata
 
@@ -101,7 +101,7 @@ def apply_model_on_one_dataset(
     model.load_config_from_file(path_dict["config_path"])
 
     # create zarr dataset
-    data_path = generate_zarr_csv(dataset_config, save_path, resolution_level)
+    data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
 
     # apply overrides
     overrides = generate_overrides_for_model_eval(

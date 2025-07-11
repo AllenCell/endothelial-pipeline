@@ -5,6 +5,8 @@ import pandas as pd
 
 from src.endo_pipeline.configs.dataset_io import extract_P
 
+ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
+
 
 def update_prediction_from_crops_with_metadata(
     dataset_name: str,
