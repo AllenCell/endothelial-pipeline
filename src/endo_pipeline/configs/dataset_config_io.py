@@ -6,15 +6,21 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import DatasetConfig, DatasetConfigCollection
 
 logger = logging.getLogger(__name__)
 
 
 def get_dataset_config_dir() -> Path:
-    """Get path to config directory."""
+    """Get path to dataset config directory."""
 
     return Path(__file__).resolve().parents[1] / "configs" / "datasets"
+
+
+def get_dataset_config_collection_dir() -> Path:
+    """Get path to dataset config collection directory."""
+
+    return Path(__file__).resolve().parents[1] / "configs" / "collections"
 
 
 def get_available_dataset_names() -> list[str]:
@@ -41,7 +47,7 @@ def validate_dataset_config(dataset_name: str) -> None:
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset_name}.yaml"
 
-    logger.info("Validating config file [ %s ]", dataset_name)
+    logger.info("Validating dataset config file [ %s ]", dataset_name)
     config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
 
     if config.name != config_file.stem:
@@ -76,17 +82,18 @@ def load_reference_dataset_configs() -> list[DatasetConfig]:
 
 
 def load_dataset_config(dataset_name: str) -> DatasetConfig:
-    """Load single dataset config by name."""
+    """Load dataset config by name."""
 
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset_name}.yaml"
 
     if not config_file.exists():
-        logger.error("Dataset [ %s ] could not be loaded", dataset_name)
+        logger.error("Dataset config [ %s ] could not be loaded", dataset_name)
         raise FileNotFoundError(f"No such file '{config_file}'")
     else:
-        logger.debug("Loaded dataset [ %s ]", dataset_name)
-        return YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+        config = YAMLDecoder(DatasetConfig).decode(config_file.read_text())
+        logger.debug("Loaded dataset config [ %s ] from [ %s ]", dataset_name, config_file)
+        return config
 
 
 def save_dataset_config(dataset: DatasetConfig) -> None:
@@ -102,5 +109,33 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
         yaml.SafeDumper.add_representer(list, list_representer)
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
-    content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)
-    config_file.write_text(content)
+    try:
+        content = str(YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset))
+        config_file.write_text(content)
+        logger.debug("Saved dataset config [ %s ] to [ %s ]", dataset.name, config_file)
+    except:
+        logger.error("Dataset config [ %s ] could not be saved", dataset.name)
+        raise
+
+
+def load_dataset_config_collection(collection_name: str) -> DatasetConfigCollection:
+    """Load dataset config collection by name."""
+
+    collection_dir = get_dataset_config_collection_dir()
+    collection_file = collection_dir / f"{collection_name}.yaml"
+
+    if not collection_file.exists():
+        logger.error("Dataset config collection [ %s ] could not be loaded", collection_name)
+        raise FileNotFoundError(f"No such file '{collection_file}'")
+    else:
+        logger.debug(
+            "Loaded dataset config collection [ %s ] from [ %s ]", collection_name, collection_file
+        )
+        return YAMLDecoder(DatasetConfigCollection).decode(collection_file.read_text())
+
+
+def get_datasets_in_collection(collection_name: str) -> list[str]:
+    """Get list of dataset names in given collection."""
+
+    collection = load_dataset_config_collection(collection_name)
+    return collection.datasets
