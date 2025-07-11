@@ -122,6 +122,28 @@ def load_dataset_config_collection(collection_name: str) -> DatasetConfigCollect
         return YAMLDecoder(DatasetConfigCollection).decode(collection_file.read_text())
 
 
+def save_dataset_config_collection(collection: DatasetConfigCollection) -> None:
+    """Save dataset config to config directory."""
+
+    collection_dir = get_dataset_config_collection_dir()
+    collection_file = collection_dir / f"{collection.name}.yaml"
+
+    def yaml_encoder(data):
+        return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+
+    try:
+        content = str(
+            YAMLEncoder(DatasetConfigCollection, post_encoder_func=yaml_encoder).encode(collection)
+        )
+        collection_file.write_text(content)
+        logger.debug(
+            "Saved dataset config collection [ %s ] to [ %s ]", collection.name, collection_file
+        )
+    except:
+        logger.error("Dataset config collection [ %s ] could not be saved", collection.name)
+        raise
+
+
 def get_datasets_in_collection(collection_name: str) -> list[str]:
     """Get list of dataset names in given collection."""
 
