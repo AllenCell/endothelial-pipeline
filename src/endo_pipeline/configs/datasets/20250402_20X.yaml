@@ -3,7 +3,8 @@ original_path: //allen/programs/allencell/data/proj0/269/7fb/469/95b/849/efa/440
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250402_90e37b7d8f1440efa84995b4697fb269
 fmsid: 90e37b7d8f1440efa84995b4697fb269
 barcode: GE00007594
-cell_lines: [AICS-126]
+cell_lines:
+- AICS-126
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
@@ -12,11 +13,17 @@ use_cases: []
 pixel_size_xy_in_um: 0.382
 duration: 571
 time_interval_in_minutes: 5.0
-flow: [[0, 570, 5.85]]
+flow:
+- - 0
+  - 570
+  - 5.85
 n_total_positions: 6
 channel_488_index: 0
 brightfield_channel_index: 1
-flow_condition: [{start: 0, stop: 570, shear_stress: 5.85}]
+flow_condition:
+- start: 0
+  stop: 570
+  shear_stress: 5.85
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null

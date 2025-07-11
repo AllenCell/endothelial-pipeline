@@ -3,20 +3,28 @@ original_path: //allen/programs/allencell/data/proj0/d16/695/e41/afb/adf/21b/e43
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_8975c3c6497e4321badfafbe41695d16
 fmsid: 8975c3c6497e4321badfafbe41695d16
 barcode: GE00007881
-cell_lines: [AICS-126]
+cell_lines:
+- AICS-126
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 shear_stress_regime: 24hr_high
-use_cases: [immunofluorescence]
+use_cases:
+- immunofluorescence
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow: [[0, 0, 23.67]]
+flow:
+- - 0
+  - 0
+  - 23.67
 n_total_positions: 2
 channel_488_index: 1
 brightfield_channel_index: 4
-flow_condition: [{start: 0, stop: 0, shear_stress: 23.67}]
+flow_condition:
+- start: 0
+  stop: 0
+  shear_stress: 23.67
 channel_405_index: 0
 channel_561_index: 2
 channel_640_index: 3
