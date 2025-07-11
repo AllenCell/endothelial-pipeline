@@ -16,6 +16,7 @@ flow: [[0, 0, 0.0]]
 n_total_positions: 10
 channel_488_index: 5
 brightfield_channel_index: 4
+flow_condition: [{start: 0, stop: 0, shear_stress: 0.0}]
 channel_405_index: 1
 channel_561_index: null
 channel_640_index: null

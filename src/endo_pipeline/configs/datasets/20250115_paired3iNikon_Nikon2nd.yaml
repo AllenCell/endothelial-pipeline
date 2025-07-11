@@ -16,6 +16,8 @@ flow: [[0, 288, 6.37], [289, 576, 27.83], [576, 579, 0.0]]
 n_total_positions: 1
 channel_488_index: 0
 brightfield_channel_index: 1
+flow_condition: [{start: 0, stop: 288, shear_stress: 6.37}, {start: 289, stop: 576,
+    shear_stress: 27.83}, {start: 576, stop: 579, shear_stress: 0.0}]
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null

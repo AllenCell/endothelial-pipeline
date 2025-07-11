@@ -1,5 +1,6 @@
 """Data structures for dataset configs."""
 
+from dataclasses import field
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -93,10 +94,8 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list[FlowCondition]
+    flow: list
     """Flow conditions for the dataset."""
-
-    flow_history: list[FlowCondition]
 
     n_total_positions: int
     """Total number of positions captured."""
@@ -106,6 +105,8 @@ class DatasetConfig:
 
     brightfield_channel_index: int
     """Index of the brightfield channel."""
+
+    flow_condition: list[FlowCondition] = field(default_factory=list)
 
     channel_405_index: int | None = None
     """Index of the 405 channel."""
