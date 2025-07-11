@@ -69,18 +69,6 @@ def load_all_dataset_configs() -> list[DatasetConfig]:
     return datasets
 
 
-def load_reference_dataset_configs() -> list[DatasetConfig]:
-    """Load all reference dataset configs."""
-
-    all_datasets = load_all_dataset_configs()
-    reference_datasets = [dataset for dataset in all_datasets if dataset.is_reference]
-
-    reference_dataset_names = [dataset.name for dataset in reference_datasets]
-    logger.info("Loaded all reference datasets [ %s ]", " | ".join(reference_dataset_names))
-
-    return reference_datasets
-
-
 def load_dataset_config(dataset_name: str) -> DatasetConfig:
     """Load dataset config by name."""
 
