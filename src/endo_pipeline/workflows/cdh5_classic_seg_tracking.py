@@ -23,7 +23,6 @@ from src.endo_pipeline.configs.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    save_git_versioning_info,
 )
 from src.endo_pipeline.io import (
     build_fms_annotations,
@@ -56,7 +55,9 @@ def run_workflow(queue: Sequence) -> None:
     if seg_dir is not None:
         seg_dir = Path(seg_dir)
     else:
-        print(f"No segmentation directory found for {dataset_name}. Skipping tracking analysis.")
+        logger.info(
+            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
+        )
         return
 
     seg_filepaths = sorted(seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name))
@@ -107,7 +108,7 @@ def run_workflow(queue: Sequence) -> None:
         )
 
     else:
-        print(
+        logger.info(
             f"No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False."
         )
         return
@@ -194,12 +195,8 @@ def main(
                     f"Uploaded tracking table to FMS - dataset:{dataset_name}, environment: {env}, file ID: {file_id}"
                 )
 
-        # save git versioning info
-        save_git_versioning_info(
-            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
-        )
-
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.info("...done analysis.")
+    print("\N{MICROSCOPE}")
 
 
 if __name__ == "__main__":

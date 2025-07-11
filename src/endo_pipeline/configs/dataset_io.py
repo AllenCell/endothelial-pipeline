@@ -5,7 +5,6 @@ from pathlib import Path
 import dask
 import dask.array
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import yaml
 from bioio import BioImage
@@ -21,7 +20,11 @@ from typing import Any, Literal
 
 import fire
 
-from src.endo_pipeline.configs.dataset_config_io import load_dataset_config
+from src.endo_pipeline.configs.dataset_config_io import (
+    get_available_dataset_names,
+    load_dataset_config,
+    load_reference_dataset_configs,
+)
 
 
 def get_config_dir() -> Path:
@@ -1121,16 +1124,18 @@ def fire_parse_generate_dataset_name_list(
     '\"20241016_20X\",\"20241120_20X\"'
     """
     if fire_dataset_name_input is None:
-        dataset_name_list = get_reference_datasets()
+        dataset_name_list = dataset_name_list = [
+            cfg.name for cfg in load_reference_dataset_configs()
+        ]
     else:
         dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
 
     # check that the dataset names are valid
-    available_datasets = get_available_datasets(verbose=False)
+    available_datasets = get_available_dataset_names()
     for dataset_name in dataset_name_list:
         assert (
             dataset_name in available_datasets
-        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
+        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {available_datasets}."
 
     return dataset_name_list
 
