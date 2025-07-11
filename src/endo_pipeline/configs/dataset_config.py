@@ -44,18 +44,6 @@ class DatasetConfig:
     shear_stress_regime: str
     """Shear stress regime the dataset was collected under."""
 
-    use_cases: list[
-        Literal[
-            "classic_segmentation",
-            "feasibility",
-            "immunofluorescence",
-            "model_training",
-            "measurement",
-            "nuclear_label_free_predictions",
-        ]
-    ]
-    """List of valid uses cases for the dataset."""
-
     pixel_size_xy_in_um: float
     """Pixel size in XY dimension in μm."""
 

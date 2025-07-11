@@ -7,7 +7,6 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: live
 microscope: 3i
 shear_stress_regime: intermediate
-use_cases: []
 pixel_size_xy_in_um: 0.382
 duration: 542
 time_interval_in_minutes: 5.0

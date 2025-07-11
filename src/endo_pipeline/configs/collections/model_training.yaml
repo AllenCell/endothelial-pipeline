@@ -1,0 +1,13 @@
+name: model_training
+description: Datasets for model_training
+datasets:
+- 20250110_paired20X
+- 20250110_paired40X
+- 20250115_paired3iNikon_3i1st
+- 20250115_paired3iNikon_3i2nd
+- 20250131_pairedPostFixation
+- 20250131_pairedPreFixation
+- 20250204_pairedPostFixation
+- 20250204_pairedPreFixation
+- 20250214_pairedPostFixation
+- 20250214_pairedPreFixation
