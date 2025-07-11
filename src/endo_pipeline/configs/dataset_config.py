@@ -122,3 +122,17 @@ class DatasetConfig:
     class Config(BaseConfig):
         forbid_extra_keys = True
         omit_none = False
+
+
+@dataclass
+class DatasetConfigCollection:
+    """Dataset configuration collection for pipeline."""
+
+    name: str
+    """Unique name of the dataset collection."""
+
+    description: str
+    """Brief description of the dataset collection."""
+
+    datasets: list[str]
+    """List of dataset names that belong in the collection."""
