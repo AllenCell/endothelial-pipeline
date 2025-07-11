@@ -8,9 +8,34 @@ from pydantic.dataclasses import dataclass
 
 @dataclass
 class ValidTimepoints:
+    """
+    Timepoints that are visually validated to be after steady state from no flow to a set
+    flow condition appears to have stabalized and before cell piling occurs.
+    """
+
     start: list[int]
+    """Start frame of valid timepoints."""
 
     stop: list[int]
+    """Stop frame of valid timepoints."""
+
+
+@dataclass
+class FlowCondition:
+    """
+    Flow condition for a dataset. Negative start or stop frames indicate the flow occurred prior
+    to image acquisition. Time is represented in 5 minute intervals, even if the time was not
+    during an acquisition, so it wont be more than ~2.5 minutes off from the actual time.
+    """
+
+    start: int
+    """Start frame of flow condition."""
+
+    stop: int
+    """Stop frame of flow condition."""
+
+    shear_stress: float
+    """Shear stress in dynes/cm^2 for the flow condition."""
 
 
 @dataclass
@@ -68,8 +93,10 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list[tuple[int, int, float]]
+    flow: list[FlowCondition]
     """Flow conditions for the dataset."""
+
+    flow_history: list[FlowCondition]
 
     n_total_positions: int
     """Total number of positions captured."""
