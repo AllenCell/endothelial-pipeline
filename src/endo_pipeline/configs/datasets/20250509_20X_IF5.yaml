@@ -22,7 +22,7 @@ n_total_positions: 2
 channel_488_index: 1
 brightfield_channel_index: 4
 flow_condition:
-- start: 0
+- start: -288
   stop: 0
   shear_stress: 5.98
 channel_405_index: 0
