@@ -1,13 +1,14 @@
+import logging
 from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from bioio import BioImage
+from deprecated import deprecated  # type: ignore[import-untyped]
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -19,13 +20,15 @@ from src.endo_pipeline.configs.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
-    save_git_versioning_info,
 )
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.analyze import shape_features as feat
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def build_measured_features_tables_multiproc_wrapper(args: dict) -> None:
@@ -172,16 +175,18 @@ def build_measured_features_tables(
     - git_uncommitted_changes
     """
 
-    print(f"Working on {dataset_name} -- T={T}...") if verbose else None
+    logger.debug(f"Working on {dataset_name} -- T={T}...")
 
     dim_order = "TCZYX"
 
     out_dir = Path(out_dir)
     images_out_dir = out_dir / f"{dataset_name}/P{position}/images"
-    tables_out_dir_alignments = out_dir / f"{dataset_name}/P{position}/tables_alignments"
-    tables_out_dir_segprops = out_dir / f"{dataset_name}/P{position}/tables_segmentation_properties"
+    tables_out_dir_alignments = out_dir / f"{dataset_name}/P{position}/tables_cdh5_alignments"
+    tables_out_dir_segprops = (
+        out_dir / f"{dataset_name}/P{position}/tables_cdh5_segmentation_properties"
+    )
 
-    print(f"T={T} -- loading imaging datasets") if verbose else None
+    logger.debug(f"T={T} -- loading imaging datasets")
     # load the raw cdh5 image data
     if use_sldy_data:
         cdh5_chan_index = get_dataset_info(dataset_name)["channel_488_index"]
@@ -205,13 +210,15 @@ def build_measured_features_tables(
         image_path = Path(get_zarr_path(dataset_name)[zarr_name])
         voxel_size = BioImage(image_path).physical_pixel_sizes
 
-    print(f"T={T} -- loading classic segmentation") if verbose else None
+    logger.debug(f"T={T} -- loading classic segmentation")
     # load the segmentation images
     seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
     if seg_dir is not None:
         seg_dir = Path(seg_dir)
     else:
-        print(f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements.")
+        logger.warning(
+            f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements."
+        )
         return
 
     seg_filepath_list = [fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T]
@@ -225,17 +232,14 @@ def build_measured_features_tables(
     seg_borders = find_boundaries(seg_arr)
 
     ## convert cleaned up threshold of cadherin signal to nodes and edges
-    print(f"T={T} -- getting nodes and edges") if verbose else None
+    logger.debug(f"T={T} -- getting nodes and edges")
     nodes, edges, skel, conn = feat.arr2graph(seg_borders, closing_step=False)
 
     ## get the node-to-node distances and the angle between a line connecting two nodes
     ## and a horizontal line
     ## NOTE there should also be a way to get the error in the measurement of the angles too...
-    (
-        print(f"T={T} -- calculating distances and angles between neighboring nodes")
-        if verbose
-        else None
-    )
+    logger.debug(f"T={T} -- calculating distances and angles between neighboring nodes")
+
     neighbor_node_metrics, labeled_region_metrics = feat.calculate_region_border_metrics(
         seg_borders.astype(bool), raw_arr, seg_arr, verbose=verbose
     )
@@ -244,7 +248,7 @@ def build_measured_features_tables(
     if save_output:
         tables_out_dir_alignments.mkdir(exist_ok=True, parents=True)
         ## save table output of edge alignments
-        (print(f"T={T} -- saving table of edge angles and distances") if verbose else None)
+        logger.debug(f"T={T} -- saving table of edge angles and distances")
         table = pd.DataFrame(
             {
                 "filepath_raw_image": image_path,
@@ -270,7 +274,7 @@ def build_measured_features_tables(
             }
         )
         table.to_csv(
-            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_alignments.tsv",
+            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_cdh5_alignments.tsv",
             index=False,
             sep="\t",
         )
@@ -279,11 +283,8 @@ def build_measured_features_tables(
             images_out_dir.mkdir(exist_ok=True, parents=True)
             ## save images containing the nodes, edges, and node-node lines
             ## as different channels
-            (
-                print(f"T={T} -- saving multichannel images of results for validation")
-                if verbose
-                else None
-            )
+            logger.debug(f"T={T} -- saving multichannel images of results for validation")
+
             ## create a rasterized image of the lines
             lines = np.zeros(nodes.shape, dtype=np.uint16)
             ## need to flatten the node_coord_pairs first before passing to rasterize_edge_between_nodes
@@ -316,7 +317,7 @@ def build_measured_features_tables(
         ## save table output of cell properties (e.g. areas, etc.)
         if labeled_region_metrics:
             tables_out_dir_segprops.mkdir(exist_ok=True, parents=True)
-            print(f"T={T} -- saving table of cell properties") if verbose else None
+            logger.debug(f"T={T} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
                     "filepath_raw_image": image_path,
@@ -363,12 +364,20 @@ def build_measured_features_tables(
                 }
             )
             table.to_csv(
-                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_segprops.tsv",
+                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_cdh5_segprops.tsv",
                 index=False,
                 sep="\t",
             )
 
 
+@deprecated(
+    """
+This function is no longer used.
+Use
+src.endo_pipeline.configs.dataset_io.concatenate_and_save_feature_tables
+instead.
+"""
+)
 def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
     print(f"- {dataset_name}")
     # get the alignment table paths and segmentation properties
@@ -390,6 +399,14 @@ def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
     )
 
 
+@deprecated(
+    """
+This function is no longer used.
+Use
+src.endo_pipeline.configs.dataset_io.concatenate_and_save_feature_tables
+instead.
+"""
+)
 def concatenate_tables_multiproc(queue_group: tuple) -> None:
     dataset_name, queue_df = queue_group
     out_dir = queue_df["output_dir"].iloc[0]
@@ -405,10 +422,13 @@ def main(
     use_sldy_data: bool = False,
 ) -> None:
 
+    out_dir = get_output_path(Path(__file__).stem)
+
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
-    print("Building analysis queue...")
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    configure_logging(out_dir, logger, verbose=verbose)
+    logger.info(f"datasets analyzed: {dataset_name_list}")
+
     analysis_queue = build_analysis_queue(
         dataset_name_list,
         save_output=save_output,
@@ -447,27 +467,23 @@ def main(
             concatenate_and_save_feature_tables(
                 out_dir,
                 dataset_name,
-                out_file_suffix="alignments",
-                input_filename_contains="alignments",
+                out_file_suffix="cdh5_alignments",
+                input_filename_contains="cdh5_alignments",
                 file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
             concatenate_and_save_feature_tables(
                 out_dir,
                 dataset_name,
-                out_file_suffix="segprops",
-                input_filename_contains="segprops",
+                out_file_suffix="cdh5_segprops",
+                input_filename_contains="cdh5_segprops",
                 file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
 
-        # save git versioning info
-        save_git_versioning_info(
-            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
-        )
-
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.info("...done analysis.")
+    print("\N{MICROSCOPE}")
 
 
 if __name__ == "__main__":
-    ipython_cli_flexecute(main)
+    ipython_cli_flexecute(main, dataset_name="20241016_20X", is_test=True)
