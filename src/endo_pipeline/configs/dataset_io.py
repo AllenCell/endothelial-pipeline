@@ -8,7 +8,7 @@ import dask.dataframe as dd
 import pandas as pd
 import yaml
 from bioio import BioImage
-from deprecated import deprecated
+from deprecated import deprecated  # type:ignore[import-untyped]
 
 try:
     from IPython import get_ipython
@@ -25,6 +25,7 @@ from src.endo_pipeline.configs.dataset_config_io import (
     load_dataset_config,
     load_reference_dataset_configs,
 )
+from src.endo_pipeline.io import load_dataframe_from_fms
 
 
 def get_config_dir() -> Path:
@@ -882,6 +883,12 @@ def load_cdh5_classic_segmentation(
         return dask.array.empty(shape=[0] * len(dim_order))
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_tracking_data_paths(
     dataset_name: str,
     position: int,
@@ -897,6 +904,12 @@ def get_tracking_data_paths(
     return data_path
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_tracking_data_raws(
     dataset_name_list: list,
     position: int | None = None,
@@ -935,6 +948,12 @@ def get_tracking_data_raws(
     return tracking_dataframe
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
@@ -964,6 +983,12 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_measurement_data_paths(
     dataset_name: str, kind: Literal["alignments", "segmentation_properties"]
 ) -> Path:
@@ -978,6 +1003,12 @@ def get_measurement_data_paths(
     return data_path
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_measurement_data_raws(
     dataset_name_list: list,
     kind: Literal["alignments", "segmentation_properties"],
@@ -1010,7 +1041,7 @@ def get_measurement_data_raws(
 def get_measured_segmentation_table(
     dataset_name_list: list,
     kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
-    as_dask: bool = False,
+    # as_dask: bool = False,
 ) -> pd.DataFrame:
     """
     Loads one of the available kinds of segmentation features tables
@@ -1029,47 +1060,63 @@ def get_measured_segmentation_table(
     """
     match kind:
         case "cdh5_segmentations":
-            base_path = Path(
-                "//allen/aics/endothelial/morphological_features/analysis/cdh5_get_measured_features"
-            )
-            data_suffix = "segprops"
+            fmsid_field = "cdh5_classic_seg_manifest_fmsid"
+            # base_path = Path(
+            #     "//allen/aics/endothelial/morphological_features/analysis/cdh5_get_measured_features"
+            # )
+            # data_suffix = "cdh5_segprops"
         case "nuclei_labelfree":
-            base_path = Path(
-                "//allen/aics/endothelial/morphological_features/analysis/nuc_labelfree_get_measured_features"
-            )
-            data_suffix = "nuclei_features"
+            fmsid_field = "nuclei_label_free_seg_manifest_fmsid"
+            # base_path = Path(
+            #     "//allen/aics/endothelial/morphological_features/analysis/nuc_labelfree_get_measured_features"
+            # )
+            # data_suffix = "nuclei_features"
         case "cdh5_tracking":
-            base_path = Path(
-                "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
-            )
-            data_suffix = "tracking"
+            fmsid_field = "cdh5_classic_seg_tracking_manifest_fmsid"
+            # base_path = Path(
+            #     "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
+            # )
+            # data_suffix = "tracking"
         case _:
             raise ValueError(
                 f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
             )
-    table_reader = dd if as_dask else pd
+    # table_reader = dd if as_dask else pd
     measured_data_list = []
     for dataset_name in dataset_name_list:
-        data_path = base_path / f"{dataset_name}_{data_suffix}.tsv"
-        if data_path.exists():
-            # open the data tables
-            measured_data = table_reader.read_csv(data_path, sep="\t")
-            # include path to file that this data was loaded from
-            measured_data[f"source_measured_table_path-{kind}"] = data_path.as_posix()
-            measured_data_list.append(measured_data)
-        else:
-            print(f"No {kind} data found for {dataset_name}. Skipping...")
-            continue
+        fmsid = load_dataset_config(dataset_name).__getattribute__(fmsid_field)
+        measured_data = load_dataframe_from_fms(fmsid)
+        # add the fmsid name to the dataframe
+        measured_data[f"fmsid_{kind}_measurements_table"] = fmsid
+        # add the dataframe to the list of datasets
+        measured_data_list.append(measured_data)
     # concatenate the dataframes into a single dataframe and return it
     if measured_data_list:
-        measured_dataframe = table_reader.concat(measured_data_list, axis=0, ignore_index=True)
+        measured_dataframe = pd.concat(measured_data_list, axis=0, ignore_index=True)
     else:  # create an empty dataframe
-        measured_dataframe = table_reader.DataFrame.from_dict({})
+        measured_dataframe = pd.DataFrame.from_dict({})
+
+    #     data_path = base_path / f"{dataset_name}_{data_suffix}.tsv"
+    #     if data_path.exists():
+    #         # open the data tables
+    #         measured_data = table_reader.read_csv(data_path, sep="\t")
+    #         # include path to file that this data was loaded from
+    #         measured_data[f"source_measured_table_path-{kind}"] = data_path.as_posix()
+    #         measured_data_list.append(measured_data)
+    #     else:
+    #         print(f"No {kind} data found for {dataset_name}. Skipping...")
+    #         continue
+    # # concatenate the dataframes into a single dataframe and return it
+    # if measured_data_list:
+    #     measured_dataframe = table_reader.concat(measured_data_list, axis=0, ignore_index=True)
+    # else:  # create an empty dataframe
+    #     measured_dataframe = table_reader.DataFrame.from_dict({})
     return measured_dataframe
 
 
 def get_segmentation_features_manifest(
-    dataset_name_list: list, as_dask: bool = False
+    # dataset_name_list: list, as_dask: bool = False
+    dataset_name_list: list,
 ) -> pd.DataFrame:
     """
     Get the segmentation features manifest for a given dataset.
@@ -1077,24 +1124,37 @@ def get_segmentation_features_manifest(
     from the tracked segmentations of a dataset.
     These datasets are raw / unfiltered.
     """
-    table_reader = dd if as_dask else pd
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/segmentation_features"
-    )
+    # table_reader = dd if as_dask else pd
+    # base_path = Path(
+    #     "//allen/aics/endothelial/morphological_features/analysis/segmentation_features"
+    # )
+
     seg_feat_data_list = []
     for dataset_name in dataset_name_list:
-        data_path = base_path / f"{dataset_name}_segmentation_features.tsv"
-        if data_path.exists():
-            # open the data tables
-            seg_feat_data = table_reader.read_csv(data_path, sep="\t")
-            # include path to file that this data was loaded from
-            seg_feat_data["source_filtered_tracking_table_path"] = data_path.as_posix()
-            seg_feat_data_list.append(seg_feat_data)
-        else:
-            print(f"No segmentation feature manifest found for {dataset_name}. Skipping...")
-            continue
+        # get the fmsid of the live data segmentation
+        # features manifest for the dataset
+        fmsid = load_dataset_config(dataset_name).merged_seg_features_manifest_fmsid  # type: ignore[attr-defined]
+        # load the manifest associated with this fmsid as a dataframe
+        seg_feat_data = load_dataframe_from_fms(fmsid)
+        # add the fmsid name to the dataframe
+        seg_feat_data["fmsid_cdh5_segmentation_features_manifest_table"] = fmsid
+        # add the dataframe to the list of datasets
+        seg_feat_data_list.append(seg_feat_data)
     # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = table_reader.concat(seg_feat_data_list, axis=0, ignore_index=True)
+    seg_feat_dataframe = pd.concat(seg_feat_data_list, axis=0, ignore_index=True)
+
+    #     data_path = base_path / f"{dataset_name}_segmentation_features.tsv"
+    #     if data_path.exists():
+    #         # open the data tables
+    #         seg_feat_data = table_reader.read_csv(data_path, sep="\t")
+    #         # include path to file that this data was loaded from
+    #         seg_feat_data["source_filtered_tracking_table_path"] = data_path.as_posix()
+    #         seg_feat_data_list.append(seg_feat_data)
+    #     else:
+    #         print(f"No segmentation feature manifest found for {dataset_name}. Skipping...")
+    #         continue
+    # # concatenate the dataframes into a single dataframe and return it
+    # seg_feat_dataframe = table_reader.concat(seg_feat_data_list, axis=0, ignore_index=True)
     return seg_feat_dataframe
 
 
