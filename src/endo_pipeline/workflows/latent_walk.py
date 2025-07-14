@@ -18,7 +18,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_p
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
 )
-from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
+from src.endo_pipeline.library.model import generate_from_coords
 
 
 def write_text(img: np.ndarray, text: str) -> np.ndarray:

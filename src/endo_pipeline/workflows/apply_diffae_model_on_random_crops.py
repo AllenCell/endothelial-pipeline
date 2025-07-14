@@ -8,7 +8,7 @@ from src.endo_pipeline.configs import (
     load_reference_dataset_configs,
     save_model_config,
 )
-from src.endo_pipeline.library.model.apply_model import apply_model_on_one_dataset
+from src.endo_pipeline.library.model import apply_model_on_random_crops_from_one_dataset
 
 
 def main(
@@ -57,7 +57,7 @@ def main(
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
-        model_config = apply_model_on_one_dataset(
+        model_config = apply_model_on_random_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
