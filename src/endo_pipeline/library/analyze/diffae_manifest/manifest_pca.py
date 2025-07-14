@@ -1,17 +1,25 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from cellsmap.util import manifest_io
-from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
+from src.endo_pipeline.io import load_dataframe_from_fms
+
+from .diffae_manifest_utils import get_feature_column_names
+
+logger = logging.getLogger(__name__)
 
 # this is to suppress the SettingWithCopyWarning
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipeline:
+def fit_pca(
+    model_name: str = "diffae_04_10", num_pcs: int = 8, scale: bool = False, verbose: bool = True
+) -> Pipeline:
     """
     Fit PCA model to fixed set of reference datasets.
     Reference datasets are flagged in the data configs,
@@ -19,6 +27,10 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     by calling the `get_reference_datasets` function.
 
     Args:
+        model_name (str): Name of the model to use for PCA.
+            This is used to load the model config and get
+            the reference datasets for PCA.
+            Default is "diffae_04_10".
         num_pcs (int, optional): Number of principal components
             to keep (default: 8, i.e., full PCA)
         scale (bool, optional): Whether to scale the data before
@@ -29,15 +41,16 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
     Returns:
         pipe (Pipeline): Fitted PCA pipeline (may include scaling)
     """
-    # first, get list of reference datasets to use for PCA
-    reference_datasets = get_reference_datasets()
+    # load model config to get avaiable manifest names
+    model_config = load_model_config(model_name)
+    model_manifest_list = get_pca_reference_model_manifests(model_config)
     if verbose:
-        print(f"\nReference datasets for PCA: {reference_datasets}")
+        print(
+            "\nReference datasets for PCA:",
+            f"{[model_manifest.dataset_name for model_manifest in model_manifest_list]}\n",
+        )
     data_ref = pd.concat(
-        [
-            manifest_io.get_diffae_manifest(name, filter_to_valid=True)
-            for name in reference_datasets
-        ],
+        [load_dataframe_from_fms(model_manifest.fmsid) for model_manifest in model_manifest_list],
         ignore_index=True,
     )
 
@@ -54,7 +67,7 @@ def fit_pca(num_pcs: int = 8, scale: bool = False, verbose: bool = True) -> Pipe
 
     # get the feature columns from the data,
     # these are the columns that start with 'feat_'
-    feature_cols = manifest_io.get_feature_cols(data_ref)
+    feature_cols = get_feature_column_names(data_ref)
     pipe.fit(data_ref[feature_cols].values)  # fit PCA
 
     if verbose:  # print explained variance ratios

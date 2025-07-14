@@ -1,3 +1,5 @@
+import logging
+import warnings
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -6,12 +8,9 @@ from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_dataset_info,
-    load_config,
-)
+from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
@@ -24,7 +23,6 @@ from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_fl
 # Predict nuclei from brightfield images using the retrained CellPose model
 def generate_results(args: dict) -> None:
 
-    verbose = args["verbose"]
     dataset_name = args["dataset_name"]
     create_validation = args["validation_image"]
     img_path = args["input_path"]
@@ -41,16 +39,12 @@ def generate_results(args: dict) -> None:
         / f'{dataset_name}_P{args["position"]}_T{args["T"]}_cellpose_overlay.ome.tiff'
     )
 
-    (
-        print(
-            f'Working on dataset {args["dataset_name"]}, T = {args["T"]}, scene = {args["scene_index"]}...'
-        )
-        if verbose
-        else None
+    logger.info(
+        f'Working on dataset {args["dataset_name"]}, T = {args["T"]}, scene = {args["scene_index"]}...'
     )
 
     if (args["overwrite"] == False) and out_path.exists():
-        print(" - output already exists, skipping...") if verbose else None
+        logger.info(" - output already exists, skipping...")
         return
 
     else:
@@ -61,28 +55,37 @@ def generate_results(args: dict) -> None:
         if args["use_sldy_data"]:
             img.set_scene(args["scene_index"])
 
-        brightfield_index = get_dataset_info(dataset_name)["brightfield_channel_index"]
+        data_config = load_dataset_config(dataset_name)
+        brightfield_index = data_config.brightfield_channel_index
         img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
-        model_config = load_config(config_type="model")
-        nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            # Load the model configuration
+            model_config = load_config(config_type="model")
+            nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
 
         gpu = core.use_gpu()
+        global device_used_printed_global
+        if not device_used_printed_global:
+            logger.info(f" - using device: {'GPU' if gpu else 'CPU'}")
+            device_used_printed_global = True
 
         model_path = Path(nuclei_model["model_path"])
-        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
+        # cellpose is throwing a warning about typed storage here and I don't
+        # think that I can do anything about it, so I will suppress it
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
         bf_std_dask_arr = img_arr.std(axis=dim_map["Z"], keepdims=True)
         bf_std_arr = bf_std_dask_arr.squeeze().compute()
 
         # Predict nuclei from brightfield images
-        (
-            print(" - predicting nuclei from brightfield standard deviation projections...")
-            if verbose
-            else None
-        )
+        logger.info(" - predicting nuclei from brightfield standard deviation projections...")
+
         masks_bf_std = model_bf_stdproject.eval(
             bf_std_arr,
             channels=[0, 0],
@@ -93,7 +96,8 @@ def generate_results(args: dict) -> None:
 
         # Save a nuclei prediction image
         images_out = [masks_bf_std[0].squeeze()]
-        print(" - saving image...") if verbose else None
+        logger.info(" - saving image...")
+
         images_out_metadata = {
             "image_name": dataset_name,
             "channel_names": ["CellPose_prediction"],
@@ -117,7 +121,8 @@ def generate_results(args: dict) -> None:
 
             # Construct and save a multichannel image
             images_out = [bf_good_contrast_arr, bf_std_arr, masks_bf_std[0].squeeze()]
-            print(" - saving validation image...") if verbose else None
+            logger.info(" - saving validation image...")
+
             images_out_metadata = {
                 "image_name": dataset_name,
                 "channel_names": ["BF_Center", "BF_STD", "CellPose_prediction"],
@@ -141,11 +146,13 @@ def main(
     To enter a list of datasets to analyze, use the following format:
     '\"20241016_20X\",\"20241120_20X\"'
     """
-    # Set the output directory
-    out_dir = Path(get_output_path(Path(__file__).stem))
+
+    out_dir = get_output_path(Path(__file__).stem)
+    configure_logging(out_dir, logger, verbose)
 
     # Build a list of datasets to analyze
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+    logger.info(f"datasets to analyze: {dataset_name_list}")
 
     # Get a list of timepoints and associated arguments to process from the list of datasets to analyze
     # evaluate every 48 timepoints (ie. 4hrs)
@@ -157,14 +164,11 @@ def main(
         is_test=is_test,
         image_validation_frequency=48,
         use_sldy_data=use_sldy_data,
-        verbose=verbose,
     )
-
-    gpu = core.use_gpu()
-    print(f" - using device: {'GPU' if gpu else 'CPU'}") if verbose else None
 
     if n_proc > 1:
         if __name__ == "__main__":
+            logger.info("Starting multiprocessing...")
             with Pool(processes=n_proc) as pool:
                 list(
                     tqdm(
@@ -176,11 +180,15 @@ def main(
                 pool.close()
                 pool.join()
     else:
+        logger.info("Starting single-core processing...")
         for dataset_name_and_args in tqdm(analysis_queue, desc="Predicting nuclei (1P)"):
             generate_results(dataset_name_and_args)
 
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.info("...done analysis.")
+    print("\N{MICROSCOPE}")
 
 
 if __name__ == "__main__":
+    device_used_printed_global = False
+    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)

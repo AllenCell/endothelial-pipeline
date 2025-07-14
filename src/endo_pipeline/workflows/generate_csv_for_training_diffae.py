@@ -4,56 +4,52 @@ import fire
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import load_config
+from src.endo_pipeline.configs import DatasetConfig, load_all_dataset_configs
+from src.endo_pipeline.io import get_output_path
 
 
-def check_dataset_for_model_training(
-    dataset_name: str, data_config: dict
-) -> tuple[bool, str | None]:
+def check_dataset_for_model_training(dataset_config: DatasetConfig) -> str | None:
     """
     Check if the dataset is suitable for training. If it is, return true
     and the zarr path. Else, return false and None.
     """
-    config_dict = data_config[dataset_name]
     # only train on datasets that have been converted to zarr
-    if config_dict["zarr_path"] is None:
-        return False, None
+    if dataset_config.zarr_path is None:
+        return None
     # only train on live datasets
-    if config_dict["live_or_fixed_sample"] != "live":
-        return False, None
+    if dataset_config.live_or_fixed_sample != "live":
+        return None
     # only train on 20X datasets from 3i scope
     if (
-        config_dict["microscope"] != "3i"
-        or "40X" in config_dict["original_path"]
-        or "Nikon" in config_dict["original_path"]
+        dataset_config.microscope != "3i"
+        or "40X" in dataset_config.original_path
+        or "Nikon" in dataset_config.original_path
     ):
-        return False, None
-    return True, config_dict["zarr_path"]
+        return None
+    return dataset_config.zarr_path
 
 
 def main(model_name: str | None = None) -> None:
-    # set output directory
-    output_folder = "manifests"
+    """Generate CSV files for training and validation datasets."""
     if model_name is not None:
-        output_folder = f"{output_folder}/{model_name}"
-    output_savedir = get_output_path(output_folder, verbose=False)
+        output_savedir = get_output_path("manifests", model_name, include_timestamp=False)
+    else:
+        output_savedir = get_output_path("manifests", include_timestamp=False)
 
     # load data config
-    data_config = load_config("data")
+    dataset_config_list = load_all_dataset_configs()
 
     zarr_file_paths = []
-    for dataset_name in data_config:
+    for dataset_config in dataset_config_list:
         # check if the dataset is suitable for training
         # see check_dataset_for_training function for
         # the criteria used to filter datasets
-        is_for_training, zarr_path = check_dataset_for_model_training(dataset_name, data_config)
-        if not is_for_training:
+        zarr_path = check_dataset_for_model_training(dataset_config)
+        if zarr_path is None:
             continue
-        print(f"Processing dataset {dataset_name}")
         # get all zarr files in zarr path
         # append to list of zarr file paths
-        glob_list = list(Path(zarr_path).glob("*zarr"))
+        glob_list = list(Path(zarr_path).glob("*zarr"))  # type: ignore[arg-type]
         zarr_file_paths.extend(glob_list)
 
     zarr_path_df = pd.DataFrame({"path": zarr_file_paths})
@@ -63,8 +59,8 @@ def main(model_name: str | None = None) -> None:
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
 
     # save the dataframes to csv files
-    train.to_csv(Path(output_savedir) / "train.csv", index=False)
-    val.to_csv(Path(output_savedir) / "val.csv", index=False)
+    train.to_csv(output_savedir / "train.csv", index=False)
+    val.to_csv(output_savedir / "val.csv", index=False)
 
 
 if __name__ == "__main__":

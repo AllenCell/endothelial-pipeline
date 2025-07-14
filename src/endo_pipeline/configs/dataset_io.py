@@ -21,6 +21,8 @@ from typing import Any, Literal
 
 import fire
 
+from src.endo_pipeline.configs.dataset_config_io import load_dataset_config
+
 
 def get_config_dir() -> Path:
     """Get path to the config directory."""
@@ -91,7 +93,7 @@ for all datasets, use:
 
 If you need the config for a single dataset, use:
 
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 If you need only need dataset names, use:
 
@@ -201,7 +203,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 
    Individual dataset(s) can then be loaded with:
 
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
 
 2. If you want to load all available datasets, use the following method to load
    configs for all available datasets:
@@ -248,7 +250,7 @@ is directly from loaded DatasetConfig objects. These configs can be loaded using
 one of the following:
 
         configs.load_all_dataset_configs
-        configs.load_single_dataset_config(dataset_name)
+        configs.load_dataset_config(dataset_name)
         configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
@@ -267,44 +269,19 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
     return config[dataset_name]
 
 
-def get_frame(filename: str) -> int:
-    """Get frame number from filename"""
-    return int(str(filename).split(".")[0][-4:])
-
-
-def get_flow(dataset_name: str, frame_number: float) -> int | float:
+@deprecated(
     """
-    Get shear stress level at frame frame_number from the data config.
+Use one of the following methods to load the dataset config:
 
-    Parameters
-    ----------
-        frame_number: the time at which to get the flow value.
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
 
-    Returns
-    -------
-        flow: the flow value at time frame_number in dyn/cm^2.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info["flow"]
-    flows = [flow for t_start, t_stop, flow in flow_info if t_start <= frame_number < t_stop]
-    return int(flows[0]) if flows else np.nan
+The field can then be accessed using:
 
-
-def get_flow_in_frames(dataset_name: str) -> list[tuple[Any, Any, Any]]:
-    """Get flow information in frames for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    flow_info = dataset_info["flow"]
-    flow_in_frames = [
-        (
-            round(t_start * 60 / dataset_info["time_interval_in_minutes"]),
-            round(t_stop * 60 / dataset_info["time_interval_in_minutes"]),
-            flow,
-        )
-        for t_start, t_stop, flow in flow_info
-    ]
-    return flow_in_frames
-
-
+        dataset.zarr_path
+"""
+)
 def get_zarr_dir(dataset_name: str) -> str:
     """Get the directory path for the zarr files of a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
@@ -398,6 +375,19 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
     return zarr_name
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+Then use this replacement method:
+
+        configs.get_specific_channel_order(dataset)
+"""
+)
 def get_specific_channel_order(dataset_name: str) -> tuple:
     """Get the specific channel order for a given dataset."""
     dataset_info = get_dataset_info(dataset_name)
@@ -410,6 +400,19 @@ def get_specific_channel_order(dataset_name: str) -> tuple:
     return gfp_index, bf_index, index_405, index_561, index_640
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.n_total_positions
+"""
+)
 def get_total_number_of_positions(dataset_name: str) -> int:
     """
     Get the total number of positions in a dataset.
@@ -488,21 +491,73 @@ def load_dataset_position_as_dask_array(
     return img_dask_arr
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.duration
+"""
+)
 def get_dataset_duration_in_frames(dataset_name: str) -> int:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["duration"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.pixel_size_xy_in_um
+"""
+)
 def get_xy_pixel_size_in_um(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["pixel_size_xy_in_um"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.time_interval_in_minutes
+"""
+)
 def get_time_interval_in_minutes(dataset_name: str) -> float:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["time_interval_in_minutes"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.flow
+"""
+)
 def get_flow_info(dataset_name: str) -> list:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["flow"]
@@ -548,13 +603,54 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     float
         The flow value for the specified frame.
     """
-    flow_list = get_flow_info(dataset_name)
+    config = load_dataset_config(dataset_name)
+    flow_list = config.flow
     for t_start, t_stop, flow in flow_list:
         if t_start <= frame <= t_stop:
             return flow
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
 
 
+def add_flow_to_dataframe(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Add flow in dyn/cm^2 to a DataFrame containing dataset information.
+    Currently does not work for datasets with -1 as the timepoint.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing dataset information, including 'dataset_name' and 'frame'.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with an additional 'flow' column containing flow values for each frame.
+    """
+    # Group by dataset_name and image_index, calculate flow once per group
+    flow_mapping = df.groupby(["dataset_name", "image_index"]).apply(
+        lambda group: get_flow_for_frame(group.name[0], group.name[1])
+    )
+
+    # Map the calculated flow values back to the original DataFrame
+    df["sheer_stress"] = df.set_index(["dataset_name", "image_index"]).index.map(flow_mapping)
+    return df
+
+
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.valid_timepoints
+"""
+)
 def get_valid_timepoints(dataset_name: str) -> dict:
     """
     Get the frames marked for use in DiffAE feature
@@ -575,6 +671,19 @@ def get_dim_map(dim_order: str) -> dict:
     return dim_map
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.original_path
+"""
+)
 def get_original_path(dataset_name: str) -> Path:
     """
     Example path format: /{date}/{dataset_name}.dir/{dataset_name_number}.imgdir
@@ -583,21 +692,73 @@ def get_original_path(dataset_name: str) -> Path:
     return Path(dataset_info["original_path"])
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.barcode
+"""
+)
 def get_barcode(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["barcode"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.microscope
+"""
+)
 def get_microscope(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["microscope"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+The field can then be accessed using:
+
+        dataset.fmsid
+"""
+)
 def get_fmsid(dataset_name: str) -> str:
     dataset_info = get_dataset_info(dataset_name)
     return dataset_info["fmsid"]
 
 
+@deprecated(
+    """
+Use one of the following methods to load the dataset config:
+
+        configs.load_all_dataset_configs
+        configs.load_reference_dataset_configs
+        configs.load_dataset_config(dataset_name)
+
+Then use this replacement method:
+
+        configs.get_nuclear_prediction_path(dataset, channel, nuc_seg_type)
+"""
+)
 def get_nuclear_prediction_path(
     dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
 ) -> str:
@@ -843,11 +1004,71 @@ def get_measurement_data_raws(
     return measurement_dataframe
 
 
+def get_measured_segmentation_table(
+    dataset_name_list: list,
+    kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
+    as_dask: bool = False,
+) -> pd.DataFrame:
+    """
+    Loads one of the available kinds of segmentation features tables
+    for a given dataset.
+    Different kinds of segmentation features tables include:
+    - cdh5_segmentations: properties for segmentations based on cdh5
+        - includes cell segmentation centroids, orientations, number of neighbors,
+            neighbor information, elongation, and other properties
+        - does not contain dynamics-dependent features such as velocities
+            (those can be computed from this dataset with
+            src.endo_pipeline.workflows.make_seg_feats_manifest.calculate_derived_data_dynamics_dependent
+    - nuclei_labelfree: properties for segmentations based on nuclei label-free
+        - primarily predicted nuclei centroids
+    - cdh5_tracking: properties for segmentations based on cdh5 tracking
+        - primarily contains tracking IDs mapped to segmentations label IDs
+    """
+    match kind:
+        case "cdh5_segmentations":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/cdh5_get_measured_features"
+            )
+            data_suffix = "segprops"
+        case "nuclei_labelfree":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/nuc_labelfree_get_measured_features"
+            )
+            data_suffix = "nuclei_features"
+        case "cdh5_tracking":
+            base_path = Path(
+                "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
+            )
+            data_suffix = "tracking"
+        case _:
+            raise ValueError(
+                f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
+            )
+    table_reader = dd if as_dask else pd
+    measured_data_list = []
+    for dataset_name in dataset_name_list:
+        data_path = base_path / f"{dataset_name}_{data_suffix}.tsv"
+        if data_path.exists():
+            # open the data tables
+            measured_data = table_reader.read_csv(data_path, sep="\t")
+            # include path to file that this data was loaded from
+            measured_data[f"source_measured_table_path-{kind}"] = data_path.as_posix()
+            measured_data_list.append(measured_data)
+        else:
+            print(f"No {kind} data found for {dataset_name}. Skipping...")
+            continue
+    # concatenate the dataframes into a single dataframe and return it
+    if measured_data_list:
+        measured_dataframe = table_reader.concat(measured_data_list, axis=0, ignore_index=True)
+    else:  # create an empty dataframe
+        measured_dataframe = table_reader.DataFrame.from_dict({})
+    return measured_dataframe
+
+
 def get_segmentation_features_manifest(
     dataset_name_list: list, as_dask: bool = False
 ) -> pd.DataFrame:
     """
-    NOTE THESE DATASETS DO NOT EXIST YET; COMING SOON.
     Get the segmentation features manifest for a given dataset.
     The manifest is a TSV file that contains the measurements
     from the tracked segmentations of a dataset.
@@ -872,21 +1093,6 @@ def get_segmentation_features_manifest(
     # concatenate the dataframes into a single dataframe and return it
     seg_feat_dataframe = table_reader.concat(seg_feat_data_list, axis=0, ignore_index=True)
     return seg_feat_dataframe
-
-
-def get_cell_track_integration_manifest(dataset_name: str) -> pd.DataFrame:
-    """
-    Get the cell track integration manifest for a given dataset.
-    The integration manifest is a CSV file that contains the
-    track_id, centroids, zarr paths, and crop size of a subset
-    of the tracked segmentations of a dataset.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info["cell_track_integration_manifest_fmsid"]
-    integration_path = Path(base_path) / f"{dataset_name}_cell_track_integration.tsv"
-    if not integration_path.exists():
-        raise FileNotFoundError(f"Cell track integration dataset not found at {integration_path}.")
-    return pd.read_csv(integration_path, sep="\t")
 
 
 # fire argparsing methods
@@ -944,12 +1150,6 @@ def get_model_info(model_name: str) -> dict[str, Any]:
     if model_name not in config:
         raise ValueError(f"Model {model_name} not found in config file")
     return config[model_name]
-
-
-# this does not get called anywhere
-def load_precomputed_features(dataset_name: str, model_name: str) -> pd.DataFrame:
-    dataset_info = get_dataset_info(dataset_name)
-    return pd.read_csv(dataset_info["features"][model_name])
 
 
 # Other miscellaneous methods
@@ -1033,6 +1233,11 @@ def extract_T(
     return t_value if int_only else f"T{t_value}"
 
 
+@deprecated(
+    """
+    Use extract_position_from_filepath in library.process.image_filepath_utils instead
+    """
+)
 def extract_P(
     fp_as_string: str | Path,
     int_only: bool = True,
@@ -1083,6 +1288,13 @@ def extract_P(
     return position_value if int_only else f"P{position_value}"
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. To provide git versioning
+information when uploading files to FMS, use the `include_git_info=True` flag
+(`True` by default) in `src.endo_pipeline.io.build_fms_annotations`.
+"""
+)
 def get_git_versioning_info() -> dict[str, str]:
     """
     Return versioning info about the script, including the branch
@@ -1117,6 +1329,14 @@ def get_git_versioning_info() -> dict[str, str]:
     return git_branch_info
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Git versioning info should only
+be saved with files uploaded to FMS. Use the `include_git_info=True` flag
+(`True` by default) in `src.endo_pipeline.io.build_fms_annotations` to include
+git versioning info when uploading to FMS.
+"""
+)
 def save_git_versioning_info(
     out_dir: Path,
     filename_prefix: str,

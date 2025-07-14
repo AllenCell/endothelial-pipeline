@@ -27,6 +27,7 @@ dependencies = [
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",
+    "gitpython>=3.1.44",
     "ipykernel>=6.29.5",
     "jupyter>=1.0.0",
     "mashumaro>=3.16",
@@ -83,6 +84,7 @@ test = [
     "pytest-raises>=0.11",
     "coverage>=7.5.3",
     "pytest-subtests>=0.13.1",
+    "pytest-mock>=3.14.1",
 ]
 docs = [
     "jupytext>=1.16.2",

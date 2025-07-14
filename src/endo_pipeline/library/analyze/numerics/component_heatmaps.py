@@ -1,11 +1,12 @@
-from typing import Literal
-
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util.manifest_io import get_feature_cols
+from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_features.regression_helper import get_bins
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     df_to_array,
     get_manifest_for_dynamics_workflows,
@@ -13,9 +14,8 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
 
 
 def get_3d_bounds_from_data(
-    list_of_datasets: list[str],
+    model_manifest_list: list[ModelManifest],
     pca: Pipeline,
-    col_names: Literal["pc", "feat"] = "pc",
     filter_to_valid: bool = True,
 ) -> list[np.ndarray]:
     """
@@ -54,27 +54,15 @@ def get_3d_bounds_from_data(
     # initialize bounds
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
-    for name in list_of_datasets:
-        df = get_manifest_for_dynamics_workflows(name, pca, filter_to_valid=filter_to_valid)
+    for model_manifest in model_manifest_list:
+        df = get_manifest_for_dynamics_workflows(
+            model_manifest, pca, filter_to_valid=filter_to_valid
+        )
         # get column names for features
-        feat_cols = get_feature_cols(df)
-        match col_names:
-            case "pc":
-                # get the PCs
-                x_proj = pca.transform(df[feat_cols].values)
-                # add PCs to dataframe
-                num_pcs = x_proj.shape[1]
-                pc_cols: list = []
-                for pc in range(num_pcs):
-                    pc_col_name = f"pc{pc+1}"
-                    pc_cols.append(pc_col_name)
-                cols = pc_cols
-                df[cols] = x_proj  # add PCs to dataframe
-            case "feat":
-                cols = feat_cols
+        pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
         for j in range(num_dims):
-            bounds_[j][0] = min(bounds_[j][0], df[cols[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[cols[j]].max())
+            bounds_[j][0] = min(bounds_[j][0], df[pc_column_names[j]].min())
+            bounds_[j][1] = max(bounds_[j][1], df[pc_column_names[j]].max())
 
     bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 
@@ -154,8 +142,8 @@ def get_histogram_by_component(
     """
     # get column names for extracting feature data for a single dataset
     if feat_cols is None:
-        # use all feature columns in the dataframe
-        feat_cols = get_feature_cols(df)
+        # use all PCA feature columns in the dataframe
+        feat_cols = get_pc_column_names(df)
 
     num_feats = len(feat_cols)
 

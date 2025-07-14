@@ -13,15 +13,14 @@ duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 577, 8.6]]
 n_total_positions: 6
+channel_488_index: 0
 brightfield_channel_index: 1
 channel_405_index: null
-channel_488_index: 0
 channel_561_index: null
 channel_640_index: null
-nuclear_label_free_seg_path: null
+nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250428_20X
 nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: null
-diffae_manifest_fmsid: 58e13eb2a6be4c21a92e41759ae650f5
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
 immunofluorescence_manifest_fmsid: null

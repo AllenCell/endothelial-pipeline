@@ -71,14 +71,14 @@ class DatasetConfig:
     n_total_positions: int
     """Total number of positions captured."""
 
+    channel_488_index: int
+    """Index of the 488 channel."""
+
     brightfield_channel_index: int
     """Index of the brightfield channel."""
 
     channel_405_index: int | None = None
     """Index of the 405 channel."""
-
-    channel_488_index: int | None = None
-    """Index of the 488 channel."""
 
     channel_561_index: int | None = None
     """Index of the 561 channel."""
@@ -94,9 +94,6 @@ class DatasetConfig:
 
     nuclear_seg_manifest_fmsid: str | None = None
     """FMS ID for nuclear segmentation manifest."""
-
-    diffae_manifest_fmsid: str | None = None
-    """FMS ID for diffusion autoencoder manifest."""
 
     tracking_integration_fmsid: str | None = None
     """FMS ID for tracking integration."""

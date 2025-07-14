@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import numpy as np
 import vtk
 from vtkmodules.util import numpy_support as vtknp
 
 
-def save_vector_field_as_vtk(vector_field_dict: dict, output_path: str) -> None:
+def save_vector_field_as_vtk(vector_field_dict: dict, output_path: Path) -> None:
     """
     Save 3D vector field data as a VTK file.
 

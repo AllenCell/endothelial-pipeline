@@ -13,15 +13,14 @@ duration: 97
 time_interval_in_minutes: 5.0
 flow: [[0, 277, 5.62], [278, 576, 25.91]]
 n_total_positions: 6
+channel_488_index: 0
 brightfield_channel_index: 1
 channel_405_index: null
-channel_488_index: 0
 channel_561_index: null
 channel_640_index: null
 nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
-diffae_manifest_fmsid: ''
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
 immunofluorescence_manifest_fmsid: null

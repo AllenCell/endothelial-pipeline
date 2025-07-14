@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -5,7 +6,9 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_dataset_descriptions,
+)
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize import viz_base
@@ -213,7 +216,7 @@ def plot_streamplot_slices(
 def plot_flow_field_slices(
     flow_field_dict: dict,
     df_cond: pd.DataFrame | None,
-    fig_savedir: str | None,
+    fig_savedir: Path | None,
     pc_vals: tuple[Any, Any] | None = None,
     color: str = "black",
     norm: bool = True,
@@ -233,7 +236,7 @@ def plot_flow_field_slices(
     - df_cond: pd.DataFrame
         DataFrame containing the data to be plotted.
         If None, no data is plotted.
-    - fig_savedir: str
+    - fig_savedir: Path
         Directory to save the figures.
         If None, no figures are saved.
     - pc_vals: tuple of floats
@@ -267,8 +270,8 @@ def plot_flow_field_slices(
             mean_over_crops_ = df_cond.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops_.iloc[-1]
-            pc3_val = mean_over_crops["feat_2"].mean()
-            pc2_val = mean_over_crops["feat_1"].mean()
+            pc3_val = mean_over_crops["pc2"].mean()
+            pc2_val = mean_over_crops["pc1"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -287,8 +290,8 @@ def plot_flow_field_slices(
         dataset_name = sequence_to_scalar(df_cond["dataset"])
         scatter_color = manifest_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
-        ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.15)
-        ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.15)
+        ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.15)
     fig, ax = plot_quiver_slices(
         flow_field_dict, (zvalids, yvalids), color=color, norm=norm, fig_ax=(fig, ax)
     )
@@ -317,27 +320,27 @@ def plot_flow_field_slices(
         # for saving the plot
         if df_cond is not None:
             name = df_cond["dataset"].unique()[0]
-            condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
+            condition = get_dataset_descriptions([name], simple=True)[name]
         else:
             condition = "from_data"
         viz_base.save_plot(
-            fig, filename=fig_savedir + f"flow_field_{condition}", dpi=300
+            fig, filename=fig_savedir / f"flow_field_{condition}", dpi=300
         )  # save the figure
         viz_base.save_plot(
-            fig_, filename=fig_savedir + f"flow_field_streamplot_{condition}", dpi=300
+            fig_, filename=fig_savedir / f"flow_field_streamplot_{condition}", dpi=300
         )  # save the figure
 
     return fig, ax
 
 
-def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> None:
+def plot_stable_fixed_points_together(fig_savedir: Path, output_savedir: Path) -> None:
     """
     Generate plot of fixed points of the low,
     high, and intermediate (12dyn) shear stress conditions
     on the same plot.
     """
 
-    traj_dict = np.load(output_savedir + "traj_dict.npy", allow_pickle=True).item()
+    traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 
     # hard coded list of datasets
     # this is for the purposes of generating
@@ -349,7 +352,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
         "20250319_20X",
     ]
 
-    conditions = preprocessing.get_dataset_descriptions(list_of_datasets, simple=True)
+    conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
     # initialize plots
     fig, ax = viz_base.init_subplots(figsize=(14, 5))
@@ -357,7 +360,7 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     # get bounds of the grid - load one of the flow field objects
     # saved in main function
     flow_field_dict = np.load(
-        output_savedir + f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
+        output_savedir / f"flow_field_dict_{list_of_datasets[0]}.npy", allow_pickle=True
     ).item()
     xmin, xmax = (
         flow_field_dict["grid"][0][0, 0, 0],
@@ -402,14 +405,14 @@ def plot_stable_fixed_points_together(fig_savedir: str, output_savedir: str) -> 
     plt.show()
 
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + "fixed_points_plot", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / "fixed_points_plot", dpi=300)
 
 
 def flow_field_viz_main(
     flow_field_dict: dict,
     df_cond: pd.DataFrame,
     traj: np.ndarray,
-    fig_savedir: str,
+    fig_savedir: Path,
 ) -> None:
     """
     Plot all relvant 2D summary plots
@@ -427,12 +430,12 @@ def flow_field_viz_main(
     - traj: np.ndarray
         The trajectory of the data to be plotted.
         Shape: (n_points, n_dimensions)
-    - fig_savedir: str
+    - fig_savedir: Path
         Directory to save the figures.
     """
     # dataset flow condition for saving the figures
     name = df_cond["dataset"].unique()[0]
-    condition = preprocessing.get_dataset_descriptions([name], simple=True)[name]
+    condition = get_dataset_descriptions([name], simple=True)[name]
 
     # plot 2D slices at PC2 and PC3 values given by
     # the last point of the trajectory
@@ -476,8 +479,8 @@ def flow_field_viz_main(
     # get the color for the scatter plot
     scatter_color = manifest_viz.get_dataset_color(name)
     # plot scatter of data overlaid on quiver plot
-    ax[0].scatter(df_cond.feat_0, df_cond.feat_1, s=0.25, color=scatter_color, alpha=0.05)
-    ax[1].scatter(df_cond.feat_0, df_cond.feat_2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.05)
+    ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.05)
     fig, ax = plot_quiver_slices(flow_field_dict, (zvalids, yvalids), fig_ax=(fig, ax))
 
     # plot last point of trajectory
@@ -503,7 +506,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_fp", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_fp", dpi=300)
 
     # 2) plot entire trajectory over flow field
     # PC1 v s PC2, PC1 vs PC3
@@ -512,7 +515,7 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_traj", dpi=300)
 
     # 3) trajectory with equally spaced interpolated points
     interpolated_points = data_driven_flow_field.interpolate_on_curve(traj)
@@ -526,5 +529,5 @@ def flow_field_viz_main(
     plt.tight_layout()
     plt.show()
     # save the figure
-    viz_base.save_plot(fig, fig_savedir + f"flow_field_{condition}_traj_interpolated", dpi=300)
+    viz_base.save_plot(fig, fig_savedir / f"flow_field_{condition}_traj_interpolated", dpi=300)
     return

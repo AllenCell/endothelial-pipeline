@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -8,12 +8,9 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.util.manifest_io import (
-    get_diffae_manifest,
-    get_feature_cols,
-    get_track_diffae_manifest,
-)
+from cellsmap.util.manifest_io import get_diffae_manifest, get_track_diffae_manifest
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.configs.dataset_io import (
     get_reference_datasets,
     get_segmentation_features_manifest,
@@ -35,19 +32,10 @@ from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     set_slice_plot_bounds_and_labels,
 )
 
-"""
-NOTE: I believe that the "feat_#" columns in the dataset loaded by
-get_manifest_for_dynamics_workflows are actually the PCs and thus
-do not need to have their PCs calculated here.
-The "feat_#" columns in the dataset loaded by get_track_diffae_manifest
-are the DiffAE features and do need to have their PCs calculated here.
-"""
-
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
     bounds: Pipeline,
-    col_names: Literal["pc", "feat"] = "pc",
 ) -> tuple[np.ndarray, dict]:
 
     # load default config, get kernel params
@@ -74,16 +62,7 @@ def get_traj_and_flowfield(
 
     # get the columns to use for calculating trajectories
     # and flow fields.
-    # NOTE I believe that the "features" columns in the
-    # datasets loaded by get_manifest_for_dynamics_workflows
-    # are actually the PCs
-    match col_names:
-        case "pc":
-            pc_cols = [f"pc{pc+1}" for pc in range(3)]
-            cols = pc_cols
-        case "feat":
-            feat_cols = get_feature_cols(df)[:3]
-            cols = feat_cols
+    cols = [f"pc{pc+1}" for pc in range(3)]
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
@@ -112,8 +91,10 @@ def get_valid_slice_indexes(
     df: pd.DataFrame,
     traj: np.ndarray,
     flow_field_dict: dict,
-    col_names: Literal["pc", "feat"] = "feat",
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[
+    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+]:
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
@@ -132,13 +113,8 @@ def get_valid_slice_indexes(
             mean_over_crops = df.groupby("frame_number").mean(numeric_only=True)
             # get last time point
             mean_over_crops = mean_over_crops.iloc[-1]
-            match col_names:
-                case "pc":
-                    pc3_val = mean_over_crops["pc3"].mean()
-                    pc2_val = mean_over_crops["pc2"].mean()
-                case "feat":
-                    pc3_val = mean_over_crops["feat2"].mean()
-                    pc2_val = mean_over_crops["feat1"].mean()
+            pc3_val = mean_over_crops["pc3"].mean()
+            pc2_val = mean_over_crops["pc2"].mean()
     # if specified, unpack
     else:
         pc3_val = pc_vals[0]
@@ -223,8 +199,8 @@ def plot_quiver_slices_from_diffae_table(
 def plot_measured_feat_pcs(
     measured_feat_df: pd.DataFrame,
     meas_feat_col: str,
-    pc_cols_for_xaxis: tuple[str, ...],
-    pc_cols_for_yaxis: tuple[str, ...],
+    pc_cols_for_xaxis: list[str],
+    pc_cols_for_yaxis: list[str],
     fig: plt.Figure | None = None,
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
@@ -238,7 +214,8 @@ def plot_measured_feat_pcs(
     assert len(pc_cols_for_xaxis) == len(
         pc_cols_for_yaxis
     ), "x and y axis must have the same number of PCs"
-    assert len(pc_cols_for_xaxis) == len(axs), "PCs must be provided for each ax in axs"
+    if axs is not None:
+        assert len(pc_cols_for_xaxis) == axs.size, "PCs must be provided for each ax in axs"
     assert all(
         col in measured_feat_df.columns for col in pc_cols
     ), f"One or more PCs in {pc_cols} not found in measured feature dataframe columns. Check spelling and case?"
@@ -287,7 +264,7 @@ def plot_measured_feat_pcs(
             zorder=zorder + 1,
         )
 
-    return fig, axs
+    return fig, axs  # type: ignore[return-value]
 
 
 def plot_measured_feat_overlay_on_flowfield(
@@ -309,8 +286,8 @@ def plot_measured_feat_overlay_on_flowfield(
     fig, axs = plot_measured_feat_pcs(
         measured_feat_df=diffae_measured_feat_df,
         meas_feat_col=meas_feat_col_name_for_color_coding,
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
+        pc_cols_for_xaxis=["pc1", "pc1"],
+        pc_cols_for_yaxis=["pc2", "pc3"],
         track_id=track_id_to_plot,
         fig=fig,
         axs=axs,
@@ -335,7 +312,6 @@ def plot_measured_feat_overlay_on_flowfield(
     )
     if not show_plot:
         plt.close(fig)
-    return None
 
 
 def plot_new_traj_overlay_on_grid_traj_and_flowfield(
@@ -362,15 +338,18 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     plt.tight_layout()
     fig.savefig(out_dir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
     plt.close(fig)
-    return None
 
 
-def get_merged_table(dataset_name: str) -> pd.DataFrame:
+def get_merged_table(dataset_name: str) -> pd.DataFrame | None:
     # read in the segmentation-based diffae features
     print("loading diffae features from tracking data...")
     diffae_tracking = get_track_diffae_manifest(dataset_name)
     if diffae_tracking is None:
+        # if the diffae tracking data is not available,
+        # return None
         return None
+
+    # else, process the diffae tracking data
     diffae_tracking["is_unique"] = diffae_tracking.groupby(
         ["dataset", "position", "frame_number", "track_id"]
     )["frame_number"].transform(lambda t: t.nunique() == t.size)
@@ -489,6 +468,11 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     dataset_name_list = get_reference_datasets()
 
+    # use the full set of datasets to be analyzed for the bounds
+    model_config = load_model_config("diffae_04_10")
+    model_manifest_list = get_pca_reference_model_manifests(model_config)
+    bounds = get_3d_bounds_from_data(model_manifest_list, pca, col_names="feat")
+
     for dataset_name in dataset_name_list:
         # create subdirectory to save track-based trajectories to
         out_subdir_traj = out_dir / "trajectories_track_based"
@@ -514,20 +498,13 @@ def main() -> None:
         # but I believe that the columns are named "feat_0",
         # "feat_1", etc. when they should be named "pc1",
         # "pc2", etc.)
-        df_all_positions = project_manifest_to_pcs(
-            df_all_positions, pca, overwrite_feature_columns=False
-        )
-
-        # use the full set of datasets to be analyzed for the bounds
-        bounds = get_3d_bounds_from_data(dataset_name_list, pca, col_names="feat")
+        df_all_positions = project_manifest_to_pcs(df_all_positions, pca)
 
         print("getting trajectory and flow field for grid-based crops...")
-        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-            diffae_grid_crops, bounds, col_names="feat"
-        )
+        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)
 
         print("getting trajectory and flow field for tracks-based crops...")
-        traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds, col_names="pc")
+        traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds)
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
 

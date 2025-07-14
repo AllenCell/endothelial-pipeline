@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.library.analyze.kramersmoyal import kramers_moyal
 
 
@@ -63,18 +65,19 @@ def get_bins(
 
 
 def get_traj_by_flow(
-    df_proj: pd.DataFrame, ds_name: str, verbose: bool = True
+    df_proj: pd.DataFrame, dataset_config: DatasetConfig, verbose: bool = True
 ) -> tuple[list, list]:
     """
     Get crop-based feature data (Diffusion AE output) for
-    different flow conditions present in dataset ds_name.
+    different flow conditions present in a dataset.
 
     Inputs:
     - df_proj: pandas dataframe containing the dataset of interest,
         projected onto all principal component axes
         (change of basis, no dimensionality reduction)
-    - ds_name: name of the dataset (used to split out data
-        by flow condition, acessed via data_config.yaml)
+    - dataset_config: DatasetConfig object containing dataset configuration
+        (used to get flow information)
+    - verbose: boolean, if True, print information about flow conditions
 
     Outputs:
     - data_all: list of dataframes, each containing
@@ -87,7 +90,7 @@ def get_traj_by_flow(
     """
 
     # load flow information from data_config.yaml
-    flow_info = dataset_io.get_flow_info(ds_name)
+    flow_info = dataset_config.flow
 
     # split out data by flow condition,
     # starting with first flow condition
@@ -98,7 +101,7 @@ def get_traj_by_flow(
     if len(flow_info) > 1:
         # get frame number where flow condition
         # changes (reported in hours in data_config.yaml)
-        change_frame = dataset_io.get_flow_change_frame(ds_name)
+        change_frame = flow_info[0][-1]
         # get second shear stress condition
         second_shear = float(flow_info[1][-1])
         shear_list.append(second_shear)
@@ -122,7 +125,7 @@ def get_traj_by_flow(
     return data_all, shear_list
 
 
-def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
+def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
     Get list of per-crop trajectories, the corresponding
     displacement vectors, and time differences along
@@ -133,8 +136,9 @@ def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
         Should have a column for time and a column for
         the crop index. This data should be for one
         dataset and one flow condition.
-    - feat_cols: list of feature column names
-        (used to extract feature data from the dataframe X)
+    - pc_column_names: list of strings, names of the
+        columns in the DataFrame that contain the
+        PC features (feature columns).
 
     Outputs:
     - traj_list: list of numpy arrays, each array is the
@@ -161,12 +165,12 @@ def get_traj_and_diff(data: pd.DataFrame, feat_cols: list) -> tuple[list, list]:
         data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
 
         # get displacement vectors and time differences for each crop
-        d_traj = np.diff(data_crop[feat_cols].values, axis=0)
+        d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
 
         # append data to lists:
         # trajectory and displacement vectors
         # leave off last timepoint for trajectory
-        traj_list.append(data_crop[feat_cols].values)
+        traj_list.append(data_crop[pc_column_names].values)
         d_traj_list.append(d_traj)
 
     return traj_list, d_traj_list
@@ -321,7 +325,7 @@ def train_test_all(
 
 def get_stationary_hist(
     stationary_data: pd.DataFrame,
-    feat_cols: list,
+    pc_column_names: list[str],
     bins: list,
 ) -> np.ndarray:
     """
@@ -330,8 +334,9 @@ def get_stationary_hist(
     Inputs:
     - stationary_data: pandas DataFrame containing the
         dataset of interest restricted to stationary frames
-    - feat_cols: list of feature column names
-        (used to extract feature data from the dataframe data)
+    - pc_column_names: list of strings, names of the
+        columns in the DataFrame that contain the
+        principal component features (feature columns)
     - bins: list of number of bins in each dimension
         (list of length ndim, where ndim is the
         number of dimensions of the feature space)
@@ -340,20 +345,20 @@ def get_stationary_hist(
     - p_hist: numpy array, stationary histogram
         of the data in feature space
     """
-    ndim = len(feat_cols)
+    ndim = len(pc_column_names)
 
     # call 1D or 2D histogram function based on number of dimensions
     if ndim == 2:
-        # data T > frame_index, all rows, columns feat_cols[0] and feat_cols[1]
+        # data frame_number > frame_index, all rows, select pcs
         p_hist, _, _ = np.histogram2d(
-            stationary_data[feat_cols[0]],
-            stationary_data[feat_cols[1]],
+            stationary_data[pc_column_names[0]],
+            stationary_data[pc_column_names[1]],
             bins,
             density=True,
         )
     elif ndim == 1:
         p_hist, _ = np.histogram(
-            stationary_data[feat_cols[0]],
+            stationary_data[pc_column_names[0]],
             bins[0],
             density=True,
         )
@@ -361,3 +366,30 @@ def get_stationary_hist(
         raise ValueError("Only 1D or 2D data currently supported.")
 
     return p_hist
+
+
+def save_train_test(train_test_dict: dict, savedir: Path) -> None:
+    """
+    Save train test data to file in savedir, using `numpy.savez` function.
+
+    Inputs:
+    - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
+    - savedir: Path, directory to save the file.
+
+    Outputs:
+    - None, save the file to savedir.
+    """
+    np.savez(savedir / "train_test_data", **train_test_dict)
+
+
+def load_train_test(file_path: Path) -> dict:
+    """
+    Load train test data from file_path.
+
+    Inputs:
+    - file_path: Path, path to the file containing train test data.
+
+    Outputs:
+    - train_test_dict: dict, dictionary containing train and test data (numpy arrays).
+    """
+    return dict(np.load(file_path, allow_pickle=True))

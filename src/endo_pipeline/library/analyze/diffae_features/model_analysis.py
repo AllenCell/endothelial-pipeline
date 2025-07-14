@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from functools import partial
+from pathlib import Path
 from time import time
 from typing import Any
 
@@ -8,19 +9,22 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from cellsmap.util import manifest_io
+from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_pc_column_names,
+)
 from src.endo_pipeline.library.analyze.numerics import gen_potential
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 
 
 def model_data_comparison_one_dataset(
-    model: list[Callable],
+    sde_model: list[Callable],
     stationary_data: pd.DataFrame,
-    u: float,
-    pcs: list,
+    shear: float,
+    pc_axes: list,
     bins: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
@@ -34,13 +38,13 @@ def model_data_comparison_one_dataset(
     100 frames of the given flow condition (approx. stationary).
 
     Inputs:
-    - model: list of Callable functions, [drift, diffusion]
+    - sde_model: list of Callable functions, [drift, diffusion]
     - stationary_data: DataFrame, feature data for one dataset
         at one flow condition within that dataset, restricted to
         only the frames where the data are stationary
-    - u: float, shear stress at which to evaluate model
+    - shear: float, shear stress at which to evaluate model
         (this is the shear stress from the data)
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
     - pplane_xvec: np.ndarray, x values for phase portrait
@@ -52,59 +56,58 @@ def model_data_comparison_one_dataset(
     - fig2: plt.Figure, comparison of predicted and data stationary distributions
     - ax2: plt.Axes, axis object for fig2
     """
-    drift = model[0]
-    diffusion = model[1]
+    drift = sde_model[0]
+    diffusion = sde_model[1]
 
     f1 = model_eval.vector_field_component(drift, 0)
     f2 = model_eval.vector_field_component(drift, 1)
 
     fig1, ax1 = pplane.phase_portrait(
-        lambda x1, x2: f1([x1, x2], u),
-        lambda x1, x2: f2([x1, x2], u),
+        lambda x1, x2: f1([x1, x2], shear),
+        lambda x1, x2: f2([x1, x2], shear),
         pplane_xvec,
         pplane_yvec,
         verbose=False,
     )
 
-    ax1.set_xlabel(f"PC{pcs[0] + 1}")
-    ax1.set_ylabel(f"PC{pcs[1] + 1}")
-    ax1.set_title("Shear stress = " + str(u) + " dyn/cm$^2$")
+    ax1.set_xlabel(f"PC{pc_axes[0] + 1}")
+    ax1.set_ylabel(f"PC{pc_axes[1] + 1}")
+    ax1.set_title("Shear stress = " + str(shear) + " dyn/cm$^2$")
     plt.show()
 
     centers = [0.5 * (bins[i][1:] + bins[i][:-1]) for i in range(len(bins))]
     drift_mesh = model_eval.mesh_grid_function(drift)
     diff_mesh = model_eval.mesh_grid_function(diffusion)
-    drift_vals = drift_mesh(np.meshgrid(*centers), u).T
-    diff_vals = diff_mesh(np.meshgrid(*centers), u).T
+    drift_vals = drift_mesh(np.meshgrid(*centers), shear).T
+    diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
     p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
 
     # get "stationary" distribution from data
     # for extracting just the axes (specified via pcs) we want
     # from the resulting dataframe
     # e.g., if we are just analyzing the first two principal components,
-    # we want to extract columns 'feat_0' and 'feat_1'
-    feat_cols_all = manifest_io.get_feature_cols(stationary_data)
-    feat_cols = [feat_cols_all[i] for i in pcs]
-    p_hist = regression_helper.get_stationary_hist(stationary_data, feat_cols, bins)
+    # we want to extract columns 'pc1' and 'pc2'
+    pc_column_names = get_pc_column_names(stationary_data, pc_axes)
+    p_hist = regression_helper.get_stationary_hist(stationary_data, pc_column_names, bins)
 
     fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
 
     for j in range(2):
-        ax2[j].set_xlabel(f"PC{pcs[0] + 1}")
-        ax2[j].set_ylabel(f"PC{pcs[1] + 1}")
+        ax2[j].set_xlabel(f"PC{pc_axes[0] + 1}")
+        ax2[j].set_ylabel(f"PC{pc_axes[1] + 1}")
 
     return fig1, ax1, fig2, ax2
 
 
 def model_data_comparison(
-    model: list[Callable],
-    fig_savedir: str,
+    sde_model: list[Callable],
+    model_manifest_list: list[ModelManifest],
     pca: Pipeline,
-    pcs: list,
+    pc_axes: list,
     bins: list,
-    ds_to_skip: list,
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
+    fig_savedir: Path,
 ) -> None:
     """
     Compare model fit to data for all datasets in manifest,
@@ -114,43 +117,37 @@ def model_data_comparison(
     `model_data_comparison_one_dataset`.
 
     Inputs:
-    - model: list of Callable functions, [drift, diffusion]
-    - fig_savedir: str, directory to save figures
+    - sde_model: list of Callable functions, [drift, diffusion]
+    - model_manifests: list of ModelManifest objects, each
+        containing feature data information for one dataset
     - pca: Pipeline object, PCA object fit to feature data
         (can include scaling)
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
     - ds_to_skip: list of str, dataset names to skip
         in analysis (also skipped in fitting model)
     - pplane_xvec: np.ndarray, x values for phase portrait
     - pplane_yvec: np.ndarray, y values for phase portrait
+    - fig_savedir: Path, directory to save figures
 
     Outputs:
     - None, saves figures to fig_savedir
     """
 
-    # get list of timelapse datasets with DiffAE manifest data
-    list_of_datasets = manifest_io.list_datasets_with_manifest(
-        "diffae_manifest_fmsid", timelapse_only=True
-    )
+    for model_manifest in model_manifest_list:
+        print("**** Running model analysis for dataset", model_manifest.dataset_name, "**** \n")
 
-    for ds_name in list_of_datasets:
-        # if we don't want to fit model using this dataset, skip it
-        if ds_name in ds_to_skip:
-            print("**** Skipping dataset", ds_name, "**** \n")
-            continue
-
-        print("**** Running model analysis for dataset", ds_name, "**** \n")
-
-        # load DiffAE feature data from this one dataset,
-        # with outliers labeled and features
-        # projected onto principal component axes
-        # as defined by fit PCA object pca
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(ds_name, pca=pca)
+        # load DiffAE feature data from this one dataset
+        # projected onto principal component axes as defined
+        # by fit PCA object pca. Restrict to stationary frames if provided
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
         # split out data by flow condition
-        df_by_flow, shear_list = regression_helper.get_traj_by_flow(df_proj, ds_name, verbose=False)
+        # split out data by flow condition
+        df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+            df_proj, load_dataset_config(model_manifest.dataset_name)
+        )
         del df_proj  # free up memory
         num_flow = len(shear_list)
 
@@ -170,10 +167,10 @@ def model_data_comparison(
 
             # call function to compare model and data
             fig1, _, fig2, _ = model_data_comparison_one_dataset(
-                model,
+                sde_model,
                 stationary_data,
                 shear_list[j],
-                pcs,
+                pc_axes,
                 bins,
                 pplane_xvec,
                 pplane_yvec,
@@ -181,24 +178,28 @@ def model_data_comparison(
 
             # add dataset name and shear stress to figure
             # suptitle for comparison of histograms
-            sup_title = fig2.texts[0].get_text()
-            sup_title = ds_name + ", " + str(shear_list[j]) + " dyn/cm$^2$ \n" + sup_title
+            sup_title = (
+                f"{model_manifest.dataset_name},  {shear_list[j]}"
+                "dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+            )
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
             # save figures
             viz_base.save_plot(
                 fig1,
-                fig_savedir + ds_name + "_phase_portrait_shear_" + str(int(shear_list[j])),
+                fig_savedir
+                / f"{model_manifest.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
             )
             viz_base.save_plot(
                 fig2,
-                fig_savedir + ds_name + "_stationary_dist_shear_" + str(int(shear_list[j])),
+                fig_savedir
+                / f"{model_manifest.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
             )
 
 
 def get_fixed_points_by_shear(
-    drift: Callable, plt_lims: list, shear_range: np.ndarray
+    drift_function: Callable, plt_lims: list, shear_range: np.ndarray
 ) -> list[dict]:
     """
     Get fixed points and their types for a given drift
@@ -207,7 +208,7 @@ def get_fixed_points_by_shear(
     Currently only implemented for 2D systems.
 
     Inputs:
-    - drift: Callable, drift function
+    - drift_function: Callable, drift function
     - plt_lims: list of np.ndarrays, limits for excluding
         fixed points outside of plotting range
     - shear_range: np.ndarray, shear stresses at
@@ -232,7 +233,7 @@ def get_fixed_points_by_shear(
     for u_val in shear_range:
 
         # define ODE "flow" function (drift function, u is fixed)
-        my_flow = partial(drift, u=u_val)
+        my_flow = partial(drift_function, u=u_val)
 
         # for finding fixed points numerically, we need to provide initial guesses
         # we will use a coarse grid of points as initial guesses
@@ -260,9 +261,9 @@ def get_fixed_points_by_shear(
 def run_fixed_point_analysis(
     drift_function: Callable,
     shear_range: np.ndarray,
-    pcs: list,
+    pc_axes: list,
     plt_lims: list,
-    fig_savedir: str,
+    fig_savedir: Path,
 ) -> None:
     """
     Run fixed point analysis for a given drift function
@@ -275,7 +276,7 @@ def run_fixed_point_analysis(
     - drift_function: Callable, drift function
     - shear_range: np.ndarray, shear stresses at
         which to evaluate fixed points
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - plt_lims: list of np.ndarrays, limits for
         excluding fixed points outside of plotting range
@@ -286,13 +287,13 @@ def run_fixed_point_analysis(
     """
     print("*** Running fixed point analysis...\n")
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
-    figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pcs, plt_lims)
+    figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pc_axes, plt_lims)
     for i in range(len(figs)):
-        viz_base.save_plot(figs[i], fig_savedir + f"fixed_points_by_shear_{i}")
+        viz_base.save_plot(figs[i], fig_savedir / f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
-    model: list[Callable],
+    sde_model: list[Callable],
     bins: list,
     centers: list,
     shear_range: np.ndarray,
@@ -318,8 +319,8 @@ def get_epr(
         as a function of shear stress
     """
     # get drift and diffusion functions
-    drift = model[0]
-    diffusion = model[1]
+    drift = sde_model[0]
+    diffusion = sde_model[1]
 
     # get mesh grid functions for drift and diffusion
     drift_mesh = model_eval.mesh_grid_function(drift)
@@ -355,11 +356,11 @@ def get_epr(
 
 
 def run_epr_analysis(
-    model: list[Callable],
+    sde_model: list[Callable],
     bins: list,
     centers: list,
     shear_range: np.ndarray,
-    fig_savedir: str,
+    fig_savedir: Path,
     additive_noise: bool,
 ) -> None:
     """
@@ -369,7 +370,7 @@ def run_epr_analysis(
     `viz.dynamics_viz.plot_entropy_production_rate` to plot it.
 
     Inputs:
-    - model: list of Callables, [drift, diffusion]
+    - sde_model: list of Callables, [drift, diffusion]
     - bins: list of np.ndarrays, bin edges
         for each dimension of state space
     - centers: list of np.ndarrays, bin centers
@@ -384,21 +385,21 @@ def run_epr_analysis(
     - None, saves figures to fig_savedir
     """
     print("*** Running entropy production rate analysis...\n")
-    epr = get_epr(model, bins, centers, shear_range, additive_noise)
+    epr = get_epr(sde_model, bins, centers, shear_range, additive_noise)
     fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
     plt.show()
-    viz_base.save_plot(fig, fig_savedir + "epr")
+    viz_base.save_plot(fig, fig_savedir / "epr")
 
 
 def run_gen_potential_analysis(
-    model: list[Callable],
+    sde_model: list[Callable],
     bins: list,
     centers: list,
     shear_range: np.ndarray,
-    pcs: list,
+    pc_axes: list,
     downsample_quiver: int,
     normed: bool,
-    fig_savedir: str,
+    fig_savedir: Path,
     additive_noise: bool,
 ) -> None:
     """
@@ -415,7 +416,7 @@ def run_gen_potential_analysis(
         for each dimension of state space
     - shear_range: np.ndarray, shear stresses
         at which to evaluate entropy production rate
-    - pcs: list of ints, indices of which PCs model
+    - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - downsample_quiver: int, downsample factor for
         quiver plot of gradient/flux decomposition
@@ -430,18 +431,18 @@ def run_gen_potential_analysis(
     - None, saves figures to fig_savedir
     """
     print("*** Running generalized potential energy landscape analysis...\n")
-    drift = model[0]
-    diffusion = model[1]
+    drift = sde_model[0]
+    diffusion = sde_model[1]
 
     # define mesh grid functions for drift and diffusion
     drift_mesh = model_eval.mesh_grid_function(drift)
     diff_mesh = model_eval.mesh_grid_function(diffusion)
 
-    for ii, u in enumerate(shear_range):
+    for ii, shear in enumerate(shear_range):
         # evaluate drift and diffusion functions at
         # grid points for given shear stress
-        drift_vals = drift_mesh(np.meshgrid(*centers), u).T
-        diff_vals = diff_mesh(np.meshgrid(*centers), u).T
+        drift_vals = drift_mesh(np.meshgrid(*centers), shear).T
+        diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
 
         # get stationary probability distribution to get
         # generalized potential energy landscape U
@@ -452,14 +453,14 @@ def run_gen_potential_analysis(
         fig, ax = dynamics_viz.plot_gen_potential_2d(
             potential, centers[0], centers[1], cmap="jet", surf=False
         )
-        ax.set_xlabel(f"PC{pcs[0] + 1}")
-        ax.set_ylabel(f"PC{pcs[1] + 1}")
-        ax.set_title(f"Shear stress: {u:.2f} dyn/cm$^2$")
+        ax.set_xlabel(f"PC{pc_axes[0] + 1}")
+        ax.set_ylabel(f"PC{pc_axes[1] + 1}")
+        ax.set_title(f"Shear stress: {shear:.2f} dyn/cm$^2$")
         fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir + f"gp_shear_{ii}")
+        viz_base.save_plot(fig, fig_savedir / f"gp_shear_{ii}")
 
         #### plot gradient/flux decomposition ####
 
@@ -486,11 +487,11 @@ def run_gen_potential_analysis(
             normed=normed,
             downsample=downsample_quiver,
         )
-        ax.set_xlabel(f"PC{pcs[0] + 1}")
-        ax.set_ylabel(f"PC{pcs[1] + 1}")
-        ax.set_title(f"Shear stress: {u:.2f} dyn/cm$^2$")
+        ax.set_xlabel(f"PC{pc_axes[0] + 1}")
+        ax.set_ylabel(f"PC{pc_axes[1] + 1}")
+        ax.set_title(f"Shear stress: {shear:.2f} dyn/cm$^2$")
         fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir + f"gp_decomp_shear_{ii}")
+        viz_base.save_plot(fig, fig_savedir / f"gp_decomp_shear_{ii}")
