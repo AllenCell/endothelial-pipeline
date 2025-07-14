@@ -87,8 +87,10 @@ def get_pca_coords(
 
     Parameters
     ----------
-    data: np.ndarray
+    pca_data: np.ndarray
         Numpy array containing the projected data onto PCA axes.
+    pca: Pipeline
+        PCA pipeline fitted to the data.
     num_pcs: int
         Number of principal components to use for the latent walk.
     sigma: float
