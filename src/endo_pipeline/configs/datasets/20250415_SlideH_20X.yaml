@@ -16,14 +16,14 @@ time_interval_in_minutes: null
 flow:
 - - 0
   - 0
-  - 0.0
+  - 5.47
 n_total_positions: 50
 channel_488_index: 1
 brightfield_channel_index: 2
 flow_condition:
-- start: 0
+- start: -576
   stop: 0
-  shear_stress: 0.0
+  shear_stress: 5.47
 channel_405_index: 0
 channel_561_index: null
 channel_640_index: null

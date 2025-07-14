@@ -39,4 +39,4 @@ is_reference: false
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null
-notes: This timelapse has not yet been converted to ZARR.
+notes:
