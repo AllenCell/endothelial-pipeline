@@ -166,7 +166,7 @@ def upload_multiple_datasets(
     fms_upload_func_dict = {
         "cdh5_seg_tracking": fms_upload_cdh5_classic_seg_tracking,
         "cdh5_seg_measurements": fms_upload_cdh5_get_measured_features,
-        "cdh5_nuclei_labelfree": fms_upload_nuc_get_measured_features,
+        "nuclei_labelfree": fms_upload_nuc_get_measured_features,
         "merged_live_data_manifests": fms_upload_make_seg_feats_manifest,
     }
     if dataset_name_list is None:
