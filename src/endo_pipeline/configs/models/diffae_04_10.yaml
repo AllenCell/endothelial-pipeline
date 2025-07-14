@@ -63,18 +63,6 @@ manifest_fmsids:
   fmsid: 61e57753a9fa4c63903791346c399e9a
 - dataset_name: 20250509_20X_IF9
   fmsid: f5d7a1bb5c74430bbb0d6217076dfa81
-- dataset_name: 20241120_20X
-  fmsid: a8153ac55a21448399546a1b04ec3664
-- dataset_name: 20241217_20X
-  fmsid: d23e2f60167540ee95f34b8db058eb09
-- dataset_name: 20250409_20X
-  fmsid: 148e333f306d45b39c5fccd6465380fe
-- dataset_name: 20250604_20X
-  fmsid: f56fd58b05974842804fab5ab3796e1c
-- dataset_name: 20250611_20X
-  fmsid: 64e10466a5ff4e7aace963a15f7d5a3c
-- dataset_name: 20250604_20X
-  fmsid: f56fd58b05974842804fab5ab3796e1c
 training_datasets:
 - 20241210_20X
 - 20241016_20X

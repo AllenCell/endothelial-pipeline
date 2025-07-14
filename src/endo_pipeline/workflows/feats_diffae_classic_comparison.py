@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -89,7 +89,10 @@ def get_valid_slice_indexes(
     df: pd.DataFrame,
     traj: np.ndarray,
     flow_field_dict: dict,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[
+    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+]:
     # get grid and grid spacing
     xgrid, ygrid, zgrid = flow_field_dict["grid"]
 
@@ -258,7 +261,7 @@ def plot_measured_feat_pcs(
             zorder=zorder + 1,
         )
 
-    return fig, axs
+    return fig, axs  # type: ignore[return-value]
 
 
 def plot_measured_feat_overlay_on_flowfield(
@@ -306,7 +309,6 @@ def plot_measured_feat_overlay_on_flowfield(
     )
     if not show_plot:
         plt.close(fig)
-    return None
 
 
 def plot_new_traj_overlay_on_grid_traj_and_flowfield(
@@ -333,15 +335,18 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     plt.tight_layout()
     fig.savefig(out_dir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
     plt.close(fig)
-    return None
 
 
-def get_merged_table(dataset_name: str) -> pd.DataFrame:
+def get_merged_table(dataset_name: str) -> pd.DataFrame | None:
     # read in the segmentation-based diffae features
     print("loading diffae features from tracking data...")
     diffae_tracking = get_track_diffae_manifest(dataset_name)
     if diffae_tracking is None:
-        return None
+        # if the diffae tracking data is not available,
+        # return None
+        return
+
+    # else, process the diffae tracking data
     diffae_tracking["is_unique"] = diffae_tracking.groupby(
         ["dataset", "position", "frame_number", "track_id"]
     )["frame_number"].transform(lambda t: t.nunique() == t.size)
@@ -485,9 +490,7 @@ def main() -> None:
         # but I believe that the columns are named "feat_0",
         # "feat_1", etc. when they should be named "pc1",
         # "pc2", etc.)
-        df_all_positions = project_manifest_to_pcs(
-            df_all_positions, pca, overwrite_feature_columns=False
-        )
+        df_all_positions = project_manifest_to_pcs(df_all_positions, pca)
 
         # use the full set of datasets to be analyzed for the bounds
         bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca)
