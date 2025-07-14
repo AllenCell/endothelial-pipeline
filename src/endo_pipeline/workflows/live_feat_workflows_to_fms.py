@@ -17,7 +17,7 @@ from src.endo_pipeline.io import (
 These functions are used to upload feature tables to FMS.
 NOTE These functions DO NOT and WILL NOT work on Windows.
 They must be run on the Allen Institute intranet either
-in a Linux or MacOS environment.
+in a Linux or MacOS environment through the CLI.
 """
 
 logger = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ def fms_upload_make_seg_feats_manifest(
     )
 
     # Update the dataset config with the FMS file ID
-    dataset_config.merged_seg_features_manifest_fmsid = file_id  # type: ignore[attr-defined]
+    dataset_config.live_merged_seg_features_manifest_fmsid = file_id  # type: ignore[attr-defined]
     save_dataset_config(dataset_config)
 
     logger.info(
