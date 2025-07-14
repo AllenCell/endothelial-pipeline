@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Literal
 
+import fire
+
 from src.endo_pipeline.configs import load_dataset_config, load_model_config, save_dataset_config
 from src.endo_pipeline.configs.model_config_io import get_labelfree_nuclei_prediction_model_name
 from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
@@ -100,3 +102,7 @@ def fms_upload_make_seg_feats_manifest(
     save_dataset_config(dataset_config)
 
     return file_id
+
+
+if __name__ == "__main__":
+    fire.Fire()
