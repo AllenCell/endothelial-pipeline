@@ -370,49 +370,6 @@ def build_measured_features_tables(
             )
 
 
-@deprecated(
-    """
-This function is no longer used.
-Use
-src.endo_pipeline.configs.dataset_io.concatenate_and_save_feature_tables
-instead.
-"""
-)
-def concatenate_tables(dataset_name: str, out_dir: str | Path) -> None:
-    print(f"- {dataset_name}")
-    # get the alignment table paths and segmentation properties
-    # table paths for each dataset
-    out_dir = Path(out_dir)
-    tables_alignments = out_dir.glob(f"**/{dataset_name}/*/tables_alignments/*.csv")
-    tables_segprops = out_dir.glob(f"**/{dataset_name}/*/tables_segmentation_properties/*.csv")
-
-    # concatenate and save the tables for each dataset
-    concatenated_table_out_dir = out_dir / f"{dataset_name}"
-
-    master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_alignments])
-    master_table.to_csv(concatenated_table_out_dir / f"{dataset_name}_alignments.csv", index=False)
-
-    master_table = pd.concat([pd.read_csv(filepath) for filepath in tables_segprops])
-    master_table.to_csv(
-        concatenated_table_out_dir / f"{dataset_name}_segmentation_properties.csv",
-        index=False,
-    )
-
-
-@deprecated(
-    """
-This function is no longer used.
-Use
-src.endo_pipeline.configs.dataset_io.concatenate_and_save_feature_tables
-instead.
-"""
-)
-def concatenate_tables_multiproc(queue_group: tuple) -> None:
-    dataset_name, queue_df = queue_group
-    out_dir = queue_df["output_dir"].iloc[0]
-    concatenate_tables(dataset_name, out_dir)
-
-
 def main(
     n_proc: int = 1,
     dataset_name: str | None = None,
@@ -486,4 +443,4 @@ def main(
 
 
 if __name__ == "__main__":
-    ipython_cli_flexecute(main, dataset_name="20241016_20X", is_test=True)
+    ipython_cli_flexecute(main)

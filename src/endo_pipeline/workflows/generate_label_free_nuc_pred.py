@@ -19,6 +19,8 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
+logger = logging.getLogger(__name__)
+
 
 # Predict nuclei from brightfield images using the retrained CellPose model
 def generate_results(args: dict) -> None:
@@ -188,5 +190,4 @@ def main(
 
 if __name__ == "__main__":
     device_used_printed_global = False
-    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)

@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from bioio import BioImage
+from deprecated import deprecated  # type: ignore[import-untyped]
 from scipy.ndimage import gaussian_filter1d
 from tqdm import tqdm
 
@@ -24,6 +25,8 @@ from src.endo_pipeline.configs.dataset_io import (
     ipython_cli_flexecute,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
+
+logger = logging.getLogger(__name__)
 
 
 def merge_measured_segmentation_features_tables(
@@ -573,6 +576,11 @@ def calculate_smoothed_normd_area(
     return area_normd
 
 
+@deprecated(
+    """
+        This function will hopefully be removed in the future and
+        only the main table will be used..."""
+)
 def filter_and_save_track_data_for_landscape_integration(
     big_table: pd.DataFrame,
     out_filename: str | Path | None = None,
@@ -700,17 +708,14 @@ def create_segmentation_measured_feature_manifest(
     tracking_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="cdh5_tracking",
-        as_dask=False,
     )
     segprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="cdh5_segmentations",
-        as_dask=False,
     )
     nucprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="nuclei_labelfree",
-        as_dask=False,
     )
     if tracking_df.empty or segprops_df.empty or nucprops_df.empty:
         logger.info(
@@ -824,5 +829,4 @@ def main(
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)
