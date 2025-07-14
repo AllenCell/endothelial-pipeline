@@ -7,7 +7,7 @@ from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
 
 
 def fms_upload_cdh5_classic_seg_tracking(
-    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "prod"
+    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "stg"
 ) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
@@ -31,7 +31,7 @@ def fms_upload_cdh5_classic_seg_tracking(
 
 
 def fms_upload_cdh5_get_measured_features(
-    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "prod"
+    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "stg"
 ) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
@@ -55,7 +55,7 @@ def fms_upload_cdh5_get_measured_features(
 
 
 def fms_upload_nuc_get_measured_features(
-    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "prod"
+    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "stg"
 ) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
@@ -79,7 +79,7 @@ def fms_upload_nuc_get_measured_features(
 
 
 def fms_upload_make_seg_feats_manifest(
-    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "prod"
+    dataset_name: str, path_to_file: Path, env: Literal["stg", "prod"] = "stg"
 ) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
