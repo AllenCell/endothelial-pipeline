@@ -24,6 +24,10 @@ nuclear_seg_manifest_fmsid: 225e4e4f67934f2781caba8db82401f6
 tracking_integration_fmsid: 040858bd6672470e875180fdd5ddd556
 diffae_tracking_integration_fmsid: 31d8da76dbda40ce8d289619a6d8643c
 immunofluorescence_manifest_fmsid: null
+cdh5_classic_seg_tracking_manifest_fmsid: 5b861bc1a0cc4c50bbfe9b0de46cedb0
+cdh5_classic_seg_manifest_fmsid: 98367f152b7340f0830f92e2afecb325
+nuclei_label_free_seg_manifest_fmsid: c0cc01fad68b474cab68495e804c6586
+live_merged_seg_features_manifest_fmsid: null
 is_reference: true
 valid_timepoints:
   start: [0, 300]
