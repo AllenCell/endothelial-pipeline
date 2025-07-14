@@ -118,7 +118,7 @@ def main(
     """
     training_config = load_config("train_diffae")
     # set model name via timestamp and crop size
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y_%m_%d")
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
     model_name = f"diffae_{crop_size}x{crop_size}_{timestamp}"
     # set save directory
     save_dir = get_output_path("models", model_name, include_timestamp=False)
