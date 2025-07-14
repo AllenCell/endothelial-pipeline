@@ -147,7 +147,7 @@ def upload_multiple_datasets(
     manifest_kind: Literal[
         "cdh5_seg_tracking",
         "cdh5_seg_measurements",
-        "cdh5_nuclei_labelfree",
+        "nuclei_labelfree",
         "merged_live_data_manifests",
     ],
     dataset_name_list: list | None = None,
@@ -199,8 +199,8 @@ def upload_multiple_datasets(
             "subdir": "cdh5_get_measured_features",
             "suffix": "_cdh5_segprops.tsv",
         },
-        "cdh5_nuclei_labelfree": {
-            "subdir": "cdh5_nuclei_label_free_segmentation",
+        "nuclei_labelfree": {
+            "subdir": "nuc_labelfree_get_measured_features",
             "suffix": "_nuclei_labelfree.tsv",
         },
         "merged_live_data_manifests": {
