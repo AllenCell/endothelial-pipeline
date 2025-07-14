@@ -17,12 +17,12 @@ from src.endo_pipeline.configs.dataset_io import (
     extract_T,
     fire_parse_generate_dataset_name_list,
     get_cdh5_classic_segmentation_path,
-    get_dataset_info,
     get_measured_segmentation_table,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
+    load_dataset_config,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
 
@@ -96,7 +96,9 @@ def save_filter_validation_plots(
                 "num_unique_tracks_after_filtering_at_T",
             ]
         ].agg("median")
-        timelapse_duration = get_dataset_info(dataset_nm)["duration"]
+        dataset_config = load_dataset_config(dataset_nm)
+        # timelapse_duration = get_dataset_info(dataset_nm)["duration"]
+        timelapse_duration = dataset_config.duration
         # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
         out_dir_plots = out_dir / "num_tracks_plots" / dataset_nm
         out_dir_plots.mkdir(parents=True, exist_ok=True)
@@ -259,15 +261,18 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     - the number of neighbors touching each region
     """
     um_per_px_map = {
-        dataset_name: get_dataset_info(dataset_name)["pixel_size_xy_in_um"]
+        # dataset_name: get_dataset_info(dataset_name)["pixel_size_xy_in_um"]
+        dataset_name: load_dataset_config(dataset_name).pixel_size_xy_in_um
         for dataset_name in big_table["dataset_name"].unique()
     }
     time_res_map = {
-        dataset_name: get_dataset_info(dataset_name)["time_interval_in_minutes"]
+        # dataset_name: get_dataset_info(dataset_name)["time_interval_in_minutes"]
+        dataset_name: load_dataset_config(dataset_name).time_interval_in_minutes
         for dataset_name in big_table["dataset_name"].unique()
     }
     shear_stress_regime_map = {
-        dataset_name: get_dataset_info(dataset_name)["shear_stress_regime"]
+        # dataset_name: get_dataset_info(dataset_name)["shear_stress_regime"]
+        dataset_name: load_dataset_config(dataset_name).shear_stress_regime
         for dataset_name in big_table["dataset_name"].unique()
     }
 
@@ -757,7 +762,7 @@ def create_segmentation_measured_feature_manifest(
     # (we want to have an accessible version of the raw data)
     out_dir_raw = out_dir / "segmentation_features_manifests/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
-    out_path_raw = out_dir_raw / f"{dataset_name}_segmentation_features.tsv"
+    out_path_raw = out_dir_raw / f"{dataset_name}_live_segmentation_features.tsv"
     big_table.to_csv(out_path_raw, sep="\t", index=False)
 
     # add some columns that are calculated from the

@@ -1,19 +1,24 @@
+import logging
 from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
-from src.endo_pipeline.configs.dataset_io import get_segmentation_features_manifest
+from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs.dataset_io import get_live_segmentation_features_manifest
+from src.endo_pipeline.io import load_dataframe_from_fms
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
-    add_feauture_metadata,
+    add_feature_metadata,
     add_intensity_mean_pcs,
     update_manifest_for_tfe,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def generate_tfe_dataset(
@@ -40,23 +45,34 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df_tracks = get_segmentation_features_manifest([dataset])
+    df_tracks = get_live_segmentation_features_manifest([dataset])
     df_position = df_tracks[df_tracks["position"] == position]
 
-    df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
-    df_diffae_cell_mean = df_diffae_cell_mean[df_diffae_cell_mean["position"] == f"P{position}"]
-    df_diffae_cell_mean["position"] = position
-    df_diffae_cell_mean = df_diffae_cell_mean.rename(columns={"frame_number": "image_index"})
+    dataset_config = load_dataset_config(dataset)
+    if dataset_config.cell_mean_features is not None:
+        load_dataframe_from_fms(dataset_config.cell_mean_features)
+        df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
+        df_diffae_cell_mean = df_diffae_cell_mean[df_diffae_cell_mean["position"] == f"P{position}"]
+        df_diffae_cell_mean["position"] = position
+        df_diffae_cell_mean = df_diffae_cell_mean.rename(columns={"frame_number": "image_index"})
 
-    df_merge_features = df_position.merge(
-        df_diffae_cell_mean,
-        how="inner",
-        on=["label", "image_index", "position"],
-    )
+        df_merge_features = df_position.merge(
+            df_diffae_cell_mean,
+            how="inner",
+            on=["label", "image_index", "position"],
+        )
+    else:
+        logger.info(
+            f"Dataset {dataset} does not have cell mean features defined in its configuration."
+        )
+        df_merge_features = df_position
 
     df = add_dynamic_features_with_filtering(df_merge_features)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
-    df = add_intensity_mean_pcs(df)
+    if dataset_config.cell_mean_features is not None:
+        df = add_intensity_mean_pcs(df)
+    else:
+        pass
 
     if backdrops:
         generate_backdrops(
@@ -66,7 +82,7 @@ def generate_tfe_dataset(
             output_dir=output_dir / "backdrops",
         )
 
-    feature_info = add_feauture_metadata(df)
+    feature_info = add_feature_metadata(df)
 
     convert_colorizer_data(
         data=df,

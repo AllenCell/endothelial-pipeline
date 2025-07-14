@@ -205,7 +205,7 @@ def upload_multiple_datasets(
         },
         "merged_live_data_manifests": {
             "subdir": "segmentation_features",
-            "suffix": "_segmentation_features.tsv",
+            "suffix": "_live_segmentation_features.tsv",
         },
     }
 

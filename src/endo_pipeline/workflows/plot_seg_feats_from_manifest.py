@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
-    get_segmentation_features_manifest,
+    get_live_segmentation_features_manifest,
     ipython_cli_flexecute,
     save_git_versioning_info,
 )
@@ -17,6 +17,8 @@ from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
+
+logger = logging.getLogger(__name__)
 
 # set the plot shape to the golden ratio
 AX_HEIGHT = 3
@@ -385,7 +387,7 @@ def plot_seg_manifest_data(
 
 def process_dataset(dataset_name: str, out_dir: Path) -> None:
     # load the segmentation features table
-    segprops_manifest = get_segmentation_features_manifest([dataset_name])
+    segprops_manifest = get_live_segmentation_features_manifest([dataset_name])
 
     # apply the data filter
     segprops_manifest = segprops_manifest[~segprops_manifest["filter_global"]]
@@ -447,5 +449,4 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)
