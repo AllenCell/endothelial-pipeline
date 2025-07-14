@@ -7,6 +7,8 @@ from monai.utils import convert_to_tensor
 from torchmetrics import MeanMetric
 
 
+# this class is not being used in the current codebase,
+# might want to remove it in the future
 class DiffAEFinetune(DiffusionAutoEncoder):
     """Class for finetuning a DiffAE model using paired data."""
 

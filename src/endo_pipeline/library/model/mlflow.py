@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import mlflow
 import yaml
@@ -42,6 +43,9 @@ def _get_available_artifacts(
 
     all_found_artifacts = []
 
+    if isinstance(artifact_path, Path):
+        artifact_path = str(artifact_path)  # type of artifact_path is str in mlflow API
+
     current_level_items = mlflow.artifacts.list_artifacts(
         run_id=run_id,
         tracking_uri=tracking_uri,
@@ -81,7 +85,7 @@ def _get_available_artifacts(
     return all_found_artifacts
 
 
-def get_ckpt_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
+def get_ckpt_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> Path:
     """
     Return last.ckpt if it exists, otherwise return the best
     checkpoint path if it exists or throw an error.
@@ -93,10 +97,10 @@ def get_ckpt_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
     )
 
     ckpt_path = _get_options(available_artifacts, patterns=["last.ckpt", "best.ckpt"])
-    return ckpt_path
+    return Path(ckpt_path)
 
 
-def _get_config_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> str:
+def _get_config_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> Path:
     """
     Return eval.yaml if it exists, otherwise return
     train.yaml if it exists or throw an error.
@@ -107,13 +111,13 @@ def _get_config_path(run_id: str, tracking_uri: str = DEFAULT_TRACKING_URI) -> s
         artifact_path="config",
     )
     config_path = _get_options(available_artifacts, patterns=["eval.yaml", "train.yaml"])
-    return config_path
+    return Path(config_path)
 
 
 def download_mlflow_artifact(
     run_id: str,
-    artifact_path: str,
-    dst_path: str | Path,
+    artifact_path: Path,
+    dst_path: Path,
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> None:
     """
@@ -152,16 +156,16 @@ def download_mlflow_artifact(
     mlflow.artifacts.download_artifacts(
         run_id=run_id,
         tracking_uri=tracking_uri,
-        artifact_path=artifact_path,
-        dst_path=dst_path,
+        artifact_path=str(artifact_path),
+        dst_path=str(dst_path),
     )
 
 
 def download_model(
     run_id: str,
-    save_path: str | Path,
-    checkpoint_path: str | Path | None = None,
-    config_path: str | Path | None = None,
+    save_path: Path,
+    checkpoint_path: Path | None = None,
+    config_path: Path | None = None,
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> dict:
     """
@@ -181,25 +185,25 @@ def download_model(
     tracking_uri: str
         The tracking URI of the MLflow server.
     """
-    checkpoint_path = checkpoint_path or get_ckpt_path(tracking_uri=tracking_uri, run_id=run_id)
-    download_mlflow_artifact(run_id, checkpoint_path, save_path, tracking_uri)
+    checkpoint_path_ = checkpoint_path or get_ckpt_path(tracking_uri=tracking_uri, run_id=run_id)
+    download_mlflow_artifact(run_id, checkpoint_path_, save_path, tracking_uri)
 
-    config_path = config_path or _get_config_path(tracking_uri=tracking_uri, run_id=run_id)
-    download_mlflow_artifact(run_id, config_path, save_path, tracking_uri)
+    config_path_ = config_path or _get_config_path(tracking_uri=tracking_uri, run_id=run_id)
+    download_mlflow_artifact(run_id, config_path_, save_path, tracking_uri)
 
     return {
-        "checkpoint_path": save_path / checkpoint_path,
-        "config_path": save_path / config_path,
+        "checkpoint_path": save_path / checkpoint_path_,
+        "config_path": save_path / config_path_,
     }
 
 
 def load_mlflow_model(
     run_id: str,
-    save_path: str | Path,
-    checkpoint_path: str | None = None,
-    config_path: str | None = None,
+    save_path: Path,
+    checkpoint_path: Path | None = None,
+    config_path: Path | None = None,
     tracking_uri: str = DEFAULT_TRACKING_URI,
-):
+) -> Any:
     """
     Load a model from MLflow given a run ID and artifact path.
 
@@ -217,13 +221,13 @@ def load_mlflow_model(
         The tracking URI of the MLflow server.
     """
     save_path = Path(save_path)
-    config_path = config_path or _get_config_path(tracking_uri=tracking_uri, run_id=run_id)
-    checkpoint_path = checkpoint_path or get_ckpt_path(tracking_uri=tracking_uri, run_id=run_id)
+    config_path_ = config_path or _get_config_path(tracking_uri=tracking_uri, run_id=run_id)
+    checkpoint_path_ = checkpoint_path or get_ckpt_path(tracking_uri=tracking_uri, run_id=run_id)
     download_model(run_id, save_path, checkpoint_path, config_path, tracking_uri)
 
-    with open(save_path / config_path) as f:
+    with open(save_path / config_path_) as f:
         config = yaml.safe_load(f)
 
     model_class = get_class(config["model"]["_target_"])
-    model = model_class.load_from_checkpoint(save_path / checkpoint_path)  # type: ignore
+    model = model_class.load_from_checkpoint(save_path / checkpoint_path_)  # type: ignore
     return model
