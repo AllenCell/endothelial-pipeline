@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 import torch
 from monai.transforms import CenterSpatialCropd, Rotated, Transform
 from omegaconf import ListConfig
@@ -27,7 +28,7 @@ class MinStdCropd(Transform):
         self.axes = axes
         self.channel = channel
 
-    def __call__(self, data):
+    def __call__(self, data: pd.DataFrame) -> pd.DataFrame:
         """Call the transform on the input data."""
         for key in self.keys:
             z_profile = data[key].std(axis=self.axes)[self.channel]
@@ -61,7 +62,7 @@ class RotateRanged(Transform):
         rotation_range: list[float] | None = None,
         n_steps: int = 10,
         allow_missing_keys: bool = False,
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -86,7 +87,7 @@ class RotateRanged(Transform):
         self.n_steps = n_steps
         self.cropper = CenterSpatialCropd(keys=self.keys, roi_size=roi_size)
 
-    def _split_dict(self, dict: dict):
+    def _split_dict(self, dict: dict) -> list[dict]:
         """Split channels of keys into a list of dictionaries."""
         meta_keys = {k: v for k, v in dict.items() if k not in self.keys}
         n_channels = dict[self.keys[0]].shape[0]
