@@ -201,7 +201,7 @@ def upload_multiple_datasets(
         },
         "nuclei_labelfree": {
             "subdir": "nuc_labelfree_get_measured_features",
-            "suffix": "_nuclei_labelfree.tsv",
+            "suffix": "_nuclei_labelfree_features.tsv",
         },
         "merged_live_data_manifests": {
             "subdir": "segmentation_features",

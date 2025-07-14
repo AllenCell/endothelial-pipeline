@@ -46,7 +46,7 @@ def get_and_save_nuclei_features(
 
     out_subdir = out_dir / dataset_name / f"P{position}"
     out_subdir.mkdir(exist_ok=True, parents=True)
-    out_path = out_subdir / f"{dataset_name}_P{position}_T{T}_nuclei_features.tsv"
+    out_path = out_subdir / f"{dataset_name}_P{position}_T{T}_nuclei_labelfree_features.tsv"
     if save_output:
         nuc_props_df.to_csv(out_path, sep="\t", index=False)
 
@@ -302,7 +302,7 @@ def main(
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
-                out_file_suffix="nuclei_features",
+                out_file_suffix="nuclei_labelfree_features",
                 file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
