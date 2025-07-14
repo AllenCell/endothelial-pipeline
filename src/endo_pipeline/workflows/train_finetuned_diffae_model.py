@@ -81,12 +81,12 @@ def main(
     """
     save_dir = get_output_path(
         "finetune_paired_dataset",
-        "finetune_{model_name}_on_{dataset_type}",
+        f"finetune_{model_name}_on_{dataset_type}",
         include_timestamp=False,
     )
 
     manifest_path = get_output_path(
-        f"finetune_paired_dataset/{dataset_type}", include_timestamp=False
+        "finetune_paired_dataset", dataset_type, include_timestamp=False
     )
 
     # download model to finetune
