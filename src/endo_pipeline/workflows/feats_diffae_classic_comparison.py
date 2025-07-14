@@ -197,8 +197,8 @@ def plot_quiver_slices_from_diffae_table(
 def plot_measured_feat_pcs(
     measured_feat_df: pd.DataFrame,
     meas_feat_col: str,
-    pc_cols_for_xaxis: tuple[str, ...],
-    pc_cols_for_yaxis: tuple[str, ...],
+    pc_cols_for_xaxis: list[str],
+    pc_cols_for_yaxis: list[str],
     fig: plt.Figure | None = None,
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
@@ -212,7 +212,8 @@ def plot_measured_feat_pcs(
     assert len(pc_cols_for_xaxis) == len(
         pc_cols_for_yaxis
     ), "x and y axis must have the same number of PCs"
-    assert len(pc_cols_for_xaxis) == len(axs), "PCs must be provided for each ax in axs"
+    if axs is not None:
+        assert len(pc_cols_for_xaxis) == axs.size, "PCs must be provided for each ax in axs"
     assert all(
         col in measured_feat_df.columns for col in pc_cols
     ), f"One or more PCs in {pc_cols} not found in measured feature dataframe columns. Check spelling and case?"
@@ -283,8 +284,8 @@ def plot_measured_feat_overlay_on_flowfield(
     fig, axs = plot_measured_feat_pcs(
         measured_feat_df=diffae_measured_feat_df,
         meas_feat_col=meas_feat_col_name_for_color_coding,
-        pc_cols_for_xaxis=("pc1", "pc1"),
-        pc_cols_for_yaxis=("pc2", "pc3"),
+        pc_cols_for_xaxis=["pc1", "pc1"],
+        pc_cols_for_yaxis=["pc2", "pc3"],
         track_id=track_id_to_plot,
         fig=fig,
         axs=axs,
@@ -344,7 +345,7 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame | None:
     if diffae_tracking is None:
         # if the diffae tracking data is not available,
         # return None
-        return
+        return None
 
     # else, process the diffae tracking data
     diffae_tracking["is_unique"] = diffae_tracking.groupby(
