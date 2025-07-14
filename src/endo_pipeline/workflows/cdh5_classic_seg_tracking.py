@@ -2,7 +2,6 @@ import logging
 from collections.abc import Sequence
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 import pandas as pd
