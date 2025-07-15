@@ -48,7 +48,7 @@ def get_3d_bounds_from_data(
     Outputs:
     - bounds: list of numpy arrays with the bounds
         for each dimension in the 3D state space
-        - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
+        - format: [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
     """
     num_dims = 3
     # initialize bounds
@@ -87,6 +87,9 @@ def get_histogram_by_component_one_dataset(
     - df: pd.DataFrame, updated dataframe with columns of what
         bin each crop at frame_number t is in along the given latent dimension
     """
+    if feat_cols is None:
+        # use all PCA feature columns in the dataframe
+        feat_cols = get_pc_column_names(df)
 
     num_feats = len(feat_cols)
     num_frames = df["frame_number"].nunique()

@@ -143,17 +143,15 @@ def contrast_stretching(
     np.ndarray
         The contrast-stretched image as an 8-bit unsigned integer array.
     """
-    if method == "min-max":
-        low, high = image.min(), image.max()
-
-    elif method == "percentile":
-        low, high = np.percentile(image, (low_percentile, high_percentile))
-
-    else:
-        raise ValueError(f"Unsupported method: {method}")
-
     if custom_range is not None:
         low, high = custom_range
+    else:
+        if method == "min-max":
+            low, high = image.min(), image.max()
+        elif method == "percentile":
+            low, high = np.percentile(image, (low_percentile, high_percentile))
+        else:
+            raise ValueError(f"Unsupported method: {method}")
 
     stretched = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
     return stretched.astype(np.uint8)
