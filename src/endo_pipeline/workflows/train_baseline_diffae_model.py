@@ -63,7 +63,7 @@ def _initialize_diffae_model(
 
     Parameters
     ----------
-    training_config: OmegaConf
+    training_config: DictConfig | ListConfig
         The training configuration to use.
     crop_size: int
         The pixel size of the image crop to use for training.
