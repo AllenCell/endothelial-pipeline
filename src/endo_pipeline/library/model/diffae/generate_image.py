@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from bioio.writers import OmeTiffWriter
 
 from cellsmap.util import manifest_io
 from cellsmap.util.set_output import get_output_path
