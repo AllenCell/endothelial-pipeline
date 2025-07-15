@@ -8,7 +8,7 @@ from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs import load_dataset_config, load_model_config
 from src.endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
@@ -62,11 +62,8 @@ def generate_results(args: dict) -> None:
         img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            # Load the model configuration
-            model_config = load_config(config_type="model")
-            nuclei_model = model_config["nuc_pred_labelfree_retrained_20250419-18_13"]
+        # Load the model configuration
+        nuclei_model_config = load_model_config("nuc_pred_labelfree_finetuned_20250419")
 
         gpu = core.use_gpu()
         global device_used_printed_global
@@ -74,9 +71,7 @@ def generate_results(args: dict) -> None:
             logger.info(f" - using device: {'GPU' if gpu else 'CPU'}")
             device_used_printed_global = True
 
-        model_path = Path(nuclei_model["model_path"])
-        # cellpose is throwing a warning about typed storage here and I don't
-        # think that I can do anything about it, so I will suppress it
+        model_path = Path(nuclei_model_config.mlflow_run_id)
         model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast
