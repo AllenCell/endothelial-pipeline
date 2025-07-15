@@ -41,6 +41,7 @@ dataset = DatasetConfig(
     cell_lines=["AICS-126"],
     live_or_fixed_sample="live",
     # live_or_fixed_sample="fixed",
+    is_timelapse=True,
     # live_or_fixed_sample="fixed-methanol",
     microscope="3i",
     # microscope="Nikon",
@@ -61,6 +62,7 @@ dataset = DatasetConfig(
     channel_488_index=0,
     brightfield_channel_index=1,
     # ============================ OPTIONAL FIELDS =============================
+    # flow_conditions=[[0,0,0.0]],
     # channel_405_index=0,
     # channel_561_index=0,
     # channel_640_index=0,
