@@ -1,0 +1,6 @@
+name: diffae_patch_64x64_2025-06-30
+mlflow_run_id: a72aebfe581c4872a88e61f550769719
+manifest_fmsids: []
+training_datasets: []
+train_manifest_fmsid: null
+test_manifest_fmsid: null

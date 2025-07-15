@@ -11,13 +11,15 @@ from src.endo_pipeline.configs import (
     save_dataset_config,
 )
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.model import (
-    download_mlflow_artifact,
-    download_model,
+
+from .mlflow import download_mlflow_artifact, download_model
+from .model_inputs import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
     preprocess_tracking_manifest_for_model_eval,
+)
+from .model_outputs import (
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
 )
