@@ -1,5 +1,5 @@
 name: diffae_model_training
-description: Datasets used for training the DiffAE model.
+description: Datasets used for training the DiffAE base model
 datasets:
 - 20241016_20X
 - 20241120_20X

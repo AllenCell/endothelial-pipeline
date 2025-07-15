@@ -1,5 +1,5 @@
 name: immunofluorescence
-description: Datasets for immunofluorescence
+description: Datasets for immunofluorescence analysis
 datasets:
 - 20250509_20X_IF1
 - 20250509_20X_IF2
