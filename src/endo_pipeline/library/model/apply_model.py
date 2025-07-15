@@ -69,7 +69,7 @@ def load_overrides(overrides: str | dict | None) -> dict:
     return overrides_dict
 
 
-def apply_model_on_random_crops_from_one_dataset(
+def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
