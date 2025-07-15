@@ -1,4 +1,3 @@
-# %%
 import fire
 
 from cellsmap.util.set_output import get_output_path
@@ -40,5 +39,3 @@ def main(
 
 if __name__ == "__main__":
     fire.Fire(main)
-
-# %%

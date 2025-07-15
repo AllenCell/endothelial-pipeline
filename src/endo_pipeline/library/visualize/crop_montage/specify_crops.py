@@ -115,7 +115,7 @@ def filter_dataframe(
         DataFrame filtered by the specified PC bin and optional frame range.
     """
     bin_limits = component_heatmaps.get_3d_bounds_from_data(
-        model_manifest_list, pca, col_names="feat", filter_to_valid=False
+        model_manifest_list, pca, filter_to_valid=False
     )
     hist_array_list, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
         df_all,
