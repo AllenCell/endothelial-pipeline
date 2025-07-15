@@ -15,13 +15,13 @@ def main(
 
     fig_savedir = get_output_path("crop_visualization")
 
-    df, pca, list_of_datasets = specify_crops.load_data(dataset_names)
+    df, pca, model_manifest_list = specify_crops.load_data(dataset_names)
 
     df_filtered = specify_crops.filter_dataframe(
         df,
         pc_axis,
         pc_val,
-        list_of_datasets,
+        model_manifest_list,
         pca,
         fig_savedir,
         frame_range,

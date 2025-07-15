@@ -2,9 +2,15 @@
 from pathlib import Path
 
 import pandas as pd
-from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 
 from cellsmap.util import manifest_io
+from src.endo_pipeline.configs import (
+    ModelManifest,
+    get_model_manifest,
+    get_timelapse_model_manifests,
+    load_model_config,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
@@ -18,15 +24,17 @@ from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
 N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
 
-def load_data(dataset_names: str | list[str] | None = None) -> tuple[pd.DataFrame, PCA, list[str]]:
+def load_data(
+    dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10"
+) -> tuple[pd.DataFrame, Pipeline, list[ModelManifest]]:
     """
     Load manifest DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
     dataset_names : str | list[str] | None
-        Name(s) of the dataset(s) to include. If None, loads all available timelapse datasets
-        (excluding any that contain "mito").
+        Name(s) of the dataset(s) to include.
+        If None, loads all available timelapse datasets.
 
     Returns
     -------
@@ -34,38 +42,47 @@ def load_data(dataset_names: str | list[str] | None = None) -> tuple[pd.DataFram
         Concatenated manifest DataFrame for the specified datasets.
     pca : sklearn.decomposition.PCA
         PCA object fitted.
-    list_of_datasets : list[str]
-        List of dataset names that were loaded.
+    model_manifest_list : list[ModelManifest]
+        List of model manifests for the specified datasets.
     """
+    model_config = load_model_config(model_name)
     if isinstance(dataset_names, str):
-        list_of_datasets = [dataset_names]
+        model_manifest_list = [
+            get_model_manifest(
+                dataset_names,
+                model_config,
+            )
+        ]
     elif dataset_names is None:
-        list_of_datasets = manifest_io.list_datasets_with_manifest(
-            "diffae_manifest_fmsid", verbose=True, timelapse_only=True
-        )
-        list_of_datasets = [name for name in list_of_datasets if "mito" not in name]
+        model_manifest_list = get_timelapse_model_manifests(model_config)
     else:
-        list_of_datasets = dataset_names
+        model_manifest_list = [
+            get_model_manifest(
+                dataset_name,
+                model_config,
+            )
+            for dataset_name in dataset_names
+        ]
 
-    pca = fit_pca()
+    pca = fit_pca(model_name=model_name)
 
     df_all = pd.concat(
         [
-            get_manifest_for_dynamics_workflows(ds, pca=pca, filter_to_valid=False)
-            for ds in list_of_datasets
+            get_manifest_for_dynamics_workflows(model_manifest, pca=pca, filter_to_valid=False)
+            for model_manifest in model_manifest_list
         ],
         ignore_index=True,
     )
 
-    return df_all, pca, list_of_datasets
+    return df_all, pca, model_manifest_list
 
 
 def filter_dataframe(
     df_all: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
-    list_of_datasets: list[str],
-    pca: PCA,
+    model_manifest_list: list[ModelManifest],
+    pca: Pipeline,
     fig_savedir: Path,
     frame_range: list[int] | None = None,
     plot_heatmap: bool = False,
@@ -81,8 +98,8 @@ def filter_dataframe(
         Index of the principal component (0-indexed) to filter by.
     pc_val : float
         Target bin value (between 0 and 1) of the selected PC to sample crops from.
-    list_of_datasets : list of str
-        List of dataset names to be used for histogram boundaries and labeling.
+    model_manifest_list : list[ModelManifest]
+        List of model manifests for the datasets being processed.
     pca : PCA object
         PCA object used to transform the original features.
     fig_savedir : Path
@@ -98,7 +115,7 @@ def filter_dataframe(
         DataFrame filtered by the specified PC bin and optional frame range.
     """
     bin_limits = component_heatmaps.get_3d_bounds_from_data(
-        list_of_datasets, pca, col_names="feat", filter_to_valid=False
+        model_manifest_list, pca, col_names="feat", filter_to_valid=False
     )
     hist_array_list, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
         df_all,
@@ -108,10 +125,11 @@ def filter_dataframe(
     )
 
     if plot_heatmap:
-        for i, ds in enumerate(list_of_datasets):
+        for i, model_manifest in enumerate(model_manifest_list):
+            dataset_name = model_manifest.dataset_name
             fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
-            fig.suptitle(f"Dataset: {ds}", y=0.95, fontsize=25)
-            viz_base.save_plot(fig, fig_savedir + f"{ds}_pc_histogram")
+            fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
+            viz_base.save_plot(fig, fig_savedir + f"{dataset_name}_pc_histogram")
 
     df_filtered = component_heatmaps.get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
