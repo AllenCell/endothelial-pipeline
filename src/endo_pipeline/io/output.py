@@ -48,6 +48,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
         Zero or more additional subdirectories to include in file path.
     include_timestamp
         True to include YYYY-MM-DD timestamp in file path, False otherwise.
+        NOTE: the timezone for the timestamp is always UTC.
 
     Returns
     -------

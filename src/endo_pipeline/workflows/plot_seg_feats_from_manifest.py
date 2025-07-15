@@ -11,7 +11,7 @@ from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_live_segmentation_features_manifest,
     ipython_cli_flexecute,
-    save_git_versioning_info,
+    load_dataset_config,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.workflows.make_seg_feats_manifest import (
@@ -389,6 +389,11 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     # load the segmentation features table
     segprops_manifest = get_live_segmentation_features_manifest([dataset_name])
 
+    # get the FMS ID for the live merged segmentation features
+    # and add it to the log
+    fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
+    logger.info(f"Dataset {dataset_name} FMS ID: {fmsid}")
+
     # apply the data filter
     segprops_manifest = segprops_manifest[~segprops_manifest["filter_global"]]
 
@@ -443,9 +448,6 @@ def main(dataset_name: str | None = None, n_proc: int = 1) -> None:
         ):
             # process dataset below will both load and plot the data
             process_dataset(dataset, out_dir)
-
-    # save git versioning info
-    save_git_versioning_info(out_dir, Path(__file__).stem, verbose=False)
 
 
 if __name__ == "__main__":
