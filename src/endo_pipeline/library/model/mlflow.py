@@ -145,7 +145,7 @@ def download_mlflow_artifact(
         artifact_path=Path(artifact_path).parent,
     )
 
-    if artifact_path not in available_artifacts:
+    if str(artifact_path) not in available_artifacts:
         raise ValueError(
             f"Artifact {artifact_path} not found in run {run_id}."
             + f"Available artifacts: {available_artifacts}"
