@@ -12,6 +12,7 @@ from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_dataset_descriptions,
+    get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics.component_heatmaps import get_3d_bounds_from_data
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
