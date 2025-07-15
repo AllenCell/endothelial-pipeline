@@ -11,7 +11,7 @@ from pydantic.dataclasses import dataclass
 class ValidTimepoints:
     """
     Timepoints that are visually validated to be after steady state from no flow to a set
-    flow condition appears to have stabalized and before cell piling occurs.
+    flow condition appears to have stabilized and before cell piling occurs.
     """
 
     start: list[int]
