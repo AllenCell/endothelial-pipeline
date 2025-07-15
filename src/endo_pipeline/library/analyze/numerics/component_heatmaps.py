@@ -71,7 +71,7 @@ def get_3d_bounds_from_data(
 
 def get_histogram_by_component_one_dataset(
     df: pd.DataFrame, bin_edges=list[np.ndarray], feat_cols: list[str] | None = None
-) -> tuple[np.ndarray, list[np.ndarray], pd.DataFrame]:
+) -> tuple[np.ndarray, pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
 
