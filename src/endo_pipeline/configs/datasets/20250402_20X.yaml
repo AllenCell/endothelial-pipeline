@@ -22,9 +22,6 @@ channel_488_index: 0
 brightfield_channel_index: 1
 flow_conditions:
 - start: -22
-  stop: 0
-  shear_stress: 5.85
-- start: 0
   stop: 570
   shear_stress: 5.85
 channel_405_index: null
