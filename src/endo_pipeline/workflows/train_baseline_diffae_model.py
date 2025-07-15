@@ -5,12 +5,7 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import OmegaConf
 
-from src.endo_pipeline.configs import (
-    ModelConfig,
-    get_config_dir,
-    load_model_config,
-    save_model_config,
-)
+from src.endo_pipeline.configs import get_config_dir, update_model_config_with_run_id
 from src.endo_pipeline.io import get_output_path
 
 
@@ -22,6 +17,10 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
     ----------
     model_name: str
         The name of the model to train.
+    crop_size: int
+        The pixel size of the image crop to use for training.
+        This is the crop size along one dimension, the image will be square
+        with size (crop_size, crop_size).
     save_path: Path
         The path to the directory where the checkpoints and logs will be saved.
     """
@@ -66,9 +65,14 @@ def _initialize_diffae_model(
     ----------
     training_config: OmegaConf
         The training configuration to use.
+    crop_size: int
+        The pixel size of the image crop to use for training.
+        This is the crop size along one dimension, the image will be square
+        with size (crop_size, crop_size).
     model_name: str
         The name of the model to train.
-    save_dir: Path
+    save_path: Path
+        The path to the directory where the checkpoints and logs will be saved.
     """
     # user overrides for training
     overrides = _generate_training_overrides(model_name, crop_size, save_path)
@@ -81,45 +85,16 @@ def _initialize_diffae_model(
     return model
 
 
-# make this a model config utility function?
-def _update_model_config_with_run_id(model_name: str, run_id: str) -> None:
-    """
-    Update the model config with the MLflow run ID.
-
-    Parameters
-    ----------
-    model_name: str
-        The name of the model.
-    run_id: str
-        The MLflow run ID.
-    """
-    try:
-        # if model config exists, load it
-        model_config = load_model_config(model_name)
-        model_config.mlflow_run_id = run_id
-    except FileNotFoundError:
-        # if model config does not exist, create a new one
-        model_config = ModelConfig(
-            name=model_name,
-            mlflow_run_id=run_id,
-        )
-    # save the model config
-    save_model_config(model_config)
-
-
 def main(crop_size: int = 128) -> None:
     """
     Train a DiffAE model using the provided configuration.
 
     Parameters
     ----------
-    cfg: DictConfig
-        The training configuration to use.
-        This is a Hydra config file that contains
-        the training parameters. For example, it
-        can be used to set the number of epochs,
-        batch size, etc. This is loaded and compiled
-        by hydra from the global config path CONFIG_PATH.
+    crop_size: int
+        The pixel size of the image crop to use for training. Default is 128.
+        This is the crop size along one dimension, the image will be square
+        with size (crop_size, crop_size).
     """
     # load training config
     training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
@@ -136,14 +111,13 @@ def main(crop_size: int = 128) -> None:
         model_name,
         save_path,
     )
-    model.train()
-    # _, object_dict = model.train()
+    _, object_dict = model.train()
 
-    # # retrive MLflow run ID
-    # mlflow_logger = object_dict["logger"][0]
-    # run_id = mlflow_logger.run_id
-    # # add run ID to model config
-    # _update_model_config_with_run_id(model_name, run_id)
+    # retrive MLflow run ID
+    mlflow_logger = object_dict["logger"][0]
+    run_id = mlflow_logger.run_id
+    # add run ID to model config
+    update_model_config_with_run_id(model_name, run_id)
 
 
 if __name__ == "__main__":

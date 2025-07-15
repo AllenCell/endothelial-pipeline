@@ -26,6 +26,7 @@ from .model_config_utils import (
     get_model_manifest,
     get_pca_reference_model_manifests,
     get_timelapse_model_manifests,
+    update_model_config_with_run_id,
 )
 
 __all__ = [
@@ -51,6 +52,7 @@ __all__ = [
     "load_reference_dataset_configs",
     "save_dataset_config",
     "save_model_config",
+    "update_model_config_with_run_id",
     "validate_all_dataset_configs",
     "validate_all_model_configs",
     "validate_dataset_config",
