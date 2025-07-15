@@ -1,4 +1,4 @@
-from .config_io import get_config_dir, load_config
+from .config_io import get_config_dir
 from .dataset_config import DatasetConfig, ValidTimepoints
 from .dataset_config_io import (
     get_available_dataset_names,
@@ -46,7 +46,6 @@ __all__ = [
     "get_timelapse_model_manifests",
     "load_all_dataset_configs",
     "load_all_model_configs",
-    "load_config",
     "load_dataset_config",
     "load_model_config",
     "load_reference_dataset_configs",

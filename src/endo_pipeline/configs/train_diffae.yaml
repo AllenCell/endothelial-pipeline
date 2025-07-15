@@ -285,6 +285,12 @@ callbacks:
     num_pcs: 4
     n_steps: 3
     every_n_epoch: 10
+logger:
+  mlflow:
+    _target_: cyto_dl.loggers.MLFlowLogger
+    tracking_uri: https://production.int.allencell.org/mlflow/
+    experiment_name: ${experiment_name}
+    run_name: ${run_name}
 extras:
   ignore_warnings: true
   enforce_tags: true
