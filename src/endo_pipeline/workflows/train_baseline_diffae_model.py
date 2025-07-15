@@ -3,7 +3,7 @@ from pathlib import Path
 
 import fire
 from cyto_dl.api import CytoDLModel
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from src.endo_pipeline.configs import get_config_dir, update_model_config_with_run_id
 from src.endo_pipeline.io import get_output_path
@@ -53,7 +53,7 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
 
 
 def _initialize_diffae_model(
-    training_config: OmegaConf,
+    training_config: DictConfig | ListConfig,
     crop_size: int,
     model_name: str,
     save_path: Path,
