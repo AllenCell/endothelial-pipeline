@@ -1,5 +1,5 @@
 name: paired_datasets
-description: Paired datasets for diffae model fine tuning
+description: Paired datasets for DiffAE model fine tuning
 datasets:
 - 20250110_paired20X
 - 20250110_paired40X
