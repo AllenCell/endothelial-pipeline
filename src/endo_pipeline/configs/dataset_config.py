@@ -106,7 +106,7 @@ class DatasetConfig:
     brightfield_channel_index: int
     """Index of the brightfield channel."""
 
-    flow_condition: list[FlowCondition] = field(default_factory=list)
+    flow_conditions: list[FlowCondition] = field(default_factory=list)
 
     channel_405_index: int | None = None
     """Index of the 405 channel."""
