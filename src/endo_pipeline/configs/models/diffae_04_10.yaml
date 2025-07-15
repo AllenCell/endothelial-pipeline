@@ -1,8 +1,6 @@
 name: diffae_04_10
 mlflow_run_id: ae7f25b4109c47809d3e2ed1b7120e50
 manifest_fmsids:
-- dataset_name: 20241022_20X_mito
-  fmsid: f1a32daf5f004ce58d410f7d81d3d6d0
 - dataset_name: 20241120_20X
   fmsid: 3ce3dedd56a54b48a544c99dc61a2fe1
 - dataset_name: 20241217_20X
