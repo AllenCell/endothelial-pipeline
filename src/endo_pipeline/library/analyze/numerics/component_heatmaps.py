@@ -87,6 +87,9 @@ def get_histogram_by_component_one_dataset(
     - df: pd.DataFrame, updated dataframe with columns of what
         bin each crop at frame_number t is in along the given latent dimension
     """
+    if feat_cols is None:
+        # use all PCA feature columns in the dataframe
+        feat_cols = get_pc_column_names(df)
 
     num_feats = len(feat_cols)
     num_frames = df["frame_number"].nunique()
