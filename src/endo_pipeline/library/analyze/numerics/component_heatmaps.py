@@ -48,7 +48,7 @@ def get_3d_bounds_from_data(
     Outputs:
     - bounds: list of numpy arrays with the bounds
         for each dimension in the 3D state space
-        - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
+        - format: [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
     """
     num_dims = 3
     # initialize bounds
