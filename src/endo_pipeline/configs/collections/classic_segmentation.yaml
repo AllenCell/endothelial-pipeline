@@ -1,7 +1,0 @@
-name: classic_segmentation
-description: Datasets for classic_segmentation
-datasets:
-- 20241016_20X
-- 20241120_20X
-- 20241203_20X
-- 20241217_20X
