@@ -27,7 +27,7 @@ immunofluorescence_manifest_fmsid: null
 cdh5_classic_seg_tracking_manifest_fmsid: 06265c5c06e84f00bec29829bd03dabe
 cdh5_classic_seg_manifest_fmsid: af1b341a31584107a7dc1f534bdf65f5
 nuclei_label_free_seg_manifest_fmsid: a9c2d08eecfc45a19a43239dd06a4b22
-live_merged_seg_features_manifest_fmsid: null
+live_merged_seg_features_manifest_fmsid: 474c500583954ab6ad62f5f28d103e91
 is_reference: false
 valid_timepoints:
   start: [117]
