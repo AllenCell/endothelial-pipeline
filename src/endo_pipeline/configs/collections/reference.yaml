@@ -1,4 +1,4 @@
-name: reference
+name: pca_reference
 description: Reference datasets used to compute principal component axes.
 datasets:
 - 20250409_20X
