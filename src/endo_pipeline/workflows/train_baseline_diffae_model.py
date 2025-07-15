@@ -40,7 +40,8 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "model.save_dir": (save_path / "logs").as_posix(),
         "trainer.default_root_dir": save_path,
         "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
-        "paths.output_dir": (save_path / "logs").as_posix(),
+        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.log_dir": (save_path / "logs").as_posix(),
         # make sure that last ckpt is saved
         "callbacks.model_checkpoint.monitor": None,
         # update run name
@@ -80,6 +81,7 @@ def _initialize_diffae_model(
     return model
 
 
+# make this a model config utility function?
 def _update_model_config_with_run_id(model_name: str, run_id: str) -> None:
     """
     Update the model config with the MLflow run ID.
@@ -102,7 +104,7 @@ def _update_model_config_with_run_id(model_name: str, run_id: str) -> None:
             mlflow_run_id=run_id,
         )
     # save the model config
-    save_model_config(model_name, model_config)
+    save_model_config(model_config)
 
 
 def main(crop_size: int = 128) -> None:
@@ -124,7 +126,7 @@ def main(crop_size: int = 128) -> None:
 
     # set model name via timestamp and crop size
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
-    model_name = f"diffae_{crop_size}x{crop_size}_{timestamp}"
+    model_name = f"diffae_patch_{crop_size}x{crop_size}_{timestamp}"
     # set save directory
     save_path = get_output_path("models", model_name, include_timestamp=False)
 
@@ -134,14 +136,14 @@ def main(crop_size: int = 128) -> None:
         model_name,
         save_path,
     )
-    model.print_config()
-    _, object_dict = model.train()
+    model.train()
+    # _, object_dict = model.train()
 
-    # retrive MLflow run ID
-    mlflow_logger = object_dict["logger"][0]
-    run_id = mlflow_logger.run_id
-    # add run ID to model config
-    _update_model_config_with_run_id(model_name, run_id)
+    # # retrive MLflow run ID
+    # mlflow_logger = object_dict["logger"][0]
+    # run_id = mlflow_logger.run_id
+    # # add run ID to model config
+    # _update_model_config_with_run_id(model_name, run_id)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,185 @@
+experiment_name: endo_diffae
+run_name: diffae_patch_${model.image_shape[1]}x${model.image_shape[2]}
+task_name: train
+tags:
+- dev
+train: true
+test: true
+checkpoint:
+  ckpt_path: null
+  weights_only: null
+  strict: true
+seed: 12345
+data:
+  train_dataloaders:
+    _target_: monai.data.DataLoader
+    num_workers: 8
+    batch_size: 1
+    pin_memory: true
+    persistent_workers: false
+    shuffle: true
+    dataset:
+      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      num_workers: 64
+      csv_path: null
+      spatial_dims: 3
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw
+          dask_load: true
+          dtype: numpy.float32
+        - _target_: monai.transforms.SplitDimd
+          keys: raw
+          output_postfixes:
+          - cdh5
+          - bf
+        - _target_: monai.transforms.DeleteItemsd
+          keys:
+          - raw
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_bf
+          projection_type: std
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_cdh5
+          projection_type: max
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_bf
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys: raw_bf
+        - _target_: monai.transforms.ScaleIntensityRangePercentilesd
+          lower: 10
+          upper: 98
+          b_min: -1
+          b_max: 1
+          clip: true
+          keys: raw_cdh5
+        - _target_: monai.transforms.RandSpatialCropSamplesd
+          keys:
+          - raw_cdh5
+          - raw_bf
+          roi_size:
+          - ${model.image_shape[1]}
+          - ${model.image_shape[2]}
+          random_size: false
+          num_samples: 8
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_cdh5
+          - raw_bf
+          dtype: float16
+  predict_dataloaders:
+    _target_: monai.data.DataLoader
+    num_workers: 8
+    batch_size: 1
+    pin_memory: true
+    persistent_workers: false
+    shuffle: false
+    dataset:
+      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      cache_num: 0
+      num_workers: 8
+      spatial_dims: 3
+      csv_path: null
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw_bf
+          dask_load: true
+          dtype: numpy.float32
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_bf
+          projection_type: std
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_bf
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys: raw_bf
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_bf
+          dtype: float16
+  val_dataloaders:
+    _target_: monai.data.DataLoader
+    num_workers: 8
+    batch_size: 1
+    pin_memory: true
+    persistent_workers: false
+    shuffle: false
+    dataset:
+      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      num_workers: 8
+      csv_path: null
+      spatial_dims: 3
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw
+          dask_load: true
+          dtype: numpy.float32
+        - _target_: monai.transforms.SplitDimd
+          keys: raw
+          output_postfixes:
+          - cdh5
+          - bf
+        - _target_: monai.transforms.DeleteItemsd
+          keys:
+          - raw
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_bf
+          projection_type: std
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_cdh5
+          projection_type: max
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_bf
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys: raw_bf
+        - _target_: monai.transforms.ScaleIntensityRangePercentilesd
+          lower: 10
+          upper: 98
+          b_min: -1
+          b_max: 1
+          clip: true
+          keys: raw_cdh5
+        - _target_: monai.transforms.RandSpatialCropSamplesd
+          keys:
+          - raw_cdh5
+          - raw_bf
+          roi_size:
+          - ${model.image_shape[1]}
+          - ${model.image_shape[2]}
+          random_size: false
+          num_samples: 8
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_cdh5
+          - raw_bf
+          dtype: float16
 model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
   save_images_every_n_epochs: 10
   save_dir: null
-  image_shape: # this is where the crop size is specified
+  image_shape: # this is where crop size is defined
   - 1
   - 128
   - 128
@@ -59,7 +236,7 @@ model:
     _target_: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchInferer
     splitter:
       _target_: monai.inferers.SlidingWindowSplitter
-      patch_size: # this is also where the crop size is specified
+      patch_size:
       - ${model.image_shape[1]}
       - ${model.image_shape[2]}
       pad_mode: null
@@ -67,190 +244,10 @@ model:
     merger_cls: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchMerger
     spatial_dims: 2
     batch_size: 1000
-model/params/total: 31865609
-model/params/trainable: 31865609
-model/params/non_trainable: 0
-data:
-  train_dataloaders:
-    _target_: monai.data.DataLoader
-    num_workers: 8
-    batch_size: 1
-    pin_memory: true
-    persistent_workers: false
-    shuffle: true
-    dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
-      num_workers: 64
-      csv_path: null # this is where the training manifest is specified, set in workflow
-      spatial_dims: 3
-      transform:
-        _target_: monai.transforms.Compose
-        transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
-          path_key: original_path
-          out_key: raw
-          dask_load: true
-          dtype: numpy.float32
-        - _target_: monai.transforms.SplitDimd
-          keys: raw
-          output_postfixes:
-          - cdh5
-          - bf
-        - _target_: monai.transforms.DeleteItemsd
-          keys:
-          - raw
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_bf
-          projection_type: std
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_cdh5
-          projection_type: max
-        - _target_: cyto_dl.image.transforms.clip.Clipd
-          keys:
-          - raw_bf
-          low: 0.1
-          high: 99.9
-        - _target_: monai.transforms.NormalizeIntensityd
-          keys: raw_bf
-        - _target_: monai.transforms.ScaleIntensityRangePercentilesd
-          lower: 10
-          upper: 98
-          b_min: -1
-          b_max: 1
-          clip: true
-          keys: raw_cdh5
-        - _target_: monai.transforms.RandSpatialCropSamplesd
-          keys:
-          - raw_cdh5
-          - raw_bf
-          roi_size: # this is also where the crop size is specified
-          - ${model.image_shape[1]}
-          - ${model.image_shape[2]}
-          random_size: false
-          num_samples: 8
-        - _target_: monai.transforms.ToTensord
-          keys:
-          - raw_cdh5
-          - raw_bf
-          dtype: float16
-  predict_dataloaders:
-    _target_: monai.data.DataLoader
-    num_workers: 8
-    batch_size: 1
-    pin_memory: true
-    persistent_workers: false
-    shuffle: false
-    dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
-      cache_num: 0
-      num_workers: 8
-      spatial_dims: 3
-      csv_path: null # this is where the prediction manifest is specified, set in workflow
-      transform:
-        _target_: monai.transforms.Compose
-        transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
-          path_key: original_path
-          out_key: raw_bf
-          dask_load: true
-          dtype: numpy.float32
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_bf
-          projection_type: std
-        - _target_: cyto_dl.image.transforms.clip.Clipd
-          keys:
-          - raw_bf
-          low: 0.1
-          high: 99.9
-        - _target_: monai.transforms.NormalizeIntensityd
-          keys: raw_bf
-        - _target_: monai.transforms.ToTensord
-          keys:
-          - raw_bf
-          dtype: float16
-  val_dataloaders:
-    _target_: monai.data.DataLoader
-    num_workers: 8
-    batch_size: 1
-    pin_memory: true
-    persistent_workers: false
-    shuffle: false
-    dataset:
-      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
-      num_workers: 8
-      csv_path: null # this is where the validation manifest is specified, set in workflow
-      spatial_dims: 3
-      transform:
-        _target_: monai.transforms.Compose
-        transforms:
-        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
-          path_key: original_path
-          out_key: raw
-          dask_load: true
-          dtype: numpy.float32
-        - _target_: monai.transforms.SplitDimd
-          keys: raw
-          output_postfixes:
-          - cdh5
-          - bf
-        - _target_: monai.transforms.DeleteItemsd
-          keys:
-          - raw
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_bf
-          projection_type: std
-        - _target_: cyto_dl.image.transforms.Projectd
-          keys:
-          - raw_cdh5
-          projection_type: max
-        - _target_: cyto_dl.image.transforms.clip.Clipd
-          keys:
-          - raw_bf
-          low: 0.1
-          high: 99.9
-        - _target_: monai.transforms.NormalizeIntensityd
-          keys: raw_bf
-        - _target_: monai.transforms.ScaleIntensityRangePercentilesd
-          lower: 10
-          upper: 98
-          b_min: -1
-          b_max: 1
-          clip: true
-          keys: raw_cdh5
-        - _target_: monai.transforms.RandSpatialCropSamplesd
-          keys:
-          - raw_cdh5
-          - raw_bf
-          roi_size: # this is also where the crop size is specified
-          - ${model.image_shape[1]}
-          - ${model.image_shape[2]}
-          random_size: false
-          num_samples: 8
-        - _target_: monai.transforms.ToTensord
-          keys:
-          - raw_cdh5
-          - raw_bf
-          dtype: float16
-trainer:
-  _target_: lightning.Trainer
-  default_root_dir: null
-  min_epochs: 1
-  max_epochs: 1000
-  accelerator: gpu
-  devices: 1
-  precision: 16
-  check_val_every_n_epoch: 1
-  deterministic: false
-  detect_anomaly: false
-  max_time: null
 callbacks:
   model_checkpoint:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
-    dirpath: null
+    dirpath: /allen/aics/users/erin.angelini/git-repos/cyto-dl/logs/train/runs/endo_diffae/diffae_patch_128x128/2025-07-14_21-55-36/checkpoints
     filename: epoch_{epoch:03d}
     monitor: val/loss
     verbose: false
@@ -289,8 +286,26 @@ logger:
   mlflow:
     _target_: cyto_dl.loggers.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
-    experiment_name: ${experiment_name}
-    run_name: ${run_name}
+    experiment_name: endo_diffae
+    run_name: diffae_patch_${model.image_shape[1]}x${model.image_shape[2]}
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: null
+  min_epochs: 1
+  max_epochs: 1000
+  accelerator: gpu
+  devices: 1
+  precision: 16
+  check_val_every_n_epoch: 1
+  deterministic: false
+  detect_anomaly: false
+  max_time: null
+paths:
+  root_dir: null
+  data_dir: null
+  log_dir: null
+  output_dir: ${paths.log_dir}
+  work_dir: ${paths.root_dir}
 extras:
   ignore_warnings: true
   enforce_tags: true
@@ -298,8 +313,3 @@ extras:
   precision:
     _target_: torch.set_float32_matmul_precision
     precision: medium
-task_name: train
-tags:
-- dev
-ckpt_path: null
-seed: 12345
