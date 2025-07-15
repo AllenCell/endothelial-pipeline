@@ -1,5 +1,5 @@
 name: reference
-description: Reference datasets.
+description: Reference datasets used to compute principal component axes.
 datasets:
 - 20250409_20X
 - 20241120_20X
