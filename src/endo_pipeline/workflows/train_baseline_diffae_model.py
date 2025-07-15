@@ -47,7 +47,6 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "run_name": model_name,
         # set crop size from input
         "model.image_shape": [1, crop_size, crop_size],
-        "model.spatial_inferer.splitter.patch_size": [crop_size, crop_size],
     }
     return overrides
 

@@ -247,7 +247,7 @@ model:
 callbacks:
   model_checkpoint:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
-    dirpath: /allen/aics/users/erin.angelini/git-repos/cyto-dl/logs/train/runs/endo_diffae/diffae_patch_128x128/2025-07-14_21-55-36/checkpoints
+    dirpath: null
     filename: epoch_{epoch:03d}
     monitor: val/loss
     verbose: false
