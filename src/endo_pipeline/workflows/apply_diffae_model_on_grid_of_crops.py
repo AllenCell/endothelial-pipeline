@@ -49,6 +49,7 @@ def main(
         # get reference dataset names
         dataset_names = get_datasets_in_collection("pca_reference")
     elif isinstance(dataset_names, str):
+        # if dataset_names is a single string, convert it to a list
         dataset_names = [dataset_names]
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 

@@ -11,6 +11,12 @@ manifest_fmsids:
   fmsid: d61558e84a7b4cdebb024a29b7d69f34
 - dataset_name: 20250611_20X
   fmsid: 3474f13fff9d468b95fb1bd74dadb51e
+- dataset_name: 20250319_20X
+  fmsid: 5dd870a0ecbc4183a0b8a051c2fdade2
+- dataset_name: 20250326_20X
+  fmsid: cc353d90913442fa897c9efad27e1c5e
+- dataset_name: 20250428_20X
+  fmsid: b7093292148c4a14b26392bc4a833e2e
 training_datasets: []
 train_manifest_fmsid: null
 test_manifest_fmsid: null
