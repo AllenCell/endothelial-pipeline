@@ -831,18 +831,22 @@ def get_cdh5_classic_segmentation_path(
     T: int | None = None,
     missing_file_exception: Literal["raise", "warn"] = "warn",
 ) -> Path | None:
-    # NOTE at some point the cdh5 classic segmentation paths
-    # will probably be added to the dataconfig.yaml file
-    # for the base_path, but until then I will hardcode the
-    # path here
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg"
-    )
-    base_path = base_path / dataset_name
-    # NOTE this is what the code is expected to be when the
-    # path is added to the dataconfig.yaml file:
-    # base_path = dataset_info['cdh5_classic_seg_path']
-    position_path = Path(f"{base_path}/P{position}/")
+    """
+    Get the path to the CDH5 classic segmentation file for a given dataset, position, and timepoint.
+    If T is None, it returns the directory for the position.
+    If T is provided, it returns the specific file for that timepoint.
+    If the file is not found, it raises a FileNotFoundError or logs a warning based on the
+    `missing_file_exception` parameter.
+    """
+
+    cdh5_seg_dir = load_dataset_config(dataset_name).cdh5_seg_path
+
+    if cdh5_seg_dir is None:
+        logger.warn(f"No Cdh5 segmentations for {dataset_name}.")
+        return None
+    else:
+        position_path = Path(cdh5_seg_dir) / f"P{position}"
+
     if T is None:
         return position_path
     else:
@@ -855,14 +859,15 @@ def get_cdh5_classic_segmentation_path(
         if cdh5_seg_path is not None:
             return cdh5_seg_path
 
-    match missing_file_exception:
-        case "raise":
-            raise FileNotFoundError(
-                f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
-            )
-        case "warn":
-            print(f"CDH5 segmentation for T={T} not found in {position_path}. Skipping...")
-            return None
+        match missing_file_exception:
+            case "raise":
+                logger.error(f"CDH5 segmentation for T={T} not found in {position_path}.")
+                raise FileNotFoundError()
+            case "warn":
+                logger.warn(
+                    f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
+                )
+                return None
 
 
 def load_cdh5_classic_segmentation(
