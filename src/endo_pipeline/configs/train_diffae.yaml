@@ -304,7 +304,7 @@ paths:
   root_dir: null
   data_dir: null
   log_dir: null
-  output_dir: ${paths.log_dir}/train/runs/${experiment_name}/${run_name}
+  output_dir: null
   work_dir: null
 extras:
   ignore_warnings: true

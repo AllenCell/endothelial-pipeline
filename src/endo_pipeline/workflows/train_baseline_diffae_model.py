@@ -43,6 +43,7 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "paths.work_dir": os.cwd(),
         # save outputs to user-specified directory
         "paths.log_dir": (save_path / "logs").as_posix(),
+        "paths.output_dir": "${paths.log_dir}/train/",
         "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
         # update run name
         "run_name": model_name,
