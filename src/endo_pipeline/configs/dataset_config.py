@@ -73,18 +73,6 @@ class DatasetConfig:
     shear_stress_regime: str
     """Shear stress regime the dataset was collected under."""
 
-    use_cases: list[
-        Literal[
-            "classic_segmentation",
-            "feasibility",
-            "immunofluorescence",
-            "model_training",
-            "measurement",
-            "nuclear_label_free_predictions",
-        ]
-    ]
-    """List of valid uses cases for the dataset."""
-
     pixel_size_xy_in_um: float
     """Pixel size in XY dimension in μm."""
 
@@ -136,9 +124,6 @@ class DatasetConfig:
     immunofluorescence_manifest_fmsid: str | None = None
     """FMS ID for immunofluorescence manifest."""
 
-    is_reference: bool = False
-    """True if dataset is used as a reference dataset, False otherwise."""
-
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
 
@@ -154,3 +139,17 @@ class DatasetConfig:
     class Config(BaseConfig):
         forbid_extra_keys = True
         omit_none = False
+
+
+@dataclass
+class DatasetCollectionConfig:
+    """Dataset configuration collection for pipeline."""
+
+    name: str
+    """Unique name of the dataset collection."""
+
+    description: str
+    """Brief description of the dataset collection."""
+
+    datasets: list[str]
+    """List of dataset names that belong in the collection."""

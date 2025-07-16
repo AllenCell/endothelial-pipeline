@@ -9,8 +9,6 @@ live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 shear_stress_regime: 24hr_low
-use_cases:
-- immunofluorescence
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -34,7 +32,6 @@ nuclear_seg_manifest_fmsid: ''
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: ''
 immunofluorescence_manifest_fmsid: 68f6af2a56d543a08cb4ec34538fb122
-is_reference: false
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null

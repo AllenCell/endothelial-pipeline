@@ -9,8 +9,6 @@ live_or_fixed_sample: live
 is_timelapse: false
 microscope: 3i
 shear_stress_regime: 24hr_low-to-24hr_high
-use_cases:
-- model_training
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -40,7 +38,6 @@ nuclear_seg_manifest_fmsid: ''
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
 immunofluorescence_manifest_fmsid: null
-is_reference: false
 valid_timepoints: null
 cell_mean_features: null
 include_scenes:

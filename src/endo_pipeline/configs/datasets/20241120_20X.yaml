@@ -9,9 +9,6 @@ live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
 shear_stress_regime: 48hr_high
-use_cases:
-- classic_segmentation
-- measurement
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
@@ -35,7 +32,6 @@ nuclear_seg_manifest_fmsid: a9ef7c8557334f1fb36393f79b582609
 tracking_integration_fmsid: f053d3a12e454b109061c0e8ac891548
 diffae_tracking_integration_fmsid: 90251a5c7c0146e58a9e7d3277be3913
 immunofluorescence_manifest_fmsid: null
-is_reference: true
 valid_timepoints:
   start:
   - 230
