@@ -1073,7 +1073,7 @@ def get_measured_segmentation_table(
             )
     measured_data_list = []
     for dataset_name in dataset_name_list:
-        fmsid = load_dataset_config(dataset_name).__getattribute__(fmsid_field)
+        fmsid = getattr(load_dataset_config(dataset_name), fmsid_field)
         if fmsid is not None:
             measured_data = load_dataframe_from_fms(fmsid)
         else:
@@ -1149,9 +1149,7 @@ def fire_parse_generate_dataset_name_list(
     '\"20241016_20X\",\"20241120_20X\"'
     """
     if fire_dataset_name_input is None:
-        dataset_name_list = dataset_name_list = [
-            cfg.name for cfg in load_reference_dataset_configs()
-        ]
+        dataset_name_list = [cfg.name for cfg in load_reference_dataset_configs()]
     else:
         dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
 
@@ -1390,7 +1388,7 @@ def concatenate_and_save_feature_tables(
     sort_by_T: bool = True,
     check_saved_dataframe: bool = True,
     remove_initial_files_and_folders: bool = False,
-) -> Path:
+) -> None:
     """
     Concatenate the nuclei feature tables for all positions and
     timepoints for a given dataset in an out_dir and then saves
@@ -1454,5 +1452,3 @@ def concatenate_and_save_feature_tables(
         else:
             print(f"Directory {dir_path} is not empty, skipping removal.")
             continue
-
-    return concatenated_df_out_path

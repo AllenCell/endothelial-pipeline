@@ -11,7 +11,7 @@ from src.endo_pipeline.configs import (
     load_model_config,
     save_dataset_config,
 )
-from src.endo_pipeline.configs.model_config_io import get_labelfree_nuclei_prediction_model_name
+from src.endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
 from src.endo_pipeline.io import (
     build_fms_annotations,
     configure_logging,

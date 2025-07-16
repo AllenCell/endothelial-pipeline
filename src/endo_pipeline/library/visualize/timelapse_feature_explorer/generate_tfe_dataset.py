@@ -71,8 +71,6 @@ def generate_tfe_dataset(
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
     if dataset_config.cell_mean_features is not None:
         df = add_intensity_mean_pcs(df)
-    else:
-        pass
 
     if backdrops:
         generate_backdrops(

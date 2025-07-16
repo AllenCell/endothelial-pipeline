@@ -13,7 +13,6 @@ from .dataset_config_utils import get_nuclear_prediction_path, get_specific_chan
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
-    get_labelfree_nuclei_prediction_model_name,
     get_model_config_dir,
     load_all_model_configs,
     load_model_config,
@@ -23,6 +22,7 @@ from .model_config_io import (
 )
 from .model_config_utils import (
     add_model_manifest,
+    get_labelfree_nuclei_prediction_model_name,
     get_model_manifest,
     get_pca_reference_model_manifests,
     get_timelapse_model_manifests,
