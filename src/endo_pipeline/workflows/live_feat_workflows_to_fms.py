@@ -152,6 +152,9 @@ def upload_multiple_datasets(
     ],
     dataset_name_list: list | None = None,
     fms_env: Literal["stg", "prod"] = "prod",
+    endo_project_analysis_dir: (
+        str | Path
+    ) = "//allen/aics/endothelial/morphological_features/analysis",
 ) -> None:
     """
     This is a convenience function to upload multiple datasets to FMS
@@ -159,7 +162,8 @@ def upload_multiple_datasets(
 
     NOTE Intended only for internal use.
     """
-    assert Path("//allen/aics/endothelial/morphological_features/analysis").exists(), (
+    endo_project_analysis_dir = Path(endo_project_analysis_dir).resolve()
+    assert endo_project_analysis_dir.exists(), (
         "The path to the endothelial project directory is not accessible."
         "This function is only available for Allen Institute internal use."
     )
@@ -193,7 +197,6 @@ def upload_multiple_datasets(
         if ds_cfg.live_or_fixed_sample == "live":
             available_live_datasets.append(ds_cfg.name)
 
-    endo_project_dir = Path("//allen/aics/endothelial/morphological_features/analysis")
     path_modifiers = {
         "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.tsv"},
         "cdh5_seg_measurements": {
@@ -216,7 +219,7 @@ def upload_multiple_datasets(
             f"{available_live_datasets}"
         )
         manifest_filepath = (
-            endo_project_dir
+            endo_project_analysis_dir
             / path_modifiers[manifest_kind]["subdir"]
             / f"{dataset_name}{path_modifiers[manifest_kind]['suffix']}"
         )
