@@ -1,5 +1,5 @@
 from .config_io import get_config_dir
-from .dataset_config import DatasetCollectionConfig, DatasetConfig, ValidTimepoints
+from .dataset_config import DatasetCollectionConfig, DatasetConfig, FlowCondition, ValidTimepoints
 from .dataset_config_io import (
     get_available_dataset_names,
     get_dataset_collection_config_dir,
@@ -35,6 +35,7 @@ from .model_config_utils import (
 __all__ = [
     "DatasetCollectionConfig",
     "DatasetConfig",
+    "FlowCondition",
     "ModelConfig",
     "ModelManifest",
     "ValidTimepoints",
@@ -45,6 +46,7 @@ __all__ = [
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",
+    "get_labelfree_nuclei_prediction_model_name",
     "get_model_config_dir",
     "get_model_manifest",
     "get_nuclear_prediction_path",
@@ -63,5 +65,4 @@ __all__ = [
     "validate_all_model_configs",
     "validate_dataset_config",
     "validate_model_config",
-    "get_labelfree_nuclei_prediction_model_name",
 ]

@@ -1,13 +1,10 @@
 name: 20250509_20X_IF11
 original_path: //allen/programs/allencell/data/proj0/c49/e0a/d24/790/d6e/f5b/44d/1bf/7a5/378/1d/20250509_GE00007882_20X_sldy/20250509_GE00007882_20X_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_1d3787a51bf44df5bd6e790d24e0ac49
-zarr_positions:
-- 0
-- 1
+zarr_positions: [0, 1]
 fmsid: 1d3787a51bf44df5bd6e790d24e0ac49
 barcode: GE00007882
-cell_lines:
-- AICS-126
+cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
@@ -15,10 +12,7 @@ shear_stress_regime: 24hr_no_flow
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow:
-- - 0
-  - 0
-  - 0.0
+flow: [[0, 0, 0.0]]
 n_total_positions: 2
 channel_488_index: 1
 brightfield_channel_index: 4

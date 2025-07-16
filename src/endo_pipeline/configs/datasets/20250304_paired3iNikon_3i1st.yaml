@@ -1,61 +1,12 @@
 name: 20250304_paired3iNikon_3i1st
 original_path: //allen/programs/allencell/data/proj0/83d/701/9bb/733/bbd/b6a/047/d43/787/5c7/d5/20250304_GE00006610_20X_SLDY/20250304_GE00006610_20X_pairedNikon.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250304_d55c7787d43047b6abbd7339bb70183d
-zarr_positions:
-- 0
-- 1
-- 2
-- 3
-- 4
-- 5
-- 6
-- 7
-- 8
-- 9
-- 10
-- 11
-- 12
-- 13
-- 14
-- 15
-- 16
-- 17
-- 18
-- 19
-- 20
-- 21
-- 22
-- 23
-- 24
-- 25
-- 26
-- 27
-- 28
-- 29
-- 30
-- 31
-- 32
-- 33
-- 34
-- 35
-- 36
-- 37
-- 38
-- 39
-- 40
-- 41
-- 42
-- 43
-- 44
-- 45
-- 46
-- 47
-- 48
-- 49
+zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+  19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+  39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
 fmsid: d55c7787d43047b6abbd7339bb70183d
 barcode: GE00006610
-cell_lines:
-- AICS-126
+cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
@@ -63,10 +14,7 @@ shear_stress_regime: 24hr_low
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow:
-- - 0
-  - 0
-  - 0.0
+flow: [[0, 0, 0.0]]
 n_total_positions: 50
 channel_488_index: 0
 brightfield_channel_index: 1
