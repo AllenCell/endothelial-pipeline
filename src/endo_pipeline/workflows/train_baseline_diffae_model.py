@@ -28,8 +28,9 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         The path to the directory where the checkpoints and logs will be saved.
     """
     # create output directories if they do not exist
-    for subdir in ["logs", "checkpoints"]:
-        get_output_path("models", model_name, subdir, include_timestamp=False)
+    get_output_path("models", model_name, "logs", include_timestamp=False)
+    get_output_path("models", model_name, "logs", "train", include_timestamp=False)
+    get_output_path("models", model_name, "logs", "train", "checkpoints", include_timestamp=False)
 
     manifest_path = get_output_path("manifests", include_timestamp=False)
 
@@ -44,7 +45,7 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         # save outputs to user-specified directory
         "paths.log_dir": (save_path / "logs").as_posix(),
         "paths.output_dir": "${paths.log_dir}/train/",
-        "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
+        "callbacks.model_checkpoint.dirpath": "{paths.output_dir}/checkpoints",
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
