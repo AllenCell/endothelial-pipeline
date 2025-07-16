@@ -3,18 +3,32 @@ original_path: //allen/programs/allencell/data/proj0/093/f29/5ce/e2f/dc7/fab/845
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250110_0b74fb108b0845fabdc7e2f5cef29093
 fmsid: 0b74fb108b0845fabdc7e2f5cef29093
 barcode: GE00006323
-cell_lines: [AICS-126]
+cell_lines:
+- AICS-126
 live_or_fixed_sample: live
+is_timelapse: false
 microscope: 3i
 shear_stress_regime: 24hr_low-to-24hr_high
-use_cases: [model_training]
 pixel_size_xy_in_um: 0.191
 duration: 1
-time_interval_in_minutes: -1.0
-flow: [[0, 288, 6.02], [289, 576, 35.0]]
+time_interval_in_minutes: null
+flow:
+- - 0
+  - 288
+  - 6.02
+- - 289
+  - 576
+  - 35.0
 n_total_positions: 10
 channel_488_index: 0
 brightfield_channel_index: 1
+flow_conditions:
+- start: 0
+  stop: 288
+  shear_stress: 6.02
+- start: 289
+  stop: 576
+  shear_stress: 35.0
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null
@@ -24,8 +38,16 @@ nuclear_seg_manifest_fmsid: ''
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
 immunofluorescence_manifest_fmsid: null
-is_reference: false
 valid_timepoints: null
 cell_mean_features: null
-include_scenes: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+include_scenes:
+- 1
+- 2
+- 3
+- 4
+- 5
+- 6
+- 7
+- 8
+- 9
 notes: ''
