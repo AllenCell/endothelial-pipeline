@@ -26,8 +26,8 @@ from src.endo_pipeline.configs import ModelConfig, ModelManifest, save_model_con
 # %%
 model = ModelConfig(
     # ============================ REQUIRED FIELDS =============================
-    name="diffae_patch_64x64_2025-06-30",
-    mlflow_run_id="a72aebfe581c4872a88e61f550769719",
+    name="unqiue_model_name",
+    mlflow_run_id="MLflow_run_id",
     # ============================ OPTIONAL FIELDS =============================
     # manifest_fmsids=[
     #    ModelManifest(
