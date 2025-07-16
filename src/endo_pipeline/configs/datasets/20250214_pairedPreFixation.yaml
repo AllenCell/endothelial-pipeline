@@ -1,6 +1,17 @@
 name: 20250214_pairedPreFixation
 original_path: //allen/programs/allencell/data/proj0/dbc/19a/8ae/2e6/8df/a28/a40/355/2c7/0e3/07/20250214_GE00006747_20X_PRE_FIX_sldy/20250214_GE00006747_20X_PRE_FIX_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250214_070e32c7355a40a288df2e68ae19adbc
+zarr_positions:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+- 6
+- 7
+- 8
+- 9
 fmsid: 070e32c7355a40a288df2e68ae19adbc
 barcode: GE00006747
 cell_lines:

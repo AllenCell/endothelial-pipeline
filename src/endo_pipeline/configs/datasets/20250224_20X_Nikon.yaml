@@ -1,6 +1,13 @@
 name: 20250224_20X_Nikon
 original_path: //allen/programs/allencell/data/proj0/8c9/a46/343/900/268/3e9/348/54f/81b/c69/0c/20250224_GE00006992_endo_low_to_high.nd2
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250224_0cc6981b54f3483e9268900343a468c9
+zarr_positions:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
 fmsid: 0cc6981b54f3483e9268900343a468c9
 barcode: GE00006992
 cell_lines:

@@ -1,6 +1,11 @@
 name: 20240328_T02_001
 original_path: //allen/programs/allencell/data/proj0/866/cdf/da7/303/188/0e8/642/01e/3a7/aa8/55/20240328_GE00007383_20X_fixed_sldy/20240328_GE00007383_20X_fixed_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20240328_55aa83a701e6420e8188303da7cdf866
+zarr_positions:
+- 0
+- 1
+- 2
+- 3
 fmsid: 55aa83a701e6420e8188303da7cdf866
 barcode: GE00007383
 cell_lines:

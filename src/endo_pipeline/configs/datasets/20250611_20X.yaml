@@ -1,6 +1,13 @@
 name: 20250611_20X
 original_path: //allen/programs/allencell/data/proj0/879/601/058/9cc/d15/c29/e42/30a/5d5/261/a3/20250611_GE00008200_20X_sldy/20250611_GE00008200_20X_SLDY_2.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250611_a32615d530ae42c29d159cc058601879
+zarr_positions:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
 fmsid: a32615d530ae42c29d159cc058601879
 barcode: GE00008200
 cell_lines:
