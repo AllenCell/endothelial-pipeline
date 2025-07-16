@@ -178,7 +178,7 @@ data:
 model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
   save_images_every_n_epochs: 10
-  save_dir: null
+  save_dir: ${paths.output_dir}
   image_shape: # this is where crop size is defined
   - 1
   - 128
@@ -249,7 +249,7 @@ callbacks:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
     dirpath: null
     filename: epoch_{epoch:03d}
-    monitor: val/loss
+    monitor: null
     verbose: false
     save_last: true
     save_top_k: 1
@@ -281,7 +281,7 @@ callbacks:
     _target_: cyto_dl.callbacks.latent_walk_diffae.DiffAELatentWalk
     num_pcs: 4
     n_steps: 3
-    every_n_epoch: 10
+    every_n_epoch: ${model.save_images_every_n_epochs}
 logger:
   mlflow:
     _target_: cyto_dl.loggers.MLFlowLogger
@@ -290,7 +290,7 @@ logger:
     run_name: diffae_patch_${model.image_shape[1]}x${model.image_shape[2]}
 trainer:
   _target_: lightning.Trainer
-  default_root_dir: null
+  default_root_dir: ${paths.output_dir}
   min_epochs: 1
   max_epochs: 1000
   accelerator: gpu
@@ -301,11 +301,11 @@ trainer:
   detect_anomaly: false
   max_time: null
 paths:
-  root_dir: null
+  root_dir: ${oc.env:PROJECT_ROOT, './'}
   data_dir: null
   log_dir: null
   output_dir: ${paths.log_dir}
-  work_dir: ${paths.root_dir}
+  work_dir: ${hydra:runtime.cwd}
 extras:
   ignore_warnings: true
   enforce_tags: true

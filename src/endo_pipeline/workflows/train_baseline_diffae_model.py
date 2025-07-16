@@ -38,13 +38,8 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "data.predict_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
         "data.val_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
         # save outputs to user-specified directory
-        "model.save_dir": (save_path / "logs").as_posix(),
-        "trainer.default_root_dir": save_path,
-        "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
-        "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.log_dir": (save_path / "logs").as_posix(),
-        # make sure that last checkpoint is saved locally
-        "callbacks.model_checkpoint.monitor": None,
+        "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
