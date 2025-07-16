@@ -37,6 +37,11 @@ if __name__ == "__main__":
         )
     )
 
+    # Create time-lagged live dataset to account for the time lag between fixed and live
+    lagged_live_features = validate_pcs_for_integration.create_time_lagged_live_dataset(
+        live_features
+    )
+
     for pc in range(1, n_pcs + 1):
 
         # Construct confidence ellipse to determine fixed/live PC mapping and uncertainty
@@ -53,4 +58,21 @@ if __name__ == "__main__":
             pc,
             raw_data,
             validation_data,
+        )
+
+        # Construct confidence ellipse to determine live/ time-lagged live PC mapping and uncertainty
+        raw_data, validation_data = (
+            validate_pcs_for_integration.get_paired_fixed_live_validation_features(
+                pc, lagged_live_features, live_features
+            )
+        )
+
+        # Plot raw data for paired live and time-lagged live PC values as well as confidence ellipse,
+        # linear model mapping between live and time-lagged live data and uncertainty.
+        viz_validate_pcs_for_integration.plot_paired_fixed_live_validation_features(
+            save_path,
+            pc,
+            raw_data,
+            validation_data,
+            lagged_live_validation=True,
         )
