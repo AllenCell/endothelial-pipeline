@@ -3,5 +3,4 @@ description: Reference datasets used to compute principal component axes
 datasets:
 - 20250409_20X
 - 20241120_20X
-- 20250611_20X
 - 20241217_20X
