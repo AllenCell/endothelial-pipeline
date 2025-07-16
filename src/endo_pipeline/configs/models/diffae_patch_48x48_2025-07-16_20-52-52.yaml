@@ -1,0 +1,6 @@
+name: diffae_patch_48x48_2025-07-16_20-52-52
+mlflow_run_id: 89547de9598d4647a66335f7793f5c2a
+manifest_fmsids: []
+training_datasets: []
+train_manifest_fmsid: null
+test_manifest_fmsid: null

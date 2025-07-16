@@ -249,7 +249,7 @@ callbacks:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
     dirpath: null
     filename: epoch_{epoch:03d}
-    monitor: null
+    monitor: val/loss
     verbose: false
     save_last: true
     save_top_k: 1

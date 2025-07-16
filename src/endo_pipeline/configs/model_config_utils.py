@@ -2,7 +2,6 @@ import logging
 
 from .dataset_config_io import get_datasets_in_collection, load_dataset_config
 from .model_config import ModelConfig, ModelManifest
-from .model_config_io import load_model_config, save_model_config
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ from src.endo_pipeline.configs import ModelConfig, get_config_dir, save_model_co
 from src.endo_pipeline.io import get_output_path
 
 
-def _generate_training_overrides(model_name: str, crop_size: int, save_path: Path) -> dict:
+def _generate_training_overrides(model_name: str, crop_size: int) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
 
@@ -24,8 +24,6 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
 
         That is, the cropped image will be square
         with size (crop_size px, crop_size px).
-    save_path: Path
-        The path to the directory where the checkpoints and logs will be saved.
     """
     # create output directories if they do not exist
     train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
@@ -43,9 +41,9 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
-        "paths.output_dir": train_output_path.as_posix(),
-        "paths.log_dir": "${paths.output_dir}/logs",
-        "callbacks.model_checkpoint.dirpath": "${paths.output_dir}/checkpoints",
+        "paths.output_dir": (train_output_path / "logs").as_posix(),
+        "paths.log_dir": "${paths.output_dir}",
+        "callbacks.model_checkpoint.dirpath": (train_output_path / "checkpoints").as_posix(),
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
@@ -59,7 +57,6 @@ def _initialize_diffae_model(
     training_config: DictConfig | ListConfig,
     crop_size: int,
     model_name: str,
-    save_path: Path,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -78,7 +75,7 @@ def _initialize_diffae_model(
         The path to the directory where the checkpoints and logs will be saved.
     """
     # user overrides for training
-    overrides = _generate_training_overrides(model_name, crop_size, save_path)
+    overrides = _generate_training_overrides(model_name, crop_size)
 
     # init model
     model = CytoDLModel()
@@ -105,14 +102,13 @@ def main(crop_size: int = 128) -> None:
     # set model name via timestamp and crop size
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
     model_name = f"diffae_patch_{crop_size}x{crop_size}_{timestamp}"
-    # set save directory
-    save_path = get_output_path("models", model_name, include_timestamp=False)
 
+    # initialize DiffAE model: generates config
+    # overrides and sets up output directories
     model = _initialize_diffae_model(
         training_config,
         crop_size,
         model_name,
-        save_path,
     )
     _, object_dict = model.train()
 
