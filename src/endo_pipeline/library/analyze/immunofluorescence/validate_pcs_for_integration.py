@@ -19,7 +19,7 @@ from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
-from src.endo_pipeline.library.model.mlflow import download_model
+from src.endo_pipeline.library.model.mlflow_utils import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
 from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 

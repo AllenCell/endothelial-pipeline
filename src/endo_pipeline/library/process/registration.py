@@ -29,7 +29,7 @@ from src.endo_pipeline.library.model.apply_model import (
     generate_overrides_for_model_eval,
     get_cytodl_commit_hash,
 )
-from src.endo_pipeline.library.model.mlflow import download_model
+from src.endo_pipeline.library.model.mlflow_utils import download_model
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0

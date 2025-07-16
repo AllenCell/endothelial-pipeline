@@ -12,7 +12,7 @@ from src.endo_pipeline.configs import (
 )
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 
-from .mlflow import download_mlflow_artifact, download_model
+from .mlflow_utils import download_mlflow_artifact, download_model
 from .model_inputs import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,

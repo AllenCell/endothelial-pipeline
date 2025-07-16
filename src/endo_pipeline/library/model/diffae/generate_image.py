@@ -5,7 +5,7 @@ import torch
 
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_model_config
-from src.endo_pipeline.library.model.mlflow import load_mlflow_model
+from src.endo_pipeline.library.model.mlflow_utils import load_mlflow_model
 
 
 def generate_from_coords(
