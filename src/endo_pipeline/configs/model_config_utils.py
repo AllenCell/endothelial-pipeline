@@ -123,28 +123,3 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
         logger.error("No reference datasets found for PCA in model config %s.", model_config.name)
         raise FileNotFoundError("Insufficient reference datasets for PCA.")
     return model_manifests
-
-
-def update_model_config_with_run_id(model_name: str, run_id: str) -> None:
-    """
-    Update the model config with the MLflow run ID.
-
-    Parameters
-    ----------
-    model_name: str
-        The name of the model.
-    run_id: str
-        The MLflow run ID.
-    """
-    try:
-        # if model config exists, load it
-        model_config = load_model_config(model_name)
-        model_config.mlflow_run_id = run_id
-    except FileNotFoundError:
-        # if model config does not exist, create a new one
-        model_config = ModelConfig(
-            name=model_name,
-            mlflow_run_id=run_id,
-        )
-    # save the model config
-    save_model_config(model_config)

@@ -5,7 +5,7 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import get_config_dir, update_model_config_with_run_id
+from src.endo_pipeline.configs import ModelConfig, get_config_dir, save_model_config
 from src.endo_pipeline.io import get_output_path
 
 
@@ -47,7 +47,8 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "callbacks.model_checkpoint.monitor": None,
         # update run name
         "run_name": model_name,
-        # set crop size from input
+        # set crop size from input via model.image_shape,
+        # the rest are populated by interpolation
         "model.image_shape": [1, crop_size, crop_size],
     }
     return overrides
@@ -118,7 +119,12 @@ def main(crop_size: int = 128) -> None:
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # add run ID to model config
-    update_model_config_with_run_id(model_name, run_id)
+    model_config = ModelConfig(
+        name=model_name,
+        mlflow_run_id=run_id,
+    )
+    # save the model config
+    save_model_config(model_config)
 
 
 if __name__ == "__main__":
