@@ -226,7 +226,7 @@ With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing reference
 datasets is to instead load the appropriate reference dataset collection.
 
-        configs.get_datasets_in_collection("reference")
+        configs.get_datasets_in_collection("pca_reference")
 
 which will load the reference dataset objects (not the dataset names). If you
 need the names of the reference datasets, access the .name field of the
