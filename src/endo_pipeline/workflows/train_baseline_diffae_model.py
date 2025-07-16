@@ -18,9 +18,11 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
     model_name: str
         The name of the model to train.
     crop_size: int
-        The pixel size of the image crop to use for training.
-        This is the crop size along one dimension, the image will be square
-        with size (crop_size, crop_size).
+        The number of pixels in each dimension of the
+        image crop to use for training.
+
+        That is, the cropped image will be square
+        with size (crop_size px, crop_size px).
     save_path: Path
         The path to the directory where the checkpoints and logs will be saved.
     """
@@ -41,7 +43,7 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
         "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.log_dir": (save_path / "logs").as_posix(),
-        # make sure that last ckpt is saved
+        # make sure that last checkpoint is saved locally
         "callbacks.model_checkpoint.monitor": None,
         # update run name
         "run_name": model_name,
@@ -99,7 +101,7 @@ def main(crop_size: int = 128) -> None:
     training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
 
     # set model name via timestamp and crop size
-    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
     model_name = f"diffae_patch_{crop_size}x{crop_size}_{timestamp}"
     # set save directory
     save_path = get_output_path("models", model_name, include_timestamp=False)
