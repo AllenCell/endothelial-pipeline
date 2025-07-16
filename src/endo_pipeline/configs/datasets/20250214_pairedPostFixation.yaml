@@ -3,17 +3,26 @@ original_path: //allen/programs/allencell/data/proj0/0b2/e40/73a/e23/5da/718/e42
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250219_30a3a9ec278e427185dae2373ae400b2
 fmsid: 30a3a9ec278e427185dae2373ae400b2
 barcode: GE00006747
-cell_lines: [AICS-126]
+cell_lines:
+- AICS-126
 live_or_fixed_sample: fixed
+is_timelapse: false
 microscope: 3i
 shear_stress_regime: no_flow
 pixel_size_xy_in_um: 0.382
 duration: 1
-time_interval_in_minutes: -1.0
-flow: [[0, -1, 0.0]]
+time_interval_in_minutes: null
+flow:
+- - 0
+  - 0
+  - 0.0
 n_total_positions: 10
 channel_488_index: 0
 brightfield_channel_index: 1
+flow_conditions:
+- start: -576
+  stop: 0
+  shear_stress: 0.0
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null
@@ -29,4 +38,4 @@ include_scenes: null
 notes: These cells were fed about 2 hours before fixation (previously the cells had
   not been fed prior to fixation). This sample was imaged at a later date than the
   pre-fix sample due to blobs / bubbles appearing in the sample after fixation which
-  had to be washed out first.
+  had to be washed out first. Was permeabilized which is why it looked better on 20250219.

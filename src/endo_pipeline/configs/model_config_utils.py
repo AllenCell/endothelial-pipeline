@@ -86,7 +86,7 @@ def get_timelapse_model_manifests(model_config: ModelConfig) -> list[ModelManife
     timelapse_manifest_list = []
     for model_manifest in model_config.manifest_fmsids:
         data_config = load_dataset_config(model_manifest.dataset_name)
-        if data_config.time_interval_in_minutes < 0:
+        if data_config.time_interval_in_minutes is None:
             continue
         timelapse_manifest_list.append(model_manifest)
 
