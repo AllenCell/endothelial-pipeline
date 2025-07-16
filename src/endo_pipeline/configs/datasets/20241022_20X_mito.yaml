@@ -21,6 +21,7 @@ channel_640_index: null
 nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: 4cc9c9f7be764040b4c0250504ed49a2
+cdh5_seg_path: null
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
 immunofluorescence_manifest_fmsid: null
