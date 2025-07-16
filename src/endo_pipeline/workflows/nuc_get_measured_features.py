@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -7,7 +8,6 @@ import pandas as pd
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     fire_parse_generate_dataset_name_list,
@@ -15,12 +15,14 @@ from src.endo_pipeline.configs.dataset_io import (
     load_cdh5_classic_segmentation,
     load_dataset_position_as_dask_array,
     load_nuclei_prediction,
-    save_git_versioning_info,
 )
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
@@ -44,7 +46,7 @@ def get_and_save_nuclei_features(
 
     out_subdir = out_dir / dataset_name / f"P{position}"
     out_subdir.mkdir(exist_ok=True, parents=True)
-    out_path = out_subdir / f"{dataset_name}_P{position}_T{T}_nuclei_features.tsv"
+    out_path = out_subdir / f"{dataset_name}_P{position}_T{T}_nuclei_labelfree_features.tsv"
     if save_output:
         nuc_props_df.to_csv(out_path, sep="\t", index=False)
 
@@ -255,8 +257,12 @@ def main(
     is_test: bool = False,
 ) -> None:
 
+    out_dir = get_output_path(Path(__file__).stem)
+
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+
+    configure_logging(out_dir, logger, verbose=verbose)
+    logger.info(f"datasets analyzed: {dataset_name_list}")
 
     # build analysis queue
     analysis_queue = build_analysis_queue(
@@ -296,16 +302,13 @@ def main(
             concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
-                out_file_suffix="nuclei_features",
+                out_file_suffix="nuclei_labelfree_features",
                 file_extension=".tsv",
                 remove_initial_files_and_folders=True,
             )
-        # save git versioning info
-        save_git_versioning_info(
-            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
-        )
 
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.info("...done analysis.")
+    print("\N{MICROSCOPE}")
 
 
 if __name__ == "__main__":

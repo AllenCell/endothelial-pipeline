@@ -29,9 +29,14 @@ channel_640_index: null
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250409_20X
 nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
+cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250409_20X
 tracking_integration_fmsid: 2d95d16b473d4c849c6cf744c7dc6486
 diffae_tracking_integration_fmsid: 3e7dd9a9e4a040f8afb1bef774abb04b
 immunofluorescence_manifest_fmsid: null
+cdh5_classic_seg_tracking_manifest_fmsid: a70b26260b5240e1960d0e99c57d4936
+cdh5_classic_seg_manifest_fmsid: bd57c3bba115432f85080f99aba7a3a9
+nuclei_label_free_seg_manifest_fmsid: 3574a82885504d5aab6d67650cc08a8a
+live_merged_seg_features_manifest_fmsid: 0fda2bb35be44ae4aaeb2284b55e9bc2
 valid_timepoints:
   start:
   - 190
