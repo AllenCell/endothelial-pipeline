@@ -231,9 +231,9 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
     """
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing reference
-datasets is to use the following replacement method:
+datasets is to instead load the appropriate reference dataset collection.
 
-        configs.load_reference_dataset_configs
+        configs.get_datasets_in_collection("pca_reference")
 
 which will load the reference dataset objects (not the dataset names). If you
 need the names of the reference datasets, access the .name field of the
@@ -258,7 +258,6 @@ one of the following:
 
         configs.load_all_dataset_configs
         configs.load_dataset_config(dataset_name)
-        configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
 
@@ -281,7 +280,6 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -387,7 +385,6 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 Then use this replacement method:
@@ -412,7 +409,6 @@ def get_specific_channel_order(dataset_name: str) -> tuple:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -503,7 +499,6 @@ def load_dataset_position_as_dask_array(
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -521,7 +516,6 @@ def get_dataset_duration_in_frames(dataset_name: str) -> int:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -539,7 +533,6 @@ def get_xy_pixel_size_in_um(dataset_name: str) -> float:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -557,7 +550,6 @@ def get_time_interval_in_minutes(dataset_name: str) -> float:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -650,7 +642,6 @@ def add_flow_to_dataframe(
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -683,7 +674,6 @@ def get_dim_map(dim_order: str) -> dict:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -704,7 +694,6 @@ def get_original_path(dataset_name: str) -> Path:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -722,7 +711,6 @@ def get_barcode(dataset_name: str) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -740,7 +728,6 @@ def get_microscope(dataset_name: str) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -758,7 +745,6 @@ def get_fmsid(dataset_name: str) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 Then use this replacement method:
@@ -1266,6 +1252,11 @@ def extract_T(
     return t_value if int_only else f"T{t_value}"
 
 
+@deprecated(
+    """
+    Use extract_position_from_filepath in library.process.image_filepath_utils instead
+    """
+)
 def extract_P(
     fp_as_string: str | Path,
     int_only: bool = True,

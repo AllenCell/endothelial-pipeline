@@ -1,28 +1,28 @@
 # MODIFIED FROM https://github.com/AllenCellModeling/cyto-dl/blob/08c6aadb5da54ef7d186d82b71bf8473c5e0e814/cyto_dl/callbacks/latent_walk_diffae.py#L16
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import cv2
 import fire
 import numpy as np
 import pandas as pd
 from bioio.writers import OmeTiffWriter
+from sklearn.pipeline import Pipeline
 
-from cellsmap.util.manifest_io import (
-    get_diffae_manifest,
-    get_feature_cols,
-    load_pca_model,
-    save_pca_model,
+from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
+from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+    get_feature_column_names,
+    get_pc_column_names,
 )
-from cellsmap.util.manifest_preprocessing.manifest_pca import fit_pca
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_reference_datasets
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+    get_manifest_for_dynamics_workflows,
+)
+from src.endo_pipeline.library.model import generate_from_coords
 
-# from src.endo_pipeline.library.analyze.diffae_manifest
-from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords
 
-
-def write_text(img, text):
+def write_text(img: np.ndarray, text: str) -> np.ndarray:
+    """Write text on the image."""
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.5
     color = tuple([img.max()] * 3)
@@ -34,7 +34,7 @@ def write_text(img, text):
     return img
 
 
-def write_pc_vals(walk_img, ranges):
+def write_pc_vals(walk_img: np.ndarray, ranges: list) -> np.ndarray:
     """Write dimension index and value on image."""
     idx = 0
     for i, range_ in enumerate(ranges):
@@ -44,13 +44,15 @@ def write_pc_vals(walk_img, ranges):
     return walk_img
 
 
-def get_walk(data, n_dims, sigma, n_steps):
+def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple[list, list]:
     """
-    Generate a latent walk based on standard deviation or min/max of each dimension
+    Generate a latent walk based on standard deviation
+    or min/max of each dimension.
+
     Parameters
     ----------
-    data: pd.DataFrame
-        DataFrame containing the data to be transformed.
+    data: np.ndarray
+        Numpy array containing the data to be traversed.
     n_dims: int
         Number of dimensions for the latent walk.
     sigma: float
@@ -62,9 +64,9 @@ def get_walk(data, n_dims, sigma, n_steps):
     ranges = []
     for dim in range(n_dims):
         if sigma is None:
-            min = data[:, dim].min()
-            max = data[:, dim].max()
-            range_ = np.linspace(min, max, n_steps)
+            data_min = data[:, dim].min()
+            data_max = data[:, dim].max()
+            range_ = np.linspace(data_min, data_max, n_steps)
         else:
             std = data[:, dim].std()
             range_ = np.arange(-sigma, sigma + 0.01) * std
@@ -77,15 +79,18 @@ def get_walk(data, n_dims, sigma, n_steps):
     return walk, ranges
 
 
-def get_pca_coords(data, pca, num_pcs, sigma, n_steps) -> Tuple[List, List]:
+def get_pca_coords(
+    pca_data: np.ndarray, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
+) -> tuple[list, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
+
     Parameters
     ----------
-    data: pd.DataFrame
-        DataFrame containing the data to be transformed.
-    pca: PCA
-        PCA object fitted to the data.
+    pca_data: np.ndarray
+        Numpy array containing the projected data onto PCA axes.
+    pca: Pipeline
+        PCA pipeline fitted to the data.
     num_pcs: int
         Number of principal components to use for the latent walk.
     sigma: float
@@ -93,19 +98,19 @@ def get_pca_coords(data, pca, num_pcs, sigma, n_steps) -> Tuple[List, List]:
     n_steps: int
         Number of steps in the latent walk.
     """
-    pca_data = pca.transform(data)
     walk, ranges = get_walk(pca_data, num_pcs, sigma, n_steps)
     walk = pca.inverse_transform(walk)
     return walk, ranges
 
 
-def get_latent_coords(data, sigma, n_steps) -> Tuple[List, List]:
+def get_latent_coords(data: np.ndarray, sigma: float, n_steps: int) -> tuple[list, list]:
     """
     Generate latent coordinates and corresponding values for a latent walk.
+
     Parameters
     ----------
-    data: pd.DataFrame
-        DataFrame containing the data to be transformed.
+    data: np.ndarray
+        Numpy array containing the data to be transformed.
     sigma: float
         Range of values for the latent walk.
     n_steps: int
@@ -116,56 +121,80 @@ def get_latent_coords(data, sigma, n_steps) -> Tuple[List, List]:
     return walk, ranges
 
 
-def generate_latent_walk(
+def main(
     model_name: str,
-    pca_dir: Optional[str] = None,
     num_pcs: int = 3,
     sigma: float = 3.0,
     n_steps: int = 10,
     use_pcs: bool = True,
     show_coords: bool = True,
     n_noise_samples: int = 1,
-):
+) -> None:
     """
     Create latent walk for a given model using PCA or model features.
-    uv run src/endo_pipeline/workflows/latent_walk.py --model_name diffae_04_10 --num_pcs 3 --sigma 3.0 --n_steps 10 --use_pcs True --show_coords True
+
+    Example usage:
+    ```
+    uv run src/endo_pipeline/workflows/latent_walk.py
+        --model_name diffae_04_10 --num_pcs 3 --sigma 3.0
+        --n_steps 10 --use_pcs True --show_coords True
+    ```
 
     Parameters
     ----------
     model_name: str
         Name of the model to use for generating the latent walk.
-    pca_dir: str, optional
-        Directory to load the PCA model from. If not provided, a new PCA model will be fitted.
     num_pcs: int, optional
-        Number of principal components to use for the latent walk. Default is 3.
+        Number of principal components to use for the
+        latent walk. Default is 3.
     sigma: float, optional
-        Number of standard deviations from the mean to traverse for the latent walk. Default is 3.0. If passing `sigma=None`, the min and max of the range are used as endpoints for the walk.
+        Number of standard deviations from the mean to traverse
+        for the latent walk. Default is 3.0. If passing `sigma=None`,
+        the min and max of the range are used as endpoints for the walk.
     n_steps: int, optional
         Number of steps in the latent walk. Default is 10.
     use_pcs: bool, optional
-        Whether to use PCA for generating the latent walk. If False, the raw latent dimensions are used. Default is True.
+        Whether to use PCA for generating the latent walk.
+        If False, the raw latent dimensions are used. Default is True.
     show_coords: bool, optional
-        Whether to show the dimension value to generate a given image. Default is True.
+        Whether to show the dimension value to generate a
+        given image. Default is True.
+    n_noise_samples: int, optional
+        Number of noise samples to use for generating images.
+        Default is 1.
     """
-    save_dir = get_output_path(f"models/{model_name}")
+    # set up output directory
+    save_dir = get_output_path("models", model_name, include_timestamp=False)
 
-    reference_manifests = pd.concat(
-        [get_diffae_manifest(name, filter_to_valid=True) for name in get_reference_datasets()]
-    )
+    # load model configuration and reference dataset manifests
+    model_config = load_model_config(model_name)
+    reference_dataset_model_manifests = get_pca_reference_model_manifests(model_config)
 
-    feature_cols = get_feature_cols(reference_manifests)
-    data = reference_manifests[feature_cols].values
     if use_pcs:
-        # use fitted PCA if path to one is passed, otherwise fit a new one on the reference dataset
-        if pca_dir is None:
-            pca = fit_pca(num_pcs=num_pcs)
-            save_pca_model(pca, save_dir)
-        else:
-            pca = load_pca_model(pca_dir)
-        walk, ranges = get_pca_coords(data, pca, num_pcs, sigma, n_steps)
+        # perform latent walk along the principal components
+        pca = fit_pca(model_name=model_name, num_pcs=num_pcs)
+        manifest_dataframe = pd.concat(
+            [
+                get_manifest_for_dynamics_workflows(model_manifest, pca)
+                for model_manifest in reference_dataset_model_manifests
+            ]
+        )
+        pc_column_names = get_pc_column_names(manifest_dataframe, pc_axes=list(range(num_pcs)))
+        data_for_walk = manifest_dataframe[pc_column_names].values
+        walk, ranges = get_pca_coords(data_for_walk, pca, num_pcs, sigma, n_steps)
     else:
-        walk, ranges = get_latent_coords(data, sigma, n_steps)
+        # perform latent walk along the raw latent dimensions
+        manifest_dataframe = pd.concat(
+            [
+                get_manifest_for_dynamics_workflows(model_manifest, pca=None)
+                for model_manifest in reference_dataset_model_manifests
+            ]
+        )
+        feature_column_names = get_feature_column_names(manifest_dataframe)
+        data_for_walk = manifest_dataframe[feature_column_names].values
+        walk, ranges = get_latent_coords(data_for_walk, sigma, n_steps)
 
+    # generate images from the latent walk
     walk_img = generate_from_coords(model_name, walk, n_noise_samples=n_noise_samples)
 
     # vertically stack multi-channel generations
@@ -181,4 +210,4 @@ def generate_latent_walk(
 
 
 if __name__ == "__main__":
-    fire.Fire(generate_latent_walk)
+    fire.Fire(main)

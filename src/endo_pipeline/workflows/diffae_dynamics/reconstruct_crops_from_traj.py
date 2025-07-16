@@ -5,7 +5,7 @@ from bioio.writers import OmeTiffWriter
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
-from src.endo_pipeline.library.model.diffae.generate_image import generate_from_coords_batch
+from src.endo_pipeline.library.model import generate_from_coords_batch
 
 
 def main(model_name: str = "diffae_04_10") -> None:
