@@ -21,10 +21,10 @@ from typing import Any, Literal
 
 import fire
 
+from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.configs.dataset_config_io import (
     get_available_dataset_names,
     load_dataset_config,
-    load_reference_dataset_configs,
 )
 from src.endo_pipeline.io import load_dataframe_from_fms
 
@@ -1140,7 +1140,7 @@ def fire_parse_generate_dataset_name_list(
     '\"20241016_20X\",\"20241120_20X\"'
     """
     if fire_dataset_name_input is None:
-        dataset_name_list = [cfg.name for cfg in load_reference_dataset_configs()]
+        dataset_name_list = get_datasets_in_collection("pca_reference")
     else:
         dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
 
