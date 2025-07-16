@@ -6,8 +6,6 @@ import pandas as pd
 from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.io import load_dataframe_from_fms
 
-ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
-
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
@@ -21,7 +19,7 @@ def generate_zarr_csv_for_model_eval(
         zarr_path_dict[path.name] = str(path)
 
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
-    df["channel"] = ZARR_BF_CHANNEL
+    df["channel"] = dataset_config.brightfield_channel_index
     df["resolution"] = resolution_level
     data_path = str(save_path / "dataset.csv")
     df.to_csv(data_path, index=False)
@@ -32,10 +30,10 @@ def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig, save_dir: Path
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = dataset_config.tracking_integration_fmsid
+    fms_id = dataset_config.live_merged_seg_features_manifest_fmsid
     if fms_id is None:
         raise ValueError(
-            f"Dataset {dataset_config.name} does not have a tracking integration FMS ID."
+            f"Dataset {dataset_config.name} does not have a live segmentation features FMS ID."
         )
     df = load_dataframe_from_fms(fms_id)
     # convert centroids to bounding boxes
@@ -55,12 +53,13 @@ def preprocess_tracking_manifest_for_model_eval(
         )
         .reset_index()
     )
-    grouped_df["channel"] = ZARR_BF_CHANNEL
+    grouped_df["channel"] = dataset_config.brightfield_channel_index
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
-    grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
+    # grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
+    grouped_df[["path", "T"]] = grouped_df[["zarr_path", "image_index"]]
 
     save_path = save_dir / "aggregated_crop_manifest.csv"
     grouped_df.to_csv(save_path, index=False)
@@ -73,10 +72,10 @@ def centroid_to_bbox(df: pd.DataFrame) -> pd.DataFrame:
 
     Note: coordinates are downsampled by half to match current model resolution.
     """
-    df["start_x"] = ((df["centroid_x"] - df["crop_size"] / 2) / 2).astype(int)
-    df["start_y"] = ((df["centroid_y"] - df["crop_size"] / 2) / 2).astype(int)
-    df["end_x"] = ((df["centroid_x"] + df["crop_size"] / 2) / 2).astype(int)
-    df["end_y"] = ((df["centroid_y"] + df["crop_size"] / 2) / 2).astype(int)
+    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / 2).astype(int)
+    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / 2).astype(int)
+    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / 2).astype(int)
+    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / 2).astype(int)
     return df
 
 
