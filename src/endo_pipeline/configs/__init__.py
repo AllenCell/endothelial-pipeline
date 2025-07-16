@@ -1,3 +1,4 @@
+from .config_io import get_config_dir
 from .dataset_config import DatasetCollectionConfig, DatasetConfig, ValidTimepoints
 from .dataset_config_io import (
     get_available_dataset_names,
@@ -39,6 +40,7 @@ __all__ = [
     "add_model_manifest",
     "get_available_dataset_names",
     "get_available_model_names",
+    "get_config_dir",
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",

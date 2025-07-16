@@ -134,7 +134,7 @@ def download_mlflow_artifact(
     tracking_uri: str
         The tracking URI of the MLflow server.
     """
-    dst_path = Path(dst_path)
+
     if (dst_path / artifact_path).exists():
         print(f"Artifact exists! Skipping download of {artifact_path}...")
         return
@@ -142,10 +142,10 @@ def download_mlflow_artifact(
     available_artifacts = _get_available_artifacts(
         tracking_uri=tracking_uri,
         run_id=run_id,
-        artifact_path=Path(artifact_path).parent,
+        artifact_path=artifact_path.parent,
     )
 
-    if artifact_path not in available_artifacts:
+    if str(artifact_path) not in available_artifacts:
         raise ValueError(
             f"Artifact {artifact_path} not found in run {run_id}."
             + f"Available artifacts: {available_artifacts}"
