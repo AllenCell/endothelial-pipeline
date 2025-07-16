@@ -3,18 +3,26 @@ original_path: //allen/programs/allencell/data/proj0/cfb/696/9de/19e/f96/498/74b
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241217_ecefe34818f74b498f9619e9de696cfb
 fmsid: ecefe34818f74b498f9619e9de696cfb
 barcode: GE00006535
-cell_lines: [AICS-126]
+cell_lines:
+- AICS-126
 live_or_fixed_sample: live
+is_timelapse: true
 microscope: 3i
 shear_stress_regime: no_flow
-use_cases: [classic_segmentation, measurement]
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 576, 0.0]]
+flow:
+- - 0
+  - 576
+  - 0.0
 n_total_positions: 6
 channel_488_index: 0
 brightfield_channel_index: 1
+flow_conditions:
+- start: 0
+  stop: 576
+  shear_stress: 0.0
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null
@@ -24,10 +32,13 @@ nuclear_seg_manifest_fmsid: 225e4e4f67934f2781caba8db82401f6
 tracking_integration_fmsid: 040858bd6672470e875180fdd5ddd556
 diffae_tracking_integration_fmsid: 31d8da76dbda40ce8d289619a6d8643c
 immunofluorescence_manifest_fmsid: null
-is_reference: true
 valid_timepoints:
-  start: [0, 300]
-  stop: [100, 420]
+  start:
+  - 0
+  - 300
+  stop:
+  - 100
+  - 420
 cell_mean_features: 73bd4f41c6b049119b3f4688224f5edb
 include_scenes: null
 notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.

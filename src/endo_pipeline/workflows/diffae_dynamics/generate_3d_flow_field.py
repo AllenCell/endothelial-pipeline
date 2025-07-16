@@ -55,7 +55,6 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     # all timepoints except no flow
     model_config = load_model_config(model_name)
     pca_ref_model_manifest_list = get_pca_reference_model_manifests(model_config)
-    # pca_ref_configs = load_reference_dataset_configs()
     pca_ref_configs = [
         load_dataset_config(model_manifest.dataset_name)
         for model_manifest in pca_ref_model_manifest_list

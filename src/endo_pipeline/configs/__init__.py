@@ -1,11 +1,14 @@
 from .config_io import get_config_dir
-from .dataset_config import DatasetConfig, ValidTimepoints
+from .dataset_config import DatasetCollectionConfig, DatasetConfig, ValidTimepoints
 from .dataset_config_io import (
     get_available_dataset_names,
+    get_dataset_collection_config_dir,
     get_dataset_config_dir,
+    get_datasets_in_collection,
     load_all_dataset_configs,
+    load_dataset_collection_config,
     load_dataset_config,
-    load_reference_dataset_configs,
+    save_dataset_collection_config,
     save_dataset_config,
     validate_all_dataset_configs,
     validate_dataset_config,
@@ -30,6 +33,7 @@ from .model_config_utils import (
 )
 
 __all__ = [
+    "DatasetCollectionConfig",
     "DatasetConfig",
     "ModelConfig",
     "ModelManifest",
@@ -38,7 +42,9 @@ __all__ = [
     "get_available_dataset_names",
     "get_available_model_names",
     "get_config_dir",
+    "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
+    "get_datasets_in_collection",
     "get_model_config_dir",
     "get_model_manifest",
     "get_nuclear_prediction_path",
@@ -47,9 +53,10 @@ __all__ = [
     "get_timelapse_model_manifests",
     "load_all_dataset_configs",
     "load_all_model_configs",
+    "load_dataset_collection_config",
     "load_dataset_config",
     "load_model_config",
-    "load_reference_dataset_configs",
+    "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",
     "update_model_config_with_run_id",
