@@ -1,4 +1,5 @@
 import datetime
+import os
 from pathlib import Path
 
 import fire
@@ -37,6 +38,9 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "data.train_dataloaders.dataset.csv_path": (manifest_path / "train.csv").as_posix(),
         "data.predict_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
         "data.val_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
+        # get repo root directory and current working directory
+        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.work_dir": os.cwd(),
         # save outputs to user-specified directory
         "paths.log_dir": (save_path / "logs").as_posix(),
         "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),

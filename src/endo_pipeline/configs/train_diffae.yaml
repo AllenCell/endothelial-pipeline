@@ -301,11 +301,11 @@ trainer:
   detect_anomaly: false
   max_time: null
 paths:
-  root_dir: ${oc.env:PROJECT_ROOT, './'}
+  root_dir: null
   data_dir: null
   log_dir: null
-  output_dir: ${paths.log_dir}
-  work_dir: ${hydra:runtime.cwd}
+  output_dir: ${paths.log_dir}/train/runs/${experiment_name}/${run_name}
+  work_dir: null
 extras:
   ignore_warnings: true
   enforce_tags: true
