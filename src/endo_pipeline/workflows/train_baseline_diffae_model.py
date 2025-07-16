@@ -40,7 +40,7 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
         "data.val_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3],
-        "paths.work_dir": os.cwd(),
+        "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
         "paths.log_dir": (save_path / "logs").as_posix(),
         "paths.output_dir": "${paths.log_dir}/train/",
