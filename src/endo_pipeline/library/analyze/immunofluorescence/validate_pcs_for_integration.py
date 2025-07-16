@@ -6,7 +6,6 @@ from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 
 from cellsmap.util.manifest_io import load_pca_model
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
@@ -18,10 +17,12 @@ from src.endo_pipeline.configs import (
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
+from src.endo_pipeline.library.model.apply_model import (
+    generate_overrides_for_model_eval,
+    get_cytodl_commit_hash,
+)
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.process.registration import align_all_positions
-from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
 
 def add_paired_fixed_live_data_fmsid_to_config(
@@ -141,7 +142,7 @@ def apply_model_paired_fixed_live(
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
     fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
-    fixed_overrides = generate_overrides(
+    fixed_overrides = generate_overrides_for_model_eval(
         fixed_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
@@ -229,6 +230,32 @@ def project_paired_fixed_live_data_into_ref_PC_space(
     live_pc_features = project_manifest_to_pcs(live_features, pca, overwrite_feature_columns=False)
 
     return fixed_pc_features, live_pc_features
+
+
+def create_time_lagged_live_dataset(
+    live_features: pd.DataFrame,
+    time_lag: int = 3,
+) -> pd.DataFrame:
+    """
+    Create a time-lagged version of the live dataset by shifting the PC values by a specified time lag.
+
+    Parameters
+    ----------
+    live_features : pd.DataFrame
+        Dataframe containing PCs for live data
+    time_lag : int
+        Number of time points to shift the live data
+
+    Returns
+    -------
+    lagged_live_features : pd.DataFrame
+        Dataframe containing time-lagged PC values for live data
+    """
+    lagged_live_features = live_features.copy()
+    for pc in range(1, 4):
+        lagged_live_features[f"pc{pc}"] = lagged_live_features[f"pc{pc}"].shift(time_lag)
+
+    return lagged_live_features.dropna()
 
 
 def get_paired_fixed_live_validation_features(

@@ -13,6 +13,7 @@ def plot_paired_fixed_live_validation_features(
     raw_data: tuple[ArrayLike, ArrayLike],
     paired_validation_features: tuple[Any, Any, Any, Any, Any, Ellipse],
     color_list: list[str] = ["#5F9ED1", "#FF800E", "#C85200"],
+    lagged_live_validation: bool = False,
 ) -> None:
     """
     Plot the raw fixed and live data for a given PC along with a unity line for reference
@@ -31,6 +32,8 @@ def plot_paired_fixed_live_validation_features(
         Set of all validation needed for plotting
     color_list : list
         List of hex codes for three colors used in plots
+    lagged_live_validation : bool
+        Flag to plot time-lagged live validation features in place of fixed feautures
     """
 
     # Get raw fixed (y) and live (x) PC data and its lower and upper limits
@@ -91,7 +94,10 @@ def plot_paired_fixed_live_validation_features(
     # Add labels
     plt.legend(loc="upper left")
     plt.xlabel(f"PC{pc} live data")
-    plt.ylabel(f"PC{pc} fixed data")
+    if lagged_live_validation:
+        plt.ylabel(f"PC{pc} live data lagged 15 min")
+    else:
+        plt.ylabel(f"PC{pc} fixed data")
     plt.title(f"PC{pc}")
 
     # Format axes
@@ -103,6 +109,8 @@ def plot_paired_fixed_live_validation_features(
 
     # Save figure
     filename = f"paired_features_pc{pc}"
+    if lagged_live_validation:
+        filename += "_lagged_live_validation"
     plt.savefig(save_path / f"{filename}.png", dpi=300)
     print(f"Fig saved to directory {save_path}.")
     plt.close()
