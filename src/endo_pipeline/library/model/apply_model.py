@@ -97,7 +97,7 @@ def apply_model_on_random_crops_from_one_dataset(
     overrides = load_overrides(overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, "logs", include_timestamp=False)
+    model_path = get_output_path("models", model_config.name, "train", include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
 
     # set default output path
