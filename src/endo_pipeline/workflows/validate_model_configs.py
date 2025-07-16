@@ -107,7 +107,7 @@ for name in get_available_model_names():
     for dataset_name in model_config.training_datasets:
         logger.debug("Validating dataset [ %s ]", dataset_name)
 
-        if name == "diffae_04_10":
+        if name == "diffae_04_10" or name == "diffae_patch_64x64_2025-06-30":
             try:
                 # Load dataset config
                 dataset_config = load_dataset_config(dataset_name)
