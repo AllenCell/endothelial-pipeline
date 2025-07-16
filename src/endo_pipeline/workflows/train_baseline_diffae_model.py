@@ -29,8 +29,7 @@ def _generate_training_overrides(model_name: str, crop_size: int, save_path: Pat
     """
     # create output directories if they do not exist
     get_output_path("models", model_name, "logs", include_timestamp=False)
-    get_output_path("models", model_name, "logs", "train", include_timestamp=False)
-    get_output_path("models", model_name, "logs", "train", "checkpoints", include_timestamp=False)
+    get_output_path("models", model_name, "logs", "checkpoints", include_timestamp=False)
 
     manifest_path = get_output_path("manifests", include_timestamp=False)
 
