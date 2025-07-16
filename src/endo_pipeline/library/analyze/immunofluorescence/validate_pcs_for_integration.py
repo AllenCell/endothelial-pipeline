@@ -157,7 +157,7 @@ def apply_model_paired_fixed_live(
 
     # Apply on moving images
     overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides(
+    overrides = generate_overrides_for_model_eval(
         overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
