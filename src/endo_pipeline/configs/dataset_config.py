@@ -1,5 +1,6 @@
 """Data structures for dataset configs."""
 
+from dataclasses import field
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -8,9 +9,34 @@ from pydantic.dataclasses import dataclass
 
 @dataclass
 class ValidTimepoints:
+    """
+    Timepoints that are visually validated to be after steady state from no flow to a set
+    flow condition appears to have stabilized and before cell piling occurs.
+    """
+
     start: list[int]
+    """Start frame of valid timepoints."""
 
     stop: list[int]
+    """Stop frame of valid timepoints."""
+
+
+@dataclass
+class FlowCondition:
+    """
+    Flow condition for a dataset. Negative start or stop frames indicate the flow occurred prior
+    to image acquisition. Time is represented in 5 minute intervals, even if the time was not
+    during an acquisition, so it wont be more than ~2.5 minutes off from the actual time.
+    """
+
+    start: int
+    """Start frame of flow condition."""
+
+    stop: int
+    """Stop frame of flow condition."""
+
+    shear_stress: float
+    """Shear stress in dynes/cm^2 for the flow condition."""
 
 
 @dataclass
@@ -38,6 +64,9 @@ class DatasetConfig:
     live_or_fixed_sample: Literal["live", "fixed", "fixed-methanol"]
     """Experimental condition that dataset was collected under."""
 
+    is_timelapse: bool
+    """True if dataset is a timelapse dataset, False otherwise."""
+
     microscope: Literal["3i", "Nikon"]
     """Microscope that dataset was collected with."""
 
@@ -62,10 +91,10 @@ class DatasetConfig:
     duration: int
     """Duration of dataset in frames."""
 
-    time_interval_in_minutes: float
+    time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list[tuple[int, int, float]]
+    flow: list
     """Flow conditions for the dataset."""
 
     n_total_positions: int
@@ -76,6 +105,9 @@ class DatasetConfig:
 
     brightfield_channel_index: int
     """Index of the brightfield channel."""
+
+    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    """List of flow conditions for the dataset."""
 
     channel_405_index: int | None = None
     """Index of the 405 channel."""

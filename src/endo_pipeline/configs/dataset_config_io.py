@@ -51,6 +51,33 @@ def validate_dataset_config(dataset_name: str) -> None:
             config.name,
         )
 
+    if not config.is_timelapse:
+        if config.duration != 1:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is False, duration must be equal to 1.",
+                dataset_name,
+            )
+        if config.time_interval_in_minutes is not None:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is False, time_interval_in_minutes must be None.",
+                dataset_name,
+            )
+    else:
+        if config.duration <= 1:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is True, duration must be greater than 1.",
+                dataset_name,
+            )
+        if config.time_interval_in_minutes is None:
+            logger.error(
+                "Validation failed for dataset [ %s ]: "
+                "If is_timelapse is True, time_interval_in_minutes must not be None.",
+                dataset_name,
+            )
+
 
 def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""
@@ -95,11 +122,7 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset.name}.yaml"
 
-    def list_representer(dumper, data):
-        return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
     def yaml_encoder(data):
-        yaml.SafeDumper.add_representer(list, list_representer)
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     content = YAMLEncoder(DatasetConfig, post_encoder_func=yaml_encoder).encode(dataset)

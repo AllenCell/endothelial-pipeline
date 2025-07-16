@@ -2,19 +2,29 @@ name: 20250131_pairedPreFixation
 original_path: //allen/programs/allencell/data/proj0/2af/f39/d6d/550/023/278/641/1a8/5a5/83c/87/20250131_GE00006569_20X_PreFix_sldy/20250131_GE00006569_20X_PreFix_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250131_8783c5a51a8641278023550d6df392af
 fmsid: 8783c5a51a8641278023550d6df392af
-barcode: GE00006569
-cell_lines: [AICS-126]
+barcode: GE00006570
+cell_lines:
+- AICS-126
 live_or_fixed_sample: fixed-methanol
+is_timelapse: false
 microscope: 3i
 shear_stress_regime: 48hr_low
-use_cases: [model_training]
+use_cases:
+- model_training
 pixel_size_xy_in_um: 0.382
 duration: 1
-time_interval_in_minutes: -1.0
-flow: [[0, 288, 6.0], [289, 576, 28.93]]
+time_interval_in_minutes: null
+flow:
+- - 0
+  - 576
+  - 5.86
 n_total_positions: 10
 channel_488_index: 0
 brightfield_channel_index: 1
+flow_conditions:
+- start: -576
+  stop: 0
+  shear_stress: 5.86
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null
