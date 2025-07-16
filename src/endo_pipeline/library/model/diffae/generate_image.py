@@ -1,10 +1,8 @@
-from pathlib import Path
-
 import numpy as np
 import torch
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_model_config
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model.mlflow_utils import load_mlflow_model
 
 
