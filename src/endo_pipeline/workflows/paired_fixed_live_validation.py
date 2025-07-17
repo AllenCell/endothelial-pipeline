@@ -44,10 +44,22 @@ if __name__ == "__main__":
 
     for pc in range(1, n_pcs + 1):
 
+        # Get common plot ranges for each PC
+        axmin, axmax = validate_pcs_for_integration.get_common_plot_ranges(
+            fixed_features, live_features, lagged_live_features, truncated_live_features, pc
+        )
+
         # Construct confidence ellipse to determine fixed/live PC mapping and uncertainty
         raw_data, validation_data = (
             validate_pcs_for_integration.get_paired_fixed_live_validation_features(
                 pc, fixed_features, live_features
+            )
+        )
+
+        # Construct confidence ellipse to determine live/ time-lagged live PC mapping and uncertainty
+        raw_data_lag, validation_data_lag = (
+            validate_pcs_for_integration.get_paired_fixed_live_validation_features(
+                pc, lagged_live_features, truncated_live_features
             )
         )
 
@@ -58,13 +70,8 @@ if __name__ == "__main__":
             pc,
             raw_data,
             validation_data,
-        )
-
-        # Construct confidence ellipse to determine live/ time-lagged live PC mapping and uncertainty
-        raw_data, validation_data = (
-            validate_pcs_for_integration.get_paired_fixed_live_validation_features(
-                pc, lagged_live_features, truncated_live_features
-            )
+            axmin=axmin,
+            axmax=axmax,
         )
 
         # Plot raw data for paired live and time-lagged live PC values as well as confidence ellipse,
@@ -72,7 +79,9 @@ if __name__ == "__main__":
         viz_validate_pcs_for_integration.plot_paired_fixed_live_validation_features(
             save_path,
             pc,
-            raw_data,
-            validation_data,
+            raw_data_lag,
+            validation_data_lag,
             lagged_live_validation=True,
+            axmin=axmin,
+            axmax=axmax,
         )

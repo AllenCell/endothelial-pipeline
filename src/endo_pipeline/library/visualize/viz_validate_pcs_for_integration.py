@@ -14,6 +14,8 @@ def plot_paired_fixed_live_validation_features(
     paired_validation_features: tuple[Any, Any, Any, Any, Any, Ellipse],
     color_list: list[str] = ["#5F9ED1", "#FF800E", "#C85200"],
     lagged_live_validation: bool = False,
+    axmin: float | None = None,
+    axmax: float | None = None,
 ) -> None:
     """
     Plot the raw fixed and live data for a given PC along with a unity line for reference
@@ -34,12 +36,14 @@ def plot_paired_fixed_live_validation_features(
         List of hex codes for three colors used in plots
     lagged_live_validation : bool
         Flag to plot time-lagged live validation features in place of fixed feautures
+    axmin: float | None
+        Minimum value for x and y axes. If None, it is calculated from the raw data.
+    axmax: float | None
+        Maximum value for x and y axes. If None, it is calculated from the raw data.
     """
 
     # Get raw fixed (y) and live (x) PC data and its lower and upper limits
     x, y = raw_data
-    min_ = min(x.min(), y.min())
-    max_ = max(x.max(), y.max())
 
     # Get all validation features
     center, height, angle, slope, intercept, ellipse = paired_validation_features
@@ -49,7 +53,7 @@ def plot_paired_fixed_live_validation_features(
     ax = plt.gca()
 
     # Plot unity line
-    plt.plot([min_, max_], [min_, max_], c="gray", linestyle="--", label="Unity line")
+    plt.plot([axmin, axmax], [axmin, axmax], c="gray", linestyle="--", label="Unity line")
 
     # Plot raw data
     ax.scatter(x, y, s=0.5, c="black", alpha=0.1)
@@ -58,10 +62,10 @@ def plot_paired_fixed_live_validation_features(
     ax.add_patch(ellipse)
 
     # Plot linear model along major axis of ellipse
-    y_model_min = slope * min_ + intercept
-    y_model_max = slope * max_ + intercept
+    y_model_min = slope * axmin + intercept
+    y_model_max = slope * axmax + intercept
     plt.plot(
-        [min_, max_],
+        [axmin, axmax],
         [y_model_min, y_model_max],
         color=color_list[0],
         linewidth=2,
@@ -103,8 +107,8 @@ def plot_paired_fixed_live_validation_features(
     # Format axes
     plt.axis("equal")
     plt.gca().set_aspect("equal", adjustable="box")
-    plt.xlim(min_, max_)
-    plt.ylim(min_, max_)
+    plt.xlim(axmin, axmax)
+    plt.ylim(axmin, axmax)
     plt.tight_layout()
 
     # Save figure
