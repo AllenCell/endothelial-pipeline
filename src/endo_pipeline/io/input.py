@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def load_zarr_as_dask_array(
     path: Path,
-    channel_names: list[str] | None = None,
+    channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
 ) -> dask.array.Array:
@@ -23,7 +23,7 @@ def load_zarr_as_dask_array(
     ----------
     path
         Path to Zarr file.
-    channel_names
+    channels
         Channels to load.
     timepoints
         Timepoint(s) to load. Timepoints can be given as a single integer, list
@@ -36,14 +36,14 @@ def load_zarr_as_dask_array(
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
-    if channel_names is None:
-        channel_names = ["EGFP", "BF"]
+    if channels is None:
+        channels = ["EGFP", "BF"]
 
     # Initialize image reader.
     reader = BioImage(path)
 
     # Get index of channels for loaded Zarr.
-    channels_index = [reader.channel_names.index(channel) for channel in channel_names]
+    channels_index = [reader.channel_names.index(channel) for channel in channels]
 
     # Check if resolution level is value.
     if level not in reader.resolution_levels:
