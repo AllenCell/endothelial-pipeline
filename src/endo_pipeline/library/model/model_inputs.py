@@ -51,7 +51,7 @@ def preprocess_tracking_manifest_for_model_eval(
     )  # ask if both x and y bbox dimensions equal downsampled crop size
     df = df[bbox_size_is_correct]  # filter the dataframe in-place
 
-    df = df.head(100)  # NOTE: limit to 100 rows for testing purposes
+    df = df.head()  # NOTE: take first 5 rows for testing purposes
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
