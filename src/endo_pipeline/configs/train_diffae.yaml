@@ -14,7 +14,7 @@ data:
   train_dataloaders:
     _target_: monai.data.DataLoader
     num_workers: 8
-    batch_size: 1
+    batch_size: 8
     pin_memory: true
     persistent_workers: false
     shuffle: true
@@ -292,7 +292,7 @@ trainer:
   _target_: lightning.Trainer
   default_root_dir: ${paths.output_dir}
   min_epochs: 1
-  max_epochs: 1000
+  max_epochs: 2
   accelerator: gpu
   devices: 1
   precision: 16

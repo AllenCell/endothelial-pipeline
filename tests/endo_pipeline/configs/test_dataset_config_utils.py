@@ -22,15 +22,16 @@ def dataset():
         barcode="Dataset LabKey barcode",
         cell_lines=["AICS-111", "AICS-222"],
         live_or_fixed_sample="live",
+        is_timelapse=False,
         microscope="3i",
         shear_stress_regime="Shear stress regime the dataset was collected under",
-        use_cases=[],
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
         flow=[(0, 0, 0.0)],
         n_total_positions=0,
-        brightfield_channel_index=0,
+        channel_488_index=0,
+        brightfield_channel_index=1,
     )
 
 
