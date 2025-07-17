@@ -53,8 +53,18 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # convert centroids to bounding boxes
     # and downsample by half to match current model resolution
-    downsample_factor = 2**resolution_level  # 2
+    downsample_factor = 2  # 2**resolution_level  # 2
     df = centroid_to_bbox(df, downsample_factor)
+
+    # adjust the image size according to the desired downsample factor
+    df["image_size_x"] = df["image_size_x"] // downsample_factor
+    df["image_size_y"] = df["image_size_y"] // downsample_factor
+
+    # limit start and end of x and y bboxes to be within image size limits
+    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
+    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
+    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
+    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
@@ -83,7 +93,7 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = dataset_config.brightfield_channel_index
-    grouped_df["resolution"] = resolution_level  # 1
+    grouped_df["resolution"] = 0  #  resolution_level  # 1
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
