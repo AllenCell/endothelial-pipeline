@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import fire
 from cyto_dl.api import CytoDLModel
@@ -27,14 +27,11 @@ def _initialize_diffae_model_for_finetuning(
 
     Parameters
     ----------
-    training_config: DictConfig | ListConfig
-        The training configuration to use.
-    crop_size: int
-        The pixel size of the image crop to use for training.
-        This is the crop size along one dimension, the image will be square
-        with size (crop_size, crop_size).
     model_name: str
         The name of the model to train.
+    dataset_type: Literal["live_fixed", "20x_40x"]
+        The type of dataset to use for finetuning. This should match the dataset
+        type used during the `paired_data_validation` step.
     train_csv_path: Path | None
         The path to the training dataset CSV file. If None, the default path
         for the output of generate_csv_for_training_diffae will be used.
@@ -83,6 +80,9 @@ def _get_valid_csv_path(
         csv_name will not be used in the path generation.
         This input is mainly for the default case where csv_path is None,
         and the path will be generated based on the csv_name (train or val).
+    dataset_type: Literal["live_fixed", "20x_40x"]
+        The type of dataset to use for finetuning. This should match the dataset
+        type used during the `paired_data_validation` step.
 
 
     Returns
