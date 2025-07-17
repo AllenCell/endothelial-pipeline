@@ -40,6 +40,7 @@ def preprocess_tracking_manifest_for_model_eval(
     # and downsample by half to match current model resolution
     downsample_factor = 2
     df = centroid_to_bbox(df, downsample_factor)
+    df = df.head(100)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
