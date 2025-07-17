@@ -26,7 +26,7 @@ from src.endo_pipeline.configs import ModelConfig, ModelManifest, save_model_con
 # %%
 model = ModelConfig(
     # ============================ REQUIRED FIELDS =============================
-    name="unqiue_model_name",
+    name="unique_model_name",
     mlflow_run_id="MLflow_run_id",
     # ============================ OPTIONAL FIELDS =============================
     # manifest_fmsids=[
