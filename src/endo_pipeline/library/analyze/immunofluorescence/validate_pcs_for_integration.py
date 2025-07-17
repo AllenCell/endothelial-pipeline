@@ -231,7 +231,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 def create_time_lagged_live_dataset(
     live_features: pd.DataFrame,
     time_lag: int = 3,
-) -> tuple(pd.DataFrame, pd.DataFrame):
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Create a time-lagged version of the live dataset by shifting the PC values by a specified time lag.
 
@@ -253,7 +253,7 @@ def create_time_lagged_live_dataset(
     lagged_live_features = live_features.copy()
     for pc in range(1, 4):
         lagged_live_features[f"pc{pc}"] = lagged_live_features[f"pc{pc}"].shift(time_lag)
-    return lagged_live_features.dropna(), live_features.copy().iloc[time_lag:]
+    return (lagged_live_features.dropna(), live_features.copy().iloc[time_lag:])
 
 
 def get_paired_fixed_live_validation_features(
