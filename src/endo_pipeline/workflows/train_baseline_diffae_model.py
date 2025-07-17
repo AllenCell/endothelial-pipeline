@@ -157,8 +157,8 @@ def main(
         for the output of generate_csv_for_training_diffae will be used.
     """
     # get valid CSV paths for training and validation datasets
-    train_csv_path = _get_valid_csv_path(train_csv_path, "train_diffae")
-    val_csv_path = _get_valid_csv_path(val_csv_path, "val_diffae")
+    train_csv_path = _get_valid_csv_path(train_csv_path, "train")
+    val_csv_path = _get_valid_csv_path(val_csv_path, "val")
 
     # load training config
     training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
