@@ -9,7 +9,7 @@ from src.endo_pipeline.io import load_dataframe_from_fms
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
-) -> Path:
+) -> str:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
@@ -21,13 +21,13 @@ def generate_zarr_csv_for_model_eval(
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = dataset_config.brightfield_channel_index
     df["resolution"] = resolution_level
-    data_path = str(save_path / "dataset.csv")
+    data_path = Path(save_path / "dataset.csv").as_posix()
     df.to_csv(data_path, index=False)
     return data_path
 
 
 def preprocess_tracking_manifest_for_model_eval(
-    dataset_config: DatasetConfig, save_dir: Path, resolution_level: int = 1
+    dataset_config: DatasetConfig, save_dir: Path
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
     fms_id = dataset_config.live_merged_seg_features_manifest_fmsid
@@ -36,6 +36,9 @@ def preprocess_tracking_manifest_for_model_eval(
             f"Dataset {dataset_config.name} does not have a live segmentation features FMS ID."
         )
     df = load_dataframe_from_fms(fms_id)
+
+    # keep only rows that were not filtered out by filter_global
+    df = df[~df["filter_global"]]
 
     # filter the dataframe to include only the relevant columns
     colums_to_keep = [
@@ -51,9 +54,10 @@ def preprocess_tracking_manifest_for_model_eval(
     ]
     df = df[colums_to_keep]
 
-    # convert centroids to bounding boxes
-    # and downsample by half to match current model resolution
-    downsample_factor = 2  # 2**resolution_level  # 2
+    # convert centroids to bounding boxes and downsample
+    # by half to match currently used model resolution
+    # this is currently always 2
+    downsample_factor = 2
     df = centroid_to_bbox(df, downsample_factor)
 
     # adjust the image size according to the desired downsample factor
@@ -93,7 +97,12 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = dataset_config.brightfield_channel_index
-    grouped_df["resolution"] = 0  #  resolution_level  # 1
+    # NOTE "resolution" below determines what resolution the images will
+    # be loaded at, and currently the model loads at native resolution
+    # and downsamples in the transforms; therefore this value must be 0
+    # The "start" and "end" column values determine the crop locations
+    # after downsampling, thus they were adjusted by downsample_factor
+    grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]

@@ -208,9 +208,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    data_path = preprocess_tracking_manifest_for_model_eval(
-        dataset_config, save_path, resolution_level=1
-    )
+    data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
