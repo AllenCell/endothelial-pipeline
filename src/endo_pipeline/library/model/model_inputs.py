@@ -40,7 +40,6 @@ def preprocess_tracking_manifest_for_model_eval(
     # and downsample by half to match current model resolution
     downsample_factor = 2
     df = centroid_to_bbox(df, downsample_factor)
-    df = df.head(100)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
@@ -51,6 +50,8 @@ def preprocess_tracking_manifest_for_model_eval(
         bbox_size_x == (df["crop_size"] // downsample_factor)
     )  # ask if both x and y bbox dimensions equal downsampled crop size
     df = df[bbox_size_is_correct]  # filter the dataframe in-place
+
+    df = df.head(100)  # NOTE: limit to 100 rows for testing purposes
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
