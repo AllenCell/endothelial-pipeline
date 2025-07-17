@@ -189,7 +189,11 @@ def main(
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
-    list_of_training_datasets = get_dataset_names_used_for_training(train_csv_path, val_csv_path)
+    list_of_training_datasets = get_dataset_names_used_for_training(
+        train_csv_path,
+        val_csv_path,
+        "live_20X_objective_3i_microscope",
+    )
     # add run ID to model config
     model_config = ModelConfig(
         name=model_name,

@@ -186,7 +186,9 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
-def get_dataset_names_used_for_training(train_csv_path: Path, val_csv_path: Path) -> list[str]:
+def get_dataset_names_used_for_training(
+    train_csv_path: Path, val_csv_path: Path, dataset_collection_name: str
+) -> list[str]:
     """
     Pull list of dataset names used for model training
     from train.csv and val.csv files that are passed
@@ -211,21 +213,12 @@ def get_dataset_names_used_for_training(train_csv_path: Path, val_csv_path: Path
     )
 
     # get unique dataset names by looping over
-    # all live, 20X objective datasets from the
-    # 3i microscope collection (these are the possible
-    # datasets used for training)
-    # where there are datasets with the same date,
-    # get the one with 20X in the name (i.e., don't
-    # get the 40X pair of the two) except for Nikon datasets
-    try:
-        training_appropriate_dataset_collection = load_dataset_collection_config(
-            "live_20X_objective_3i_microscope"
-        )
-    except FileNotFoundError:
-        # if the collection is not found, run the function
-        training_appropriate_dataset_collection = get_live_20X_objective_3i_microscope_datasets()
+    # the provided dataset collection name,
+    # which should be a superset of the datasets used for training
+
+    training_dataset_superset = load_dataset_collection_config(dataset_collection_name)
     training_dataset_names = []
-    for dataset_name in training_appropriate_dataset_collection.datasets:
+    for dataset_name in training_dataset_superset.datasets:
         for date in training_dataset_dates:
             if date in dataset_name:
                 training_dataset_names.append(dataset_name)
