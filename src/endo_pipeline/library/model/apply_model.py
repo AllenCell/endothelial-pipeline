@@ -69,7 +69,7 @@ def load_overrides(overrides: str | dict | None) -> dict:
     return overrides_dict
 
 
-def apply_model_on_random_crops_from_one_dataset(
+def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
@@ -142,7 +142,6 @@ def apply_model_on_random_crops_from_one_dataset(
             include_timestamp=False,
             include_git_info=False,
             model=model_config,
-            additional_notes=f"CytoDL commit hash: {get_cytodl_commit_hash(mlflow_id, model_path)}",
         )
 
         # upload prediction file to FMS and get file ID
@@ -236,7 +235,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
             include_timestamp=False,
             include_git_info=False,
             model=model_config,
-            additional_notes=get_cytodl_commit_hash(mlflow_id, model_path),
         )
 
         # upload prediction file to FMS and get file ID

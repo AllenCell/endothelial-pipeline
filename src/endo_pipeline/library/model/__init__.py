@@ -1,5 +1,5 @@
 from .apply_model import (
-    apply_model_on_random_crops_from_one_dataset,
+    apply_model_on_grid_of_crops_from_one_dataset,
     apply_model_on_tracked_crops_from_one_dataset,
     get_cytodl_commit_hash,
     load_overrides,
@@ -28,7 +28,7 @@ __all__ = [
     "DiffAEFinetune",
     "MinStdCropd",
     "RotateRanged",
-    "apply_model_on_random_crops_from_one_dataset",
+    "apply_model_on_grid_of_crops_from_one_dataset",
     "apply_model_on_tracked_crops_from_one_dataset",
     "download_mlflow_artifact",
     "download_model",

@@ -42,7 +42,7 @@ def main(
 
     # fit PCA to reference timepoints of
     # reference datasets
-    pca = fit_pca()
+    pca = fit_pca(model_name=model_name)
 
     # set args for 3D viz
     # get time between frames

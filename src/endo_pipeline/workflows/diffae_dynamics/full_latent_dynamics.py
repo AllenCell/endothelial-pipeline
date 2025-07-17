@@ -46,7 +46,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     # if directory does not exist, get_output_path function will create it
     fig_savedir = get_output_path(workflow_name, "model_name", "figs", include_timestamp=False)
 
-    pca = manifest_pca.fit_pca()
+    pca = manifest_pca.fit_pca(model_name=model_name)
 
     num_bins = [40, 40, 40]
     bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]

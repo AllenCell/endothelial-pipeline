@@ -3,6 +3,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from deprecated import deprecated
 
 # set default plot parameters
 global plt_params
@@ -53,6 +54,17 @@ def init_subplots(
     return fig, ax
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following pattern for
+saving plots:
+
+    from src.endo_pipeline.io import get_output_path, save_plot_to_path
+
+    output_path = get_output_path(__file__, subfolder1, subfolder2)
+    save_plot_to_path(figure, output_path, "name_of_figure")
+"""
+)
 def save_plot(
     fig: plt.Figure,
     filename: str | Path,
