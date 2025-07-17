@@ -27,7 +27,7 @@ def generate_zarr_csv_for_model_eval(
 
 
 def preprocess_tracking_manifest_for_model_eval(
-    dataset_config: DatasetConfig, save_dir: Path
+    dataset_config: DatasetConfig, save_dir: Path, resolution_level: int = 1
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
     fms_id = dataset_config.live_merged_seg_features_manifest_fmsid
@@ -53,7 +53,7 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # convert centroids to bounding boxes
     # and downsample by half to match current model resolution
-    downsample_factor = 2
+    downsample_factor = 2**resolution_level  # 2
     df = centroid_to_bbox(df, downsample_factor)
 
     # filter the dataframe to exclude anything where the size of
@@ -83,7 +83,7 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = dataset_config.brightfield_channel_index
-    grouped_df["resolution"] = 1
+    grouped_df["resolution"] = resolution_level  # 1
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
