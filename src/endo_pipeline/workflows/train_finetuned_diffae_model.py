@@ -111,7 +111,7 @@ def main(
     model_template_name: str = "live_fixed_finetune_template",
     train_csv_path: Path | None = None,
     val_csv_path: Path | None = None,
-):
+) -> None:
     """
     Finetune a DiffAE model with paired live/fixed data.
 
@@ -136,8 +136,8 @@ def main(
     """
 
     # get valid CSV paths for training and validation datasets
-    train_csv_path = _get_valid_csv_path(train_csv_path, "train")
-    val_csv_path = _get_valid_csv_path(val_csv_path, "val")
+    train_csv_path = _get_valid_csv_path(train_csv_path, "train", dataset_type)
+    val_csv_path = _get_valid_csv_path(val_csv_path, "val", dataset_type)
 
     model_save_path = get_output_path(
         "finetune_paired_dataset",
@@ -152,7 +152,7 @@ def main(
 
     # get template config
     template_run_id = load_model_config(model_template_name).mlflow_run_id
-    download_mlflow_artifact(template_run_id, "config/train.yaml", model_save_path)
+    download_mlflow_artifact(template_run_id, Path("config/train.yaml"), model_save_path)
 
     # initialize model for finetuning
     model = _initialize_diffae_model_for_finetuning(
