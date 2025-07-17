@@ -8,87 +8,10 @@ from src.endo_pipeline.configs import ModelConfig, load_model_config, save_model
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model import (
     download_mlflow_artifact,
+    generate_overrides_for_finetuning,
     get_ckpt_path,
     get_dataset_names_used_for_training,
 )
-
-
-def _generate_overrides_for_finetuning(
-    model_name: str,
-    dataset_type: Literal["live_fixed", "20x_40x"],
-    train_csv_path: Path,
-    val_csv_path: Path,
-    ckpt_path: Path,
-) -> dict:
-    """
-    Generate overrides for finetuning a DiffAE model.
-
-    Parameters
-    ----------
-    model_name: str
-        The name of the model to finetune. This should correspond to a
-        directory in `results/models/` and match the model name used during the
-        `paired_data_validation` step.
-    dataset_type: Literal['live_fixed', '20x_40x']
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-    train_csv_path: Path
-        The path to the training CSV file containing paired data.
-    val_csv_path: Path
-        The path to the validation CSV file containing paired data.
-    ckpt_path: Path
-        The path to the DiffAE checkpoint to finetune.
-    """
-    # create output directories if they do not exist
-    save_path = get_output_path(
-        "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
-        include_timestamp=False,
-    )
-    _ = get_output_path(
-        "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
-        "checkpoints",
-        include_timestamp=False,
-    )
-    _ = get_output_path(
-        "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
-        "logs",
-        include_timestamp=False,
-    )
-
-    overrides = {
-        # point to already projected paired dataset
-        "data.train_dataloaders.dataset.csv_path": str(train_csv_path),
-        "data.val_dataloaders.dataset.csv_path": str(val_csv_path),
-        # change model target path
-        "model._target_": "src.endo_pipeline.library.model.diffae_finetune.DiffAEFinetune",
-        # load diffae checkpoint to finetune
-        "checkpoint.ckpt_path": str(ckpt_path),
-        "checkpoint.weights_only": True,
-        "checkpoint.strict": False,
-        # save to user-specified directory
-        "model.save_dir": (save_path / "logs").as_posix(),
-        "trainer.default_root_dir": save_path,
-        "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
-        "paths.output_dir": (save_path / "logs").as_posix(),
-        # do training
-        "train": True,
-        # make sure that last ckpt is saved
-        "callbacks.model_checkpoint.monitor": None,
-        # updated mlflow logger
-        "logger": {
-            "mlflow": {
-                "_target_": "cyto_dl.loggers.MLFlowLogger",
-                "tracking_uri": "https://production.int.allencell.org/mlflow/",
-                "experiment_name": "endo_diffae",
-                "run_name": "fixed_finetune_separate_encoder",
-            }
-        },
-    }
-
-    return overrides
 
 
 def _initialize_diffae_model_for_finetuning(
@@ -125,7 +48,7 @@ def _initialize_diffae_model_for_finetuning(
         to the checkpoint downloaded from MLflow artifacts.
     """
     # generate overrides for train.yaml for finetuning
-    overrides = _generate_overrides_for_finetuning(
+    overrides = generate_overrides_for_finetuning(
         model_name=model_name,
         dataset_type=dataset_type,
         train_csv_path=train_csv_path,
