@@ -3,7 +3,11 @@ from typing import Any
 
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import (
+    DatasetConfig,
+    get_live_20X_objective_3i_microscope_datasets,
+    load_dataset_collection_config,
+)
 from src.endo_pipeline.io import load_dataframe_from_fms
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
@@ -180,3 +184,50 @@ def generate_overrides_for_track_based_crops(
     }
     overrides.update(track_specific_overrides)
     return overrides
+
+
+def get_dataset_names_used_for_training(train_csv_path: Path, val_csv_path: Path) -> list[str]:
+    """
+    Pull list of dataset names used for model training
+    from train.csv and val.csv files that are passed
+    into the model training script.
+    """
+    # load train.csv and val.csv files as dataframes
+    train_df = pd.read_csv(train_csv_path)
+    val_df = pd.read_csv(val_csv_path)
+
+    # get date part of dataset name from zarr path
+    # note: this might be something that
+    # gets turned into a zarr method in a future PR
+    for df in [train_df, val_df]:
+        df["dataset_date"] = df["path"].apply(
+            lambda s: s.split(".")[0].split("/")[-1].split("_")[0]
+        )
+
+    # get unique dataset dates used in training from dataset_date
+    # by combining the unique dates from both train and val datasets
+    training_dataset_dates = list(
+        set(train_df["dataset_date"].unique().tolist() + val_df["dataset_date"].unique().tolist())
+    )
+
+    # get unique dataset names by looping over
+    # all live, 20X objective datasets from the
+    # 3i microscope collection (these are the possible
+    # datasets used for training)
+    # where there are datasets with the same date,
+    # get the one with 20X in the name (i.e., don't
+    # get the 40X pair of the two) except for Nikon datasets
+    try:
+        training_appropriate_dataset_collection = load_dataset_collection_config(
+            "live_20X_objective_3i_microscope"
+        )
+    except FileNotFoundError:
+        # if the collection is not found, run the function
+        training_appropriate_dataset_collection = get_live_20X_objective_3i_microscope_datasets()
+    training_dataset_names = []
+    for dataset_name in training_appropriate_dataset_collection.datasets:
+        for date in training_dataset_dates:
+            if date in dataset_name:
+                training_dataset_names.append(dataset_name)
+
+    return sorted(training_dataset_names)

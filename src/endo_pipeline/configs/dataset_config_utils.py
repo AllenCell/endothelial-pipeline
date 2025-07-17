@@ -4,7 +4,11 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import (
+    DatasetCollectionConfig,
+    DatasetConfig,
+    load_all_dataset_configs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +53,26 @@ def get_nuclear_prediction_path(
     else:
         logger.error("Nuclear segmentation type [ %s ] is not valid", nuc_seg_type)
         raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
+
+
+def get_live_20X_objective_3i_microscope_datasets() -> DatasetCollectionConfig:
+    """
+    Create collection of datasets that are
+    live, 20X objective, and from the 3i scope.
+    """
+    dataset_configs = load_all_dataset_configs()
+    live_20X_3i_dataset_names = []
+    for dataset_config in dataset_configs:
+        if (
+            dataset_config.live_or_fixed_sample == "live"
+            and dataset_config.microscope == "3i"
+            and "20X" in dataset_config.name
+        ):
+            live_20X_3i_dataset_names.append(dataset_config.name)
+    live_20X_3i_dataset_collection = DatasetCollectionConfig(
+        name="live_20X_objective_3i_microscope",
+        description="Collection of live datasets with 20X objective from the 3i microscope.",
+        datasets=live_20X_3i_dataset_names,
+    )
+
+    return live_20X_3i_dataset_collection

@@ -8,6 +8,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from src.endo_pipeline.configs import ModelConfig, get_config_dir, save_model_config
 from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.model import get_dataset_names_used_for_training
 
 
 def _generate_training_overrides(model_name: str, crop_size: int) -> dict:
@@ -82,7 +83,7 @@ def _initialize_diffae_model(
     # override config with workflow inputs
     model.load_config_from_dict(training_config)
     model.override_config(overrides)
-    return model
+    return model, overrides
 
 
 def main(crop_size: int = 128) -> None:
@@ -105,7 +106,7 @@ def main(crop_size: int = 128) -> None:
 
     # initialize DiffAE model: generates config
     # overrides and sets up output directories
-    model = _initialize_diffae_model(
+    model, config_overrides = _initialize_diffae_model(
         training_config,
         crop_size,
         model_name,
@@ -115,10 +116,17 @@ def main(crop_size: int = 128) -> None:
     # retrive MLflow run ID
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
+    # get list of datasets used for training
+    train_csv_path = config_overrides.get("data.train_dataloaders.dataset.csv_path")
+    val_csv_path = config_overrides.get("data.val_dataloaders.dataset.csv_path")
+    list_of_training_datasets = get_dataset_names_used_for_training(
+        Path(train_csv_path), Path(val_csv_path)
+    )
     # add run ID to model config
     model_config = ModelConfig(
         name=model_name,
         mlflow_run_id=run_id,
+        training_datasets=list_of_training_datasets,
     )
     # save the model config
     save_model_config(model_config)

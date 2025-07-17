@@ -11,11 +11,12 @@ from .diffae import (
     generate_from_coords,
     generate_from_coords_batch,
 )
-from .mlflow import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
+from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .model_inputs import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
+    get_dataset_names_used_for_training,
     preprocess_tracking_manifest_for_model_eval,
 )
 from .model_outputs import (
@@ -38,6 +39,7 @@ __all__ = [
     "generate_zarr_csv_for_model_eval",
     "get_ckpt_path",
     "get_cytodl_commit_hash",
+    "get_dataset_names_used_for_training",
     "load_mlflow_model",
     "load_overrides",
     "preprocess_tracking_manifest_for_model_eval",

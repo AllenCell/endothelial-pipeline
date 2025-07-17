@@ -13,7 +13,11 @@ from .dataset_config_io import (
     validate_all_dataset_configs,
     validate_dataset_config,
 )
-from .dataset_config_utils import get_nuclear_prediction_path, get_specific_channel_order
+from .dataset_config_utils import (
+    get_live_20X_objective_3i_microscope_datasets,
+    get_nuclear_prediction_path,
+    get_specific_channel_order,
+)
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
@@ -45,6 +49,7 @@ __all__ = [
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",
+    "get_live_20X_objective_3i_microscope_datasets",
     "get_model_config_dir",
     "get_model_manifest",
     "get_nuclear_prediction_path",
