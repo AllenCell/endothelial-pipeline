@@ -222,10 +222,8 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
     # load or fit reference PCA model and project features into reference PC space
     pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
-    fixed_pc_features = project_manifest_to_pcs(
-        fixed_features, pca, overwrite_feature_columns=False
-    )
-    live_pc_features = project_manifest_to_pcs(live_features, pca, overwrite_feature_columns=False)
+    fixed_pc_features = project_manifest_to_pcs(fixed_features, pca)
+    live_pc_features = project_manifest_to_pcs(live_features, pca)
 
     return fixed_pc_features, live_pc_features
 
@@ -233,7 +231,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 def create_time_lagged_live_dataset(
     live_features: pd.DataFrame,
     time_lag: int = 3,
-) -> pd.DataFrame:
+) -> tuple(pd.DataFrame, pd.DataFrame):
     """
     Create a time-lagged version of the live dataset by shifting the PC values by a specified time lag.
 
@@ -248,12 +246,14 @@ def create_time_lagged_live_dataset(
     -------
     lagged_live_features : pd.DataFrame
         Dataframe containing time-lagged PC values for live data
+    pd.DataFrame
+        Dataframe containing original live data PC values truncated to remove
+        the rows that were shifted out by the lag
     """
     lagged_live_features = live_features.copy()
     for pc in range(1, 4):
         lagged_live_features[f"pc{pc}"] = lagged_live_features[f"pc{pc}"].shift(time_lag)
-
-    return lagged_live_features.dropna()
+    return lagged_live_features.dropna(), live_features.copy().iloc[time_lag:]
 
 
 def get_paired_fixed_live_validation_features(
