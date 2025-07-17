@@ -36,6 +36,20 @@ def preprocess_tracking_manifest_for_model_eval(
             f"Dataset {dataset_config.name} does not have a live segmentation features FMS ID."
         )
     df = load_dataframe_from_fms(fms_id)
+
+    # filter the dataframe to include only the relevant columns
+    colums_to_keep = [
+        "zarr_path",
+        "image_index",
+        "track_id",
+        "label",
+        "centroid_X",
+        "centroid_Y",
+        "image_size_x",
+        "image_size_y",
+    ]
+    df = df[colums_to_keep]
+
     # convert centroids to bounding boxes
     # and downsample by half to match current model resolution
     downsample_factor = 2
@@ -68,7 +82,7 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = dataset_config.brightfield_channel_index
-    grouped_df["resolution"] = 0
+    grouped_df["resolution"] = 1
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
