@@ -50,9 +50,19 @@ def _generate_training_overrides(
     if train_csv_path is None:
         # use default path for training CSV if not provided
         train_csv_path = get_output_path("manifests", include_timestamp=False) / "train.csv"
+        if not train_csv_path.exists():
+            raise FileNotFoundError(
+                f"Training CSV file not found at {train_csv_path}. "
+                "Please provide a valid path or generate the CSV file."
+            )
     if val_csv_path is None:
         # use default path for validation CSV if not provided
         val_csv_path = get_output_path("manifests", include_timestamp=False) / "val.csv"
+        if not val_csv_path.exists():
+            raise FileNotFoundError(
+                f"Validation CSV file not found at {val_csv_path}. "
+                "Please provide a valid path or generate the CSV file."
+            )
 
     overrides = {
         # set path to train and val datasets
