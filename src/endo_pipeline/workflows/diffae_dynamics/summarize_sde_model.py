@@ -109,7 +109,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset
-    pca = fit_pca()
+    pca = fit_pca(model_name=model_name)
     model_analysis.model_data_comparison(
         sde_model,
         model_manifest_list,

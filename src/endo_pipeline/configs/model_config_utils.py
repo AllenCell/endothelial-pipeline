@@ -105,7 +105,7 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
     """
 
     # load data configs to get reference datasets
-    reference_dataset_name_list = get_datasets_in_collection("reference")
+    reference_dataset_name_list = get_datasets_in_collection("pca_reference")
 
     # list of model manifests
     model_manifests = []
