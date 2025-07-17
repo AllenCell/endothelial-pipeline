@@ -55,13 +55,13 @@ def get_nuclear_prediction_path(
         raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
 
 
-def get_live_20X_objective_3i_microscope_datasets() -> DatasetCollectionConfig:
+def get_live_20X_objective_3i_microscope_datasets() -> DatasetCollectionConfig:  # noqa: N802
     """
     Create collection of datasets that are
     live, 20X objective, and from the 3i scope.
     """
     dataset_configs = load_all_dataset_configs()
-    live_20X_3i_dataset_names = []
+    live_20X_3i_dataset_names = []  # noqa: N806
     for dataset_config in dataset_configs:
         if (
             dataset_config.live_or_fixed_sample == "live"
@@ -69,7 +69,7 @@ def get_live_20X_objective_3i_microscope_datasets() -> DatasetCollectionConfig:
             and "20X" in dataset_config.name
         ):
             live_20X_3i_dataset_names.append(dataset_config.name)
-    live_20X_3i_dataset_collection = DatasetCollectionConfig(
+    live_20X_3i_dataset_collection = DatasetCollectionConfig(  # noqa: N806
         name="live_20X_objective_3i_microscope",
         description="Collection of live datasets with 20X objective from the 3i microscope.",
         datasets=live_20X_3i_dataset_names,

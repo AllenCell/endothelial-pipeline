@@ -1,6 +1,7 @@
 import datetime
 import os
 from pathlib import Path
+from typing import Literal
 
 import fire
 from cyto_dl.api import CytoDLModel
@@ -106,7 +107,7 @@ def _initialize_diffae_model(
     return model
 
 
-def _get_valid_csv_path(csv_path: Path | str | None, csv_name: str) -> Path:
+def _get_valid_csv_path(csv_path: Path | str | None, csv_name: Literal["train", "val"]) -> Path:
     """
     Get a valid CSV path for training or validation datasets.
 
@@ -115,6 +116,12 @@ def _get_valid_csv_path(csv_path: Path | str | None, csv_name: str) -> Path:
     csv_path: Path | str | None
         The path to the CSV file. If None, the default path for the output of
         generate_csv_for_training_diffae will be used.
+    csv_name: Literal["train", "val"]
+        The name of the CSV file to validate. If csv_path is not None,
+        csv_name will not be used in the path generation.
+        This input is mainly for the default case where csv_path is None,
+        and the path will be generated based on the csv_name (train or val).
+
 
     Returns
     -------

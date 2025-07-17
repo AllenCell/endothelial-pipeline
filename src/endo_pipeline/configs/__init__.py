@@ -49,6 +49,7 @@ __all__ = [
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",
+    "get_labelfree_nuclei_prediction_model_name",
     "get_live_20X_objective_3i_microscope_datasets",
     "get_model_config_dir",
     "get_model_manifest",
@@ -68,5 +69,4 @@ __all__ = [
     "validate_all_model_configs",
     "validate_dataset_config",
     "validate_model_config",
-    "get_labelfree_nuclei_prediction_model_name",
 ]
