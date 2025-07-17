@@ -36,7 +36,7 @@ def generate_from_coords(
         coords_np = coords
 
     mlflow_id = load_model_config(model_name).mlflow_run_id
-    model_path = get_output_path("models", {model_name}, "train", include_timestamp=False)
+    model_path = get_output_path("models", model_name, "train", include_timestamp=False)
     model = load_mlflow_model(mlflow_id, save_path=model_path)
 
     coords_torch = torch.from_numpy(coords_np).float()
