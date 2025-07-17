@@ -27,7 +27,7 @@ def generate_zarr_csv_for_model_eval(
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
-    data_path = str(save_path / "dataset.csv")
+    data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
 
