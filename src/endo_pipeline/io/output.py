@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 from git import Repo
-from matplotlib.pyplot import Figure
+from matplotlib.figure import Figure
 
 from src.endo_pipeline.configs import DatasetConfig, ModelConfig
 
