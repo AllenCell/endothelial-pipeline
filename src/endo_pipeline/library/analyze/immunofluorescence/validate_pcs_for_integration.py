@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
+from sklearn.pipeline import Pipeline
 
-from cellsmap.util.manifest_io import load_pca_model
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
@@ -14,9 +14,12 @@ from src.endo_pipeline.configs import (
     load_model_config,
     save_model_config,
 )
+from src.endo_pipeline.configs.model_config_utils import get_model_manifest
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+    get_manifest_for_dynamics_workflows,
+    project_manifest_to_pcs,
+)
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
 from src.endo_pipeline.library.model.mlflow import download_model
 from src.endo_pipeline.library.model.model_inputs import generate_overrides_for_model_eval
@@ -191,9 +194,9 @@ def apply_model_paired_fixed_live(
 
 
 def project_paired_fixed_live_data_into_ref_PC_space(
+    pca: Pipeline,
     fixed_features_path: Path = "fixed_features.parquet",
     live_features_path: Path = "live_features.parquet",
-    pca_dir: str | Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Project features from applying fine tuned diffAE model to fixed and live data into
@@ -201,12 +204,13 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
     Parameters
     ----------
+    pca : Pipeline | None
+        PCA model
     fixed_features_path : Path
         Path to the fixed features manifest
     live_features_path : Path
         Path to the live features manifest
-    pca_dir : str | Path | None
-        Directory containing the PCA model. If None, a new PCA model is fitted
+
 
     Returns
     -------
@@ -220,40 +224,64 @@ def project_paired_fixed_live_data_into_ref_PC_space(
     fixed_features = pd.read_parquet(fixed_features_path)
     live_features = pd.read_parquet(live_features_path)
 
-    # load or fit reference PCA model and project features into reference PC space
-    pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
     fixed_pc_features = project_manifest_to_pcs(fixed_features, pca)
     live_pc_features = project_manifest_to_pcs(live_features, pca)
 
     return fixed_pc_features, live_pc_features
 
 
-def create_time_lagged_live_dataset(
-    live_features: pd.DataFrame,
+def create_reference_timelapse_datasets(
+    pca: Pipeline,
+    reference_dataset_name: str,
+    model: ModelConfig = "diffae_04_10",
     time_lag: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Create a time-lagged version of the live dataset by shifting the PC values by a specified time lag.
+    Create reference timelapse datasets to determine role of time lag in differences between fixed and live data.
+    This function loads a no-flow timelapse reference dataset and gets PC values.
+    It creates one copy of this data that is lagged in time by the same time gap between the live and fixed data snapshots.
+    It then creates a second version which is just truncated to remove the rows that were shifted out by the lag.
 
     Parameters
     ----------
-    live_features : pd.DataFrame
-        Dataframe containing PCs for live data
+    pca : Pipeline
+        PCA model to project features into reference PC space
+    reference_dataset_name : str
+        Name of the reference dataset to use for creating the timelapse datasets
+    model : ModelConfig
+        Model configuration to use for loading the reference dataset
     time_lag : int
-        Number of time points to shift the live data
+        Number of frames to lag the reference dataset by.
+        This is the same time gap between the live and fixed data snapshots.
 
     Returns
     -------
-    lagged_live_features : pd.DataFrame
-        Dataframe containing time-lagged PC values for live data
-    pd.DataFrame
-        Dataframe containing original live data PC values truncated to remove
-        the rows that were shifted out by the lag
+    df_lag : pd.DataFrame
+        Dataframe containing the lagged reference features
+    df_trunc : pd.DataFrame
+        Dataframe containing the reference features truncated to
+        remove the rows that were shifted out by the lag
     """
-    lagged_live_features = live_features.copy()
-    for pc in range(1, 4):
-        lagged_live_features[f"pc{pc}"] = lagged_live_features[f"pc{pc}"].shift(time_lag)
-    return lagged_live_features.dropna(), live_features.copy().iloc[time_lag:]
+
+    # Load the PC data for reference no flow timelapse dataset
+    model_config = load_model_config(model)
+    model_manifest = get_model_manifest(reference_dataset_name, model_config)
+    reference_features = get_manifest_for_dynamics_workflows(model_manifest, pca)
+
+    # Create and return lagged and truncated datasets
+    reference_features = reference_features.sort_values(by="frame_number")
+    df_lag = reference_features.groupby("crop_index").shift(time_lag).dropna()
+    df_trunc = reference_features.groupby("crop_index").apply(
+        create_truncated_dataset, time_lag=time_lag
+    )
+    return df_lag, df_trunc
+
+
+def create_truncated_dataset(
+    crop: pd.DataFrame,
+    time_lag: int,
+) -> pd.DataFrame:
+    return crop.iloc[time_lag:]
 
 
 def get_paired_fixed_live_validation_features(
