@@ -11,7 +11,12 @@ from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model import get_dataset_names_used_for_training
 
 
-def _generate_training_overrides(model_name: str, crop_size: int) -> dict:
+def _generate_training_overrides(
+    model_name: str,
+    crop_size: int,
+    train_csv_path: Path | None = None,
+    val_csv_path: Path | None = None,
+) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
 
@@ -19,25 +24,41 @@ def _generate_training_overrides(model_name: str, crop_size: int) -> dict:
     ----------
     model_name: str
         The name of the model to train.
+
     crop_size: int
         The number of pixels in each dimension of the
         image crop to use for training.
 
         That is, the cropped image will be square
         with size (crop_size px, crop_size px).
+
+    train_csv_path: Path | None
+        The path to the training dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+
+    val_csv_path: Path | None
+        The path to the validation dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
     """
     # create output directories if they do not exist
     train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
     _ = get_output_path("models", model_name, "train", "logs", include_timestamp=False)
     _ = get_output_path("models", model_name, "train", "checkpoints", include_timestamp=False)
 
-    manifest_path = get_output_path("manifests", include_timestamp=False)
+    if train_csv_path is None:
+        # use default path for training CSV if not provided
+        train_csv_path = get_output_path("manifests", include_timestamp=False) / "train.csv"
+    if val_csv_path is None:
+        # use default path for validation CSV if not provided
+        val_csv_path = get_output_path("manifests", include_timestamp=False) / "val.csv"
 
     overrides = {
         # set path to train and val datasets
-        "data.train_dataloaders.dataset.csv_path": (manifest_path / "train.csv").as_posix(),
-        "data.predict_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
-        "data.val_dataloaders.dataset.csv_path": (manifest_path / "val.csv").as_posix(),
+        "data.train_dataloaders.dataset.csv_path": train_csv_path.as_posix(),
+        "data.predict_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        "data.val_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.work_dir": os.getcwd(),
@@ -58,6 +79,8 @@ def _initialize_diffae_model(
     training_config: DictConfig | ListConfig,
     crop_size: int,
     model_name: str,
+    train_csv_path: Path | None = None,
+    val_csv_path: Path | None = None,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -72,21 +95,29 @@ def _initialize_diffae_model(
         with size (crop_size, crop_size).
     model_name: str
         The name of the model to train.
-    save_path: Path
-        The path to the directory where the checkpoints and logs will be saved.
+    train_csv_path: Path | None
+        The path to the training dataset CSV file. If None, the default path
+        for the output of generate_csv_for_training_diffae will be used.
+    val_csv_path: Path | None
+        The path to the validation dataset CSV file. If None, the default path
+        for the output of generate_csv_for_training_diffae will be used.
     """
     # user overrides for training
-    overrides = _generate_training_overrides(model_name, crop_size)
+    overrides = _generate_training_overrides(model_name, crop_size, train_csv_path, val_csv_path)
 
     # init model
     model = CytoDLModel()
     # override config with workflow inputs
     model.load_config_from_dict(training_config)
     model.override_config(overrides)
-    return model, overrides
+    return model
 
 
-def main(crop_size: int = 128) -> None:
+def main(
+    crop_size: int = 128,
+    train_csv_path: Path | str | None = None,
+    val_csv_path: Path | str | None = None,
+) -> None:
     """
     Train a DiffAE model using the provided configuration.
 
@@ -96,7 +127,21 @@ def main(crop_size: int = 128) -> None:
         The pixel size of the image crop to use for training. Default is 128.
         This is the crop size along one dimension, the image will be square
         with size (crop_size, crop_size).
+
+    train_csv_path: Path | None
+        The path to the training dataset CSV file. If None, the default path
+        for the output of generate_csv_for_training_diffae will be used.
+
+    val_csv_path: Path | None
+        The path to the validation dataset CSV file. If None, the default path
+        for the output of generate_csv_for_training_diffae will be used.
     """
+    # convert paths to Path objects if they are strings
+    if isinstance(train_csv_path, str):
+        train_csv_path = Path(train_csv_path)
+    if isinstance(val_csv_path, str):
+        val_csv_path = Path(val_csv_path)
+
     # load training config
     training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
 
@@ -106,10 +151,12 @@ def main(crop_size: int = 128) -> None:
 
     # initialize DiffAE model: generates config
     # overrides and sets up output directories
-    model, config_overrides = _initialize_diffae_model(
+    model = _initialize_diffae_model(
         training_config,
         crop_size,
         model_name,
+        train_csv_path,
+        val_csv_path,
     )
     _, object_dict = model.train()
 
@@ -117,11 +164,7 @@ def main(crop_size: int = 128) -> None:
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
-    train_csv_path = config_overrides.get("data.train_dataloaders.dataset.csv_path")
-    val_csv_path = config_overrides.get("data.val_dataloaders.dataset.csv_path")
-    list_of_training_datasets = get_dataset_names_used_for_training(
-        Path(train_csv_path), Path(val_csv_path)
-    )
+    list_of_training_datasets = get_dataset_names_used_for_training(train_csv_path, val_csv_path)
     # add run ID to model config
     model_config = ModelConfig(
         name=model_name,
