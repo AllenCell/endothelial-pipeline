@@ -47,6 +47,7 @@ def preprocess_tracking_manifest_for_model_eval(
         "centroid_Y",
         "image_size_x",
         "image_size_y",
+        "crop_size",
     ]
     df = df[colums_to_keep]
 
