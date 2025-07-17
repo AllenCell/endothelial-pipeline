@@ -14,8 +14,8 @@ from src.endo_pipeline.library.model import get_dataset_names_used_for_training
 def _generate_training_overrides(
     model_name: str,
     crop_size: int,
-    train_csv_path: Path | None = None,
-    val_csv_path: Path | None = None,
+    train_csv_path: Path,
+    val_csv_path: Path,
 ) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
@@ -47,23 +47,6 @@ def _generate_training_overrides(
     _ = get_output_path("models", model_name, "train", "logs", include_timestamp=False)
     _ = get_output_path("models", model_name, "train", "checkpoints", include_timestamp=False)
 
-    if train_csv_path is None:
-        # use default path for training CSV if not provided
-        train_csv_path = get_output_path("manifests", include_timestamp=False) / "train.csv"
-        if not train_csv_path.exists():
-            raise FileNotFoundError(
-                f"Training CSV file not found at {train_csv_path}. "
-                "Please provide a valid path or generate the CSV file."
-            )
-    if val_csv_path is None:
-        # use default path for validation CSV if not provided
-        val_csv_path = get_output_path("manifests", include_timestamp=False) / "val.csv"
-        if not val_csv_path.exists():
-            raise FileNotFoundError(
-                f"Validation CSV file not found at {val_csv_path}. "
-                "Please provide a valid path or generate the CSV file."
-            )
-
     overrides = {
         # set path to train and val datasets
         "data.train_dataloaders.dataset.csv_path": train_csv_path.as_posix(),
@@ -89,8 +72,8 @@ def _initialize_diffae_model(
     training_config: DictConfig | ListConfig,
     crop_size: int,
     model_name: str,
-    train_csv_path: Path | None = None,
-    val_csv_path: Path | None = None,
+    train_csv_path: Path,
+    val_csv_path: Path,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -123,6 +106,33 @@ def _initialize_diffae_model(
     return model
 
 
+def _get_valid_csv_path(csv_path: Path | str | None, csv_name: str) -> Path:
+    """
+    Get a valid CSV path for training or validation datasets.
+
+    Parameters
+    ----------
+    csv_path: Path | str | None
+        The path to the CSV file. If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+
+    Returns
+    -------
+    Path
+        A valid Path object pointing to the CSV file.
+    """
+    if csv_path is None:
+        csv_path = get_output_path("manifests", include_timestamp=False) / f"{csv_name}.csv"
+
+    if isinstance(csv_path, str):
+        csv_path = Path(csv_path)
+
+    if not csv_path.exists():
+        raise FileNotFoundError(f"CSV file not found at {csv_path}. Please provide a valid path.")
+
+    return csv_path
+
+
 def main(
     crop_size: int = 128,
     train_csv_path: Path | str | None = None,
@@ -146,11 +156,9 @@ def main(
         The path to the validation dataset CSV file. If None, the default path
         for the output of generate_csv_for_training_diffae will be used.
     """
-    # convert paths to Path objects if they are strings
-    if isinstance(train_csv_path, str):
-        train_csv_path = Path(train_csv_path)
-    if isinstance(val_csv_path, str):
-        val_csv_path = Path(val_csv_path)
+    # get valid CSV paths for training and validation datasets
+    train_csv_path = _get_valid_csv_path(train_csv_path, "train_diffae")
+    val_csv_path = _get_valid_csv_path(val_csv_path, "val_diffae")
 
     # load training config
     training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
