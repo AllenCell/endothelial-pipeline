@@ -1,14 +1,11 @@
+import os
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from src.endo_pipeline.configs import (
-    DatasetConfig,
-    get_live_20X_objective_3i_microscope_datasets,
-    load_dataset_collection_config,
-)
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
@@ -82,6 +79,63 @@ def centroid_to_bbox(df: pd.DataFrame) -> pd.DataFrame:
     df["end_x"] = ((df["centroid_x"] + df["crop_size"] / 2) / 2).astype(int)
     df["end_y"] = ((df["centroid_y"] + df["crop_size"] / 2) / 2).astype(int)
     return df
+
+
+def generate_overrides_for_model_training(
+    model_name: str,
+    crop_size: int,
+    train_csv_path: Path,
+    val_csv_path: Path,
+) -> dict:
+    """
+    Generate overrides for the DiffAE model training configuration.
+
+    Parameters
+    ----------
+    model_name: str
+        The name of the model to train.
+
+    crop_size: int
+        The number of pixels in each dimension of the
+        image crop to use for training.
+
+        That is, the cropped image will be square
+        with size (crop_size px, crop_size px).
+
+    train_csv_path: Path | None
+        The path to the training dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+
+    val_csv_path: Path | None
+        The path to the validation dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+    """
+    # create output directories if they do not exist
+    train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
+    _ = get_output_path("models", model_name, "train", "logs", include_timestamp=False)
+    _ = get_output_path("models", model_name, "train", "checkpoints", include_timestamp=False)
+
+    overrides = {
+        # set path to train and val datasets
+        "data.train_dataloaders.dataset.csv_path": train_csv_path.as_posix(),
+        "data.predict_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        "data.val_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        # get repo root directory and current working directory
+        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.work_dir": os.getcwd(),
+        # save outputs to user-specified directory
+        "paths.output_dir": (train_output_path / "logs").as_posix(),
+        "paths.log_dir": "${paths.output_dir}",
+        "callbacks.model_checkpoint.dirpath": (train_output_path / "checkpoints").as_posix(),
+        # update run name
+        "run_name": model_name,
+        # set crop size from input via model.image_shape,
+        # the rest are populated by interpolation
+        "model.image_shape": [1, crop_size, crop_size],
+    }
+    return overrides
 
 
 def generate_overrides_for_model_eval(

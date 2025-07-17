@@ -14,6 +14,7 @@ from .diffae import (
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .model_inputs import (
     generate_overrides_for_model_eval,
+    generate_overrides_for_model_training,
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
     get_dataset_names_used_for_training,
@@ -35,6 +36,7 @@ __all__ = [
     "generate_from_coords",
     "generate_from_coords_batch",
     "generate_overrides_for_model_eval",
+    "generate_overrides_for_model_training",
     "generate_overrides_for_track_based_crops",
     "generate_zarr_csv_for_model_eval",
     "get_ckpt_path",
