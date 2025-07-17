@@ -37,7 +37,19 @@ def preprocess_tracking_manifest_for_model_eval(
         )
     df = load_dataframe_from_fms(fms_id)
     # convert centroids to bounding boxes
-    df = centroid_to_bbox(df)
+    # and downsample by half to match current model resolution
+    downsample_factor = 2
+    df = centroid_to_bbox(df, downsample_factor)
+
+    # filter the dataframe to exclude anything where the size of
+    # the bounding box does not match the downsampled crop size
+    # (because the model expects identically sized square crops)
+    bbox_size_y = df.end_y - df.start_y
+    bbox_size_x = df.end_x - df.start_x
+    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
+        bbox_size_x == (df["crop_size"] // downsample_factor)
+    )  # ask if both x and y bbox dimensions equal downsampled crop size
+    df = df[bbox_size_is_correct]  # filter the dataframe in-place
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -66,16 +78,17 @@ def preprocess_tracking_manifest_for_model_eval(
     return save_path
 
 
-def centroid_to_bbox(df: pd.DataFrame) -> pd.DataFrame:
+def centroid_to_bbox(df: pd.DataFrame, downsample_factor: int = 2) -> pd.DataFrame:
     """
     Convert centroids to bounding boxes.
 
-    Note: coordinates are downsampled by half to match current model resolution.
+    Note: coordinates are downsampled by half (downsample_factor = 2)
+    to match current model resolution.
     """
-    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / 2).astype(int)
-    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / 2).astype(int)
-    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / 2).astype(int)
-    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / 2).astype(int)
+    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / downsample_factor).astype(int)
     return df
 
 
