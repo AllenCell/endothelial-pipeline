@@ -47,7 +47,7 @@ def update_prediction_from_tracks_with_metadata(
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_track_based_features.parquet"
+        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features.parquet"
     )
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
