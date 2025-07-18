@@ -3,10 +3,7 @@ import numpy as np
 
 from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import (
-    data_driven_flow_field,
-    get_and_analyze_ddd,
-)
+from src.endo_pipeline.library.analyze.diffae_features import ddff_main, get_and_analyze_ddd
 from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
 
 
@@ -124,7 +121,7 @@ def main(
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
-        data_driven_flow_field.ddff_main(
+        ddff_main(
             model_manifest_list,
             pca,
             kernel_params,

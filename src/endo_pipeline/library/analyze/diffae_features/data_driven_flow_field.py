@@ -8,17 +8,14 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest
-from src.endo_pipeline.library.analyze.diffae_features import (
-    get_bins,
-    get_kramers_moyal,
-    get_traj_and_diff,
-)
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_dataset_descriptions,
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+
+from .regression_helper import get_bins, get_kramers_moyal, get_traj_and_diff
 
 
 def set_3d_bounds_from_data(

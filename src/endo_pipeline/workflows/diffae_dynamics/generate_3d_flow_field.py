@@ -9,9 +9,9 @@ from src.endo_pipeline.configs import (
     load_model_config,
 )
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field
-from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+from src.endo_pipeline.library.analyze.diffae_features import ddff_main
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
     get_timepoints_for_plotting_pcs,
 )
 from src.endo_pipeline.library.visualize import viz_base
@@ -45,7 +45,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
             "20250319_20X",
             "20250326_20X",
         ]
-    pca = manifest_pca.fit_pca(model_name=model_name)
+    pca = fit_pca(model_name=model_name)
 
     # plot scatter of PCA components
     # for a) just the datasets used to fit PCA
@@ -103,7 +103,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     # shear stress conditions
     init = np.array([-0.1, -0.7, -0.1])
 
-    data_driven_flow_field.ddff_main(
+    ddff_main(
         model_manifest_list,
         pca,
         kernel_params,
