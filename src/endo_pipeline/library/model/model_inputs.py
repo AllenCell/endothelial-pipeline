@@ -84,9 +84,9 @@ def preprocess_tracking_manifest_for_model_eval(
     df = pd.concat([df.head(), df.tail()])
     # df = pd.concat(
     #     [
-    #         df.query("image_index == 0").head(),
-    #         df.query("image_index == 570").head(),
-    #         df.query("image_index == 576").head(),
+    #         # df[df["image_index" == 0]].head(),
+    #         df[df["image_index" == 570]].head(),
+    #         df[df["image_index" == 576]].head(),
     #     ]
     # )
 
@@ -113,7 +113,7 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df["stop"] = grouped_df["image_index"] + 1
     grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
 
     save_path = save_dir / "aggregated_crop_manifest.csv"
