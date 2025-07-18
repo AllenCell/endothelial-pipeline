@@ -6,6 +6,8 @@ import pandas as pd
 from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.io import load_dataframe_from_fms
 
+ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
+
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
@@ -19,7 +21,7 @@ def generate_zarr_csv_for_model_eval(
         zarr_path_dict[path.name] = str(path)
 
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
-    df["channel"] = dataset_config.brightfield_channel_index
+    df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
     data_path = Path(save_path / "dataset.csv").as_posix()
     df.to_csv(data_path, index=False)
@@ -84,9 +86,9 @@ def preprocess_tracking_manifest_for_model_eval(
     # df = pd.concat([df.head(), df.tail()])
     df = pd.concat(
         [
-            # df[df["image_index" == 0]].head(),
-            df[df["image_index" == 570]].head(),
-            df[df["image_index" == 576]].head(),
+            # df[df["image_index"] == 0].head(),
+            df[df["image_index"] == 570].head(),
+            df[df["image_index"] == 576].head(),
         ]
     )
 
@@ -104,7 +106,7 @@ def preprocess_tracking_manifest_for_model_eval(
         )
         .reset_index()
     )
-    grouped_df["channel"] = dataset_config.brightfield_channel_index
+    grouped_df["channel"] = ZARR_BF_CHANNEL
     # NOTE "resolution" below determines what resolution the images will
     # be loaded at, and currently the model loads at native resolution
     # and downsamples in the transforms; therefore this value must be 0
@@ -113,7 +115,7 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    grouped_df["stop"] = grouped_df["image_index"] + 1
     grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
 
     save_path = save_dir / "aggregated_crop_manifest.csv"
