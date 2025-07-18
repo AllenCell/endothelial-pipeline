@@ -81,7 +81,13 @@ def preprocess_tracking_manifest_for_model_eval(
     df = df[bbox_size_is_correct]  # filter the dataframe in-place
 
     # NOTE: take first and last 5 rows for testing purposes
-    df = pd.concat([df.head(), df.tail()])
+    df = pd.concat(
+        [
+            df.query("image_index == 0").head(),
+            df.query("image_index == 570").head(),
+            df.query("image_index == 576").head(),
+        ]
+    )
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -105,11 +111,9 @@ def preprocess_tracking_manifest_for_model_eval(
     # after downsampling, thus they were adjusted by downsample_factor
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
-    # grouped_df["start"] = grouped_df["image_index"]
-    # grouped_df["stop"] = grouped_df["image_index"]
-    # grouped_df["stop"] = grouped_df["image_index"] + 1
-    # grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
-    grouped_df[["path", "T"]] = grouped_df[["zarr_path", "image_index"]]
+    grouped_df["start"] = grouped_df["image_index"]
+    grouped_df["stop"] = grouped_df["image_index"] + 1
+    grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
 
     save_path = save_dir / "aggregated_crop_manifest.csv"
     grouped_df.to_csv(save_path, index=False)
