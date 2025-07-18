@@ -84,7 +84,7 @@ def preprocess_tracking_manifest_for_model_eval(
     df = pd.concat(
         [
             df.query("image_index == 0").head(),
-            df.query("image_index == 570").head(),
+            # df.query("image_index == 570").head(),
             df.query("image_index == 576").head(),
         ]
     )
