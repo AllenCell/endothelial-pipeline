@@ -28,7 +28,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     # fit PCA to reference timepoints of
     # reference datasets
-    pca = fit_pca()
+    pca = fit_pca(model_name=model_name)
 
     #### Get data driven flow fields (kernel method) ####
     # load inputs from dynamics_config.yaml

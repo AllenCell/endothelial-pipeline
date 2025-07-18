@@ -12,7 +12,7 @@ from src.endo_pipeline.configs import (
 )
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 
-from .mlflow import download_mlflow_artifact, download_model
+from .mlflow_utils import download_mlflow_artifact, download_model
 from .model_inputs import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
@@ -69,7 +69,7 @@ def load_overrides(overrides: str | dict | None) -> dict:
     return overrides_dict
 
 
-def apply_model_on_random_crops_from_one_dataset(
+def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: ModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
@@ -142,7 +142,6 @@ def apply_model_on_random_crops_from_one_dataset(
             include_timestamp=False,
             include_git_info=False,
             model=model_config,
-            additional_notes=f"CytoDL commit hash: {get_cytodl_commit_hash(mlflow_id, model_path)}",
         )
 
         # upload prediction file to FMS and get file ID
@@ -236,7 +235,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
             include_timestamp=False,
             include_git_info=False,
             model=model_config,
-            additional_notes=get_cytodl_commit_hash(mlflow_id, model_path),
         )
 
         # upload prediction file to FMS and get file ID

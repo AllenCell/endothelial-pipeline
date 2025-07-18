@@ -1,10 +1,10 @@
 name: 20250227_paired40X
 original_path: //allen/programs/allencell/data/proj0/508/752/011/de2/c25/46a/84f/fe2/278/535/1b/20250227_GE00007101_40X_ZSTACK_SLDY/20250227_GE00007101_40X_zstacks_SLDY.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250227_1b535278fe284f46ac25de2011752508
+zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 fmsid: 1b535278fe284f46ac25de2011752508
 barcode: GE00007101
-cell_lines:
-- AICS-126
+cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: false
 microscope: 3i
@@ -12,10 +12,7 @@ shear_stress_regime: 24hr_low
 pixel_size_xy_in_um: 0.191
 duration: 1
 time_interval_in_minutes: null
-flow:
-- - 0
-  - 0
-  - 0.0
+flow: [[0, 0, 0.0]]
 n_total_positions: 10
 channel_488_index: 0
 brightfield_channel_index: 1
