@@ -141,10 +141,12 @@ def plot_paired_fixed_live_validation_features(
 
     # Add labels
     plt.legend(loc="upper left")
-    plt.xlabel(f"PC{pc} live data")
+
     if lagged_live_validation:
-        plt.ylabel(f"PC{pc} live data lagged 15 min")
+        plt.xlabel(f"PC{pc} reference data")
+        plt.ylabel(f"PC{pc} reference data lagged 15 min")
     else:
+        plt.xlabel(f"PC{pc} live data")
         plt.ylabel(f"PC{pc} fixed data")
     plt.title(f"PC{pc}")
 
