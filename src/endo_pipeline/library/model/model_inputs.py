@@ -62,25 +62,13 @@ def preprocess_tracking_manifest_for_model_eval(
     downsample_factor = 2
     df = centroid_to_bbox(df, downsample_factor)
 
-    # adjust the image size according to the desired downsample factor
-    df["image_size_x"] = df["image_size_x"] // downsample_factor
-    df["image_size_y"] = df["image_size_y"] // downsample_factor
-
-    # limit start and end of x and y bboxes to be within image size limits
-    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
-    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
-    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
-    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
-
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
     # (because the model expects identically sized square crops)
-    bbox_size_y = df.end_y - df.start_y
-    bbox_size_x = df.end_x - df.start_x
-    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
-        bbox_size_x == (df["crop_size"] // downsample_factor)
-    )  # ask if both x and y bbox dimensions equal downsampled crop size
-    df = df[bbox_size_is_correct]  # filter the dataframe in-place
+    # check if bounding boxes fit in image bounds without being clipped
+    bbox_size_is_correct = bbox_in_image_bounds(df, downsample_factor)
+    # filter the dataframe in-place to remove clipped bounding boxess
+    df = df[bbox_size_is_correct]
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -125,6 +113,28 @@ def centroid_to_bbox(df: pd.DataFrame, downsample_factor: int = 2) -> pd.DataFra
     df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)
     df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / downsample_factor).astype(int)
     return df
+
+
+def bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Series:
+    # adjust the image size according to the desired downsample factor
+    df["image_size_x"] = df["image_size_x"] // downsample_factor
+    df["image_size_y"] = df["image_size_y"] // downsample_factor
+
+    # limit start and end of x and y bboxes to be within image size limits
+    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
+    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
+    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
+    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
+
+    # filter the dataframe to exclude anything where the size of
+    # the bounding box does not match the downsampled crop size
+    # (because the model expects identically sized square crops)
+    bbox_size_y = df.end_y - df.start_y
+    bbox_size_x = df.end_x - df.start_x
+    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
+        bbox_size_x == (df["crop_size"] // downsample_factor)
+    )  # ask if both x and y bbox dimensions equal downsampled crop size
+    return bbox_size_is_correct
 
 
 def generate_overrides_for_model_eval(
