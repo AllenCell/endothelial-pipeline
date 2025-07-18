@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.numerics import binning, fp_solvers
+from src.endo_pipeline.library.analyze.numerics import SteadyFP, get_normalization_constant
 
 
 def save_sde_model(model_dict: dict, savedir: Path) -> None:
@@ -191,7 +191,7 @@ def get_stationary_probability(
     num_bins = [len(bins[i]) - 1 for i in range(ndim)]
 
     # initialize SteadyFP object
-    fp = fp_solvers.SteadyFP(num_bins, dx)
+    fp = SteadyFP(num_bins, dx)
 
     # solve stationary Fokker-Planck equation
     p_fit = fp.solve(drift_vals, diff_vals)
@@ -199,7 +199,7 @@ def get_stationary_probability(
     # set small values to a small number to avoid numerical issues
     p_fit[p_fit < tol] = tol
     # integrate to get normalization constant
-    c = binning.get_normalization_constant(p_fit, dx)
+    c = get_normalization_constant(p_fit, dx)
     # normalize probability distribution
     p_fit = p_fit / c
 

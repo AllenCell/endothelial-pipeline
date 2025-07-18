@@ -14,7 +14,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.numerics import gen_potential
+from src.endo_pipeline.library.analyze.numerics import entropy_production, grad_flux_decomposition
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 
@@ -340,7 +340,7 @@ def get_epr(
         p = get_stationary_probability(drift_vals, diff_vals, bins)
 
         # get entropy production rate
-        epr[i] = gen_potential.entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
+        epr[i] = entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
 
         # free up memory
         del drift_vals, diff_vals, p
@@ -467,7 +467,7 @@ def run_gen_potential_analysis(
         #### plot gradient/flux decomposition ####
 
         # get gradient/flux decomposition
-        _, grad_term, _, flux_term = gen_potential.grad_flux_decomposition(
+        _, grad_term, _, flux_term = grad_flux_decomposition(
             drift_vals, diff_vals, centers, additive_noise
         )
 

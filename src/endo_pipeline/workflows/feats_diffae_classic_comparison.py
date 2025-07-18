@@ -25,7 +25,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.analyze.numerics.binning import get_bins
+from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_quiver_slices,

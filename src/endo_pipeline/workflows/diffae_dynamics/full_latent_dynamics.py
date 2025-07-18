@@ -14,7 +14,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_pc_column_names,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.analyze.numerics.binning import get_bins
+from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 

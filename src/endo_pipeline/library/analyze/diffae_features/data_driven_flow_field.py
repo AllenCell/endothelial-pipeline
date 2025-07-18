@@ -13,7 +13,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.numerics.binning import get_bins
+from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 
 from .regression_helper import get_kramers_moyal, get_traj_and_diff
