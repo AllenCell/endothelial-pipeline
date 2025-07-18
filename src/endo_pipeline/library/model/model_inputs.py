@@ -274,9 +274,7 @@ def get_dataset_names_used_for_training(
     # note: this might be something that
     # gets turned into a zarr method in a future PR
     for df in [train_df, val_df]:
-        df["dataset_date"] = df["path"].apply(
-            lambda s: s.split(".")[0].split("/")[-1].split("_")[0]
-        )
+        df["dataset_date"] = df["path"].apply(lambda s: s.split("/")[-1].split("_")[0])
 
     # get unique dataset dates used in training from dataset_date
     # by combining the unique dates from both train and val datasets

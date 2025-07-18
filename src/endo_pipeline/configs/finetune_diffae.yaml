@@ -74,7 +74,7 @@ model/params/non_trainable: 31865609
 data:
   train_dataloaders:
     _target_: monai.data.DataLoader
-    num_workers: 0
+    num_workers: 8
     batch_size: 1
     pin_memory: true
     persistent_workers: false
@@ -220,7 +220,7 @@ data:
           dtype: float16
   val_dataloaders:
     _target_: monai.data.DataLoader
-    num_workers: 0
+    num_workers: 8
     batch_size: 1
     pin_memory: true
     persistent_workers: false
@@ -283,8 +283,7 @@ trainer:
   default_root_dir: null
   max_epochs: 100
   accelerator: gpu
-  devices:
-  - 0
+  devices: 1
   precision: 16-mixed
   check_val_every_n_epoch: 1
   deterministic: false
