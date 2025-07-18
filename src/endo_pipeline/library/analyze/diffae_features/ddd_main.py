@@ -10,9 +10,9 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.visualize import viz_base
 
+from .data_driven_flow_field import compute_extrapolated_vector_field, get_callable_vector_field
 from .model_analysis import model_data_comparison_one_dataset
 from .regression_helper import get_bins, get_kramers_moyal, get_traj_and_diff, get_traj_by_flow
 
@@ -171,26 +171,18 @@ def get_and_analyze_ddd(
         )
 
         # extrapolate nans in drift and diffusion estimates
-        drift_dict = data_driven_flow_field.compute_extrapolated_vector_field(
-            drift_km, centers, interpolator="nearest"
-        )
-        diffusion_dict = data_driven_flow_field.compute_extrapolated_vector_field(
-            diff_km, centers, interpolator="nearest"
-        )
+        drift_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
+        diffusion_dict = compute_extrapolated_vector_field(diff_km, centers, interpolator="nearest")
 
         # turn into callable vector fields
         # have to have shear as a parameter
         # (dummy variable)
         def drift_(x: np.ndarray, u: float, vector_dict: dict = drift_dict) -> np.ndarray:
-            drift = data_driven_flow_field.get_callable_vector_field(
-                vector_dict, for_solve_ivp=False
-            )
+            drift = get_callable_vector_field(vector_dict, for_solve_ivp=False)
             return drift(x)
 
         def diffusion_(x: np.ndarray, u: float, vector_dict: dict = diffusion_dict) -> np.ndarray:
-            diffusion = data_driven_flow_field.get_callable_vector_field(
-                vector_dict, for_solve_ivp=False
-            )
+            diffusion = get_callable_vector_field(vector_dict, for_solve_ivp=False)
             return diffusion(x)
 
         # call main model analysis function
