@@ -21,7 +21,7 @@ def main(model_name: str = "diffae_04_10") -> None:
     crop_savedir = get_output_path("flow_field_3d", model_name, "crops", include_timestamp=False)
 
     # Get fit (3D) PCA object from manifest
-    reducer = fit_pca(num_pcs=3)
+    reducer = fit_pca(model_name=model_name, num_pcs=3)
 
     traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
 

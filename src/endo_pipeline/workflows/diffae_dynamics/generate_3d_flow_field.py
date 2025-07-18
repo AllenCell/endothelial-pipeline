@@ -45,7 +45,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
             "20250319_20X",
             "20250326_20X",
         ]
-    pca = manifest_pca.fit_pca()
+    pca = manifest_pca.fit_pca(model_name=model_name)
 
     # plot scatter of PCA components
     # for a) just the datasets used to fit PCA

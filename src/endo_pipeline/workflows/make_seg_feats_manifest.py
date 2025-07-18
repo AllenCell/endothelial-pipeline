@@ -41,17 +41,14 @@ def create_segmentation_measured_feature_manifest(
     tracking_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="cdh5_tracking",
-        as_dask=False,
     )
     segprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="cdh5_segmentations",
-        as_dask=False,
     )
     nucprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="nuclei_labelfree",
-        as_dask=False,
     )
     if tracking_df.empty or segprops_df.empty or nucprops_df.empty:
         logger.info(
@@ -93,7 +90,7 @@ def create_segmentation_measured_feature_manifest(
     # (we want to have an accessible version of the raw data)
     out_dir_raw = out_dir / "segmentation_features_manifests/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
-    out_path_raw = out_dir_raw / f"{dataset_name}_segmentation_features.tsv"
+    out_path_raw = out_dir_raw / f"{dataset_name}_live_segmentation_features.tsv"
     big_table.to_csv(out_path_raw, sep="\t", index=False)
 
     # add some columns that are calculated from the

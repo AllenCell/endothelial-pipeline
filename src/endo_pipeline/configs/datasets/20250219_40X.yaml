@@ -1,10 +1,11 @@
 name: 20250219_40X
 original_path: //allen/programs/allencell/data/proj0/cdd/e37/8a2/ad3/52d/75b/a48/3ce/9a7/6c9/57/20250219_GE00006885_40X_sldy/20250219_GE00006885_40X_sldy.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250219_576c99a73cea4875b52dad38a2e37cdd
+zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+  19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
 fmsid: 576c99a73cea4875b52dad38a2e37cdd
 barcode: GE00006885
-cell_lines:
-- AICS-126
+cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: false
 microscope: 3i
@@ -12,10 +13,7 @@ shear_stress_regime: 48hr_low
 pixel_size_xy_in_um: 0.191
 duration: 1
 time_interval_in_minutes: null
-flow:
-- - 0
-  - 0
-  - 0.0
+flow: [[0, 0, 0.0]]
 n_total_positions: 32
 channel_488_index: 0
 brightfield_channel_index: 1
@@ -29,9 +27,14 @@ channel_640_index: null
 nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
+cdh5_seg_path: null
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
 immunofluorescence_manifest_fmsid: null
+cdh5_classic_seg_tracking_manifest_fmsid: null
+cdh5_classic_seg_manifest_fmsid: null
+nuclei_label_free_seg_manifest_fmsid: null
+live_merged_seg_features_manifest_fmsid: null
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null

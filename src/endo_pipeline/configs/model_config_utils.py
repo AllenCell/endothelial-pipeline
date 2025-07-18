@@ -105,7 +105,7 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
     """
 
     # load data configs to get reference datasets
-    reference_dataset_name_list = get_datasets_in_collection("reference")
+    reference_dataset_name_list = get_datasets_in_collection("pca_reference")
 
     # list of model manifests
     model_manifests = []
@@ -123,3 +123,9 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
         logger.error("No reference datasets found for PCA in model config %s.", model_config.name)
         raise FileNotFoundError("Insufficient reference datasets for PCA.")
     return model_manifests
+
+
+def get_labelfree_nuclei_prediction_model_name() -> str:
+    """Get the name of the label-free nuclei prediction model."""
+
+    return "nuc_pred_labelfree_finetuned_20250419"
