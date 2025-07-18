@@ -11,8 +11,8 @@ from tqdm import tqdm
 from cellsmap.util.manifest_io import get_diffae_manifest, get_track_diffae_manifest
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
+    get_live_segmentation_features_manifest,
     get_reference_datasets,
-    get_segmentation_features_manifest,
     ipython_cli_flexecute,
 )
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
@@ -362,7 +362,7 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame | None:
 
     # load the tracking data of the measured features and merge them
     print("loading segmentation property data...")
-    df_all_positions = get_segmentation_features_manifest([dataset_name])
+    df_all_positions = get_live_segmentation_features_manifest([dataset_name])
 
     print("merging segmentation properties and track-based DiffAE data...")
     diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
