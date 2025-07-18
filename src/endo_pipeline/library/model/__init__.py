@@ -18,6 +18,7 @@ from .model_inputs import (
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
     get_dataset_names_used_for_training,
+    get_model_dir,
     preprocess_tracking_manifest_for_model_eval,
 )
 from .model_outputs import (
@@ -42,6 +43,7 @@ __all__ = [
     "get_ckpt_path",
     "get_cytodl_commit_hash",
     "get_dataset_names_used_for_training",
+    "get_model_dir",
     "load_mlflow_model",
     "load_overrides",
     "preprocess_tracking_manifest_for_model_eval",

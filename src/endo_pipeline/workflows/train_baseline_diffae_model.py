@@ -6,8 +6,9 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import ModelConfig, get_config_dir, save_model_config
+from src.endo_pipeline.configs import ModelConfig, save_model_config
 from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.model import get_model_dir
 
 
 def _generate_training_overrides(model_name: str, crop_size: int) -> dict:
@@ -97,7 +98,7 @@ def main(crop_size: int = 128) -> None:
         with size (crop_size, crop_size).
     """
     # load training config
-    training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
+    training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
     # set model name via timestamp and crop size
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")

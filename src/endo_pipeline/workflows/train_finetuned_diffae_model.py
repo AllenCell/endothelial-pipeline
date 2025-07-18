@@ -5,18 +5,14 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import (
-    ModelConfig,
-    get_config_dir,
-    load_model_config,
-    save_model_config,
-)
+from src.endo_pipeline.configs import ModelConfig, load_model_config, save_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model import (
     download_mlflow_artifact,
     generate_overrides_for_finetuning,
     get_ckpt_path,
     get_dataset_names_used_for_training,
+    get_model_dir,
 )
 
 
@@ -153,7 +149,7 @@ def main(
     download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, model_save_path)
 
     # get template config
-    template_finetune_config = OmegaConf.load(get_config_dir() / "finetune_diffae.yaml")
+    template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
 
     # initialize model for finetuning
     model = _initialize_diffae_model_for_finetuning(

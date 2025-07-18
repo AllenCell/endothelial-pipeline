@@ -9,6 +9,11 @@ from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
 
+def get_model_dir() -> Path:
+    """Get the path to `src.endo_pipeline.library.model`."""
+    return Path(__file__).resolve().parent
+
+
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
 ) -> Path:
