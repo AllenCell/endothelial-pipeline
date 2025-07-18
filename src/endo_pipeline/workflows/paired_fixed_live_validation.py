@@ -51,7 +51,7 @@ if __name__ == "__main__":
     for pc in range(1, n_pcs + 1):
 
         # Get common plot ranges for each PC
-        axmin, axmax = validate_pcs_for_integration.get_common_plot_range(
+        axmin, axmax = viz_validate_pcs_for_integration.get_common_plot_range(
             fixed_features, live_features, lagged_ref_features, truncated_ref_features, pc
         )
 

@@ -3,8 +3,52 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.patches import Ellipse
 from numpy.typing import ArrayLike
+
+
+def get_common_plot_range(
+    fixed_features: pd.DataFrame,
+    live_features: pd.DataFrame,
+    lagged_live_features: pd.DataFrame,
+    truncated_live_features: pd.DataFrame,
+    pc: int,
+) -> tuple[float, float]:
+    """
+    Get common plot ranges for each PC.
+
+    Parameters
+    ----------
+    fixed_features : pd.DataFrame
+        Dataframe containing PCs for fixed data
+    live_features : pd.DataFrame
+        Dataframe containing PCs for live data
+    lagged_live_features : pd.DataFrame
+        Dataframe containing time-lagged PC values for live data
+    truncated_live_features : pd.DataFrame
+        Dataframe containing original live data PC values truncated to remove the rows that were shifted out by the lag
+    pc : int
+        PC to analyze
+
+    Returns
+    -------
+    x_min, x_max : tuple[float, float]
+        Common plot ranges for fixed and live data for the specified PC
+    """
+    x_min = min(
+        fixed_features[f"pc{pc}"].min(),
+        live_features[f"pc{pc}"].min(),
+        lagged_live_features[f"pc{pc}"].min(),
+        truncated_live_features[f"pc{pc}"].min(),
+    )
+    x_max = max(
+        fixed_features[f"pc{pc}"].max(),
+        live_features[f"pc{pc}"].max(),
+        lagged_live_features[f"pc{pc}"].max(),
+        truncated_live_features[f"pc{pc}"].max(),
+    )
+    return x_min, x_max
 
 
 def plot_paired_fixed_live_validation_features(
