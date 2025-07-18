@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
@@ -277,7 +276,6 @@ def create_reference_timelapse_datasets(
     df_lag = reference_features.groupby("crop_index").apply(create_lagged_dataset, time_lag)
     df_trunc = reference_features.groupby("crop_index").apply(create_truncated_dataset, time_lag)
     df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
-    plot_tracks(df_lag, df_trunc)
     return df_lag, df_trunc
 
 
@@ -373,26 +371,6 @@ def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
     return df1[mask], df2[mask]
 
 
-def plot_tracks(df_lag: pd.DataFrame, df_trunc: pd.DataFrame) -> None:
-    """
-    Plot the tracks of the lagged and truncated datasets for visual validation.
-    Parameters
-    ----------
-    df_lag : pd.DataFrame
-        Dataframe containing the lagged reference features
-    df_trunc : pd.DataFrame
-        Dataframe containing the reference features truncated to
-        remove the rows that were shifted out by the lag
-    """
-
-    for crop_index in df_lag["crop_index"].unique()[0:5]:
-        tlag = df_lag[df_lag["crop_index"] == crop_index]
-        ttrunc = df_trunc[df_trunc["crop_index"] == crop_index]
-        plt.plot(ttrunc["frame_number"], ttrunc["pc1"], color="red")
-        plt.plot(tlag["frame_number"], tlag["pc1"], color="blue")
-    plt.savefig("tracks")
-
-
 def get_paired_fixed_live_validation_features(
     pc: int,
     fixed_features: pd.DataFrame,
@@ -437,6 +415,13 @@ def get_paired_fixed_live_validation_features(
     covariance_matrix = np.cov(data, rowvar=False)
     eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
 
+    # Get indices that would sort the eigenvalues in ascending order
+    sorted_indices = eigenvalues.argsort()[::-1]
+
+    # Sort eigenvalues and eigenvectors
+    eigenvalues = eigenvalues[sorted_indices]
+    eigenvectors = eigenvectors[:, sorted_indices]
+
     # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated eigenvalues
     # give the lengths of the ellipse axes.
     # A linear colinear with the major axis of the ellipse is our linear model mapping between live and fixed data
@@ -457,46 +442,3 @@ def get_paired_fixed_live_validation_features(
     )
 
     return (x, y), (center, height, angle, slope, intercept, ellipse)
-
-
-def get_common_plot_range(
-    fixed_features: pd.DataFrame,
-    live_features: pd.DataFrame,
-    lagged_live_features: pd.DataFrame,
-    truncated_live_features: pd.DataFrame,
-    pc: int,
-) -> tuple[float, float]:
-    """
-    Get common plot ranges for each PC.
-
-    Parameters
-    ----------
-    fixed_features : pd.DataFrame
-        Dataframe containing PCs for fixed data
-    live_features : pd.DataFrame
-        Dataframe containing PCs for live data
-    lagged_live_features : pd.DataFrame
-        Dataframe containing time-lagged PC values for live data
-    truncated_live_features : pd.DataFrame
-        Dataframe containing original live data PC values truncated to remove the rows that were shifted out by the lag
-    pc : int
-        PC to analyze
-
-    Returns
-    -------
-    x_min, x_max : tuple[float, float]
-        Common plot ranges for fixed and live data for the specified PC
-    """
-    x_min = min(
-        fixed_features[f"pc{pc}"].min(),
-        live_features[f"pc{pc}"].min(),
-        lagged_live_features[f"pc{pc}"].min(),
-        truncated_live_features[f"pc{pc}"].min(),
-    )
-    x_max = max(
-        fixed_features[f"pc{pc}"].max(),
-        live_features[f"pc{pc}"].max(),
-        lagged_live_features[f"pc{pc}"].max(),
-        truncated_live_features[f"pc{pc}"].max(),
-    )
-    return x_min, x_max
