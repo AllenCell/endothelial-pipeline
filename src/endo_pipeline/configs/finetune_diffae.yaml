@@ -53,7 +53,7 @@ model:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
     max_lr: 0.0
-    epochs: ${trainer.max_epochs}
+    epochs: 500
     steps_per_epoch: 1
     pct_start: 0.01
   spatial_inferer:

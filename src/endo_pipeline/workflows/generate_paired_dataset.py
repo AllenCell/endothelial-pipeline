@@ -77,7 +77,7 @@ def concat(row: pd.Series, savedir: Path) -> Path:
 
 
 def main(
-    dataset_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20x_40x"],
     fixed_datasets: list[str] | None = None,
     moving_datasets: list[str] | None = None,
     split: bool = True,
@@ -87,7 +87,7 @@ def main(
 
     Parameters
     ----------
-    dataset_type: Literal['live_fixed', '20x_40x']
+    dataset_pair_type: Literal['live_fixed', '20x_40x']
         Whether paired dataset is aligned live/fixed or 20x/40x. This will determine the directory structure to search for aligned image pairs. If `model_name` matches `fixed_finetuned_model_name`, then `dataset_type` should be `live_fixed`. If `model_name` matches `model_name` from `paired_data_validation`, then `dataset_type` should be `20x_40x`.
     fixed_datasets: list[str] | None
         A list of fixed datasets to use for generating the dataset. If None, the function will use the default datasets for the specified `dataset_type`.
@@ -96,9 +96,11 @@ def main(
     split: bool
         If True, the dataset will be split into training and validation sets. The split will be saved as `train.csv` and `val.csv`. If False, the entire dataset will be saved as `dataset.csv`.
     """
-    save_path = get_output_path("finetune_paired_dataset", dataset_type, include_timestamp=False)
+    save_path = get_output_path(
+        "finetune_paired_dataset", dataset_pair_type, include_timestamp=False
+    )
 
-    df = _get_aligned_paths(dataset_type, save_path, fixed_datasets, moving_datasets)
+    df = _get_aligned_paths(dataset_pair_type, save_path, fixed_datasets, moving_datasets)
 
     out_paths = [concat(row, save_path) for row in tqdm.tqdm(df.itertuples())]
 
