@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_features import get_bins
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
@@ -212,9 +212,7 @@ def plot_latent_component_histogram(feats: np.ndarray, bins: list | None = None)
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
-            regression_helper.get_bins(
-                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
-            )[0][0]
+            get_bins([num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)])[0][0]
             for j in range(num_feats)
         ]
     else:
@@ -287,9 +285,7 @@ def plot_principal_component_histogram(feats: np.ndarray, bins: list | None) -> 
     # get bin edges for histogram
     if bins is None:
         bin_edges = [
-            regression_helper.get_bins(
-                [num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)]
-            )[0][0]
+            get_bins([num_bins], [feats[i, :, j].reshape((-1, 1)) for i in range(num_traj)])[0][0]
             for j in range(num_feats)
         ]
     else:

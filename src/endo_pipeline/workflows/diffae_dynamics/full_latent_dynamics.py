@@ -6,7 +6,7 @@ from src.endo_pipeline.configs import (
     load_model_config,
 )
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_features import get_bins
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_feature_column_names,
@@ -50,7 +50,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
 
     num_bins = [40, 40, 40]
     bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]
-    bins = regression_helper.get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
+    bins = get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
 
     for model_manifest in model_manifest_list:
         print(f"Processing dataset: {model_manifest.dataset_name}")

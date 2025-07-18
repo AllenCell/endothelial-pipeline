@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import simpson
 
-from src.endo_pipeline.library.analyze.diffae_features.model_eval import get_normalization_constant
+from src.endo_pipeline.library.analyze.diffae_features import get_normalization_constant
 from src.endo_pipeline.library.analyze.numerics import fp_solvers
 
 

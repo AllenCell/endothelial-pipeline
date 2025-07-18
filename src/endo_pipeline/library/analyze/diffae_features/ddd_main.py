@@ -6,13 +6,15 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.visualize import viz_base
+
+from .model_analysis import model_data_comparison_one_dataset
 
 
 def ddd_model_analysis(
@@ -69,7 +71,7 @@ def ddd_model_analysis(
     pplane_yvec = np.linspace(pplane_ylim[0], pplane_ylim[1], num_pts_pplane + 1)
 
     # call main model analysis function
-    fig1, _, fig2, _ = model_analysis.model_data_comparison_one_dataset(
+    fig1, _, fig2, _ = model_data_comparison_one_dataset(
         sde_model,
         stationary_data,
         shear,

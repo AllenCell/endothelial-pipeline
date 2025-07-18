@@ -8,7 +8,11 @@ from scipy.integrate import solve_ivp
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_features import (
+    get_bins,
+    get_kramers_moyal,
+    get_traj_and_diff,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_dataset_descriptions,
@@ -70,7 +74,7 @@ def compute_extrapolated_vector_field(
     - kmcs: 3D array of drift or diffusion estimates
         - shape num_bins_x, num_bins_y, num_bins_z, 3)
         - Computed via kernel-based method in
-        `cellsmap.analyses.utils.regression_helper.get_kramers_moyal`
+        `regression_helper.get_kramers_moyal`
     - grid_centers: 1D numpy arrays with the grid points in
         each dimension (centers of bins of x,y,z space)
     - interpolator (optional, default="nearest"): interpolation method
@@ -347,10 +351,10 @@ def get_and_viz_ddff(
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = regression_helper.get_traj_and_diff(df, pc_column_names)
+    traj_list, d_traj_list = get_traj_and_diff(df, pc_column_names)
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = regression_helper.get_kramers_moyal(
+    drift_km, diff_km = get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
@@ -443,7 +447,7 @@ def ddff_main(
     # get bins for KMCs
     bounds = set_3d_bounds_from_data(model_manifest_list, pca)
     num_bins = [50, 50, 50]
-    bins, centers = regression_helper.get_bins(num_bins, bin_limits=bounds)
+    bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get experimental condition
     # descriptions of each dataset

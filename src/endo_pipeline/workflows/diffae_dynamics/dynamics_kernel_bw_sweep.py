@@ -3,7 +3,7 @@ import numpy as np
 
 from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import ddd_main
+from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddd
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 
@@ -116,7 +116,7 @@ def main(
             )
 
             # 2D viz outputs
-            ddd_main.get_and_analyze_ddd(
+            get_and_analyze_ddd(
                 model_manifest, pca, kernel_params, fig_savedir_kernel, dynamics_config
             )
 
