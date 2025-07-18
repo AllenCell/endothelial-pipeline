@@ -16,10 +16,15 @@ from src.endo_pipeline.configs.dataset_io import (
     ipython_cli_flexecute,
 )
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_features import (
+    get_bins,
+    get_kramers_moyal,
+    get_traj_and_diff,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    add_crop_index,
+    add_description_column,
+    fit_pca,
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
@@ -56,7 +61,7 @@ def get_traj_and_flowfield(
     init = np.array([-0.1, -0.7, -0.1])
 
     num_bins = [50, 50, 50]
-    bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
+    bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
@@ -64,11 +69,11 @@ def get_traj_and_flowfield(
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = rh.get_traj_and_diff(df, cols)
+    traj_list, d_traj_list = get_traj_and_diff(df, cols)
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = rh.get_kramers_moyal(
+    drift_km, diff_km = get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
@@ -146,8 +151,8 @@ def get_grid_bounds(flow_field_dict: dict) -> list:
 def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
     # read in the grid crop-based diffae features
     diffae_grid_crops = get_diffae_manifest(dataset_name)
-    diffae_grid_crops = diffae_preproc.add_crop_index(diffae_grid_crops)
-    diffae_grid_crops = diffae_preproc.add_description_column(
+    diffae_grid_crops = add_crop_index(diffae_grid_crops)
+    diffae_grid_crops = add_description_column(
         diffae_grid_crops, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
 
@@ -355,7 +360,7 @@ def get_merged_table(dataset_name: str) -> pd.DataFrame | None:
 
     # give the crop_index column the same value as the track_ids
     diffae_tracking["crop_index"] = diffae_tracking["track_id"]
-    diffae_tracking = diffae_preproc.add_description_column(
+    diffae_tracking = add_description_column(
         diffae_tracking, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
     diffae_tracking["track_id"] = diffae_tracking["track_id"].astype(int)

@@ -4,7 +4,7 @@ import numpy as np
 from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddd
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 
 

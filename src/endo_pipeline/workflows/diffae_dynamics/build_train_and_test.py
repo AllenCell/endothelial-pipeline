@@ -6,7 +6,7 @@ from src.endo_pipeline.library.analyze.diffae_features import (
     build_kramers_moyal_train_test,
     save_train_test,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 

@@ -10,8 +10,8 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import gen_potential
@@ -143,7 +143,7 @@ def model_data_comparison(
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+        df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
         # split out data by flow condition
         # split out data by flow condition

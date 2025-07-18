@@ -13,9 +13,9 @@ from src.endo_pipeline.library.analyze.diffae_features import (
     get_kramers_moyal,
     get_traj_and_diff,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_dataset_descriptions,
+    get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
@@ -49,7 +49,7 @@ def set_3d_bounds_from_data(
     bounds_ = [[100, -100], [100, -100], [100, -100]]
 
     for model_manifest in model_manifest_list:
-        df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca)
+        df = get_manifest_for_dynamics_workflows(model_manifest, pca)
         # get column names for features
         pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
         for j in range(num_dims):
@@ -346,7 +346,7 @@ def get_and_viz_ddff(
             two stable fixed points for these conditions)
     """
     # load dataframe and get top 3 PCs
-    df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca)
+    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
     pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
     # get list of per-crop trajectories, the corresponding
