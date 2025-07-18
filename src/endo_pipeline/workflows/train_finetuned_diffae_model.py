@@ -3,8 +3,14 @@ from typing import Literal
 
 import fire
 from cyto_dl.api import CytoDLModel
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import ModelConfig, load_model_config, save_model_config
+from src.endo_pipeline.configs import (
+    ModelConfig,
+    get_config_dir,
+    load_model_config,
+    save_model_config,
+)
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model import (
     download_mlflow_artifact,
@@ -15,8 +21,9 @@ from src.endo_pipeline.library.model import (
 
 
 def _initialize_diffae_model_for_finetuning(
+    template_finetune_config: DictConfig | ListConfig,
     model_name: str,
-    dataset_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20x_40x"],
     train_csv_path: Path,
     val_csv_path: Path,
     model_save_path: Path,
@@ -29,7 +36,7 @@ def _initialize_diffae_model_for_finetuning(
     ----------
     model_name: str
         The name of the model to train.
-    dataset_type: Literal["live_fixed", "20x_40x"]
+    dataset_pair_type: Literal["live_fixed", "20x_40x"]
         The type of dataset to use for finetuning. This should match the dataset
         type used during the `paired_data_validation` step.
     train_csv_path: Path | None
@@ -47,7 +54,7 @@ def _initialize_diffae_model_for_finetuning(
     # generate overrides for train.yaml for finetuning
     overrides = generate_overrides_for_finetuning(
         model_name=model_name,
-        dataset_type=dataset_type,
+        dataset_pair_type=dataset_pair_type,
         train_csv_path=train_csv_path,
         val_csv_path=val_csv_path,
         ckpt_path=model_save_path / diffae_ckpt_path,
@@ -55,9 +62,8 @@ def _initialize_diffae_model_for_finetuning(
 
     # init model
     model = CytoDLModel()
-    model.load_config_from_file(model_save_path / "config" / "train.yaml")
+    model.load_config_from_dict(template_finetune_config)
     model.override_config(overrides)
-    model.train()
 
     return model
 
@@ -65,7 +71,7 @@ def _initialize_diffae_model_for_finetuning(
 def _get_valid_csv_path(
     csv_path: Path | str | None,
     csv_name: Literal["train", "val"],
-    dataset_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20x_40x"],
 ) -> Path:
     """
     Get a valid CSV path for training or validation datasets.
@@ -80,7 +86,7 @@ def _get_valid_csv_path(
         csv_name will not be used in the path generation.
         This input is mainly for the default case where csv_path is None,
         and the path will be generated based on the csv_name (train or val).
-    dataset_type: Literal["live_fixed", "20x_40x"]
+    dataset_pair_type: Literal["live_fixed", "20x_40x"]
         The type of dataset to use for finetuning. This should match the dataset
         type used during the `paired_data_validation` step.
 
@@ -92,7 +98,7 @@ def _get_valid_csv_path(
     """
     if csv_path is None:
         csv_path = (
-            get_output_path("finetune_paired_dataset", dataset_type, include_timestamp=False)
+            get_output_path("finetune_paired_dataset", dataset_pair_type, include_timestamp=False)
             / f"{csv_name}.csv"
         )
 
@@ -107,8 +113,7 @@ def _get_valid_csv_path(
 
 def main(
     model_name: str = "diffae_04_10",
-    dataset_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
-    model_template_name: str = "live_fixed_finetune_template",
+    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
     train_csv_path: Path | None = None,
     val_csv_path: Path | None = None,
 ) -> None:
@@ -121,12 +126,9 @@ def main(
         The name of the model to use for finetuning. This should correspond to a
         directory in `results/models/` and match the model name used during the
         `paired_data_validation` step.
-    dataset_type: Literal['live_fixed', '20x_40x']
+    dataset_pair_type: Literal['live_fixed', '20x_40x']
         The type of dataset to use for finetuning. This should match the dataset
         type used during the `paired_data_validation` step.
-    model_template_name: str
-        The name of the model template to use for finetuning.
-        This should correspond to a model in `src/endo_pipeline/configs/model`
     train_csv_path: Path | None
         The path to the training CSV file containing paired data.
         If None, the default path for the output of paired_fixed_live_validation will be used.
@@ -136,12 +138,12 @@ def main(
     """
 
     # get valid CSV paths for training and validation datasets
-    train_csv_path = _get_valid_csv_path(train_csv_path, "train", dataset_type)
-    val_csv_path = _get_valid_csv_path(val_csv_path, "val", dataset_type)
+    train_csv_path = _get_valid_csv_path(train_csv_path, "train", dataset_pair_type)
+    val_csv_path = _get_valid_csv_path(val_csv_path, "val", dataset_pair_type)
 
     model_save_path = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
+        f"finetune_{model_name}_on_{dataset_pair_type}",
         include_timestamp=False,
     )
 
@@ -151,13 +153,13 @@ def main(
     download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, model_save_path)
 
     # get template config
-    template_run_id = load_model_config(model_template_name).mlflow_run_id
-    download_mlflow_artifact(template_run_id, Path("config/train.yaml"), model_save_path)
+    template_finetune_config = OmegaConf.load(get_config_dir() / "finetune_diffae.yaml")
 
     # initialize model for finetuning
     model = _initialize_diffae_model_for_finetuning(
+        template_finetune_config=template_finetune_config,
         model_name=model_name,
-        dataset_type=dataset_type,
+        dataset_pair_type=dataset_pair_type,
         train_csv_path=train_csv_path,
         val_csv_path=val_csv_path,
         model_save_path=model_save_path,
@@ -175,7 +177,7 @@ def main(
     )
     # add run ID and training datasets to model config
     model_config = ModelConfig(
-        name=f"finetune_{model_name}_on_{dataset_type}",
+        name=f"finetune_{model_name}_on_{dataset_pair_type}",
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
     )

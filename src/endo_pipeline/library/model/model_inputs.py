@@ -231,8 +231,6 @@ def generate_overrides_for_finetuning(
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.csv_path": str(train_csv_path),
         "data.val_dataloaders.dataset.csv_path": str(val_csv_path),
-        # change model target path
-        "model._target_": "src.endo_pipeline.library.model.diffae_finetune.DiffAEFinetune",
         # load diffae checkpoint to finetune
         "checkpoint.ckpt_path": str(ckpt_path),
         "checkpoint.weights_only": True,
