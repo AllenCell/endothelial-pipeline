@@ -293,6 +293,17 @@ def get_zarr_dir(dataset_name: str) -> str:
     return dataset_info["zarr_path"]
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following replacement:
+
+    from src.endo_pipeline.configs import get_available_zarr_files
+
+This method will return a list of Path objects to Zarr files for all positions
+in the given dataset config. If you need the name of the Zarr file, use .name on
+the returned Path object.
+"""
+)
 def get_zarr_path(
     dataset_name: str,
     zarr_name: str | None | None = None,
@@ -365,6 +376,16 @@ def get_channel_index(
     return channel_indices
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following replacement:
+
+    from src.endo_pipeline.configs import get_zarr_file_for_position
+
+This method will a Path to the Zarr file for the given dataset and position. If
+you need the name of the Zarr file, use .name on the returned Path object.
+"""
+)
 def get_zarr_name(dataset_name: str, position: int) -> str:
     """
     Get the zarr name for a given dataset and position.

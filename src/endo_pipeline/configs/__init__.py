@@ -13,7 +13,12 @@ from .dataset_config_io import (
     validate_all_dataset_configs,
     validate_dataset_config,
 )
-from .dataset_config_utils import get_nuclear_prediction_path, get_specific_channel_order
+from .dataset_config_utils import (
+    get_available_zarr_files,
+    get_nuclear_prediction_path,
+    get_specific_channel_order,
+    get_zarr_file_for_position,
+)
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
@@ -43,6 +48,7 @@ __all__ = [
     "get_available_dataset_names",
     "get_available_model_names",
     "get_config_dir",
+    "get_available_zarr_files",
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",
@@ -53,6 +59,7 @@ __all__ = [
     "get_pca_reference_model_manifests",
     "get_specific_channel_order",
     "get_timelapse_model_manifests",
+    "get_zarr_file_for_position",
     "load_all_dataset_configs",
     "load_all_model_configs",
     "load_dataset_collection_config",
