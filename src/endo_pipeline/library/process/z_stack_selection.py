@@ -42,7 +42,8 @@ def visualize_slice_selection(
     bf_stack: np.ndarray,
     cdh5_stack: np.ndarray,
     center_plane: int,
-    x: int,
+    lower_offset: int,
+    upper_offest: int,
     dataset: str,
     position: int,
     frame: int,
@@ -56,7 +57,8 @@ def visualize_slice_selection(
         bf_stack (np.ndarray): Brightfield image stack.
         cdh5_stack (np.ndarray): CDH5 image stack.
         center_plane (int): Index of the center plane.
-        x (int): Offset for above and below planes.
+        lower_offset (int): Number of planes below the center plane to visualize.
+        upper_offest (int): Number of planes above the center plane to visualize.
         dataset (str): Dataset name.
         frame (int): Frame index.
         position (int): Zarr Position index.
@@ -66,12 +68,12 @@ def visualize_slice_selection(
         None
     """
     im_center = contrast_stretching(bf_stack[center_plane].compute())
-    im_above = contrast_stretching(bf_stack[center_plane + x].compute())
-    im_below = contrast_stretching(bf_stack[center_plane - x].compute())
+    im_below = contrast_stretching(bf_stack[center_plane - lower_offset].compute())
+    im_above = contrast_stretching(bf_stack[center_plane + upper_offest].compute())
 
     cdh5_center = contrast_stretching(cdh5_stack[center_plane].compute())
-    cdh5_above = contrast_stretching(cdh5_stack[center_plane + x].compute())
-    cdh5_below = contrast_stretching(cdh5_stack[center_plane - x].compute())
+    cdh5_below = contrast_stretching(cdh5_stack[center_plane - lower_offset].compute())
+    cdh5_above = contrast_stretching(cdh5_stack[center_plane + upper_offest].compute())
 
     # Create subplots with a 2x3 grid
     fig, axes = plt.subplots(
@@ -80,23 +82,23 @@ def visualize_slice_selection(
 
     # First row: BF stack
     axes[0, 0].imshow(im_below, cmap="gray")
-    axes[0, 0].set_title(f"BF Plane Below {center_plane - x}")
+    axes[0, 0].set_title(f"BF Plane {center_plane - lower_offset} (-{lower_offset})")
 
     axes[0, 1].imshow(im_center, cmap="gray")
     axes[0, 1].set_title(f"BF Center Plane {center_plane}")
 
     axes[0, 2].imshow(im_above, cmap="gray")
-    axes[0, 2].set_title(f"BF Plane Above {center_plane + x}")
+    axes[0, 2].set_title(f"BF Plane {center_plane + upper_offest} (+{upper_offest})")
 
     # Second row: CDH5 stack
     axes[1, 0].imshow(cdh5_below, cmap="gray")
-    axes[1, 0].set_title(f"CDH5 Plane Below {center_plane - x}")
+    axes[1, 0].set_title(f"CDH5 Plane {center_plane - lower_offset} (-{lower_offset})")
 
     axes[1, 1].imshow(cdh5_center, cmap="gray")
     axes[1, 1].set_title(f"CDH5 Center Plane {center_plane}")
 
     axes[1, 2].imshow(cdh5_above, cmap="gray")
-    axes[1, 2].set_title(f"CDH5 Plane Above {center_plane + x}")
+    axes[1, 2].set_title(f"CDH5 Plane {center_plane + upper_offest} (+{upper_offest})")
 
     for ax in axes.flat:
         ax.axis("off")
@@ -106,7 +108,7 @@ def visualize_slice_selection(
     plt.tight_layout()
 
     # Save the plot
-    fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_x{x}"
+    fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}"
     save_plot(fig, output_dir / fname)
     plt.show()
 

@@ -12,9 +12,8 @@ from src.endo_pipeline.library.process.z_stack_selection import (
 )
 
 # %%
-DATASET = "20241016_20X"
-# DATASET = "20241120_20X"
-FRAME = 0
+# DATASET = "20241016_20X"
+DATASET = "20241120_20X"
 save_dir = get_output_path(
     __file__,
     DATASET,
@@ -22,22 +21,33 @@ save_dir = get_output_path(
 config = load_dataset_config(DATASET)
 # %%
 for position in range(0, 6):
+    frame = 0  # Visualize the first frame only
     img = get_zarr_img_for_dataset(DATASET, position, resolution_level=1)
-    bf_stack = img.get_image_dask_data("ZYX", C=1, T=FRAME)
-    cdh5_stack = img.get_image_dask_data("ZYX", C=0, T=FRAME)
+    bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
+    cdh5_stack = img.get_image_dask_data("ZYX", C=0, T=frame)
 
     stdevs = [plane.std().compute() for plane in bf_stack.squeeze()]
     center_plane = max(0, np.argmin(stdevs))
 
     # Plot the standard devs vs plane index
-    plot_standard_devs_per_slice(stdevs, center_plane, DATASET, position, FRAME, save_dir)
+    plot_standard_devs_per_slice(stdevs, center_plane, DATASET, position, frame, save_dir)
 
     # Visualize the slice selection
-    offset = 6
+    lower_offset = 5
+    upper_offset = 5
     visualize_slice_selection(
-        bf_stack, cdh5_stack, center_plane, offset, DATASET, position, FRAME, save_dir
+        bf_stack,
+        cdh5_stack,
+        center_plane,
+        lower_offset,
+        upper_offset,
+        DATASET,
+        position,
+        frame,
+        save_dir,
     )
-    break
+    # break
+
 # %%
 results = []
 
@@ -73,4 +83,27 @@ for position in range(0, 6):
 # Convert results to a DataFrame for better visualization
 results_df = pd.DataFrame(results)
 results_df.to_csv(save_dir / f"{DATASET}_global_center_plane.csv", index=False)
-# %%
+# # %%
+# for position in range(0, 6):
+#     frame = 0  # Visualize the first frame only
+#     img = get_zarr_img_for_dataset(DATASET, position, resolution_level=1)
+#     bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
+#     cdh5_stack = img.get_image_dask_data("ZYX", C=0, T=frame)
+
+#     center_plane = results_df.loc[results_df['position'] == position, 'mean_center_plane'].values[0]
+#     center_plane = round(center_plane)
+
+#     # Visualize the slice selection
+#     lower_offset = 5
+#     upper_offset = 5
+#     visualize_slice_selection(
+#         bf_stack,
+#         cdh5_stack,
+#         center_plane,
+#         lower_offset,
+#         upper_offset,
+#         DATASET,
+#         position,
+#         frame,
+#         save_dir,
+#     )
