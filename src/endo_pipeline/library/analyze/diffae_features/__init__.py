@@ -19,7 +19,6 @@ from .model_analysis import (
     run_gen_potential_analysis,
 )
 from .model_eval import (
-    get_normalization_constant,
     get_stationary_probability,
     load_sde_model,
     mesh_grid_function,
@@ -29,7 +28,6 @@ from .model_eval import (
 )
 from .model_fitting import build_diff_lib, build_drift_lib
 from .regression_helper import (
-    get_bins,
     get_kramers_moyal,
     get_stationary_hist,
     get_traj_and_diff,
@@ -52,11 +50,9 @@ __all__ = [
     "ddff_main",
     "get_and_analyze_ddd",
     "get_and_viz_ddff",
-    "get_bins",
     "get_callable_vector_field",
     "get_fixed_points_by_shear",
     "get_kramers_moyal",
-    "get_normalization_constant",
     "get_stationary_hist",
     "get_stationary_probability",
     "get_traj_and_diff",

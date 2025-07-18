@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.numerics import fp_solvers
+from src.endo_pipeline.library.analyze.numerics import binning, fp_solvers
 
 
 def save_sde_model(model_dict: dict, savedir: Path) -> None:
@@ -150,32 +150,6 @@ def vector_field_component(f: Callable, i: int) -> Callable:
     return f_i  # return the the callable function f_i
 
 
-def get_normalization_constant(p_fit: np.ndarray, dx: list) -> np.ndarray:
-    """
-    Get normalization constant for stationary probability
-    distribution p_fit. The normalization constant is the
-    integral of the probability distribution over the state space.
-
-    Inputs:
-    - p_fit: np.ndarray, stationary probability
-        distribution of the fit SDE model
-        - shape N[1] x N[2] x ... x N[ndim]
-    - dx: list, bin width in each dimension
-
-    Outputs:
-    - c: float, normalization constant
-    """
-    ndim = len(dx)  # number of dimensions
-
-    # copy p_fit to avoid modifying the original array
-    c = p_fit.copy()
-    for i in range(ndim):
-        # integrate over axis=0 as we marginalize over each dimension
-        c = np.trapz(c, dx=dx[i], axis=0)
-
-    return c
-
-
 def get_stationary_probability(
     drift_vals: np.ndarray, diff_vals: np.ndarray, bins: list, tol: float = 1e-10
 ) -> np.ndarray:
@@ -225,7 +199,7 @@ def get_stationary_probability(
     # set small values to a small number to avoid numerical issues
     p_fit[p_fit < tol] = tol
     # integrate to get normalization constant
-    c = get_normalization_constant(p_fit, dx)
+    c = binning.get_normalization_constant(p_fit, dx)
     # normalize probability distribution
     p_fit = p_fit / c
 

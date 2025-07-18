@@ -10,11 +10,12 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
+from src.endo_pipeline.library.analyze.numerics.binning import get_bins
 from src.endo_pipeline.library.visualize import viz_base
 
 from .data_driven_flow_field import compute_extrapolated_vector_field, get_callable_vector_field
 from .model_analysis import model_data_comparison_one_dataset
-from .regression_helper import get_bins, get_kramers_moyal, get_traj_and_diff, get_traj_by_flow
+from .regression_helper import get_kramers_moyal, get_traj_and_diff, get_traj_by_flow
 
 
 def ddd_model_analysis(

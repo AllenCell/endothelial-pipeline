@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.endo_pipeline.library.analyze.kramersmoyal import km_main
+from .km_main import km
 
 
 def get_km_powers(ndim: int) -> np.ndarray:
@@ -80,7 +80,7 @@ def get_km_kernel(
     powers = get_km_powers(ndim)
 
     kmc = (
-        km_main.km(
+        km(
             traj_list,
             grads=d_traj_list,
             bins=bins,

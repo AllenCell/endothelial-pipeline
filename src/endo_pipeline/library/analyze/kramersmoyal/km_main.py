@@ -5,10 +5,11 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from src.endo_pipeline.library.analyze.kramersmoyal import km_binning, km_kernels
+from . import km_kernels
+from .km_binning import histogramdd
 
 
-def string_to_kernel(kernel: str) -> Callable:
+def _string_to_kernel(kernel: str) -> Callable:
     """
     Convert a string to the corresponding kernel function.
 
@@ -17,7 +18,7 @@ def string_to_kernel(kernel: str) -> Callable:
 
     Output:
     - kernel_func: callable, the kernel function with the given name
-    as defined in library.analyze.kramersmoyal.km_kernels
+    as defined in km_kernels
     """
     # get dictionary of all callable functions in the kernels module
     not_kernel = {
@@ -162,7 +163,7 @@ def km(
     assert ndim == len(bins), "bins not matching timeseries' dimension"
 
     # convert specified kernel to callable
-    kernel_func = string_to_kernel(kernel)
+    kernel_func = _string_to_kernel(kernel)
 
     # This is where the calculations take place
     kmc = _km(timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method)
@@ -227,7 +228,7 @@ def _km(
 
     # If there are L powers, the result in an L x N[0] x N[1] x ... x N[D-1] array
     # where N[i] is the number of bins in dimension i.
-    hist = km_binning.histogramdd(timeseries_, bins=bins, weights=weights)
+    hist = histogramdd(timeseries_, bins=bins, weights=weights)
 
     ##### Generate centered kernel on larger grid (fft'ed convolutions are circular).
 

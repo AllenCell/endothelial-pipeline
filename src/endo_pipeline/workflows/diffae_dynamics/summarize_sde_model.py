@@ -12,6 +12,7 @@ from src.endo_pipeline.library.analyze.diffae_features import (
     vector_field_function,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+from src.endo_pipeline.library.analyze.numerics.binning import get_bins
 
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:

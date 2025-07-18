@@ -6,7 +6,6 @@ from src.endo_pipeline.configs import (
     load_model_config,
 )
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import get_bins
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
     fit_pca,
@@ -15,6 +14,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_pc_column_names,
     project_manifest_to_pcs,
 )
+from src.endo_pipeline.library.analyze.numerics.binning import get_bins
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
