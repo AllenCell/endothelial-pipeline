@@ -9,7 +9,7 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from sklearn.model_selection import train_test_split
 
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.registration import align_all_positions
 
 
@@ -76,11 +76,11 @@ def concat(row: pd.Series, savedir: Path) -> Path:
     return save_path
 
 
-def generate_paired_dataset(
+def main(
     dataset_type: Literal["live_fixed", "20x_40x"],
     fixed_datasets: list[str] | None = None,
     moving_datasets: list[str] | None = None,
-    split: bool = False,
+    split: bool = True,
 ):
     """
     Utility function for generating a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
@@ -96,7 +96,7 @@ def generate_paired_dataset(
     split: bool
         If True, the dataset will be split into training and validation sets. The split will be saved as `train.csv` and `val.csv`. If False, the entire dataset will be saved as `dataset.csv`.
     """
-    save_path = Path(get_output_path(f"finetune_paired_dataset/{dataset_type}"))
+    save_path = get_output_path("finetune_paired_dataset", dataset_type, include_timestamp=False)
 
     df = _get_aligned_paths(dataset_type, save_path, fixed_datasets, moving_datasets)
 
@@ -114,4 +114,4 @@ def generate_paired_dataset(
 
 
 if __name__ == "__main__":
-    fire.Fire(generate_paired_dataset)
+    fire.Fire(main)
