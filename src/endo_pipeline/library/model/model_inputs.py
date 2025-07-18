@@ -184,7 +184,7 @@ def generate_overrides_for_track_based_crops(
 
 def generate_overrides_for_finetuning(
     model_name: str,
-    dataset_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20x_40x"],
     train_csv_path: Path,
     val_csv_path: Path,
     ckpt_path: Path,
@@ -198,7 +198,7 @@ def generate_overrides_for_finetuning(
         The name of the model to finetune. This should correspond to a
         directory in `results/models/` and match the model name used during the
         `paired_data_validation` step.
-    dataset_type: Literal['live_fixed', '20x_40x']
+    dataset_pair_type: Literal['live_fixed', '20x_40x']
         The type of dataset to use for finetuning. This should match the dataset
         type used during the `paired_data_validation` step.
     train_csv_path: Path
@@ -211,18 +211,18 @@ def generate_overrides_for_finetuning(
     # create output directories if they do not exist
     save_path = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
+        f"finetune_{model_name}_on_{dataset_pair_type}",
         include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
+        f"finetune_{model_name}_on_{dataset_pair_type}",
         "checkpoints",
         include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_type}",
+        f"finetune_{model_name}_on_{dataset_pair_type}",
         "logs",
         include_timestamp=False,
     )
