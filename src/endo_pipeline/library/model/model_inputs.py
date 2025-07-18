@@ -82,16 +82,6 @@ def preprocess_tracking_manifest_for_model_eval(
     )  # ask if both x and y bbox dimensions equal downsampled crop size
     df = df[bbox_size_is_correct]  # filter the dataframe in-place
 
-    # NOTE: take first and last 5 rows for testing purposes
-    # df = pd.concat([df.head(), df.tail()])
-    df = pd.concat(
-        [
-            df[df["image_index"] == 0].head(),
-            df[df["image_index"] == 570].head(),
-            # df[df["image_index"] == 576].head(),
-        ]
-    )
-
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
         df.groupby(["zarr_path", "image_index"])
