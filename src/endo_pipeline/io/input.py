@@ -54,7 +54,7 @@ def load_zarr_as_dask_array(
     reader.set_resolution_level(level)
 
     # Read image data.
-    if timepoints is None:
+    if timepoints is not None:
         return reader.get_image_dask_data("TCZYX", T=timepoints, C=channels_index)
     else:
         return reader.get_image_dask_data("TCZYX", C=channels_index)
