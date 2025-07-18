@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
@@ -233,7 +234,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 def create_reference_timelapse_datasets(
     pca: Pipeline,
     reference_dataset_name: str,
-    model: ModelConfig = "diffae_04_10",
+    model: str = "diffae_04_10",
     time_lag: int = 3,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -270,18 +271,126 @@ def create_reference_timelapse_datasets(
 
     # Create and return lagged and truncated datasets
     reference_features = reference_features.sort_values(by="frame_number")
-    df_lag = reference_features.groupby("crop_index").shift(time_lag).dropna()
-    df_trunc = reference_features.groupby("crop_index").apply(
-        create_truncated_dataset, time_lag=time_lag
+    reference_features = (
+        reference_features.groupby("crop_index").apply(fill_empty_frames).reset_index(drop=True)
     )
+    df_lag = reference_features.groupby("crop_index").apply(create_lagged_dataset, time_lag)
+    df_trunc = reference_features.groupby("crop_index").apply(create_truncated_dataset, time_lag)
+    df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
+    plot_tracks(df_lag, df_trunc)
     return df_lag, df_trunc
+
+
+def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
+    """
+    Fill in any empty frames with NaNs
+
+    Parameters
+    ----------
+    crop : pd.DataFrame
+        Dataframe containing the crop data for a single crop_index
+
+    Returns
+    -------
+    crop : pd.DataFrame
+        Dataframe with empty frames filled in with NaNs
+    """
+    frame_numbers = crop["frame_number"].unique()
+    all_frame_numbers = pd.DataFrame(
+        {"frame_number": np.arange(frame_numbers.min(), frame_numbers.max() + 1)}
+    )
+    crop = pd.merge(all_frame_numbers, crop, on="frame_number", how="left")
+    crop["crop_index"] = crop["crop_index"].fillna(crop["crop_index"].iloc[0])
+    return crop
+
+
+def create_lagged_dataset(
+    crop: pd.DataFrame,
+    time_lag: int,
+) -> pd.DataFrame:
+    """
+    Create a lagged dataset by shifting the crop data by the specified time lag.
+
+    Parameters
+    ----------
+    crop : pd.DataFrame
+        Dataframe containing the crop data for a single crop_index
+    time_lag : int
+        Number of frames to lag the dataset by.
+        This is the same time gap between the live and fixed data snapshots.
+
+    Returns
+    -------
+    crop_new : pd.DataFrame
+        Dataframe with the lagged crop data
+    """
+
+    crop_new = crop.copy()
+    crop_new = crop_new.shift(time_lag)
+    crop_new["frame_number"] = crop["frame_number"]
+    return crop_new.iloc[time_lag:]
 
 
 def create_truncated_dataset(
     crop: pd.DataFrame,
     time_lag: int,
 ) -> pd.DataFrame:
+    """
+    Create a truncated dataset by removing the first `time_lag` rows from the crop data.
+
+    Parameters
+    ----------
+    crop : pd.DataFrame
+        Dataframe containing the crop data for a single crop_index
+    time_lag : int
+        Number of frames to truncate the dataset by.
+
+    Returns
+    -------
+    crop : pd.DataFrame
+        Dataframe with the truncated crop data
+    """
     return crop.iloc[time_lag:]
+
+
+def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop rows from both dataframes where PC values for either dataframe are NaN.
+    Parameters
+    ----------
+    df1 : pd.DataFrame
+        First dataframe containing PC values
+    df2 : pd.DataFrame
+        Second dataframe containing PC values
+    Returns
+    -------
+    df1, df2 : pd.DataFrame
+        Dataframes with rows dropped where all PC values are NaN in both dataframes
+    """
+
+    pc_cols = [col for col in df1.columns if "pc" in col]
+    mask = df1[pc_cols].notna().all(axis=1) & df2[pc_cols].notna().all(axis=1)
+    return df1[mask], df2[mask]
+
+
+def plot_tracks(df_lag: pd.DataFrame, df_trunc: pd.DataFrame) -> None:
+    """
+    Plot the tracks of the lagged and truncated datasets for visual validation.
+    Parameters
+    ----------
+    df_lag : pd.DataFrame
+        Dataframe containing the lagged reference features
+    df_trunc : pd.DataFrame
+        Dataframe containing the reference features truncated to
+        remove the rows that were shifted out by the lag
+    """
+
+    for crop_index in df_lag["crop_index"].unique()[0:5]:
+        tlag = df_lag[df_lag["crop_index"] == crop_index]
+        ttrunc = df_trunc[df_trunc["crop_index"] == crop_index]
+        plt.plot(ttrunc["frame_number"], ttrunc["pc1"], color="red")
+        plt.plot(tlag["frame_number"], tlag["pc1"], color="blue")
+    plt.savefig("tracks")
 
 
 def get_paired_fixed_live_validation_features(
