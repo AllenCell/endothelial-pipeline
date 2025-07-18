@@ -80,7 +80,8 @@ def preprocess_tracking_manifest_for_model_eval(
     )  # ask if both x and y bbox dimensions equal downsampled crop size
     df = df[bbox_size_is_correct]  # filter the dataframe in-place
 
-    df = df.head()  # NOTE: take first 5 rows for testing purposes
+    # NOTE: take first and last 5 rows for testing purposes
+    df = pd.concat([df.head(), df.tail()])
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -106,6 +107,7 @@ def preprocess_tracking_manifest_for_model_eval(
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
+    # grouped_df["stop"] = grouped_df["image_index"] + 1
     # grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
     grouped_df[["path", "T"]] = grouped_df[["zarr_path", "image_index"]]
 
