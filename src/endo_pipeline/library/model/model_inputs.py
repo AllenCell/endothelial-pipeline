@@ -242,8 +242,8 @@ def generate_overrides_for_finetuning(
         "paths.output_dir": (save_path / "logs").as_posix(),
         # do training
         "train": True,
-        # make sure that last ckpt is saved
-        "callbacks.model_checkpoint.monitor": None,
+        # # make sure that last ckpt is saved
+        # "callbacks.model_checkpoint.monitor": None,
         # updated mlflow logger
         "logger": {
             "mlflow": {
