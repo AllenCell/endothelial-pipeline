@@ -105,8 +105,8 @@ def preprocess_tracking_manifest_for_model_eval(
     # after downsampling, thus they were adjusted by downsample_factor
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
-    grouped_df["start"] = grouped_df["image_index"]
-    grouped_df["stop"] = grouped_df["image_index"]
+    # grouped_df["start"] = grouped_df["image_index"]
+    # grouped_df["stop"] = grouped_df["image_index"]
     # grouped_df["stop"] = grouped_df["image_index"] + 1
     # grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
     grouped_df[["path", "T"]] = grouped_df[["zarr_path", "image_index"]]
