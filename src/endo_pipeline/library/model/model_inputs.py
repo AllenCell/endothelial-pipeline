@@ -16,6 +16,8 @@ def generate_zarr_csv_for_model_eval(
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
+    # note that this will likely be refactored after
+    # the new zarr methods merge
     zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
     zarr_path_dict = {}
     for path in zarr_path_list:
@@ -256,9 +258,7 @@ def get_dataset_names_used_for_training(
     # note: this might be something that
     # gets turned into a zarr method in a future PR
     for df in [train_df, val_df]:
-        df["dataset_date"] = df["path"].apply(
-            lambda s: s.split(".")[0].split("/")[-1].split("_")[0]
-        )
+        df["dataset_date"] = df["path"].apply(lambda s: Path(s).stem.split("_")[0])
 
     # get unique dataset dates used in training from dataset_date
     # by combining the unique dates from both train and val datasets
