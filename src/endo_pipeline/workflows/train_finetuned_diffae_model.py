@@ -175,7 +175,6 @@ def main(
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_csv_path, val_csv_path, "paired_datasets"
     )
-    print(list_of_training_datasets)
     # add run ID and training datasets to model config
     model_config = ModelConfig(
         name=f"{model_name}_finetuned_for_{dataset_pair_type}",
