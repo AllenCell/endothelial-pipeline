@@ -10,7 +10,6 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
@@ -18,6 +17,9 @@ from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils imp
 from src.endo_pipeline.library.analyze.numerics import gen_potential
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
+
+from .model_eval import get_stationary_probability, mesh_grid_function, vector_field_component
+from .regression_helper import get_stationary_hist, get_traj_by_flow
 
 
 def model_data_comparison_one_dataset(
@@ -59,8 +61,8 @@ def model_data_comparison_one_dataset(
     drift = sde_model[0]
     diffusion = sde_model[1]
 
-    f1 = model_eval.vector_field_component(drift, 0)
-    f2 = model_eval.vector_field_component(drift, 1)
+    f1 = vector_field_component(drift, 0)
+    f2 = vector_field_component(drift, 1)
 
     fig1, ax1 = pplane.phase_portrait(
         lambda x1, x2: f1([x1, x2], shear),
@@ -76,11 +78,11 @@ def model_data_comparison_one_dataset(
     plt.show()
 
     centers = [0.5 * (bins[i][1:] + bins[i][:-1]) for i in range(len(bins))]
-    drift_mesh = model_eval.mesh_grid_function(drift)
-    diff_mesh = model_eval.mesh_grid_function(diffusion)
+    drift_mesh = mesh_grid_function(drift)
+    diff_mesh = mesh_grid_function(diffusion)
     drift_vals = drift_mesh(np.meshgrid(*centers), shear).T
     diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
-    p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+    p_fit = get_stationary_probability(drift_vals, diff_vals, bins)
 
     # get "stationary" distribution from data
     # for extracting just the axes (specified via pcs) we want
@@ -88,7 +90,7 @@ def model_data_comparison_one_dataset(
     # e.g., if we are just analyzing the first two principal components,
     # we want to extract columns 'pc1' and 'pc2'
     pc_column_names = get_pc_column_names(stationary_data, pc_axes)
-    p_hist = regression_helper.get_stationary_hist(stationary_data, pc_column_names, bins)
+    p_hist = get_stationary_hist(stationary_data, pc_column_names, bins)
 
     fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
 
@@ -145,7 +147,7 @@ def model_data_comparison(
 
         # split out data by flow condition
         # split out data by flow condition
-        df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+        df_by_flow, shear_list = get_traj_by_flow(
             df_proj, load_dataset_config(model_manifest.dataset_name)
         )
         del df_proj  # free up memory
@@ -323,8 +325,8 @@ def get_epr(
     diffusion = sde_model[1]
 
     # get mesh grid functions for drift and diffusion
-    drift_mesh = model_eval.mesh_grid_function(drift)
-    diff_mesh = model_eval.mesh_grid_function(diffusion)
+    drift_mesh = mesh_grid_function(drift)
+    diff_mesh = mesh_grid_function(diffusion)
 
     tic = time()
 
@@ -335,7 +337,7 @@ def get_epr(
         diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
 
         # get stationary probability distribution
-        p = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+        p = get_stationary_probability(drift_vals, diff_vals, bins)
 
         # get entropy production rate
         epr[i] = gen_potential.entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
@@ -435,8 +437,8 @@ def run_gen_potential_analysis(
     diffusion = sde_model[1]
 
     # define mesh grid functions for drift and diffusion
-    drift_mesh = model_eval.mesh_grid_function(drift)
-    diff_mesh = model_eval.mesh_grid_function(diffusion)
+    drift_mesh = mesh_grid_function(drift)
+    diff_mesh = mesh_grid_function(diffusion)
 
     for ii, shear in enumerate(shear_range):
         # evaluate drift and diffusion functions at
@@ -446,7 +448,7 @@ def run_gen_potential_analysis(
 
         # get stationary probability distribution to get
         # generalized potential energy landscape U
-        p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+        p_fit = get_stationary_probability(drift_vals, diff_vals, bins)
         potential = -np.log(p_fit)
 
         # plot generalized potential energy landscape

@@ -6,7 +6,6 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
@@ -15,6 +14,7 @@ from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
 from src.endo_pipeline.library.visualize import viz_base
 
 from .model_analysis import model_data_comparison_one_dataset
+from .regression_helper import get_bins, get_kramers_moyal, get_traj_and_diff, get_traj_by_flow
 
 
 def ddd_model_analysis(
@@ -136,7 +136,7 @@ def get_and_analyze_ddd(
     bin_ylim = dynamics_config["plt_ylim"]["hist"]
     num_bins_hist = dynamics_config["num_bins_hist"]
     # get bins edges and centers
-    bins, centers = regression_helper.get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
+    bins, centers = get_bins(num_bins_hist, bin_limits=[bin_xlim, bin_ylim])
 
     # load DiffAE feature data from this one dataset
     # projected onto principal component axes as defined
@@ -147,7 +147,7 @@ def get_and_analyze_ddd(
     pc_column_names = get_pc_column_names(df_proj, pc_axes)
 
     # split out data by flow condition
-    df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+    df_by_flow, shear_list = get_traj_by_flow(
         df_proj, load_dataset_config(model_manifest.dataset_name)
     )
     num_flow = len(shear_list)
@@ -159,10 +159,10 @@ def get_and_analyze_ddd(
     for j in range(num_flow):
         # get list of per-crop trajectories and list
         # of the corresponding displacement vectors
-        traj_list, d_traj_list = regression_helper.get_traj_and_diff(df_by_flow[j], pc_column_names)
+        traj_list, d_traj_list = get_traj_and_diff(df_by_flow[j], pc_column_names)
 
         # get drift and diffusion estimates (Kramers-Moyal coefficients)
-        drift_km, diff_km = regression_helper.get_kramers_moyal(
+        drift_km, diff_km = get_kramers_moyal(
             traj_list,
             d_traj_list,
             bins,

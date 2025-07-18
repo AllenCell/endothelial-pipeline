@@ -5,13 +5,21 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+
+from .regression_helper import (
+    get_bins,
+    get_kramers_moyal,
+    get_traj_and_diff,
+    get_traj_by_flow,
+    masked_vector_field,
+    train_test_all,
+)
 
 
 def kramers_moyal_train_test_one_dataset(
@@ -76,9 +84,7 @@ def kramers_moyal_train_test_one_dataset(
     ndim = len(pcs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = regression_helper.get_traj_by_flow(
-        df_proj, load_dataset_config(dataset_name)
-    )
+    df_by_flow, shear_list = get_traj_by_flow(df_proj, load_dataset_config(dataset_name))
     num_flow = len(shear_list)
 
     drift_km = []
@@ -101,17 +107,15 @@ def kramers_moyal_train_test_one_dataset(
 
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
-        traj_list, d_traj_list = regression_helper.get_traj_and_diff(
-            stationary_data, pc_column_names=pc_column_names
-        )
+        traj_list, d_traj_list = get_traj_and_diff(stationary_data, pc_column_names=pc_column_names)
 
         # get bins for histogramming
         # (for drift and diffusion estimates)
-        bins, centers = regression_helper.get_bins(num_bins, data=traj_list)
+        bins, centers = get_bins(num_bins, data=traj_list)
 
         # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
-        drift_km_, diff_km_ = regression_helper.get_kramers_moyal(
+        drift_km_, diff_km_ = get_kramers_moyal(
             traj_list,
             d_traj_list,
             bins,
@@ -144,10 +148,8 @@ def kramers_moyal_train_test_one_dataset(
         (
             drift_km_masked,
             x_pts_,
-        ) = regression_helper.masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
-        diff_km_masked, _ = regression_helper.masked_vector_field(
-            diff_km_, np.array(np.meshgrid(*centers)).T
-        )
+        ) = masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
+        diff_km_masked, _ = masked_vector_field(diff_km_, np.array(np.meshgrid(*centers)).T)
         drift_km.append(drift_km_masked)
         diff_km.append(diff_km_masked)
         x_pts.append(x_pts_)
@@ -156,7 +158,7 @@ def kramers_moyal_train_test_one_dataset(
 
     # get train test split of Kramers-Moyal
     # estimates for each flow condition
-    x_train, x_test, y_train, y_test, v_train, v_test = regression_helper.train_test_all(
+    x_train, x_test, y_train, y_test, v_train, v_test = train_test_all(
         x_pts, drift_km, diff_km, train_frac, seed=47
     )
 
