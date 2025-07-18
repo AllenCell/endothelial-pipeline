@@ -324,6 +324,20 @@ def get_zarr_path(
     return zarr_paths
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    get_available_channels_for_all_positions(dataset_config)
+
+The recommended pattern is:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+
+    dataset_config = load_dataset_config(dataset_name)
+    channels = get_available_channels_for_all_positions(dataset_config)
+"""
+)
 def get_available_channels(
     dataset_name: str, zarr_name: str | None | None = None
 ) -> dict[str, list[str]]:
@@ -336,6 +350,20 @@ def get_available_channels(
     return channel_names
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    get_available_channels_for_position(dataset_config, position)
+
+To recreate the behavior of this method, use:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+
+    dataset_config = load_dataset_config(dataset_name)
+    channels = get_available_channels_for_position(dataset_config, 0)
+"""
+)
 def get_channel_names(dataset_name: str) -> list[str]:
     """
     Retrieve the list of channel names for a specific dataset. The function
@@ -356,6 +384,14 @@ def get_channel_names(dataset_name: str) -> list[str]:
     return channel_names
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    from src.endo_pipeline.configs import get_channel_indices_for_all_positions
+    get_channel_indices_for_all_positions(dataset_config, position, channel_names)
+"""
+)
 def get_channel_index(
     dataset_name: str, channel_names: list[str], zarr_name: str | None | None = None
 ) -> dict[str, list[int | None]]:
