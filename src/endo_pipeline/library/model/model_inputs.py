@@ -204,7 +204,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_track_based_features",
+            "save_suffix": f"{dataset_name}_{model_name}_tracked_crop_features",
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
