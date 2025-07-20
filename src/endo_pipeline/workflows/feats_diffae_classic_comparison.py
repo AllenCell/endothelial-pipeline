@@ -17,6 +17,9 @@ from src.endo_pipeline.configs.dataset_io import (
 )
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
+    get_diffae_feats_liveseg_feats_merged_table,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
@@ -338,51 +341,6 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     plt.close(fig)
 
 
-def get_merged_table(dataset_name: str) -> pd.DataFrame | None:
-    # read in the segmentation-based diffae features
-    print("loading diffae features from tracking data...")
-    diffae_tracking = get_track_diffae_manifest(dataset_name)
-    if diffae_tracking is None:
-        # if the diffae tracking data is not available,
-        # return None
-        return None
-
-    # else, process the diffae tracking data
-    diffae_tracking["is_unique"] = diffae_tracking.groupby(
-        ["dataset", "position", "frame_number", "track_id"]
-    )["frame_number"].transform(lambda t: t.nunique() == t.size)
-    diffae_tracking = diffae_tracking[diffae_tracking["is_unique"]]
-
-    # give the crop_index column the same value as the track_ids
-    diffae_tracking["crop_index"] = diffae_tracking["track_id"]
-    diffae_tracking = diffae_preproc.add_description_column(
-        diffae_tracking, dataset_name, simple=True
-    )  # add description column (e.g., 48hr_High)
-    diffae_tracking["track_id"] = diffae_tracking["track_id"].astype(int)
-
-    # load the tracking data of the measured features and merge them
-    print("loading segmentation property data...")
-    df_all_positions = get_live_segmentation_features_manifest([dataset_name])
-
-    print("merging segmentation properties and track-based DiffAE data...")
-    diffae_tracking.rename(columns={"position": "position_as_str"}, inplace=True)
-    df_all_positions["position_as_str"] = df_all_positions["position"].transform(
-        lambda x: "P" + str(x)
-    )
-    df_all_positions["track_id"] = df_all_positions["track_id"].astype(int)
-
-    df_all_positions = pd.merge(
-        left=df_all_positions,
-        right=diffae_tracking,
-        how="left",
-        left_on=["dataset_name", "position_as_str", "image_index", "track_id"],
-        right_on=["dataset", "position_as_str", "frame_number", "track_id"],
-        validate="one_to_one",
-    )
-
-    return df_all_positions
-
-
 def make_all_plots(
     out_dir: Path,
     dataset_name: str,
@@ -471,7 +429,7 @@ def main() -> None:
         out_subdir_traj = out_dir / "trajectories_track_based"
         out_subdir_traj.mkdir(parents=True, exist_ok=True)
 
-        df_all_positions = get_merged_table(dataset_name)
+        df_all_positions = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
         if df_all_positions is None:
             print(f"Dataset {dataset_name} is missing one or more data tables. Skipping...")
             continue
