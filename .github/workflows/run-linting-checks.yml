@@ -27,13 +27,13 @@ jobs:
       run: uv sync --locked --only-group lint
 
     - name: Check with black
-      run: uv run --no-sync black --check cellsmap
+      run: uv run --no-sync black --check src
 
     - name: Check with isort
-      run: uv run --no-sync isort --check cellsmap
+      run: uv run --no-sync isort --check src
 
     - name: Lint with ruff
-      run: uv run --no-sync ruff check cellsmap
+      run: uv run --no-sync ruff check src
 
     - name: Check with mypy
-      run: uv run --no-sync mypy cellsmap
+      run: uv run --no-sync mypy src
