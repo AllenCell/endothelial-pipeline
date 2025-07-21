@@ -163,6 +163,6 @@ def plot_paired_fixed_live_validation_features(
     filename = f"paired_features_pc{pc}"
     if lagged_live_validation:
         filename += "_lagged_live_validation"
-    save_plot_to_path(plt.gcf(), save_path / f"{filename}.png", dpi=300)
+    save_plot_to_path(plt.gcf(), save_path, filename, dpi=300)
 
     plt.close()
