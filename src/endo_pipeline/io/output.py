@@ -156,7 +156,8 @@ def build_fms_annotations(
         notes.append(f"Commit: {repo.commit().hexsha}")
 
     if model is not None:
-        metadata_builder.add_annotation("mlflow run id", model.mlflow_run_id)
+        if hasattr(model, "mlflow_run_id"):
+            metadata_builder.add_annotation("mlflow run id", model.mlflow_run_id)
         notes.append(f"Model: {model.name}")
 
     notes.append(f"\n{additional_notes}")
