@@ -1276,7 +1276,30 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# add deprecated decorator to this function
+@deprecated(
+    """
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing models is:
+
+1. If you need a list of available models by name, before selecting specific
+   dataset(s) to load, use the following replacement method:
+
+        configs.get_available_model_names
+
+   instead of:
+
+        configs.dataset_io.get_available_models
+
+   Individual models(s) can then be loaded with:
+
+        configs.load_model_config(model_name)
+
+2. If you want to load all available models, use the following method to load
+   configs for all available models:
+
+        configs.load_all_model_configs
+"""
+)
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -1285,7 +1308,24 @@ def get_available_models() -> list[str]:
     return model_names
 
 
-# add deprecated decorator to this function
+@deprecated(
+    """
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing model info is
+directly from loaded ModelConfig objects. These configs can be loaded using
+one of the following:
+
+        configs.load_all_model_configs
+        configs.load_model_config(model_name)
+
+Fields can then be accessed using dot notation:
+
+        model.field
+
+Available fields and descriptions for each field for ModelConfig objects are
+provided in configs.model_config.
+"""
+)
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
