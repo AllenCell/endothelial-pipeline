@@ -4,9 +4,8 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
+from sklearn.pipeline import Pipeline
 
-from cellsmap.util.manifest_io import load_pca_model
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
     DatasetConfig,
     ModelConfig,
@@ -15,13 +14,16 @@ from src.endo_pipeline.configs import (
     load_model_config,
     save_model_config,
 )
+from src.endo_pipeline.configs.model_config_utils import get_model_manifest
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+    get_manifest_for_dynamics_workflows,
+    project_manifest_to_pcs,
+)
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
 from src.endo_pipeline.library.model.mlflow_utils import download_model
+from src.endo_pipeline.library.model.model_inputs import generate_overrides_for_model_eval
 from src.endo_pipeline.library.process.registration import align_all_positions
-from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 
 
 def add_paired_fixed_live_data_fmsid_to_config(
@@ -141,7 +143,7 @@ def apply_model_paired_fixed_live(
     overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
     fixed_overrides = overrides.copy()  # copy to avoid overriding the original
     fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
-    fixed_overrides = generate_overrides(
+    fixed_overrides = generate_overrides_for_model_eval(
         fixed_overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
@@ -158,7 +160,7 @@ def apply_model_paired_fixed_live(
 
     # Apply on moving images
     overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides(
+    overrides = generate_overrides_for_model_eval(
         overrides,
         save_path=str(save_path),
         data_path=str(data_save_path),
@@ -192,9 +194,9 @@ def apply_model_paired_fixed_live(
 
 
 def project_paired_fixed_live_data_into_ref_PC_space(
+    pca: Pipeline,
     fixed_features_path: Path = "fixed_features.parquet",
     live_features_path: Path = "live_features.parquet",
-    pca_dir: str | Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Project features from applying fine tuned diffAE model to fixed and live data into
@@ -202,12 +204,13 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
     Parameters
     ----------
+    pca : Pipeline | None
+        PCA model
     fixed_features_path : Path
         Path to the fixed features manifest
     live_features_path : Path
         Path to the live features manifest
-    pca_dir : str | Path | None
-        Directory containing the PCA model. If None, a new PCA model is fitted
+
 
     Returns
     -------
@@ -221,14 +224,151 @@ def project_paired_fixed_live_data_into_ref_PC_space(
     fixed_features = pd.read_parquet(fixed_features_path)
     live_features = pd.read_parquet(live_features_path)
 
-    # load or fit reference PCA model and project features into reference PC space
-    pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
-    fixed_pc_features = project_manifest_to_pcs(
-        fixed_features, pca, overwrite_feature_columns=False
-    )
-    live_pc_features = project_manifest_to_pcs(live_features, pca, overwrite_feature_columns=False)
+    fixed_pc_features = project_manifest_to_pcs(fixed_features, pca)
+    live_pc_features = project_manifest_to_pcs(live_features, pca)
 
     return fixed_pc_features, live_pc_features
+
+
+def create_reference_timelapse_datasets(
+    pca: Pipeline,
+    reference_dataset_name: str,
+    model: str = "diffae_04_10",
+    time_lag: int = 3,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Create reference timelapse datasets to determine role of time lag in differences between fixed and live data.
+    This function loads a no-flow timelapse reference dataset and gets PC values.
+    It creates one copy of this data that is lagged in time by the same time gap between the live and fixed data snapshots.
+    It then creates a second version which is just truncated to remove the rows that were shifted out by the lag.
+
+    Parameters
+    ----------
+    pca : Pipeline
+        PCA model to project features into reference PC space
+    reference_dataset_name : str
+        Name of the reference dataset to use for creating the timelapse datasets
+    model : ModelConfig
+        Model configuration to use for loading the reference dataset
+    time_lag : int
+        Number of frames to lag the reference dataset by.
+        This is the same time gap between the live and fixed data snapshots.
+
+    Returns
+    -------
+    df_lag : pd.DataFrame
+        Dataframe containing the lagged reference features
+    df_trunc : pd.DataFrame
+        Dataframe containing the reference features truncated to
+        remove the rows that were shifted out by the lag
+    """
+
+    # Load the PC data for reference no flow timelapse dataset
+    model_config = load_model_config(model)
+    model_manifest = get_model_manifest(reference_dataset_name, model_config)
+    reference_features = get_manifest_for_dynamics_workflows(model_manifest, pca)
+
+    # Create and return lagged and truncated datasets
+    reference_features = reference_features.sort_values(by="frame_number")
+    reference_features = (
+        reference_features.groupby("crop_index").apply(fill_empty_frames).reset_index(drop=True)
+    )
+    df_lag = reference_features.groupby("crop_index").apply(create_lagged_dataset, time_lag)
+    df_trunc = reference_features.groupby("crop_index").apply(create_truncated_dataset, time_lag)
+    df_lag, df_trunc = dropna_both_df(df_lag, df_trunc)
+    return df_lag, df_trunc
+
+
+def fill_empty_frames(crop: pd.DataFrame) -> pd.DataFrame:
+    """
+    Fill in any empty frames with NaNs
+
+    Parameters
+    ----------
+    crop : pd.DataFrame
+        Dataframe containing the crop data for a single crop_index
+
+    Returns
+    -------
+    crop : pd.DataFrame
+        Dataframe with empty frames filled in with NaNs
+    """
+    frame_numbers = crop["frame_number"].unique()
+    all_frame_numbers = pd.DataFrame(
+        {"frame_number": np.arange(frame_numbers.min(), frame_numbers.max() + 1)}
+    )
+    crop = pd.merge(all_frame_numbers, crop, on="frame_number", how="left")
+    crop["crop_index"] = crop["crop_index"].fillna(crop["crop_index"].iloc[0])
+    return crop
+
+
+def create_lagged_dataset(
+    crop: pd.DataFrame,
+    time_lag: int,
+) -> pd.DataFrame:
+    """
+    Create a lagged dataset by shifting the crop data by the specified time lag.
+
+    Parameters
+    ----------
+    crop : pd.DataFrame
+        Dataframe containing the crop data for a single crop_index
+    time_lag : int
+        Number of frames to lag the dataset by.
+        This is the same time gap between the live and fixed data snapshots.
+
+    Returns
+    -------
+    crop_new : pd.DataFrame
+        Dataframe with the lagged crop data
+    """
+
+    crop_new = crop.copy()
+    crop_new = crop_new.shift(time_lag)
+    crop_new["frame_number"] = crop["frame_number"]
+    return crop_new.iloc[time_lag:]
+
+
+def create_truncated_dataset(
+    crop: pd.DataFrame,
+    time_lag: int,
+) -> pd.DataFrame:
+    """
+    Create a truncated dataset by removing the first `time_lag` rows from the crop data.
+
+    Parameters
+    ----------
+    crop : pd.DataFrame
+        Dataframe containing the crop data for a single crop_index
+    time_lag : int
+        Number of frames to truncate the dataset by.
+
+    Returns
+    -------
+    crop : pd.DataFrame
+        Dataframe with the truncated crop data
+    """
+    return crop.iloc[time_lag:]
+
+
+def dropna_both_df(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop rows from both dataframes where PC values for either dataframe are NaN.
+    Parameters
+    ----------
+    df1 : pd.DataFrame
+        First dataframe containing PC values
+    df2 : pd.DataFrame
+        Second dataframe containing PC values
+    Returns
+    -------
+    df1, df2 : pd.DataFrame
+        Dataframes with rows dropped where all PC values are NaN in both dataframes
+    """
+
+    pc_cols = [col for col in df1.columns if "pc" in col]
+    mask = df1[pc_cols].notna().all(axis=1) & df2[pc_cols].notna().all(axis=1)
+    return df1[mask], df2[mask]
 
 
 def get_paired_fixed_live_validation_features(
@@ -274,6 +414,13 @@ def get_paired_fixed_live_validation_features(
     data = [[live, fixed] for live, fixed in zip(x, y)]
     covariance_matrix = np.cov(data, rowvar=False)
     eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
+
+    # Get indices that would sort the eigenvalues in ascending order
+    sorted_indices = eigenvalues.argsort()[::-1]
+
+    # Sort eigenvalues and eigenvectors
+    eigenvalues = eigenvalues[sorted_indices]
+    eigenvectors = eigenvectors[:, sorted_indices]
 
     # The eigenvectors define the orientation/tilt angle of a confidence ellipse and the associated eigenvalues
     # give the lengths of the ellipse axes.
