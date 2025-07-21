@@ -84,6 +84,10 @@ def test_get_nuclear_prediction_path_invalid_paths(dataset, nuc_seg_type):
 
 
 def test_make_live_20X_objective_3i_microscope_dataset_collection():
+    """
+    Test the creation of a dataset collection
+    for live samples with 20X objective and 3i microscope.
+    """
     dataset_collection = make_sample_type_objective_microscope_collection(
         sample_type="live",
         objective="20X",
@@ -93,9 +97,9 @@ def test_make_live_20X_objective_3i_microscope_dataset_collection():
         load_dataset_config(dataset_name) for dataset_name in dataset_collection.datasets
     ]
     assert all(
-        "20X" in dataset_config.name
+        dataset_config.live_or_fixed_sample == "live"
+        and "20X" in dataset_config.name
         and dataset_config.microscope == "3i"
-        and dataset_config.live_or_fixed_sample == "live"
         for dataset_config in dataset_configs
     )
 
