@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import fire
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -29,12 +28,10 @@ def check_dataset_for_model_training(dataset_config: DatasetConfig) -> str | Non
     return dataset_config.zarr_path
 
 
-def main(model_name: str | None = None) -> None:
+def main() -> None:
     """Generate CSV files for training and validation datasets."""
-    if model_name is not None:
-        output_savedir = get_output_path("manifests", model_name, include_timestamp=False)
-    else:
-        output_savedir = get_output_path("manifests", include_timestamp=False)
+
+    output_savedir = get_output_path("manifests", include_timestamp=False)
 
     # load data config
     dataset_config_list = load_all_dataset_configs()
@@ -64,4 +61,4 @@ def main(model_name: str | None = None) -> None:
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    main()

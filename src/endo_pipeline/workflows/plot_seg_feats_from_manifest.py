@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
-    get_segmentation_features_manifest,
+    get_live_segmentation_features_manifest,
     ipython_cli_flexecute,
-    save_git_versioning_info,
+    load_dataset_config,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -23,6 +23,8 @@ from src.endo_pipeline.library.visualize.seg_features.general_standard_plots imp
     mark_parallel,
     mark_perpendicular,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def plot_seg_manifest_data(
@@ -141,7 +143,12 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     """
 
     # load the segmentation features table
-    segprops_manifest = get_segmentation_features_manifest([dataset_name])
+    segprops_manifest = get_live_segmentation_features_manifest([dataset_name])
+
+    # get the FMS ID for the live merged segmentation features
+    # and add it to the log
+    fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
+    logger.info(f"Dataset {dataset_name} FMS ID: {fmsid}")
 
     # apply the data filter
     segprops_manifest = segprops_manifest[~segprops_manifest["filter_global"]]
@@ -200,10 +207,6 @@ def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False
             if is_test:
                 break
 
-    # save git versioning info
-    save_git_versioning_info(out_dir, Path(__file__).stem, verbose=False)
-
 
 if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
     ipython_cli_flexecute(main)

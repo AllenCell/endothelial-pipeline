@@ -41,7 +41,7 @@ from src.endo_pipeline.io import load_dataframe_from_fms
 # the ml_workflows extra dependencies
 # if this fails, raise an ImportError with a helpful message
 try:
-    from src.endo_pipeline.library.model.mlflow import get_ckpt_path
+    from src.endo_pipeline.library.model.mlflow_utils import get_ckpt_path
 except ImportError as e:
     raise ImportError(
         "This notebook requires the `ml_workflows` extra dependencies to run. "
@@ -107,7 +107,7 @@ for name in get_available_model_names():
     for dataset_name in model_config.training_datasets:
         logger.debug("Validating dataset [ %s ]", dataset_name)
 
-        if name == "diffae_04_10":
+        if name == "diffae_04_10" or name == "diffae_patch_64x64_2025-06-30":
             try:
                 # Load dataset config
                 dataset_config = load_dataset_config(dataset_name)

@@ -3,12 +3,12 @@ from collections.abc import Sequence
 import fire
 
 from src.endo_pipeline.configs import (
+    get_datasets_in_collection,
     load_dataset_config,
     load_model_config,
-    load_reference_dataset_configs,
     save_model_config,
 )
-from src.endo_pipeline.library.model import apply_model_on_random_crops_from_one_dataset
+from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
 
 def main(
@@ -46,18 +46,19 @@ def main(
     """
     # default is to apply to all reference datasets
     if dataset_names == "reference":
-        dataset_config_list = load_reference_dataset_configs()
-    else:
-        if isinstance(dataset_names, str):
-            dataset_names = [dataset_names]
-        dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
+        # get reference dataset names
+        dataset_names = get_datasets_in_collection("pca_reference")
+    elif isinstance(dataset_names, str):
+        # if dataset_names is a single string, convert it to a list
+        dataset_names = [dataset_names]
+    dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
     # load model config
     model_config = load_model_config(model_name)
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:
-        model_config = apply_model_on_random_crops_from_one_dataset(
+        model_config = apply_model_on_grid_of_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,

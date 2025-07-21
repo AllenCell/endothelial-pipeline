@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from os import scandir
 from pathlib import Path
@@ -5,11 +6,10 @@ from pathlib import Path
 import dask
 import dask.array
 import dask.dataframe as dd
-import numpy as np
 import pandas as pd
 import yaml
 from bioio import BioImage
-from deprecated import deprecated
+from deprecated import deprecated  # type:ignore[import-untyped]
 
 try:
     from IPython import get_ipython
@@ -21,7 +21,14 @@ from typing import Any, Literal
 
 import fire
 
-from src.endo_pipeline.configs.dataset_config_io import load_dataset_config
+from src.endo_pipeline.configs import get_datasets_in_collection
+from src.endo_pipeline.configs.dataset_config_io import (
+    get_available_dataset_names,
+    load_dataset_config,
+)
+from src.endo_pipeline.io import load_dataframe_from_fms
+
+logger = logging.getLogger(__name__)
 
 
 def get_config_dir() -> Path:
@@ -224,9 +231,9 @@ def get_available_datasets(verbose: bool = True) -> list[str]:
     """
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing reference
-datasets is to use the following replacement method:
+datasets is to instead load the appropriate reference dataset collection.
 
-        configs.load_reference_dataset_configs
+        configs.get_datasets_in_collection("pca_reference")
 
 which will load the reference dataset objects (not the dataset names). If you
 need the names of the reference datasets, access the .name field of the
@@ -251,7 +258,6 @@ one of the following:
 
         configs.load_all_dataset_configs
         configs.load_dataset_config(dataset_name)
-        configs.load_reference_dataset_configs
 
 Fields can then be accessed using dot notation:
 
@@ -274,7 +280,6 @@ def get_dataset_info(dataset_name: str) -> dict[str, Any]:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -288,6 +293,17 @@ def get_zarr_dir(dataset_name: str) -> str:
     return dataset_info["zarr_path"]
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following replacement:
+
+    from src.endo_pipeline.configs import get_available_zarr_files
+
+This method will return a list of Path objects to Zarr files for all positions
+in the given dataset config. If you need the name of the Zarr file, use .name on
+the returned Path object.
+"""
+)
 def get_zarr_path(
     dataset_name: str,
     zarr_name: str | None | None = None,
@@ -308,6 +324,20 @@ def get_zarr_path(
     return zarr_paths
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    get_available_channels_for_all_positions(dataset_config)
+
+The recommended pattern is:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+
+    dataset_config = load_dataset_config(dataset_name)
+    channels = get_available_channels_for_all_positions(dataset_config)
+"""
+)
 def get_available_channels(
     dataset_name: str, zarr_name: str | None | None = None
 ) -> dict[str, list[str]]:
@@ -320,6 +350,20 @@ def get_available_channels(
     return channel_names
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    get_available_channels_for_position(dataset_config, position)
+
+To recreate the behavior of this method, use:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+
+    dataset_config = load_dataset_config(dataset_name)
+    channels = get_available_channels_for_position(dataset_config, 0)
+"""
+)
 def get_channel_names(dataset_name: str) -> list[str]:
     """
     Retrieve the list of channel names for a specific dataset. The function
@@ -340,6 +384,14 @@ def get_channel_names(dataset_name: str) -> list[str]:
     return channel_names
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    from src.endo_pipeline.configs import get_channel_indices_for_all_positions
+    get_channel_indices_for_all_positions(dataset_config, position, channel_names)
+"""
+)
 def get_channel_index(
     dataset_name: str, channel_names: list[str], zarr_name: str | None | None = None
 ) -> dict[str, list[int | None]]:
@@ -360,6 +412,16 @@ def get_channel_index(
     return channel_indices
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following replacement:
+
+    from src.endo_pipeline.configs import get_zarr_file_for_position
+
+This method will a Path to the Zarr file for the given dataset and position. If
+you need the name of the Zarr file, use .name on the returned Path object.
+"""
+)
 def get_zarr_name(dataset_name: str, position: int) -> str:
     """
     Get the zarr name for a given dataset and position.
@@ -380,7 +442,6 @@ def get_zarr_name(dataset_name: str, position: int) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 Then use this replacement method:
@@ -405,7 +466,6 @@ def get_specific_channel_order(dataset_name: str) -> tuple:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -496,7 +556,6 @@ def load_dataset_position_as_dask_array(
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -514,7 +573,6 @@ def get_dataset_duration_in_frames(dataset_name: str) -> int:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -532,7 +590,6 @@ def get_xy_pixel_size_in_um(dataset_name: str) -> float:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -550,7 +607,6 @@ def get_time_interval_in_minutes(dataset_name: str) -> float:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -643,7 +699,6 @@ def add_flow_to_dataframe(
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -676,7 +731,6 @@ def get_dim_map(dim_order: str) -> dict:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -697,7 +751,6 @@ def get_original_path(dataset_name: str) -> Path:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -715,7 +768,6 @@ def get_barcode(dataset_name: str) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -733,7 +785,6 @@ def get_microscope(dataset_name: str) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 The field can then be accessed using:
@@ -751,7 +802,6 @@ def get_fmsid(dataset_name: str) -> str:
 Use one of the following methods to load the dataset config:
 
         configs.load_all_dataset_configs
-        configs.load_reference_dataset_configs
         configs.load_dataset_config(dataset_name)
 
 Then use this replacement method:
@@ -824,18 +874,22 @@ def get_cdh5_classic_segmentation_path(
     T: int | None = None,
     missing_file_exception: Literal["raise", "warn"] = "warn",
 ) -> Path | None:
-    # NOTE at some point the cdh5 classic segmentation paths
-    # will probably be added to the dataconfig.yaml file
-    # for the base_path, but until then I will hardcode the
-    # path here
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg"
-    )
-    base_path = base_path / dataset_name
-    # NOTE this is what the code is expected to be when the
-    # path is added to the dataconfig.yaml file:
-    # base_path = dataset_info['cdh5_classic_seg_path']
-    position_path = Path(f"{base_path}/P{position}/")
+    """
+    Get the path to the CDH5 classic segmentation file for a given dataset, position, and timepoint.
+    If T is None, it returns the directory for the position.
+    If T is provided, it returns the specific file for that timepoint.
+    If the file is not found, it raises a FileNotFoundError or logs a warning based on the
+    `missing_file_exception` parameter.
+    """
+
+    cdh5_seg_dir = load_dataset_config(dataset_name).cdh5_seg_path
+
+    if cdh5_seg_dir is None:
+        logger.warn(f"No Cdh5 segmentations for {dataset_name}.")
+        return None
+    else:
+        position_path = Path(cdh5_seg_dir) / f"P{position}"
+
     if T is None:
         return position_path
     else:
@@ -848,14 +902,15 @@ def get_cdh5_classic_segmentation_path(
         if cdh5_seg_path is not None:
             return cdh5_seg_path
 
-    match missing_file_exception:
-        case "raise":
-            raise FileNotFoundError(
-                f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
-            )
-        case "warn":
-            print(f"CDH5 segmentation for T={T} not found in {position_path}. Skipping...")
-            return None
+        match missing_file_exception:
+            case "raise":
+                logger.error(f"CDH5 segmentation for T={T} not found in {position_path}.")
+                raise FileNotFoundError()
+            case "warn":
+                logger.warn(
+                    f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
+                )
+                return None
 
 
 def load_cdh5_classic_segmentation(
@@ -879,6 +934,12 @@ def load_cdh5_classic_segmentation(
         return dask.array.empty(shape=[0] * len(dim_order))
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_tracking_data_paths(
     dataset_name: str,
     position: int,
@@ -894,6 +955,12 @@ def get_tracking_data_paths(
     return data_path
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_tracking_data_raws(
     dataset_name_list: list,
     position: int | None = None,
@@ -932,6 +999,12 @@ def get_tracking_data_raws(
     return tracking_dataframe
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
@@ -961,6 +1034,12 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_measurement_data_paths(
     dataset_name: str, kind: Literal["alignments", "segmentation_properties"]
 ) -> Path:
@@ -975,6 +1054,12 @@ def get_measurement_data_paths(
     return data_path
 
 
+@deprecated(
+    """
+    This function was replaced by the function get_measured_segmentation_table
+    in the same location as this one.
+    """
+)
 def get_measurement_data_raws(
     dataset_name_list: list,
     kind: Literal["alignments", "segmentation_properties"],
@@ -1007,7 +1092,6 @@ def get_measurement_data_raws(
 def get_measured_segmentation_table(
     dataset_name_list: list,
     kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
-    as_dask: bool = False,
 ) -> pd.DataFrame:
     """
     Loads one of the available kinds of segmentation features tables
@@ -1026,47 +1110,38 @@ def get_measured_segmentation_table(
     """
     match kind:
         case "cdh5_segmentations":
-            base_path = Path(
-                "//allen/aics/endothelial/morphological_features/analysis/cdh5_get_measured_features"
-            )
-            data_suffix = "segprops"
+            fmsid_field = "cdh5_classic_seg_manifest_fmsid"
         case "nuclei_labelfree":
-            base_path = Path(
-                "//allen/aics/endothelial/morphological_features/analysis/nuc_labelfree_get_measured_features"
-            )
-            data_suffix = "nuclei_features"
+            fmsid_field = "nuclei_label_free_seg_manifest_fmsid"
         case "cdh5_tracking":
-            base_path = Path(
-                "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
-            )
-            data_suffix = "tracking"
+            fmsid_field = "cdh5_classic_seg_tracking_manifest_fmsid"
         case _:
             raise ValueError(
                 f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
             )
-    table_reader = dd if as_dask else pd
     measured_data_list = []
     for dataset_name in dataset_name_list:
-        data_path = base_path / f"{dataset_name}_{data_suffix}.tsv"
-        if data_path.exists():
-            # open the data tables
-            measured_data = table_reader.read_csv(data_path, sep="\t")
-            # include path to file that this data was loaded from
-            measured_data[f"source_measured_table_path-{kind}"] = data_path.as_posix()
-            measured_data_list.append(measured_data)
+        fmsid = getattr(load_dataset_config(dataset_name), fmsid_field)
+        if fmsid is not None:
+            measured_data = load_dataframe_from_fms(fmsid)
         else:
-            print(f"No {kind} data found for {dataset_name}. Skipping...")
+            logger.info(f"No {kind} data found for {dataset_name}. Skipping...")
             continue
+        # add the fmsid name to the dataframe
+        measured_data[f"fmsid_{kind}_measurements_table"] = fmsid
+        # add the dataframe to the list of datasets
+        measured_data_list.append(measured_data)
     # concatenate the dataframes into a single dataframe and return it
     if measured_data_list:
-        measured_dataframe = table_reader.concat(measured_data_list, axis=0, ignore_index=True)
+        measured_dataframe = pd.concat(measured_data_list, axis=0, ignore_index=True)
     else:  # create an empty dataframe
-        measured_dataframe = table_reader.DataFrame.from_dict({})
+        measured_dataframe = pd.DataFrame.from_dict({})
+
     return measured_dataframe
 
 
-def get_segmentation_features_manifest(
-    dataset_name_list: list, as_dask: bool = False
+def get_live_segmentation_features_manifest(
+    dataset_name_list: list,
 ) -> pd.DataFrame:
     """
     Get the segmentation features manifest for a given dataset.
@@ -1074,24 +1149,25 @@ def get_segmentation_features_manifest(
     from the tracked segmentations of a dataset.
     These datasets are raw / unfiltered.
     """
-    table_reader = dd if as_dask else pd
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/segmentation_features"
-    )
+
     seg_feat_data_list = []
     for dataset_name in dataset_name_list:
-        data_path = base_path / f"{dataset_name}_segmentation_features.tsv"
-        if data_path.exists():
-            # open the data tables
-            seg_feat_data = table_reader.read_csv(data_path, sep="\t")
-            # include path to file that this data was loaded from
-            seg_feat_data["source_filtered_tracking_table_path"] = data_path.as_posix()
-            seg_feat_data_list.append(seg_feat_data)
+        # get the fmsid of the live data segmentation
+        # features manifest for the dataset
+        fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
+        # load the manifest associated with this fmsid as a dataframe
+        if fmsid is not None:
+            seg_feat_data = load_dataframe_from_fms(fmsid)
         else:
-            print(f"No segmentation feature manifest found for {dataset_name}. Skipping...")
+            logger.info(f"No segmentation features manifest found for {dataset_name}. Skipping...")
             continue
+        # add the fmsid name to the dataframe
+        seg_feat_data["live_merged_seg_features_manifest_fmsid"] = fmsid
+        # add the dataframe to the list of datasets
+        seg_feat_data_list.append(seg_feat_data)
     # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = table_reader.concat(seg_feat_data_list, axis=0, ignore_index=True)
+    seg_feat_dataframe = pd.concat(seg_feat_data_list, axis=0, ignore_index=True)
+
     return seg_feat_dataframe
 
 
@@ -1121,16 +1197,16 @@ def fire_parse_generate_dataset_name_list(
     '\"20241016_20X\",\"20241120_20X\"'
     """
     if fire_dataset_name_input is None:
-        dataset_name_list = get_reference_datasets()
+        dataset_name_list = get_datasets_in_collection("pca_reference")
     else:
         dataset_name_list = fire_parse_list_from_CLI(fire_dataset_name_input)
 
     # check that the dataset names are valid
-    available_datasets = get_available_datasets(verbose=False)
+    available_datasets = get_available_dataset_names()
     for dataset_name in dataset_name_list:
         assert (
             dataset_name in available_datasets
-        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {get_available_datasets()}."
+        ), f"Invalid dataset name {dataset_name}. Must be a string or list of strings that are found in the available datasets {available_datasets}."
 
     return dataset_name_list
 
@@ -1385,15 +1461,15 @@ def concatenate_and_save_feature_tables(
         feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
     feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
 
+    # define the output path for the concatenated dataframe
+    if out_file_suffix:
+        out_file_suffix = (
+            f"_{out_file_suffix}" if not out_file_suffix.startswith("_") else f"{out_file_suffix}"
+        )
+    concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
+
     if feats_dfs:
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
-        if out_file_suffix:
-            out_file_suffix = (
-                f"_{out_file_suffix}"
-                if not out_file_suffix.startswith("_")
-                else f"{out_file_suffix}"
-            )
-        concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
         concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
     else:
         print(f"No feature tables found for {dataset_name}.")

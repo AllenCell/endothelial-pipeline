@@ -1,6 +1,6 @@
 import logging
 
-from .dataset_config_io import load_dataset_config, load_reference_dataset_configs
+from .dataset_config_io import get_datasets_in_collection, load_dataset_config
 from .model_config import ModelConfig, ModelManifest
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ def get_timelapse_model_manifests(model_config: ModelConfig) -> list[ModelManife
     timelapse_manifest_list = []
     for model_manifest in model_config.manifest_fmsids:
         data_config = load_dataset_config(model_manifest.dataset_name)
-        if data_config.time_interval_in_minutes < 0:
+        if data_config.time_interval_in_minutes is None:
             continue
         timelapse_manifest_list.append(model_manifest)
 
@@ -105,13 +105,14 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
     """
 
     # load data configs to get reference datasets
-    reference_dataset_config_list = load_reference_dataset_configs()
+    reference_dataset_name_list = get_datasets_in_collection("pca_reference")
+
     # list of model manifests
     model_manifests = []
-    for dataset_config in reference_dataset_config_list:
+    for dataset_name in reference_dataset_name_list:
         # check if the dataset is in the model config
         try:
-            model_manifests.append(get_model_manifest(dataset_config.name, model_config))
+            model_manifests.append(get_model_manifest(dataset_name, model_config))
         except FileNotFoundError:
             logger.warning(
                 "Do not have manifests for all PCA reference datasets in model config %s.",
@@ -122,3 +123,9 @@ def get_pca_reference_model_manifests(model_config: ModelConfig) -> list[ModelMa
         logger.error("No reference datasets found for PCA in model config %s.", model_config.name)
         raise FileNotFoundError("Insufficient reference datasets for PCA.")
     return model_manifests
+
+
+def get_labelfree_nuclei_prediction_model_name() -> str:
+    """Get the name of the label-free nuclei prediction model."""
+
+    return "nuc_pred_labelfree_finetuned_20250419"
