@@ -1,5 +1,6 @@
 """Data structures for dataset configs."""
 
+from dataclasses import field
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -8,9 +9,34 @@ from pydantic.dataclasses import dataclass
 
 @dataclass
 class ValidTimepoints:
+    """
+    Timepoints that are visually validated to be after steady state from no flow to a set
+    flow condition appears to have stabilized and before cell piling occurs.
+    """
+
     start: list[int]
+    """Start frame of valid timepoints."""
 
     stop: list[int]
+    """Stop frame of valid timepoints."""
+
+
+@dataclass
+class FlowCondition:
+    """
+    Flow condition for a dataset. Negative start or stop frames indicate the flow occurred prior
+    to image acquisition. Time is represented in 5 minute intervals, even if the time was not
+    during an acquisition, so it wont be more than ~2.5 minutes off from the actual time.
+    """
+
+    start: int
+    """Start frame of flow condition."""
+
+    stop: int
+    """Stop frame of flow condition."""
+
+    shear_stress: float
+    """Shear stress in dynes/cm^2 for the flow condition."""
 
 
 @dataclass
@@ -26,6 +52,9 @@ class DatasetConfig:
     zarr_path: str
     """Path to dataset converted to Zarr format."""
 
+    zarr_positions: list[int]
+    """List of available Zarr positions."""
+
     fmsid: str
     """FMS ID."""
 
@@ -38,23 +67,14 @@ class DatasetConfig:
     live_or_fixed_sample: Literal["live", "fixed", "fixed-methanol"]
     """Experimental condition that dataset was collected under."""
 
+    is_timelapse: bool
+    """True if dataset is a timelapse dataset, False otherwise."""
+
     microscope: Literal["3i", "Nikon"]
     """Microscope that dataset was collected with."""
 
     shear_stress_regime: str
     """Shear stress regime the dataset was collected under."""
-
-    use_cases: list[
-        Literal[
-            "classic_segmentation",
-            "feasibility",
-            "immunofluorescence",
-            "model_training",
-            "measurement",
-            "nuclear_label_free_predictions",
-        ]
-    ]
-    """List of valid uses cases for the dataset."""
 
     pixel_size_xy_in_um: float
     """Pixel size in XY dimension in μm."""
@@ -62,10 +82,10 @@ class DatasetConfig:
     duration: int
     """Duration of dataset in frames."""
 
-    time_interval_in_minutes: float
+    time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list[tuple[int, int, float]]
+    flow: list
     """Flow conditions for the dataset."""
 
     n_total_positions: int
@@ -76,6 +96,9 @@ class DatasetConfig:
 
     brightfield_channel_index: int
     """Index of the brightfield channel."""
+
+    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    """List of flow conditions for the dataset."""
 
     channel_405_index: int | None = None
     """Index of the 405 channel."""
@@ -95,6 +118,9 @@ class DatasetConfig:
     nuclear_seg_manifest_fmsid: str | None = None
     """FMS ID for nuclear segmentation manifest."""
 
+    cdh5_seg_path: str | None = None
+    """Path to Cdh5 segmentations."""
+
     tracking_integration_fmsid: str | None = None
     """FMS ID for tracking integration."""
 
@@ -104,8 +130,17 @@ class DatasetConfig:
     immunofluorescence_manifest_fmsid: str | None = None
     """FMS ID for immunofluorescence manifest."""
 
-    is_reference: bool = False
-    """True if dataset is used as a reference dataset, False otherwise."""
+    cdh5_classic_seg_tracking_manifest_fmsid: str | None = None
+    """FMS ID for classic segmentation tracking output manifest."""
+
+    cdh5_classic_seg_manifest_fmsid: str | None = None
+    """FMS ID for classic segmentation measurement output manifest."""
+
+    nuclei_label_free_seg_manifest_fmsid: str | None = None
+    """FMS ID for nuclei label free segmentation measurement output manifest."""
+
+    live_merged_seg_features_manifest_fmsid: str | None = None
+    """FMS ID for live dataset merged segmentation features manifest."""
 
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
@@ -122,3 +157,17 @@ class DatasetConfig:
     class Config(BaseConfig):
         forbid_extra_keys = True
         omit_none = False
+
+
+@dataclass
+class DatasetCollectionConfig:
+    """Dataset configuration collection for pipeline."""
+
+    name: str
+    """Unique name of the dataset collection."""
+
+    description: str
+    """Brief description of the dataset collection."""
+
+    datasets: list[str]
+    """List of dataset names that belong in the collection."""

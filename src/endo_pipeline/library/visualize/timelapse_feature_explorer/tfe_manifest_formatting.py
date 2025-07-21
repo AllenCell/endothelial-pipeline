@@ -105,7 +105,7 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     return df_result
 
 
-def add_feauture_metadata(df: pd.DataFrame) -> dict:
+def add_feature_metadata(df: pd.DataFrame) -> dict:
     """
     Only the features specified in the LABEL_MAP are added to TFE.
     Metadata right now is just the label for the feature, but this can

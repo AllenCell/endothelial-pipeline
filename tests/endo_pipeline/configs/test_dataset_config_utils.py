@@ -1,9 +1,18 @@
+from pathlib import Path
+
 import pytest
+from bioio import BioImage
 
 from src.endo_pipeline.configs import DatasetConfig
 from src.endo_pipeline.configs.dataset_config_utils import (
+    get_available_channels_for_all_positions,
+    get_available_channels_for_position,
+    get_available_zarr_files,
+    get_channel_indices_for_all_positions,
+    get_channel_indices_for_position,
     get_nuclear_prediction_path,
     get_specific_channel_order,
+    get_zarr_file_for_position,
 )
 
 
@@ -13,20 +22,118 @@ def dataset():
         name="unique_dataset_name",
         original_path="/path/to/original/dataset",
         zarr_path="/path/to/zarr/dataset",
+        zarr_positions=[1, 3, 5],
         fmsid="FMS ID",
         barcode="Dataset LabKey barcode",
         cell_lines=["AICS-111", "AICS-222"],
         live_or_fixed_sample="live",
+        is_timelapse=True,
         microscope="3i",
         shear_stress_regime="Shear stress regime the dataset was collected under",
-        use_cases=[],
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
         flow=[(0, 0, 0.0)],
         n_total_positions=0,
         brightfield_channel_index=0,
+        channel_488_index=0,
     )
+
+
+@pytest.fixture(autouse=True)
+def zarr_files(mocker):
+    zarr_p1_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p1_mock.channel_names = ["Channel1", "Channel2"]
+
+    zarr_p3_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p3_mock.channel_names = ["Channel1", "Channel2", "Channel3"]
+
+    zarr_p5_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p5_mock.channel_names = ["Channel1", "Channel3", "Channel4"]
+
+    files = {
+        Path("/path/to/zarr/dataset/dataset_P1.ome.zarr"): zarr_p1_mock,
+        Path("/path/to/zarr/dataset/dataset_P3.ome.zarr"): zarr_p3_mock,
+        Path("/path/to/zarr/dataset/dataset_P5.ome.zarr"): zarr_p5_mock,
+    }
+
+    mock = mocker.patch("src.endo_pipeline.configs.dataset_config_utils.BioImage")
+    mock.side_effect = lambda arg: files[arg]
+
+
+def test_get_available_zarr_files(dataset):
+    zarr_files = get_available_zarr_files(dataset)
+
+    expected = [
+        Path("/path/to/zarr/dataset/dataset_P1.ome.zarr"),
+        Path("/path/to/zarr/dataset/dataset_P3.ome.zarr"),
+        Path("/path/to/zarr/dataset/dataset_P5.ome.zarr"),
+    ]
+
+    assert zarr_files == expected
+
+
+def test_get_zarr_file_for_position_valid(dataset):
+    zarr_file = get_zarr_file_for_position(dataset, position=3)
+
+    assert zarr_file == Path("/path/to/zarr/dataset/dataset_P3.ome.zarr")
+
+
+def test_get_zarr_file_for_position_invalid(dataset):
+    with pytest.raises(ValueError):
+        get_zarr_file_for_position(dataset, position=4)
+
+
+def test_get_available_channels_for_all_positions(dataset):
+    channels = get_available_channels_for_all_positions(dataset)
+
+    assert channels == {
+        1: ["Channel1", "Channel2"],
+        3: ["Channel1", "Channel2", "Channel3"],
+        5: ["Channel1", "Channel3", "Channel4"],
+    }
+
+
+@pytest.mark.parametrize(
+    "position,expected",
+    [
+        (1, ["Channel1", "Channel2"]),
+        (3, ["Channel1", "Channel2", "Channel3"]),
+        (5, ["Channel1", "Channel3", "Channel4"]),
+    ],
+)
+def test_get_available_channels_for_position(dataset, position, expected):
+    channels = get_available_channels_for_position(dataset, position)
+
+    assert channels == expected
+
+
+def test_get_channel_indices_for_all_positions(dataset):
+    channel_names = ["Channel3", "Channel1", "Channel2"]
+
+    channels = get_channel_indices_for_all_positions(dataset, channel_names)
+
+    assert channels == {
+        1: [None, 0, 1],
+        3: [2, 0, 1],
+        5: [1, 0, None],
+    }
+
+
+@pytest.mark.parametrize(
+    "position,expected",
+    [
+        (1, [None, 1]),
+        (3, [2, 1]),
+        (5, [1, None]),
+    ],
+)
+def test_get_channel_indices_for_position(dataset, position, expected):
+    channel_names = ["Channel3", "Channel2"]
+
+    indices = get_channel_indices_for_position(dataset, position, channel_names)
+
+    assert indices == expected
 
 
 def test_get_specific_channel_order_no_null_channels(dataset):

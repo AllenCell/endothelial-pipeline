@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from multiprocessing import Pool
 from pathlib import Path
@@ -6,7 +7,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
@@ -17,13 +17,15 @@ from src.endo_pipeline.configs.dataset_io import (
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
-    save_git_versioning_info,
 )
+from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     sequence_to_scalar,
 )
 from src.endo_pipeline.library.process.lib_tracking import run_tracking
+
+logger = logging.getLogger(__name__)
 
 
 def run_workflow(queue: Sequence) -> None:
@@ -42,7 +44,9 @@ def run_workflow(queue: Sequence) -> None:
     if seg_dir is not None:
         seg_dir = Path(seg_dir)
     else:
-        print(f"No segmentation directory found for {dataset_name}. Skipping tracking analysis.")
+        logger.info(
+            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
+        )
         return
 
     seg_filepaths = sorted(seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name))
@@ -93,7 +97,7 @@ def run_workflow(queue: Sequence) -> None:
         )
 
     else:
-        print(
+        logger.info(
             f"No segmentation images found for {dataset_name}. Skipping tracking analysis. If this is unexpected check that the IS_TEST argument is set to False."
         )
         return
@@ -108,9 +112,12 @@ def main(
     verbose: bool = False,
 ) -> None:
 
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(Path(__file__).stem)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
+
+    configure_logging(out_dir, logger, verbose=verbose)
+    logger.info(f"datasets analyzed: {dataset_name_list}")
 
     analysis_queue = build_analysis_queue(
         dataset_name_list,
@@ -151,7 +158,7 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list, desc="Replacing individual tables with combined table..."
         ):
-            concatenate_and_save_feature_tables(
+            table_path_out = concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
                 out_file_suffix="tracking",
@@ -159,12 +166,8 @@ def main(
                 remove_initial_files_and_folders=True,
             )
 
-        # save git versioning info
-        save_git_versioning_info(
-            out_dir=out_dir, filename_prefix=f"{Path(__file__).stem}", verbose=verbose
-        )
-
-    print("\N{MICROSCOPE} Done analysis.")
+    logger.info("...done analysis.")
+    print("\N{MICROSCOPE}")
 
 
 if __name__ == "__main__":

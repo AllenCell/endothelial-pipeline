@@ -16,7 +16,7 @@ from src.endo_pipeline.configs import load_dataset_config, load_model_config, sa
 from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
 from src.endo_pipeline.library.model import get_cytodl_commit_hash, load_overrides
 from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
-from src.endo_pipeline.workflows.apply_diffae_model_on_random_crops import apply_model_single
+from src.endo_pipeline.workflows.apply_diffae_model_on_grid_crops import apply_model_single
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1

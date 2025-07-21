@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 from git import Repo
+from matplotlib.figure import Figure
 
 from src.endo_pipeline.configs import DatasetConfig, ModelConfig
 
@@ -48,6 +49,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
         Zero or more additional subdirectories to include in file path.
     include_timestamp
         True to include YYYY-MM-DD timestamp in file path, False otherwise.
+        NOTE: the timezone for the timestamp is always UTC.
 
     Returns
     -------
@@ -216,3 +218,27 @@ def upload_file_to_fms(
     )
 
     return fms_file.id
+
+
+def save_plot_to_path(
+    figure: Figure, output_path: Path, figure_name: str, dpi: int = 450, transparent: bool = False
+) -> None:
+    """
+    Save a matplotlib figure to a file with the specified filename.
+
+    Parameters
+    ----------
+    figure
+        Handle for the matplotlib figure to be saved.
+    output_path
+        Path to directory where figure should be saved.
+    figure_name
+        Name of the figure.
+    dpi
+        Resolution of the figure in dots per inch (dpi).
+    transparent
+        True to save figure with clear background, False otherwise.
+    """
+
+    output_file = (output_path / figure_name).with_suffix(".png")
+    figure.savefig(output_file, dpi=dpi, transparent=transparent, bbox_inches="tight")

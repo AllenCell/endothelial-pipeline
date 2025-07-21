@@ -86,6 +86,8 @@ def build_analysis_queue(
             positions_in_S += [scene_index] * num_pos_in_T
 
         for pos, (pos_in_T, pos_in_S) in enumerate(zip(positions_in_T, positions_in_S)):
+            if is_test and pos > 2:
+                break
             if use_sldy_data:
                 img.set_scene(pos_in_S)
                 scene_name = img.scenes[pos_in_S]

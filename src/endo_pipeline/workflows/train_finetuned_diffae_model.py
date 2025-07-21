@@ -6,7 +6,7 @@ from cyto_dl.api import CytoDLModel
 
 from src.endo_pipeline.configs import load_model_config
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.model.mlflow import download_mlflow_artifact, get_ckpt_path
+from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, get_ckpt_path
 
 
 def generate_overrides_for_finetuning(

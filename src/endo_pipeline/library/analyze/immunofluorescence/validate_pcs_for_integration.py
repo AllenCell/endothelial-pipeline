@@ -21,7 +21,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
-from src.endo_pipeline.library.model.mlflow import download_model
+from src.endo_pipeline.library.model.mlflow_utils import download_model
 from src.endo_pipeline.library.model.model_inputs import generate_overrides_for_model_eval
 from src.endo_pipeline.library.process.registration import align_all_positions
 
