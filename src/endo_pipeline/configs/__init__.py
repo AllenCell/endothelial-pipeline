@@ -23,7 +23,7 @@ from .dataset_config_utils import (
     get_specific_channel_order,
     get_zarr_file_for_position,
 )
-from .model_config import ModelConfig, ModelManifest
+from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,
@@ -42,6 +42,8 @@ from .model_config_utils import (
 )
 
 __all__ = [
+    "CellposeModelConfig",
+    "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
