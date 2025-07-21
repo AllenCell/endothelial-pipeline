@@ -293,6 +293,17 @@ def get_zarr_dir(dataset_name: str) -> str:
     return dataset_info["zarr_path"]
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following replacement:
+
+    from src.endo_pipeline.configs import get_available_zarr_files
+
+This method will return a list of Path objects to Zarr files for all positions
+in the given dataset config. If you need the name of the Zarr file, use .name on
+the returned Path object.
+"""
+)
 def get_zarr_path(
     dataset_name: str,
     zarr_name: str | None | None = None,
@@ -313,6 +324,20 @@ def get_zarr_path(
     return zarr_paths
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    get_available_channels_for_all_positions(dataset_config)
+
+The recommended pattern is:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+
+    dataset_config = load_dataset_config(dataset_name)
+    channels = get_available_channels_for_all_positions(dataset_config)
+"""
+)
 def get_available_channels(
     dataset_name: str, zarr_name: str | None | None = None
 ) -> dict[str, list[str]]:
@@ -325,6 +350,20 @@ def get_available_channels(
     return channel_names
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    get_available_channels_for_position(dataset_config, position)
+
+To recreate the behavior of this method, use:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+
+    dataset_config = load_dataset_config(dataset_name)
+    channels = get_available_channels_for_position(dataset_config, 0)
+"""
+)
 def get_channel_names(dataset_name: str) -> list[str]:
     """
     Retrieve the list of channel names for a specific dataset. The function
@@ -345,6 +384,14 @@ def get_channel_names(dataset_name: str) -> list[str]:
     return channel_names
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Instead use:
+
+    from src.endo_pipeline.configs import get_channel_indices_for_all_positions
+    get_channel_indices_for_all_positions(dataset_config, position, channel_names)
+"""
+)
 def get_channel_index(
     dataset_name: str, channel_names: list[str], zarr_name: str | None | None = None
 ) -> dict[str, list[int | None]]:
@@ -365,6 +412,16 @@ def get_channel_index(
     return channel_indices
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. Use the following replacement:
+
+    from src.endo_pipeline.configs import get_zarr_file_for_position
+
+This method will a Path to the Zarr file for the given dataset and position. If
+you need the name of the Zarr file, use .name on the returned Path object.
+"""
+)
 def get_zarr_name(dataset_name: str, position: int) -> str:
     """
     Get the zarr name for a given dataset and position.

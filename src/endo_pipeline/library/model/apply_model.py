@@ -37,10 +37,10 @@ def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
         The path where the downloaded model artifacts are saved.
     """
     try:
-        artifact_path = "requirements/train-requirements.txt"
+        artifact_path = Path("requirements/train-requirements.txt")
         download_mlflow_artifact(run_id, artifact_path, model_path)
     except ValueError:
-        artifact_path = "requirements/eval-requirements.txt"
+        artifact_path = Path("requirements/eval-requirements.txt")
         download_mlflow_artifact(run_id, artifact_path, model_path)
 
     with open(model_path / artifact_path) as f:
