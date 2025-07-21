@@ -48,7 +48,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 
 if __name__ == "__main__":
-    # Calculate the global center plane for each position in a dataset
+    # Define datasets and offsets
     datasets = [
         "20241016_20X",
         "20241120_20X",
@@ -65,58 +65,37 @@ if __name__ == "__main__":
         "20250618_20X",
     ]
 
+    # Process each dataset
     for dataset in datasets:
         logging.info(f"Processing dataset: {dataset}")
         save_dir = get_output_path(__file__, dataset)
         config = load_dataset_config(dataset)
 
-        # Prepare arguments for multiprocessing
-        args = [(dataset, position, config, save_dir) for position in range(0, 6)]
-
-        # Use multiprocessing Pool to parallelize position processing
+        # Parallelize position processing
+        args = [(dataset, position, config, save_dir) for position in range(6)]
         with Pool() as pool:
-            results = pool.starmap(process_position, args)  # Use starmap for explicit arguments
+            results = pool.starmap(process_position, args)
 
-        # Log results for debugging
-        logging.info(f"Finished processing dataset: {dataset}")
-        logging.info(f"Results: {results}")
-
-        # Save results to a DataFrame
+        # Save results
         results_df = pd.DataFrame(results)
         results_df.to_csv(save_dir / f"{dataset}_global_center_plane.csv", index=False)
         logging.info(f"Results saved to: {save_dir / f'{dataset}_global_center_plane.csv'}")
 
-    # %% Visualize how a slice is selected for an FOV
-    dataset = "20241016_20X"
-    save_dir = get_output_path(
-        __file__,
-        dataset,
-    )
+    # Visualize slice selection for a specific dataset and position
+    dataset, position, frame = "20241016_20X", 0, 0
+    save_dir = get_output_path(__file__, dataset)
     config = load_dataset_config(dataset)
 
-    position = 0  # Visualize for the first position
-    frame = 0  # Visualize the first frame only
     img = get_zarr_img_for_dataset(dataset, position, resolution_level=1)
     bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
     cdh5_stack = img.get_image_dask_data("ZYX", C=0, T=frame)
 
+    # Calculate center plane
     stdevs = [plane.std().compute() for plane in bf_stack.squeeze()]
     center_plane = max(0, np.argmin(stdevs))
 
-    # Plot the standard devs vs plane index
+    # Plot and visualize
     plot_standard_devs_per_slice(stdevs, center_plane, dataset, position, frame, save_dir)
-
-    # Visualize the slice selection
-    lower_offset = 5
-    upper_offset = 5
     visualize_slice_selection(
-        bf_stack,
-        cdh5_stack,
-        center_plane,
-        lower_offset,
-        upper_offset,
-        dataset,
-        position,
-        frame,
-        save_dir,
+        bf_stack, cdh5_stack, center_plane, 5, 5, dataset, position, frame, save_dir
     )
