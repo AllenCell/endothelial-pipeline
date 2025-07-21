@@ -37,15 +37,17 @@ def get_config_dir() -> Path:
     return Path(__file__).resolve().parents[0]
 
 
-def save_to_yaml(object: dict, path: Path) -> None:
+def save_to_yaml(object: dict, path: Path, list_representer: bool = True) -> None:
     """Save dictionary object to YAML at given path."""
 
-    yaml.SafeDumper.add_representer(
-        list,
-        lambda dumper, data: dumper.represent_sequence(
-            "tag:yaml.org,2002:seq", data, flow_style=True
-        ),
-    )
+    if list_representer:
+        yaml.SafeDumper.add_representer(
+            list,
+            lambda dumper, data: dumper.represent_sequence(
+                "tag:yaml.org,2002:seq", data, flow_style=True
+            ),
+        )
+
     yaml_content = yaml.safe_dump(
         object, default_flow_style=False, sort_keys=False, width=80, indent=2
     )
@@ -60,11 +62,26 @@ def separate_data_config() -> None:
 
     combined_data_config = yaml.safe_load(combined_path.open())
 
-    for index, (dataset, contents) in enumerate(combined_data_config.items()):
-        data_config_path = separated_path / f"{index:02d}_{dataset}.yaml"
+    for dataset, contents in combined_data_config.items():
+        data_config_path = separated_path / f"{dataset}.yaml"
         single_data_config = {"name": dataset}
         single_data_config.update(contents)
         save_to_yaml(single_data_config, data_config_path)
+
+
+def separate_model_config() -> None:
+    """Separate combined model configs into individual model configs."""
+
+    separated_path = get_config_dir() / "models"
+    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
+
+    combined_model_config = yaml.safe_load(combined_path.open())
+
+    for model, contents in combined_model_config.items():
+        data_config_path = separated_path / f"{model}.yaml"
+        single_model_config = {"name": model}
+        single_model_config.update(contents)
+        save_to_yaml(single_model_config, data_config_path, False)
 
 
 def combine_data_config(save: bool = False) -> dict:
@@ -130,6 +147,10 @@ configs is to use one of the following replacement methods.
 If you need the config for a single model, use:
 
         configs.load_model_config(model_name)
+
+If you need only need dataset names, use:
+
+        configs.get_available_model_names
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -156,7 +177,7 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
 
 @deprecated(
     """
-NOTE: you can ignore this warning when writing "model" or "dynamics" configs.
+NOTE: you can ignore this warning when writing "dynamics" configs.
 
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for saving updated dataset
@@ -167,6 +188,16 @@ configs is to directly adjust values in the config:
 The dataset config can then be saved using:
 
         configs.save_dataset_config(dataset)
+
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated model
+configs is to directly adjust values in the config:
+
+        model.field = (new value)
+
+The model config can then be saved using:
+
+        configs.save_model_config(model)
 """
 )
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
@@ -191,6 +222,10 @@ def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -
     # config file).
     if config_type == "data":
         separate_data_config()
+        config_file.unlink()
+
+    if config_type == "model":
+        separate_model_config()
         config_file.unlink()
 
 
