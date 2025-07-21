@@ -31,11 +31,12 @@ def gfp_max_proj(img: BioImage, frame: int) -> np.ndarray:
     return gfp_max_proj.compute()
 
 
-def get_single_bf_plane(stack: da.Array) -> np.ndarray:
-    """Get a single best Z plane from the brightfield stack."""
+def get_single_bf_plane(stack: da.Array, offset=-5) -> np.ndarray:
+    """Get a single Z plane from the brightfield stack to visualize."""
     stdevs = [plane.std().compute() for plane in stack.squeeze()]
-    best_plane = max(0, np.argmin(stdevs) - 5)  # move 5 planes down to have contrast
-    bf_plane = stack[best_plane]
+    focus_plane = np.argmin(stdevs)  # in focus plane has low contrast in BF
+    plane_selection = max(0, focus_plane + offset)  # shift from focus plane to get contrast
+    bf_plane = stack[plane_selection]
     return bf_plane.compute()
 
 
