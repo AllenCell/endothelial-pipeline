@@ -32,7 +32,7 @@ if __name__ == "__main__":
     )
 
     # load or fit reference PCA model and project features into reference PC space
-    pca = fit_pca()
+    pca = fit_pca("diffae_04_10")
 
     # Project features from applying fine tuned diffAE model to fixed and live data into
     # reference PC space.
