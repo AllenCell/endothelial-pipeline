@@ -55,24 +55,28 @@ def get_nuclear_prediction_path(
         raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
 
 
-def get_live_20X_objective_3i_microscope_datasets() -> DatasetCollectionConfig:  # noqa: N802
+def make_sample_type_objective_microscope_collection(
+    sample_type: Literal["live", "fixed"],
+    objective: Literal["20X", "40X"],
+    microscope: Literal["3i", "Nikon"],
+) -> DatasetCollectionConfig:
     """
-    Create collection of datasets that are
-    live, 20X objective, and from the 3i scope.
+    Create and return collection of datasets that are
+    of a specific sample type, objective, and microscope.
     """
     dataset_configs = load_all_dataset_configs()
-    live_20X_3i_dataset_names = []  # noqa: N806
+    dataset_collection_names = []
     for dataset_config in dataset_configs:
-        if (
-            dataset_config.live_or_fixed_sample == "live"
-            and dataset_config.microscope == "3i"
-            and "20X" in dataset_config.name
+        if (  # filter datasets based on sample type, objective, and microscope
+            dataset_config.live_or_fixed_sample == sample_type
+            and objective in dataset_config.name  # this will become a key soon
+            and dataset_config.microscope == microscope
         ):
-            live_20X_3i_dataset_names.append(dataset_config.name)
-    live_20X_3i_dataset_collection = DatasetCollectionConfig(  # noqa: N806
-        name="live_20X_objective_3i_microscope",
-        description="Collection of live datasets with 20X objective from the 3i microscope.",
-        datasets=live_20X_3i_dataset_names,
+            dataset_collection_names.append(dataset_config.name)
+    dataset_collection = DatasetCollectionConfig(
+        name=f"{sample_type}_{objective}_objective_{microscope}_microscope",
+        description=f"Collection of {sample_type} datasets with {objective} objective from the {microscope} microscope.",
+        datasets=dataset_collection_names,
     )
 
-    return live_20X_3i_dataset_collection
+    return dataset_collection

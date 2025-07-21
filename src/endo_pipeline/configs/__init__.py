@@ -14,9 +14,9 @@ from .dataset_config_io import (
     validate_dataset_config,
 )
 from .dataset_config_utils import (
-    get_live_20X_objective_3i_microscope_datasets,
     get_nuclear_prediction_path,
     get_specific_channel_order,
+    make_sample_type_objective_microscope_collection,
 )
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
@@ -50,7 +50,6 @@ __all__ = [
     "get_dataset_config_dir",
     "get_datasets_in_collection",
     "get_labelfree_nuclei_prediction_model_name",
-    "get_live_20X_objective_3i_microscope_datasets",
     "get_model_config_dir",
     "get_model_manifest",
     "get_nuclear_prediction_path",
@@ -62,6 +61,7 @@ __all__ = [
     "load_dataset_collection_config",
     "load_dataset_config",
     "load_model_config",
+    "make_sample_type_objective_microscope_collection",
     "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",
