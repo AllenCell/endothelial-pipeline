@@ -49,7 +49,6 @@ def plot_crop_montage(
         ax[i // 10, i % 10].axis("off")
     fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
     plt.tight_layout()
-    plt.show()
     viz_base.save_plot(
         fig,
         save_dir
@@ -57,6 +56,7 @@ def plot_crop_montage(
         + "p".join(str(pc_val).split("."))
         + f"_{image_content}_crops_montage",
     )
+    plt.show()
 
 
 def generate_contact_sheet(
