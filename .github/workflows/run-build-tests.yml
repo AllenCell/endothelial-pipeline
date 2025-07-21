@@ -1,4 +1,4 @@
-name: Tests
+name: run-build-tests
 
 on: [push]
 
@@ -8,9 +8,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  run-build-tests:
     runs-on: ubuntu-latest
+
     steps:
+
     - name: Checkout the repo
       uses: actions/checkout@v4
 
@@ -27,4 +29,4 @@ jobs:
         python-version-file: "pyproject.toml"
 
     - name: Run pytest
-      run: uv run --locked pytest -v
+      run: uv run --locked pytest tests -v
