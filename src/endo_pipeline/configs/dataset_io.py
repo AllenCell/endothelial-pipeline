@@ -84,12 +84,29 @@ def combine_data_config(save: bool = False) -> dict:
     return combined_data_config
 
 
+def combine_model_config(save: bool = False) -> dict:
+    """Combine individual model configs into combined config keyed by name."""
+
+    separated_path = get_config_dir() / "models"
+    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
+
+    separate_data_configs = [
+        yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))
+    ]
+    combined_model_config = {config["name"]: config for config in separate_data_configs}
+
+    if save:
+        save_to_yaml(combined_model_config, combined_path)
+
+    return combined_model_config
+
+
 # model methods
 
 
 @deprecated(
     """
-NOTE: you can ignore this warning when loading "model" or "dynamics" configs.
+NOTE: you can ignore this warning when loading "dynamics" configs.
 
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing dataset
@@ -105,6 +122,14 @@ If you need the config for a single dataset, use:
 If you need only need dataset names, use:
 
         configs.get_available_dataset_names
+
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing model
+configs is to use one of the following replacement methods.
+
+If you need the config for a single model, use:
+
+        configs.load_model_config(model_name)
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -116,6 +141,11 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     # configs. This is part of a change to manage datasets with dataclasses.
     if config_type == "data":
         return combine_data_config()
+
+    # If loading the model config, load combined from all individual model
+    # configs. This is part of a change to manage models with dataclasses.
+    if config_type == "model":
+        return combine_model_config()
 
     config_dir = get_config_dir()
     config_file = config_dir / f"{config_type}_config.yaml"
