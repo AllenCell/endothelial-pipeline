@@ -86,7 +86,7 @@ def save_model_config(model: ModelConfig) -> None:
     def yaml_encoder(data):
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
-    content = YAMLEncoder(ModelConfig, post_encoder_func=yaml_encoder).encode(model)
+    content = YAMLEncoder(type(model), post_encoder_func=yaml_encoder).encode(model)
     config_file.write_text(content)
 
 
