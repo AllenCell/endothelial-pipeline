@@ -47,8 +47,8 @@ __all__ = [
     "run_epr_analysis",
     "run_fixed_point_analysis",
     "run_gen_potential_analysis",
-    "save_train_test",
     "save_sde_model",
+    "save_train_test",
     "solve_ddff_ode",
     "train_test_all",
 ]
