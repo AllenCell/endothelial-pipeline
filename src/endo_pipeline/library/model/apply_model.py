@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import torch
 from cyto_dl.api import CytoDLModel
 
@@ -11,15 +12,14 @@ from src.endo_pipeline.configs import (
     save_dataset_config,
 )
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-
-from .mlflow_utils import download_mlflow_artifact, download_model
-from .model_inputs import (
+from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from src.endo_pipeline.library.model.model_inputs import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
     preprocess_tracking_manifest_for_model_eval,
 )
-from .model_outputs import (
+from src.endo_pipeline.library.model.model_outputs import (
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
 )
@@ -248,3 +248,75 @@ def apply_model_on_tracked_crops_from_one_dataset(
         # is stored in the dataset config
         dataset_config.diffae_tracking_integration_fmsid = file_id
         save_dataset_config(dataset_config)
+
+
+def apply_model_on_crop(
+    # dataset_name: str,
+    image_array: np.ndarray,
+    model_name: str = "diffae_04_10",
+) -> np.ndarray:
+
+    model_config = load_model_config(model_name)
+
+    # download model from mlflow
+    mlflow_id = model_config.mlflow_run_id
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
+
+    path_dict = download_model(mlflow_id, model_path)
+
+    overrides = load_overrides(None)  # (overrides)
+
+    # create zarr dataset
+    dataset_config = load_dataset_config("20241120_20X")
+    resolution_level = 1
+    save_path = get_output_path(Path(__file__).stem, include_timestamp=False)
+    data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
+
+    # apply overrides
+    overrides = generate_overrides_for_model_eval(
+        overrides,
+        save_path=str(save_path),
+        data_path=str(data_path),
+        ckpt_path=path_dict["checkpoint_path"],
+        dataset_name=dataset_config.name,
+        model_name=model_config.name,
+    )
+    # overrides = {
+    #     'data.train_dataloaders': None,
+    #     'data.val_dataloaders': None,
+    # }
+
+    # load model
+    model = CytoDLModel()
+    # cfg_path = Path(path_dict["config_path"]).parent / "eval_test.yaml"
+    cfg_path = Path(path_dict["config_path"])
+    model.load_config_from_file(cfg_path.as_posix())
+
+    model.override_config(overrides)
+
+    # make prediction
+    # output is a list with the form
+    # [(features_image1, metadata_image1), (features_image2, metadata_image2), ...]
+    _, _, cytodl_output = model.predict(data=image_array)
+
+    return cytodl_output
+
+
+from matplotlib import pyplot as plt
+
+## example:
+from src.endo_pipeline.configs import load_dataset_config, load_model_config
+from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+
+dataset_name = "20241120_20X"
+model_name = "diffae_04_10"
+img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
+img.get_image_dask_data("TCZYX", T=0)
+dataset_config = load_dataset_config(dataset_name)
+dim_order = "TCZYX"
+img_arr = img.get_image_dask_data(dim_order, T=0).max(dim_order.index("Z"), keepdims=True).compute()
+img_arr_crop_cdh5 = img_arr[0, 0:1, 0, 0:128, 0:128]  # Example crop
+img_arr_crop_bf = img_arr[0, 1:2, 0, 0:128, 0:128]  # Example crop
+data = {"test": img_arr_crop_bf, "val": img_arr_crop_bf, "train": img_arr_crop_bf}
+apply_model_on_crop(data)
+# apply_model_on_crop(img_arr_crop_bf)
