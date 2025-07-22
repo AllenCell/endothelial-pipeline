@@ -6,13 +6,16 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
 from cellsmap.util.manifest_io import get_diffae_manifest
-from src.endo_pipeline.configs import get_model_manifest, load_dataset_config, load_model_config
+from src.endo_pipeline.configs import (
+    get_model_manifest,
+    load_dataset_collection_config,
+    load_dataset_config,
+    load_model_config,
+)
 from src.endo_pipeline.configs.dataset_io import (
     get_live_segmentation_features_manifest,
     get_reference_datasets,
@@ -31,6 +34,8 @@ from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import plot_one_slice_quiver
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import (
     get_valid_slice_indexes,
+    grid_vs_track_vec_angle_hist2d,
+    plot_grid_vs_tracks_flow_field,
     plot_quiver_slices_from_diffae_table,
 )
 
@@ -191,48 +196,20 @@ def get_traj_and_flowfield(
     return traj, flow_field_dict
 
 
-# def compute_ff_test() -> :
+def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+    angle_rad = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
+    return angle_rad
 
-#     # load dataframe and get top 3 PCs
-#     df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca)
-#     pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
-#     # get list of per-crop trajectories, the corresponding
-#     # displacement vectors, and time differences
-#     traj_list, d_traj_list = regression_helper.get_traj_and_diff(df, pc_column_names)
-#     # get drift and diffusion estimates
-#     # (Kramers-Moyal coefficients)
-#     drift_km, diff_km = regression_helper.get_kramers_moyal(
-#         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
-#     )
-
-#     # compute interpolated flow field - drift
-#     flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
-#     # save flow field dictionary as npy
-#     np.save(
-#         output_savedir / f"flow_field_dict_{model_manifest.dataset_name}.npy",
-#         flow_field_dict,  # type: ignore
-#         allow_pickle=True,
-#     )
-
-#     # compute interpolated diffusion field
-#     # (diagonal diffusion tensor represented as 3D vector field)
-#     diffusion_field_dict = compute_extrapolated_vector_field(
-#         diff_km, centers, interpolator="nearest"
-#     )
-#     # save diffusion field dictionary as npy
-#     np.save(
-#         output_savedir / f"diffusion_field_dict_{model_manifest.dataset_name}.npy",
-#         diffusion_field_dict,  # type: ignore
-#         allow_pickle=True,
-#     )
-
-#     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-#     # with initial conditions given by init
-#     # solve IVP, get back trajectory
-#     traj = solve_ddff_ode(flow_field_dict, init, time_span)
-
-#     return traj
+def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+    ## This is PROBABLY the same as test_ang above, and
+    ## definitely faster; I think any differences are
+    ## just floatingpoint rounding errors
+    dot_prod = np.einsum("ij,ij->i", v1, v2)
+    norm1 = np.linalg.norm(v1, axis=1)
+    norm2 = np.linalg.norm(v2, axis=1)
+    angle_rad = np.arccos(dot_prod / (norm1 * norm2))
+    return angle_rad
 
 
 dataset_name = "20241120_20X"
@@ -285,6 +262,7 @@ datasets_for_bounds = [
     "20250319_20X",
     "20250326_20X",
 ]
+# datasets_for_bounds = load_dataset_collection_config("live_20X_objective_3i_microscope")
 
 # NOTE IT TAKES WAY LONGER TO SOLVE THE ODE IF DATASET_NAME_LIST IS 20241120_20X
 # AND THEREFORE THE BOUNDS ARE DIFFERENT THAN IF THE BOUNDS ARE SET TO THE DEFAULT
@@ -333,8 +311,6 @@ fig, axs = plot_quiver_slices_from_diffae_table(
 fig.suptitle("DiffAE tracked crops")
 
 
-# NOTE VERY ROUGH WORK IN PROGRESS BELOW
-
 # def get_quiver_args():
 yvalids_grids, zvalids_grids = get_valid_slice_indexes(
     diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -374,50 +350,12 @@ g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
 v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
 g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
 
-test1 = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
-test2 = np.asarray(list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks))))
+vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
+vecs_tracks = np.asarray(list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks))))
 
-
-# vx, vy = [0, 1], [1, 0]
-# ux, uy = [0, 1], [1, 0]
-
-# v, u = np.array([0, 1]), np.array([1, 0])
-
-# us = np.array([[0, 1], [0, 1], [0, 1], [0, 1], [1, 1], [1, 1]])
-# vs = np.array([[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, 2]])
-
-# np.vectorize(np.dot)(us, vs)
-# np.dot(us, vs)
-
-# (vs * us).sum(-1)
-
-
-def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
-    angle_rad = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-    return angle_rad
-
-
-# [get_vector_vector_angle(vs[i], us[i], as_degrees=True) for i in range(len(vs))]
-
-
-test_ang = np.array([get_vector_vector_angle(test1[i], test2[i]) for i in range(len(test1))])
-
-
-def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
-    ## This is PROBABLY the same as test_ang above, and
-    ## definitely faster; I think it's just rounding errors
-    dot_prod = np.einsum("ij,ij->i", v1, v2)
-    norm1 = np.linalg.norm(v1, axis=1)
-    norm2 = np.linalg.norm(v2, axis=1)
-    angle_rad = np.arccos(dot_prod / (norm1 * norm2))
-    return angle_rad
-
-
-# test_ang[:10]
-# test_ang2[:10]
-# test_ang[:10] == test_ang2[:10]
-
-
+test_ang = np.array(
+    [get_vector_vector_angle(vecs_grids[i], vecs_tracks[i]) for i in range(len(vecs_grids))]
+)
 test_ang_arr = test_ang.reshape((50, 50, 50))
 angles = test_ang_arr[slice_indexes].reshape(my_shape)
 
@@ -446,93 +384,46 @@ angles = test_ang_arr[slice_indexes].reshape(my_shape)
 
 # Plot the quiver slices for the grid-based and cell-centric crops
 # at the full resolution:
-ds = 1
-scale = 60
-fig, ax = plt.subplots(1, 1, figsize=(12, 12))
-plot_one_slice_quiver(
-    velocities=(v1_grids, v2_grids),
-    grid=(g1_grids, g2_grids),
-    slice_indexes=slice_indexes,
-    ds=ds,
-    scale=scale,
-    ax=ax,
-    color="blue",
+out_path = out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
+fig, ax = plot_grid_vs_tracks_flow_field(
+    v1_grids,
+    v2_grids,
+    g1_grids,
+    g2_grids,
+    v1_tracks,
+    v2_tracks,
+    g1_tracks,
+    g2_tracks,
+    slice_indexes=slice_indexes,  # type: ignore
+    ds=1,
+    scale=60,
+    out_path=out_subdir_traj,
 )
-plot_one_slice_quiver(
-    velocities=(v1_tracks, v2_tracks),
-    grid=(g1_tracks, g2_tracks),
-    slice_indexes=slice_indexes,
-    ds=ds,
-    scale=scale,
-    ax=ax,
-    color="red",
-)
-custom_lines = [
-    Line2D([0], [0], color="red", lw=2, label="seg-based DiffAE features"),
-    Line2D([0], [0], color="blue", lw=2, label="grid-based DiffAE features"),
-]
-ax.legend(custom_lines, [str(x.get_label()) for x in custom_lines], loc="upper right")
-fig.savefig(
-    out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_full_quiver.png",
-    dpi=300,
-    bbox_inches="tight",
-)
-
 
 # Plot the quiver slices for the grid-based and cell-centric crops
 # at the standard/default resolution:
-fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-plot_one_slice_quiver(
-    velocities=(v1_grids, v2_grids),
-    grid=(g1_grids, g2_grids),
-    slice_indexes=slice_indexes,
-    ax=ax,
-    color="blue",
-)
-plot_one_slice_quiver(
-    velocities=(v1_tracks, v2_tracks),
-    grid=(g1_tracks, g2_tracks),
-    slice_indexes=slice_indexes,
-    ax=ax,
-    color="red",
-)
-custom_lines = [
-    Line2D([0], [0], color="red", lw=2, label="seg-based DiffAE features"),
-    Line2D([0], [0], color="blue", lw=2, label="grid-based DiffAE features"),
-]
-ax.legend(custom_lines, [str(x.get_label()) for x in custom_lines], loc="upper right")
-fig.savefig(
-    out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png",
-    dpi=300,
-    bbox_inches="tight",
+out_path = out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
+fig, ax = plot_grid_vs_tracks_flow_field(
+    v1_grids,
+    v2_grids,
+    g1_grids,
+    g2_grids,
+    v1_tracks,
+    v2_tracks,
+    g1_tracks,
+    g2_tracks,
+    slice_indexes=slice_indexes,  # type: ignore
+    out_path=out_subdir_traj,
 )
 
 
 # Plot the angular deviation between the grid and cell-centric crop-based
 # flow field vectors:
-fig, ax_hist = plt.subplots(figsize=(6, 6))
-ax_hist.set_title("Grid vs. cell-centric crop angular deviation", pad=20)
-hist2D = ax_hist.imshow(
-    # hist2D = axs[0].imshow(
-    np.rad2deg(angles.squeeze()).T,
-    cmap="RdBu_r",
-    vmin=0,
-    vmax=180,  # np.pi,
-    extent=(*ax.get_xlim(), *ax.get_ylim()),
-    origin="lower",
-    label="angle (rad)",
-)
-divider = make_axes_locatable(ax_hist)
-ax_cb = divider.append_axes("right", size="5%", pad=0.05)
-fig.add_axes(ax_cb)
-plt.colorbar(hist2D, cax=ax_cb)
-ax_cb.set_yticks(np.arange(0, 181, 30))  # set ticks for angle in degrees
-ax_hist.set_xlabel("PC1")
-ax_hist.set_ylabel("PC2")
-ax_cb.set_ylabel("Angle (degrees)", rotation=270, verticalalignment="bottom")
-plt.tight_layout()
-fig.savefig(out_subdir_traj / f"{dataset_name}_vecvec_angles.png", dpi=300, bbox_inches="tight")
+out_path = out_subdir_traj / f"{dataset_name}_vecvec_angles.png"
+grid_vs_track_vec_angle_hist2d(angles, out_path, extent=(*ax.get_xlim(), *ax.get_ylim()))
 
+
+# NOTE VERY ROUGH WORK IN PROGRESS BELOW
 
 for nm, df in merged_feats_df.groupby(["dataset_name", "position", "track_id"]):
     break

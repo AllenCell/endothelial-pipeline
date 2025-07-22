@@ -5,10 +5,14 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tqdm import tqdm
 
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
+    plot_one_slice_quiver,
     plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
@@ -323,3 +327,96 @@ def make_all_plots(
                 alpha=0.8,
                 show_plot=False,
             )
+
+
+def plot_grid_vs_tracks_flow_field(
+    v1_grids: np.ndarray,
+    v2_grids: np.ndarray,
+    g1_grids: np.ndarray,
+    g2_grids: np.ndarray,
+    v1_tracks: np.ndarray,
+    v2_tracks: np.ndarray,
+    g1_tracks: np.ndarray,
+    g2_tracks: np.ndarray,
+    slice_indexes: tuple[np.ndarray, np.ndarray],
+    ds: int = 3,
+    scale: int = 30,
+    save_plot: bool = True,
+    out_path: Path | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    This function is basically a wrapper around the
+    `plot_one_slice_quiver` function that plots the
+    flow field.
+    """
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 12))
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ds=ds,
+        scale=scale,
+        ax=ax,
+        color="blue",
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_tracks, v2_tracks),
+        grid=(g1_tracks, g2_tracks),
+        slice_indexes=slice_indexes,
+        ds=ds,
+        scale=scale,
+        ax=ax,
+        color="red",
+    )
+    custom_lines = [
+        Line2D([0], [0], color="red", lw=2, label="seg-based DiffAE features"),
+        Line2D([0], [0], color="blue", lw=2, label="grid-based DiffAE features"),
+    ]
+    ax.legend(custom_lines, [str(x.get_label()) for x in custom_lines], loc="upper right")
+    if save_plot and out_path is not None:
+        # save_plot_to_path(
+        #     fig, out_subdir_traj,
+        #     f"{dataset_name}_quiver_slice_comparison_full",
+        # )
+        fig.savefig(
+            out_path,
+            dpi=300,
+            bbox_inches="tight",
+        )
+    return fig, ax
+
+
+def grid_vs_track_vec_angle_hist2d(
+    angles: np.ndarray,
+    out_path: Path | None,
+    extent: tuple[float, float, float, float] | None = None,
+) -> None:
+    """
+    Plot a 2D histogram of the angular deviation between
+    the grid-based and track-based DiffAE features.
+    """
+
+    fig, ax_hist = plt.subplots(figsize=(6, 6))
+    ax_hist.set_title("Grid vs. cell-centric crop angular deviation", pad=20)
+    hist2D = ax_hist.imshow(
+        # hist2D = axs[0].imshow(
+        np.rad2deg(angles.squeeze()).T,
+        cmap="RdBu_r",
+        vmin=0,
+        vmax=180,
+        extent=extent,
+        origin="lower",
+        label="angle (rad)",
+    )
+    divider = make_axes_locatable(ax_hist)
+    ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+    fig.add_axes(ax_cb)
+    plt.colorbar(hist2D, cax=ax_cb)
+    ax_cb.set_yticks(np.arange(0, 181, 30))  # set ticks for angle in degrees
+    ax_hist.set_xlabel("PC1")
+    ax_hist.set_ylabel("PC2")
+    ax_cb.set_ylabel("Angle (degrees)", rotation=270, verticalalignment="bottom")
+    plt.tight_layout()
+    if out_path is not None:
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
