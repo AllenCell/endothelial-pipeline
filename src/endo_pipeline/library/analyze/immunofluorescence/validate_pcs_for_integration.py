@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -8,8 +9,8 @@ from matplotlib.patches import Ellipse
 from cellsmap.util.manifest_io import load_pca_model
 from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     DatasetConfig,
-    ModelConfig,
     add_model_manifest,
     load_dataset_config,
     load_model_config,
@@ -27,9 +28,9 @@ from src.endo_pipeline.workflows.apply_diffae_model import generate_overrides
 def add_paired_fixed_live_data_fmsid_to_config(
     prediction_path: Path,
     dataset_config: DatasetConfig,
-    model_config: ModelConfig,
+    model_config: CytoDLModelConfig,
     model_path: Path,
-) -> ModelConfig:
+) -> CytoDLModelConfig:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
     of paired fixed and live data.
@@ -40,14 +41,14 @@ def add_paired_fixed_live_data_fmsid_to_config(
         Path to the prediction file
     dataset_config : DatasetConfig
         Config file for the dataset
-    model_config : ModelConfig
+    model_config : CytoDLModelConfig
         Config file for the chosen model
     model_path : Path
         Path to the model directory. Used for extracting the commit hash.
 
     Returns
     -------
-    model_config_updated : ModelConfig
+    model_config_updated : CytoDLModelConfig
         Updated model config with the FMS ID of the prediction file added to the dataset manifest
     """
     # build FMS annotations
@@ -112,7 +113,7 @@ def apply_model_paired_fixed_live(
 
     # Get diffAE model
     # load model config
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # Load DiffAE model
     model_path = get_output_path("models", model_name)  # new get_output_path function

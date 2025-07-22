@@ -1,7 +1,11 @@
 import logging
 
-from .dataset_config_io import get_datasets_in_collection, load_dataset_config
-from .model_config import CytoDLModelConfig, ModelConfig, ModelManifest
+from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
+    ModelManifest,
+    get_datasets_in_collection,
+    load_dataset_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +16,7 @@ def get_model_manifest(dataset_name: str, model_config: CytoDLModelConfig) -> Mo
 
     Inputs:
     - dataset_name: str, name of the dataset
-    - model_config: ModelConfig, configuration of the model
+    - model_config: CytoDLModelConfig, configuration of the model
 
     Outputs:
     - ModelManifest, containing dataset name and fmsid
@@ -39,17 +43,17 @@ def get_model_manifest(dataset_name: str, model_config: CytoDLModelConfig) -> Mo
 
 def add_model_manifest(
     model_config: CytoDLModelConfig, dataset_name: str, fmsid: str
-) -> ModelConfig:
+) -> CytoDLModelConfig:
     """
     Add a model manifest to the model configuration.
 
     Inputs:
-    - model_config: ModelConfig, configuration of the model
+    - model_config: CytoDLModelConfig, configuration of the model
     - dataset_name: str, name of the dataset
     - fmsid: str, fmsid of the model manifest for the dataset
 
     Outputs:
-    - ModelConfig, updated model configuration with the new manifest added
+    - CytoDLModelConfig, updated model configuration with the new manifest added
     """
 
     if model_config.manifest_fmsids is None:
@@ -75,7 +79,7 @@ def get_timelapse_model_manifests(model_config: CytoDLModelConfig) -> list[Model
     Get the list of model manifests that are timelapse datasets.
 
     Inputs:
-    - model_config: ModelConfig, configuration of the model
+    - model_config: CytoDLModelConfig, configuration of the model
 
     Outputs:
     - list of ModelManifest, containing only timelapse datasets
@@ -100,7 +104,7 @@ def get_pca_reference_model_manifests(model_config: CytoDLModelConfig) -> list[M
     Get the list of model manifests that are reference datasets for PCA.
 
     Inputs:
-    - model_config: ModelConfig, configuration of the model
+    - model_config: CytoDLModelConfig, configuration of the model
 
     Outputs:
     - list of ModelManifest, containing only reference datasets for PCA

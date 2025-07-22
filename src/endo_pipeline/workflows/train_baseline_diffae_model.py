@@ -6,7 +6,7 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import ModelConfig, get_config_dir, save_model_config
+from src.endo_pipeline.configs import CytoDLModelConfig, get_config_dir, save_model_config
 from src.endo_pipeline.io import get_output_path
 
 
@@ -116,7 +116,7 @@ def main(crop_size: int = 128) -> None:
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # add run ID to model config
-    model_config = ModelConfig(
+    model_config = CytoDLModelConfig(
         name=model_name,
         mlflow_run_id=run_id,
     )
