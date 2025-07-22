@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def main(
     model_name: str,
-    dataset_names: str | Sequence[str] = "pca_reference",
+    dataset_names: str | Sequence[str] = "live_20X_objective_3i_microscope",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
@@ -73,6 +73,9 @@ def main(
     model_config = load_model_config(model_name)
 
     # apply model to each dataset
+    # is there a better way to do this? i.e., load model once
+    # and then just loop through datasets...
+    # out of scope for this PR but worth doing in a separate PR
     for dataset_config in dataset_config_list:
         model_config = apply_model_on_grid_of_crops_from_one_dataset(
             model_config=model_config,
