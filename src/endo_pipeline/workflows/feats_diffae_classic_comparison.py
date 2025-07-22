@@ -26,7 +26,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_bins
+from src.endo_pipeline.library.analyze.numerics import get_bins, set_3d_bounds_from_data
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_quiver_slices,
@@ -497,7 +497,7 @@ def main() -> None:
         df_all_positions = project_manifest_to_pcs(df_all_positions, pca)
 
         # use the full set of datasets to be analyzed for the bounds
-        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca)
+        bounds = set_3d_bounds_from_data(dataset_name_list, pca)
 
         print("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)

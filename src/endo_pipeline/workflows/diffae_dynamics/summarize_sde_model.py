@@ -9,10 +9,9 @@ from src.endo_pipeline.library.analyze.diffae_features import (
     run_epr_analysis,
     run_fixed_point_analysis,
     run_gen_potential_analysis,
-    vector_field_function,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-from src.endo_pipeline.library.analyze.numerics import get_bins
+from src.endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
 
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:

@@ -4,70 +4,6 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from src.endo_pipeline.configs import DatasetConfig
-from src.endo_pipeline.library.analyze.kramersmoyal import get_km_kernel
-
-
-def get_traj_by_flow(
-    df_proj: pd.DataFrame, dataset_config: DatasetConfig, verbose: bool = True
-) -> tuple[list, list]:
-    """
-    Get crop-based feature data (Diffusion AE output) for
-    different flow conditions present in a dataset.
-
-    Inputs:
-    - df_proj: pandas dataframe containing the dataset of interest,
-        projected onto all principal component axes
-        (change of basis, no dimensionality reduction)
-    - dataset_config: DatasetConfig object containing dataset configuration
-        (used to get flow information)
-    - verbose: boolean, if True, print information about flow conditions
-
-    Outputs:
-    - data_all: list of dataframes, each containing
-        the feature data for one flow condition
-    - shear_list: list of shear stress conditions for each flow condition
-
-    If there is only one flow condition, data_all and shear_list
-    are still lists (of length 1), respectively containing the
-    original dataframe and single shear stress condition.
-    """
-
-    # load flow information from data_config.yaml
-    flow_info = dataset_config.flow
-
-    # split out data by flow condition,
-    # starting with first flow condition
-    first_shear = float(flow_info[0][-1])
-    # initialize list of shear stress conditions
-    shear_list = [first_shear]
-    # if there is a change in flow condition
-    if len(flow_info) > 1:
-        # get frame number where flow condition
-        # changes (reported in hours in data_config.yaml)
-        change_frame = flow_info[0][-1]
-        # get second shear stress condition
-        second_shear = float(flow_info[1][-1])
-        shear_list.append(second_shear)
-        if verbose:
-            print(f"Shear stress {first_shear} dyn/cm^2 until frame {change_frame}")
-            print(f"Shear stress {second_shear} dyn/cm^2 after frame {change_frame} \n")
-        # separate data into two dataframes based on
-        # frame number where flow condition changes
-        data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
-        data_flow2 = df_proj[df_proj["frame_number"] >= change_frame].copy()
-        # return list of dataframes for each flow condition
-        data_all = [data_flow1, data_flow2]
-    # else, there is only one flow condition
-    else:
-        if verbose:
-            print("Constant shear stress at", first_shear, "dyn/cm^2 \n")
-        # list of dataframes for one flow condition
-        # = list containing the original dataframe
-        data_all = [df_proj.copy()]
-
-    return data_all, shear_list
-
 
 def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
     """
@@ -218,51 +154,6 @@ def train_test_all(
     v_test = np.concatenate(v_test)
 
     return x_train, x_test, y_train, y_test, v_train, v_test
-
-
-def get_stationary_hist(
-    stationary_data: pd.DataFrame,
-    pc_column_names: list[str],
-    bins: list,
-) -> np.ndarray:
-    """
-    Get stationary histogram of data.
-
-    Inputs:
-    - stationary_data: pandas DataFrame containing the
-        dataset of interest restricted to stationary frames
-    - pc_column_names: list of strings, names of the
-        columns in the DataFrame that contain the
-        principal component features (feature columns)
-    - bins: list of number of bins in each dimension
-        (list of length ndim, where ndim is the
-        number of dimensions of the feature space)
-
-    Outputs:
-    - p_hist: numpy array, stationary histogram
-        of the data in feature space
-    """
-    ndim = len(pc_column_names)
-
-    # call 1D or 2D histogram function based on number of dimensions
-    if ndim == 2:
-        # data frame_number > frame_index, all rows, select pcs
-        p_hist, _, _ = np.histogram2d(
-            stationary_data[pc_column_names[0]],
-            stationary_data[pc_column_names[1]],
-            bins,
-            density=True,
-        )
-    elif ndim == 1:
-        p_hist, _ = np.histogram(
-            stationary_data[pc_column_names[0]],
-            bins[0],
-            density=True,
-        )
-    else:
-        raise ValueError("Only 1D or 2D data currently supported.")
-
-    return p_hist
 
 
 def save_train_test(train_test_dict: dict, savedir: Path) -> None:

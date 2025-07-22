@@ -5,37 +5,6 @@ from pathlib import Path
 import numpy as np
 import pysindy as ps
 
-from src.endo_pipeline.library.analyze.numerics import SteadyFP, get_normalization_constant
-
-
-def save_sde_model(model_dict: dict, savedir: Path) -> None:
-    """
-    Save fit SDE model to file in savedir.
-
-    Inputs:
-    - model_dict: dict, dictionary containing fit drift and diffusion functions.
-    - savedir: Path, directory to save the file.
-
-    Outputs:
-    - None, save the file to savedir.
-    """
-    with open(savedir / "drift_diffusion_model.pkl", "wb") as f:
-        pickle.dump(model_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def load_sde_model(file_path: Path) -> dict:
-    """
-    Load fit SDE model from file_path.
-
-    Inputs:
-    - file_path: Path, path to the file containing fit drift and diffusion functions.
-
-    Outputs:
-    - model_dict: dict, dictionary containing fit drift and diffusion functions.
-    """
-    with open(file_path, "rb") as f:
-        return pickle.load(f)
-
 
 def vector_field_function(sindy_model: ps.SINDy) -> Callable:
     """
@@ -148,59 +117,3 @@ def vector_field_component(f: Callable, i: int) -> Callable:
         return f_out[i].T
 
     return f_i  # return the the callable function f_i
-
-
-def get_stationary_probability(
-    drift_vals: np.ndarray, diff_vals: np.ndarray, bins: list, tol: float = 1e-10
-) -> np.ndarray:
-    """
-    Get stationary probability distribution of fit SDE (Langevin) model
-    with drift function f and diffusion D by solving the
-    stationary Fokker-Planck equation. The drift and diffusion functions
-    can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
-
-    This function calls the PDE solver SteadyFP implemented in the
-    `library.analyze.numerics.fp_solvers' module.
-
-    Inputs:
-    - drift_vals: np.ndarray, values of the drift function
-        evaluated at the bin centers
-        - if the drift function is scalar-valued, f_vals is a 1D array
-        - if the drift function is vector-valued, f_vals is an
-            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - diff_vals: np.ndarray, values of the diffusion function
-        evaluated at the bin centers
-        - if the diffusion function is scalar-valued, D_vals is a 1D array
-        - if the diffusion function is vector-valued, D_vals is an
-            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
-    - bins: list of arrays defining bin edges for each dimension
-        of the state variable
-    - tol: float, tolerance for small values in the stationary
-        probability distribution (default is 1e-10)
-        - if the probability distribution is less than tol, it is set to tol
-
-    Outputs:
-    - p_fit: np.ndarray, stationary probability
-        distribution of the fit SDE model
-    """
-
-    ndim = len(bins)
-    # bin width in each dimension
-    dx = [bins[i][1] - bins[i][0] for i in range(ndim)]
-    # bin centers in each dimension
-    num_bins = [len(bins[i]) - 1 for i in range(ndim)]
-
-    # initialize SteadyFP object
-    fp = SteadyFP(num_bins, dx)
-
-    # solve stationary Fokker-Planck equation
-    p_fit = fp.solve(drift_vals, diff_vals)
-
-    # set small values to a small number to avoid numerical issues
-    p_fit[p_fit < tol] = tol
-    # integrate to get normalization constant
-    c = get_normalization_constant(p_fit, dx)
-    # normalize probability distribution
-    p_fit = p_fit / c
-
-    return p_fit
