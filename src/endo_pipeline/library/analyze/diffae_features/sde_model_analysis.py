@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import DatasetConfig, ModelManifest, load_dataset_config
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
@@ -22,7 +23,6 @@ from src.endo_pipeline.library.analyze.numerics import (
     mesh_grid_function,
     vector_field_component,
 )
-from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
 
 
@@ -354,15 +354,15 @@ def model_data_comparison(
             plt.show()
 
             # save figures
-            viz_base.save_plot(
+            save_plot_to_path(
                 fig1,
-                fig_savedir
-                / f"{model_manifest.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
+                fig_savedir,
+                f"{model_manifest.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
             )
-            viz_base.save_plot(
+            save_plot_to_path(
                 fig2,
-                fig_savedir
-                / f"{model_manifest.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
+                fig_savedir,
+                f"{model_manifest.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
             )
 
 
@@ -457,7 +457,7 @@ def run_fixed_point_analysis(
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
     figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pc_axes, plt_lims)
     for i in range(len(figs)):
-        viz_base.save_plot(figs[i], fig_savedir / f"fixed_points_by_shear_{i}")
+        save_plot_to_path(figs[i], fig_savedir, f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
@@ -556,7 +556,7 @@ def run_epr_analysis(
     epr = get_epr(sde_model, bins, centers, shear_range, additive_noise)
     fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
     plt.show()
-    viz_base.save_plot(fig, fig_savedir / "epr")
+    save_plot_to_path(fig, fig_savedir, "epr")
 
 
 def run_gen_potential_analysis(
@@ -628,7 +628,7 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir / f"gp_shear_{ii}")
+        save_plot_to_path(fig, fig_savedir, f"gp_shear_{ii}")
 
         #### plot gradient/flux decomposition ####
 
@@ -662,4 +662,4 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir / f"gp_decomp_shear_{ii}")
+        save_plot_to_path(fig, fig_savedir, f"gp_decomp_shear_{ii}")

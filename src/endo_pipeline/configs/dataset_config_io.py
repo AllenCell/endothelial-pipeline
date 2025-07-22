@@ -32,6 +32,15 @@ def get_available_dataset_names() -> list[str]:
     return dataset_names
 
 
+def get_available_dataset_collection_names() -> list[str]:
+    """Get list of available dataset collection names."""
+
+    collection_names = [path.stem for path in get_dataset_collection_config_dir().iterdir()]
+    logger.info("Available dataset collections [ %s ]", " | ".join(collection_names))
+
+    return collection_names
+
+
 def validate_all_dataset_configs() -> None:
     """Validate all dataset configs against defined schema."""
 
@@ -117,7 +126,13 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset.name}.yaml"
 
+    def list_representer(dumper, data):
+        # This representer saves lists as [a, b, c] unless it is a list of dicts.
+        flow_style = not (len(data) > 0 and isinstance(data[0], dict))
+        return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
+
     def yaml_encoder(data):
+        yaml.SafeDumper.add_representer(list, list_representer)
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:

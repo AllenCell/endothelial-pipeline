@@ -1,10 +1,10 @@
 name: 20250319_20X
 original_path: //allen/programs/allencell/data/proj0/798/774/d92/07d/9af/8c9/e4e/054/8d3/94f/0d/20250319_GE00007419_20X_SLDY/20250319_GE00007419_20X_Timelapsee.sldy
 zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250319_0d94f8d3054e4e8c99af07dd92774798
+zarr_positions: [0, 1, 2, 3, 4, 5]
 fmsid: 0d94f8d3054e4e8c99af07dd92774798
 barcode: GE00007419
-cell_lines:
-- AICS-126
+cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
@@ -12,10 +12,7 @@ shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 542
 time_interval_in_minutes: 5.0
-flow:
-- - 0
-  - 576
-  - 12.2
+flow: [[0, 576, 12.2]]
 n_total_positions: 6
 channel_488_index: 0
 brightfield_channel_index: 1
@@ -31,17 +28,15 @@ nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: ''
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250319_20X
 tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: f888fdc16dc24a6bab13446f559cd3a7
 immunofluorescence_manifest_fmsid: null
 cdh5_classic_seg_tracking_manifest_fmsid: 06265c5c06e84f00bec29829bd03dabe
 cdh5_classic_seg_manifest_fmsid: af1b341a31584107a7dc1f534bdf65f5
 nuclei_label_free_seg_manifest_fmsid: a9c2d08eecfc45a19a43239dd06a4b22
 live_merged_seg_features_manifest_fmsid: 474c500583954ab6ad62f5f28d103e91
 valid_timepoints:
-  start:
-  - 117
-  stop:
-  - 336
+  start: [117]
+  stop: [336]
 cell_mean_features: c79efb6d0f754e719b71221d7ea3c17f
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed

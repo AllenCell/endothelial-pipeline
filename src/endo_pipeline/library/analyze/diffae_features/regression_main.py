@@ -1,36 +1,20 @@
 from pathlib import Path
 
-import fire
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import (
-    ModelManifest,
-    dynamics_io,
-    get_timelapse_model_manifests,
-    load_dataset_config,
-    load_model_config,
-)
-from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_features import (
-    get_traj_and_diff,
-    get_traj_by_flow,
-    masked_vector_field,
-    save_train_test,
-    train_test_all,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest import (
-    fit_pca,
-    get_manifest_for_dynamics_workflows,
+from src.endo_pipeline.configs import ModelManifest, load_dataset_config
+from src.endo_pipeline.io import save_plot_to_path
+from src.endo_pipeline.library.analyze.diffae_features import regression_helper
+from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
-def _kramers_moyal_train_test_one_dataset(
+def kramers_moyal_train_test_one_dataset(
     df_proj: pd.DataFrame,
     dataset_name: str,
     pcs: list,
@@ -52,7 +36,7 @@ def _kramers_moyal_train_test_one_dataset(
     """
     Generate train test sets for Kramers-Moyal coefficients
     (drift and diffusion estimates) for one dataset.
-    This function is called by _build_kramers_moyal_train_test
+    This function is called by build_kramers_moyal_train_test
     in a loop over all datasets in the dataframe.
 
     Inputs:
@@ -92,7 +76,9 @@ def _kramers_moyal_train_test_one_dataset(
     ndim = len(pcs)
 
     # split out data by flow condition
-    df_by_flow, shear_list = get_traj_by_flow(df_proj, load_dataset_config(dataset_name))
+    df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+        df_proj, load_dataset_config(dataset_name)
+    )
     num_flow = len(shear_list)
 
     drift_km = []
@@ -115,15 +101,17 @@ def _kramers_moyal_train_test_one_dataset(
 
         # get list of per-crop trajectories, the corresponding
         # displacement vectors, and time differences
-        traj_list, d_traj_list = get_traj_and_diff(stationary_data, pc_column_names=pc_column_names)
+        traj_list, d_traj_list = regression_helper.get_traj_and_diff(
+            stationary_data, pc_column_names=pc_column_names
+        )
 
         # get bins for histogramming
         # (for drift and diffusion estimates)
-        bins, centers = get_bins(num_bins, data=traj_list)
+        bins, centers = regression_helper.get_bins(num_bins, data=traj_list)
 
         # get drift and diffusion estimates
         # (Kramers-Moyal coefficients)
-        drift_km_, diff_km_ = get_kramers_moyal(
+        drift_km_, diff_km_ = regression_helper.get_kramers_moyal(
             traj_list,
             d_traj_list,
             bins,
@@ -154,8 +142,10 @@ def _kramers_moyal_train_test_one_dataset(
         (
             drift_km_masked,
             x_pts_,
-        ) = masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
-        diff_km_masked, _ = masked_vector_field(diff_km_, np.array(np.meshgrid(*centers)).T)
+        ) = regression_helper.masked_vector_field(drift_km_, np.array(np.meshgrid(*centers)).T)
+        diff_km_masked, _ = regression_helper.masked_vector_field(
+            diff_km_, np.array(np.meshgrid(*centers)).T
+        )
         drift_km.append(drift_km_masked)
         diff_km.append(diff_km_masked)
         x_pts.append(x_pts_)
@@ -164,7 +154,7 @@ def _kramers_moyal_train_test_one_dataset(
 
     # get train test split of Kramers-Moyal
     # estimates for each flow condition
-    x_train, x_test, y_train, y_test, v_train, v_test = train_test_all(
+    x_train, x_test, y_train, y_test, v_train, v_test = regression_helper.train_test_all(
         x_pts, drift_km, diff_km, train_frac, seed=47
     )
 
@@ -182,7 +172,7 @@ def _kramers_moyal_train_test_one_dataset(
     return x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test
 
 
-def _build_kramers_moyal_train_test(
+def build_kramers_moyal_train_test(
     model_manifest_list: list[ModelManifest],
     pca: Pipeline,
     pcs: list[int],
@@ -195,10 +185,6 @@ def _build_kramers_moyal_train_test(
     """
     Build train test sets for Kramers-Moyal coefficients
     (drift and diffusion estimates) for all datasets in the dataframe df.
-    This function is called by the main function
-    in the workflow to generate the train test sets
-    for the regression model fitting and evaluation
-    of the dynamical systems model for the Diff AE features.
 
     Inputs:
     - model_manifest_list: list of ModelManifest objects used
@@ -249,11 +235,11 @@ def _build_kramers_moyal_train_test(
         # load DiffAE feature data from this one dataset
         # and get features projected onto principal component axes
         # as defined by fit PCA object pca.
-        df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+        df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (
-            _kramers_moyal_train_test_one_dataset(
+            kramers_moyal_train_test_one_dataset(
                 df_proj,
                 model_manifest.dataset_name,
                 pcs,
@@ -309,87 +295,3 @@ def _build_kramers_moyal_train_test(
     }
 
     return out_dict
-
-
-def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
-    """
-    Build training and test data for regression
-    model fitting and evaluation of the dynamical
-    systems model for the manifest data (Diff AE).
-
-    Input:
-    - dynamics_config_name (str): Name of the configuration to load from dynamics_config.yaml.
-        Default is "default".
-    - model_name (str): Name of the model to load from model_config.yaml.
-        Analysis will be performed on the model manifest datasets for this model.
-
-    Output:
-    - Saves the training and test data for regression model
-        fitting in a specified directory. Saved out as a
-        dictionary with keys "X_train", "X_test", "Y_train", "Y_test",
-        "V_train", "V_test", "u_train", "u_test",
-        where the values Y and V are the estimated
-        drift and diffusion terms, respectively, at the points X
-        and shear stress u.
-    """
-    ################### Load dynamics config and fit PCA ###################
-    # make save directory for workflow outputs (set in config file dynamics_config.yaml)
-    print("\n", "*** Running workflow using config: ", dynamics_config_name, "\n")
-    dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
-
-    # get output subdirectory for intermediate workflow outputs
-    # (set in config file dynamics_config.yaml)
-    # if directory does not exist, get_output_path function will create it
-    savedir = get_output_path(
-        "stochastic_dynamics", dynamics_config_name, model_name, "outputs", include_timestamp=False
-    )
-
-    # get output subdirectory for figures that workflow outputs
-    # (set in config file dynamics_config.yaml)
-    # if directory does not exist, get_output_path function will create it
-    fig_savedir = get_output_path(
-        "stochastic_dynamics", dynamics_config_name, model_name, "figs", include_timestamp=False
-    )
-
-    # fit PCA to reference timepoints of reference datasets
-    pca = fit_pca(model_name=model_name)
-
-    ################### Visualize PCA results ###################
-    # plot explained variance ratio of PCA components
-    fig, _ = manifest_viz.plot_explained_variance(pca["pca"].explained_variance_ratio_)
-    save_plot_to_path(fig, fig_savedir, "explained_variance_ratio")
-
-    ################### Build train-test data for regression ###################
-    # load inputs from dynamics_config.yaml
-    pcs = dynamics_config["pcs_to_analyze"]
-    dt = dynamics_config["dt"]
-    kramers_moyal_config = dynamics_config["kramers_moyal"]
-    num_bins = kramers_moyal_config["num_bins"]
-    kernel_params = None
-    if "kernel_params" in kramers_moyal_config:
-        kernel_params = kramers_moyal_config["kernel_params"]
-
-    # get model config from model name
-    model_config = load_model_config(model_name)
-
-    # filter out datasets that are not timelapse
-    # and load model manifests
-    model_manifest_list = get_timelapse_model_manifests(model_config)
-
-    # build train-test data for regression
-    train_test_dict = _build_kramers_moyal_train_test(
-        model_manifest_list,
-        pca,
-        pcs,
-        num_bins,
-        dt,
-        fig_savedir,
-        kernel_params=kernel_params,
-    )
-
-    #### Save train-test data ####
-    save_train_test(train_test_dict, savedir)
-
-
-if __name__ == "__main__":
-    fire.Fire(main)

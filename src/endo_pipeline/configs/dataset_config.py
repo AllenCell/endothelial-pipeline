@@ -52,6 +52,9 @@ class DatasetConfig:
     zarr_path: str
     """Path to dataset converted to Zarr format."""
 
+    zarr_positions: list[int]
+    """List of available Zarr positions."""
+
     fmsid: str
     """FMS ID."""
 

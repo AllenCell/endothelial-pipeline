@@ -12,7 +12,7 @@ from src.endo_pipeline.configs import (
     load_dataset_config,
     load_model_config,
 )
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     get_traj_and_diff,
@@ -27,7 +27,6 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_bins, set_3d_bounds_from_data
-from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, manifest_viz, vtk_io
 
 
@@ -275,7 +274,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     fig, _ = manifest_viz.plot_pc_scatter(
         pca, pca_ref_model_manifest_list, timepoints_to_use=timepoints_refs
     )
-    viz_base.save_plot(fig, fig_savedir / "pca_scatter_ref")
+    save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
     # scatter plot of all datasets specified in command line
     model_manifest_list = [
@@ -285,7 +284,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         pca,
         model_manifest_list,  # all datasets specified and all timepoints
     )
-    viz_base.save_plot(fig, fig_savedir / "pca_scatter_all")
+    save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
     # load default config, get kernel params
     dynamics_config = dynamics_io.load_dynamics_config("default")

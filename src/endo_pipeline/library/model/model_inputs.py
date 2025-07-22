@@ -1,20 +1,23 @@
+import os
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
-) -> Path:
+) -> str:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
+    # note that this will likely be refactored after
+    # the new zarr methods merge
     zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
     zarr_path_dict = {}
     for path in zarr_path_list:
@@ -23,23 +26,53 @@ def generate_zarr_csv_for_model_eval(
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
-    data_path = str(save_path / "dataset.csv")
+    data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
 
 
 def preprocess_tracking_manifest_for_model_eval(
-    dataset_config: DatasetConfig, save_dir: Path
+    dataset_config: DatasetConfig,
+    save_dir: Path,
+    downsample_factor: int = 2,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = dataset_config.tracking_integration_fmsid
+    fms_id = dataset_config.live_merged_seg_features_manifest_fmsid
     if fms_id is None:
         raise ValueError(
-            f"Dataset {dataset_config.name} does not have a tracking integration FMS ID."
+            f"Dataset {dataset_config.name} does not have a live segmentation features FMS ID."
         )
     df = load_dataframe_from_fms(fms_id)
-    # convert centroids to bounding boxes
-    df = centroid_to_bbox(df)
+
+    # keep only rows that were not filtered out by filter_global
+    df = df[~df["filter_global"]]
+
+    # filter the dataframe to include only the relevant columns
+    colums_to_keep = [
+        "zarr_path",
+        "image_index",
+        "track_id",
+        "label",
+        "centroid_X",
+        "centroid_Y",
+        "image_size_x",
+        "image_size_y",
+        "crop_size",
+    ]
+    df = df[colums_to_keep]
+
+    # convert centroids to bounding boxes and downsample
+    # by half to match currently used model resolution
+    # this is currently always 2
+    df = centroid_to_bbox(df, downsample_factor)
+
+    # filter the dataframe to exclude anything where the size of
+    # the bounding box does not match the downsampled crop size
+    # (because the model expects identically sized square crops)
+    # check if bounding boxes fit in image bounds without being clipped
+    bbox_size_is_correct = bbox_in_image_bounds(df, downsample_factor)
+    # filter the dataframe in-place to remove clipped bounding boxess
+    df = df[bbox_size_is_correct]
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -56,6 +89,11 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = ZARR_BF_CHANNEL
+    # NOTE "resolution" below determines what resolution the images will
+    # be loaded at, and currently the model loads at native resolution
+    # and downsamples in the transforms; therefore this value must be 0
+    # The "start" and "end" column values determine the crop locations
+    # after downsampling, thus they were adjusted by downsample_factor
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
@@ -67,17 +105,97 @@ def preprocess_tracking_manifest_for_model_eval(
     return save_path
 
 
-def centroid_to_bbox(df: pd.DataFrame) -> pd.DataFrame:
+def centroid_to_bbox(df: pd.DataFrame, downsample_factor: int = 2) -> pd.DataFrame:
     """
     Convert centroids to bounding boxes.
 
-    Note: coordinates are downsampled by half to match current model resolution.
+    Note: coordinates are downsampled by half (downsample_factor = 2)
+    to match current model resolution.
     """
-    df["start_x"] = ((df["centroid_x"] - df["crop_size"] / 2) / 2).astype(int)
-    df["start_y"] = ((df["centroid_y"] - df["crop_size"] / 2) / 2).astype(int)
-    df["end_x"] = ((df["centroid_x"] + df["crop_size"] / 2) / 2).astype(int)
-    df["end_y"] = ((df["centroid_y"] + df["crop_size"] / 2) / 2).astype(int)
+    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / downsample_factor).astype(int)
     return df
+
+
+def bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Series:
+    # adjust the image size according to the desired downsample factor
+    df["image_size_x"] = df["image_size_x"] // downsample_factor
+    df["image_size_y"] = df["image_size_y"] // downsample_factor
+
+    # limit start and end of x and y bboxes to be within image size limits
+    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
+    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
+    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
+    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
+
+    # filter the dataframe to exclude anything where the size of
+    # the bounding box does not match the downsampled crop size
+    # (because the model expects identically sized square crops)
+    bbox_size_y = df.end_y - df.start_y
+    bbox_size_x = df.end_x - df.start_x
+    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
+        bbox_size_x == (df["crop_size"] // downsample_factor)
+    )  # ask if both x and y bbox dimensions equal downsampled crop size
+    return bbox_size_is_correct
+
+
+def generate_overrides_for_model_training(
+    model_name: str,
+    crop_size: int,
+    train_csv_path: Path,
+    val_csv_path: Path,
+) -> dict:
+    """
+    Generate overrides for the DiffAE model training configuration.
+
+    Parameters
+    ----------
+    model_name: str
+        The name of the model to train.
+
+    crop_size: int
+        The number of pixels in each dimension of the
+        image crop to use for training.
+
+        That is, the cropped image will be square
+        with size (crop_size px, crop_size px).
+
+    train_csv_path: Path | None
+        The path to the training dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+
+    val_csv_path: Path | None
+        The path to the validation dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+    """
+    # create output directories if they do not exist
+    train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
+    _ = get_output_path("models", model_name, "train", "logs", include_timestamp=False)
+    _ = get_output_path("models", model_name, "train", "checkpoints", include_timestamp=False)
+
+    overrides = {
+        # set path to train and val datasets
+        "data.train_dataloaders.dataset.csv_path": train_csv_path.as_posix(),
+        "data.predict_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        "data.val_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        # get repo root directory and current working directory
+        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.work_dir": os.getcwd(),
+        # save outputs to user-specified directory
+        "paths.output_dir": (train_output_path / "logs").as_posix(),
+        "paths.log_dir": "${paths.output_dir}",
+        "callbacks.model_checkpoint.dirpath": (train_output_path / "checkpoints").as_posix(),
+        # update run name
+        "run_name": model_name,
+        # set crop size from input via model.image_shape,
+        # the rest are populated by interpolation
+        "model.image_shape": [1, crop_size, crop_size],
+    }
+    return overrides
 
 
 def generate_overrides_for_model_eval(
@@ -157,7 +275,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_track_based_features",
+            "save_suffix": f"{dataset_name}_{model_name}_tracked_crop_features",
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
@@ -180,3 +298,41 @@ def generate_overrides_for_track_based_crops(
     }
     overrides.update(track_specific_overrides)
     return overrides
+
+
+def get_dataset_names_used_for_training(
+    train_csv_path: Path, val_csv_path: Path, dataset_collection_name: str
+) -> list[str]:
+    """
+    Pull list of dataset names used for model training
+    from train.csv and val.csv files that are passed
+    into the model training script.
+    """
+    # load train.csv and val.csv files as dataframes
+    train_df = pd.read_csv(train_csv_path)
+    val_df = pd.read_csv(val_csv_path)
+
+    # get date part of dataset name from zarr path
+    # note: this might be something that
+    # gets turned into a zarr method in a future PR
+    for df in [train_df, val_df]:
+        df["dataset_date"] = df["path"].apply(lambda s: Path(s).stem.split("_")[0])
+
+    # get unique dataset dates used in training from dataset_date
+    # by combining the unique dates from both train and val datasets
+    training_dataset_dates = list(
+        set(train_df["dataset_date"].unique().tolist() + val_df["dataset_date"].unique().tolist())
+    )
+
+    # get unique dataset names by looping over
+    # the provided dataset collection name,
+    # which should be a superset of the datasets used for training
+
+    training_dataset_superset = load_dataset_collection_config(dataset_collection_name)
+    training_dataset_names = []
+    for dataset_name in training_dataset_superset.datasets:
+        for date in training_dataset_dates:
+            if date in dataset_name:
+                training_dataset_names.append(dataset_name)
+
+    return sorted(training_dataset_names)
