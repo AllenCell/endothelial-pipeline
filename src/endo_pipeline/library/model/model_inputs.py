@@ -1,10 +1,11 @@
+import os
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
@@ -15,6 +16,8 @@ def generate_zarr_csv_for_model_eval(
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
+    # note that this will likely be refactored after
+    # the new zarr methods merge
     zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
     zarr_path_dict = {}
     for path in zarr_path_list:
@@ -23,7 +26,7 @@ def generate_zarr_csv_for_model_eval(
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
-    data_path = Path(save_path / "dataset.csv").as_posix()
+    data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
 
@@ -138,6 +141,63 @@ def bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Ser
     return bbox_size_is_correct
 
 
+def generate_overrides_for_model_training(
+    model_name: str,
+    crop_size: int,
+    train_csv_path: Path,
+    val_csv_path: Path,
+) -> dict:
+    """
+    Generate overrides for the DiffAE model training configuration.
+
+    Parameters
+    ----------
+    model_name: str
+        The name of the model to train.
+
+    crop_size: int
+        The number of pixels in each dimension of the
+        image crop to use for training.
+
+        That is, the cropped image will be square
+        with size (crop_size px, crop_size px).
+
+    train_csv_path: Path | None
+        The path to the training dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+
+    val_csv_path: Path | None
+        The path to the validation dataset CSV file.
+        If None, the default path for the output of
+        generate_csv_for_training_diffae will be used.
+    """
+    # create output directories if they do not exist
+    train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
+    _ = get_output_path("models", model_name, "train", "logs", include_timestamp=False)
+    _ = get_output_path("models", model_name, "train", "checkpoints", include_timestamp=False)
+
+    overrides = {
+        # set path to train and val datasets
+        "data.train_dataloaders.dataset.csv_path": train_csv_path.as_posix(),
+        "data.predict_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        "data.val_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        # get repo root directory and current working directory
+        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.work_dir": os.getcwd(),
+        # save outputs to user-specified directory
+        "paths.output_dir": (train_output_path / "logs").as_posix(),
+        "paths.log_dir": "${paths.output_dir}",
+        "callbacks.model_checkpoint.dirpath": (train_output_path / "checkpoints").as_posix(),
+        # update run name
+        "run_name": model_name,
+        # set crop size from input via model.image_shape,
+        # the rest are populated by interpolation
+        "model.image_shape": [1, crop_size, crop_size],
+    }
+    return overrides
+
+
 def generate_overrides_for_model_eval(
     user_overrides: dict,
     save_path: str,
@@ -238,3 +298,41 @@ def generate_overrides_for_track_based_crops(
     }
     overrides.update(track_specific_overrides)
     return overrides
+
+
+def get_dataset_names_used_for_training(
+    train_csv_path: Path, val_csv_path: Path, dataset_collection_name: str
+) -> list[str]:
+    """
+    Pull list of dataset names used for model training
+    from train.csv and val.csv files that are passed
+    into the model training script.
+    """
+    # load train.csv and val.csv files as dataframes
+    train_df = pd.read_csv(train_csv_path)
+    val_df = pd.read_csv(val_csv_path)
+
+    # get date part of dataset name from zarr path
+    # note: this might be something that
+    # gets turned into a zarr method in a future PR
+    for df in [train_df, val_df]:
+        df["dataset_date"] = df["path"].apply(lambda s: Path(s).stem.split("_")[0])
+
+    # get unique dataset dates used in training from dataset_date
+    # by combining the unique dates from both train and val datasets
+    training_dataset_dates = list(
+        set(train_df["dataset_date"].unique().tolist() + val_df["dataset_date"].unique().tolist())
+    )
+
+    # get unique dataset names by looping over
+    # the provided dataset collection name,
+    # which should be a superset of the datasets used for training
+
+    training_dataset_superset = load_dataset_collection_config(dataset_collection_name)
+    training_dataset_names = []
+    for dataset_name in training_dataset_superset.datasets:
+        for date in training_dataset_dates:
+            if date in dataset_name:
+                training_dataset_names.append(dataset_name)
+
+    return sorted(training_dataset_names)

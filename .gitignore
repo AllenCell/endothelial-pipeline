@@ -23,6 +23,7 @@ venv/
 
 # Log files
 *.log
+logs/
 
 # Image files
 *.png

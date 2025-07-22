@@ -1,6 +1,7 @@
 from .config_io import get_config_dir
 from .dataset_config import DatasetCollectionConfig, DatasetConfig, FlowCondition, ValidTimepoints
 from .dataset_config_io import (
+    get_available_dataset_collection_names,
     get_available_dataset_names,
     get_dataset_collection_config_dir,
     get_dataset_config_dir,
@@ -22,6 +23,7 @@ from .dataset_config_utils import (
     get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
+    make_sample_type_objective_microscope_collection,
 )
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
@@ -51,6 +53,7 @@ __all__ = [
     "add_model_manifest",
     "get_available_channels_for_all_positions",
     "get_available_channels_for_position",
+    "get_available_dataset_collection_names",
     "get_available_dataset_names",
     "get_available_model_names",
     "get_available_zarr_files",
@@ -73,6 +76,7 @@ __all__ = [
     "load_dataset_collection_config",
     "load_dataset_config",
     "load_model_config",
+    "make_sample_type_objective_microscope_collection",
     "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",

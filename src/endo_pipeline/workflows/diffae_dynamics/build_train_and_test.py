@@ -1,10 +1,9 @@
 import fire
 
 from src.endo_pipeline.configs import dynamics_io, get_timelapse_model_manifests, load_model_config
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper, regression_main
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -54,9 +53,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     ################### Visualize PCA results ###################
     # plot explained variance ratio of PCA components
     fig, _ = manifest_viz.plot_explained_variance(pca["pca"].explained_variance_ratio_)
-    viz_base.save_plot(
-        fig, filename=fig_savedir / "explained_variance_ratio", format=".png", dpi=500
-    )
+    save_plot_to_path(fig, fig_savedir, "explained_variance_ratio")
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
