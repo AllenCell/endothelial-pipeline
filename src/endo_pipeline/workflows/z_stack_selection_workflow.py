@@ -7,7 +7,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from src.endo_pipeline.configs import (
+    get_datasets_in_collection,
+    get_zarr_file_for_position,
+    load_dataset_config,
+)
 from src.endo_pipeline.io import load_zarr_as_dask_array
 from src.endo_pipeline.io.output import get_output_path
 from src.endo_pipeline.library.process.z_stack_selection import (
@@ -17,7 +21,9 @@ from src.endo_pipeline.library.process.z_stack_selection import (
 )
 
 
-def process_position(dataset: str, position: int, config: Any, save_dir: Path) -> dict[str, Any]:
+def calculate_global_center_plane(
+    dataset: str, position: int, config: Any, save_dir: Path
+) -> dict[str, Any]:
     """Calculate global center plane for single position."""
     zarr_file = get_zarr_file_for_position(config, position)
     bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
@@ -48,24 +54,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 
 if __name__ == "__main__":
-    # Define datasets and offsets
-    datasets = [
-        "20241016_20X",
-        "20241120_20X",
-        "20241217_20X",
-        "20250224_20X",
-        "20250319_20X",
-        "20250326_20X",
-        "20250331_20X",
-        "20250402_20X",
-        "20250409_20X",
-        "20250428_20X",
-        "20250604_20X",
-        "20250611_20X",
-        "20250618_20X",
-    ]
-
-    # Process each dataset
+    datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
     for dataset in datasets:
         logging.info(f"Processing dataset: {dataset}")
         save_dir = get_output_path(__file__, dataset)
@@ -74,14 +63,14 @@ if __name__ == "__main__":
         # Parallelize position processing
         args = [(dataset, position, config, save_dir) for position in range(6)]
         with Pool() as pool:
-            results = pool.starmap(process_position, args)
+            results = pool.starmap(calculate_global_center_plane, args)
 
         # Save results
         results_df = pd.DataFrame(results)
         results_df.to_csv(save_dir / f"{dataset}_global_center_plane.csv", index=False)
         logging.info(f"Results saved to: {save_dir / f'{dataset}_global_center_plane.csv'}")
 
-    # Visualize slice selection for a specific dataset and position
+    # One example to show how slice selection for a specific dataset and position is done
     dataset, position, frame = "20241016_20X", 0, 0
     save_dir = get_output_path(__file__, dataset)
     config = load_dataset_config(dataset)
