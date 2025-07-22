@@ -13,10 +13,11 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
+from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
 
-from .regression_helper import get_kramers_moyal, get_traj_and_diff
+from .regression_helper import get_traj_and_diff
 
 
 def set_3d_bounds_from_data(
@@ -72,7 +73,7 @@ def compute_extrapolated_vector_field(
     - kmcs: 3D array of drift or diffusion estimates
         - shape num_bins_x, num_bins_y, num_bins_z, 3)
         - Computed via kernel-based method in
-        `regression_helper.get_kramers_moyal`
+        `kramersmoyal.get_kramers_moyal`
     - grid_centers: 1D numpy arrays with the grid points in
         each dimension (centers of bins of x,y,z space)
     - interpolator (optional, default="nearest"): interpolation method

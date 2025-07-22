@@ -5,8 +5,9 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from . import km_kernels
-from .km_binning import histogramdd
+from src.endo_pipeline.library.analyze.numerics import histogramdd
+
+from . import _km_kernels
 
 
 def _string_to_kernel(kernel: str) -> Callable:
@@ -29,7 +30,7 @@ def _string_to_kernel(kernel: str) -> Callable:
     }  # functions that are not kernels
     kernel_dict = {
         name: func
-        for name, func in inspect.getmembers(km_kernels, inspect.isfunction)
+        for name, func in inspect.getmembers(_km_kernels, inspect.isfunction)
         if name not in not_kernel
     }
     if kernel in kernel_dict:
@@ -40,7 +41,7 @@ def _string_to_kernel(kernel: str) -> Callable:
         )
 
 
-def km(
+def _km_wrapper(
     timeseries: list[np.ndarray],
     grads: list[np.ndarray],
     bins: list[np.ndarray],
@@ -87,7 +88,7 @@ def km(
         coefficient in 2D, the powers are `[[0, 0], [1, 0], [0, 1]]`,
         where the first row is the normalization
 
-        The powers can be computed by calling `get_km_powers(ndim)`, where
+        The powers can be computed by calling `_get_km_powers(ndim)`, where
         `ndim` is the dimension of the timeseries. The powers are then
         automatically generated, but only up to second order.
 
@@ -166,12 +167,12 @@ def km(
     kernel_func = _string_to_kernel(kernel)
 
     # This is where the calculations take place
-    kmc = _km(timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method)
+    kmc = _km_worker(timeseries, grads, bins, powers, kernel_func, bw, tol, conv_method)
 
     return kmc
 
 
-def _km(
+def _km_worker(
     timeseries: list[np.ndarray],
     grads: list[np.ndarray],
     bins: list[np.ndarray],

@@ -28,7 +28,6 @@ from .model_eval import (
 )
 from .model_fitting import build_diff_lib, build_drift_lib
 from .regression_helper import (
-    get_kramers_moyal,
     get_stationary_hist,
     get_traj_and_diff,
     get_traj_by_flow,
@@ -52,7 +51,6 @@ __all__ = [
     "get_and_viz_ddff",
     "get_callable_vector_field",
     "get_fixed_points_by_shear",
-    "get_kramers_moyal",
     "get_stationary_hist",
     "get_stationary_probability",
     "get_traj_and_diff",
