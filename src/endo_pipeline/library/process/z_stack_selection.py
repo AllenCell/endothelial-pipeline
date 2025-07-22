@@ -3,8 +3,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.process.image_processing import contrast_stretching
-from src.endo_pipeline.library.visualize.viz_base import save_plot
 
 
 def plot_standard_devs_per_slice(
@@ -36,7 +36,7 @@ def plot_standard_devs_per_slice(
     ax.legend()  # Add legend for the center plane label
 
     fname = f"standard_devs_{dataset}_P{position}_{frame}"
-    save_plot(fig, output_dir / fname)
+    save_plot_to_path(fig, output_dir, fname)
     plt.show()
 
 
@@ -111,7 +111,7 @@ def visualize_slice_selection(
 
     # Save the plot
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}"
-    save_plot(fig, output_dir / fname)
+    save_plot_to_path(fig, output_dir, fname)
     plt.show()
 
 
@@ -174,7 +174,7 @@ def plot_global_center_plane(
 
     plt.tight_layout()
     fname = f"global_center_plane_{dataset}_P{position}"
-    save_plot(fig, output_dir / fname)
+    save_plot_to_path(fig, output_dir, fname)
     plt.show()
 
     return mean_center_plane, std_center_plane
