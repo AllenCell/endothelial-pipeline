@@ -21,7 +21,11 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from src.endo_pipeline.configs import ModelConfig, ModelManifest, save_model_config
+from src.endo_pipeline.configs import (  # noqa: F401, I001
+    ModelConfig,
+    ModelManifest,
+    save_model_config,
+)
 
 # %%
 model = ModelConfig(

@@ -64,7 +64,8 @@ def main(
                 dataset_names,
             )
             raise ValueError(
-                f"Dataset name [ {dataset_names} ] is not a valid dataset or dataset collection name."
+                f"Dataset name [ {dataset_names} ] is not a valid",
+                "dataset or dataset collection name.",
             )
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
