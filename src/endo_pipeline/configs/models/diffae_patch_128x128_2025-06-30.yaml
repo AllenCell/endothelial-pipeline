@@ -1,0 +1,19 @@
+name: diffae_patch_128x128_2025-06-30
+mlflow_run_id: 09c2421d405d45e59ffc883fbd2f69a2
+manifest_fmsids: []
+training_datasets:
+- 20241016_20X
+- 20241120_20X
+- 20241203_20X
+- 20241217_20X
+- 20250110_20X
+- 20250224_20X
+- 20250227_paired20X
+- 20250319_20X
+- 20250326_20X
+- 20250331_20X
+- 20250402_20X
+- 20250409_20X
+- 20250428_20X
+train_manifest_fmsid: null
+test_manifest_fmsid: null
