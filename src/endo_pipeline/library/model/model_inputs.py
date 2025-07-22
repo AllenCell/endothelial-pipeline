@@ -12,7 +12,7 @@ ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
-) -> Path:
+) -> str:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
@@ -32,17 +32,47 @@ def generate_zarr_csv_for_model_eval(
 
 
 def preprocess_tracking_manifest_for_model_eval(
-    dataset_config: DatasetConfig, save_dir: Path
+    dataset_config: DatasetConfig,
+    save_dir: Path,
+    downsample_factor: int = 2,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = dataset_config.tracking_integration_fmsid
+    fms_id = dataset_config.live_merged_seg_features_manifest_fmsid
     if fms_id is None:
         raise ValueError(
-            f"Dataset {dataset_config.name} does not have a tracking integration FMS ID."
+            f"Dataset {dataset_config.name} does not have a live segmentation features FMS ID."
         )
     df = load_dataframe_from_fms(fms_id)
-    # convert centroids to bounding boxes
-    df = centroid_to_bbox(df)
+
+    # keep only rows that were not filtered out by filter_global
+    df = df[~df["filter_global"]]
+
+    # filter the dataframe to include only the relevant columns
+    colums_to_keep = [
+        "zarr_path",
+        "image_index",
+        "track_id",
+        "label",
+        "centroid_X",
+        "centroid_Y",
+        "image_size_x",
+        "image_size_y",
+        "crop_size",
+    ]
+    df = df[colums_to_keep]
+
+    # convert centroids to bounding boxes and downsample
+    # by half to match currently used model resolution
+    # this is currently always 2
+    df = centroid_to_bbox(df, downsample_factor)
+
+    # filter the dataframe to exclude anything where the size of
+    # the bounding box does not match the downsampled crop size
+    # (because the model expects identically sized square crops)
+    # check if bounding boxes fit in image bounds without being clipped
+    bbox_size_is_correct = bbox_in_image_bounds(df, downsample_factor)
+    # filter the dataframe in-place to remove clipped bounding boxess
+    df = df[bbox_size_is_correct]
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -59,6 +89,11 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = ZARR_BF_CHANNEL
+    # NOTE "resolution" below determines what resolution the images will
+    # be loaded at, and currently the model loads at native resolution
+    # and downsamples in the transforms; therefore this value must be 0
+    # The "start" and "end" column values determine the crop locations
+    # after downsampling, thus they were adjusted by downsample_factor
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
@@ -70,17 +105,40 @@ def preprocess_tracking_manifest_for_model_eval(
     return save_path
 
 
-def centroid_to_bbox(df: pd.DataFrame) -> pd.DataFrame:
+def centroid_to_bbox(df: pd.DataFrame, downsample_factor: int = 2) -> pd.DataFrame:
     """
     Convert centroids to bounding boxes.
 
-    Note: coordinates are downsampled by half to match current model resolution.
+    Note: coordinates are downsampled by half (downsample_factor = 2)
+    to match current model resolution.
     """
-    df["start_x"] = ((df["centroid_x"] - df["crop_size"] / 2) / 2).astype(int)
-    df["start_y"] = ((df["centroid_y"] - df["crop_size"] / 2) / 2).astype(int)
-    df["end_x"] = ((df["centroid_x"] + df["crop_size"] / 2) / 2).astype(int)
-    df["end_y"] = ((df["centroid_y"] + df["crop_size"] / 2) / 2).astype(int)
+    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)
+    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / downsample_factor).astype(int)
     return df
+
+
+def bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Series:
+    # adjust the image size according to the desired downsample factor
+    df["image_size_x"] = df["image_size_x"] // downsample_factor
+    df["image_size_y"] = df["image_size_y"] // downsample_factor
+
+    # limit start and end of x and y bboxes to be within image size limits
+    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
+    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
+    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
+    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
+
+    # filter the dataframe to exclude anything where the size of
+    # the bounding box does not match the downsampled crop size
+    # (because the model expects identically sized square crops)
+    bbox_size_y = df.end_y - df.start_y
+    bbox_size_x = df.end_x - df.start_x
+    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
+        bbox_size_x == (df["crop_size"] // downsample_factor)
+    )  # ask if both x and y bbox dimensions equal downsampled crop size
+    return bbox_size_is_correct
 
 
 def generate_overrides_for_model_training(
@@ -217,7 +275,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_track_based_features",
+            "save_suffix": f"{dataset_name}_{model_name}_tracked_crop_features",
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
