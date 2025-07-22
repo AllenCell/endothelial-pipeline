@@ -25,11 +25,11 @@ from src.endo_pipeline.configs import add_model_manifest, load_model_config, sav
 from src.endo_pipeline.configs.dataset_io import get_zarr_path
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
-from src.endo_pipeline.library.model.apply_model import (
+from src.endo_pipeline.library.model import (
+    download_model,
     generate_overrides_for_model_eval,
     get_cytodl_commit_hash,
 )
-from src.endo_pipeline.library.model.mlflow_utils import download_model
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0

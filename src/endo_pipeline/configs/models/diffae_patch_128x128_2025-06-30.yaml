@@ -1,0 +1,49 @@
+name: diffae_patch_128x128_2025-06-30
+mlflow_run_id: 09c2421d405d45e59ffc883fbd2f69a2
+manifest_fmsids:
+- dataset_name: 20241016_20X
+  fmsid: 7a56fc9e2490462d899cc8e13c5aa022
+- dataset_name: 20241120_20X
+  fmsid: 7733a00f2c384a3cbc97fa196440628d
+- dataset_name: 20241217_20X
+  fmsid: c966bae556134ca5964ae9948f350605
+- dataset_name: 20250110_paired20X
+  fmsid: 46642b34cc894c2bbb5076deb70ae380
+- dataset_name: 20250224_20X
+  fmsid: 1e0dab588aad4c228eed2770f0fd44c7
+- dataset_name: 20250227_paired20X
+  fmsid: a537015738354424ae0e291a743bda17
+- dataset_name: 20250319_20X
+  fmsid: 0c94b1f1c1824c708749efb954b47220
+- dataset_name: 20250326_20X
+  fmsid: 3bd9feeaa3cb49afa3aca1e8ea457408
+- dataset_name: 20250331_20X
+  fmsid: e78a1708b28d423eb5642265c426477e
+- dataset_name: 20250402_20X
+  fmsid: 0d7acc330476402ab67254f6557344c0
+- dataset_name: 20250409_20X
+  fmsid: 961f8f71b46d4882b1ac28a551ed931b
+- dataset_name: 20250428_20X
+  fmsid: e3720eed48f846ae82abbac946283f80
+- dataset_name: 20250604_20X
+  fmsid: 2eca0b41987f46c981cee55c3495f8c2
+- dataset_name: 20250611_20X
+  fmsid: 3dd761d0faca45dbb516a16860cf7faa
+- dataset_name: 20250618_20X
+  fmsid: c8b4fe0122de4388a0351d39e817737e
+training_datasets:
+- 20241016_20X
+- 20241120_20X
+- 20241203_20X
+- 20241217_20X
+- 20250110_20X
+- 20250224_20X
+- 20250227_paired20X
+- 20250319_20X
+- 20250326_20X
+- 20250331_20X
+- 20250402_20X
+- 20250409_20X
+- 20250428_20X
+train_manifest_fmsid: null
+test_manifest_fmsid: null

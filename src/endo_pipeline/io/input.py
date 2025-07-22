@@ -3,9 +3,61 @@
 import logging
 from pathlib import Path
 
+import dask
 import pandas as pd
+from bioio import BioImage
 
 logger = logging.getLogger(__name__)
+
+
+def load_zarr_as_dask_array(
+    path: Path,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+) -> dask.array.Array:
+    """
+    Load Zarr as Dask array.
+
+    Parameters
+    ----------
+    path
+        Path to Zarr file.
+    channels
+        Channels to load.
+    timepoints
+        Timepoint(s) to load. Timepoints can be given as a single integer, list
+        of integers, or an integer range. Use None to load all timepoints.
+    level
+        Resolution level to load.
+    """
+
+    if not path.exists():
+        logger.error("Path [ %s ] could not be loaded", path)
+        raise FileNotFoundError(f"No such file '{path}'")
+
+    if channels is None:
+        channels = ["EGFP", "BF"]
+
+    # Initialize image reader.
+    reader = BioImage(path)
+
+    # Get index of channels for loaded Zarr.
+    channels_index = [reader.channel_names.index(channel) for channel in channels]
+
+    # Check if resolution level is value.
+    if level not in reader.resolution_levels:
+        logger.error("Selected resolution level [ %s ] not available for dataset", level)
+        raise ValueError(f"Zarr [ {path.name} ] only has levels {reader.resolution_levels}")
+
+    # Set resolution level for loaded Zarr.
+    reader.set_resolution_level(level)
+
+    # Read image data.
+    if timepoints is not None:
+        return reader.get_image_dask_data("TCZYX", T=timepoints, C=channels_index)
+    else:
+        return reader.get_image_dask_data("TCZYX", C=channels_index)
 
 
 def load_local_path_as_dataframe(path: Path) -> pd.DataFrame:

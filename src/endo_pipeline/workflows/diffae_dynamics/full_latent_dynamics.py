@@ -5,14 +5,13 @@ from src.endo_pipeline.configs import (
     get_timelapse_model_manifests,
     load_model_config,
 )
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_feature_column_names,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -59,11 +58,11 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         feats = preprocessing.df_to_array(df, feature_column_names)
         fig, _ = manifest_viz.plot_latent_component_mean(feats)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_latent_mean")
+        save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_mean")
 
         fig, _ = manifest_viz.plot_latent_component_histogram(feats)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_latent_histogram")
+        save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_histogram")
 
         df_proj = preprocessing.project_manifest_to_pcs(df, pca, feat_cols=feature_column_names)
         pc_column_names = get_pc_column_names(df_proj, pc_axes=[0, 1, 2])
@@ -71,7 +70,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
 
         fig, _ = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
-        viz_base.save_plot(fig, fig_savedir / f"{model_manifest.dataset_name}_pc_histogram")
+        save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_pc_histogram")
 
 
 if __name__ == "__main__":

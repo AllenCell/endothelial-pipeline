@@ -32,6 +32,15 @@ def get_available_dataset_names() -> list[str]:
     return dataset_names
 
 
+def get_available_dataset_collection_names() -> list[str]:
+    """Get list of available dataset collection names."""
+
+    collection_names = [path.stem for path in get_dataset_collection_config_dir().iterdir()]
+    logger.info("Available dataset collections [ %s ]", " | ".join(collection_names))
+
+    return collection_names
+
+
 def validate_all_dataset_configs() -> None:
     """Validate all dataset configs against defined schema."""
 
