@@ -22,6 +22,7 @@ from .dataset_config_utils import (
     get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
+    make_sample_type_objective_microscope_collection,
 )
 from .model_config import ModelConfig, ModelManifest
 from .model_config_io import (
@@ -73,6 +74,7 @@ __all__ = [
     "load_dataset_collection_config",
     "load_dataset_config",
     "load_model_config",
+    "make_sample_type_objective_microscope_collection",
     "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",
