@@ -5,12 +5,12 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
 )
-from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -122,21 +122,19 @@ def kramers_moyal_train_test_one_dataset(
         # plot drift and diffusion estimates
         kmc = np.concatenate([drift_km_, diff_km_], axis=-1).T
         fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
-        viz_base.save_plot(
+        save_plot_to_path(
             fig,
-            filename=fig_savedir / f"kmcs_all_{dataset_name}_flow_{j}",
-            format=".png",
-            dpi=500,
+            fig_savedir,
+            f"kmcs_all_{dataset_name}_flow_{j}",
         )
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
             fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
-            viz_base.save_plot(
+            save_plot_to_path(
                 fig,
-                filename=fig_savedir / f"kmcs_drift_{dataset_name}_flow_{j}",
-                format=".png",
-                dpi=500,
+                fig_savedir,
+                f"kmcs_drift_{dataset_name}_flow_{j}",
             )
 
         # remove NaNs from drift and diffusion estimates
