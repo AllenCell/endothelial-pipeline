@@ -15,6 +15,7 @@ def load_zarr_as_dask_array(
     channels: list[str] | None = None,
     timepoints: int | list[int] | range | None = None,
     level: int = 0,
+    squeeze: bool = False,
 ) -> dask.array.Array:
     """
     Load Zarr as Dask array.
@@ -24,26 +25,34 @@ def load_zarr_as_dask_array(
     path
         Path to Zarr file.
     channels
-        Channels to load.
+        Channel(s) to load. Channels should be given as a list of channel names.
+        Use None to load all channels.
     timepoints
         Timepoint(s) to load. Timepoints can be given as a single integer, list
         of integers, or an integer range. Use None to load all timepoints.
     level
         Resolution level to load.
+    squeeze
+        True to drop any single-dimensional entries, False otherwise.
     """
 
     if not path.exists():
         logger.error("Path [ %s ] could not be loaded", path)
         raise FileNotFoundError(f"No such file '{path}'")
 
-    if channels is None:
-        channels = ["EGFP", "BF"]
+    reader_arguments = {}
 
     # Initialize image reader.
     reader = BioImage(path)
 
-    # Get index of channels for loaded Zarr.
-    channels_index = [reader.channel_names.index(channel) for channel in channels]
+    # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
+    if timepoints is not None:
+        reader_arguments["T"] = timepoints
+
+    # Specify channels to load, if provided. Otherwise, all channels will be loaded.
+    if channels is not None:
+        channels_index = [reader.channel_names.index(channel) for channel in channels]
+        reader_arguments["C"] = channels_index
 
     # Check if resolution level is value.
     if level not in reader.resolution_levels:
@@ -54,10 +63,12 @@ def load_zarr_as_dask_array(
     reader.set_resolution_level(level)
 
     # Read image data.
-    if timepoints is not None:
-        return reader.get_image_dask_data("TCZYX", T=timepoints, C=channels_index)
-    else:
-        return reader.get_image_dask_data("TCZYX", C=channels_index)
+    image = reader.get_image_dask_data("TCZYX", **reader_arguments)
+
+    if squeeze:
+        return image.squeeze()
+
+    return image
 
 
 def load_local_path_as_dataframe(path: Path) -> pd.DataFrame:
