@@ -25,14 +25,16 @@ def plot_standard_devs_per_slice(
         None
     """
     fig, ax = plt.subplots(figsize=(10, 6))
-    plt.plot(stdevs)
+    ax.plot(stdevs)
 
-    # add a horizontal line at center plane index
-    plt.axvline(center_plane, color="red", linestyle="--", label=f"Center Plane ({center_plane})")
+    # Add a vertical line at the center plane index
+    ax.axvline(center_plane, color="red", linestyle="--", label=f"Center Plane ({center_plane})")
 
-    plt.title(f"{dataset} P{position} frame: {frame}")
-    plt.xlabel("Plane Index")
-    plt.ylabel("Standard Deviations of BF Planes")
+    ax.set_title(f"{dataset} P{position} frame: {frame}")
+    ax.set_xlabel("Plane Index")
+    ax.set_ylabel("Standard Deviations of BF Planes")
+    ax.legend()  # Add legend for the center plane label
+
     fname = f"standard_devs_{dataset}_P{position}_{frame}"
     save_plot(fig, output_dir / fname)
     plt.show()
@@ -50,8 +52,8 @@ def visualize_slice_selection(
     output_dir: Path,
 ) -> None:
     """
-    Plot the center slice with slices x planes above and below the center slice for
-    the bf and chd5 channels.
+    Plot the center z-slice with slices n planes above (upper offset) and below (lower offset)
+    the center slice for the bf and chd5 channels.
 
     Args:
         bf_stack (np.ndarray): Brightfield image stack.
@@ -136,7 +138,7 @@ def plot_global_center_plane(
 
     # First plot: Center plane vs frame index
     ax[0].plot(range(len(center_planes)), center_planes, "ro", alpha=0.7)
-    ax[0].set_xlabel("Frame Index")
+    ax[0].set_xlabel("Timepoint (frames)")
     ax[0].set_ylabel("Center Plane Index")
     ax[0].set_title(f"{dataset}, Position {position}")
     ax[0].set_ylim(0, 25)
