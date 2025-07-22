@@ -7,9 +7,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from src.endo_pipeline.io import load_zarr_as_dask_array
 from src.endo_pipeline.io.output import get_output_path
-from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 from src.endo_pipeline.library.process.z_stack_selection import (
     plot_global_center_plane,
     plot_standard_devs_per_slice,
@@ -19,8 +19,8 @@ from src.endo_pipeline.library.process.z_stack_selection import (
 
 def process_position(dataset: str, position: int, config: Any, save_dir: Path) -> dict[str, Any]:
     """Calculate global center plane for single position."""
-    img = get_zarr_img_for_dataset(dataset, position, resolution_level=1)
-    bf_stack_all_frames = img.get_image_dask_data("TZYX", C=1)
+    zarr_file = get_zarr_file_for_position(config, position)
+    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
 
     center_planes = []
 
@@ -86,12 +86,16 @@ if __name__ == "__main__":
     save_dir = get_output_path(__file__, dataset)
     config = load_dataset_config(dataset)
 
-    img = get_zarr_img_for_dataset(dataset, position, resolution_level=1)
-    bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
-    cdh5_stack = img.get_image_dask_data("ZYX", C=0, T=frame)
+    zarr_file = get_zarr_file_for_position(config, position)
+    bf_stack = load_zarr_as_dask_array(
+        zarr_file, channels=["BF"], timepoints=frame, level=1
+    ).squeeze()
+    cdh5_stack = load_zarr_as_dask_array(
+        zarr_file, channels=["EGFP"], timepoints=frame, level=1
+    ).squeeze()
 
     # Calculate center plane
-    stdevs = [plane.std().compute() for plane in bf_stack.squeeze()]
+    stdevs = [plane.std().compute() for plane in bf_stack]
     center_plane = max(0, np.argmin(stdevs))
 
     # Plot and visualize
