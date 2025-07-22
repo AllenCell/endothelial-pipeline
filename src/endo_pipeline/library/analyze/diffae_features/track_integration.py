@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -9,7 +8,6 @@ from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from cellsmap.util.manifest_io import get_diffae_manifest
 from src.endo_pipeline.configs import (
     get_model_manifest,
     load_dataset_collection_config,
@@ -31,6 +29,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import plot_one_slice_quiver
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import (
     get_valid_slice_indexes,
@@ -40,24 +39,6 @@ from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz i
 )
 
 logger = logging.getLogger(__name__)
-
-
-# def get_and_process_diffae_data(dataset_name: str) -> pd.DataFrame:
-#     # read in the grid crop-based diffae features
-#     diffae_grid_crops = get_diffae_manifest(dataset_name)
-#     diffae_grid_crops = diffae_preproc.add_crop_index(diffae_grid_crops)
-#     diffae_grid_crops = diffae_preproc.add_description_column(
-#         diffae_grid_crops, dataset_name, simple=True
-#     )  # add description column (e.g., 48hr_High)
-
-#     # in Erin's code in workflows/flow_field3d/preprocessing.py
-#     # adding the dataset name to the crop index was required to
-#     # make the crop index unique if multiple datasets were used
-#     diffae_grid_crops["crop_index"] = (
-#         diffae_grid_crops["dataset"] + "_" + diffae_grid_crops["crop_index"].astype(str)
-#     )
-
-#     return diffae_grid_crops
 
 
 def merge_diffae_feats_liveseg_feats_tables(
@@ -74,6 +55,7 @@ def merge_diffae_feats_liveseg_feats_tables(
     Returns:
         pd.DataFrame: Merged DataFrame with DiffAE and live segmentation features.
     """
+    dataset_name = sequence_to_scalar(diffae_tracking_df["dataset"])
     logging.debug("processing the diffae tracking data...")
     # process the diffae tracking data
     diffae_tracking_df["is_unique"] = diffae_tracking_df.groupby(

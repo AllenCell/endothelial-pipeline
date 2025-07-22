@@ -2,8 +2,13 @@ from pathlib import Path
 
 import numpy as np
 
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_reference_datasets, ipython_cli_flexecute
+from src.endo_pipeline.configs import (
+    get_datasets_in_collection,
+    get_model_manifest,
+    load_model_config,
+)
+from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
     get_diffae_feats_liveseg_feats_merged_table,
     get_traj_and_flowfield,
@@ -14,13 +19,14 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import make_all_plots
 
 
 def main() -> None:
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(Path(__file__).stem)
     out_dir.mkdir(parents=True, exist_ok=True)
-    dataset_name_list = get_reference_datasets()
+    dataset_name_list = get_datasets_in_collection("pca_reference")
 
     for dataset_name in dataset_name_list:
         # create subdirectory to save track-based trajectories to
@@ -40,7 +46,10 @@ def main() -> None:
         pca = fit_pca()
 
         # read in the grid crop-based diffae features
-        diffae_grid_crops = get_manifest_for_dynamics_workflows(dataset_name, pca)
+        model_name = sequence_to_scalar(df_all_positions["model_name"])
+        model_config = load_model_config(model_name)
+        model_manifest = get_model_manifest(dataset_name, model_config)
+        diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
 
         # add the PC columns to the track-based DiffAE table
         # (the grid-based DiffAE table already has them, but
@@ -50,7 +59,10 @@ def main() -> None:
         df_all_positions = project_manifest_to_pcs(df_all_positions, pca)
 
         # use the full set of datasets to be analyzed for the bounds
-        bounds = ddff.set_3d_bounds_from_data(dataset_name_list, pca)
+        model_manifest_list = [
+            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_name_list
+        ]
+        bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
 
         print("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)
