@@ -6,13 +6,13 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_features import model_analysis, regression_helper
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
 from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
     get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
-from src.endo_pipeline.library.visualize import viz_base
 
 
 def ddd_model_analysis(
@@ -85,10 +85,8 @@ def ddd_model_analysis(
     fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
 
     # save figures
-    viz_base.save_plot(fig1, fig_savedir / f"{dataset_name}_ddff_phase_portrait_shear_{int(shear)}")
-    viz_base.save_plot(
-        fig2, fig_savedir / f"{dataset_name}_ddff_stationary_dist_shear_{int(shear)}"
-    )
+    save_plot_to_path(fig1, fig_savedir, f"{dataset_name}_ddff_phase_portrait_shear_{int(shear)}")
+    save_plot_to_path(fig2, fig_savedir, f"{dataset_name}_ddff_stationary_dist_shear_{int(shear)}")
     return
 
 
