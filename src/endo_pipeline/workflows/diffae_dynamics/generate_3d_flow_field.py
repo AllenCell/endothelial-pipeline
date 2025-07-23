@@ -26,7 +26,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_timepoints_for_plotting_pcs,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_bins, set_3d_bounds_from_data
+from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, manifest_viz, vtk_io
 
 
@@ -180,7 +180,7 @@ def _get_and_analyze_ddff(
             of what other files are saved out for each dataset
     """
     # get bins for KMCs
-    bounds = set_3d_bounds_from_data(model_manifest_list, pca)
+    bounds = get_3d_bounds_from_data(model_manifest_list, pca)
     num_bins = [50, 50, 50]
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 

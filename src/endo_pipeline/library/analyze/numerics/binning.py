@@ -8,46 +8,6 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 )
 
 
-def set_3d_bounds_from_data(
-    model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
-) -> list[np.ndarray]:
-    """
-    Set bounds for 3D state space based on the bounds
-    of the features in the datasets. The 3D state space
-    is based on the first three principal components
-    of the input pca Pipeline object, which is fit
-    on a fixed set of reference datasets.
-
-    Inputs:
-    - model_manifests: list of ModelManifest objects
-        - each manifest contains the dataset name and
-            the fmsid of the model manifest for the dataset
-    - pca: PCA model to use for transforming the data
-
-
-    Outputs:
-    - bounds: list of numpy arrays with the bounds
-        for each dimension in the 3D state space
-        - formate: [[max_x, min_x], [max_y, min_y], [max_z, min_z]]
-    """
-    num_dims = 3
-    # initialize bounds
-    bounds_ = [[100, -100], [100, -100], [100, -100]]
-
-    for model_manifest in model_manifest_list:
-        df = get_manifest_for_dynamics_workflows(model_manifest, pca)
-        # get column names for features
-        pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
-        for j in range(num_dims):
-            bounds_[j][0] = min(bounds_[j][0], df[pc_column_names[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[pc_column_names[j]].max())
-
-    bounds = [np.array(bounds_[i]) for i in range(num_dims)]
-
-    return bounds
-
-
 def get_bins(
     num_bins: list, data: list[np.ndarray] | None = None, bin_limits: list | None = None
 ) -> tuple[list, list]:

@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from cellsmap.util.manifest_io import get_diffae_manifest, get_track_diffae_manifest
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.configs.dataset_io import (
     get_reference_datasets,
     get_segmentation_features_manifest,
@@ -26,7 +27,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics import get_bins, set_3d_bounds_from_data
+from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_quiver_slices,
@@ -469,6 +470,11 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     dataset_name_list = get_reference_datasets()
 
+    # use the full set of datasets to be analyzed for the bounds
+    model_config = load_model_config("diffae_04_10")
+    model_manifest_list = get_pca_reference_model_manifests(model_config)
+    bounds = get_3d_bounds_from_data(model_manifest_list, pca, col_names="feat")
+
     for dataset_name in dataset_name_list:
         # create subdirectory to save track-based trajectories to
         out_subdir_traj = out_dir / "trajectories_track_based"
@@ -495,9 +501,6 @@ def main() -> None:
         # "feat_1", etc. when they should be named "pc1",
         # "pc2", etc.)
         df_all_positions = project_manifest_to_pcs(df_all_positions, pca)
-
-        # use the full set of datasets to be analyzed for the bounds
-        bounds = set_3d_bounds_from_data(dataset_name_list, pca)
 
         print("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)

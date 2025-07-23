@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import ModelManifest
+from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.io import load_dataframe_from_fms
 
 from .diffae_manifest_utils import (
@@ -78,6 +78,27 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract zarr path from data config and add it
+    as its own column to the dataframe.
+    Note that df must be a DataFrame containing
+    manifest data from a single dataset.
+
+    This is needed for the current manifests loaded
+    via manifest_io.load_manifest_to_df().
+    """
+    # load config for the dataset
+    ds_config = load_dataset_config(df["dataset"].iloc[0])
+    # get zarr path for the dataset from config
+    zarr_path = ds_config.zarr_path
+    # get last part of the zarr path (date_fmsid)
+    name_fmsid = zarr_path.split("/")[-1]
+    # add zarr path for each FOV as column
+    df["zarr_path"] = df.position.apply(lambda x: f"{zarr_path}/{name_fmsid}_{x}.ome.zarr")
+    return df
+
+
 def project_manifest_to_pcs(
     df: pd.DataFrame,
     pca: Pipeline,
@@ -114,7 +135,9 @@ def project_manifest_to_pcs(
 
 
 def get_manifest_for_dynamics_workflows(
-    model_manifest: ModelManifest, pca: Pipeline | None = None
+    model_manifest: ModelManifest,
+    pca: Pipeline | None = None,
+    filter_to_valid: bool = True,
 ) -> pd.DataFrame:
     """
     Load DiffAE manifest data projected onto given PC axes for downstream analysis
@@ -127,6 +150,7 @@ def get_manifest_for_dynamics_workflows(
     - pca: Pipeline or None
         - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
         - if None, do not project feature data onto PCA axes
+    - filter_to_valid: bool, whether to filter DataFrame to only valid timepoints
 
     Outputs:
     - pd.DataFrame of feature data for crops
@@ -138,7 +162,10 @@ def get_manifest_for_dynamics_workflows(
     # load manifest data from FMS
     # and filter to only valid timepoints
     df = load_dataframe_from_fms(model_manifest.fmsid)
-    df_valid = get_valid_subset(df, model_manifest.dataset_name, verbose=False)
+    if filter_to_valid:
+        df_valid = get_valid_subset(df, model_manifest.dataset_name, verbose=False)
+    else:
+        df_valid = df.copy()
 
     # add crop index column
     df_with_crop = add_crop_index(df_valid)

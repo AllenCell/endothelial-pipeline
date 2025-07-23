@@ -31,6 +31,15 @@ def gfp_max_proj(img: BioImage, frame: int) -> np.ndarray:
     return gfp_max_proj.compute()
 
 
+def get_single_bf_plane(stack: da.Array, offset: int = -5) -> np.ndarray:
+    """Get a single Z plane from the brightfield stack to visualize."""
+    stdevs = [plane.std().compute() for plane in stack.squeeze()]
+    focus_plane = np.argmin(stdevs)  # in focus plane has low contrast in BF
+    plane_selection = max(0, focus_plane + offset)  # shift from focus plane to get contrast
+    bf_plane = stack[plane_selection]
+    return bf_plane.compute()
+
+
 def max_proj_405(img: BioImage, frame: int) -> np.ndarray:
     """Get the maximum projection of the NucViolet channel for a given frame."""
     channel_405 = img.get_image_dask_data("ZYX", C=2, T=frame)
@@ -70,39 +79,83 @@ def std_dev(stack: da.Array, axis: int) -> np.ndarray:
     return std_dev.compute()
 
 
+def get_global_custom_range(
+    image_list: list[np.ndarray], method: Literal["min-max", "percentile"] = "percentile"
+) -> tuple[float, float]:
+    """Get the global minimum and maximum values across a list of images
+    for use in contrast stretching.
+
+    Parameters
+    ----------
+    image_list : list[np.ndarray]
+        List of images (numpy arrays) to compute the global range.
+    method : str
+        The method to use for calculating the range:
+        - 'min-max': Use global min and max values.
+        - 'percentile': Use percentiles to determine the range.
+
+    Returns
+    -------
+    tuple[float, float]
+        The global minimum and maximum values for contrast stretching.
+    """
+    if method == "min-max":
+        low = min(image.min() for image in image_list)
+        high = max(image.max() for image in image_list)
+
+    elif method == "percentile":
+        low = np.percentile(np.concatenate([image.flatten() for image in image_list]), 1)
+        high = np.percentile(np.concatenate([image.flatten() for image in image_list]), 99)
+
+    else:
+        raise ValueError(f"Unsupported method: {method}")
+
+    return low, high
+
+
 def contrast_stretching(
     image: np.ndarray,
     method: Literal["min-max", "percentile"] = "percentile",
     low_percentile: int = 1,
     high_percentile: int = 99,
+    custom_range: tuple[float, float] = None,
 ) -> np.ndarray:
     """
-    Apply contrast stretching to an image.
+    Contrast stretching with selectable method.
 
     Parameters
     ----------
-    image : ndarray
-        The input image for contrast stretching.
-    method : str
-        The method of contrast stretching ('min-max' or 'percentile').
-    low_percentile : int
-        The low percentile for percentile contrast stretching.
-    high_percentile : int
-        The high percentile for percentile contrast stretching.
+    image : np.ndarray
+        The input image array.
+    method : str, optional
+        - 'min-max': stretch between min and max
+        - 'percentile': stretch between percentiles
+    low_percentile : int, optional
+        The lower percentile for contrast stretching (default is 1).
+    high_percentile : int, optional
+        The upper percentile for contrast stretching (default is 99).
+    custom_range : tuple, optional
+        A custom range (low, high) for contrast stretching.
+        If provided, overrides the method-specific ranges.
+        Useful for applying the same range across multiple images.
 
     Returns
     -------
-    ndarray
-        The contrast-stretched image.
+    np.ndarray
+        The contrast-stretched image as an 8-bit unsigned integer array.
     """
-    if method == "min-max":
-        low = image.min()
-        high = image.max()
-    elif method == "percentile":
-        low, high = np.percentile(image, (low_percentile, high_percentile))
+    if custom_range is not None:
+        low, high = custom_range
+    else:
+        if method == "min-max":
+            low, high = image.min(), image.max()
+        elif method == "percentile":
+            low, high = np.percentile(image, (low_percentile, high_percentile))
+        else:
+            raise ValueError(f"Unsupported method: {method}")
 
-    stretched_image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
-    return stretched_image
+    stretched = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
+    return stretched.astype(np.uint8)
 
 
 def background_subtract(img: np.ndarray, camera_offset: int = CAMERA_OFFSET) -> np.ndarray:

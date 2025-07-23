@@ -1,4 +1,9 @@
-from .binning import get_bins, get_normalization_constant, histogramdd, set_3d_bounds_from_data
+from .binning import get_bins, get_normalization_constant, histogramdd
+from .component_heatmaps import (
+    get_3d_bounds_from_data,
+    get_df_by_bin_value,
+    get_histogram_by_component,
+)
 from .fp_solvers import SteadyFP
 from .gen_potential import (
     compute_flux_terms,
@@ -13,14 +18,16 @@ __all__ = [
     "SteadyFP",
     "compute_flux_terms",
     "entropy_production",
+    "get_3d_bounds_from_data",
     "get_bins",
+    "get_df_by_bin_value",
+    "get_histogram_by_component",
     "get_normalization_constant",
     "grad_flux_decomposition",
     "gradient_flow_term",
     "histogramdd",
     "mesh_grid_function",
     "probability_flux",
-    "set_3d_bounds_from_data",
     "vector_field_component",
     "vector_field_function",
 ]
