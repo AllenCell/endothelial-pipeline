@@ -33,6 +33,7 @@ __all__ = [
     "compute_extrapolated_vector_field",
     "convert_coordinates_from_pc_to_latent",
     "convert_coordinates_from_volume_to_pc",
+    "get_and_analyze_ddff",
     "get_callable_vector_field",
     "get_fixed_points_by_shear",
     "get_stationary_hist",
