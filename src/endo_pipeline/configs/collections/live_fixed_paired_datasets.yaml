@@ -1,0 +1,5 @@
+name: live_fixed_paired_datasets
+description: Live/fixed paired datasets for DiffAE model fine tuning (excluding methanol fixation)
+datasets:
+- 20250214_pairedPostFixation
+- 20250214_pairedPreFixation

@@ -1,0 +1,7 @@
+name: 20X_40X_paired_datasets
+description: 20X/40X paired datasets for DiffAE model fine tuning (3i microscope and live samples only)
+datasets:
+- 20250110_paired20X
+- 20250110_paired40X
+- 20250227_paired20X
+- 20250227_paired40X

@@ -1,0 +1,344 @@
+model:
+  _target_: src.endo_pipeline.library.model.DiffAEFinetune
+  save_images_every_n_epochs: 10
+  save_dir: null
+  image_shape:
+  - 1
+  - 128
+  - 128
+  n_noise_samples: 1
+  n_inference_steps: 50
+  condition_key: raw_moving
+  paired_condition_key: raw_fixed
+  train_encoder: true
+  gamma: 5.0
+  loss:
+    _target_: torch.nn.MSELoss
+    reduction: none
+  semantic_encoder:
+    _target_: cyto_dl.nn.TorchVisionWrapper
+    in_channels: 1
+    base_encoder:
+      _target_: torchvision.models.convnext_tiny
+      num_classes: 8
+  autoencoder:
+    _target_: monai.networks.nets.diffusion_model_unet.DiffusionModelUNet
+    spatial_dims: 2
+    in_channels: 1
+    out_channels: 1
+    channels:
+    - 32
+    - 64
+    - 128
+    attention_levels:
+    - false
+    - true
+    - true
+    num_res_blocks: 1
+    num_head_channels: 16
+    with_conditioning: true
+    cross_attention_dim: 1
+    use_combined_linear: false
+  noise_scheduler:
+    _target_: monai.networks.schedulers.ddim.DDIMScheduler
+    num_train_timesteps: 1000
+  diffusion_inferer:
+    _target_: monai.inferers.DiffusionInferer
+    _partial_: true
+  optimizer:
+    _partial_: true
+    _target_: torch.optim.AdamW
+    lr: 0.0
+  lr_scheduler:
+    _partial_: true
+    _target_: torch.optim.lr_scheduler.OneCycleLR
+    max_lr: 0.0
+    epochs: 500
+    steps_per_epoch: 1
+    pct_start: 0.01
+  spatial_inferer:
+    _target_: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchInferer
+    splitter:
+      _target_: monai.inferers.SlidingWindowSplitter
+      patch_size:
+      - ${model.image_shape[1]}
+      - ${model.image_shape[2]}
+      pad_mode: null
+      overlap: 0
+    merger_cls: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchMerger
+    spatial_dims: 2
+    batch_size: 1000
+model/params/total: 59688817
+model/params/trainable: 27823208
+model/params/non_trainable: 31865609
+data:
+  train_dataloaders:
+    _target_: monai.data.DataLoader
+    num_workers: 8
+    batch_size: 1
+    pin_memory: true
+    persistent_workers: false
+    shuffle: true
+    dataset:
+      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      num_workers: 64
+      csv_path: null
+      spatial_dims: 2
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw
+          dask_load: false
+          dtype: numpy.float32
+        - _target_: monai.transforms.Zoomd
+          zoom:
+          - 0.5
+          - 0.5
+          mode: nearest
+          keep_size: false
+          keys:
+          - raw
+        - _target_: monai.transforms.SplitDimd
+          keys: raw
+          output_postfixes:
+          - fixed
+          - moving
+        - _target_: monai.transforms.DeleteItemsd
+          keys:
+          - raw
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_fixed
+          - raw_moving
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys:
+          - raw_fixed
+          - raw_moving
+        - _target_: monai.transforms.RandSpatialCropSamplesd
+          keys:
+          - raw_fixed
+          - raw_moving
+          roi_size:
+          - ${model.image_shape[1]}
+          - ${model.image_shape[2]}
+          random_size: false
+          num_samples: 8
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_fixed
+          - raw_moving
+          dtype: float16
+        - _target_: monai.transforms.RandStdShiftIntensityd
+          keys:
+          - raw_fixed
+          - raw_moving
+          prob: 0.5
+          factors: 5
+        - _target_: monai.transforms.RandGaussianNoised
+          keys:
+          - raw_fixed
+          - raw_moving
+          prob: 0.5
+          std: 0.1
+          mean: 0
+        - _target_: monai.transforms.RandFlipd
+          keys:
+          - raw_fixed
+          - raw_moving
+          prob: 0.5
+          spatial_axis: 0
+        - _target_: monai.transforms.RandFlipd
+          keys:
+          - raw_fixed
+          - raw_moving
+          prob: 0.5
+          spatial_axis: 1
+        - _target_: monai.transforms.RandRotate90d
+          keys:
+          - raw_fixed
+          - raw_moving
+          prob: 0.5
+          max_k: 3
+  predict_dataloaders:
+    _target_: monai.data.DataLoader
+    num_workers: 8
+    batch_size: 1
+    pin_memory: true
+    persistent_workers: false
+    shuffle: false
+    dataset:
+      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      cache_num: 0
+      num_workers: 8
+      csv_path: null
+      spatial_dims: 3
+      dict_meta:
+        path:
+        - //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20241016_230d119061e749d98c1abde77f2f4fa3/20241016_230d119061e749d98c1abde77f2f4fa3_P0.ome.zarr
+        channel:
+        - - 0
+          - 1
+        start:
+        - 0
+        stop:
+        - 1
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw_moving
+          dask_load: true
+          dtype: numpy.float32
+        - _target_: monai.transforms.Zoomd
+          zoom:
+          - 1
+          - 0.5
+          - 0.5
+          mode: nearest
+          keep_size: false
+          keys:
+          - raw_moving
+        - _target_: cyto_dl.image.transforms.Projectd
+          keys:
+          - raw_moving
+          projection_type: std
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_moving
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys: raw_moving
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_moving
+          dtype: float16
+  val_dataloaders:
+    _target_: monai.data.DataLoader
+    num_workers: 8
+    batch_size: 1
+    pin_memory: true
+    persistent_workers: false
+    shuffle: false
+    dataset:
+      _target_: cyto_dl.datamodules.multidim_image.MultiDimImageDataset
+      num_workers: 8
+      csv_path: null
+      spatial_dims: 2
+      transform:
+        _target_: monai.transforms.Compose
+        transforms:
+        - _target_: cyto_dl.image.io.bioio_loader.BioIOImageLoaderd
+          path_key: original_path
+          out_key: raw
+          dask_load: false
+          dtype: numpy.float32
+        - _target_: monai.transforms.Zoomd
+          zoom:
+          - 0.5
+          - 0.5
+          mode: nearest
+          keep_size: false
+          keys:
+          - raw
+        - _target_: monai.transforms.SplitDimd
+          keys: raw
+          output_postfixes:
+          - fixed
+          - moving
+        - _target_: monai.transforms.DeleteItemsd
+          keys:
+          - raw
+        - _target_: cyto_dl.image.transforms.clip.Clipd
+          keys:
+          - raw_fixed
+          - raw_moving
+          low: 0.1
+          high: 99.9
+        - _target_: monai.transforms.NormalizeIntensityd
+          keys:
+          - raw_fixed
+          - raw_moving
+        - _target_: monai.transforms.RandSpatialCropSamplesd
+          keys:
+          - raw_fixed
+          - raw_moving
+          roi_size:
+          - ${model.image_shape[1]}
+          - ${model.image_shape[2]}
+          random_size: false
+          num_samples: 8
+        - _target_: monai.transforms.ToTensord
+          keys:
+          - raw_fixed
+          - raw_moving
+          dtype: float16
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: null
+  max_epochs: 100
+  accelerator: gpu
+  devices: 1
+  precision: 16-mixed
+  check_val_every_n_epoch: 1
+  deterministic: false
+  detect_anomaly: false
+  max_time: null
+  num_sanity_val_steps: 1
+  gradient_clip_val: 5
+callbacks:
+  model_checkpoint:
+    _target_: lightning.pytorch.callbacks.ModelCheckpoint
+    dirpath: null
+    filename: epoch_{epoch:03d}
+    monitor: val/loss
+    verbose: false
+    save_last: true
+    save_top_k: 1
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: 1
+    save_on_train_epoch_end: null
+  model_summary:
+    _target_: lightning.pytorch.callbacks.RichModelSummary
+    max_depth: -1
+  rich_progress_bar:
+    _target_: lightning.pytorch.callbacks.RichProgressBar
+  prediction_saver:
+    _target_: cyto_dl.callbacks.tabular_saver.SaveTabularData
+    save_dir: ${callbacks.model_checkpoint.dirpath}
+    meta_keys:
+    - start_x
+    - start_y
+    - filename_or_obj
+  latent_walk:
+    _target_: cyto_dl.callbacks.latent_walk_diffae.DiffAELatentWalk
+    every_n_epoch: ${model.save_images_every_n_epochs}
+    n_noise_samples: 1
+    n_steps: 5
+    average: false
+  grad_monitor:
+    _target_: cyto_dl.callbacks.grad_monitor.GradientLoggingCallback
+extras:
+  ignore_warnings: true
+  enforce_tags: true
+  print_config: true
+  precision:
+    _target_: torch.set_float32_matmul_precision
+    precision: medium
+task_name: train
+tags:
+- dev
+checkpoint:
+  ckpt_path: null
+  weights_only: null
+  strict: true
+seed: 12345
