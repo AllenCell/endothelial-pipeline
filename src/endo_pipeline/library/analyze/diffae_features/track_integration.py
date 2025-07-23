@@ -14,11 +14,7 @@ from src.endo_pipeline.configs import (
     load_dataset_config,
     load_model_config,
 )
-from src.endo_pipeline.configs.dataset_io import (
-    get_live_segmentation_features_manifest,
-    get_reference_datasets,
-    ipython_cli_flexecute,
-)
+from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
@@ -37,6 +33,7 @@ from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz i
     plot_grid_vs_tracks_flow_field,
     plot_quiver_slices_from_diffae_table,
 )
+from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import hist_2D_of_feats
 
 logger = logging.getLogger(__name__)
 
@@ -194,9 +191,9 @@ def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     return angle_rad
 
 
+## NOTE CODE FOR DEV ONLY
 dataset_name = "20241120_20X"
 
-## NOTE CODE FOR DEV ONLY
 live_seg_feats_df = pd.read_csv(
     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-16\make_seg_feats_manifest\segmentation_features_manifests\20241120_20X_live_segmentation_features.tsv",
     sep="\t",
@@ -208,227 +205,314 @@ diffae_tracking_df = pd.read_parquet(
 merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
 ## NOTE END OF DEV CODE
 
+for dataset_name in load_dataset_collection_config("pca_reference").datasets:
+    logger.info(f"Processing dataset: {dataset_name}")
 
-# load the tables
-merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
+    # load the tables
+    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
 
-# filter the merged table
-merged_feats_df = merged_feats_df[~merged_feats_df["filter_global"]]
+    # filter the merged table
+    merged_feats_df = merged_feats_df[~merged_feats_df["filter_global"]]
 
-# remove any rows that were not evaluated by the model and thus have no mlflow_id
-merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
+    # remove any rows that were not evaluated by the model and thus have no mlflow_id
+    merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
 
-# fit the PCA (uses the reference datasets)
-pca = fit_pca()
+    # fit the PCA (uses the reference datasets)
+    pca = fit_pca()
 
-# read in the grid crop-based diffae features
-model_name = diffae_tracking_df["model_name"].unique()[0]
-model_config = load_model_config(model_name)
-model_manifest = get_model_manifest(dataset_name, model_config)
-diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    # read in the grid crop-based diffae features
+    model_name = diffae_tracking_df["model_name"].unique()[0]
+    model_config = load_model_config(model_name)
+    model_manifest = get_model_manifest(dataset_name, model_config)
+    diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
 
-# add the PC columns to the track-based DiffAE table
-# (the grid-based DiffAE table already has them, but
-# but I believe that the columns are named "feat_0",
-# "feat_1", etc. when they should be named "pc1",
-# "pc2", etc.)
-merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
-# df_all_positions.dropna(axis="index", how="any", subset="is_unique", inplace=True)
+    # add the PC columns to the track-based DiffAE table
+    # (the grid-based DiffAE table already has them, but
+    # but I believe that the columns are named "feat_0",
+    # "feat_1", etc. when they should be named "pc1",
+    # "pc2", etc.)
+    merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
+    # df_all_positions.dropna(axis="index", how="any", subset="is_unique", inplace=True)
 
-# use the full set of datasets to be analyzed for the bounds
-datasets_for_bounds = [
-    "20241120_20X",
-    "20250409_20X",
-    "20241217_20X",
-    "20250428_20X",
-    "20250319_20X",
-    "20250326_20X",
-]
-# datasets_for_bounds = load_dataset_collection_config("live_20X_objective_3i_microscope")
+    # use the full set of datasets to be analyzed for the bounds
+    datasets_for_bounds = [
+        "20241120_20X",
+        "20250409_20X",
+        "20241217_20X",
+        "20250428_20X",
+        "20250319_20X",
+        "20250326_20X",
+        "20241016_20X",
+    ]
+    # datasets_for_bounds = load_dataset_collection_config("live_20X_objective_3i_microscope").datasets
+    # datasets_for_bounds = load_dataset_collection_config("pca_reference").datasets
 
-# NOTE IT TAKES WAY LONGER TO SOLVE THE ODE IF DATASET_NAME_LIST IS 20241120_20X
-# AND THEREFORE THE BOUNDS ARE DIFFERENT THAN IF THE BOUNDS ARE SET TO THE DEFAULT
-# LIST OF DATASETS ABOVE (BOUNDS TOO RESTRICTIVE?)
+    # NOTE IT TAKES WAY LONGER TO SOLVE THE ODE IF DATASET_NAME_LIST IS 20241120_20X
+    # AND THEREFORE THE BOUNDS ARE DIFFERENT THAN IF THE BOUNDS ARE SET TO THE DEFAULT
+    # LIST OF DATASETS ABOVE (BOUNDS TOO RESTRICTIVE?)
 
-model_manifest_list = [
-    get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds
-]
-bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
+    model_manifest_list = [
+        get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds
+    ]
+    bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
 
-# This takes about 1 minute to run with
-# datasets_for_bounds = ["20241120_20X", "20250409_20X",
-# "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
-logger.debug("getting trajectory and flow field for grid-based crops...")
-traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-    df=diffae_grid_crops,
-    bounds=bounds,
-)
+    # This takes about 1 minute to run with
+    # datasets_for_bounds = ["20241120_20X", "20250409_20X",
+    # "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
+    logger.debug("getting trajectory and flow field for grid-based crops...")
+    traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
+        df=diffae_grid_crops,
+        bounds=bounds,
+    )
 
-logger.debug("saving the trajectory data from the grid-based crops...")
-out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
-np.save(out_subdir_traj / f"{dataset_name}_traj_grids.npy", traj_grids)
+    logger.debug("saving the trajectory data from the grid-based crops...")
+    out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
+    np.save(out_subdir_traj / f"{dataset_name}_traj_grids.npy", traj_grids)
 
-# This takes about 5 minutes to run with
-# datasets_for_bounds = ["20241120_20X", "20250409_20X",
-# "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
-logger.debug("getting trajectory and flow field for tracks-based crops...")
-traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
-    df=merged_feats_df,
-    bounds=bounds,
-)
+    # This takes about 5 minutes to run with
+    # datasets_for_bounds = ["20241120_20X", "20250409_20X",
+    # "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
+    logger.debug("getting trajectory and flow field for tracks-based crops...")
+    traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
+        df=merged_feats_df,
+        bounds=bounds,
+    )
 
-logger.debug("saving the trajectory data from the track-based crops...")
-out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
-np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
+    logger.debug("saving the trajectory data from the track-based crops...")
+    out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
+    np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
+
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        diffae_grid_crops, traj_grids, flow_field_dict_grids
+    )
+    fig.suptitle("DiffAE grid crops")
+
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        merged_feats_df, traj_tracks, flow_field_dict_tracks
+    )
+    fig.suptitle("DiffAE tracked crops")
+
+    # def get_quiver_args():
+    yvalids_grids, zvalids_grids = get_valid_slice_indexes(
+        diffae_grid_crops, traj_grids, flow_field_dict_grids
+    )
+
+    slice_indexes_ = (zvalids_grids, yvalids_grids)
+
+    # # get flow field
+    # v1, v2, v3 = flow_field_dict_grids["vectors"]
+
+    # # get grid and grid spacing
+    # xgrid, ygrid, zgrid = flow_field_dict_grids["grid"]
+
+    # velocities, grid = (v1, v2), (xgrid, ygrid)
+
+    slice_indexes = slice_indexes_[0]
+    my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
+
+    # x1_grid = grid[0][slice_indexes].reshape(my_shape)
+    # x2_grid = grid[1][slice_indexes].reshape(my_shape)
+    # dx1 = velocities[0][slice_indexes].reshape(my_shape)
+    # dx2 = velocities[1][slice_indexes].reshape(my_shape)
+
+    # color, scale = "dimgrey", 1
+    # plt.quiver(
+    #     x1_grid.squeeze().T,
+    #     x2_grid.squeeze().T,
+    #     dx1.squeeze().T,
+    #     dx2.squeeze().T,
+    #     color=color,
+    #     scale=scale,
+    # )
+
+    v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
+    g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
+    v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
+    g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
+
+    vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
+    vecs_tracks = np.asarray(
+        list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
+    )
+
+    test_ang = np.array(
+        [get_vector_vector_angle(vecs_grids[i], vecs_tracks[i]) for i in range(len(vecs_grids))]
+    )
+    test_ang_arr = test_ang.reshape((50, 50, 50))
+    angles = test_ang_arr[slice_indexes].reshape(my_shape)
+
+    # fig, ax = plt.subplots(figsize=(6, 6))
+    # hist2D = ax.imshow(
+    #     angles.squeeze(), cmap="seismic_r", vmin=-np.pi, vmax=np.pi, origin="lower", label="angle (rad)"
+    # )
+    # plt.colorbar(hist2D)
+
+    # fig, axs = plot_quiver_slices_from_diffae_table(
+    #     merged_feats_df, traj_tracks, flow_field_dict_tracks
+    # )
+    # fig.suptitle("DiffAE tracked crops")
+
+    # fig, axs = plot_quiver_slices_from_diffae_table(
+    #     diffae_grid_crops, traj_grids, flow_field_dict_grids
+    # )
+    # fig.suptitle("DiffAE grid crops")
+
+    # fig, axs = plot_quiver_slices_from_diffae_table(
+    #     diffae_grid_crops, traj_grids, flow_field_dict_grids
+    # )
+    # fig.suptitle("deviation hist2D")
+
+    # Plot the quiver slices for the grid-based and cell-centric crops
+    # at the full resolution:
+    out_path = out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
+    fig, ax = plot_grid_vs_tracks_flow_field(
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes=slice_indexes,  # type: ignore
+        ds=1,
+        scale=60,
+        out_path=out_path,
+    )
+
+    # Plot the quiver slices for the grid-based and cell-centric crops
+    # at the standard/default resolution:
+    out_path = out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
+    fig, ax = plot_grid_vs_tracks_flow_field(
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes=slice_indexes,  # type: ignore
+        out_path=out_path,
+    )
+
+    # Plot the angular deviation between the grid and cell-centric crop-based
+    # flow field vectors:
+    out_path = out_subdir_traj / f"{dataset_name}_vecvec_angles.png"
+    grid_vs_track_vec_angle_hist2d(angles, out_path, extent=(*ax.get_xlim(), *ax.get_ylim()))
+
+    # Plot the flow fields overlaid on the PC1 vs PC2
+    # histograms to get an idea of where there is the
+    # most data exists
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.histplot(
+        data=diffae_grid_crops,
+        x="pc1",
+        y="pc2",
+        bins=50,
+        # cbar=True,
+        # cbar_kws={"label": "Counts"},
+        cmap="Blues",
+        # cmap="Greys",
+        ax=ax,
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="black",
+        # color="tab:blue",
+    )
+    fig.savefig(
+        out_subdir_traj / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png", bbox_inches="tight"
+    )
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.histplot(
+        data=merged_feats_df,
+        x="pc1",
+        y="pc2",
+        bins=50,
+        # cbar=True,
+        # cbar_kws={"label": "Counts"},
+        cmap="Reds",
+        # cmap="Greys",
+        # stat="density",
+        ax=ax,
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_tracks, v2_tracks),
+        grid=(g1_tracks, g2_tracks),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="black",
+        # color="tab:red",
+    )
+    fig.savefig(
+        out_subdir_traj / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png", bbox_inches="tight"
+    )
+
+    # NOTE VERY ROUGH WORK IN PROGRESS BELOW
+
+    # Compare the angles between grid crop PC vectors
+    # and the PC vectors of a single track
+    merged_feats_df["dpc1"] = merged_feats_df.groupby("crop_index")["pc1"].diff()
+    merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc2"].diff()
+    merged_feats_df["dt"] = merged_feats_df.groupby("crop_index")["time_minutes"].diff()
+
+    g1_grids.min(), g1_grids.max()  # this is pc1
+    g2_grids.min(), g2_grids.max()  # this is pc2
+
+    for nm, df in merged_feats_df.groupby(["dataset_name", "position", "track_id"]):
+        break
+
+    # plot a single track integrated into the flow field
+    # shown as dots connected by arrows to give an idea
+    # of the direction of motion of the cell through the
+    # flow field
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="blue",
+    )
+    ax.quiver(
+        df["pc1"].iloc[:-1],
+        df["pc2"].iloc[:-1],
+        df["dpc1"].iloc[1:],
+        df["dpc2"].iloc[1:],
+        scale_units="xy",
+        angles="xy",
+        scale=1,
+        units="width",
+        width=0.004,
+    )
+    sns.scatterplot(
+        # data=df, x="pc1", y="pc2", hue="frame_number", marker="$\circ$", palette="Spectral", ax=ax, s=50
+        data=df.query("time_hours in (time_hours.min(), time_hours.max())"),
+        x="pc1",
+        y="pc2",
+        hue="time_hours",
+        marker="x",
+        palette=["orange", "red"],
+        alpha=0.7,
+        lw=2,
+        ax=ax,
+        s=50,
+        legend=False,
+    )
+
+    # find nearest PC1 and PC2 and vector in the grid-based
+    # PC-space for each PC1, PC2 combination in the tracks
+    # NOTE this could probably be vectorized similar to taking
+    # the minimum distance when solving a centroid-to-centroid
+    # tracking problem
 
 
-fig, axs = plot_quiver_slices_from_diffae_table(
-    diffae_grid_crops, traj_grids, flow_field_dict_grids
-)
-fig.suptitle("DiffAE grid crops")
+from scipy.stats import bootstrap
 
-fig, axs = plot_quiver_slices_from_diffae_table(
-    merged_feats_df, traj_tracks, flow_field_dict_tracks
-)
-fig.suptitle("DiffAE tracked crops")
-
-
-# def get_quiver_args():
-yvalids_grids, zvalids_grids = get_valid_slice_indexes(
-    diffae_grid_crops, traj_grids, flow_field_dict_grids
-)
-
-slice_indexes_ = (zvalids_grids, yvalids_grids)
-
-# # get flow field
-# v1, v2, v3 = flow_field_dict_grids["vectors"]
-
-# # get grid and grid spacing
-# xgrid, ygrid, zgrid = flow_field_dict_grids["grid"]
-
-# velocities, grid = (v1, v2), (xgrid, ygrid)
-
-slice_indexes = slice_indexes_[0]
-my_shape = [len(np.unique(slice_indexes[i])) for i in range(len(slice_indexes))]
-
-# x1_grid = grid[0][slice_indexes].reshape(my_shape)
-# x2_grid = grid[1][slice_indexes].reshape(my_shape)
-# dx1 = velocities[0][slice_indexes].reshape(my_shape)
-# dx2 = velocities[1][slice_indexes].reshape(my_shape)
-
-# color, scale = "dimgrey", 1
-# plt.quiver(
-#     x1_grid.squeeze().T,
-#     x2_grid.squeeze().T,
-#     dx1.squeeze().T,
-#     dx2.squeeze().T,
-#     color=color,
-#     scale=scale,
-# )
-
-
-v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
-g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
-v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
-g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
-
-vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
-vecs_tracks = np.asarray(list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks))))
-
-test_ang = np.array(
-    [get_vector_vector_angle(vecs_grids[i], vecs_tracks[i]) for i in range(len(vecs_grids))]
-)
-test_ang_arr = test_ang.reshape((50, 50, 50))
-angles = test_ang_arr[slice_indexes].reshape(my_shape)
-
-# fig, ax = plt.subplots(figsize=(6, 6))
-# hist2D = ax.imshow(
-#     angles.squeeze(), cmap="seismic_r", vmin=-np.pi, vmax=np.pi, origin="lower", label="angle (rad)"
-# )
-# plt.colorbar(hist2D)
-
-
-# fig, axs = plot_quiver_slices_from_diffae_table(
-#     merged_feats_df, traj_tracks, flow_field_dict_tracks
-# )
-# fig.suptitle("DiffAE tracked crops")
-
-# fig, axs = plot_quiver_slices_from_diffae_table(
-#     diffae_grid_crops, traj_grids, flow_field_dict_grids
-# )
-# fig.suptitle("DiffAE grid crops")
-
-# fig, axs = plot_quiver_slices_from_diffae_table(
-#     diffae_grid_crops, traj_grids, flow_field_dict_grids
-# )
-# fig.suptitle("deviation hist2D")
-
-
-# Plot the quiver slices for the grid-based and cell-centric crops
-# at the full resolution:
-out_path = out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
-fig, ax = plot_grid_vs_tracks_flow_field(
-    v1_grids,
-    v2_grids,
-    g1_grids,
-    g2_grids,
-    v1_tracks,
-    v2_tracks,
-    g1_tracks,
-    g2_tracks,
-    slice_indexes=slice_indexes,  # type: ignore
-    ds=1,
-    scale=60,
-    out_path=out_subdir_traj,
-)
-
-# Plot the quiver slices for the grid-based and cell-centric crops
-# at the standard/default resolution:
-out_path = out_subdir_traj / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
-fig, ax = plot_grid_vs_tracks_flow_field(
-    v1_grids,
-    v2_grids,
-    g1_grids,
-    g2_grids,
-    v1_tracks,
-    v2_tracks,
-    g1_tracks,
-    g2_tracks,
-    slice_indexes=slice_indexes,  # type: ignore
-    out_path=out_subdir_traj,
-)
-
-
-# Plot the angular deviation between the grid and cell-centric crop-based
-# flow field vectors:
-out_path = out_subdir_traj / f"{dataset_name}_vecvec_angles.png"
-grid_vs_track_vec_angle_hist2d(angles, out_path, extent=(*ax.get_xlim(), *ax.get_ylim()))
-
-
-# NOTE VERY ROUGH WORK IN PROGRESS BELOW
-
-for nm, df in merged_feats_df.groupby(["dataset_name", "position", "track_id"]):
-    break
-
-fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-plot_one_slice_quiver(
-    velocities=(v1_grids, v2_grids),
-    grid=(g1_grids, g2_grids),
-    slice_indexes=slice_indexes,
-    ax=ax,
-    color="blue",
-)
-sns.scatterplot(
-    data=df, x="pc1", y="pc2", hue="frame_number", marker=".", palette="Spectral", ax=ax, s=100
-)
-ax.plot(
-    df["pc1"],
-    df["pc2"],
-    color="grey",
-    linewidth=0.5,
-    linestyle="-",
-    # label="track trajectory"
-)
-
-df["dpc1"] = df["pc1"].diff()
-df["dpc2"] = df["pc2"].diff()
+rng = np.random.default_rng()
+res = bootstrap(data, np.std, confidence_level=0.9, rng=rng)
