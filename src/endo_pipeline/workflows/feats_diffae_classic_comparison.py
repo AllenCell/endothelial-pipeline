@@ -18,12 +18,12 @@ from src.endo_pipeline.configs.dataset_io import (
 )
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field as ddff
-from src.endo_pipeline.library.analyze.diffae_features import get_traj_and_diff
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     add_crop_index,
     add_description_column,
     fit_pca,
     get_manifest_for_dynamics_workflows,
+    get_traj_and_diff,
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal

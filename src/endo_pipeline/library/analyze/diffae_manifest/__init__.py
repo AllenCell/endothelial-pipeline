@@ -3,6 +3,7 @@ from .diffae_manifest_utils import (
     get_feature_column_names,
     get_pc_column_names,
     get_timepoints_for_plotting_pcs,
+    get_traj_and_diff,
     get_valid_subset,
     split_dataset_by_flow,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "get_manifest_for_dynamics_workflows",
     "get_pc_column_names",
     "get_timepoints_for_plotting_pcs",
+    "get_traj_and_diff",
     "split_dataset_by_flow",
     "get_valid_subset",
     "project_manifest_to_pcs",

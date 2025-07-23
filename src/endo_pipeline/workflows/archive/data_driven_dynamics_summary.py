@@ -17,13 +17,13 @@ from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     get_callable_vector_field,
-    get_traj_and_diff,
     model_data_comparison_one_dataset,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
+    get_traj_and_diff,
     split_dataset_by_flow,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal

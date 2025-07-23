@@ -10,6 +10,7 @@ from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
+    get_traj_and_diff,
     split_dataset_by_flow,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
@@ -296,57 +297,6 @@ def build_kramers_moyal_train_test(
     }
 
     return out_dict
-
-
-def get_traj_and_diff(data: pd.DataFrame, pc_column_names: list) -> tuple[list, list]:
-    """
-    Get list of per-crop trajectories, the corresponding
-    displacement vectors, and time differences along
-    the trajectory for each crop in the dataset.
-
-    Inputs:
-    - data: pandas DataFrame with columns for each feature.
-        Should have a column for time and a column for
-        the crop index. This data should be for one
-        dataset and one flow condition.
-    - pc_column_names: list of strings, names of the
-        columns in the DataFrame that contain the
-        PC features (feature columns).
-
-    Outputs:
-    - traj_list: list of numpy arrays, each array is the
-        trajectory of a single crop in feature space
-    - d_traj_list: list of numpy arrays, each array
-        is the displacement vectors along that trajectory
-        for a single crop in feature space
-    """
-    if "frame_number" not in data.columns:
-        raise ValueError("Data must have a column for time")
-    if "crop_index" not in data.columns:
-        raise ValueError("Data must have a column for crop_index")
-
-    # get list of unique crop indices
-    crop_list = data["crop_index"].unique()
-
-    # initialize lists for storing outputs
-    traj_list = []
-    d_traj_list = []
-
-    # loop over each crop in the dataset
-    for crop in crop_list:
-        # get data for each crop, sorted by time
-        data_crop = data[data["crop_index"] == crop].sort_values(by="frame_number")
-
-        # get displacement vectors and time differences for each crop
-        d_traj = np.diff(data_crop[pc_column_names].values, axis=0)
-
-        # append data to lists:
-        # trajectory and displacement vectors
-        # leave off last timepoint for trajectory
-        traj_list.append(data_crop[pc_column_names].values)
-        d_traj_list.append(d_traj)
-
-    return traj_list, d_traj_list
 
 
 def masked_vector_field(f: np.ndarray, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
