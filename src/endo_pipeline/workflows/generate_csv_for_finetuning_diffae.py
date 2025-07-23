@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -9,8 +10,11 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from sklearn.model_selection import train_test_split
 
+from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.registration import align_all_positions
+
+logger = logging.getLogger(__name__)
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
@@ -22,30 +26,41 @@ def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
 
 
 def _get_paired_dataset_dict(
-    dataset_type: Literal["live_fixed", "20X_40X"],
+    dataset_pair_type: Literal["live_fixed", "20X_40X"],
 ) -> dict[str, list[str]]:
-    if dataset_type == "live_fixed":
-        return {
-            "fixed": ["20250214_pairedPreFixation"],
-            "moving": ["20250214_pairedPostFixation"],
-        }
-    elif dataset_type == "20x_40x":
-        return {
-            "fixed": [
-                "20250110_paired20X",
-                "20250227_paired20X",
-                "20250228_paired20X",
-            ],
-            "moving": [
-                "20250110_paired40X",
-                "20250227_paired40X",
-                "20250228_paired40X",
-            ],
-        }
+
+    # Get the list of datasets of the specified pair type.
+    dataset_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
+
+    # Set dataset name flags for setting
+    # "fixed" and "moving" images for alignment.
+    if dataset_pair_type == "live_fixed":
+        # for live/fixed pairs, the "fixed" image
+        # for alignment is the pre-fixation (live) image
+        # and the "moving" image is the post-fixation (fixed) image.
+        fixed_flag = "PreFixation"
+        moving_flag = "PostFixation"
+    else:
+        # for 20x/40x pairs, the "fixed" image is the 20x image
+        # and the "moving" image is the 40x image.
+        fixed_flag = "20X"
+        moving_flag = "40X"
+    dataset_pairs = {
+        "fixed": [dataset_name for dataset_name in dataset_list if fixed_flag in dataset_name],
+        "moving": [dataset_name for dataset_name in dataset_list if moving_flag in dataset_name],
+    }
+    if len(dataset_pairs["fixed"]) != len(dataset_pairs["moving"]):
+        logger.error("Mismatch in number of fixed and moving datasets for image alignment.")
+        raise ValueError(
+            f"Found {len(dataset_pairs['fixed'])} fixed datasets and "
+            f"{len(dataset_pairs['moving'])} moving datasets. "
+            "Please check the dataset names in the collection."
+        )
+    return dataset_pairs
 
 
 def _align_and_save_paired_images(
-    dataset_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20x_40x"],
     save_path: Path,
 ) -> pd.DataFrame:
     # Note that the "fixed" key refers to the image being used as
@@ -53,10 +68,12 @@ def _align_and_save_paired_images(
     # refers to the image being aligned to the fixed image.
     # That is, "fixed" here does not refer to the image being fixed.
 
-    dataset_pairs = _get_paired_dataset_dict(dataset_type)
+    dataset_pairs = _get_paired_dataset_dict(dataset_pair_type)
 
     fixed_datasets = dataset_pairs["fixed"]
     moving_datasets = dataset_pairs["moving"]
+
+    alignment_method = "sift" if dataset_pair_type == "live_fixed" else "template"
 
     df = []
     for fixed, moving in zip(fixed_datasets, moving_datasets):
@@ -65,7 +82,7 @@ def _align_and_save_paired_images(
                 fixed,
                 moving,
                 save_path,
-                alignment_method="sift" if dataset_type == "live_fixed" else "template",
+                alignment_method=alignment_method,
             )
         )
     df = pd.concat(df, ignore_index=True)
