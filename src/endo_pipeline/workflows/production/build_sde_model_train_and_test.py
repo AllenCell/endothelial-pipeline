@@ -1,4 +1,4 @@
-TAGS = ["stochastic_dynamics", "diffae_features", "2d_feature_space"]
+TAGS = ["production", "stochastic_dynamics", "diffae_features", "2d_feature_space"]
 
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:

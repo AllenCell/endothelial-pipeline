@@ -1,30 +1,33 @@
-import logging
-from collections.abc import Sequence
-
-import fire
-
-from src.endo_pipeline.configs import (
-    get_available_dataset_collection_names,
-    get_available_dataset_names,
-    get_datasets_in_collection,
-    load_dataset_config,
-    load_model_config,
-    save_model_config,
-)
-from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
-
-logger = logging.getLogger(__name__)
+TAGS = ["apply_model", "production"]
 
 
 def main(
     model_name: str,
-    dataset_names: str | Sequence[str] = "live_20X_objective_3i_microscope",
+    dataset_names: str | list[str] = "live_20X_objective_3i_microscope",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
 ) -> None:
+
+    import logging
+
+    from src.endo_pipeline.configs import (
+        get_available_dataset_collection_names,
+        get_available_dataset_names,
+        get_datasets_in_collection,
+        load_dataset_config,
+        load_model_config,
+        save_model_config,
+    )
+    from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+
+    logger = logging.getLogger(__name__)
+
     """
-    Apply a model to a multiple datasets.
+    Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
+
+    Produces a table of latent features from a non-overlapping grid of crops
+    for each dataset. The model is applied at the specified resolution level.
 
     Example usage:
     ```
@@ -32,23 +35,31 @@ def main(
     --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
     ```
 
-
     Parameters
     ----------
-    model_name: str
+    model_name
         Name of the model from `model_config.yaml` to apply.
-    dataset_names: str | Sequence[str]
+    dataset_names
         Names of the datasets from `data_config.yaml` to apply the model to.
         If it is a string, it should either be a single dataset name or the name of a
         dataset collection.
-    resolution_level: int
+    resolution_level
         Resolution level to apply the model at. Default is 1 (zarr sample resolution).
-    upload_to_fms: bool
+    upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path: str | Path | None
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
+    overrides
         Overrides to apply to the model config. By default, no overrides are applied
+
+    Returns
+    -------
+    None
+        Saves the model config with the applied model and model manifest objects.
+        The model config is saved to `endo_pipeline/configs/models/{model_name}.yaml`.
+
+    Raises
+    ------
+    ValueError
+        If the provided dataset name is not a valid dataset or dataset collection name.
     """
     # if input is a string, check if it is a dataset collection or a single dataset name
     if isinstance(dataset_names, str):
@@ -91,4 +102,6 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

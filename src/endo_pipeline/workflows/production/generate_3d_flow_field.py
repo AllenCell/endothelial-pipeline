@@ -1,4 +1,4 @@
-TAGS = ["dynamical_systems", "diffae_features", "3d_feature_space"]
+TAGS = ["production", "dynamical_systems", "diffae_features"]
 
 
 def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
