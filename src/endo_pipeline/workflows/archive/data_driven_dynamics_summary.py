@@ -1,7 +1,8 @@
+TAGS = ["archive"]
+
 from collections.abc import Callable
 from pathlib import Path
 
-import fire
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
@@ -267,4 +268,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

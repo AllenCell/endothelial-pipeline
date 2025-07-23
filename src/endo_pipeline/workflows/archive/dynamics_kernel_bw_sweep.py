@@ -1,3 +1,5 @@
+TAGS = ["archive"]
+
 import fire
 import numpy as np
 

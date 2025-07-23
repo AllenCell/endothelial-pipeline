@@ -1,3 +1,6 @@
+TAGS = ["production", "diffae_model_training"]
+
+
 def main() -> None:
     """
     Generate .csv files with paths to zarr files for training a DiffAE model.
@@ -53,6 +56,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
-
-    workflow_cli(main)
+    main()

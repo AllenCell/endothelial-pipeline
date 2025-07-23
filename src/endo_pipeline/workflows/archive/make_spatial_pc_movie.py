@@ -1,9 +1,10 @@
+TAGS = ["archive"]
+
 from pathlib import Path
 from typing import Any
 
 import dask
 import dask.array as da
-import fire
 import numpy as np
 import pandas as pd
 from bioio import BioImage
@@ -14,9 +15,12 @@ from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import load_dataset_config, load_model_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
-from src.endo_pipeline.library.model import get_cytodl_commit_hash, load_overrides
+from src.endo_pipeline.library.model import (
+    apply_model_on_grid_of_crops_from_one_dataset,
+    get_cytodl_commit_hash,
+    load_overrides,
+)
 from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
-from src.endo_pipeline.workflows.apply_diffae_model_on_grid_crops import apply_model_single
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -144,7 +148,7 @@ def get_feats(
     overrides = load_overrides(overrides)
     # apply model with specified overlap
     overrides.update({"model.spatial_inferer.splitter.overlap": overlap})
-    feats_path = apply_model_single(
+    feats_path = apply_model_on_grid_of_crops_from_one_dataset(
         model_name,
         dataset_name,
         resolution_level=resolution_level,
@@ -179,7 +183,7 @@ def generate_spatial_feature_movie(
     dataset_name: str,
     pca_dir: str | None = None,
     overlap: float = 0.75,
-    resolution_level: int = 0,
+    resolution_level: int = 1,
     n_pcs: int | None = None,
     overrides: dict[str, Any] | None = None,
 ):
@@ -279,7 +283,7 @@ def measure_per_cell_features(
     dataset_name: str,
     model_name: str,
     overlap: float = 0.9,
-    resolution_level: int = 0,
+    resolution_level: int = 1,
     upload_to_fms: bool = False,
     n_pcs: int | None = None,
     pca_dir: str | None = None,
@@ -357,5 +361,34 @@ def measure_per_cell_features(
         save_dataset_config(dataset_config)
 
 
+def main(
+    model_name: str,
+    dataset_name: str,
+    resolution_level: int = 1,
+    n_pcs: int | None = None,
+    pca_dir: str | None = None,
+    overrides: dict[str, Any] | None = None,
+) -> None:
+    generate_spatial_feature_movie(
+        model_name=model_name,
+        dataset_name=dataset_name,
+        resolution_level=resolution_level,
+        n_pcs=n_pcs,
+        pca_dir=pca_dir,
+        overrides=overrides,
+    )
+
+    measure_per_cell_features(
+        model_name=model_name,
+        dataset_name=dataset_name,
+        resolution_level=resolution_level,
+        n_pcs=n_pcs,
+        pca_dir=pca_dir,
+        upload_to_fms=True,
+    )
+
+
 if __name__ == "__main__":
-    fire.Fire()
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
