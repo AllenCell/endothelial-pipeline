@@ -1,6 +1,6 @@
 import fire
 
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.visualize.crop_montage import create_montage, specify_crops
 
 
@@ -12,7 +12,7 @@ def main(
     plot_heatmap: bool = False,
 ) -> None:
 
-    fig_savedir = get_output_path("crop_visualization")
+    fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
 
     df, pca, model_manifest_list = specify_crops.load_data(dataset_names)
 

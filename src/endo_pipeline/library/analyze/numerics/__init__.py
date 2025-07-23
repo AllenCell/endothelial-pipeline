@@ -1,8 +1,10 @@
-from .binning import get_bins, get_normalization_constant, histogramdd
-from .component_heatmaps import (
+from .binning import (
     get_3d_bounds_from_data,
+    get_bins,
     get_df_by_bin_value,
     get_histogram_by_component,
+    get_normalization_constant,
+    histogramdd,
 )
 from .fp_solvers import SteadyFP
 from .gen_potential import (

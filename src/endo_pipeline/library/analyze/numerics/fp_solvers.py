@@ -6,8 +6,7 @@ import torch.linalg as tla
 from numpy.fft import fftfreq, fftn, ifftn
 
 # Set device to GPU if available, otherwise use CPU
-global device
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class SteadyFP:
@@ -153,8 +152,8 @@ class SteadyFP:
         start_fp = time()
         q_hat = (
             tla.lstsq(
-                torch.from_numpy(operator_matrix[1:, 1:]).to(device),
-                torch.from_numpy(-operator_matrix[1:, 0]).to(device),
+                torch.from_numpy(operator_matrix[1:, 1:]).to(DEVICE),
+                torch.from_numpy(-operator_matrix[1:, 0]).to(DEVICE),
                 rcond=1e-6,
             )[0]
             .cpu()
