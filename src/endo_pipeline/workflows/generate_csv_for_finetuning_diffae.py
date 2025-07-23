@@ -90,7 +90,7 @@ def _concat_and_save_aligned_image_pairs(row: pd.Series, savedir: Path) -> Path:
 
 
 def main(
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
     split: bool = True,
 ):
     """
