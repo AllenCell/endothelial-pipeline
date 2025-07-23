@@ -11,6 +11,7 @@ from src.endo_pipeline.configs import (
 from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
+    add_normalized_time,
     get_diffae_feats_liveseg_feats_merged_table,
     get_traj_and_flowfield,
 )
@@ -74,6 +75,9 @@ def main() -> None:
         traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds)
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
+
+        # add normalized time to tracks
+        df_all_positions = add_normalized_time(df_all_positions)
 
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops

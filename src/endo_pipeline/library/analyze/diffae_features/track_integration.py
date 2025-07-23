@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,107 @@ from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 
 logger = logging.getLogger(__name__)
+
+
+def add_normalized_time(
+    df_all_positions: pd.DataFrame,
+    time_col: str = "time_hours",
+) -> pd.DataFrame:
+    """
+    Add a column to the dataframe with normalized time values
+    between 0 and 1 for each track_id in each position.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing all positions and tracks.
+    time_col
+        The name of the column containing time values.
+
+    Returns
+    -------
+    :
+        DataFrame with an additional column
+        "normalized_time" containing the normalized time values between 0 and 1.
+    """
+    for _, df_pos in df_all_positions.groupby("position_as_str"):
+        for _, df_track in df_pos.groupby("track_id"):
+
+            time_values = df_track[time_col].values.astype(np.float64)
+            sorted_inds = np.argsort(time_values)
+            time_values = time_values[sorted_inds]
+            df_track = df_track.iloc[sorted_inds]
+
+            start_time = np.min(time_values)
+            end_time = np.max(time_values)
+
+            normalized_time_values = np.divide(
+                time_values - start_time,
+                end_time - start_time,
+                out=np.zeros_like(time_values, dtype=np.float64),
+                where=(end_time - start_time) != 0,
+            )
+
+            normalized_time_values = np.clip(normalized_time_values, 0, 1)
+
+            df_all_positions.loc[
+                df_track.index,
+                "normalized_time",
+            ] = normalized_time_values
+
+    return df_all_positions
+
+
+def get_coarse_grained_trajectory_heatmap_data(
+    df_all_positions: pd.DataFrame,
+    bounds: np.ndarray | List,
+    num_bins: List[int] = [150, 150, 150],
+    pc_cols: List[str] = ["pc1", "pc2", "pc3"],
+    feature_to_use: str = "normalized_time",
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Get a coarse-grained trajectory heatmap data from the DataFrame.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing tracks for one microscope position.
+    bounds
+        Bounds for the heatmap in each dimension.
+        Should be a list of tuples or a 2D numpy array with shape (ndim, 2),
+        where ndim is the number of dimensions.
+    num_bins
+        Number of bins for each dimension in the heatmap.
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        Tuple containing the heatmap data and the bin counts.
+    """
+    if feature_to_use not in df_all_positions.columns:
+        raise ValueError(f"Feature '{feature_to_use}' not found in DataFrame columns.")
+
+    bin_data = np.zeros(num_bins)
+    bin_counts = np.zeros(num_bins, dtype=int)
+    ndim = len(pc_cols)
+    bins_array = np.array(
+        [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
+    ).T
+    for _, df_one_position in df_all_positions.groupby("position_as_str"):
+        for _, df_track in df_one_position.groupby("track_id"):
+            trajectory = df_track[pc_cols].values
+            feature_values = df_track[feature_to_use].values
+            bin_indices = np.zeros((trajectory.shape[0], ndim), dtype=int)
+            for dim in range(len(pc_cols)):
+                # get the bin index in which each timepoint lies
+                bin_indices[:, dim] = np.digitize(trajectory[:, dim], bins_array[:, dim]) - 1
+                # clip the bin indices to be within the valid range
+                bin_indices[:, dim] = np.clip(bin_indices[:, dim], 0, num_bins[dim] - 1)
+            # increment the bin data and count
+            for i in range(trajectory.shape[0]):
+                bin_data[tuple(bin_indices[i])] += feature_values[i]
+                bin_counts[tuple(bin_indices[i])] += 1
+
+    return bin_data, bin_counts
 
 
 def merge_diffae_feats_liveseg_feats_tables(

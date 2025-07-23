@@ -8,6 +8,10 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from tqdm import tqdm
 
+from src.endo_pipeline.library.analyze.diffae_features.regression_helper import get_bins
+from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
+    get_coarse_grained_trajectory_heatmap_data,
+)
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_quiver_slices,
@@ -255,6 +259,82 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
     plt.close(fig)
 
 
+def overlay_trajectory_heatmap_on_flowfield(
+    out_dir: Path,
+    dataset_name: str,
+    diffae_grid_crops: pd.DataFrame,
+    traj_grids: np.ndarray,
+    flow_field_dict_grids: dict,
+    df_all_positions: pd.DataFrame,
+    num_bins: list[int] = [150, 150, 150],
+):
+    """
+    Overlay a coarse-grained trajectory heatmap on the flow field.
+
+    Parameters
+    ----------
+    out_dir
+        Directory to save the plot to.
+    dataset_name
+        Name of the dataset to use for the plot.
+    diffae_grid_crops
+        DataFrame containing the diffae grid crops.
+    traj_grids
+        Numpy array containing the trajectory grids.
+    flow_field_dict_grids
+        Dictionary containing the flow field data for the grids.
+    df_all_positions
+        DataFrame containing all positions and tracks.
+    num_bins
+        Number of bins to use for the heatmap in each dimension.
+    """
+    # plot flow field
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        plot_trajectory=False,
+    )
+
+    bounds = get_grid_bounds(flow_field_dict_grids)
+    bins, _ = get_bins(num_bins, bin_limits=bounds)
+
+    project_axis = [2, 1]  # this is axis for projecting binned data for each plot
+    plot_dim = [1, 2]  # this is the PC dimension plotted on the y-axis against PC1
+
+    bin_data, bin_counts = get_coarse_grained_trajectory_heatmap_data(
+        df_all_positions=df_all_positions,
+        bounds=bounds,
+        num_bins=num_bins,
+    )
+
+    for j, ax in enumerate(axs):
+        plot_data = np.divide(
+            bin_data, bin_counts, out=np.zeros_like(bin_data), where=bin_counts != 0
+        )
+        plot_data = np.nanmean(plot_data, axis=project_axis[j]).T
+        plot_data = plot_data / np.nanmax(plot_data)
+        ax.imshow(
+            plot_data,
+            extent=(
+                bins[0][0],
+                bins[0][-1],
+                bins[plot_dim[j]][0],
+                bins[plot_dim[j]][-1],
+            ),
+            cmap="viridis",
+            aspect="auto",
+            origin="lower",
+            zorder=-1,
+            vmin=0,
+        )
+    cbar = plt.colorbar(ax.images[-1], ax=ax, orientation="vertical", pad=0.02)
+    cbar.set_label("Normalized trajectory time", rotation=270, labelpad=15)
+    # plt.tight_layout()
+    fig.savefig(out_dir / f"{dataset_name}_trajectory_heatmap.png", dpi=300)
+    plt.close(fig)
+
+
 def make_all_plots(
     out_dir: Path,
     dataset_name: str,
@@ -331,3 +411,16 @@ def make_all_plots(
                 alpha=0.8,
                 show_plot=False,
             )
+
+    # plot trajectory heatmap
+    out_subdir_heatmap = out_subdir / "trajectory_heatmap"
+    out_subdir_heatmap.mkdir(parents=True, exist_ok=True)
+
+    overlay_trajectory_heatmap_on_flowfield(
+        out_dir=out_subdir_heatmap,
+        dataset_name=dataset_name,
+        diffae_grid_crops=diffae_grid_crops,
+        traj_grids=traj_grids,
+        flow_field_dict_grids=flow_field_dict_grids,
+        df_all_positions=df_all_positions,
+    )
