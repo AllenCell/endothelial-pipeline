@@ -169,7 +169,7 @@ def main(
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
     list_of_training_datasets = get_dataset_names_used_for_training(
-        train_csv_path, val_csv_path, "paired_datasets"
+        train_csv_path, val_csv_path, f"{dataset_pair_type}_paired_datasets"
     )
     # add run ID and training datasets to model config
     model_config = ModelConfig(
