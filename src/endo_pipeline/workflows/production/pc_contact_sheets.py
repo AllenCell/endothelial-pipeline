@@ -1,4 +1,4 @@
-import fire
+TAGS = ["production", "pc_interpretation"]
 
 
 def main(
