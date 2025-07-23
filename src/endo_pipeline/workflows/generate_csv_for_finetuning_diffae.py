@@ -21,29 +21,42 @@ def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
     return savedir / f"{str(Path(row.fixed).stem).replace('_fixed', '')}.ome.tiff"
 
 
-def _get_aligned_paths(
-    dataset_type: Literal["live_fixed", "20x_40x"],
-    save_path: Path,
-    fixed_datasets: list[str] | None = None,
-    moving_datasets: list[str] | None = None,
-) -> pd.DataFrame:
-    datasets = {
-        "live_fixed": {
+def _get_paired_dataset_dict(
+    dataset_type: Literal["live_fixed", "20X_40X"],
+) -> dict[str, list[str]]:
+    if dataset_type == "live_fixed":
+        return {
             "fixed": ["20250214_pairedPreFixation"],
             "moving": ["20250214_pairedPostFixation"],
-        },
-        "20x_40x": {
-            "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
+        }
+    elif dataset_type == "20x_40x":
+        return {
+            "fixed": [
+                "20250110_paired20X",
+                "20250227_paired20X",
+                "20250228_paired20X",
+            ],
             "moving": [
                 "20250110_paired40X",
                 "20250227_paired40X",
                 "20250228_paired40X",
             ],
-        },
-    }[dataset_type]
+        }
 
-    fixed_datasets = fixed_datasets or datasets["fixed"]
-    moving_datasets = moving_datasets or datasets["moving"]
+
+def _align_and_save_paired_images(
+    dataset_type: Literal["live_fixed", "20x_40x"],
+    save_path: Path,
+) -> pd.DataFrame:
+    # Note that the "fixed" key refers to the image being used as
+    # the reference image for alignment, and the "moving" key
+    # refers to the image being aligned to the fixed image.
+    # That is, "fixed" here does not refer to the image being fixed.
+
+    dataset_pairs = _get_paired_dataset_dict(dataset_type)
+
+    fixed_datasets = dataset_pairs["fixed"]
+    moving_datasets = dataset_pairs["moving"]
 
     df = []
     for fixed, moving in zip(fixed_datasets, moving_datasets):
@@ -61,7 +74,7 @@ def _get_aligned_paths(
     return df
 
 
-def concat(row: pd.Series, savedir: Path) -> Path:
+def _concat_and_save_aligned_image_pairs(row: pd.Series, savedir: Path) -> Path:
     save_path = _get_concat_path(row, savedir)
     if save_path.exists():
         print(f"Skipping {save_path} as it already exists.")
@@ -78,31 +91,32 @@ def concat(row: pd.Series, savedir: Path) -> Path:
 
 def main(
     dataset_pair_type: Literal["live_fixed", "20x_40x"],
-    fixed_datasets: list[str] | None = None,
-    moving_datasets: list[str] | None = None,
     split: bool = True,
 ):
     """
-    Utility function for generating a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
+    Utility function for generating a dataset of paired, aligned,
+    brightfield images for finetuning a DiffAE model.
 
     Parameters
     ----------
     dataset_pair_type: Literal['live_fixed', '20x_40x']
-        Whether paired dataset is aligned live/fixed or 20x/40x. This will determine the directory structure to search for aligned image pairs. If `model_name` matches `fixed_finetuned_model_name`, then `dataset_type` should be `live_fixed`. If `model_name` matches `model_name` from `paired_data_validation`, then `dataset_type` should be `20x_40x`.
-    fixed_datasets: list[str] | None
-        A list of fixed datasets to use for generating the dataset. If None, the function will use the default datasets for the specified `dataset_type`.
-    moving_datasets: list[str] | None
-        A list of moving datasets to use for generating the dataset. The order should be paired with fixed_datasets. If None, the function will use the default datasets for the specified `dataset_type`.
+        Whether paired dataset is aligned live/fixed or 20x/40x. This will
+        determine the directory structure to search for aligned image pairs.
     split: bool
-        If True, the dataset will be split into training and validation sets. The split will be saved as `train.csv` and `val.csv`. If False, the entire dataset will be saved as `dataset.csv`.
+        If True, the dataset will be split into training and validation sets.
+        The split will be saved as `train.csv` and `val.csv`. If False, the
+        entire dataset will be saved as `dataset.csv`, and no split will be performed.
+        Note that in this case the split must be performed manually before training.
     """
     save_path = get_output_path(
         "finetune_paired_dataset", dataset_pair_type, include_timestamp=False
     )
 
-    df = _get_aligned_paths(dataset_pair_type, save_path, fixed_datasets, moving_datasets)
+    df = _align_and_save_paired_images(dataset_pair_type, save_path)
 
-    out_paths = [concat(row, save_path) for row in tqdm.tqdm(df.itertuples())]
+    out_paths = [
+        _concat_and_save_aligned_image_pairs(row, save_path) for row in tqdm.tqdm(df.itertuples())
+    ]
 
     out_df = pd.DataFrame({"path": out_paths, "channel": ["0,1"] * len(out_paths)})
 
