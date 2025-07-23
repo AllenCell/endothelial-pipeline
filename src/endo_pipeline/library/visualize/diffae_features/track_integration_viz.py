@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 from tqdm import tqdm
 
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
@@ -78,7 +79,7 @@ def plot_quiver_slices_from_diffae_table(
     flow_field_dict_grids: dict,
     plot_trajectory: bool = True,
     plot_fixed_points: bool = True,
-) -> tuple[plt.Figure, np.ndarray]:
+) -> tuple[Figure, np.ndarray]:
 
     # get valid y and z slice indices
     yvalids_grids, zvalids_grids = get_valid_slice_indexes(
@@ -108,13 +109,13 @@ def plot_measured_feat_pcs(
     meas_feat_col: str,
     pc_cols_for_xaxis: list[str],
     pc_cols_for_yaxis: list[str],
-    fig: plt.Figure | None = None,
+    fig: Figure | None = None,
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
     alpha: float = 1.0,
-) -> tuple[plt.Figure, np.ndarray]:
+) -> tuple[Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
 
@@ -123,9 +124,10 @@ def plot_measured_feat_pcs(
     ), "x and y axis must have the same number of PCs"
     if axs is not None:
         assert len(pc_cols_for_xaxis) == axs.size, "PCs must be provided for each ax in axs"
-    assert all(
-        col in measured_feat_df.columns for col in pc_cols
-    ), f"One or more PCs in {pc_cols} not found in measured feature dataframe columns. Check spelling and case?"
+    assert all(col in measured_feat_df.columns for col in pc_cols), (
+        f"One or more PCs in {pc_cols} not found in measured feature dataframe columns."
+        "Check spelling and case?"
+    )
 
     if axs is None:
         fig, axs = plt.subplots(figsize=(14, 5), ncols=2)
@@ -144,7 +146,10 @@ def plot_measured_feat_pcs(
             pass  # do not subset or aggregate the data in any way
         else:
             raise ValueError(
-                f"track_ids must be 'mean', an integer, or None. Got {track_id} (type: {type(track_id)}) instead."
+                (
+                    "track_ids must be 'mean', an integer, or None."
+                    f"Got {track_id} (type: {type(track_id)}) instead."
+                )
             )
 
         if track_id is not None:
@@ -211,7 +216,10 @@ def plot_measured_feat_overlay_on_flowfield(
         data_subset = ""
     else:
         raise ValueError(
-            f"track_ids must be 'mean', an integer, or None. Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
+            (
+                "track_ids must be 'mean', an integer, or None."
+                f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
+            )
         )
     fig.savefig(
         out_dir / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",

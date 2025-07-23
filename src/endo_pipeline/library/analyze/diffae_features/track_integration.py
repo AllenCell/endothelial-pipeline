@@ -1,8 +1,8 @@
 import logging
+from typing import List
 
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
@@ -99,7 +99,7 @@ def get_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> pd.DataFra
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
-    bounds: Pipeline,
+    bounds: List,
 ) -> tuple[np.ndarray, dict]:
 
     # load default config, get kernel params

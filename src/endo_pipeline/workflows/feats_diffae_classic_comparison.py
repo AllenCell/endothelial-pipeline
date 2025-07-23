@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +23,8 @@ from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import make_all_plots
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     out_dir = get_output_path(Path(__file__).stem)
@@ -35,10 +38,10 @@ def main() -> None:
 
         df_all_positions = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
         if df_all_positions is None:
-            print(f"Dataset {dataset_name} is missing one or more data tables. Skipping...")
+            logger.info(f"Dataset {dataset_name} is missing one or more data tables. Skipping...")
             continue
 
-        print("cleaning up merged table...")
+        logger.info("Cleaning up merged table...")
         df_all_positions = df_all_positions.query("valid_points >= 120")
         df_all_positions.dropna(axis="index", how="any", subset="is_unique", inplace=True)
 
@@ -64,10 +67,10 @@ def main() -> None:
         ]
         bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
 
-        print("getting trajectory and flow field for grid-based crops...")
+        logger.info("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)
 
-        print("getting trajectory and flow field for tracks-based crops...")
+        logger.info("getting trajectory and flow field for tracks-based crops...")
         traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds)
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
