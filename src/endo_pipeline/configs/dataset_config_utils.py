@@ -160,7 +160,7 @@ def make_filtered_dataset_collection(
             f"Collection of {sample_type} datasets with {objective} objective "
             f"from the {microscope} microscope."
         ),
-        datasets=dataset_collection_names,
+        datasets=sorted(dataset_collection_names),
     )
 
     return dataset_collection
