@@ -10,6 +10,7 @@ from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
     load_all_dataset_configs,
+    load_dataset_collection_config,
 )
 
 logger = logging.getLogger(__name__)
@@ -125,28 +126,69 @@ def get_nuclear_prediction_path(
         raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
 
 
-def make_sample_type_objective_microscope_collection(
+def get_filtered_dataset_collection_name(
+    sample_type: Literal["live", "fixed"],
+    objective: Literal["20X", "40X"],
+    microscope: Literal["3i", "Nikon"],
+) -> str:
+    """Get name of dataset collection filtered by sample type, objective, and microscope."""
+
+    return f"{sample_type}_{objective}_objective_{microscope}_microscope"
+
+
+def make_filtered_dataset_collection(
     sample_type: Literal["live", "fixed"],
     objective: Literal["20X", "40X"],
     microscope: Literal["3i", "Nikon"],
 ) -> DatasetCollectionConfig:
-    """
-    Create and return collection of datasets that are
-    of a specific sample type, objective, and microscope.
-    """
+    """Create dataset collection filtered by sample type, objective, and microscope."""
+
     dataset_configs = load_all_dataset_configs()
     dataset_collection_names = []
+
     for dataset_config in dataset_configs:
-        if (  # filter datasets based on sample type, objective, and microscope
+        if (
             dataset_config.live_or_fixed_sample == sample_type
             and objective in dataset_config.name  # this will become a key soon
             and dataset_config.microscope == microscope
         ):
             dataset_collection_names.append(dataset_config.name)
+
     dataset_collection = DatasetCollectionConfig(
-        name=f"{sample_type}_{objective}_objective_{microscope}_microscope",
-        description=f"Collection of {sample_type} datasets with {objective} objective from the {microscope} microscope.",
+        name=get_filtered_dataset_collection_name(sample_type, objective, microscope),
+        description=(
+            f"Collection of {sample_type} datasets with {objective} objective "
+            f"from the {microscope} microscope."
+        ),
         datasets=dataset_collection_names,
     )
 
     return dataset_collection
+
+
+def validate_filtered_dataset_collection(
+    sample_type: Literal["live", "fixed"],
+    objective: Literal["20X", "40X"],
+    microscope: Literal["3i", "Nikon"],
+) -> None:
+    """Validate dataset collection filtered by sample type, objective, and microscope."""
+
+    collection_name = get_filtered_dataset_collection_name(sample_type, objective, microscope)
+    generated_collection = make_filtered_dataset_collection(sample_type, objective, microscope)
+    loaded_collection = load_dataset_collection_config(collection_name)
+
+    if sorted(loaded_collection.datasets) != sorted(generated_collection.datasets):
+        logger.error(
+            "Generated dataset collection [ %s ] does not match loaded dataset collection",
+            collection_name,
+        )
+        logger.info(
+            "Generated dataset collection [ %s ] contains datasets [ %s ]",
+            collection_name,
+            " | ".join(generated_collection.datasets),
+        )
+        logger.info(
+            "Loaded dataset collection [ %s ] contains datasets [ %s ]",
+            collection_name,
+            " | ".join(generated_collection.datasets),
+        )
