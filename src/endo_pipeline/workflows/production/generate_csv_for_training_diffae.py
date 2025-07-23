@@ -40,9 +40,12 @@ def main() -> None:
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
 
-    zarr_file_paths = [
-        get_available_zarr_files(dataset_config) for dataset_config in dataset_config_list
-    ]
+    zarr_file_paths = []
+    for dataset_config in dataset_config_list:
+        available_zarr_files = get_available_zarr_files(dataset_config)
+        zarr_file_paths.extend(
+            [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
+        )
 
     zarr_path_df = pd.DataFrame({"path": zarr_file_paths})
     zarr_path_df["channel"] = "0,1"  # cdh5, brightfield
@@ -56,4 +59,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

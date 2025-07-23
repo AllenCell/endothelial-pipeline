@@ -8,21 +8,6 @@ def main(
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
 ) -> None:
-
-    import logging
-
-    from src.endo_pipeline.configs import (
-        get_available_dataset_collection_names,
-        get_available_dataset_names,
-        get_datasets_in_collection,
-        load_dataset_config,
-        load_model_config,
-        save_model_config,
-    )
-    from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
-
-    logger = logging.getLogger(__name__)
-
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
 
@@ -61,6 +46,21 @@ def main(
     ValueError
         If the provided dataset name is not a valid dataset or dataset collection name.
     """
+
+    import logging
+
+    from src.endo_pipeline.configs import (
+        get_available_dataset_collection_names,
+        get_available_dataset_names,
+        get_datasets_in_collection,
+        load_dataset_config,
+        load_model_config,
+        save_model_config,
+    )
+    from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+
+    logger = logging.getLogger(__name__)
+
     # if input is a string, check if it is a dataset collection or a single dataset name
     if isinstance(dataset_names, str):
         if dataset_names in get_available_dataset_collection_names():

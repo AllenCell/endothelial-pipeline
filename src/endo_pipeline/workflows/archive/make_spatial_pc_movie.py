@@ -1,10 +1,9 @@
-TAGS = ["archive"]
-
 from pathlib import Path
 from typing import Any
 
 import dask
 import dask.array as da
+import fire
 import numpy as np
 import pandas as pd
 from bioio import BioImage
@@ -389,6 +388,4 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
-
-    workflow_cli(main)
+    fire.Fire(main)
