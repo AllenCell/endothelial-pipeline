@@ -3,24 +3,26 @@ TAGS = ["stochastic_dynamics", "diffae_features", "2d_feature_space"]
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Build training and test data for regression
-    model fitting and evaluation of the dynamical
-    systems model for the manifest data (Diff AE).
+    Build training and test data for regression model fitting and evaluation of the dynamical
+    systems model for the crop-based feature manifest data (Diff AE features).
 
-    Input:
-    - dynamics_config_name (str): Name of the configuration to load from dynamics_config.yaml.
+    Parameters
+    ----------
+    dynamics_config_name
+        Name of the configuration to load from dynamics_config.yaml.
         Default is "default".
-    - model_name (str): Name of the model to load from model_config.yaml.
+    model_name
+        Name of the model to load from model_config.yaml.
         Analysis will be performed on the model manifest datasets for this model.
 
-    Output:
-    - Saves the training and test data for regression model
-        fitting in a specified directory. Saved out as a
-        dictionary with keys "X_train", "X_test", "Y_train", "Y_test",
-        "V_train", "V_test", "u_train", "u_test",
-        where the values Y and V are the estimated
-        drift and diffusion terms, respectively, at the points X
-        and shear stress u.
+    Returns
+    -------
+    None
+        Saves the training and test data for regression model fitting in a specified
+        directory. Saved out as a dictionary with keys:
+        "X_train", "X_test", "Y_train", "Y_test", "V_train", "V_test", "u_train", "u_test".
+        The values Y and V are the estimated drift and diffusion terms, respectively,
+        at the points X and shear stress u.
     """
     import logging
 

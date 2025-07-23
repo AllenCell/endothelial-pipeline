@@ -3,22 +3,25 @@ TAGS = ["stochastic_dynamics", "diffae_features", "2d_feature_space"]
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Fit SINDy (polynomial regression) models for drift
-    and diffusion terms using the training data generated
-    in the previous step of the workflow
-    (cellsmap/analyses/workflows/stochastic_dynamics/dynamics_preproc.py).
+    Fit SINDy (polynomial regression) models for drift and diffusion terms using
+    the training data generated in the previous step of the workflow
+    (`build_sde_model_train_and_test.py`).
 
-    Input:
-    - dynamics_config_name (str): Name of the configuration to load from dynamics_config.yaml.
+    Parameters
+    ----------
+    dynamics_config_name
+        Name of the configuration to load from dynamics_config.yaml.
         Default is "default".
-    - model_name (str): Name of the model that manifest data is loaded
-        and analyzed for. Default is "diffae_04_10".
+    model_name
+        Name of the model from which manifest data is loaded and analyzed.
+        Default is "diffae_04_10".
 
-    Output:
-    - Saves the trained models for drift and diffusion terms in a specified directory.
-        Saved out as a dictionary with keys "driftModel" and "diffModel",
-        where the values are the trained models for the drift and
-        diffusion terms, respectively.
+    Returns
+    -------
+    None
+        Saves the trained models for drift and diffusion terms in a specified directory.
+        Saved out as a dictionary with keys "drift_model" and "diff_model", where the values
+        are the trained regression models for the drift and diffusion terms, respectively.
     """
     import logging
 
