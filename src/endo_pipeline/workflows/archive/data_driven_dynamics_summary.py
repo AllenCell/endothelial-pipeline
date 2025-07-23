@@ -18,13 +18,13 @@ from src.endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     get_callable_vector_field,
     get_traj_and_diff,
-    get_traj_by_flow,
     model_data_comparison_one_dataset,
 )
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
+    split_dataset_by_flow,
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_bins
@@ -163,7 +163,7 @@ def _get_and_analyze_ddd(
     pc_column_names = get_pc_column_names(df_proj, pc_axes)
 
     # split out data by flow condition
-    df_by_flow, shear_list = get_traj_by_flow(
+    df_by_flow, shear_list = split_dataset_by_flow(
         df_proj, load_dataset_config(model_manifest.dataset_name)
     )
     num_flow = len(shear_list)

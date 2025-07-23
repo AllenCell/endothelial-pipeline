@@ -11,8 +11,8 @@ from src.endo_pipeline.configs import (
     get_timelapse_model_manifests,
     load_model_config,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
     get_manifest_for_dynamics_workflows,
 )
 from src.endo_pipeline.library.analyze.numerics import (

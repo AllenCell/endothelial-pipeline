@@ -7,6 +7,7 @@ from .data_driven_flow_field import (
     solve_ddff_ode,
 )
 from .regression_helper import (
+    build_kramers_moyal_train_test,
     get_traj_and_diff,
     load_train_test,
     masked_vector_field,
@@ -17,7 +18,6 @@ from .sde_model_analysis import (
     get_fixed_points_by_shear,
     get_stationary_hist,
     get_stationary_probability,
-    get_traj_by_flow,
     model_data_comparison,
     model_data_comparison_one_dataset,
     run_epr_analysis,
@@ -27,6 +27,7 @@ from .sde_model_analysis import (
 from .sde_model_fitting import build_diff_lib, build_drift_lib, load_sde_model, save_sde_model
 
 __all__ = [
+    "build_kramers_moyal_train_test",
     "build_diff_lib",
     "build_drift_lib",
     "compute_extrapolated_vector_field",
@@ -37,7 +38,6 @@ __all__ = [
     "get_stationary_hist",
     "get_stationary_probability",
     "get_traj_and_diff",
-    "get_traj_by_flow",
     "interpolate_on_curve",
     "load_sde_model",
     "load_train_test",

@@ -1,14 +1,4 @@
-import fire
-import pysindy as ps
-
-from src.endo_pipeline.configs import dynamics_io
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import (
-    build_diff_lib,
-    build_drift_lib,
-    load_train_test,
-    save_sde_model,
-)
+TAGS = ["stochastic_dynamics", "diffae_features", "2d_feature_space"]
 
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
@@ -30,7 +20,23 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         where the values are the trained models for the drift and
         diffusion terms, respectively.
     """
+    import logging
+
+    import pysindy as ps
+
+    from src.endo_pipeline.configs import dynamics_io
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.analyze.diffae_features import (
+        build_diff_lib,
+        build_drift_lib,
+        load_train_test,
+        save_sde_model,
+    )
+
+    logger = logging.getLogger(__name__)
+
     ################### Load configs from dynamics_config ###################
+    logger.info("*** Running workflow using workflow input config: [ %s ]", dynamics_config_name)
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
 
     # get output subdirectory for intermediate workflow outputs
@@ -49,6 +55,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     param_deg_diff = dynamics_config["polynomial_lib"]["diffusion_param"]
 
     ################### Load train test data from file ###################
+    logger.debug(
+        "Loading train and test data for regression from precomputed file [ %s ]",
+        savedir / "train_test_data.npz",
+    )
     train_test_dict = load_train_test(savedir / "train_test_data.npz")
 
     ################### Build SINDy libraries ###################
@@ -73,9 +83,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         x_dot=train_test_dict["y_test"],
         u=train_test_dict["u_test"],
     )
+    # how to redirect these print statements to logger?
     drift_model.print()
 
-    print(f"Coefficient of determination (R^2) for model of drift term: {drift_r2:.6f}")
+    logger.info("Coefficient of determination (R^2) for model of drift term: [ %.4f ]", drift_r2)
 
     # fit model for diffusion term - SINDy based regression
     diff_model = ps.SINDy(feature_library=diff_lib, optimizer=ps.SSR())
@@ -94,7 +105,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     )
     diff_model.print()
 
-    print(f"Coefficient of determination (R^2) for model of diffusion term: {diff_r2:.6f}")
+    logger.info("Coefficient of determination (R^2) for model of diffusion term: [ %.4f ]", diff_r2)
 
     ################### Save trained models ###################
     model_dict = {"drift_model": drift_model, "diff_model": diff_model}
@@ -102,4 +113,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

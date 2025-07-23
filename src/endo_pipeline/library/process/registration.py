@@ -23,8 +23,7 @@ from cellsmap.util.manifest_preprocessing import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs import add_model_manifest, load_model_config, save_model_config
 from src.endo_pipeline.configs.dataset_io import get_zarr_path
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
 from src.endo_pipeline.library.model import (
     download_model,
     generate_overrides_for_model_eval,
