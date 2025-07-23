@@ -6,12 +6,15 @@ from src.endo_pipeline.configs import (
     load_model_config,
 )
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper
-from src.endo_pipeline.library.analyze.diffae_manifest import manifest_pca, preprocessing
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    df_to_array,
+    fit_pca,
     get_feature_column_names,
+    get_manifest_for_dynamics_workflows,
     get_pc_column_names,
+    project_manifest_to_pcs,
 )
+from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
 
@@ -45,17 +48,17 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     # if directory does not exist, get_output_path function will create it
     fig_savedir = get_output_path(workflow_name, "model_name", "figs", include_timestamp=False)
 
-    pca = manifest_pca.fit_pca(model_name=model_name)
+    pca = fit_pca(model_name=model_name)
 
     num_bins = [40, 40, 40]
     bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]
-    bins = regression_helper.get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
+    bins = get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
 
     for model_manifest in model_manifest_list:
         print(f"Processing dataset: {model_manifest.dataset_name}")
-        df = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=None)
+        df = get_manifest_for_dynamics_workflows(model_manifest, pca=None)
         feature_column_names = get_feature_column_names(df)
-        feats = preprocessing.df_to_array(df, feature_column_names)
+        feats = df_to_array(df, feature_column_names)
         fig, _ = manifest_viz.plot_latent_component_mean(feats)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_mean")
@@ -64,9 +67,9 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_histogram")
 
-        df_proj = preprocessing.project_manifest_to_pcs(df, pca, feat_cols=feature_column_names)
+        df_proj = project_manifest_to_pcs(df, pca, feat_cols=feature_column_names)
         pc_column_names = get_pc_column_names(df_proj, pc_axes=[0, 1, 2])
-        feats = preprocessing.df_to_array(df_proj, pc_column_names)  # only looking at top 3 PCs
+        feats = df_to_array(df_proj, pc_column_names)  # only looking at top 3 PCs
 
         fig, _ = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)

@@ -74,7 +74,7 @@ def get_vtk_image_data_from_vector_field(vector_field_dict: dict) -> vtk.vtkImag
     return image_data
 
 
-def save_vtk_image_data(img: vtk.vtkImageData, output_path: str) -> None:
+def save_vtk_image_data(img: vtk.vtkImageData, output_path: Path) -> None:
     """
     Save VTK image data to a file.
 
@@ -87,7 +87,7 @@ def save_vtk_image_data(img: vtk.vtkImageData, output_path: str) -> None:
     """
     writer = vtk.vtkStructuredPointsWriter()
     writer.SetInputData(img)
-    writer.SetFileName(output_path)
+    writer.SetFileName(str(output_path))
     writer.Write()
     return
 

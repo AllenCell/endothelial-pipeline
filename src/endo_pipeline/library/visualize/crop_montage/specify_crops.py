@@ -15,7 +15,11 @@ from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_p
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
 )
-from src.endo_pipeline.library.analyze.numerics import component_heatmaps
+from src.endo_pipeline.library.analyze.numerics import (
+    get_3d_bounds_from_data,
+    get_df_by_bin_value,
+    get_histogram_by_component,
+)
 from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
     plot_principal_component_histogram,
@@ -114,10 +118,8 @@ def filter_dataframe(
     df_filtered : pd.DataFrame
         DataFrame filtered by the specified PC bin and optional frame range.
     """
-    bin_limits = component_heatmaps.get_3d_bounds_from_data(
-        model_manifest_list, pca, filter_to_valid=False
-    )
-    hist_array_list, bin_edges, df_with_bins = component_heatmaps.get_histogram_by_component(
+    bin_limits = get_3d_bounds_from_data(model_manifest_list, pca, filter_to_valid=False)
+    hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
         N_BINS,
         bin_limits,
@@ -131,7 +133,7 @@ def filter_dataframe(
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             viz_base.save_plot(fig, fig_savedir + f"{dataset_name}_pc_histogram")
 
-    df_filtered = component_heatmaps.get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
+    df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
     if frame_range is not None:
         df_filtered = df_filtered[
