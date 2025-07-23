@@ -9,15 +9,183 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import ModelManifest, load_dataset_config
-from src.endo_pipeline.library.analyze.diffae_features import model_eval, regression_helper
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+from src.endo_pipeline.configs import DatasetConfig, ModelManifest, load_dataset_config
+from src.endo_pipeline.io import save_plot_to_path
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    get_manifest_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.numerics import gen_potential
-from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.analyze.numerics import (
+    SteadyFP,
+    entropy_production,
+    get_normalization_constant,
+    grad_flux_decomposition,
+    mesh_grid_function,
+    vector_field_component,
+)
 from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
+
+
+def get_traj_by_flow(
+    df_proj: pd.DataFrame, dataset_config: DatasetConfig, verbose: bool = True
+) -> tuple[list, list]:
+    """
+    Get crop-based feature data (Diffusion AE output) for
+    different flow conditions present in a dataset.
+
+    Inputs:
+    - df_proj: pandas dataframe containing the dataset of interest,
+        projected onto all principal component axes
+        (change of basis, no dimensionality reduction)
+    - dataset_config: DatasetConfig object containing dataset configuration
+        (used to get flow information)
+    - verbose: boolean, if True, print information about flow conditions
+
+    Outputs:
+    - data_all: list of dataframes, each containing
+        the feature data for one flow condition
+    - shear_list: list of shear stress conditions for each flow condition
+
+    If there is only one flow condition, data_all and shear_list
+    are still lists (of length 1), respectively containing the
+    original dataframe and single shear stress condition.
+    """
+
+    # load flow information from data_config.yaml
+    flow_info = dataset_config.flow
+
+    # split out data by flow condition,
+    # starting with first flow condition
+    first_shear = float(flow_info[0][-1])
+    # initialize list of shear stress conditions
+    shear_list = [first_shear]
+    # if there is a change in flow condition
+    if len(flow_info) > 1:
+        # get frame number where flow condition
+        # changes (reported in hours in data_config.yaml)
+        change_frame = flow_info[0][-1]
+        # get second shear stress condition
+        second_shear = float(flow_info[1][-1])
+        shear_list.append(second_shear)
+        if verbose:
+            print(f"Shear stress {first_shear} dyn/cm^2 until frame {change_frame}")
+            print(f"Shear stress {second_shear} dyn/cm^2 after frame {change_frame} \n")
+        # separate data into two dataframes based on
+        # frame number where flow condition changes
+        data_flow1 = df_proj[df_proj["frame_number"] < change_frame].copy()
+        data_flow2 = df_proj[df_proj["frame_number"] >= change_frame].copy()
+        # return list of dataframes for each flow condition
+        data_all = [data_flow1, data_flow2]
+    # else, there is only one flow condition
+    else:
+        if verbose:
+            print("Constant shear stress at", first_shear, "dyn/cm^2 \n")
+        # list of dataframes for one flow condition
+        # = list containing the original dataframe
+        data_all = [df_proj.copy()]
+
+    return data_all, shear_list
+
+
+def get_stationary_probability(
+    drift_vals: np.ndarray, diff_vals: np.ndarray, bins: list, tol: float = 1e-10
+) -> np.ndarray:
+    """
+    Get stationary probability distribution of fit SDE (Langevin) model
+    with drift function f and diffusion D by solving the
+    stationary Fokker-Planck equation. The drift and diffusion functions
+    can be scalar-valued (ndim == 1) or vector-valued (ndim > 1).
+
+    This function calls the PDE solver SteadyFP implemented in the
+    `library.analyze.numerics.fp_solvers' module.
+
+    Inputs:
+    - drift_vals: np.ndarray, values of the drift function
+        evaluated at the bin centers
+        - if the drift function is scalar-valued, f_vals is a 1D array
+        - if the drift function is vector-valued, f_vals is an
+            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
+    - diff_vals: np.ndarray, values of the diffusion function
+        evaluated at the bin centers
+        - if the diffusion function is scalar-valued, D_vals is a 1D array
+        - if the diffusion function is vector-valued, D_vals is an
+            (ndim+1)D array with shape (ndim, N_x, N_y, ...)
+    - bins: list of arrays defining bin edges for each dimension
+        of the state variable
+    - tol: float, tolerance for small values in the stationary
+        probability distribution (default is 1e-10)
+        - if the probability distribution is less than tol, it is set to tol
+
+    Outputs:
+    - p_fit: np.ndarray, stationary probability
+        distribution of the fit SDE model
+    """
+
+    ndim = len(bins)
+    # bin width in each dimension
+    dx = [bins[i][1] - bins[i][0] for i in range(ndim)]
+    # bin centers in each dimension
+    num_bins = [len(bins[i]) - 1 for i in range(ndim)]
+
+    # initialize SteadyFP object
+    fp = SteadyFP(num_bins, dx)
+
+    # solve stationary Fokker-Planck equation
+    p_fit = fp.solve(drift_vals, diff_vals)
+
+    # set small values to a small number to avoid numerical issues
+    p_fit[p_fit < tol] = tol
+    # integrate to get normalization constant
+    c = get_normalization_constant(p_fit, dx)
+    # normalize probability distribution
+    p_fit = p_fit / c
+
+    return p_fit
+
+
+def get_stationary_hist(
+    stationary_data: pd.DataFrame,
+    pc_column_names: list[str],
+    bins: list,
+) -> np.ndarray:
+    """
+    Get stationary histogram of data.
+
+    Inputs:
+    - stationary_data: pandas DataFrame containing the
+        dataset of interest restricted to stationary frames
+    - pc_column_names: list of strings, names of the
+        columns in the DataFrame that contain the
+        principal component features (feature columns)
+    - bins: list of number of bins in each dimension
+        (list of length ndim, where ndim is the
+        number of dimensions of the feature space)
+
+    Outputs:
+    - p_hist: numpy array, stationary histogram
+        of the data in feature space
+    """
+    ndim = len(pc_column_names)
+
+    # call 1D or 2D histogram function based on number of dimensions
+    if ndim == 2:
+        # data frame_number > frame_index, all rows, select pcs
+        p_hist, _, _ = np.histogram2d(
+            stationary_data[pc_column_names[0]],
+            stationary_data[pc_column_names[1]],
+            bins,
+            density=True,
+        )
+    elif ndim == 1:
+        p_hist, _ = np.histogram(
+            stationary_data[pc_column_names[0]],
+            bins[0],
+            density=True,
+        )
+    else:
+        raise ValueError("Only 1D or 2D data currently supported.")
+
+    return p_hist
 
 
 def model_data_comparison_one_dataset(
@@ -59,8 +227,8 @@ def model_data_comparison_one_dataset(
     drift = sde_model[0]
     diffusion = sde_model[1]
 
-    f1 = model_eval.vector_field_component(drift, 0)
-    f2 = model_eval.vector_field_component(drift, 1)
+    f1 = vector_field_component(drift, 0)
+    f2 = vector_field_component(drift, 1)
 
     fig1, ax1 = pplane.phase_portrait(
         lambda x1, x2: f1([x1, x2], shear),
@@ -76,11 +244,11 @@ def model_data_comparison_one_dataset(
     plt.show()
 
     centers = [0.5 * (bins[i][1:] + bins[i][:-1]) for i in range(len(bins))]
-    drift_mesh = model_eval.mesh_grid_function(drift)
-    diff_mesh = model_eval.mesh_grid_function(diffusion)
+    drift_mesh = mesh_grid_function(drift)
+    diff_mesh = mesh_grid_function(diffusion)
     drift_vals = drift_mesh(np.meshgrid(*centers), shear).T
     diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
-    p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+    p_fit = get_stationary_probability(drift_vals, diff_vals, bins)
 
     # get "stationary" distribution from data
     # for extracting just the axes (specified via pcs) we want
@@ -88,7 +256,7 @@ def model_data_comparison_one_dataset(
     # e.g., if we are just analyzing the first two principal components,
     # we want to extract columns 'pc1' and 'pc2'
     pc_column_names = get_pc_column_names(stationary_data, pc_axes)
-    p_hist = regression_helper.get_stationary_hist(stationary_data, pc_column_names, bins)
+    p_hist = get_stationary_hist(stationary_data, pc_column_names, bins)
 
     fig2, ax2 = dynamics_viz.compare_stationary_distributions(p_fit, p_hist, bins)
 
@@ -141,11 +309,11 @@ def model_data_comparison(
         # load DiffAE feature data from this one dataset
         # projected onto principal component axes as defined
         # by fit PCA object pca. Restrict to stationary frames if provided
-        df_proj = preprocessing.get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+        df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
 
         # split out data by flow condition
         # split out data by flow condition
-        df_by_flow, shear_list = regression_helper.get_traj_by_flow(
+        df_by_flow, shear_list = get_traj_by_flow(
             df_proj, load_dataset_config(model_manifest.dataset_name)
         )
         del df_proj  # free up memory
@@ -180,21 +348,21 @@ def model_data_comparison(
             # suptitle for comparison of histograms
             sup_title = (
                 f"{model_manifest.dataset_name},  {shear_list[j]}"
-                "dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+                f"dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
             )
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()
 
             # save figures
-            viz_base.save_plot(
+            save_plot_to_path(
                 fig1,
-                fig_savedir
-                / f"{model_manifest.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
+                fig_savedir,
+                f"{model_manifest.dataset_name}_phase_portrait_shear_{int(shear_list[j])}",
             )
-            viz_base.save_plot(
+            save_plot_to_path(
                 fig2,
-                fig_savedir
-                / f"{model_manifest.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
+                fig_savedir,
+                f"{model_manifest.dataset_name}_stationary_dist_shear_{int(shear_list[j])}",
             )
 
 
@@ -289,7 +457,7 @@ def run_fixed_point_analysis(
     fpt_dict_list = get_fixed_points_by_shear(drift_function, plt_lims, shear_range)
     figs, _ = dynamics_viz.plot_fixed_points_by_shear(fpt_dict_list, shear_range, pc_axes, plt_lims)
     for i in range(len(figs)):
-        viz_base.save_plot(figs[i], fig_savedir / f"fixed_points_by_shear_{i}")
+        save_plot_to_path(figs[i], fig_savedir, f"fixed_points_by_shear_{i}")
 
 
 def get_epr(
@@ -323,8 +491,8 @@ def get_epr(
     diffusion = sde_model[1]
 
     # get mesh grid functions for drift and diffusion
-    drift_mesh = model_eval.mesh_grid_function(drift)
-    diff_mesh = model_eval.mesh_grid_function(diffusion)
+    drift_mesh = mesh_grid_function(drift)
+    diff_mesh = mesh_grid_function(diffusion)
 
     tic = time()
 
@@ -335,10 +503,10 @@ def get_epr(
         diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
 
         # get stationary probability distribution
-        p = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+        p = get_stationary_probability(drift_vals, diff_vals, bins)
 
         # get entropy production rate
-        epr[i] = gen_potential.entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
+        epr[i] = entropy_production(p, drift_vals, diff_vals, centers, additive_noise)
 
         # free up memory
         del drift_vals, diff_vals, p
@@ -388,7 +556,7 @@ def run_epr_analysis(
     epr = get_epr(sde_model, bins, centers, shear_range, additive_noise)
     fig, _ = dynamics_viz.plot_entropy_production_rate(epr, shear_range)
     plt.show()
-    viz_base.save_plot(fig, fig_savedir / "epr")
+    save_plot_to_path(fig, fig_savedir, "epr")
 
 
 def run_gen_potential_analysis(
@@ -435,8 +603,8 @@ def run_gen_potential_analysis(
     diffusion = sde_model[1]
 
     # define mesh grid functions for drift and diffusion
-    drift_mesh = model_eval.mesh_grid_function(drift)
-    diff_mesh = model_eval.mesh_grid_function(diffusion)
+    drift_mesh = mesh_grid_function(drift)
+    diff_mesh = mesh_grid_function(diffusion)
 
     for ii, shear in enumerate(shear_range):
         # evaluate drift and diffusion functions at
@@ -446,7 +614,7 @@ def run_gen_potential_analysis(
 
         # get stationary probability distribution to get
         # generalized potential energy landscape U
-        p_fit = model_eval.get_stationary_probability(drift_vals, diff_vals, bins)
+        p_fit = get_stationary_probability(drift_vals, diff_vals, bins)
         potential = -np.log(p_fit)
 
         # plot generalized potential energy landscape
@@ -460,19 +628,19 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir / f"gp_shear_{ii}")
+        save_plot_to_path(fig, fig_savedir, f"gp_shear_{ii}")
 
         #### plot gradient/flux decomposition ####
 
         # get gradient/flux decomposition
-        _, grad_term, _, flux_term = gen_potential.grad_flux_decomposition(
+        _, grad_term, _, flux_term = grad_flux_decomposition(
             drift_vals, diff_vals, centers, additive_noise
         )
 
         # was having issues with flux_term being an
         # AxesArray object (inherited from SINDy model)
         # should test this to see if no longer a
-        # problem (should be fixed in model_eval scripts now)
+        # problem (should be fixed in sde_model_eval scripts now)
         if flux_term.__class__ != np.ndarray:
             flux_term = np.array(flux_term)
 
@@ -494,4 +662,4 @@ def run_gen_potential_analysis(
         plt.show()
 
         # save out plot, filename indexed by shear stress index in shear_range
-        viz_base.save_plot(fig, fig_savedir / f"gp_decomp_shear_{ii}")
+        save_plot_to_path(fig, fig_savedir, f"gp_decomp_shear_{ii}")

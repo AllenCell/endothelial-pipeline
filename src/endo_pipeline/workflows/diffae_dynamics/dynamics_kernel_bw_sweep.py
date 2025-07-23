@@ -3,9 +3,10 @@ import numpy as np
 
 from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import ddd_main
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+
+from .data_driven_dynamics_summary import _get_and_analyze_ddd
+from .generate_3d_flow_field import _get_and_analyze_ddff
 
 
 def main(
@@ -18,7 +19,7 @@ def main(
     all datasets in the manifest using various kernel bandwidths.
 
     Includes model summary and comparison to data as used in, e.g.,
-    `cellsmap.analyses.workflows.stochastic_dynamics.dynamics_summarize`.
+    the `summarize_sde` workflow.
     """
 
     # if not provided in command line, run
@@ -116,13 +117,13 @@ def main(
             )
 
             # 2D viz outputs
-            ddd_main.get_and_analyze_ddd(
+            _get_and_analyze_ddd(
                 model_manifest, pca, kernel_params, fig_savedir_kernel, dynamics_config
             )
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
-        data_driven_flow_field.ddff_main(
+        _get_and_analyze_ddff(
             model_manifest_list,
             pca,
             kernel_params,

@@ -6,7 +6,11 @@ from typing import Literal
 
 from bioio import BioImage
 
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import (
+    DatasetCollectionConfig,
+    DatasetConfig,
+    load_all_dataset_configs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -119,3 +123,30 @@ def get_nuclear_prediction_path(
     else:
         logger.error("Nuclear segmentation type [ %s ] is not valid", nuc_seg_type)
         raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
+
+
+def make_sample_type_objective_microscope_collection(
+    sample_type: Literal["live", "fixed"],
+    objective: Literal["20X", "40X"],
+    microscope: Literal["3i", "Nikon"],
+) -> DatasetCollectionConfig:
+    """
+    Create and return collection of datasets that are
+    of a specific sample type, objective, and microscope.
+    """
+    dataset_configs = load_all_dataset_configs()
+    dataset_collection_names = []
+    for dataset_config in dataset_configs:
+        if (  # filter datasets based on sample type, objective, and microscope
+            dataset_config.live_or_fixed_sample == sample_type
+            and objective in dataset_config.name  # this will become a key soon
+            and dataset_config.microscope == microscope
+        ):
+            dataset_collection_names.append(dataset_config.name)
+    dataset_collection = DatasetCollectionConfig(
+        name=f"{sample_type}_{objective}_objective_{microscope}_microscope",
+        description=f"Collection of {sample_type} datasets with {objective} objective from the {microscope} microscope.",
+        datasets=dataset_collection_names,
+    )
+
+    return dataset_collection

@@ -42,7 +42,7 @@ from src.endo_pipeline.io import load_dataframe_from_fms
 # the ml_workflows extra dependencies
 # if this fails, raise an ImportError with a helpful message
 try:
-    from src.endo_pipeline.library.model.mlflow_utils import get_ckpt_path
+    from src.endo_pipeline.library.model import get_ckpt_path
 except ImportError as e:
     raise ImportError(
         "This notebook requires the `ml_workflows` extra dependencies to run. "

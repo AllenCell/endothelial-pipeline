@@ -28,7 +28,7 @@ nuclear_stain_seg_path: null
 nuclear_seg_manifest_fmsid: null
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250611_20X
 tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: null
+diffae_tracking_integration_fmsid: 3a69bbcd8ab244d9b2d3eb9ee7eacde3
 immunofluorescence_manifest_fmsid: null
 cdh5_classic_seg_tracking_manifest_fmsid: 24a4907b6a0643649402cca23ed63537
 cdh5_classic_seg_manifest_fmsid: e9313febe6c343ccaa860da7e44c8a41

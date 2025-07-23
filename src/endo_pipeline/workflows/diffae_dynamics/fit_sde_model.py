@@ -4,9 +4,10 @@ import pysindy as ps
 from src.endo_pipeline.configs import dynamics_io
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_features import (
-    model_eval,
-    model_fitting,
-    regression_helper,
+    build_diff_lib,
+    build_drift_lib,
+    load_train_test,
+    save_sde_model,
 )
 
 
@@ -48,17 +49,13 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     param_deg_diff = dynamics_config["polynomial_lib"]["diffusion_param"]
 
     ################### Load train test data from file ###################
-    train_test_dict = regression_helper.load_train_test(savedir / "train_test_data.npz")
+    train_test_dict = load_train_test(savedir / "train_test_data.npz")
 
     ################### Build SINDy libraries ###################
     # for fitting model of drift and diffusion terms
-    drift_lib = model_fitting.build_drift_lib(
-        ndim=len(pcs), drift_deg=drift_deg, param_deg=param_deg_drift
-    )
+    drift_lib = build_drift_lib(ndim=len(pcs), drift_deg=drift_deg, param_deg=param_deg_drift)
 
-    diff_lib = model_fitting.build_diff_lib(
-        ndim=len(pcs), diff_deg=diff_deg, param_deg=param_deg_diff
-    )
+    diff_lib = build_diff_lib(ndim=len(pcs), diff_deg=diff_deg, param_deg=param_deg_diff)
     ################### Fit SINDy models ###################
 
     # fit model for drift term - SINDy based regression
@@ -101,7 +98,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     ################### Save trained models ###################
     model_dict = {"drift_model": drift_model, "diff_model": diff_model}
-    model_eval.save_sde_model(model_dict, savedir)
+    save_sde_model(model_dict, savedir)
 
 
 if __name__ == "__main__":

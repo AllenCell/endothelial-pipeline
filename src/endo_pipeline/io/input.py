@@ -3,9 +3,72 @@
 import logging
 from pathlib import Path
 
+import dask
 import pandas as pd
+from bioio import BioImage
 
 logger = logging.getLogger(__name__)
+
+
+def load_zarr_as_dask_array(
+    path: Path,
+    channels: list[str] | None = None,
+    timepoints: int | list[int] | range | None = None,
+    level: int = 0,
+    squeeze: bool = False,
+) -> dask.array.Array:
+    """
+    Load Zarr as Dask array.
+
+    Parameters
+    ----------
+    path
+        Path to Zarr file.
+    channels
+        Channel(s) to load. Channels should be given as a list of channel names.
+        Use None to load all channels.
+    timepoints
+        Timepoint(s) to load. Timepoints can be given as a single integer, list
+        of integers, or an integer range. Use None to load all timepoints.
+    level
+        Resolution level to load.
+    squeeze
+        True to drop any single-dimensional entries, False otherwise.
+    """
+
+    if not path.exists():
+        logger.error("Path [ %s ] could not be loaded", path)
+        raise FileNotFoundError(f"No such file '{path}'")
+
+    reader_arguments = {}
+
+    # Initialize image reader.
+    reader = BioImage(path)
+
+    # Specify timepoints to load, if provided. Otherwise, all timepoints will be loaded.
+    if timepoints is not None:
+        reader_arguments["T"] = timepoints
+
+    # Specify channels to load, if provided. Otherwise, all channels will be loaded.
+    if channels is not None:
+        channels_index = [reader.channel_names.index(channel) for channel in channels]
+        reader_arguments["C"] = channels_index
+
+    # Check if resolution level is value.
+    if level not in reader.resolution_levels:
+        logger.error("Selected resolution level [ %s ] not available for dataset", level)
+        raise ValueError(f"Zarr [ {path.name} ] only has levels {reader.resolution_levels}")
+
+    # Set resolution level for loaded Zarr.
+    reader.set_resolution_level(level)
+
+    # Read image data.
+    image = reader.get_image_dask_data("TCZYX", **reader_arguments)
+
+    if squeeze:
+        return image.squeeze()
+
+    return image
 
 
 def load_local_path_as_dataframe(path: Path) -> pd.DataFrame:
