@@ -4,8 +4,6 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-from bioio import BioImage
-
 from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
@@ -56,6 +54,8 @@ def get_available_channels_for_position(dataset: DatasetConfig, position: int) -
     # TODO: we may want to replace this with channel names directly tracked in
     # dataset configs, to avoid needing to load Zarrs every time we want to
     # access channel names
+
+    from bioio import BioImage
 
     zarr_file = get_zarr_file_for_position(dataset, position)
     return BioImage(zarr_file).channel_names
