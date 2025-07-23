@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.process.get_images import (
     get_crops_in_dataframe,
     global_contrast_crop_list,
     individual_contrast_crop_list,
 )
-from src.endo_pipeline.library.visualize import viz_base
 
 
 def plot_crop_montage(
@@ -49,10 +49,10 @@ def plot_crop_montage(
         ax[i // 10, i % 10].axis("off")
     fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
     plt.tight_layout()
-    viz_base.save_plot(
+    save_plot_to_path(
         fig,
-        save_dir
-        + f"PC{pc_axis+1}_val_"
+        save_dir,
+        f"PC{pc_axis+1}_val_"
         + "p".join(str(pc_val).split("."))
         + f"_{image_content}_crops_montage",
     )
