@@ -348,7 +348,7 @@ def model_data_comparison(
             # suptitle for comparison of histograms
             sup_title = (
                 f"{model_manifest.dataset_name},  {shear_list[j]}"
-                "dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
+                f"dyn/cm$^2$ \n {fig2.texts[0].get_text()}"
             )
             fig2.suptitle(sup_title, fontsize=fig2.texts[0].get_fontsize(), y=1.15)
             plt.show()

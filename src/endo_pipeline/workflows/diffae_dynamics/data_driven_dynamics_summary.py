@@ -220,7 +220,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     Get and visualize data-driven flow fields for all datasets in the manifest.
 
     Includes model summary and comparison to data as used in, e.g.,
-    `cellsmap.analyses.workflows.stochastic_dynamics.dynamics_summarize`.
+    the `summarize_sde_model` workflow.
     """
     #### Load manifest data and fit PCA ####
     # make save directory for workflow outputs

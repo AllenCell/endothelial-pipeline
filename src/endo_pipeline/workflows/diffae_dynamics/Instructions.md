@@ -14,7 +14,7 @@ Install `uv` and configure project at the root of the `cellsmap` repository.
 
 Set working directory to be the head of the `cellsmap` repository.
 
-`uv run src/endo_pipeline/workflows/2d_diffae_dynamics/build_train_and_test.py [config_name]`
+`uv run src/endo_pipeline/workflows/diffae_dynamics/build_train_and_test.py --dynamics_config_name [config_name] --model_name [diffae_model_name]`
 * Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space.
 * Get one time step displacements of crops over time, train/test split for fitting drift
  $\mathbf{f}(\mathbf{x})$
@@ -22,10 +22,10 @@ Set working directory to be the head of the `cellsmap` repository.
  $\mathbf{D}(\mathbf{x})$
  coefficients from these displacements.
 
-`uv run src/endo_pipeline/workflows/2d_diffae_dynamics/fit_sde_model.py [config_name]`
-* Load train/test sets from `manifest_postproc.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
+`uv run src/endo_pipeline/workflows/diffae_dynamics/fit_sde_model.py --dynamics_config_name [config_name] --model_name [diffae_model_name]`
+* Load train/test sets from `build_train_and_test.py`, regression (SINDy - regression against set of basis functions) to fit callable drift and diffusion functions.
 
-`uv run src/endo_pipeline/workflows/2d_diffae_dynamics/summarize_sde_model.py [config_name]`
+`uv run src/endo_pipeline/workflows/diffae_dynamics/summarize_sde_model.py --dynamics_config_name [config_name] --model_name [diffae_model_name]`
 * Using fit SINDy objects (callable functions learned via regression), generate summary plots of various analyses of the SDE model
 $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 \mathbf{D}(\mathbf{x})} \xi(t)$$
 
@@ -38,7 +38,7 @@ $$\frac{d\mathbf{x}}{dt} = \mathbf{f}(\mathbf{x}) + \sqrt{2 \mathbf{D}(\mathbf{x
     $U = -\ln P$
     for various values of shear stress
 
-For each workflow, `[config_name]` is an optional command line input to specify the config in `src/configs/dynamics_config.yaml` to use when running the workflow. If this is not specified via command line, the workflows are run using the `default` config in `dynamics_config.yaml`.
+For each workflow, `--dynamics_config_name` is an optional command line input to specify the config in `src/configs/dynamics_config.yaml` to use when running the workflow. If this is not specified via command line, the workflows are run using the `default` config in `dynamics_config.yaml`. Another optional input is `--model_name`, which specifies
 
 ### Config file documentation
 - `name` (type: `str`): Name of this set of config variables. This is what gets passed in as `[config_name]` via command line.
@@ -71,7 +71,7 @@ For each workflow, `[config_name]` is an optional command line input to specify 
 - `norm_vectors` (type `bool`): Whether or not to normalize the gradient and flux vector fields when plotting (sometimes looks better when vectors are unit vectors).
 
 ### Acessing and interpreting outputs
-Intermediate workflow outputs (e.g., train/test sets) are saved to `results/stochastic_dynamics/[config_name]/outputs`. Figures are saved to `results/stochastic_dynamics/[config_name]/figs`. If they do not already exist, these directories are created automatically.
+Intermediate workflow outputs (e.g., train/test sets) are saved to `results/stochastic_dynamics/[config_name]/[diffae_model_name]/outputs`. Figures are saved to `results/stochastic_dynamics/[config_name]/[diffae_model_name]/figs`. If they do not already exist, these directories are created automatically.
 
 Intermediate outputs:
 * train/test sets for displacement vectors
