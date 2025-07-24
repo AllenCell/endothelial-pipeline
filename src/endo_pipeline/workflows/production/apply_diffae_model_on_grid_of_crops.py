@@ -3,7 +3,7 @@ TAGS = ["apply_diffae_model", "production"]
 
 def main(
     model_name: str,
-    dataset_names: str | list[str] = "live_20X_objective_3i_microscope",
+    dataset_name: str = "live_20X_objective_3i_microscope",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     overrides: str | dict | None = None,
@@ -24,10 +24,9 @@ def main(
     ----------
     model_name
         Name of the model from `model_config.yaml` to apply.
-    dataset_names
-        Names of the datasets from `data_config.yaml` to apply the model to.
-        If it is a string, it should either be a single dataset name or the name of a
-        dataset collection.
+    dataset_name
+        Dataset(s) to apply the model to.
+        It should either be a single dataset name or the name of a dataset collection.
     resolution_level
         Resolution level to apply the model at. Default is 1 (zarr sample resolution).
     upload_to_fms
@@ -61,23 +60,22 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # if input is a string, check if it is a dataset collection or a single dataset name
-    if isinstance(dataset_names, str):
-        if dataset_names in get_available_dataset_collection_names():
-            # if it is a dataset collection, load all datasets in the collection
-            dataset_names = get_datasets_in_collection(dataset_names)
-        elif dataset_names in get_available_dataset_names():
-            # if it is a single dataset name, keep it as is
-            dataset_names = [dataset_names]
-        else:
-            logger.error(
-                "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-                dataset_names,
-            )
-            raise ValueError(
-                f"Dataset name [ {dataset_names} ] is not a valid",
-                "dataset or dataset collection name.",
-            )
+    # check if input is a dataset collection or a single dataset name
+    if dataset_name in get_available_dataset_collection_names():
+        # if it is a dataset collection, load all datasets in the collection
+        dataset_names = get_datasets_in_collection(dataset_names)
+    elif dataset_name in get_available_dataset_names():
+        # if it is a single dataset name, keep it as is
+        dataset_names = [dataset_name]
+    else:
+        logger.error(
+            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
+            dataset_names,
+        )
+        raise ValueError(
+            f"Dataset name [ {dataset_names} ] is not a valid",
+            "dataset or dataset collection name.",
+        )
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 

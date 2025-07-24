@@ -2,7 +2,7 @@ TAGS = ["production", "pc_interpretation", "diffae_image_generation"]
 
 
 def main(
-    dataset_names: str | list[str] | None = None,
+    dataset_name: str | None = None,
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -15,8 +15,11 @@ def main(
 
     Parameters
     ----------
-    dataset_names
-        Names of the datasets to use for generating the montage. If None, all datasets will be used.
+    dataset_name
+        Dataset(s) to load images from.
+        It should either be a single dataset name or the name of a dataset collection.
+        If None, the list of datasets from the "live_20X_objective_3i_microscope"
+        dataset collection will be used.
     pc_axis
         The principal component axis to use for filtering the images.
         0 for PC1, 1 for PC2, etc.
@@ -41,7 +44,7 @@ def main(
 
     fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
 
-    df, pca, model_manifest_list = specify_crops.load_data(dataset_names)
+    df, pca, model_manifest_list = specify_crops.load_data(dataset_name)
 
     df_filtered = specify_crops.filter_dataframe(
         df,

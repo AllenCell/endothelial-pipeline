@@ -1,18 +1,20 @@
 TAGS = ["production", "dynamical_systems", "diffae_features"]
 
 
-def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
+def main(dataset_name: str | None = None, model_name: str = "diffae_04_10") -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
 
     Parameters
     ----------
-    dataset_names
-        Names of the datasets to analyze. If not provided, defaults to a predefined
-        list of datasets.
+    dataset_name
+        Dataset(s) to apply the model to, default is None.
+        It should either be a single dataset name or the name of a dataset collection.
+        If None, the list of datasets from the "live_20X_objective_3i_microscope"
+        dataset collection will be used.
     model_name
-        Name of the model to load from model_config.yaml.
+        Name of the model to load from configs/models/.
         Analysis will be performed on the model manifest datasets for this model.
 
     Returns
@@ -20,11 +22,21 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     None
         Saves the PCA scatter plots, flow field analysis results, and visualizations
         to the specified output directories.
+
+    Raises
+    ------
+    ValueError
+        If the provided dataset name is not a valid dataset or dataset collection name.
     """
+    import logging
+
     import numpy as np
 
     from src.endo_pipeline.configs import (
         dynamics_io,
+        get_available_dataset_collection_names,
+        get_available_dataset_names,
+        get_datasets_in_collection,
         get_model_manifest,
         get_pca_reference_model_manifests,
         load_dataset_config,
@@ -38,6 +50,8 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     )
     from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
+    logger = logging.getLogger(__name__)
+
     # Create output folder if does not exist yet
     workflow_name = "flow_field_3d"
     output_savedir = get_output_path(workflow_name, model_name, "outputs", include_timestamp=False)
@@ -46,20 +60,28 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         workflow_name, model_name, "outputs", "vtk", include_timestamp=False
     )
 
-    if isinstance(dataset_names, str):
-        # if a single dataset is provided, convert to list
-        dataset_names = [dataset_names]
-    elif dataset_names is None:
-        # if not provided in command line, run
-        # on default list of datasets
-        dataset_names = [
-            "20241120_20X",
-            "20250409_20X",
-            "20241217_20X",
-            "20250428_20X",
-            "20250319_20X",
-            "20250326_20X",
-        ]
+    # check if input is a dataset collection or a single dataset name
+    if dataset_name is None:
+        dataset_names = get_datasets_in_collection("live_20X_objective_3i_microscope")
+        # remove paired datasets
+        for j, name in enumerate(dataset_names):
+            if "paired" in name:
+                dataset_names.pop(j)
+    elif dataset_name in get_available_dataset_collection_names():
+        # if it is a dataset collection, load all datasets in the collection
+        dataset_names = get_datasets_in_collection(dataset_names)
+    elif dataset_name in get_available_dataset_names():
+        # if it is a single dataset name, keep it as is
+        dataset_names = [dataset_name]
+    else:
+        logger.error(
+            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
+            dataset_names,
+        )
+        raise ValueError(
+            f"Dataset name [ {dataset_names} ] is not a valid",
+            "dataset or dataset collection name.",
+        )
     pca = fit_pca(model_name=model_name)
 
     # plot scatter of PCA components
