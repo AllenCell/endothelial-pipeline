@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 import torch
 
+from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import load_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model.mlflow_utils import load_mlflow_model
@@ -75,3 +77,29 @@ def generate_from_coords_batch(
     walk_imgs = np.split(img, len(coords_batch))
 
     return walk_imgs
+
+
+def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> list:
+    """
+    Reconstruct crops from each latent coordinate
+    given in the input dataframe.
+    """
+    # get coordinates (feature columns) from the dataframe,
+    # convert to list of lists for input into DiffAE model
+    num_points = df.shape[0]
+    latent_coords = []
+    feat_cols = manifest_io.get_feature_cols(df)
+    for i in range(num_points):
+        latent_coords.append(df[feat_cols].iloc[i].tolist())
+
+    # pass into DiffAE model to generate reconstructed crops
+    walk_img = generate_from_coords_batch(
+        "diffae_04_10", latent_coords
+    )  # output is a numpy array: (# coords x 128 x 128), greyscale image
+
+    # convert to list of numpy arrays
+    walk_img_list = []
+    for i in range(num_points):
+        walk_img_list.append(walk_img[i])
+
+    return walk_img_list

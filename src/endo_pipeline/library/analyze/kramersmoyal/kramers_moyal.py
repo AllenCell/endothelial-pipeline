@@ -1,9 +1,9 @@
 import numpy as np
 
-from src.endo_pipeline.library.analyze.kramersmoyal import km_main
+from ._km_computation import _km_wrapper
 
 
-def get_km_powers(ndim: int) -> np.ndarray:
+def _get_km_powers(ndim: int) -> np.ndarray:
     """
     Generate the powers for the Kramers-Moyal coefficients
     based on the dimensionality of the data.
@@ -41,7 +41,7 @@ def get_km_powers(ndim: int) -> np.ndarray:
     return powers
 
 
-def get_km_kernel(
+def _get_km_coeff(
     traj_list: list,
     d_traj_list: list,
     bins: list,
@@ -77,10 +77,10 @@ def get_km_kernel(
     """
 
     ndim = len(bins)
-    powers = get_km_powers(ndim)
+    powers = _get_km_powers(ndim)
 
     kmc = (
-        km_main.km(
+        _km_wrapper(
             traj_list,
             grads=d_traj_list,
             bins=bins,
@@ -105,4 +105,52 @@ def get_km_kernel(
         # take diffusion terms, shape is N[1] x N[2] x ... x N[ndim] x ndim
         diff_km = kmc[ndim + 1 :].T
 
+    return drift_km, diff_km
+
+
+def get_kramers_moyal(
+    traj_list: list[np.ndarray],
+    d_traj_list: list[np.ndarray],
+    bins: list[np.ndarray],
+    dt: float,
+    kernel_params: dict | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Get estimation of Kramers-Moyal coefficients
+    for drift and diffusion.
+
+    Wrapper function for `_get_km_coeff`, which
+    implements a kernel method for
+    estimating Kramers-Moyal coefficients.
+    These functions are defined in
+    `km_kernels.py`.
+
+    Inputs:
+    - traj_list: list of numpy arrays, each array
+        is a single trajectory in feature space
+    - d_traj_list: list of numpy arrays, each array
+        is the displacement vectors along that trajectory
+    - bins: list of numpy arrays, each array contains
+        the bin edges for a dimension
+        (used for computing conditional averages)
+    - dt: time step between data points
+        (used to compute Kramers-Moyal coefficients)
+    - kernel_params: dictionary of parameters for the kernel
+        method for estimating Kramers-Moyal coefficients
+        - bandwidth: bandwidth for the kernel method
+        - kernel: kernel function to use for the kernel method
+
+    Outputs:
+    - drift_km: numpy array, drift estimates
+        for each bin in feature space
+    - diff_km: numpy array, diffusion estimates
+        for each bin in feature space
+    """
+    if kernel_params is None:
+        print("No kernel parameters provided, using default parameters: ")
+        kernel_params = {"bandwidth": 0.1, "kernel": "gaussian"}
+        print(
+            f"bandwidth = {kernel_params['bandwidth']:.3f}," f"kernel = {kernel_params['kernel']}"
+        )
+    drift_km, diff_km = _get_km_coeff(traj_list, d_traj_list, bins, dt, kernel_params)
     return drift_km, diff_km

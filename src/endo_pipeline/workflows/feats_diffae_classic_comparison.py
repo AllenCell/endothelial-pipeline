@@ -20,7 +20,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import make_all_plots
 
@@ -32,10 +32,14 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     dataset_name_list = get_datasets_in_collection("pca_reference")
 
+    # create subdirectory to save track-based trajectories to
+    out_subdir_traj = out_dir / "trajectories_track_based"
+    out_subdir_traj.mkdir(parents=True, exist_ok=True)
+
+    # fit the PCA (uses the reference datasets)
+    pca = fit_pca()
+
     for dataset_name in dataset_name_list:
-        # create subdirectory to save track-based trajectories to
-        out_subdir_traj = out_dir / "trajectories_track_based"
-        out_subdir_traj.mkdir(parents=True, exist_ok=True)
 
         df_all_positions = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
         if df_all_positions is None:
@@ -45,9 +49,6 @@ def main() -> None:
         logger.info("Cleaning up merged table...")
         df_all_positions = df_all_positions.query("valid_points >= 120")
         df_all_positions.dropna(axis="index", how="any", subset="is_unique", inplace=True)
-
-        # fit the PCA (uses the reference datasets)
-        pca = fit_pca()
 
         # read in the grid crop-based diffae features
         model_name = sequence_to_scalar(df_all_positions["model_name"])
@@ -66,7 +67,7 @@ def main() -> None:
         model_manifest_list = [
             get_model_manifest(dataset_name, model_config) for dataset_name in dataset_name_list
         ]
-        bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
+        bounds = get_3d_bounds_from_data(model_manifest_list, pca)
 
         logger.info("getting trajectory and flow field for grid-based crops...")
         traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)

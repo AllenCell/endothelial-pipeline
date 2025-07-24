@@ -1,3 +1,6 @@
+import pickle
+from pathlib import Path
+
 import pysindy as ps
 
 
@@ -78,3 +81,32 @@ def build_diff_lib(ndim: int, diff_deg: int = 0, param_deg: int = 3) -> ps.Param
     )
 
     return diff_lib
+
+
+def save_sde_model(model_dict: dict, savedir: Path) -> None:
+    """
+    Save fit SDE model to file in savedir.
+
+    Inputs:
+    - model_dict: dict, dictionary containing fit drift and diffusion functions.
+    - savedir: Path, directory to save the file.
+
+    Outputs:
+    - None, save the file to savedir.
+    """
+    with open(savedir / "drift_diffusion_model.pkl", "wb") as f:
+        pickle.dump(model_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_sde_model(file_path: Path) -> dict:
+    """
+    Load fit SDE model from file_path.
+
+    Inputs:
+    - file_path: Path, path to the file containing fit drift and diffusion functions.
+
+    Outputs:
+    - model_dict: dict, dictionary containing fit drift and diffusion functions.
+    """
+    with open(file_path, "rb") as f:
+        return pickle.load(f)

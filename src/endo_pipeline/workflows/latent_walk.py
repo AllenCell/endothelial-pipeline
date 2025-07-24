@@ -10,13 +10,11 @@ from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
     get_feature_column_names,
-    get_pc_column_names,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     get_manifest_for_dynamics_workflows,
+    get_pc_column_names,
 )
 from src.endo_pipeline.library.model import generate_from_coords
 
