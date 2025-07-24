@@ -18,8 +18,7 @@ from src.endo_pipeline.io import (
     load_dataframe_from_fms,
     upload_file_to_fms,
 )
-
-from .mlflow_utils import download_mlflow_artifact, download_model
+from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
