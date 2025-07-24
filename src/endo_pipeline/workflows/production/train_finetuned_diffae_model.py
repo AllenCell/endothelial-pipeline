@@ -1,117 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-import fire
-from cyto_dl.api import CytoDLModel
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
-from src.endo_pipeline.configs import ModelConfig, load_model_config, save_model_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.model import (
-    download_mlflow_artifact,
-    generate_overrides_for_finetuning,
-    get_ckpt_path,
-    get_dataset_names_used_for_training,
-    get_model_dir,
-)
-
-
-def _initialize_diffae_model_for_finetuning(
-    template_finetune_config: DictConfig | ListConfig,
-    model_name: str,
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
-    train_csv_path: Path,
-    val_csv_path: Path,
-    model_save_path: Path,
-    diffae_ckpt_path: Path,
-) -> CytoDLModel:
-    """
-    Initialize a DiffAE model for training.
-
-    Parameters
-    ----------
-    template_finetune_config
-        The template configuration for finetuning the DiffAE model.
-    model_name
-        The name of the model to train.
-    dataset_pair_type
-        The type of dataset to use for finetuning ("live_fixed" or "20X_40X").
-        This should match the input used during the `paired_data_validation` step.
-    train_csv_path
-        The path to the training dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
-    val_csv_path
-        The path to the validation dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
-    model_save_path
-        The path to the directory where the checkpoints and logs will be saved.
-    diffae_ckpt_path
-        The path to the DiffAE checkpoint to finetune. This should be a path
-        to the checkpoint downloaded from MLflow artifacts.
-
-    Returns
-    -------
-    model
-        An initialized CytoDLModel for finetuning the DiffAE model.
-    """
-    # generate overrides for train.yaml for finetuning
-    overrides = generate_overrides_for_finetuning(
-        model_name=model_name,
-        dataset_pair_type=dataset_pair_type,
-        train_csv_path=train_csv_path,
-        val_csv_path=val_csv_path,
-        ckpt_path=model_save_path / diffae_ckpt_path,
-    )
-
-    # init model
-    model = CytoDLModel()
-    model.load_config_from_dict(template_finetune_config)
-    model.override_config(overrides)
-
-    return model
-
-
-def _get_valid_csv_path(
-    csv_path: Path | str | None,
-    csv_name: Literal["train", "val"],
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
-) -> Path:
-    """
-    Get a valid CSV path for training or validation datasets.
-
-    Parameters
-    ----------
-    csv_path: Path | str | None
-        The path to the CSV file. If None, the default path for the output of
-        generate_csv_for_training_diffae will be used.
-    csv_name: Literal["train", "val"]
-        The name of the CSV file to validate. If csv_path is not None,
-        csv_name will not be used in the path generation.
-        This input is mainly for the default case where csv_path is None,
-        and the path will be generated based on the csv_name (train or val).
-    dataset_pair_type: Literal["live_fixed", "20x_40x"]
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-
-
-    Returns
-    -------
-    Path
-        A valid Path object pointing to the CSV file.
-    """
-    if csv_path is None:
-        csv_path = (
-            get_output_path("finetune_paired_dataset", dataset_pair_type, include_timestamp=False)
-            / f"{csv_name}.csv"
-        )
-
-    if isinstance(csv_path, str):
-        csv_path = Path(csv_path)
-
-    if not csv_path.exists():
-        raise FileNotFoundError(f"CSV file not found at {csv_path}. Please provide a valid path.")
-
-    return csv_path
+TAGS = ["production", "diffae", "model_finetuning"]
 
 
 def main(
@@ -125,24 +15,42 @@ def main(
 
     Parameters
     ----------
-    model_name: str
+    model_name
         The name of the model to use for finetuning. This should correspond to a
         directory in `results/models/` and match the model name used during the
-        `paired_data_validation` step.
-    dataset_pair_type: Literal['live_fixed', '20x_40x']
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-    train_csv_path: Path | None
-        The path to the training CSV file containing paired data.
-        If None, the default path for the output of paired_fixed_live_validation will be used.
+        `generate_csv_for_finetuning_diffae` step. Default is "diffae_04_10".
+    dataset_pair_type
+        The type of dataset to use for finetuning ("live_fixed" or "20x_40x").
+        This should match the input used for `generate_csv_for_finetuning_diffae`.
+    train_csv_path
+        The path to the training CSV file containing paired data, defaults to None.
+        If None, the default path for the output of `generate_csv_for_finetuning_diffae` will be used.
     val_csv_path: Path | None
-        The path to the validation CSV file containing paired data.
-        If None, the default path for the output of paired_fixed_live_validation will be used.
+        The path to the validation CSV file containing paired data, defaults to None.
+        If None, the default path for the output of `generate_csv_for_finetuning_diffae` will be used.
+
+    Returns
+    -------
+    None
+        The function creates and save a ModelConfig object with the finetuned model's
+        MLflow run ID and the list of datasets used for training.
     """
+    from omegaconf import OmegaConf
+
+    from src.endo_pipeline.configs import ModelConfig, load_model_config, save_model_config
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.model import (
+        download_mlflow_artifact,
+        get_ckpt_path,
+        get_dataset_names_used_for_training,
+        get_model_dir,
+        get_valid_csv_path_for_finetuning,
+        initialize_diffae_model_for_finetuning,
+    )
 
     # get valid CSV paths for training and validation datasets
-    train_csv_path = _get_valid_csv_path(train_csv_path, "train", dataset_pair_type)
-    val_csv_path = _get_valid_csv_path(val_csv_path, "val", dataset_pair_type)
+    train_csv_path = get_valid_csv_path_for_finetuning(train_csv_path, "train", dataset_pair_type)
+    val_csv_path = get_valid_csv_path_for_finetuning(val_csv_path, "val", dataset_pair_type)
 
     model_save_path = get_output_path(
         "finetune_paired_dataset",
@@ -159,7 +67,7 @@ def main(
     template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
 
     # initialize model for finetuning
-    model = _initialize_diffae_model_for_finetuning(
+    model = initialize_diffae_model_for_finetuning(
         template_finetune_config=template_finetune_config,
         model_name=model_name,
         dataset_pair_type=dataset_pair_type,
@@ -189,4 +97,6 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

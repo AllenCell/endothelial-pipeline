@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-import fire
 import numpy as np
 import pandas as pd
 import tqdm
@@ -152,4 +151,6 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
