@@ -30,22 +30,29 @@ def _initialize_diffae_model_for_finetuning(
 
     Parameters
     ----------
-    model_name: str
+    template_finetune_config
+        The template configuration for finetuning the DiffAE model.
+    model_name
         The name of the model to train.
-    dataset_pair_type: Literal["live_fixed", "20x_40x"]
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-    train_csv_path: Path | None
+    dataset_pair_type
+        The type of dataset to use for finetuning ("live_fixed" or "20X_40X").
+        This should match the input used during the `paired_data_validation` step.
+    train_csv_path
         The path to the training dataset CSV file. If None, the default path
         for the output of generate_csv_for_training_diffae will be used.
-    val_csv_path: Path | None
+    val_csv_path
         The path to the validation dataset CSV file. If None, the default path
         for the output of generate_csv_for_training_diffae will be used.
-    model_save_path: Path
+    model_save_path
         The path to the directory where the checkpoints and logs will be saved.
-    diffae_ckpt_path: Path
+    diffae_ckpt_path
         The path to the DiffAE checkpoint to finetune. This should be a path
         to the checkpoint downloaded from MLflow artifacts.
+
+    Returns
+    -------
+    model
+        An initialized CytoDLModel for finetuning the DiffAE model.
     """
     # generate overrides for train.yaml for finetuning
     overrides = generate_overrides_for_finetuning(

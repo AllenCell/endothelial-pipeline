@@ -9,7 +9,8 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     Parameters
     ----------
     dataset_names
-        Names of the datasets to analyze. If not provided, defaults to a predefined list of datasets.
+        Names of the datasets to analyze. If not provided, defaults to a predefined
+        list of datasets.
     model_name
         Name of the model to load from model_config.yaml.
         Analysis will be performed on the model manifest datasets for this model.

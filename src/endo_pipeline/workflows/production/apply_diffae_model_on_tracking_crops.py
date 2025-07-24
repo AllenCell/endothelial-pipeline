@@ -1,7 +1,7 @@
-TAGS = ["apply_model", "production"]
-
 # need to import for type hinting
 from pathlib import Path
+
+TAGS = ["apply_model", "production"]
 
 
 def main(

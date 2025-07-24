@@ -76,7 +76,7 @@ def _align_and_save_paired_images(
     alignment_method = "sift" if dataset_pair_type == "live_fixed" else "template"
 
     df = []
-    for fixed, moving in zip(fixed_datasets, moving_datasets):
+    for fixed, moving in zip(fixed_datasets, moving_datasets, strict=False):
         df.append(
             align_all_positions(
                 fixed,
@@ -109,21 +109,26 @@ def _concat_and_save_aligned_image_pairs(row: pd.Series, savedir: Path) -> Path:
 def main(
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
     split: bool = True,
-):
+) -> None:
     """
-    Utility function for generating a dataset of paired, aligned,
-    brightfield images for finetuning a DiffAE model.
+    Generate a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
 
     Parameters
     ----------
-    dataset_pair_type: Literal['live_fixed', '20x_40x']
+    dataset_pair_type
         Whether paired dataset is aligned live/fixed or 20x/40x. This will
         determine the directory structure to search for aligned image pairs.
-    split: bool
+    split
         If True, the dataset will be split into training and validation sets.
         The split will be saved as `train.csv` and `val.csv`. If False, the
         entire dataset will be saved as `dataset.csv`, and no split will be performed.
         Note that in this case the split must be performed manually before training.
+
+    Returns
+    -------
+    None
+        Saves the dataset as a CSV file in the output directory.
+        The images will be saved as multi-channel TIFF files in the same directory.
     """
     save_path = get_output_path(
         "finetune_paired_dataset", dataset_pair_type, include_timestamp=False

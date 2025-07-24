@@ -8,7 +8,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     Parameters
     ----------
-    config_name
+    dynamics_config_name
         Name of the configuration to load from dynamics_config.yaml.
         Default is "default".
     model_name
