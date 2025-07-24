@@ -24,10 +24,12 @@ def main(
         This should match the input used for `generate_csv_for_finetuning_diffae`.
     train_csv_path
         The path to the training CSV file containing paired data, defaults to None.
-        If None, the default path for the output of `generate_csv_for_finetuning_diffae` will be used.
+        If None, the default path for the output of `generate_csv_for_finetuning_diffae`
+        will be used.
     val_csv_path: Path | None
         The path to the validation CSV file containing paired data, defaults to None.
-        If None, the default path for the output of `generate_csv_for_finetuning_diffae` will be used.
+        If None, the default path for the output of `generate_csv_for_finetuning_diffae`
+        will be used.
 
     Returns
     -------

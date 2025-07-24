@@ -27,9 +27,9 @@ from .sde_model_analysis import (
 from .sde_model_fitting import build_diff_lib, build_drift_lib, load_sde_model, save_sde_model
 
 __all__ = [
-    "build_kramers_moyal_train_test",
     "build_diff_lib",
     "build_drift_lib",
+    "build_kramers_moyal_train_test",
     "compute_extrapolated_vector_field",
     "convert_coordinates_from_pc_to_latent",
     "convert_coordinates_from_volume_to_pc",

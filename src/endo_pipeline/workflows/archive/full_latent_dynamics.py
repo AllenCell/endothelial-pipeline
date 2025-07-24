@@ -1,5 +1,3 @@
-TAGS = ["archive"]
-
 import fire
 
 from src.endo_pipeline.configs import (

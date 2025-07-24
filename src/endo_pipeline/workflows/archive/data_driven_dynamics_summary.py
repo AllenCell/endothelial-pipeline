@@ -1,5 +1,3 @@
-TAGS = ["archive"]
-
 from collections.abc import Callable
 from pathlib import Path
 

@@ -27,7 +27,7 @@ __all__ = [
     "get_pc_column_names",
     "get_timepoints_for_plotting_pcs",
     "get_traj_and_diff",
-    "split_dataset_by_flow",
     "get_valid_subset",
     "project_manifest_to_pcs",
+    "split_dataset_by_flow",
 ]

@@ -147,7 +147,7 @@ def make_sample_type_objective_microscope_collection(
             dataset_collection_names.append(dataset_config.name)
     dataset_collection = DatasetCollectionConfig(
         name=f"{sample_type}_{objective}_objective_{microscope}_microscope",
-        description=f"Collection of {sample_type} datasets with {objective} objective from the {microscope} microscope.",
+        description=f"Collection of {sample_type} datasets with {objective} objective from the {microscope} microscope.",  # noqa: E501
         datasets=dataset_collection_names,
     )
 
@@ -170,17 +170,15 @@ def validate_3d_flow_field_dataset_collection() -> None:
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.flow_conditions) != 1:
             logger.error(
-                "Dataset [ %s ] in collection [ 3d_flow_field_analysis ] has multiple flow conditions.",
+                "Dataset [ %s ] in [ 3d_flow_field_analysis ] has multiple flow conditions.",
                 dataset_name,
             )
-            raise ValueError(
-                f"Dataset [ {dataset_name} ] must have exactly one flow condition for 3D flow field analysis."
-            )
+            raise ValueError(f"Dataset [ {dataset_name} ] has more than one flow condition.")
 
     for pca_dataset_name in pca_reference_datasets:
         if pca_dataset_name not in analysis_datasets:
             logger.error(
-                "Dataset [ %s ] used for fitting PCA is not in the 3d_flow_field_analysis collection.",
+                "Dataset [ %s ] used for fitting PCA is not in the collection.",
                 dataset_name,
             )
             raise ValueError(

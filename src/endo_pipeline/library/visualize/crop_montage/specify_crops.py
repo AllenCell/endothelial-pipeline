@@ -42,7 +42,7 @@ def load_data(
 
     Parameters
     ----------
-    dataset_names : str | None
+    dataset_name : str | None
         Name of the dataset(s) to include.
         If None, loads all available timelapse datasets.
 

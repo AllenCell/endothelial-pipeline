@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal, Sequence
+from typing import Any, Literal
 
 import cv2
 import matplotlib.pyplot as plt
@@ -37,6 +38,8 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
         The input image.
     keypoints : np.ndarray
         The coordinates of the detected keypoints.
+    savepath : str
+        The path where the visualization will be saved.
     """
     import matplotlib.pyplot as plt
 
@@ -87,7 +90,8 @@ def template_matching(
         or downsampled_image.shape[1] < downsampled_template.shape[1]
     ):
         raise ValueError(
-            f"Fixed image is smaller than moving image. Resized fixed shape: {downsampled_image.shape}, moving shape: {downsampled_template.shape}"
+            "Fixed image is smaller than moving image. Resized fixed shape:",
+            f"{downsampled_image.shape}, moving shape: {downsampled_template.shape}",
         )
     # Perform template matching
     result = cv2.matchTemplate(downsampled_image, downsampled_template, cv2.TM_CCOEFF_NORMED)
@@ -115,7 +119,8 @@ def template_registration(
     scale : int
         The scale factor for downsampling the images before registration.
     template_shape : tuple
-        The shape of the template used for registration. If None, the shape of the moving image will be used.
+        The shape of the template used for registration.
+        If None, the shape of the moving image will be used.
     """
     template_shape = template_shape or image_moving.shape[-2:]
     splitter = SlidingWindowSplitter(patch_size=template_shape, overlap=0.1, pad_mode=None)
@@ -186,8 +191,8 @@ def sift_registration(
         Max distance for RANSAC inliers. Adjust based on image resolution/expected error.
     max_trials : int
         Maximum RANSAC iterations.
-    visualize_keypoints : bool
-        Whether to visualize the detected keypoints.
+    visualize_keypoints_dir : bool
+        Directory to save visualizations of keypoints. If None, no visualizations are saved.
     """
     image_fixed = sift_preprocess(image_fixed)
     image_moving = sift_preprocess(image_moving)
@@ -223,7 +228,8 @@ def sift_registration(
 
         if model_robust is None or sum(inliers) < 1:
             print(
-                f"RANSAC failed to find a robust model. Inliers: {sum(inliers) if inliers is not None else 0}"
+                "RANSAC failed to find a robust model.",
+                f"Inliers: {sum(inliers) if inliers is not None else 0}",
             )
             return None
 
@@ -250,6 +256,15 @@ def warp(
     ----------
     model
         The transformation model.
+    image_fixed
+        The fixed image to which the moving image will be aligned.
+    image_moving
+        The moving image to be warped.
+
+    Returns
+    -------
+    np.ndarray
+        The warped moving image aligned to the fixed image.
     """
     print("Warping image...")
     warp_transform = partial(
@@ -281,7 +296,8 @@ def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[floa
     resize_factor
         The factor by which to resize the moving image.
 
-    Returns:
+    Returns
+    -------
     np.ndarray
         Resized moving image.
     """
@@ -308,9 +324,7 @@ def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, n
 
 
 def overlay_normalize(img: np.ndarray) -> np.ndarray:
-    """
-    Project and normalize the image for overlay visualization.
-    """
+    """Project and normalize the image for overlay visualization."""
     proj = img.max(0)
     proj = np.clip(proj, np.percentile(proj, 10), np.percentile(proj, 99))
     proj = rescale_intensity(proj, out_range="uint8")
@@ -318,9 +332,7 @@ def overlay_normalize(img: np.ndarray) -> np.ndarray:
 
 
 def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) -> None:
-    """
-    Save overlay of aligned moving and fixed fluorescent images.
-    """
+    """Save overlay of aligned moving and fixed fluorescent images."""
     moving_proj = overlay_normalize(moving)
     fixed_proj = overlay_normalize(fixed)
     overlay = np.stack([moving_proj, fixed_proj, fixed_proj], axis=-1)
@@ -328,22 +340,6 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
     plt.axis("off")
     plt.savefig(savepath, dpi=300)
     plt.close()
-
-
-def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Remove NaN values present in the XY border of either of the passed images. It is assumed that
-    the XY locations of the NaN values are the same across all Z slices if the images are 3D.
-    """
-    slices_to_check = [crop1[0], crop2[0]] if len(crop1.shape) == 3 else [crop1, crop2]
-    valid_mask = ~np.isnan(np.stack(slices_to_check, axis=0)).any(axis=0)
-    overlap = np.where(valid_mask)
-    y_start, y_end = overlap[0].min(), overlap[0].max()
-    x_start, x_end = overlap[1].min(), overlap[1].max()
-    return (
-        crop1[..., y_start:y_end, x_start:x_end],
-        crop2[..., y_start:y_end, x_start:x_end],
-    )
 
 
 def align(
@@ -366,15 +362,16 @@ def align(
     savedir
         Directory to save the aligned images.
     alignment_method
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x
-        pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
+        The method used for alignment. Options are "sift" or "template". "sift" is
+        recommended for the 20x pre/post fixation datasets, while "template" is
+        recommended for the 20x/40x datasets.
     align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
     **alignment_kwargs
         Additional arguments for the alignment function.
 
-    Returns:
-    --------
+    Returns
+    -------
     pd.DataFrame
         DataFrame containing the paths to the aligned images.
     """
@@ -483,8 +480,9 @@ def align_all_positions(
     savedir
         The directory where the aligned images will be saved.
     alignment_method
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the
-        20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
+        The method used for alignment. Options are "sift" or "template". "sift" is
+        recommended for the 20x pre/post fixation datasets, while "template" is
+        recommended for the 20x/40x datasets.
     align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
     **alignment_kwargs

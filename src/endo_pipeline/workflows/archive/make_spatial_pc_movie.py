@@ -26,6 +26,7 @@ BF_CHANNEL = 1
 
 
 def make_overlay(filename, feature_movie, end_y, end_x):
+    """Make an overlay of the feature movie with the brightfield and fluorescent channels."""
     img = BioImage(filename)
     img.set_resolution_level(1)
     n_t = range(feature_movie.shape[0])
@@ -43,6 +44,7 @@ def make_overlay(filename, feature_movie, end_y, end_x):
 
 @dask.delayed
 def create_frame(shape, df, feat_cols):
+    """Create a frame of spatial features from a DataFrame."""
     timepoint_movie = np.zeros(shape)
     count_movie = np.zeros(shape)
     coords = df[["start_y", "end_y", "start_x", "end_x"]].values
@@ -61,15 +63,15 @@ def get_physical_pixel_sizes(filename):
     return im.physical_pixel_sizes
 
 
-def get_segmentation_path_at_T(dataset_name: str, position: int, timepoint: int) -> Path:
+def get_segmentation_path_at_frame(dataset_name: str, position: int, timepoint: int) -> Path:
     """
     Temporary helper function to extract timepoints based on local
     path until segmentation paths are in data manifest.
     """
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
-    seg_path = [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint][
-        0
-    ]
+    seg_path = next(
+        [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint]
+    )
     return seg_path
 
 
@@ -90,7 +92,7 @@ def _get_per_cell_features(
         (len(feat_cols), movie_shape_y, movie_shape_x), data, feat_cols
     ).compute()
 
-    segmentation_path = get_segmentation_path_at_T(dataset_name, position[1:], timepoint)
+    segmentation_path = get_segmentation_path_at_frame(dataset_name, position[1:], timepoint)
 
     # TODO set resolution to 1 once segmentations are zarrs
     segmentation = BioImage(segmentation_path).get_image_dask_data("YX").compute()
@@ -368,6 +370,7 @@ def main(
     pca_dir: str | None = None,
     overrides: dict[str, Any] | None = None,
 ) -> None:
+    """Make a spatial feature movie and measure per-cell features."""
     generate_spatial_feature_movie(
         model_name=model_name,
         dataset_name=dataset_name,
