@@ -16,8 +16,11 @@ from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
 from tqdm import tqdm, trange
 
-from src.endo_pipeline.configs import get_datasets_in_collection
-from src.endo_pipeline.configs.dataset_io import get_zarr_path
+from src.endo_pipeline.configs import (
+    get_available_zarr_files,
+    get_datasets_in_collection,
+    load_dataset_config,
+)
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
@@ -26,7 +29,7 @@ BF_CHANNEL = 1
 
 def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str) -> None:
     """
-    Visualizes the detected keypoints on the image.
+    Visualize the detected keypoints on the image.
 
     Parameters
     ----------
@@ -46,11 +49,14 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
 
 def sift_preprocess(img: np.ndarray) -> np.ndarray:
     """
-    Preprocess the image for SIFT feature detection with percentile clipping and 0-1 normalization
+    Preprocess the image for SIFT feature detection with percentile clipping
+    and 0-1 normalization.
+
     Parameters
     ----------
     img : np.ndarray
         The input image.
+
     Returns
     -------
     img : np.ndarray
@@ -65,7 +71,8 @@ def template_matching(
     image: np.ndarray, template: np.ndarray, scale: int = 3
 ) -> tuple[np.ndarray, float]:
     """
-    Register a small moving image to a larger fixed image using a multi-scale sliding window correlation. NOTE that the moving image is assumed to be smaller than the fixed image.
+    Register a small moving image to a larger fixed image using a multi-scale sliding
+    window correlation. Note that the moving image is assumed to be smaller than the fixed image.
     """
     # Resize image to current scale
     downsampled_image = block_reduce(image, (scale, scale), np.max)
@@ -97,7 +104,8 @@ def template_registration(
     template_shape: None | Sequence[int] = None,
 ) -> tf.SimilarityTransform:
     """
-    Registers a moving image to a fixed image using template matching
+    Register a moving image to a fixed image using template matching.
+
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -131,7 +139,8 @@ def _get_sift(
     image: np.ndarray, upsampling: int = 1, sigma_min: int = 2
 ) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
     """
-    Detects SIFT keypoints and descriptors in the given image.
+    Detect SIFT keypoints and descriptors in the given image.
+
     Parameters
     ----------
     image : np.ndarray
@@ -140,6 +149,7 @@ def _get_sift(
         The number of times to upsample the image before detecting keypoints.
     sigma_min : int
         The minimum standard deviation for Gaussian smoothing.
+
     Returns
     -------
     keypoints : np.ndarray
@@ -161,7 +171,9 @@ def sift_registration(
     visualize_keypoints_dir: str | None = None,
 ) -> tf.SimilarityTransform | None:
     """
-    Registers a moving image to a fixed image using SIFT keypoint matching and RANSAC. Returns a similarity transform if successful, otherwise None.
+    Register a moving image to a fixed image using SIFT keypoint matching and RANSAC.
+    Return a similarity transform if successful, otherwise None.
+
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -232,10 +244,12 @@ def warp(
     model: tf.ProjectiveTransform, image_fixed: np.ndarray, image_moving: np.ndarray
 ) -> np.ndarray:
     """
-    Warps the moving image to align with the fixed image using the provided transformation model.
+    Warp the moving image to align with the fixed image using the provided transformation model.
+
     Parameters
     ----------
-    model (skimage.transform.SimilarityTransform): The transformation model.
+    model
+        The transformation model.
     """
     print("Warping image...")
     warp_transform = partial(
@@ -258,14 +272,18 @@ def warp(
 
 def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[float]) -> np.ndarray:
     """
-    Resizes the moving image to match the fixed image dimensions.
+    Resize the moving image to match the fixed image dimensions.
 
-    Args:
-        image_moving (np.ndarray): The moving image to be resized.
-        resize_factor (float): The factor by which to resize the moving image.
+    Parameters
+    ----------
+    image_moving
+        The moving image to be resized.
+    resize_factor
+        The factor by which to resize the moving image.
 
     Returns:
-        np.ndarray: Resized moving image.
+    np.ndarray
+        Resized moving image.
     """
     if np.all(resize_factor == 1.0):
         return image_moving
@@ -337,26 +355,28 @@ def align(
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Aligns a moving image to a fixed image using blob detection and registration.
+    Align a moving image to a fixed image using blob detection and registration.
 
     Parameters
     ----------
-    moving_image_path (str):
+    moving_image_path
         Path to the moving image.
-    fixed_image_path (str):
+    fixed_image_path
         Path to the fixed image.
-    savedir (Path):
+    savedir
         Directory to save the aligned images.
-    alignment_method (str):
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
-    align_fluo (bool):
+    alignment_method
+        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x
+        pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
+    align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    **alignment_kwargs (Dict[str, Any]):
+    **alignment_kwargs
         Additional arguments for the alignment function.
 
     Returns:
     --------
-    pd.DataFrame: DataFrame containing the paths to the aligned images.
+    pd.DataFrame
+        DataFrame containing the paths to the aligned images.
     """
     print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
     image_fixed = BioImage(fixed_image_path)
@@ -452,31 +472,31 @@ def align_all_positions(
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Aligns all positions of the moving dataset to the fixed dataset.
+    Align all positions of the moving dataset to the fixed dataset.
 
     Parameters
     ----------
-    fixed_dataset_name : str
+    fixed_dataset_name
         The name of the fixed dataset.
-    moving_dataset_name : str
+    moving_dataset_name
         The name of the moving dataset.
-    savedir : Path
+    savedir
         The directory where the aligned images will be saved.
-    alignment_method : str
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
-    align_fluo : bool
+    alignment_method
+        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the
+        20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
+    align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    **alignment_kwargs : Dict[str, Any]
+    **alignment_kwargs
         Additional arguments for the alignment function.
 
     Returns
     -------
-    pd.DataFrame
+    data
         DataFrame containing the paths to the aligned images.
     """
-    savedir.mkdir(parents=True, exist_ok=True)
-    moving_zarr_files = sorted(get_zarr_path(moving_dataset_name).values())
-    fixed_zarr_files = sorted(get_zarr_path(fixed_dataset_name).values())
+    moving_zarr_files = sorted(get_available_zarr_files(load_dataset_config(moving_dataset_name)))
+    fixed_zarr_files = sorted(get_available_zarr_files(load_dataset_config(fixed_dataset_name)))
     data = pd.concat(
         [
             align(
@@ -494,10 +514,6 @@ def align_all_positions(
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
-    """
-    Generate a path for the concatenated image based on the fixed image path.
-    The moving image path is not used in the final file name.
-    """
     return savedir / f"{str(Path(row.fixed).stem).replace('_fixed', '')}.ome.tiff"
 
 
@@ -532,13 +548,29 @@ def align_and_save_paired_images(
     dataset_pair_type: Literal["live_fixed", "20x_40x"],
     save_path: Path,
 ) -> pd.DataFrame:
+    """
+    Align and saves all paired images from the specified dataset pair type.
+
+    Parameters
+    ----------
+    dataset_pair_type
+        The type of dataset pair to align. Options are "live_fixed" for live/fixed
+        pairs and "20x_40x" for 20x/40x pairs.
+    save_path
+        The directory where the aligned images will be saved.
+
+    Returns
+    -------
+    df
+        DataFrame containing the paths to the aligned images.
+    """
+
+    dataset_pairs = _get_paired_dataset_dict(dataset_pair_type)
+
     # Note that the "fixed" key refers to the image being used as
     # the reference image for alignment, and the "moving" key
     # refers to the image being aligned to the fixed image.
     # That is, "fixed" here does not refer to the image being fixed.
-
-    dataset_pairs = _get_paired_dataset_dict(dataset_pair_type)
-
     fixed_datasets = dataset_pairs["fixed"]
     moving_datasets = dataset_pairs["moving"]
 
@@ -561,6 +593,22 @@ def align_and_save_paired_images(
 
 
 def concat_and_save_aligned_image_pairs(row: pd.Series, savedir: Path) -> Path:
+    """
+    Concatenate the aligned fixed and moving images into a single OME-TIFF file
+    and save it to the specified directory.
+
+    Parameters
+    ----------
+    row
+        A row from the DataFrame containing paths to the fixed and moving images.
+    savedir
+        The directory where the concatenated image will be saved.
+
+    Returns
+    -------
+    save_path
+        The path to the saved concatenated image.
+    """
     save_path = _get_concat_path(row, savedir)
     if save_path.exists():
         print(f"Skipping {save_path} as it already exists.")
