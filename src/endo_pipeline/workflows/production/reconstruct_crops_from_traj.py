@@ -1,4 +1,4 @@
-TAGS = ["production", "diffae_image_generation", "diffae_features"]
+TAGS = ["diffae_image_generation", "diffae_features"]
 
 
 def main(model_name: str = "diffae_04_10") -> None:

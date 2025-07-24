@@ -1,4 +1,4 @@
-TAGS = ["production", "diffae_image_generation", "pc_interpretation"]
+TAGS = ["diffae_image_generation", "pc_interpretation"]
 
 
 def main(

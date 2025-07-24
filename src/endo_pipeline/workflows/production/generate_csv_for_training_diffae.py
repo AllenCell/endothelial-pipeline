@@ -1,4 +1,4 @@
-TAGS = ["production", "diffae_model_training"]
+TAGS = ["diffae_model_training"]
 
 
 def main() -> None:

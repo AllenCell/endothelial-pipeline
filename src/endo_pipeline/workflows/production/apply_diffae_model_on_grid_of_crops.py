@@ -1,4 +1,4 @@
-TAGS = ["apply_diffae_model", "production"]
+TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(

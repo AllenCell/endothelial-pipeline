@@ -1,7 +1,7 @@
 # need to import for type hinting
 from pathlib import Path
 
-TAGS = ["apply_diffae_model", "production"]
+TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
