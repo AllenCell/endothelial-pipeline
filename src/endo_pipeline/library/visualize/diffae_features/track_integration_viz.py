@@ -388,7 +388,6 @@ def grid_vs_track_vec_angle_hist2d(
     fig, ax_hist = plt.subplots(figsize=(6, 6))
     ax_hist.set_title("Grid vs. cell-centric crop angular deviation", pad=20)
     hist2D = ax_hist.imshow(
-        # hist2D = axs[0].imshow(
         np.rad2deg(angles.squeeze()).T,
         cmap="RdBu_r",
         vmin=0,
@@ -405,6 +404,48 @@ def grid_vs_track_vec_angle_hist2d(
     ax_hist.set_xlabel("PC1")
     ax_hist.set_ylabel("PC2")
     ax_cb.set_ylabel("Angle (degrees)", rotation=270, verticalalignment="bottom")
+    plt.tight_layout()
+    if out_path is not None:
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+
+
+from matplotlib.colors import LogNorm
+
+
+def grid_vs_track_vec_dot_prod_hist2d(
+    dot_prod: np.ndarray,
+    out_path: Path | None,
+    extent: tuple[float, float, float, float] | None = None,
+) -> None:
+    """
+    Plot a 2D histogram of the dot product between
+    the grid-based and track-based DiffAE features.
+    """
+    # vmin = -1 * abs(dot_prod).max()
+    # vmax = 1 * abs(dot_prod).max()
+    vmin = dot_prod.min()
+    vmax = dot_prod.max()
+
+    fig, ax_hist = plt.subplots(figsize=(6, 6))
+    ax_hist.set_title("Grid vs. cell-centric vector dot products", pad=20)
+    hist2D = ax_hist.imshow(
+        dot_prod.squeeze().T,
+        cmap="RdBu_r",
+        vmin=vmin,
+        vmax=vmax,
+        # norm=LogNorm(vmin=vmin, vmax=vmax),
+        extent=extent,
+        origin="lower",
+        label="dot product",
+    )
+    divider = make_axes_locatable(ax_hist)
+    ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+    fig.add_axes(ax_cb)
+    plt.colorbar(hist2D, cax=ax_cb)
+    # ax_cb.set_yticks(range(vmin, vmax, 7))  # set ticks for angle in degrees
+    ax_hist.set_xlabel("PC1")
+    ax_hist.set_ylabel("PC2")
+    ax_cb.set_ylabel("Dot product", rotation=270, verticalalignment="bottom")
     plt.tight_layout()
     if out_path is not None:
         fig.savefig(out_path, dpi=300, bbox_inches="tight")
