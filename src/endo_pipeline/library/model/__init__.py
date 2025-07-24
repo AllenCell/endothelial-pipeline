@@ -11,6 +11,13 @@ from .diffae import (
     generate_from_coords,
     generate_from_coords_batch,
 )
+from .latent_walk_utils import (
+    get_latent_coords,
+    get_pca_coords,
+    get_walk,
+    write_pc_vals,
+    write_text,
+)
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .model_inputs import (
     generate_overrides_for_finetuning,
@@ -45,10 +52,15 @@ __all__ = [
     "get_ckpt_path",
     "get_cytodl_commit_hash",
     "get_dataset_names_used_for_training",
+    "get_latent_coords",
     "get_model_dir",
+    "get_pca_coords",
+    "get_walk",
     "load_mlflow_model",
     "load_overrides",
     "preprocess_tracking_manifest_for_model_eval",
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
+    "write_pc_vals",
+    "write_text",
 ]
