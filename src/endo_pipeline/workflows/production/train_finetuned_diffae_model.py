@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-TAGS = ["production", "diffae", "model_finetuning"]
+TAGS = ["production", "diffae_model_finetuning"]
 
 
 def main(

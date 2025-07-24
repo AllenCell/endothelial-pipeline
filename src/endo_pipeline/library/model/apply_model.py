@@ -12,7 +12,6 @@ from src.endo_pipeline.configs import (
     add_model_manifest,
     save_dataset_config,
 )
-from src.endo_pipeline.configs.dataset_io import extract_P
 from src.endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
@@ -329,7 +328,9 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
 
-    pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
+    pred_df["position"] = pred_df["filename_or_obj"].apply(
+        lambda s: Path(s).stem.split("_")[-1].split(".")[0]
+    )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path
@@ -357,7 +358,9 @@ def update_prediction_from_tracks_with_metadata(
     )
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
-    pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
+    pred_df["position"] = pred_df["filename_or_obj"].apply(
+        lambda s: Path(s).stem.split("_")[-1].split(".")[0]
+    )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
     return prediction_path

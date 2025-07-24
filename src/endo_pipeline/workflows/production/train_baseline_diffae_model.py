@@ -1,6 +1,6 @@
 from pathlib import Path
 
-TAGS = ["production", "diffae", "model_training"]
+TAGS = ["production", "diffae_model_training"]
 
 
 def main(
