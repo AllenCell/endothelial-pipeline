@@ -70,10 +70,10 @@ def main(
     else:
         logger.error(
             "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_names,
+            dataset_name,
         )
         raise ValueError(
-            f"Dataset name [ {dataset_names} ] is not a valid",
+            f"Dataset name [ {dataset_name} ] is not a valid",
             "dataset or dataset collection name.",
         )
 
