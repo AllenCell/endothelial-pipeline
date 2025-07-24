@@ -163,10 +163,10 @@ def validate_3d_flow_field_dataset_collection() -> None:
     datasets in the 'pca_reference' collection.
     """
 
-    loaded_collection = load_dataset_collection_config("3d_flow_field_analysis")
+    analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
     pca_reference_datasets = load_dataset_collection_config("pca_reference").datasets
 
-    for dataset_name in loaded_collection.datasets:
+    for dataset_name in analysis_datasets:
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.flow_conditions) != 1:
             logger.error(
@@ -176,11 +176,13 @@ def validate_3d_flow_field_dataset_collection() -> None:
             raise ValueError(
                 f"Dataset [ {dataset_name} ] must have exactly one flow condition for 3D flow field analysis."
             )
-        if dataset_name not in pca_reference_datasets:
+
+    for pca_dataset_name in pca_reference_datasets:
+        if pca_dataset_name not in analysis_datasets:
             logger.error(
-                "Dataset [ %s ] in collection [ 3d_flow_field_analysis ] is not in the PCA reference collection.",
+                "Dataset [ %s ] used for fitting PCA is not in the 3d_flow_field_analysis collection.",
                 dataset_name,
             )
             raise ValueError(
-                f"Dataset [ {dataset_name} ] must be present in the PCA reference collection for 3D flow field analysis."
+                f"Dataset [ {dataset_name} ] must be present for 3D flow field analysis."
             )
