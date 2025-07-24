@@ -341,8 +341,6 @@ def plot_grid_vs_tracks_flow_field(
     slice_indexes: tuple[np.ndarray, np.ndarray],
     ds: int = 3,
     scale: int = 30,
-    save_plot: bool = True,
-    out_path: Path | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     This function is basically a wrapper around the
@@ -374,16 +372,6 @@ def plot_grid_vs_tracks_flow_field(
         Line2D([0], [0], color="blue", lw=2, label="grid-based DiffAE features"),
     ]
     ax.legend(custom_lines, [str(x.get_label()) for x in custom_lines], loc="upper right")
-    if save_plot and out_path is not None:
-        # save_plot_to_path(
-        #     fig, out_subdir_traj,
-        #     f"{dataset_name}_quiver_slice_comparison_full",
-        # )
-        fig.savefig(
-            out_path,
-            dpi=300,
-            bbox_inches="tight",
-        )
     return fig, ax
 
 

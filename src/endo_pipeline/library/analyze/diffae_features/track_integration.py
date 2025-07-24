@@ -62,9 +62,9 @@ def merge_diffae_feats_liveseg_feats_tables(
 
     # give the crop_index column the same value as the track_ids
     # diffae_tracking_df["crop_index"] = diffae_tracking_df["track_id"]
-    diffae_tracking_df["crop_index"] = diffae_tracking_df.groupby(
-        ["position", "track_id"], as_index=False
-    ).ngroup()
+    diffae_tracking_df["crop_index"] = (
+        diffae_tracking_df.groupby(["position", "track_id"], as_index=False).ngroup().astype(int)
+    )
     diffae_tracking_df = diffae_preproc.add_description_column(
         diffae_tracking_df, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
@@ -124,6 +124,7 @@ def get_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> pd.DataFra
 def get_traj_and_flowfield(
     df: pd.DataFrame,
     bounds: Pipeline,
+    load_precomputed_trajectories: Path | None = True,
 ) -> tuple[np.ndarray, dict]:
 
     # load default config, get kernel params
@@ -167,10 +168,14 @@ def get_traj_and_flowfield(
         drift_km, centers, interpolator="nearest"
     )
 
-    # solve IVP, get back trajectory
-    print("Trying to solve ODE...")
-    traj = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
-    print("ODE solved.")
+    if load_precomputed_trajectories is not None:
+        logger.debug("Loading precomputed trajectories...")
+        traj = np.load(load_precomputed_trajectories)
+    else:
+        # solve IVP, get back trajectory
+        logger.debug("Trying to solve ODE...")
+        traj = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
+        logger.debug("ODE solved.")
 
     return traj, flow_field_dict
 
@@ -191,22 +196,103 @@ def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     return angle_rad
 
 
-## NOTE CODE FOR DEV ONLY
-dataset_name = "20241120_20X"
+def get_approx_vec_from_grid(
+    pc1_pc2_points: np.ndarray,
+    # pc1: float, pc2: float,
+    g1_grids: np.ndarray,
+    g2_grids: np.ndarray,
+    v1_grids: np.ndarray,
+    v2_grids: np.ndarray,
+    slice_indexes: np.ndarray,
+    # ) -> tuple[float, float]:
+    # ) ->  tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
 
-live_seg_feats_df = pd.read_csv(
-    r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-16\make_seg_feats_manifest\segmentation_features_manifests\20241120_20X_live_segmentation_features.tsv",
-    sep="\t",
-)
-diffae_tracking_df = pd.read_parquet(
-    r"C:\Users\serge.parent\Documents\projects\cellsmap\results\models\diffae_04_10\20241120_20X\predict_20241120_20X_diffae_04_10_tracked_crop_features.parquet"
-)
+    # create a distance mapping
+    point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    # pc1_pc2_point = np.array([pc1, pc2])
+    pc1_pc2_points = pc1_pc2_points.reshape((1, point_grids_pc1pc2.shape[-1], len(pc1_pc2_points)))
+    point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=-1)
+    dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_points, axis=1)
+    # dist_grid = dists.reshape((50, 50, dists.shape[-1]))
 
-merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
-## NOTE END OF DEV CODE
+    # get the index of the closest point
+    # min_idx = np.where(dist_grid == dist_grid.min())
+    # v1_grids_approx = v1_grids[slice_indexes].reshape((50,50))[min_idx].item()
+    # v2_grids_approx = v2_grids[slice_indexes].reshape((50,50))[min_idx].item()
+
+    min_idx = np.argmin(dists, axis=0)
+    v1_grids_approx = v1_grids[slice_indexes][min_idx]
+    v2_grids_approx = v2_grids[slice_indexes][min_idx]
+
+    # plot the distance grid
+    # plt.imshow(dist_grid.T, origin="lower")
+
+    # return v1_grids_approx, v2_grids_approx
+    return np.array(tuple(zip(v1_grids_approx.tolist(), v2_grids_approx.tolist())))
+
+
+def get_approx_point_from_grid(
+    pc1_pc2_points: np.ndarray,
+    # pc1: float, pc2: float,
+    g1_grids: np.ndarray,
+    g2_grids: np.ndarray,
+    v1_grids: np.ndarray,
+    v2_grids: np.ndarray,
+    slice_indexes: np.ndarray,
+    # ) -> tuple[float, float]:
+    # ) ->  tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
+    # pc1_pc2_point = np.array([pc1, pc2])
+    # point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    # dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_point, axis=1)
+    # dist_grid = dists.reshape((50,50))
+    # # get the index of the closest point
+    # min_idx = np.where(dist_grid == dist_grid.min())
+    # # v1_grids_approx = v1_grids[slice_indexes].reshape((50,50))[min_idx].item()
+    # # v2_grids_approx = v2_grids[slice_indexes].reshape((50,50))[min_idx].item()
+    # g1_grids_approx = g1_grids[slice_indexes].reshape((50,50))[min_idx].item()
+    # g2_grids_approx = g2_grids[slice_indexes].reshape((50,50))[min_idx].item()
+
+    # create a distance mapping
+    point_grids_pc1pc2 = np.asarray(list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes])))
+    # pc1_pc2_point = np.array([pc1, pc2])
+    pc1_pc2_points = pc1_pc2_points.reshape((1, point_grids_pc1pc2.shape[-1], len(pc1_pc2_points)))
+    point_grids_pc1pc2 = np.expand_dims(point_grids_pc1pc2, axis=-1)
+    dists = np.linalg.norm(point_grids_pc1pc2 - pc1_pc2_points, axis=1)
+    # dist_grid = dists.reshape((50, 50, dists.shape[-1]))
+
+    # get the index of the closest point
+    # min_idx = np.where(dist_grid == dist_grid.min())
+    # v1_grids_approx = v1_grids[slice_indexes].reshape((50,50))[min_idx].item()
+    # v2_grids_approx = v2_grids[slice_indexes].reshape((50,50))[min_idx].item()
+
+    min_idx = np.argmin(dists, axis=0)
+    g1_grids_approx = g1_grids[slice_indexes][min_idx]
+    g2_grids_approx = g2_grids[slice_indexes][min_idx]
+
+    # return g1_grids_approx, g2_grids_approx
+    return np.array(tuple(zip(g1_grids_approx.tolist(), g2_grids_approx.tolist())))
+
+
+# ## NOTE CODE FOR DEV ONLY
+# dataset_name = "20241120_20X"
+
+# live_seg_feats_df = pd.read_csv(
+#     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-16\make_seg_feats_manifest\segmentation_features_manifests\20241120_20X_live_segmentation_features.tsv",
+#     sep="\t",
+# )
+# diffae_tracking_df = pd.read_parquet(
+#     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\models\diffae_04_10\20241120_20X\predict_20241120_20X_diffae_04_10_tracked_crop_features.parquet"
+# )
+
+# merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
+# ## NOTE END OF DEV CODE
 
 for dataset_name in load_dataset_collection_config("pca_reference").datasets:
     logger.info(f"Processing dataset: {dataset_name}")
+
+    out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
 
     # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
@@ -221,7 +307,7 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
     pca = fit_pca()
 
     # read in the grid crop-based diffae features
-    model_name = diffae_tracking_df["model_name"].unique()[0]
+    model_name = merged_feats_df["model_name"].unique()[0]
     model_config = load_model_config(model_name)
     model_manifest = get_model_manifest(dataset_name, model_config)
     diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
@@ -242,7 +328,7 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
         "20250428_20X",
         "20250319_20X",
         "20250326_20X",
-        "20241016_20X",
+        # "20241016_20X",
     ]
     # datasets_for_bounds = load_dataset_collection_config("live_20X_objective_3i_microscope").datasets
     # datasets_for_bounds = load_dataset_collection_config("pca_reference").datasets
@@ -259,28 +345,42 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
     # This takes about 1 minute to run with
     # datasets_for_bounds = ["20241120_20X", "20250409_20X",
     # "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
+    out_subdir_traj_precomputed = (
+        Path(
+            r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-22\track_integration"
+        )
+        / dataset_name
+    )
+    # precomputed_trajectories_path = out_subdir_traj / f"{dataset_name}_traj_grids.npy"
+    precomputed_trajectories_path = out_subdir_traj_precomputed / f"{dataset_name}_traj_grids.npy"
+
     logger.debug("getting trajectory and flow field for grid-based crops...")
     traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
         df=diffae_grid_crops,
         bounds=bounds,
+        load_precomputed_trajectories=precomputed_trajectories_path,
     )
 
-    logger.debug("saving the trajectory data from the grid-based crops...")
-    out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
-    np.save(out_subdir_traj / f"{dataset_name}_traj_grids.npy", traj_grids)
+    if precomputed_trajectories_path is None:
+        logger.debug("saving the trajectory data from the grid-based crops...")
+        np.save(precomputed_trajectories_path, traj_grids)
 
     # This takes about 5 minutes to run with
     # datasets_for_bounds = ["20241120_20X", "20250409_20X",
     # "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
+    # precomputed_trajectories_path = out_subdir_traj / f"{dataset_name}_traj_tracks.npy"
+    precomputed_trajectories_path = out_subdir_traj_precomputed / f"{dataset_name}_traj_tracks.npy"
+
     logger.debug("getting trajectory and flow field for tracks-based crops...")
     traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
         df=merged_feats_df,
         bounds=bounds,
+        load_precomputed_trajectories=precomputed_trajectories_path,
     )
 
-    logger.debug("saving the trajectory data from the track-based crops...")
-    out_subdir_traj = get_output_path(Path(__file__).stem, dataset_name)
-    np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
+    if precomputed_trajectories_path is None:
+        logger.debug("saving the trajectory data from the track-based crops...")
+        np.save(precomputed_trajectories_path, traj_tracks)
 
     fig, axs = plot_quiver_slices_from_diffae_table(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
@@ -377,8 +477,15 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
         slice_indexes=slice_indexes,  # type: ignore
         ds=1,
         scale=60,
-        out_path=out_path,
     )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    # save_plot_to_path(
+    #     fig, out_subdir_traj,
+    #     f"{dataset_name}_quiver_slice_comparison_full",
+    # )
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
     # Plot the quiver slices for the grid-based and cell-centric crops
     # at the standard/default resolution:
@@ -393,17 +500,25 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
         g1_tracks,
         g2_tracks,
         slice_indexes=slice_indexes,  # type: ignore
-        out_path=out_path,
     )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    # save_plot_to_path(
+    #     fig, out_subdir_traj,
+    #     f"{dataset_name}_quiver_slice_comparison_full",
+    # )
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
     # Plot the angular deviation between the grid and cell-centric crop-based
     # flow field vectors:
     out_path = out_subdir_traj / f"{dataset_name}_vecvec_angles.png"
     grid_vs_track_vec_angle_hist2d(angles, out_path, extent=(*ax.get_xlim(), *ax.get_ylim()))
 
-    # Plot the flow fields overlaid on the PC1 vs PC2
-    # histograms to get an idea of where there is the
-    # most data exists
+    # Plot flow fields overlaid on the PC1 vs PC2
+    # histograms to get an idea of where the flow
+    # fields have the most data to work with
+    out_path = out_subdir_traj / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png"
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
         data=diffae_grid_crops,
@@ -424,10 +539,11 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
         color="black",
         # color="tab:blue",
     )
-    fig.savefig(
-        out_subdir_traj / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png", bbox_inches="tight"
-    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, bbox_inches="tight")
 
+    out_path = out_subdir_traj / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png"
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
         data=merged_feats_df,
@@ -449,11 +565,9 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
         color="black",
         # color="tab:red",
     )
-    fig.savefig(
-        out_subdir_traj / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png", bbox_inches="tight"
-    )
-
-    # NOTE VERY ROUGH WORK IN PROGRESS BELOW
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, bbox_inches="tight")
 
     # Compare the angles between grid crop PC vectors
     # and the PC vectors of a single track
@@ -461,58 +575,226 @@ for dataset_name in load_dataset_collection_config("pca_reference").datasets:
     merged_feats_df["dpc2"] = merged_feats_df.groupby("crop_index")["pc2"].diff()
     merged_feats_df["dt"] = merged_feats_df.groupby("crop_index")["time_minutes"].diff()
 
-    g1_grids.min(), g1_grids.max()  # this is pc1
-    g2_grids.min(), g2_grids.max()  # this is pc2
+    # g1_grids.min(), g1_grids.max()  # this is pc1
+    # g2_grids.min(), g2_grids.max()  # this is pc2
 
-    for nm, df in merged_feats_df.groupby(["dataset_name", "position", "track_id"]):
-        break
-
-    # plot a single track integrated into the flow field
-    # shown as dots connected by arrows to give an idea
-    # of the direction of motion of the cell through the
-    # flow field
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    plot_one_slice_quiver(
-        velocities=(v1_grids, v2_grids),
-        grid=(g1_grids, g2_grids),
-        slice_indexes=slice_indexes,
-        ax=ax,
-        color="blue",
+    get_approx_grid_bin = lambda pc1_pc2_arr: get_approx_point_from_grid(
+        # pc1_pc2_arr[0], pc1_pc2_arr[1],
+        pc1_pc2_arr,
+        g1_grids,
+        g2_grids,
+        v1_grids,
+        v2_grids,
+        slice_indexes,  # type: ignore
     )
-    ax.quiver(
-        df["pc1"].iloc[:-1],
-        df["pc2"].iloc[:-1],
-        df["dpc1"].iloc[1:],
-        df["dpc2"].iloc[1:],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.004,
-    )
-    sns.scatterplot(
-        # data=df, x="pc1", y="pc2", hue="frame_number", marker="$\circ$", palette="Spectral", ax=ax, s=50
-        data=df.query("time_hours in (time_hours.min(), time_hours.max())"),
-        x="pc1",
-        y="pc2",
-        hue="time_hours",
-        marker="x",
-        palette=["orange", "red"],
-        alpha=0.7,
-        lw=2,
-        ax=ax,
-        s=50,
-        legend=False,
+    # get_approx_grid_bin_from_df = lambda df: df.apply(lambda df_row: get_approx_grid_bin(df_row[["pc1", "pc2"]].values), axis=1)
+    get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
+        columns=[["pc1", "pc2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
     )
 
-    # find nearest PC1 and PC2 and vector in the grid-based
-    # PC-space for each PC1, PC2 combination in the tracks
-    # NOTE this could probably be vectorized similar to taking
-    # the minimum distance when solving a centroid-to-centroid
-    # tracking problem
+    get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
+        # pc1_pc2_arr[0], pc1_pc2_arr[1],
+        pc1_pc2_arr,
+        g1_grids,
+        g2_grids,
+        v1_grids,
+        v2_grids,
+        slice_indexes,  # type: ignore
+    )
+    # get_approx_grid_vec_from_df = lambda df: df.apply(lambda df_row: get_approx_grid_vec(df_row[["pc1", "pc2"]].values), axis=1)
+    get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
+        columns=[["pc1", "pc2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
+    )
+
+    # this takes FOREVER (actually about 7.5 minutes), could
+    # definitely speed it up with some clever vectorization
+    # test = []
+    # for pc1_pc2 in tqdm(merged_feats_df[["pc1", "pc2"]].values.tolist()):
+    #     test.append(get_approx_grid_bin(pc1_pc2))
+    # test = np.asarray(test)
+    groups = merged_feats_df.groupby("crop_index")
+    df = groups.get_group(name=7135)
+    # for nm, df in groups:
+    #     break
+    # merged_feats_df[["approx_bin_pc1","approx_bin_pc2"]] = np.asarray(merged_feats_df.groupby("crop_index", as_index=False).apply(lambda df: get_approx_grid_bin(df[["pc1", "pc2"]].to_numpy())).values.tolist())
+    # merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = np.asarray(merged_feats_df.groupby("crop_index", as_index=False).apply(lambda df: get_approx_grid_vec(df[["pc1", "pc2"]].to_numpy())).values.tolist())
+
+    merged_feats_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
+        merged_feats_df.groupby("crop_index", as_index=False)
+        .apply(lambda df: get_approx_grid_bin_from_df(df[["pc1", "pc2"]]))
+        .droplevel(level=0)
+    )
+    merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
+        merged_feats_df.groupby("crop_index", as_index=False)
+        .apply(lambda df: get_approx_grid_vec_from_df(df[["pc1", "pc2"]]))
+        .droplevel(level=0)
+    )
+
+    # the fast version of the angle calculation seems to in disagreement with the slow
+    # version, and sometimes even returns np.nan values unexpectedly, so I am using the
+    # slow version
+    merged_feats_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
+        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]], merged_feats_df[["dpc1", "dpc2"]]
+    )
+
+    # merged_feats_df["approx_angle_deviation_rad"] = merged_feats_df.apply(
+    #     lambda df_row: get_vector_vector_angle(
+    #         df_row[["approx_vec_pc1", "approx_vec_pc2"]].values,
+    #         df_row[["dpc1", "dpc2"]].values,
+    #     ), axis=1)  # type: ignore
+
+    merged_feats_df["track_angular_deviation_deg"] = merged_feats_df[
+        "track_angle_deviation_rad"
+    ].transform(np.rad2deg)
+
+    out_subdir_integrated_tracks = out_subdir_traj / "integrated_tracks"
+    out_subdir_integrated_tracks.mkdir(parents=True, exist_ok=True)
+
+    out_subdir_integrated_tracks_hued = out_subdir_traj / "integrated_tracks_hued"
+    out_subdir_integrated_tracks_hued.mkdir(parents=True, exist_ok=True)
+
+    groups = merged_feats_df.query("track_duration > 120").groupby(
+        ["dataset_name", "position_as_str", "crop_index"]
+    )
+    for nm, df in tqdm(groups):
+        ds_nm, pos, tid = nm
+        tid = int(tid)
+
+        # break
+        # find nearest PC1 and PC2 and vector in the grid-based
+        # PC-space for each PC1, PC2 combination in the tracks
+        # NOTE this could probably be vectorized similar to taking
+        # the minimum distance when solving a centroid-to-centroid
+        # tracking problem
+        # df[["approx_bin_pc1","approx_bin_pc2"]] = np.asarray(df.apply(lambda df_row: get_approx_grid_bin(df_row[["pc1", "pc2"]].values), axis=1).values.tolist())
+        # df[["approx_vec_pc1", "approx_vec_pc2"]] = np.asarray(df.apply(lambda df_row: get_approx_grid_vec(df_row[["pc1", "pc2"]].values), axis=1).values.tolist())
+
+        # df["approx_angle_deviation_rad"] = df.apply(
+        #     lambda df_row: get_vector_vector_angle(
+        #         df_row[["approx_vec_pc1", "approx_vec_pc2"]].values,
+        #         df_row[["dpc1", "dpc2"]].values,
+        #     ), axis=1)  # type: ignore
+        # df["track_angular_deviation_deg"] = df["track_angular_deviation_rad"].transform(np.rad2deg)
+
+        # break
+
+        # plot a single track integrated into the flow field
+        # shown as dots connected by arrows to give an idea
+        # of the direction of motion of the cell through the
+        # flow field
+        fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+        plot_one_slice_quiver(
+            velocities=(v1_grids, v2_grids),
+            grid=(g1_grids, g2_grids),
+            slice_indexes=slice_indexes,
+            # ds=1,
+            # scale=60,
+            ax=ax,
+            color="blue",
+        )
+        ax.quiver(
+            df["pc1"].iloc[:-1],
+            df["pc2"].iloc[:-1],
+            df["dpc1"].iloc[1:],
+            df["dpc2"].iloc[1:],
+            scale_units="xy",
+            angles="xy",
+            scale=1,
+            units="width",
+            width=0.004,
+        )
+        sns.scatterplot(
+            data=df.query("time_hours == time_hours.min()"),
+            x="pc1",
+            y="pc2",
+            marker="o",
+            color="red",
+            alpha=0.7,
+            lw=0,
+            ax=ax,
+            s=50,
+            legend=False,
+        )
+        sns.scatterplot(
+            data=df.query("time_hours == time_hours.max()"),
+            x="pc1",
+            y="pc2",
+            marker="x",
+            color="red",
+            alpha=0.7,
+            lw=2,
+            ax=ax,
+            s=50,
+            legend=False,
+        )
+        # sns.scatterplot(
+        #     data=df,
+        #     x="pc1",
+        #     y="pc2",
+        #     marker="o",
+        #     color="red",
+        #     alpha=0.7,
+        #     lw=0,
+        #     ax=ax,
+        #     s=50,
+        #     legend=False,
+        # )
+        ax.set_xlabel("PC1")
+        ax.set_ylabel("PC2")
+        ax.set_title(f"{ds_nm} {pos} track {tid}\nintegrated flow field")
+        fig.savefig(
+            out_subdir_integrated_tracks / f"{ds_nm}_{pos}_track_{tid}_integrated_flow_field.png",
+            dpi=200,
+            bbox_inches="tight",
+        )
+        plt.close(fig)
+
+        cmap = sns.color_palette("dark:red", as_cmap=True)
+        angle_deg_to_color = lambda a: cmap(np.abs(a) / 180.0)
+
+        fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+        plot_one_slice_quiver(
+            velocities=(v1_grids, v2_grids),
+            grid=(g1_grids, g2_grids),
+            slice_indexes=slice_indexes,
+            # ds=1,
+            # scale=60,
+            ax=ax,
+            color="black",
+        )
+        ax.quiver(
+            df["pc1"].iloc[:-1],
+            df["pc2"].iloc[:-1],
+            df["dpc1"].iloc[1:],
+            df["dpc2"].iloc[1:],
+            scale_units="xy",
+            angles="xy",
+            scale=1,
+            units="width",
+            width=0.005,
+            alpha=1,
+            color=angle_deg_to_color(df["track_angular_deviation_deg"].iloc[1:]),
+        )
+        ax.set_xlabel("PC1")
+        ax.set_ylabel("PC2")
+        ax.set_title(f"{ds_nm} {pos} track {tid}\nintegrated flow field")
+        fig.savefig(
+            out_subdir_integrated_tracks_hued
+            / f"{ds_nm}_{pos}_track_{tid}_integrated_flow_field.png",
+            dpi=200,
+            bbox_inches="tight",
+        )
+        plt.close(fig)
 
 
-from scipy.stats import bootstrap
+#         df[["pc1", "pc2"]]
+#         df[["approx_bin_pc1", "approx_bin_pc2"]]
+#         df[["approx_vec_pc1", "approx_vec_pc2"]]
 
-rng = np.random.default_rng()
-res = bootstrap(data, np.std, confidence_level=0.9, rng=rng)
+
+# NOTE VERY ROUGH WORK IN PROGRESS BELOW
+
+# from scipy.stats import bootstrap
+
+# rng = np.random.default_rng()
+# res = bootstrap(data, np.std, confidence_level=0.9, rng=rng)
