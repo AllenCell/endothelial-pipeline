@@ -7,9 +7,11 @@ import pandas as pd
 from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field as ddff
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
 from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from src.endo_pipeline.library.analyze.numerics.binning import get_bins
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 
 logger = logging.getLogger(__name__)
@@ -223,7 +225,7 @@ def get_traj_and_flowfield(
     init = np.array([-0.1, -0.7, -0.1])
 
     num_bins = [50, 50, 50]
-    bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
+    bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
@@ -235,7 +237,7 @@ def get_traj_and_flowfield(
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = rh.get_kramers_moyal(
+    drift_km, diff_km = get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 

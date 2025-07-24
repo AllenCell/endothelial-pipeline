@@ -8,10 +8,10 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from tqdm import tqdm
 
-from src.endo_pipeline.library.analyze.diffae_features.regression_helper import get_bins
 from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
     get_coarse_grained_trajectory_heatmap_data,
 )
+from src.endo_pipeline.library.analyze.numerics.binning import get_bins
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_quiver_slices,
@@ -396,7 +396,9 @@ def make_all_plots(
         # only overlay every 10th track id if there are a lot
         # of tracks to save time + space
         track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
-        for tid in tqdm(track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}"):
+        for tid in tqdm(
+            track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}", leave=False
+        ):
             # make the plots
             plot_measured_feat_overlay_on_flowfield(
                 out_subdir_indiv_pos,
