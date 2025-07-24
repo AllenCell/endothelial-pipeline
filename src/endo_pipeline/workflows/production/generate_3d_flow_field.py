@@ -63,17 +63,17 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
-        dataset_names = get_datasets_in_collection(dataset_names)
+        dataset_names = get_datasets_in_collection(dataset_name)
     elif dataset_name in get_available_dataset_names():
         # if it is a single dataset name, keep it as is
         dataset_names = [dataset_name]
     else:
         logger.error(
             "Dataset name [ %s ] is not a valid dataset or dataset collection name",
-            dataset_names,
+            dataset_name,
         )
         raise ValueError(
-            f"Dataset name [ {dataset_names} ] is not a valid",
+            f"Dataset name [ {dataset_name} ] is not a valid",
             "dataset or dataset collection name.",
         )
     pca = fit_pca(model_name=model_name)
