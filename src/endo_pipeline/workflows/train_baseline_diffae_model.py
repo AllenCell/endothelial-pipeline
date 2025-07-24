@@ -6,11 +6,12 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import CytoDLModelConfig, get_config_dir, save_model_config
+from src.endo_pipeline.configs import CytoDLModelConfig, save_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model import (
     generate_overrides_for_model_training,
     get_dataset_names_used_for_training,
+    get_model_dir,
 )
 
 
@@ -115,7 +116,7 @@ def main(
     val_csv_path = _get_valid_csv_path(val_csv_path, "val")
 
     # load training config
-    training_config = OmegaConf.load(get_config_dir() / "train_diffae.yaml")
+    training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
     # set model name via timestamp and crop size
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")

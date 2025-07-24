@@ -1,4 +1,3 @@
-from .config_io import get_config_dir
 from .dataset_config import DatasetCollectionConfig, DatasetConfig, FlowCondition, ValidTimepoints
 from .dataset_config_io import (
     get_available_dataset_collection_names,
