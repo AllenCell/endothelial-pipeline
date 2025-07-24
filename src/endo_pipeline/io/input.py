@@ -7,6 +7,8 @@ import dask
 import pandas as pd
 from bioio import BioImage
 
+from src.endo_pipeline.configs import DataframeLocation
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,9 +73,9 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_local_path_as_dataframe(path: Path) -> pd.DataFrame:
+def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     """
-    Load local path as a Pandas dataframe.
+    Load dataframe from path.
 
     Currently supports files ending in .csv, .parquet, and .tsv.
 
@@ -108,7 +110,7 @@ def load_local_path_as_dataframe(path: Path) -> pd.DataFrame:
 
 def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     """
-    Load dataframe from FMS by file id.
+    Load dataframe from FMS by file ID.
 
     This method requires the workflow to be run on the AICS intranet and have
     the optional dependency `aicsfiles` installed.
@@ -116,7 +118,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     Parameters
     ----------
     fmsid
-        FMS file id.
+        FMS file ID.
 
     Returns
     -------
@@ -149,4 +151,63 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     local_fms_path = "//allen/programs/allencell/data/proj0/"
     local_path = Path(record[0].path.replace(fms_bucket_name, local_fms_path))
 
-    return load_local_path_as_dataframe(local_path)
+    return load_dataframe_from_path(local_path)
+
+
+def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
+    """
+    Load dataframe from S3 by object URI.
+
+    Parameters
+    ----------
+    s3uri
+        S3 object URI.
+
+    Returns
+    -------
+    :
+        Object loaded as dataframe.
+    """
+
+    logger.error("Unable to load [ %s ]", s3uri)
+    raise NotImplementedError("Loading dataframes from S3 is not currently available.")
+
+
+def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
+    """
+    Load dataframe from location, defaulting to FMS.
+
+    ======  ======  ====================================================
+    FMS ID  S3 URL  Loading Behavior
+    ======  ======  ====================================================
+    NO      NO      raises exception
+    YES     NO      load from FMS only
+    NO      YES     load from S3 only
+    YES     YES     load from FMS first, then load from S3 if that fails
+    ======  ======  ====================================================
+
+    Note that the default behavior may change to load from S3 first. While not
+    recommended, if you want to ensure that dataframes are only loaded from a
+    specific location, use `load_dataframe_from_s3` or `load_dataframe_from_fms`
+    instead.
+
+    Parameters
+    ----------
+    location
+        Dataframe location object.
+    """
+
+    if location.fmsid is not None:
+        try:
+            return load_dataframe_from_fms(location.fmsid)
+        except Exception:
+            if location.s3uri is not None:
+                return load_dataframe_from_s3(location.s3uri)
+            else:
+                raise
+
+    if location.s3uri is not None:
+        return load_dataframe_from_s3(location.s3uri)
+
+    logger.error("Location does not have an FMS ID or S3 URI.")
+    raise FileNotFoundError("Unable to load manifest; no available locations.")
