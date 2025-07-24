@@ -204,9 +204,11 @@ def get_and_analyze_ddff(
 
     np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
 
-    # generate plot of stable fixed points
-    # for low, high, and 12dyn datasets
-    flow_field_viz.plot_stable_fixed_points_together(fig_savedir, output_savedir)
+    # generate plot of stable fixed points from different datasets
+    # overlaid on top of each other
+    # (for comparison of stable fixed points across conditions)
+    list_of_datasets = [model_manifest.dataset_name for model_manifest in model_manifest_list]
+    flow_field_viz.plot_stable_fixed_points_together(list_of_datasets, fig_savedir, output_savedir)
 
 
 def compute_extrapolated_vector_field(

@@ -331,7 +331,9 @@ def plot_flow_field_slices(
     return fig, ax
 
 
-def plot_stable_fixed_points_together(fig_savedir: Path, output_savedir: Path) -> None:
+def plot_stable_fixed_points_together(
+    list_of_datasets: list[str], fig_savedir: Path, output_savedir: Path
+) -> None:
     """
     Generate plot of fixed points of the low,
     high, and intermediate (12dyn) shear stress conditions
@@ -339,16 +341,6 @@ def plot_stable_fixed_points_together(fig_savedir: Path, output_savedir: Path) -
     """
 
     traj_dict = np.load(output_savedir / "traj_dict.npy", allow_pickle=True).item()
-
-    # hard coded list of datasets
-    # this is for the purposes of generating
-    # the plot for the SAC slides
-    # Can work to generalize this later
-    list_of_datasets = [
-        "20250409_20X",
-        "20241120_20X",
-        "20250319_20X",
-    ]
 
     conditions = get_dataset_descriptions(list_of_datasets, simple=True)
 
