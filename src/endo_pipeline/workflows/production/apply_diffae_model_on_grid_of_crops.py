@@ -63,7 +63,7 @@ def main(
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
-        dataset_names = get_datasets_in_collection(dataset_names)
+        dataset_names = get_datasets_in_collection(dataset_name)
     elif dataset_name in get_available_dataset_names():
         # if it is a single dataset name, keep it as is
         dataset_names = [dataset_name]
