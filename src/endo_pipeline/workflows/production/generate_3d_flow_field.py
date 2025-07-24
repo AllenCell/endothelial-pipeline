@@ -1,7 +1,7 @@
 TAGS = ["dynamical_systems", "diffae_features"]
 
 
-def main(dataset_name: str | None = None, model_name: str = "diffae_04_10") -> None:
+def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae_04_10") -> None:
     """
     Visualize 3D (drift) flow fields for the dynamics of the crop-based DiffAE
     features for each of the single flow datasets.
@@ -9,10 +9,10 @@ def main(dataset_name: str | None = None, model_name: str = "diffae_04_10") -> N
     Parameters
     ----------
     dataset_name
-        Dataset(s) to apply the model to, default is None.
+        Dataset(s) to apply the model to.
         It should either be a single dataset name or the name of a dataset collection.
-        If None, the list of datasets from the "live_20X_objective_3i_microscope"
-        dataset collection will be used.
+        Default is "3d_flow_field_analysis", which is a collection of live, timelapse,
+        20X objective, 3i microscope datasets with single flow conditions for each dataset.
     model_name
         Name of the model to load from configs/models/.
         Analysis will be performed on the model manifest datasets for this model.
@@ -61,13 +61,7 @@ def main(dataset_name: str | None = None, model_name: str = "diffae_04_10") -> N
     )
 
     # check if input is a dataset collection or a single dataset name
-    if dataset_name is None:
-        dataset_names = get_datasets_in_collection("live_20X_objective_3i_microscope")
-        # remove paired datasets
-        for j, name in enumerate(dataset_names):
-            if "paired" in name:
-                dataset_names.pop(j)
-    elif dataset_name in get_available_dataset_collection_names():
+    if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
         dataset_names = get_datasets_in_collection(dataset_names)
     elif dataset_name in get_available_dataset_names():

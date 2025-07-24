@@ -10,6 +10,8 @@ from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
     load_all_dataset_configs,
+    load_dataset_collection_config,
+    load_dataset_config,
 )
 
 logger = logging.getLogger(__name__)
@@ -150,3 +152,35 @@ def make_sample_type_objective_microscope_collection(
     )
 
     return dataset_collection
+
+
+def validate_3d_flow_field_dataset_collection() -> None:
+    """
+    Validate dataset collection used as default for generate_3d_flow_field.
+
+    Validation checks that each dataset in the collection is from an experiment
+    with a single flow condition, and that the collection contains each of the
+    datasets in the 'pca_reference' collection.
+    """
+
+    loaded_collection = load_dataset_collection_config("3d_flow_field_analysis")
+    pca_reference_datasets = load_dataset_collection_config("pca_reference").datasets
+
+    for dataset_name in loaded_collection.datasets:
+        dataset_config = load_dataset_config(dataset_name)
+        if len(dataset_config.flow_conditions) != 1:
+            logger.error(
+                "Dataset [ %s ] in collection [ 3d_flow_field_analysis ] has multiple flow conditions.",
+                dataset_name,
+            )
+            raise ValueError(
+                f"Dataset [ {dataset_name} ] must have exactly one flow condition for 3D flow field analysis."
+            )
+        if dataset_name not in pca_reference_datasets:
+            logger.error(
+                "Dataset [ %s ] in collection [ 3d_flow_field_analysis ] is not in the PCA reference collection.",
+                dataset_name,
+            )
+            raise ValueError(
+                f"Dataset [ {dataset_name} ] must be present in the PCA reference collection for 3D flow field analysis."
+            )
