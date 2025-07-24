@@ -894,7 +894,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
                 g1_grids=g1_grids,
                 g2_grids=g2_grids,
                 slice_indexes=slice_indexes,  # type: ignore
-                out_path=out_subdir,
+                out_subdir=out_subdir,
             )
 
 
