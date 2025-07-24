@@ -1,27 +1,8 @@
-# MODIFIED FROM https://github.com/AllenCellModeling/cyto-dl/blob/08c6aadb5da54ef7d186d82b71bf8473c5e0e814/cyto_dl/callbacks/latent_walk_diffae.py#L16
-from pathlib import Path
-
-import pandas as pd
-from bioio.writers import OmeTiffWriter
-
-from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
-    fit_pca,
-    get_feature_column_names,
-    get_manifest_for_dynamics_workflows,
-    get_pc_column_names,
-)
-from src.endo_pipeline.library.model import (
-    generate_from_coords,
-    get_latent_coords,
-    get_pca_coords,
-    write_pc_vals,
-)
+TAGS = ["production", "image_generation", "pc_interpretation"]
 
 
 def main(
-    model_name: str,
+    model_name: str = "diffae_04_10",
     num_pcs: int = 3,
     sigma: float = 3.0,
     n_steps: int = 10,
@@ -41,27 +22,53 @@ def main(
 
     Parameters
     ----------
-    model_name: str
+    model_name
         Name of the model to use for generating the latent walk.
-    num_pcs: int, optional
+        Default is "diffae_04_10".
+    num_pcs
         Number of principal components to use for the
         latent walk. Default is 3.
-    sigma: float, optional
+    sigma
         Number of standard deviations from the mean to traverse
-        for the latent walk. Default is 3.0. If passing `sigma=None`,
-        the min and max of the range are used as endpoints for the walk.
-    n_steps: int, optional
+        for the latent walk. Default is 3.0.
+    n_steps
         Number of steps in the latent walk. Default is 10.
-    use_pcs: bool, optional
+    use_pcs
         Whether to use PCA for generating the latent walk.
         If False, the raw latent dimensions are used. Default is True.
-    show_coords: bool, optional
+    show_coords
         Whether to show the dimension value to generate a
         given image. Default is True.
-    n_noise_samples: int, optional
+    n_noise_samples
         Number of noise samples to use for generating images.
         Default is 1.
+
+    Returns
+    -------
+    None
+        Saves the latent walk images to the output directory.
+        The images are saved as a multi-channel TIFF file.
     """
+    from pathlib import Path
+
+    import pandas as pd
+    from bioio.writers import OmeTiffWriter
+
+    from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.analyze.diffae_manifest import (
+        fit_pca,
+        get_feature_column_names,
+        get_manifest_for_dynamics_workflows,
+        get_pc_column_names,
+    )
+    from src.endo_pipeline.library.model import (
+        generate_from_coords,
+        get_latent_coords,
+        get_pca_coords,
+        write_pc_vals,
+    )
+
     # set up output directory
     save_dir = get_output_path("models", model_name, include_timestamp=False)
 
@@ -109,4 +116,6 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
