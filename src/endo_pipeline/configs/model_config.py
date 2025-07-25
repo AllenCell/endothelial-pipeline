@@ -1,4 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import field
+
+from mashumaro.config import BaseConfig
+from mashumaro.types import Discriminator
+from pydantic.dataclasses import dataclass
 
 
 @dataclass
@@ -19,6 +23,18 @@ class ModelConfig:
     name: str
     """Unique name of the model."""
 
+    class Config(BaseConfig):
+        """Settings for model config."""
+
+        forbid_extra_keys = True
+        omit_none = False
+        discriminator = Discriminator(include_subtypes=True)
+
+
+@dataclass
+class CytoDLModelConfig(ModelConfig):
+    """CytoDL model configuration for pipeline."""
+
     mlflow_run_id: str
     """MLFlow run id for model."""
 
@@ -37,3 +53,11 @@ class ModelConfig:
 
     test_manifest_fmsid: str | None = None
     """FMS ID of the test manifest dataset."""
+
+
+@dataclass
+class CellposeModelConfig(ModelConfig):
+    """Cellpose model configuration for pipeline."""
+
+    model_path: str
+    """Path to model trained model"""

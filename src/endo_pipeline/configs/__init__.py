@@ -26,7 +26,7 @@ from .dataset_config_utils import (
     make_filtered_dataset_collection,
     validate_filtered_dataset_collection,
 )
-from .model_config import ModelConfig, ModelManifest
+from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,
@@ -45,6 +45,8 @@ from .model_config_utils import (
 )
 
 __all__ = [
+    "CellposeModelConfig",
+    "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",

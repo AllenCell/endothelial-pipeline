@@ -6,7 +6,7 @@ import fire
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
-from src.endo_pipeline.configs import ModelConfig, save_model_config
+from src.endo_pipeline.configs import CytoDLModelConfig, save_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model import (
     generate_overrides_for_model_training,
@@ -143,7 +143,7 @@ def main(
         "live_20X_objective_3i_microscope",
     )
     # add run ID to model config
-    model_config = ModelConfig(
+    model_config = CytoDLModelConfig(
         name=model_name,
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
