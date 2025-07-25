@@ -1,7 +1,7 @@
 from pathlib import Path
 
+import bioio
 import pytest
-from bioio import BioImage
 
 from src.endo_pipeline.configs import (
     DatasetConfig,
@@ -47,13 +47,13 @@ def dataset():
 
 @pytest.fixture(autouse=True)
 def zarr_files(mocker):
-    zarr_p1_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p1_mock = mocker.MagicMock(spec=bioio.BioImage)
     zarr_p1_mock.channel_names = ["Channel1", "Channel2"]
 
-    zarr_p3_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p3_mock = mocker.MagicMock(spec=bioio.BioImage)
     zarr_p3_mock.channel_names = ["Channel1", "Channel2", "Channel3"]
 
-    zarr_p5_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p5_mock = mocker.MagicMock(spec=bioio.BioImage)
     zarr_p5_mock.channel_names = ["Channel1", "Channel3", "Channel4"]
 
     files = {
@@ -62,8 +62,10 @@ def zarr_files(mocker):
         Path("/path/to/zarr/dataset/dataset_P5.ome.zarr"): zarr_p5_mock,
     }
 
-    mock = mocker.patch("src.endo_pipeline.configs.dataset_config_utils.BioImage")
-    mock.side_effect = lambda arg: files[arg]
+    bioimage_mock = mocker.MagicMock()
+    bioimage_mock.side_effect = lambda arg: files[arg]
+
+    mocker.patch.object(bioio, "BioImage", bioimage_mock)
 
 
 def test_get_available_zarr_files(dataset):
