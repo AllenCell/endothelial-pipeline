@@ -254,6 +254,7 @@ def generate_overrides_for_model_eval(
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": 128,
+        "data.predict_dataloaders.batch_size": 2,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         # if limit_z_slices is True, need to point to extra column
         "data.predict_dataloaders.dataset.extra_columns": "Z" if limit_z_slices is not None else [],

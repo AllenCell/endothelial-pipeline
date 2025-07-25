@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_model_manifest(
-    dataset_name: str, model_config: CytoDLModelConfig, full_z_stack: bool = True
+    dataset_name: str, model_config: CytoDLModelConfig, z_stack_offsets: list[int] | None = None
 ) -> ModelManifest:
     """
     Get model manifest for a given dataset and model configuration.
@@ -23,6 +23,9 @@ def get_model_manifest(
     Outputs:
     - ModelManifest, containing dataset name and fmsid
     """
+    if z_stack_offsets is None:
+        z_stack_offsets = []  # Default to empty list if not provided
+
     if model_config.manifest_fmsids is None:
         logger.error("No manifests for model config %s", model_config.name)
         raise FileNotFoundError(f"No manifest fmsids found in model config {model_config.name}")
@@ -33,13 +36,16 @@ def get_model_manifest(
     for model_manifest in model_config.manifest_fmsids:
         if (
             model_manifest.dataset_name == dataset_name
-            and model_manifest.full_z_stack == full_z_stack
+            and model_manifest.z_stack_offsets == z_stack_offsets
         ):
             return model_manifest
 
     # if no manifest found, raise an error
     logger.error(
-        "No manifest found for dataset %s in model config %s", dataset_name, model_config.name
+        "No manifest found for dataset %s in model config %s with z-stack offsets %s",
+        dataset_name,
+        model_config.name,
+        z_stack_offsets,
     )
     raise FileNotFoundError(
         f"No manifest found for dataset {dataset_name} in model config {model_config.name}"
@@ -47,7 +53,10 @@ def get_model_manifest(
 
 
 def add_model_manifest(
-    model_config: CytoDLModelConfig, dataset_name: str, fmsid: str, full_z_stack: bool = True
+    model_config: CytoDLModelConfig,
+    dataset_name: str,
+    fmsid: str,
+    z_stack_offsets: list[int] | None = None,
 ) -> CytoDLModelConfig:
     """
     Add a model manifest to the model configuration.
@@ -60,6 +69,8 @@ def add_model_manifest(
     Outputs:
     - CytoDLModelConfig, updated model configuration with the new manifest added
     """
+    if z_stack_offsets is None:
+        z_stack_offsets = []  # Default to empty list if not provided
 
     if model_config.manifest_fmsids is None:
         model_config.manifest_fmsids = []
@@ -67,16 +78,18 @@ def add_model_manifest(
     # check if a manifest already exists for this dataset
     # with the same full_z_stack setting
     for manifest in model_config.manifest_fmsids:
-        if manifest.dataset_name == dataset_name and manifest.full_z_stack == full_z_stack:
+        if manifest.dataset_name == dataset_name and manifest.z_stack_offsets == z_stack_offsets:
             logger.warning(
-                "Manifest for dataset %s with full_z_stack %s already exists in model config %s.",
+                "Manifest for dataset %s with z-stack offsets %s already exists in model config %s.",
                 dataset_name,
-                full_z_stack,
+                z_stack_offsets,
                 model_config.name,
             )
 
     # create a new ModelManifest and add it to the model_config
-    new_manifest = ModelManifest(dataset_name=dataset_name, fmsid=fmsid, full_z_stack=full_z_stack)
+    new_manifest = ModelManifest(
+        dataset_name=dataset_name, fmsid=fmsid, z_stack_offsets=z_stack_offsets
+    )
     model_config.manifest_fmsids.append(new_manifest)
 
     return model_config
