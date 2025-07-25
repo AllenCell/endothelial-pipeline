@@ -370,7 +370,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     upload_to_fms: bool = True,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
 ) -> ModelConfig:
     """
     Apply a DiffAE model to a single dataset.
@@ -387,12 +387,12 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str or Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
-        Overrides to apply to the model config. By default, no overrides are applied
+    user_overrides: str or dict or None
+        Optional user overrides to apply to the model config.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(overrides)
+    overrides = load_overrides(user_overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, "train", include_timestamp=False)
@@ -462,7 +462,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset with
@@ -480,12 +480,12 @@ def apply_model_on_tracked_crops_from_one_dataset(
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str or Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
-        Overrides to apply to the model config. By default, no overrides are applied
+    user_overrides: str or dict or None
+        Optional user overrides to apply to the model config.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(overrides)
+    overrides = load_overrides(user_overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)

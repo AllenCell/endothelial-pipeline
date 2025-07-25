@@ -9,7 +9,7 @@ def main(
     dataset_names: list[str],
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Apply a trained DiffAE model to single-cell-track-based crops of images from multiple datasets.
@@ -22,15 +22,13 @@ def main(
     model_name
         Name of the model to apply.
     dataset_names
-        Names of the datasets from `data_config.yaml` to apply the model to.
-        If it is a string, it should either be a single dataset name or the name of a
-        dataset collection.
+        Names of the datasets from which to load images.
     upload_to_fms
-        Whether to upload the prediction file to FMS.
+        True to upload the prediction file for each dataset to FMS, False to only save locally.
     save_path
-        Path to save the prediction file.
-    overrides
-        Overrides to apply to the model config.
+        Path to save the prediction file locally.
+    user_overrides
+        Optional user overrides to apply to the model config.
 
     Returns
     -------
@@ -55,7 +53,7 @@ def main(
             dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
-            overrides=overrides,
+            user_overrides=user_overrides,
         )
 
 

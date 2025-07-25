@@ -26,10 +26,9 @@ def main(
     n_steps
         Number of steps in the latent walk. Default is 10.
     use_pcs
-        Whether to use PCA for generating the latent walk.
+        True to use principal component axes, False to use original latent space axes.
     show_coords
-        Whether to show the dimension value to generate a
-        given image.
+        True to write the coordinate value used generate a given image, False to not.
     n_noise_samples
         Number of noise samples to use for generating images.
 

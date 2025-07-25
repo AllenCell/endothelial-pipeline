@@ -6,7 +6,7 @@ def main(
     dataset_name: str = "live_20X_objective_3i_microscope",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -21,11 +21,11 @@ def main(
     dataset_name
         Dataset(s) to load images from, either a single dataset name or the name of a dataset collection.
     resolution_level
-        Resolution level to apply the model at.
+        Resolution level to at which to load images at.
     upload_to_fms
-        Whether to upload the prediction file to FMS.
-    overrides
-        Overrides to apply to the model config.
+        True to upload the prediction file for each dataset to FMS, False to only save locally.
+    user_overrides
+        Optional user overrides to apply to the model config.
 
     Returns
     -------
@@ -80,7 +80,7 @@ def main(
             dataset_config=dataset_config,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
-            overrides=overrides,
+            user_overrides=user_overrides,
         )
 
     # save out updated model config

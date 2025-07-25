@@ -28,8 +28,7 @@ def main(
         A list of two integers specifying the range of time frames to include in the montage.
         If None, all frames will be included.
     plot_heatmap
-        Whether to plot a heatmap of the principal component values.
-        If True, a heatmap will be generated and saved to the output directory.
+        True to plot a heatmap of the principal component values, False to skip plotting.
 
     Returns
     -------
