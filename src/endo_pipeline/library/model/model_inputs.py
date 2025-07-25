@@ -51,7 +51,11 @@ def generate_zarr_csv_for_model_eval(
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))
 
-    data_path = save_path / "dataset.csv"
+    # save csv and return the path
+    if limit_z_slices:
+        data_path = save_path / "dataset_limit_z_stack.csv"
+    else:
+        data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
 

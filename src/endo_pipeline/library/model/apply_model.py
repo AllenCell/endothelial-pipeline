@@ -165,6 +165,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             model_config,
             dataset_config.name,
             file_id,
+            full_z_stack=not limit_z_slices,
         )
 
     return model_config

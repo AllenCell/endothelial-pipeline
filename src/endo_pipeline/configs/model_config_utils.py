@@ -42,7 +42,7 @@ def get_model_manifest(dataset_name: str, model_config: CytoDLModelConfig) -> Mo
 
 
 def add_model_manifest(
-    model_config: CytoDLModelConfig, dataset_name: str, fmsid: str
+    model_config: CytoDLModelConfig, dataset_name: str, fmsid: str, full_z_stack: bool = True
 ) -> CytoDLModelConfig:
     """
     Add a model manifest to the model configuration.
@@ -62,13 +62,13 @@ def add_model_manifest(
     # check if a manifest already exists for this dataset
     if any(manifest.dataset_name == dataset_name for manifest in model_config.manifest_fmsids):
         logger.warning(
-            "Manifest for dataset %s already exists in model config %s, overwriting it.",
+            "Manifest for dataset %s already exists in model config %s, adding duplicate.",
             dataset_name,
             model_config.name,
         )
 
     # create a new ModelManifest and add it to the model_config
-    new_manifest = ModelManifest(dataset_name=dataset_name, fmsid=fmsid)
+    new_manifest = ModelManifest(dataset_name=dataset_name, fmsid=fmsid, full_z_stack=full_z_stack)
     model_config.manifest_fmsids.append(new_manifest)
 
     return model_config

@@ -15,6 +15,9 @@ class ModelManifest:
     fmsid: str
     """FMS ID of the resulting feature manifest."""
 
+    full_z_stack: bool = True
+    """Whether the full z-stack of the images was loaded for inference."""
+
 
 @dataclass
 class ModelConfig:
