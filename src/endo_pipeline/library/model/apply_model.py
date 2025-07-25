@@ -75,7 +75,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    limit_z_slices: tuple[int, int] | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
@@ -94,7 +94,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides: str or dict or None
         Additional overrides to apply to the model config. By default, no overrides are applied.
-    limit_z_slices: tuple[int, int] | None
+    z_stack_offsets: tuple[int, int] | None
         If None, all z-slices are loaded. Default is None.
         If provided, limits the number of z-slices to load from the raw brightfield images.
         First element is the lower offset, how many slices below the center plane to include, and
@@ -119,7 +119,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # create csv with zarr paths and args for loading and processing images
     data_path = generate_zarr_csv_for_model_eval(
-        dataset_config, save_path, resolution_level, limit_z_slices
+        dataset_config, save_path, resolution_level, z_stack_offsets
     )
 
     # apply overrides for model evaluation
@@ -130,7 +130,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
-        limit_z_slices=limit_z_slices,
+        z_stack_offsets=z_stack_offsets,
     )
 
     # override model config with the overrides
@@ -164,10 +164,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
         # add new manifest to model config
         model_config = add_model_manifest(
-            model_config,
-            dataset_config.name,
-            file_id,
-            full_z_stack=False if limit_z_slices is not None else True,
+            model_config, dataset_config.name, file_id, z_stack_offsets=z_stack_offsets
         )
 
     return model_config
