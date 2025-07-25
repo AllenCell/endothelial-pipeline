@@ -128,12 +128,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
+        limit_z_slices=limit_z_slices,
     )
-
-    if limit_z_slices:
-        # additional overrides specific to z-slice selection
-        z_slice_overrides = {"data.predict_dataloaders.dataset.extra_keys": "Z"}
-        overrides.update(z_slice_overrides)
 
     # override model config with the overrides
     model.override_config(overrides)

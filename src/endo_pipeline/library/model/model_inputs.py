@@ -230,6 +230,7 @@ def generate_overrides_for_model_eval(
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
+    limit_z_slices: bool = False,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -243,6 +244,8 @@ def generate_overrides_for_model_eval(
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": 128,
         "data.predict_dataloaders.dataset.csv_path": data_path,
+        # if limit_z_slices is True, need to point to extra column
+        "data.predict_dataloaders.dataset.extra_keys": "Z" if limit_z_slices else None,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
