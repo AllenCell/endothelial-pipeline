@@ -38,8 +38,9 @@ def generate_zarr_csv_for_model_eval(
     # if limit_z_slices is not None, add a column with z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     if limit_z_slices is not None:
-        # FOR CHANTELLE: this is a wrapper function to get z-slice ranges
-        # from dataset name and position in the dataset
+        # this is a wrapper function to get z-slice ranges
+        # from dataset name and position in the dataset using
+        # zarr_file_path our way to get the position
         def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
             # get position from zarr path as 'P{x}'
             position = zarr_file_path.stem.split("_")[-1].split(".")[0]
@@ -52,7 +53,7 @@ def generate_zarr_csv_for_model_eval(
             return z_slices
 
         # apply the function to each zarr file path
-        df["Z"] = df["path"].apply(lambda x: _get_z_slices(x, dataset_config.name))
+        df["Z"] = df["path"].apply(lambda x: _get_z_slices(x, dataset_config))
 
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))
