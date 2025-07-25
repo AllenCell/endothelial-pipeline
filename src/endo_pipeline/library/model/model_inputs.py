@@ -43,10 +43,10 @@ def generate_zarr_csv_for_model_eval(
         # zarr_file_path our way to get the position
         def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
             # get position from zarr path as 'P{x}'
-            position = zarr_file_path.stem.split("_")[-1].split(".")[0]
+            position_as_int = zarr_file_path.stem.split("_")[-1].split(".")[0][-1]
             z_slices = get_centered_plane_indices(
                 dataset_config,
-                position,
+                position_as_int,
                 lower_offset=limit_z_slices[0],
                 upper_offset=limit_z_slices[1],
             )
