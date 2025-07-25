@@ -16,7 +16,7 @@ def main(
     Example usage:
     ... code-block:: bash
     uv run endopipe do_diffae_latent_walk --model_name diffae_04_10
-    ```
+
 
     Parameters
     ----------
