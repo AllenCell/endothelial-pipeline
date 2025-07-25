@@ -10,7 +10,9 @@ from src.endo_pipeline.configs import (
 logger = logging.getLogger(__name__)
 
 
-def get_model_manifest(dataset_name: str, model_config: CytoDLModelConfig) -> ModelManifest:
+def get_model_manifest(
+    dataset_name: str, model_config: CytoDLModelConfig, full_z_stack: bool = True
+) -> ModelManifest:
     """
     Get model manifest for a given dataset and model configuration.
 
@@ -27,9 +29,12 @@ def get_model_manifest(dataset_name: str, model_config: CytoDLModelConfig) -> Mo
 
     # search the ModelConfig.manifest_fmsids for the
     # ModelManifest element with dataset_name matching
-    # the input dataset_name
+    # the input dataset_name and the full_z_stack matching
     for model_manifest in model_config.manifest_fmsids:
-        if model_manifest.dataset_name == dataset_name:
+        if (
+            model_manifest.dataset_name == dataset_name
+            and model_manifest.full_z_stack == full_z_stack
+        ):
             return model_manifest
 
     # if no manifest found, raise an error
