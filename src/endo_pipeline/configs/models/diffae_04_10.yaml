@@ -69,6 +69,7 @@ manifest_fmsids:
   full_z_stack: true
 - dataset_name: 20250509_20X_IF5
   fmsid: 6fcebb0b0a5a4a108bba0620a4860848
+  full_z_stack: true
 - dataset_name: 20250509_20X_IF6
   fmsid: 1130e27b36fb467aab6d0f17d6efd102
   full_z_stack: true

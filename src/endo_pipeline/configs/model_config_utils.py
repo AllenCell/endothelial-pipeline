@@ -65,12 +65,15 @@ def add_model_manifest(
         model_config.manifest_fmsids = []
 
     # check if a manifest already exists for this dataset
-    if any(manifest.dataset_name == dataset_name for manifest in model_config.manifest_fmsids):
-        logger.warning(
-            "Manifest for dataset %s already exists in model config %s, adding duplicate.",
-            dataset_name,
-            model_config.name,
-        )
+    # with the same full_z_stack setting
+    for manifest in model_config.manifest_fmsids:
+        if manifest.dataset_name == dataset_name and manifest.full_z_stack == full_z_stack:
+            logger.warning(
+                "Manifest for dataset %s with full_z_stack %s already exists in model config %s.",
+                dataset_name,
+                full_z_stack,
+                model_config.name,
+            )
 
     # create a new ModelManifest and add it to the model_config
     new_manifest = ModelManifest(dataset_name=dataset_name, fmsid=fmsid, full_z_stack=full_z_stack)
