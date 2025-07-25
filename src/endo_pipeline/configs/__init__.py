@@ -73,7 +73,6 @@ __all__ = [
     "get_duration_at_flow",
     "get_filtered_dataset_collection_name",
     "get_flow_at_frame",
-    "get_flow_change_frame",
     "get_frame_after_flow_change",
     "get_frame_before_flow_change",
     "get_labelfree_nuclei_prediction_model_name",
