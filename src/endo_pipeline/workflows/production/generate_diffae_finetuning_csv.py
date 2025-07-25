@@ -15,7 +15,8 @@ def main(
     dataset_pair_type
         Whether paired datasets are live/fixed or 20x/40x.
     split
-        True to split the dataset into training and validation sets, False to make a single CSV file.
+        True to split the dataset into training and validation sets,
+        False to make a single CSV file.
 
     Returns
     -------

@@ -256,9 +256,7 @@ def measure_per_cell_features(
     n_pcs: int = 8,
     use_pca: bool = False,
 ):
-    """
-    Take within-mask mean of each feature for each cell in the segmentation.
-    """
+    """Take within-mask mean of each feature for each cell in the segmentation."""
     from src.endo_pipeline.configs import (
         load_dataset_config,
         load_model_config,

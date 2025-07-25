@@ -19,7 +19,8 @@ def main(
     Parameters
     ----------
     dataset_name
-        Dataset(s) to load images from, either a single dataset name or the name of a dataset collection.
+        Dataset(s) to load images from, either a single dataset name or the name
+        of a dataset collection.
     pc_axis
         The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val

@@ -9,7 +9,8 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     Parameters
     ----------
     dataset_name
-        Dataset(s) to load images from, either a single dataset name or the name of a dataset collection.
+        Dataset(s) to load images from, either a single dataset name or the name
+        of a dataset collection.
     model_name
         Name of the model for which to load the feature manifest data.
 

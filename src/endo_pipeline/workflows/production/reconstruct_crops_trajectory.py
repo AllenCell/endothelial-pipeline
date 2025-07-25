@@ -12,6 +12,7 @@ def main(model_name: str = "diffae_04_10") -> None:
         Name of the model to use for image reconstruction.
 
     Returns
+    -------
     :
         Saves the reconstructed crops as TIFF files in the specified output directory.
         The crops are reconstructed from latent space coordinates along trajectories
