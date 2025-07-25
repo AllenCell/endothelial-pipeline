@@ -22,7 +22,7 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    limit_z_slices: bool = False,
+    limit_z_slices: tuple[int, int] | None = None,
 ) -> None:
     """
     Apply a model to a multiple datasets.
@@ -50,9 +50,11 @@ def main(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides: str or dict or None
         Additional overrides to apply to the model config. By default, no overrides are applied.
-    limit_z_slices: bool
-        Whether to limit the number of z-slices to load from the raw brightfield images.
-        Default is False, which loads all z-slices.
+    limit_z_slices: tuple[int, int] | None
+        If None, all z-slices are loaded. Default is None.
+        If provided, limits the number of z-slices to load from the raw brightfield images.
+        First element is the lower offset, how many slices below the center plane to include, and
+        the second element is the upper offset, how many slices above the center plane to include.
     """
     # if input is a string, check if it is a dataset collection or a single dataset name
     if isinstance(dataset_names, str):

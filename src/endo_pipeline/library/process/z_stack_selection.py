@@ -41,7 +41,7 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
 
 
 def get_centered_plane_indices(
-    dataset_config: DatasetConfig, position: int, lower_offset: int = 5, upper_offset: int = 16
+    dataset_config: DatasetConfig, position: int, lower_offset: int, upper_offset: int
 ) -> list[int]:
     """
     Get a list of plane indices centered around the global center plane. The minimum index is 0
