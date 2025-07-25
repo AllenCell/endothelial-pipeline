@@ -158,6 +158,8 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
     """
     Load dataframe from S3 by object URI.
 
+    Currently supports files ending in .csv, .parquet, and .tsv.
+
     Parameters
     ----------
     s3uri
@@ -169,8 +171,22 @@ def load_dataframe_from_s3(s3uri: str) -> pd.DataFrame:
         Object loaded as dataframe.
     """
 
-    logger.error("Unable to load [ %s ]", s3uri)
-    raise NotImplementedError("Loading dataframes from S3 is not currently available.")
+    if not s3uri.startswith("s3://"):
+        logger.error("URL [ %s ] must start with s3://", s3uri)
+        raise ValueError(f"Invalid S3 URI '{s3uri}'")
+
+    if s3uri.endswith(".csv"):
+        logger.info("Loading path [ %s ] as CSV file", s3uri)
+        return pd.read_csv(s3uri)
+    if s3uri.endswith(".parquet"):
+        logger.info("Loading path [ %s ] as Parquet file", s3uri)
+        return pd.read_parquet(s3uri)
+    if s3uri.endswith(".tsv"):
+        logger.info("Loading path [ %s ] as TSV file", s3uri)
+        return pd.read_csv(s3uri, sep="\t")
+
+    logger.error("Path [ %s ] cannot be loaded as dataframe", s3uri)
+    raise ValueError(f"Invalid dataframe file format '{s3uri.split('.')[-1]}'")
 
 
 def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
