@@ -146,7 +146,7 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
 
     for condition in dataset.flow_conditions:
         if condition.shear_stress == shear_stress:
-            duration = duration + (condition.stop - condition.start + 1)
+            duration = duration + (condition.stop - condition.start)
 
     return duration
 

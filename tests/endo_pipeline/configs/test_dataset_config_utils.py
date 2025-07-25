@@ -224,7 +224,7 @@ def test_get_flow_at_frame_invalid_frames(dataset, frame):
     assert get_flow_at_frame(dataset, frame) is None
 
 
-@pytest.mark.parametrize("flow,expected_duration", [(0, 9), (1, 11), (2, 22), (3, 0)])
+@pytest.mark.parametrize("flow,expected_duration", [(0, 8), (1, 10), (2, 20), (3, 0)])
 def test_get_duration_at_flow(dataset, flow, expected_duration):
     dataset.flow_conditions = [
         FlowCondition(start=-10, stop=0, shear_stress=1),
