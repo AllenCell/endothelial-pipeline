@@ -94,7 +94,8 @@ def pipeline_entrypoint(
     else:
         setup_logging(logging.WARNING)
 
-    pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
+    if config.read_text() != "":
+        pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
 
     for app in pipeline_app.meta.subapps:
         if show_archive and app.group and app.group[0].name == ARCHIVED_WORKFLOWS.name:
@@ -102,7 +103,7 @@ def pipeline_entrypoint(
 
         if app.name[0] in tags:
             if show_tags:
-                app.help = f"| {' | '.join(tags[app.name[0]])} |{app.help}"
+                app.help = f"| {' | '.join(tags[app.name[0]])} | {app.help}"
 
             if filter_tag:
                 app.show = filter_tag in tags[app.name[0]] and app.show
