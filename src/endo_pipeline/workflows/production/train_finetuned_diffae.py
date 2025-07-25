@@ -11,30 +11,24 @@ def main(
     val_csv_path: Path | None = None,
 ) -> None:
     """
-    Finetune a DiffAE model with paired live/fixed data.
+    Finetune a DiffAE model to align features for paired datasets.
 
     Parameters
     ----------
     model_name
-        The name of the model to use for finetuning. This should correspond to a
-        directory in `results/models/` and match the model name used during the
-        `generate_csv_for_finetuning_diffae` step. Default is "diffae_04_10".
+        The name of the model to use for finetuning (should correspond to a
+        config in :code:`results/models/`).
     dataset_pair_type
-        The type of dataset to use for finetuning ("live_fixed" or "20x_40x").
-        This should match the input used for `generate_csv_for_finetuning_diffae`.
+        The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
     train_csv_path
-        The path to the training CSV file containing paired data, defaults to None.
-        If None, the default path for the output of `generate_csv_for_finetuning_diffae`
-        will be used.
-    val_csv_path: Path | None
-        The path to the validation CSV file containing paired data, defaults to None.
-        If None, the default path for the output of `generate_csv_for_finetuning_diffae`
-        will be used.
+        Optional user-specified path to the training dataset CSV file.
+    val_csv_path
+        Optional user-specified path to the validation dataset CSV file.
 
     Returns
     -------
-    None
-        The function creates and save a ModelConfig object with the finetuned model's
+    :
+        The function creates and save a :code:`ModelConfig` object with the finetuned model's
         MLflow run ID and the list of datasets used for training.
     """
     from omegaconf import OmegaConf

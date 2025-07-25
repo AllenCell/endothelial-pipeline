@@ -9,24 +9,15 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     Parameters
     ----------
     dataset_name
-        Dataset(s) to apply the model to.
-        It should either be a single dataset name or the name of a dataset collection.
-        Default is "3d_flow_field_analysis", which is a collection of live, timelapse,
-        20X objective, 3i microscope datasets with single flow conditions for each dataset.
+        Dataset(s) to load images from, either a single dataset name or the name of a dataset collection.
     model_name
-        Name of the model to load from configs/models/.
-        Analysis will be performed on the model manifest datasets for this model.
+        Name of the model for which to load the feature manifest data.
 
     Returns
     -------
-    None
+    :
         Saves the PCA scatter plots, flow field analysis results, and visualizations
         to the specified output directories.
-
-    Raises
-    ------
-    ValueError
-        If the provided dataset name is not a valid dataset or dataset collection name.
     """
     import logging
 

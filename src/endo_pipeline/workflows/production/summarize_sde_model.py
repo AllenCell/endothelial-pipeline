@@ -10,14 +10,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     ----------
     dynamics_config_name
         Name of the configuration to load from dynamics_config.yaml.
-        Default is "default".
     model_name
         Name of the model from which manifest data is loaded and analyzed.
-        Default is "diffae_04_10".
 
     Returns
     -------
-    None
+    :
         Saves the figures and analysis results in a specified directory.
         The figures include:
         - Model-data comparison plots (histograms and phase plane plots)

@@ -14,24 +14,18 @@ def main(
     Parameters
     ----------
     crop_size
-        The pixel size of the image crop to use for training. Default is 128.
-        This is the crop size along one dimension, the image will be square
-        with size (crop_size, crop_size).
+        The length of the 2D image crop in pixels to use for model training.
 
     train_csv_path
-        The path to the training dataset CSV file. Default is None.
-        If None, the default path for the output of `generate_csv_for_training_diffae`
-        will be used.
+        Optional user-specified path to the training dataset CSV file.
 
     val_csv_path
-        The path to the validation dataset CSV file. Default is None.
-        If None, the default pathfor the output of `generate_csv_for_training_diffae`
-        will be used.
+        Optional user-specified path to the validation dataset CSV file.
 
     Returns
     -------
-    None
-        The function creates and saves a ModelConfig object with the trained model's
+    :
+        The function creates and saves a :code:`ModelConfig` object with the trained model's
         MLflow run ID and the list of datasets used for training.
     """
     import datetime

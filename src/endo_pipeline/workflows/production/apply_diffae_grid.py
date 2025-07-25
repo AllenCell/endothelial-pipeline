@@ -14,36 +14,24 @@ def main(
     Produces a table of latent features from a non-overlapping grid of crops
     for each dataset. The model is applied at the specified resolution level.
 
-    Example usage:
-    ```
-    uv run src/endo_pipeline/workflows/apply_model.py
-    --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
-    ```
-
     Parameters
     ----------
     model_name
-        Name of the model from `model_config.yaml` to apply.
+        Name of the model to apply.
     dataset_name
-        Dataset(s) to apply the model to.
-        It should either be a single dataset name or the name of a dataset collection.
+        Dataset(s) to load images from, either a single dataset name or the name of a dataset collection.
     resolution_level
-        Resolution level to apply the model at. Default is 1 (zarr sample resolution).
+        Resolution level to apply the model at.
     upload_to_fms
-        Whether to upload the prediction file to FMS. Default is True.
+        Whether to upload the prediction file to FMS.
     overrides
-        Overrides to apply to the model config. By default, no overrides are applied
+        Overrides to apply to the model config.
 
     Returns
     -------
-    None
+    :
         Saves the model config with the applied model and model manifest objects.
-        The model config is saved to `endo_pipeline/configs/models/{model_name}.yaml`.
-
-    Raises
-    ------
-    ValueError
-        If the provided dataset name is not a valid dataset or dataset collection name.
+        The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
 
     import logging

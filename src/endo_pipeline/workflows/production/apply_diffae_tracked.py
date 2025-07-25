@@ -17,14 +17,10 @@ def main(
     Produces a table of latent features from a crops centered on tracked cells
     for each dataset.
 
-    Example usage:
-    ... code-block:: bash
-    uv run endopipe apply_diffae_tracking --model_name diffae_04_10 --dataset_names 20241120_20X 20241217_20X
-
     Parameters
     ----------
     model_name
-        Name of the model from `model_config.yaml` to apply.
+        Name of the model to apply.
     dataset_names
         Names of the datasets from `data_config.yaml` to apply the model to.
         If it is a string, it should either be a single dataset name or the name of a
@@ -38,9 +34,9 @@ def main(
 
     Returns
     -------
-    None
+    :
         Saves the model config with the applied model and model manifest objects.
-        The model config is saved to `endo_pipeline/configs/models/{model_name}.yaml`.
+        The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
     from src.endo_pipeline.configs import load_dataset_config, load_model_config
     from src.endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset

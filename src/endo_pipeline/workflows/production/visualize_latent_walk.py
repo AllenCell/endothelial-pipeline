@@ -11,12 +11,7 @@ def main(
     n_noise_samples: int = 1,
 ) -> None:
     """
-    Create latent walk for a given model using PCA or model features.
-
-    Example usage:
-    ... code-block:: bash
-    uv run endopipe do_diffae_latent_walk --model_name diffae_04_10
-
+    Create latent walk for a given model using PC axes or the original latent space axes.
 
     Parameters
     ----------
@@ -32,17 +27,15 @@ def main(
         Number of steps in the latent walk. Default is 10.
     use_pcs
         Whether to use PCA for generating the latent walk.
-        If False, the raw latent dimensions are used.
     show_coords
         Whether to show the dimension value to generate a
         given image.
     n_noise_samples
         Number of noise samples to use for generating images.
-        Default is 1.
 
     Returns
     -------
-    None
+    :
         Saves the latent walk images to the output directory.
         The images are saved as a multi-channel TIFF file.
     """

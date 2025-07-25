@@ -19,7 +19,7 @@ def main() -> None:
 
     Returns
     -------
-    None
+    :
         Saves the training and validation dataframes to `train.csv` and `val.csv`
         in the specified output directory.
     """

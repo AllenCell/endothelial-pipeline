@@ -184,37 +184,7 @@ def generate_spatial_feature_movie(
     """
     Generate a spatial movie of PCA features from a model's predictions.
 
-    Saves out a `timepoint * pc  * y * x` zarr file for each position
-    in the dataset with an overlay of the brightfield standard deviation
-    projection and max projection of the fluorescent channel.
     The movie is saved in the `models/{model_name}/spatial_pcs/{dataset_name}` directory.
-
-    Example usage:
-    ```
-    python src/endo_pipeline/workflows/make_spatial_pc_movie.py generate_spatial_feature_movie
-    --model_name diffae_04_10 --dataset_name 20241016_20X
-    --pca_dir /path/to/cellsmap/results/stochastic_dynamics/default/outputs/
-    --overlap 0.5 --resolution_level 0 --n_pcs 3
-    ```
-
-    Parameters
-    ----------
-    model_name: str
-        Name of the model from `model_config.yaml` to apply.
-    dataset_name: str
-        Name of the dataset from `data_config.yaml` to apply the model to.
-    use_pca: bool
-        Project the model features to PCA components. Default is False.
-    overlap: float
-        Overlap between sliding windows during inference. Default is 0.75. Higher overlaps
-        will givemore spatial resolution but take longer for inference.
-    resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
-    n_pcs: int
-        Number of PCA components to use. Default is full 8 components.
-        This argument is only used if `pca_dir` is not None.
-    overrides: Dict[str, Any] | None
-        Dictionary of overrides to apply to the model. Default is {}.
     """
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
@@ -287,35 +257,7 @@ def measure_per_cell_features(
     use_pca: bool = False,
 ):
     """
-    Create spatial feature movie and take within-mask mean of each feature
-    for each cell in the segmentation for use in TFE visualization.
-
-    Example usage:
-    ```
-    python make_spatial_pc_movie.py measure_per_cell_features
-    --model_name diffae_04_10 --dataset_name 20241016_20X --overlap 0.5
-    --resolution_level 0 --n_pcs 3
-    ```
-
-    Parameters
-    ----------
-    dataset_name: str
-        Name of the dataset from `data_config.yaml` to apply the model to.
-    model_name: str
-        Name of the model from `model_config.yaml` to apply.
-    overlap: float
-        Overlap between sliding windows during inference. Default is 0.9.
-        Higher overlaps will give more spatial resolution but take longer for inference.
-    resolution_level: int
-        Resolution level to apply the model at. Default is 0 (highest resolution)
-    upload_to_fms: bool
-        Whether to upload the resulting features to FMS and update the data config
-        with the resulting FMS id. Default is False.
-    n_pcs: int
-        Number of PCA components to use. Default is all 8 components.
-        This argument is only used if `use_pca` is True.
-    use_pca: bool
-        Whether to project the model features to PCA components. Default is False.
+    Take within-mask mean of each feature for each cell in the segmentation.
     """
     from src.endo_pipeline.configs import (
         load_dataset_config,
@@ -380,7 +322,37 @@ def main(
     use_pca: bool = False,
     overrides: dict[str, Any] | None = None,
 ) -> None:
-    """Make a spatial feature movie and measure per-cell features."""
+    """
+    Make a spatial feature movie and measure per-cell features for visualization on TFE.
+
+    Parameters
+    ----------
+    model_name
+        Name of the model from to apply.
+    dataset_name
+        Name of the dataset from to apply the model to.
+    use_pca
+        Project the model features to PCA components.
+    overlap
+        Overlap between sliding windows during inference.
+        Higher overlaps will givemore spatial resolution but take longer for inference.
+    resolution_level
+        Resolution level to apply the model at.
+    n_pcs
+        Number of PCA components to use.
+        This argument is only used if `use_pca` is not None.
+    overrides
+        Dictionary of overrides to apply to the model.
+
+    Returns
+    -------
+    :
+        Saves out a zarr file for each position in the dataset with an overlay of
+        the features on the brightfield standard deviation projection and max projection
+        of the fluorescent channel. Also saves out a parquet file with per-cell features
+        for each timepoint in the dataset and uploads it to FMS.
+
+    """
     generate_spatial_feature_movie(
         model_name=model_name,
         dataset_name=dataset_name,

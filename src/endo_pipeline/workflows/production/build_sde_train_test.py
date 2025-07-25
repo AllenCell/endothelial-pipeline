@@ -10,14 +10,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     ----------
     dynamics_config_name
         Name of the configuration to load from dynamics_config.yaml.
-        Default is "default".
     model_name
-        Name of the model to load from model_config.yaml.
-        Analysis will be performed on the model manifest datasets for this model.
+        Name of the model for which to load the feature manifest data.
 
     Returns
     -------
-    None
+    :
         Saves the training and test data for regression model fitting in a specified
         directory. Saved out as a dictionary with keys:
         "X_train", "X_test", "Y_train", "Y_test", "V_train", "V_test", "u_train", "u_test".

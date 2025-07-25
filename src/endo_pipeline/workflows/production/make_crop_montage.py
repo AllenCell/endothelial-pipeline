@@ -2,7 +2,7 @@ TAGS = ["pc_interpretation", "diffae_image_generation"]
 
 
 def main(
-    dataset_name: str | None = None,
+    dataset_name: str = "live_20X_objective_3i_microscope",
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -19,17 +19,11 @@ def main(
     Parameters
     ----------
     dataset_name
-        Dataset(s) to load images from.
-        It should either be a single dataset name or the name of a dataset collection.
-        If None, the list of datasets from the "live_20X_objective_3i_microscope"
-        dataset collection will be used.
+        Dataset(s) to load images from, either a single dataset name or the name of a dataset collection.
     pc_axis
-        The principal component axis to use for filtering the images.
-        0 for PC1, 1 for PC2, etc.
+        The principal component axis to use for filtering the images (0 for PC1, 1 for PC2, etc.)
     pc_val
-        The value of the principal component to filter the images by.
-        For example, if pc_axis=1 and pc_val=0.25, then only images where PC2 is approximately 0.25
-        will be included in the montage.
+        The value of the principal component axis to filter the images by.
     frame_range
         A list of two integers specifying the range of time frames to include in the montage.
         If None, all frames will be included.
@@ -39,7 +33,7 @@ def main(
 
     Returns
     -------
-    None
+    :
         Saves the montage images to the output directory.
     """
     from src.endo_pipeline.io import get_output_path

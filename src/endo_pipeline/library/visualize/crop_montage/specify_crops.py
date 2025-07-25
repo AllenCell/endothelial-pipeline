@@ -35,30 +35,27 @@ N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat ar
 
 
 def load_data(
-    dataset_name: str | None = None, model_name: str = "diffae_04_10"
+    dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
 ) -> tuple[pd.DataFrame, Pipeline, list[ModelManifest]]:
     """
     Load manifest DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
-    dataset_name : str | None
-        Name of the dataset(s) to include.
-        If None, loads all available timelapse datasets.
+    dataset_name
+        Name of the dataset(s) to include, either a single dataset name or
+        the name of a dataset collection.
+    model_name
+        Name of the model for which to load the feature manifest data.
 
     Returns
     -------
-    df_all : pd.DataFrame
+    :
         Concatenated manifest DataFrame for the specified datasets.
-    pca : sklearn.decomposition.PCA
-        PCA object fitted.
-    model_manifest_list : list[ModelManifest]
+    :
+        Fit PCA object for the model.
+    :
         List of model manifests for the specified datasets.
-
-    Raises
-    ------
-    ValueError
-        If the provided dataset name is not a valid dataset or dataset collection name.
     """
     model_config = load_model_config(model_name)
 

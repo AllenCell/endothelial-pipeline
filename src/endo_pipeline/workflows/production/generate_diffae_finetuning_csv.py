@@ -13,17 +13,14 @@ def main(
     Parameters
     ----------
     dataset_pair_type
-        Whether paired dataset is aligned live/fixed or 20x/40x. This will
-        determine the directory structure to search for aligned image pairs.
+        Whether paired datasets are live/fixed or 20x/40x.
     split
-        If True, the dataset will be split into training and validation sets.
-        The split will be saved as `train.csv` and `val.csv`. If False, the
-        entire dataset will be saved as `dataset.csv`, and no split will be performed.
-        Note that in this case the split must be performed manually before training.
+        Whether to split the dataset into training and validation sets (else, makes
+        a single dataset CSV file that must be split manually).
 
     Returns
     -------
-    None
+    :
         Saves the dataset as a CSV file in the output directory.
         The images will be saved as multi-channel TIFF files in the same directory.
     """
