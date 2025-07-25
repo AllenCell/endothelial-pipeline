@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.colors import TwoSlopeNorm
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tqdm import tqdm
 
-from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_one_slice_quiver,
@@ -409,9 +409,6 @@ def grid_vs_track_vec_angle_hist2d(
         fig.savefig(out_path, dpi=300, bbox_inches="tight")
 
 
-from matplotlib.colors import LogNorm
-
-
 def grid_vs_track_vec_dot_prod_hist2d(
     dot_prod: np.ndarray,
     out_path: Path | None,
@@ -421,19 +418,18 @@ def grid_vs_track_vec_dot_prod_hist2d(
     Plot a 2D histogram of the dot product between
     the grid-based and track-based DiffAE features.
     """
-    # vmin = -1 * abs(dot_prod).max()
-    # vmax = 1 * abs(dot_prod).max()
-    vmin = dot_prod.min()
-    vmax = dot_prod.max()
+    vmin = -1 * abs(dot_prod).max()
+    vmax = 1 * abs(dot_prod).max()
+    # vmin = dot_prod.min()
+    # vmax = dot_prod.max()
+    cmap_norm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
 
     fig, ax_hist = plt.subplots(figsize=(6, 6))
     ax_hist.set_title("Grid vs. cell-centric vector dot products", pad=20)
     hist2D = ax_hist.imshow(
         dot_prod.squeeze().T,
-        cmap="RdBu_r",
-        vmin=vmin,
-        vmax=vmax,
-        # norm=LogNorm(vmin=vmin, vmax=vmax),
+        cmap="RdBu",
+        norm=cmap_norm,
         extent=extent,
         origin="lower",
         label="dot product",
@@ -442,7 +438,7 @@ def grid_vs_track_vec_dot_prod_hist2d(
     ax_cb = divider.append_axes("right", size="5%", pad=0.05)
     fig.add_axes(ax_cb)
     plt.colorbar(hist2D, cax=ax_cb)
-    # ax_cb.set_yticks(range(vmin, vmax, 7))  # set ticks for angle in degrees
+    ax_cb.set_yscale("linear")
     ax_hist.set_xlabel("PC1")
     ax_hist.set_ylabel("PC2")
     ax_cb.set_ylabel("Dot product", rotation=270, verticalalignment="bottom")

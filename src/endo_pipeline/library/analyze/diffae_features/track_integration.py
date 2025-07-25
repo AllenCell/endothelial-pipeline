@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from dask import dataframe as dd
 from matplotlib import pyplot as plt
 from sklearn.pipeline import Pipeline
 from tqdm import tqdm
@@ -401,7 +402,7 @@ def plot_pc_integrated_track(
         # ds=1,
         # scale=60,
         ax=ax,
-        color="grey",
+        color="blue",
     )
     ax.quiver(
         df["pc1"].iloc[:-1],
@@ -448,7 +449,14 @@ def plot_pc_integrated_track(
 def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> None:
     logger.info(f"Processing dataset: {dataset_name}")
 
-    out_subdir = get_output_path(Path(__file__).stem, dataset_name)
+    out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
+
+    # out_subdir_traj_precomputed = (
+    #     Path(
+    #         r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-22\track_integration"
+    #     )
+    #     / dataset_name
+    # )
 
     # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name)
@@ -496,25 +504,32 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
     model_manifest_list = [
         get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds
     ]
-    bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
+    bounds_grids = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
+    bounds_tracks = []
+    for pc_idx in range(len(bounds_grids)):
+        pc_num = pc_idx + 1
+        bounds_tracks.append(
+            np.array(
+                [
+                    min(merged_feats_df[f"pc{pc_num}"].min(), bounds_grids[pc_idx].min()),
+                    max(merged_feats_df[f"pc{pc_num}"].max(), bounds_grids[pc_idx].max()),
+                ]
+            )
+        )
 
     # This takes about 1 minute to run with
-    # datasets_for_bounds = ["20241120_20X", "20250409_20X",
-    # "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
-    out_subdir_traj_precomputed = (
-        Path(
-            r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-22\track_integration"
-        )
-        / dataset_name
-    )
-    # precomputed_trajectories_path = out_subdir_traj / f"{dataset_name}_traj_grids.npy"
-    precomputed_trajectories_path = out_subdir_traj_precomputed / f"{dataset_name}_traj_grids.npy"
+    precomputed_trajectories_path = out_subdir / f"{dataset_name}_traj_grids.npy"
+    if not precomputed_trajectories_path.exists():
+        logger.debug("Precomputed trajectories not found, will compute them...")
+        load_precomputed_trajectories = None
+    else:
+        load_precomputed_trajectories = precomputed_trajectories_path
 
     logger.debug("getting trajectory and flow field for grid-based crops...")
     traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
         df=diffae_grid_crops,
-        bounds=bounds,
-        load_precomputed_trajectories=precomputed_trajectories_path,
+        bounds=bounds_grids,
+        load_precomputed_trajectories=load_precomputed_trajectories,
     )
 
     if precomputed_trajectories_path is None:
@@ -522,16 +537,20 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         np.save(precomputed_trajectories_path, traj_grids)
 
     # This takes about 5 minutes to run with
-    # datasets_for_bounds = ["20241120_20X", "20250409_20X",
-    # "20241217_20X", "20250428_20X", "20250319_20X", "20250326_20X"]
-    # precomputed_trajectories_path = out_subdir_traj / f"{dataset_name}_traj_tracks.npy"
-    precomputed_trajectories_path = out_subdir_traj_precomputed / f"{dataset_name}_traj_tracks.npy"
+    precomputed_trajectories_path = (
+        precomputed_trajectories_path / f"{dataset_name}_traj_tracks.npy"
+    )
+    if not precomputed_trajectories_path.exists():
+        logger.debug("Precomputed trajectories not found, will compute them...")
+        load_precomputed_trajectories = None
+    else:
+        load_precomputed_trajectories = precomputed_trajectories_path
 
     logger.debug("getting trajectory and flow field for tracks-based crops...")
     traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
         df=merged_feats_df,
-        bounds=bounds,
-        load_precomputed_trajectories=precomputed_trajectories_path,
+        bounds=bounds_tracks,
+        load_precomputed_trajectories=load_precomputed_trajectories,
     )
 
     if precomputed_trajectories_path is None:
