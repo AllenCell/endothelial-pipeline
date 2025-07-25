@@ -1,28 +1,25 @@
-import fire
-
-from src.endo_pipeline.configs import (
-    get_model_manifest,
-    get_timelapse_model_manifests,
-    load_model_config,
-)
-from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
-    df_to_array,
-    fit_pca,
-    get_feature_column_names,
-    get_manifest_for_dynamics_workflows,
-    get_pc_column_names,
-    project_manifest_to_pcs,
-)
-from src.endo_pipeline.library.analyze.numerics import get_bins
-from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
-
-
 def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10") -> None:
     """
     Run base visualization of Diff AE latent space
     feature dynamics for a specified list of datasets.
     """
+    from src.endo_pipeline.configs import (
+        get_model_manifest,
+        get_timelapse_model_manifests,
+        load_model_config,
+    )
+    from src.endo_pipeline.io import get_output_path, save_plot_to_path
+    from src.endo_pipeline.library.analyze.diffae_manifest import (
+        df_to_array,
+        fit_pca,
+        get_feature_column_names,
+        get_manifest_for_dynamics_workflows,
+        get_pc_column_names,
+        project_manifest_to_pcs,
+    )
+    from src.endo_pipeline.library.analyze.numerics import get_bins
+    from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+
     # get model config from model name
     model_config = load_model_config(model_name)
     if dataset_names is None:
@@ -77,4 +74,6 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

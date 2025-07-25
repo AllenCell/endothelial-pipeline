@@ -3,23 +3,10 @@ from typing import Any
 
 import dask
 import dask.array as da
-import fire
 import numpy as np
 import pandas as pd
 from bioio import BioImage
 from skimage.measure import regionprops_table
-
-from cellsmap.util.manifest_io import get_feature_cols, load_pca_model
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_dataset_config, load_model_config, save_dataset_config
-from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
-from src.endo_pipeline.library.model import (
-    apply_model_on_grid_of_crops_from_one_dataset,
-    get_cytodl_commit_hash,
-    load_overrides,
-)
-from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -68,6 +55,8 @@ def get_segmentation_path_at_frame(dataset_name: str, position: int, timepoint: 
     Temporary helper function to extract timepoints based on local
     path until segmentation paths are in data manifest.
     """
+    from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
+
     seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
     seg_path = next(
         [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint]
@@ -138,14 +127,25 @@ def get_feats(
     overlap: float = 0.75,
     resolution_level: int = 0,
     overrides: dict[str, Any] | None = None,
-    pca_dir: str | None = None,
-    n_pcs: int | None = None,
+    use_pca: bool = False,
+    n_pcs: int = 8,
 ):
     """
     Apply a model to a dataset and return the features.
 
     If PCA is used, apply PCA to the features.
     """
+    from src.endo_pipeline.library.analyze.diffae_manifest import (
+        fit_pca,
+        get_feature_column_names,
+        get_pc_column_names,
+        project_manifest_to_pcs,
+    )
+    from src.endo_pipeline.library.model import (
+        apply_model_on_grid_of_crops_from_one_dataset,
+        load_overrides,
+    )
+
     overrides = load_overrides(overrides)
     # apply model with specified overlap
     overrides.update({"model.spatial_inferer.splitter.overlap": overlap})
@@ -159,22 +159,15 @@ def get_feats(
     )
     # load model predictions and apply PCA
     data = pd.read_parquet(feats_path)
-    feat_cols = get_feature_cols(data)
+    feat_cols = get_feature_column_names(data)
 
-    if pca_dir is not None:
-        pca = load_pca_model(pca_dir)
-        feats = pca.transform(data[feat_cols].values)
-
-        n_pcs = n_pcs or feats.shape[1]
-        if n_pcs > feats.shape[1]:
-            raise ValueError(
-                f"n_pcs {n_pcs} is greater than the number of PCA components {feats.shape[1]}"
-            )
-
-        pc_columns = [f"pc{i}" for i in range(n_pcs)]
-        data[pc_columns] = feats[:, :n_pcs]
+    if use_pca:
+        # if PCA is specified, fit PCA to the model features
+        pca = fit_pca(model_name=model_name, num_pcs=n_pcs)
+        # add PC component features to the dataframe
+        data = project_manifest_to_pcs(data, pca, feat_cols=feat_cols)
         # use the PCA components as the features
-        feat_cols = pc_columns
+        feat_cols = get_pc_column_names(data, pc_axes=range(n_pcs or pca.n_components_))
 
     return data, feat_cols
 
@@ -182,10 +175,10 @@ def get_feats(
 def generate_spatial_feature_movie(
     model_name: str,
     dataset_name: str,
-    pca_dir: str | None = None,
+    use_pca: bool = False,
     overlap: float = 0.75,
     resolution_level: int = 1,
-    n_pcs: int | None = None,
+    n_pcs: int = 8,
     overrides: dict[str, Any] | None = None,
 ):
     """
@@ -210,21 +203,25 @@ def generate_spatial_feature_movie(
         Name of the model from `model_config.yaml` to apply.
     dataset_name: str
         Name of the dataset from `data_config.yaml` to apply the model to.
-    pca_dir: Optional[str]
-        Directory where a fitted PCA model is stored. If none is passed, original model
-        features will beused for visualization.
+    use_pca: bool
+        Project the model features to PCA components. Default is False.
     overlap: float
         Overlap between sliding windows during inference. Default is 0.75. Higher overlaps
         will givemore spatial resolution but take longer for inference.
     resolution_level: int
         Resolution level to apply the model at. Default is 0 (highest resolution)
-    n_pcs: Optional[int]
-        Number of PCA components to use. Default is None, which will use all components.
+    n_pcs: int
+        Number of PCA components to use. Default is full 8 components.
         This argument is only used if `pca_dir` is not None.
     overrides: Dict[str, Any] | None
         Dictionary of overrides to apply to the model. Default is {}.
     """
-    save_dir = Path(get_output_path(f"models/{model_name}/spatial_pcs/{dataset_name}"))
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
+
+    save_dir = get_output_path(
+        "models", model_name, "spatial_pcs", dataset_name, include_timestamp=False
+    )
 
     data, feat_cols = get_feats(
         model_name,
@@ -233,7 +230,7 @@ def generate_spatial_feature_movie(
         overlap=overlap,
         resolution_level=resolution_level,
         overrides=overrides,
-        pca_dir=pca_dir,
+        use_pca=use_pca,
         n_pcs=n_pcs,
     )
 
@@ -286,8 +283,8 @@ def measure_per_cell_features(
     overlap: float = 0.9,
     resolution_level: int = 1,
     upload_to_fms: bool = False,
-    n_pcs: int | None = None,
-    pca_dir: str | None = None,
+    n_pcs: int = 8,
+    use_pca: bool = False,
 ):
     """
     Create spatial feature movie and take within-mask mean of each feature
@@ -314,21 +311,29 @@ def measure_per_cell_features(
     upload_to_fms: bool
         Whether to upload the resulting features to FMS and update the data config
         with the resulting FMS id. Default is False.
-    n_pcs: Optional[int]
-        Number of PCA components to use. Default is None, which will use all components.
-        This argument is only used if `pca_dir` is not None.
-    pca_dir: Optional[str]
-        Directory where a fitted PCA model is stored. If none is passed, original model
-        features will be used for visualization.
+    n_pcs: int
+        Number of PCA components to use. Default is all 8 components.
+        This argument is only used if `use_pca` is True.
+    use_pca: bool
+        Whether to project the model features to PCA components. Default is False.
     """
-    save_dir = Path(get_output_path(f"models/{model_name}/cell_pcs/{dataset_name}"))
+    from src.endo_pipeline.configs import (
+        load_dataset_config,
+        load_model_config,
+        save_dataset_config,
+    )
+    from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+
+    save_dir = get_output_path(
+        "models", model_name, "cell_pcs", dataset_name, include_timestamp=False
+    )
     data, feat_cols = get_feats(
         model_name,
         dataset_name,
         save_dir,
         overlap=overlap,
         resolution_level=resolution_level,
-        pca_dir=pca_dir,
+        use_pca=use_pca,
         n_pcs=n_pcs,
     )
     spatial_pc_info = []
@@ -344,20 +349,25 @@ def measure_per_cell_features(
     spatial_pc_info.to_parquet(feats_path)
 
     if upload_to_fms:
-        mlflow_id = load_model_config(model_name).mlflow_run_id
-        model_path = Path(get_output_path(f"models/{model_name}"))
+        model_config = load_model_config(model_name)
+        dataset_config = load_dataset_config(dataset_name)
 
-        file_id = save_file_to_fms(
+        dataset_annotations = build_fms_annotations(
+            dataset_config,
+            include_timestamp=False,
+            include_git_info=False,
+            model=model_config,
+        )
+
+        # upload prediction file to FMS and get file ID
+        file_id = upload_file_to_fms(
             feats_path,
-            dataset_name,
-            get_cytodl_commit_hash(mlflow_id, model_path),
-            misc_notes="",
-            mlflow_run_id=mlflow_id,
+            annotations=dataset_annotations,
+            file_type="parquet",
         )
 
         # update dataset config with the FMS ID
         # of the prediction file
-        dataset_config = load_dataset_config(dataset_name)
         dataset_config.cell_mean_features = file_id
         save_dataset_config(dataset_config)
 
@@ -366,8 +376,8 @@ def main(
     model_name: str,
     dataset_name: str,
     resolution_level: int = 1,
-    n_pcs: int | None = None,
-    pca_dir: str | None = None,
+    n_pcs: int = 8,
+    use_pca: bool = False,
     overrides: dict[str, Any] | None = None,
 ) -> None:
     """Make a spatial feature movie and measure per-cell features."""
@@ -376,7 +386,7 @@ def main(
         dataset_name=dataset_name,
         resolution_level=resolution_level,
         n_pcs=n_pcs,
-        pca_dir=pca_dir,
+        use_pca=use_pca,
         overrides=overrides,
     )
 
@@ -385,10 +395,12 @@ def main(
         dataset_name=dataset_name,
         resolution_level=resolution_level,
         n_pcs=n_pcs,
-        pca_dir=pca_dir,
+        use_pca=use_pca,
         upload_to_fms=True,
     )
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
