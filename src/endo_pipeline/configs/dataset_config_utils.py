@@ -98,6 +98,59 @@ def get_specific_channel_order(
     )
 
 
+def get_frame_before_flow_change(dataset: DatasetConfig) -> int | None:
+    """Get frame number immediately before the flow changes."""
+
+    if len(dataset.flow_conditions) == 1:
+        logger.warning("Dataset [ %s ] only has one flow condition", dataset.name)
+        return None
+
+    if len(dataset.flow_conditions) == 2:
+        return dataset.flow_conditions[0].stop
+
+    logger.warning("Dataset [ %s ] must have only one or two flow conditions", dataset.name)
+    return None
+
+
+def get_frame_after_flow_change(dataset: DatasetConfig) -> int | None:
+    """Get frame number immediately after the flow changes."""
+
+    if len(dataset.flow_conditions) == 1:
+        logger.warning("Dataset [ %s ] only has one flow condition", dataset.name)
+        return None
+
+    if len(dataset.flow_conditions) == 2:
+        return dataset.flow_conditions[1].start
+
+    logger.warning("Dataset [ %s ] must have only one or two flow conditions", dataset.name)
+    return None
+
+
+def get_flow_at_frame(dataset: DatasetConfig, frame: int) -> float | None:
+    """Get the shear stress the dataset was under at the given frame."""
+
+    for condition in dataset.flow_conditions:
+        if condition.start <= frame <= condition.stop:
+            return condition.shear_stress
+
+    logger.warning(
+        "Dataset [ %s ] does not have flow condition for frame [ %d ]", dataset.name, frame
+    )
+    return None
+
+
+def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
+    """Get the duration the dataset was under the given shear stress."""
+
+    duration = 0
+
+    for condition in dataset.flow_conditions:
+        if condition.shear_stress == shear_stress:
+            duration = duration + (condition.stop - condition.start)
+
+    return duration
+
+
 def get_nuclear_prediction_path(
     dataset: DatasetConfig,
     position: int,

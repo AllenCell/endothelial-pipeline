@@ -5,6 +5,7 @@ import pytest
 
 from src.endo_pipeline.configs import (
     DatasetConfig,
+    FlowCondition,
     load_dataset_collection_config,
     load_dataset_config,
 )
@@ -14,6 +15,10 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_available_zarr_files,
     get_channel_indices_for_all_positions,
     get_channel_indices_for_position,
+    get_duration_at_flow,
+    get_flow_at_frame,
+    get_frame_after_flow_change,
+    get_frame_before_flow_change,
     get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
@@ -165,6 +170,70 @@ def test_get_specific_channel_order_with_null_channels(dataset):
     channel_order = get_specific_channel_order(dataset)
 
     assert channel_order == (2, 1, None, None, 5)
+
+
+def test_get_frame_before_flow_change_valid_flow_condition(dataset):
+    dataset.flow_conditions = [
+        FlowCondition(start=0, stop=5, shear_stress=1),
+        FlowCondition(start=6, stop=10, shear_stress=2),
+    ]
+
+    assert get_frame_before_flow_change(dataset) == 5
+
+
+@pytest.mark.parametrize("num_conditions", [0, 1, 3, 4])
+def test_get_frame_before_flow_change_invalid_flow_condition(dataset, num_conditions):
+    dataset.flow_conditions = [FlowCondition(start=0, stop=0, shear_stress=0)] * num_conditions
+
+    assert get_frame_before_flow_change(dataset) is None
+
+
+def test_get_frame_after_flow_change_valid_flow_condition(dataset):
+    dataset.flow_conditions = [
+        FlowCondition(start=0, stop=5, shear_stress=1),
+        FlowCondition(start=6, stop=10, shear_stress=2),
+    ]
+
+    assert get_frame_after_flow_change(dataset) == 6
+
+
+@pytest.mark.parametrize("num_conditions", [0, 1, 3, 4])
+def test_get_frame_after_flow_change_invalid_flow_condition(dataset, num_conditions):
+    dataset.flow_conditions = [FlowCondition(start=0, stop=0, shear_stress=0)] * num_conditions
+
+    assert get_frame_after_flow_change(dataset) is None
+
+
+@pytest.mark.parametrize("frame,expected_flow", [(-5, 1), (-2, 1), (0, 1), (5, 2), (7, 2), (10, 2)])
+def test_get_flow_at_frame_valid_frames(dataset, frame, expected_flow):
+    dataset.flow_conditions = [
+        FlowCondition(start=-5, stop=0, shear_stress=1),
+        FlowCondition(start=5, stop=10, shear_stress=2),
+    ]
+
+    assert get_flow_at_frame(dataset, frame) == expected_flow
+
+
+@pytest.mark.parametrize("frame", [-15, -11, 1, 9, 30])
+def test_get_flow_at_frame_invalid_frames(dataset, frame):
+    dataset.flow_conditions = [
+        FlowCondition(start=-10, stop=0, shear_stress=1),
+        FlowCondition(start=10, stop=20, shear_stress=2),
+        FlowCondition(start=21, stop=29, shear_stress=3),
+    ]
+    assert get_flow_at_frame(dataset, frame) is None
+
+
+@pytest.mark.parametrize("flow,expected_duration", [(0, 8), (1, 10), (2, 20), (3, 0)])
+def test_get_duration_at_flow(dataset, flow, expected_duration):
+    dataset.flow_conditions = [
+        FlowCondition(start=-10, stop=0, shear_stress=1),
+        FlowCondition(start=10, stop=20, shear_stress=2),
+        FlowCondition(start=21, stop=29, shear_stress=0),
+        FlowCondition(start=30, stop=40, shear_stress=2),
+    ]
+
+    assert get_duration_at_flow(dataset, flow) == expected_duration
 
 
 @pytest.mark.parametrize(

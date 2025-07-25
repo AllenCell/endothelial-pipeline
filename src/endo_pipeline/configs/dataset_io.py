@@ -720,6 +720,14 @@ def get_flow_info(dataset_name: str) -> list:
     return dataset_info["flow"]
 
 
+@deprecated(
+    """
+This method will be removed. Use one of these alternative methods:
+
+        configs.get_frame_before_flow_change
+        configs.get_frame_after_flow_change
+"""
+)
 def get_flow_change_frame(dataset_name: str) -> int:
     """
     Get frame number at which flow changes in dataset ds_name.
@@ -740,6 +748,13 @@ def get_flow_change_frame(dataset_name: str) -> int:
     return change_frame
 
 
+@deprecated(
+    """
+This method will be removed. Use one of these alternative methods:
+
+        configs.get_flow_at_frame
+"""
+)
 def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     """
     Retrieve the flow value for a specific frame in a dataset.
@@ -766,33 +781,6 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
         if t_start <= frame <= t_stop:
             return flow
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
-
-
-def add_flow_to_dataframe(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Add flow in dyn/cm^2 to a DataFrame containing dataset information.
-    Currently does not work for datasets with -1 as the timepoint.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing dataset information, including 'dataset_name' and 'frame'.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with an additional 'flow' column containing flow values for each frame.
-    """
-    # Group by dataset_name and image_index, calculate flow once per group
-    flow_mapping = df.groupby(["dataset_name", "image_index"]).apply(
-        lambda group: get_flow_for_frame(group.name[0], group.name[1])
-    )
-
-    # Map the calculated flow values back to the original DataFrame
-    df["sheer_stress"] = df.set_index(["dataset_name", "image_index"]).index.map(flow_mapping)
-    return df
 
 
 @deprecated(
