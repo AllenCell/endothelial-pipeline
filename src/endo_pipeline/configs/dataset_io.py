@@ -37,15 +37,17 @@ def get_config_dir() -> Path:
     return Path(__file__).resolve().parents[0]
 
 
-def save_to_yaml(object: dict, path: Path) -> None:
+def save_to_yaml(object: dict, path: Path, list_representer: bool = True) -> None:
     """Save dictionary object to YAML at given path."""
 
-    yaml.SafeDumper.add_representer(
-        list,
-        lambda dumper, data: dumper.represent_sequence(
-            "tag:yaml.org,2002:seq", data, flow_style=True
-        ),
-    )
+    if list_representer:
+        yaml.SafeDumper.add_representer(
+            list,
+            lambda dumper, data: dumper.represent_sequence(
+                "tag:yaml.org,2002:seq", data, flow_style=True
+            ),
+        )
+
     yaml_content = yaml.safe_dump(
         object, default_flow_style=False, sort_keys=False, width=80, indent=2
     )
@@ -60,11 +62,26 @@ def separate_data_config() -> None:
 
     combined_data_config = yaml.safe_load(combined_path.open())
 
-    for index, (dataset, contents) in enumerate(combined_data_config.items()):
-        data_config_path = separated_path / f"{index:02d}_{dataset}.yaml"
+    for dataset, contents in combined_data_config.items():
+        data_config_path = separated_path / f"{dataset}.yaml"
         single_data_config = {"name": dataset}
         single_data_config.update(contents)
         save_to_yaml(single_data_config, data_config_path)
+
+
+def separate_model_config() -> None:
+    """Separate combined model configs into individual model configs."""
+
+    separated_path = get_config_dir() / "models"
+    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
+
+    combined_model_config = yaml.safe_load(combined_path.open())
+
+    for model, contents in combined_model_config.items():
+        data_config_path = separated_path / f"{model}.yaml"
+        single_model_config = {"name": model}
+        single_model_config.update(contents)
+        save_to_yaml(single_model_config, data_config_path, False)
 
 
 def combine_data_config(save: bool = False) -> dict:
@@ -84,12 +101,29 @@ def combine_data_config(save: bool = False) -> dict:
     return combined_data_config
 
 
+def combine_model_config(save: bool = False) -> dict:
+    """Combine individual model configs into combined config keyed by name."""
+
+    separated_path = get_config_dir() / "models"
+    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
+
+    separate_data_configs = [
+        yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))
+    ]
+    combined_model_config = {config["name"]: config for config in separate_data_configs}
+
+    if save:
+        save_to_yaml(combined_model_config, combined_path)
+
+    return combined_model_config
+
+
 # model methods
 
 
 @deprecated(
     """
-NOTE: you can ignore this warning when loading "model" or "dynamics" configs.
+NOTE: you can ignore this warning when loading "dynamics" configs.
 
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing dataset
@@ -105,6 +139,18 @@ If you need the config for a single dataset, use:
 If you need only need dataset names, use:
 
         configs.get_available_dataset_names
+
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing model
+configs is to use one of the following replacement methods.
+
+If you need the config for a single model, use:
+
+        configs.load_model_config(model_name)
+
+If you need only need dataset names, use:
+
+        configs.get_available_model_names
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -117,6 +163,11 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     if config_type == "data":
         return combine_data_config()
 
+    # If loading the model config, load combined from all individual model
+    # configs. This is part of a change to manage models with dataclasses.
+    if config_type == "model":
+        return combine_model_config()
+
     config_dir = get_config_dir()
     config_file = config_dir / f"{config_type}_config.yaml"
     with open(config_file) as file:
@@ -126,7 +177,7 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
 
 @deprecated(
     """
-NOTE: you can ignore this warning when writing "model" or "dynamics" configs.
+NOTE: you can ignore this warning when writing "dynamics" configs.
 
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for saving updated dataset
@@ -137,6 +188,16 @@ configs is to directly adjust values in the config:
 The dataset config can then be saved using:
 
         configs.save_dataset_config(dataset)
+
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated model
+configs is to directly adjust values in the config:
+
+        model.field = (new value)
+
+The model config can then be saved using:
+
+        configs.save_model_config(model)
 """
 )
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
@@ -161,6 +222,10 @@ def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -
     # config file).
     if config_type == "data":
         separate_data_config()
+        config_file.unlink()
+
+    if config_type == "model":
+        separate_model_config()
         config_file.unlink()
 
 
@@ -655,6 +720,14 @@ def get_flow_info(dataset_name: str) -> list:
     return dataset_info["flow"]
 
 
+@deprecated(
+    """
+This method will be removed. Use one of these alternative methods:
+
+        configs.get_frame_before_flow_change
+        configs.get_frame_after_flow_change
+"""
+)
 def get_flow_change_frame(dataset_name: str) -> int:
     """
     Get frame number at which flow changes in dataset ds_name.
@@ -675,6 +748,13 @@ def get_flow_change_frame(dataset_name: str) -> int:
     return change_frame
 
 
+@deprecated(
+    """
+This method will be removed. Use one of these alternative methods:
+
+        configs.get_flow_at_frame
+"""
+)
 def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     """
     Retrieve the flow value for a specific frame in a dataset.
@@ -701,33 +781,6 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
         if t_start <= frame <= t_stop:
             return flow
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
-
-
-def add_flow_to_dataframe(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Add flow in dyn/cm^2 to a DataFrame containing dataset information.
-    Currently does not work for datasets with -1 as the timepoint.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing dataset information, including 'dataset_name' and 'frame'.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with an additional 'flow' column containing flow values for each frame.
-    """
-    # Group by dataset_name and image_index, calculate flow once per group
-    flow_mapping = df.groupby(["dataset_name", "image_index"]).apply(
-        lambda group: get_flow_for_frame(group.name[0], group.name[1])
-    )
-
-    # Map the calculated flow values back to the original DataFrame
-    df["sheer_stress"] = df.set_index(["dataset_name", "image_index"]).index.map(flow_mapping)
-    return df
 
 
 @deprecated(
@@ -1247,7 +1300,30 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# add deprecated decorator to this function
+@deprecated(
+    """
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing models is:
+
+1. If you need a list of available models by name, before selecting specific
+   dataset(s) to load, use the following replacement method:
+
+        configs.get_available_model_names
+
+   instead of:
+
+        configs.dataset_io.get_available_models
+
+   Individual models(s) can then be loaded with:
+
+        configs.load_model_config(model_name)
+
+2. If you want to load all available models, use the following method to load
+   configs for all available models:
+
+        configs.load_all_model_configs
+"""
+)
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -1256,7 +1332,24 @@ def get_available_models() -> list[str]:
     return model_names
 
 
-# add deprecated decorator to this function
+@deprecated(
+    """
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing model info is
+directly from loaded ModelConfig objects. These configs can be loaded using
+one of the following:
+
+        configs.load_all_model_configs
+        configs.load_model_config(model_name)
+
+Fields can then be accessed using dot notation:
+
+        model.field
+
+Available fields and descriptions for each field for ModelConfig objects are
+provided in configs.model_config.
+"""
+)
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:

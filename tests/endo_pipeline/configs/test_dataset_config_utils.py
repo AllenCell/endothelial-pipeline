@@ -1,10 +1,11 @@
 from pathlib import Path
 
+import bioio
 import pytest
-from bioio import BioImage
 
 from src.endo_pipeline.configs import (
     DatasetConfig,
+    FlowCondition,
     load_dataset_collection_config,
     load_dataset_config,
 )
@@ -14,10 +15,14 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_available_zarr_files,
     get_channel_indices_for_all_positions,
     get_channel_indices_for_position,
+    get_duration_at_flow,
+    get_flow_at_frame,
+    get_frame_after_flow_change,
+    get_frame_before_flow_change,
     get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
-    make_sample_type_objective_microscope_collection,
+    make_filtered_dataset_collection,
 )
 
 
@@ -47,13 +52,13 @@ def dataset():
 
 @pytest.fixture(autouse=True)
 def zarr_files(mocker):
-    zarr_p1_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p1_mock = mocker.MagicMock(spec=bioio.BioImage)
     zarr_p1_mock.channel_names = ["Channel1", "Channel2"]
 
-    zarr_p3_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p3_mock = mocker.MagicMock(spec=bioio.BioImage)
     zarr_p3_mock.channel_names = ["Channel1", "Channel2", "Channel3"]
 
-    zarr_p5_mock = mocker.MagicMock(spec=BioImage)
+    zarr_p5_mock = mocker.MagicMock(spec=bioio.BioImage)
     zarr_p5_mock.channel_names = ["Channel1", "Channel3", "Channel4"]
 
     files = {
@@ -62,8 +67,10 @@ def zarr_files(mocker):
         Path("/path/to/zarr/dataset/dataset_P5.ome.zarr"): zarr_p5_mock,
     }
 
-    mock = mocker.patch("src.endo_pipeline.configs.dataset_config_utils.BioImage")
-    mock.side_effect = lambda arg: files[arg]
+    bioimage_mock = mocker.MagicMock()
+    bioimage_mock.side_effect = lambda arg: files[arg]
+
+    mocker.patch.object(bioio, "BioImage", bioimage_mock)
 
 
 def test_get_available_zarr_files(dataset):
@@ -165,6 +172,70 @@ def test_get_specific_channel_order_with_null_channels(dataset):
     assert channel_order == (2, 1, None, None, 5)
 
 
+def test_get_frame_before_flow_change_valid_flow_condition(dataset):
+    dataset.flow_conditions = [
+        FlowCondition(start=0, stop=5, shear_stress=1),
+        FlowCondition(start=6, stop=10, shear_stress=2),
+    ]
+
+    assert get_frame_before_flow_change(dataset) == 5
+
+
+@pytest.mark.parametrize("num_conditions", [0, 1, 3, 4])
+def test_get_frame_before_flow_change_invalid_flow_condition(dataset, num_conditions):
+    dataset.flow_conditions = [FlowCondition(start=0, stop=0, shear_stress=0)] * num_conditions
+
+    assert get_frame_before_flow_change(dataset) is None
+
+
+def test_get_frame_after_flow_change_valid_flow_condition(dataset):
+    dataset.flow_conditions = [
+        FlowCondition(start=0, stop=5, shear_stress=1),
+        FlowCondition(start=6, stop=10, shear_stress=2),
+    ]
+
+    assert get_frame_after_flow_change(dataset) == 6
+
+
+@pytest.mark.parametrize("num_conditions", [0, 1, 3, 4])
+def test_get_frame_after_flow_change_invalid_flow_condition(dataset, num_conditions):
+    dataset.flow_conditions = [FlowCondition(start=0, stop=0, shear_stress=0)] * num_conditions
+
+    assert get_frame_after_flow_change(dataset) is None
+
+
+@pytest.mark.parametrize("frame,expected_flow", [(-5, 1), (-2, 1), (0, 1), (5, 2), (7, 2), (10, 2)])
+def test_get_flow_at_frame_valid_frames(dataset, frame, expected_flow):
+    dataset.flow_conditions = [
+        FlowCondition(start=-5, stop=0, shear_stress=1),
+        FlowCondition(start=5, stop=10, shear_stress=2),
+    ]
+
+    assert get_flow_at_frame(dataset, frame) == expected_flow
+
+
+@pytest.mark.parametrize("frame", [-15, -11, 1, 9, 30])
+def test_get_flow_at_frame_invalid_frames(dataset, frame):
+    dataset.flow_conditions = [
+        FlowCondition(start=-10, stop=0, shear_stress=1),
+        FlowCondition(start=10, stop=20, shear_stress=2),
+        FlowCondition(start=21, stop=29, shear_stress=3),
+    ]
+    assert get_flow_at_frame(dataset, frame) is None
+
+
+@pytest.mark.parametrize("flow,expected_duration", [(0, 8), (1, 10), (2, 20), (3, 0)])
+def test_get_duration_at_flow(dataset, flow, expected_duration):
+    dataset.flow_conditions = [
+        FlowCondition(start=-10, stop=0, shear_stress=1),
+        FlowCondition(start=10, stop=20, shear_stress=2),
+        FlowCondition(start=21, stop=29, shear_stress=0),
+        FlowCondition(start=30, stop=40, shear_stress=2),
+    ]
+
+    assert get_duration_at_flow(dataset, flow) == expected_duration
+
+
 @pytest.mark.parametrize(
     "nuc_seg_type,position,expected",
     [
@@ -189,36 +260,33 @@ def test_get_nuclear_prediction_path_invalid_paths(dataset, nuc_seg_type):
         get_nuclear_prediction_path(dataset, 0, nuc_seg_type)
 
 
-def test_make_live_20X_objective_3i_microscope_dataset_collection():
-    """
-    Test the creation of a dataset collection
-    for live samples with 20X objective and 3i microscope.
-    """
-    dataset_collection = make_sample_type_objective_microscope_collection(
-        sample_type="live",
-        objective="20X",
-        microscope="3i",
+@pytest.mark.parametrize(
+    "sample_type,objective,microscope",
+    [
+        ("live", "20X", "3i"),
+        ("live", "20X", "Nikon"),
+        ("live", "40X", "3i"),
+        ("live", "40X", "Nikon"),
+        ("fixed", "20X", "3i"),
+        ("fixed", "20X", "Nikon"),
+        ("fixed", "40X", "3i"),
+        ("fixed", "40X", "Nikon"),
+    ],
+)
+def test_make_filtered_dataset_collection(sample_type, objective, microscope):
+    dataset_collection = make_filtered_dataset_collection(
+        sample_type=sample_type,
+        objective=objective,
+        microscope=microscope,
     )
+
     dataset_configs = [
         load_dataset_config(dataset_name) for dataset_name in dataset_collection.datasets
     ]
+
     assert all(
-        dataset_config.live_or_fixed_sample == "live"
-        and "20X" in dataset_config.name
-        and dataset_config.microscope == "3i"
+        dataset_config.live_or_fixed_sample == sample_type
+        and objective in dataset_config.name
+        and dataset_config.microscope == microscope
         for dataset_config in dataset_configs
     )
-
-
-def test_loaded_live_20X_objective_3i_microscope_collection():
-    """
-    Compare the current live 20X objective 3i microscope collection
-    with the one generated by the function.
-    """
-    dataset_collection = make_sample_type_objective_microscope_collection(
-        sample_type="live",
-        objective="20X",
-        microscope="3i",
-    )
-    loaded_dataset_collection = load_dataset_collection_config(dataset_collection.name)
-    assert loaded_dataset_collection.datasets == dataset_collection.datasets

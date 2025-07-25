@@ -4,8 +4,6 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-from bioio import BioImage
-
 from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
@@ -58,6 +56,8 @@ def get_available_channels_for_position(dataset: DatasetConfig, position: int) -
     # dataset configs, to avoid needing to load Zarrs every time we want to
     # access channel names
 
+    from bioio import BioImage
+
     zarr_file = get_zarr_file_for_position(dataset, position)
     return BioImage(zarr_file).channel_names
 
@@ -99,6 +99,59 @@ def get_specific_channel_order(
     )
 
 
+def get_frame_before_flow_change(dataset: DatasetConfig) -> int | None:
+    """Get frame number immediately before the flow changes."""
+
+    if len(dataset.flow_conditions) == 1:
+        logger.warning("Dataset [ %s ] only has one flow condition", dataset.name)
+        return None
+
+    if len(dataset.flow_conditions) == 2:
+        return dataset.flow_conditions[0].stop
+
+    logger.warning("Dataset [ %s ] must have only one or two flow conditions", dataset.name)
+    return None
+
+
+def get_frame_after_flow_change(dataset: DatasetConfig) -> int | None:
+    """Get frame number immediately after the flow changes."""
+
+    if len(dataset.flow_conditions) == 1:
+        logger.warning("Dataset [ %s ] only has one flow condition", dataset.name)
+        return None
+
+    if len(dataset.flow_conditions) == 2:
+        return dataset.flow_conditions[1].start
+
+    logger.warning("Dataset [ %s ] must have only one or two flow conditions", dataset.name)
+    return None
+
+
+def get_flow_at_frame(dataset: DatasetConfig, frame: int) -> float | None:
+    """Get the shear stress the dataset was under at the given frame."""
+
+    for condition in dataset.flow_conditions:
+        if condition.start <= frame <= condition.stop:
+            return condition.shear_stress
+
+    logger.warning(
+        "Dataset [ %s ] does not have flow condition for frame [ %d ]", dataset.name, frame
+    )
+    return None
+
+
+def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
+    """Get the duration the dataset was under the given shear stress."""
+
+    duration = 0
+
+    for condition in dataset.flow_conditions:
+        if condition.shear_stress == shear_stress:
+            duration = duration + (condition.stop - condition.start)
+
+    return duration
+
+
 def get_nuclear_prediction_path(
     dataset: DatasetConfig,
     position: int,
@@ -127,28 +180,41 @@ def get_nuclear_prediction_path(
         raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
 
 
-def make_sample_type_objective_microscope_collection(
+def get_filtered_dataset_collection_name(
+    sample_type: Literal["live", "fixed"],
+    objective: Literal["20X", "40X"],
+    microscope: Literal["3i", "Nikon"],
+) -> str:
+    """Get name of dataset collection filtered by sample type, objective, and microscope."""
+
+    return f"{sample_type}_{objective}_objective_{microscope}_microscope"
+
+
+def make_filtered_dataset_collection(
     sample_type: Literal["live", "fixed"],
     objective: Literal["20X", "40X"],
     microscope: Literal["3i", "Nikon"],
 ) -> DatasetCollectionConfig:
-    """
-    Create and return collection of datasets that are
-    of a specific sample type, objective, and microscope.
-    """
+    """Create dataset collection filtered by sample type, objective, and microscope."""
+
     dataset_configs = load_all_dataset_configs()
     dataset_collection_names = []
+
     for dataset_config in dataset_configs:
-        if (  # filter datasets based on sample type, objective, and microscope
+        if (
             dataset_config.live_or_fixed_sample == sample_type
             and objective in dataset_config.name  # this will become a key soon
             and dataset_config.microscope == microscope
         ):
             dataset_collection_names.append(dataset_config.name)
+
     dataset_collection = DatasetCollectionConfig(
-        name=f"{sample_type}_{objective}_objective_{microscope}_microscope",
-        description=f"Collection of {sample_type} datasets with {objective} objective from the {microscope} microscope.",  # noqa: E501
-        datasets=dataset_collection_names,
+        name=get_filtered_dataset_collection_name(sample_type, objective, microscope),
+        description=(
+            f"Collection of {sample_type} datasets with {objective} objective "
+            f"from the {microscope} microscope."
+        ),
+        datasets=sorted(dataset_collection_names),
     )
 
     return dataset_collection
@@ -173,7 +239,6 @@ def validate_3d_flow_field_dataset_collection() -> None:
                 "Dataset [ %s ] in [ 3d_flow_field_analysis ] has multiple flow conditions.",
                 dataset_name,
             )
-            raise ValueError(f"Dataset [ {dataset_name} ] has more than one flow condition.")
 
     for pca_dataset_name in pca_reference_datasets:
         if pca_dataset_name not in analysis_datasets:
@@ -181,6 +246,31 @@ def validate_3d_flow_field_dataset_collection() -> None:
                 "Dataset [ %s ] used for fitting PCA is not in the collection.",
                 dataset_name,
             )
-            raise ValueError(
-                f"Dataset [ {dataset_name} ] must be present for 3D flow field analysis."
-            )
+
+
+def validate_filtered_dataset_collection(
+    sample_type: Literal["live", "fixed"],
+    objective: Literal["20X", "40X"],
+    microscope: Literal["3i", "Nikon"],
+) -> None:
+    """Validate dataset collection filtered by sample type, objective, and microscope."""
+
+    collection_name = get_filtered_dataset_collection_name(sample_type, objective, microscope)
+    generated_collection = make_filtered_dataset_collection(sample_type, objective, microscope)
+    loaded_collection = load_dataset_collection_config(collection_name)
+
+    if sorted(loaded_collection.datasets) != sorted(generated_collection.datasets):
+        logger.error(
+            "Generated dataset collection [ %s ] does not match loaded dataset collection",
+            collection_name,
+        )
+        logger.info(
+            "Generated dataset collection [ %s ] contains datasets [ %s ]",
+            collection_name,
+            " | ".join(generated_collection.datasets),
+        )
+        logger.info(
+            "Loaded dataset collection [ %s ] contains datasets [ %s ]",
+            collection_name,
+            " | ".join(generated_collection.datasets),
+        )

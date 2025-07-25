@@ -33,7 +33,7 @@ def main(
     """
     from omegaconf import OmegaConf
 
-    from src.endo_pipeline.configs import ModelConfig, load_model_config, save_model_config
+    from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import (
         download_mlflow_artifact,
@@ -83,7 +83,7 @@ def main(
         train_csv_path, val_csv_path, f"{dataset_pair_type}_paired_datasets"
     )
     # add run ID and training datasets to model config
-    model_config = ModelConfig(
+    model_config = CytoDLModelConfig(
         name=f"{model_name}_finetuned_for_{dataset_pair_type}",
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,

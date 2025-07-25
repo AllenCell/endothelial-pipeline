@@ -155,6 +155,8 @@ class DatasetConfig:
     """"Additional notes about dataset."""
 
     class Config(BaseConfig):
+        """Settings for dataset config."""
+
         forbid_extra_keys = True
         omit_none = False
 

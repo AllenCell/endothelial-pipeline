@@ -7,8 +7,8 @@ import torch
 from cyto_dl.api import CytoDLModel
 
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     DatasetConfig,
-    ModelConfig,
     add_model_manifest,
     save_dataset_config,
 )
@@ -366,7 +366,7 @@ def update_prediction_from_tracks_with_metadata(
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
-    model_config: ModelConfig,
+    model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     upload_to_fms: bool = True,
@@ -377,7 +377,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     Parameters
     ----------
-    model_config: ModelConfig
+    model_config: CytoDLModelConfig
         Configuration of the model to apply.
     dataset_config: DatasetConfig
         Configuration of the dataset to apply the model to.
@@ -458,7 +458,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
 
 def apply_model_on_tracked_crops_from_one_dataset(
-    model_config: ModelConfig,
+    model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
@@ -470,7 +470,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
 
     Parameters
     ----------
-    model_config: ModelConfig
+    model_config: CytoDLModelConfig
         Configuration of the model to apply.
     dataset_config: DatasetConfig
         Configuration of the dataset to apply the model to.

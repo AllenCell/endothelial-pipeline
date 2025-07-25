@@ -30,6 +30,7 @@ if __name__ != "__main__":
 import logging
 
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     get_available_model_names,
     load_dataset_config,
     load_model_config,
@@ -66,6 +67,11 @@ for name in get_available_model_names():
 
     # Load dataset config.
     model_config = load_model_config(name)
+
+    # Skip remaining validation if model not a CytoDL model
+    if not isinstance(model_config, CytoDLModelConfig):
+        logger.info("Skipping remaining validation for non-CytoDL model [ %s ]", name)
+        continue
 
     # Check if model exists in MLFlow.
     try:

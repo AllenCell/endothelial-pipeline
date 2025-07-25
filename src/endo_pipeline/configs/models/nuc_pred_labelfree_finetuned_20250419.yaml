@@ -1,6 +1,2 @@
-name: nuc_pred_labelfree_retrained_20250419-18_13
-mlflow_run_id: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250419-18_13/CellPose_default_nuclei_model_finetuning/models/labelfree_nuc_pred_20250419-18_13
-manifest_fmsids: []
-training_datasets: []
-train_manifest_fmsid: null
-test_manifest_fmsid: null
+name: nuc_pred_labelfree_finetuned_20250419
+model_path: //allen/aics/users/serge.parent/cellsmap_labelfree_nuclei_model/20250419-18_13/CellPose_default_nuclei_model_finetuning/models/labelfree_nuc_pred_20250419-18_13
