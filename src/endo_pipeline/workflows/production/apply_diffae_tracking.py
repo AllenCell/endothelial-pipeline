@@ -18,10 +18,8 @@ def main(
     for each dataset.
 
     Example usage:
-    ```
-    uv run src/endo_pipeline/workflows/apply_model.py
-    --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
-    ```
+    ... code-block:: bash
+    uv run endopipe apply_diffae_tracking --model_name diffae_04_10 --dataset_names 20241120_20X 20241217_20X
 
     Parameters
     ----------
@@ -32,11 +30,11 @@ def main(
         If it is a string, it should either be a single dataset name or the name of a
         dataset collection.
     upload_to_fms
-        Whether to upload the prediction file to FMS. Default is True.
+        Whether to upload the prediction file to FMS.
     save_path
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
+        Path to save the prediction file.
     overrides
-        Overrides to apply to the model config. By default, no overrides are applied
+        Overrides to apply to the model config.
 
     Returns
     -------

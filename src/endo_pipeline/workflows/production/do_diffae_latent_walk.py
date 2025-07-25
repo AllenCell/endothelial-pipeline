@@ -14,31 +14,28 @@ def main(
     Create latent walk for a given model using PCA or model features.
 
     Example usage:
-    ```
-    uv run src/endo_pipeline/workflows/latent_walk.py
-        --model_name diffae_04_10 --num_pcs 3 --sigma 3.0
-        --n_steps 10 --use_pcs True --show_coords True
+    ... code-block:: bash
+    uv run endopipe do_diffae_latent_walk --model_name diffae_04_10
     ```
 
     Parameters
     ----------
     model_name
         Name of the model to use for generating the latent walk.
-        Default is "diffae_04_10".
     num_pcs
         Number of principal components to use for the
-        latent walk. Default is 3.
+        latent walk.
     sigma
         Number of standard deviations from the mean to traverse
-        for the latent walk. Default is 3.0.
+        for the latent walk.
     n_steps
         Number of steps in the latent walk. Default is 10.
     use_pcs
         Whether to use PCA for generating the latent walk.
-        If False, the raw latent dimensions are used. Default is True.
+        If False, the raw latent dimensions are used.
     show_coords
         Whether to show the dimension value to generate a
-        given image. Default is True.
+        given image.
     n_noise_samples
         Number of noise samples to use for generating images.
         Default is 1.

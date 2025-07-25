@@ -9,9 +9,12 @@ def main(
     plot_heatmap: bool = False,
 ) -> None:
     """
-    Generate a montage of cropped images such that when the feature vector
-    corresponding to the cropped images is projected onto the principal component
-    axes, the value of the specified principal component is equal to the specified value.
+    Generate a montage of cropped images within a specified range of PC values.
+
+    The crops are selected such that when the feature vector corresponding to the cropped
+    images is pass through the model prediction step, and the resulting latent feature vector is
+    projected onto the principal component axes, the value of the specified principal component is
+    within an automatically generated ranfe of the specified value.
 
     Parameters
     ----------
