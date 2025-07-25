@@ -24,7 +24,7 @@ def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig,
     save_path: Path,
     resolution_level: int = 1,
-    limit_z_slices: bool = False,
+    limit_z_slices: tuple[int, int] | None = None,
 ) -> str:
     """Generate a CSV file with path to Zarr files for the given dataset."""
 
@@ -35,15 +35,20 @@ def generate_zarr_csv_for_model_eval(
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
 
-    # if limit_z_slices is True, add a column with z-slice ranges
+    # if limit_z_slices is not None, add a column with z-slice ranges
     # for each position in the dataset (i.e., zarr file)
-    if limit_z_slices:
+    if limit_z_slices is not None:
         # FOR CHANTELLE: this is a wrapper function to get z-slice ranges
         # from dataset name and position in the dataset
         def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
             # get position from zarr path as 'P{x}'
             position = zarr_file_path.stem.split("_")[-1].split(".")[0]
-            z_slices = get_centered_plane_indices(dataset_config, position)
+            z_slices = get_centered_plane_indices(
+                dataset_config,
+                position,
+                lower_offset=limit_z_slices[0],
+                upper_offset=limit_z_slices[1],
+            )
             return z_slices
 
         # apply the function to each zarr file path
@@ -53,7 +58,7 @@ def generate_zarr_csv_for_model_eval(
     df["path"] = df["path"].apply(lambda x: str(x))
 
     # save csv and return the path
-    if limit_z_slices:
+    if limit_z_slices is not None:
         data_path = save_path / "dataset_limit_z_stack.csv"
     else:
         data_path = save_path / "dataset.csv"
@@ -235,7 +240,7 @@ def generate_overrides_for_model_eval(
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
-    limit_z_slices: bool = False,
+    limit_z_slices: tuple[int, int] | None = None,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -250,7 +255,7 @@ def generate_overrides_for_model_eval(
         "data.predict_dataloaders.num_workers": 128,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         # if limit_z_slices is True, need to point to extra column
-        "data.predict_dataloaders.dataset.extra_columns": "Z" if limit_z_slices else [],
+        "data.predict_dataloaders.dataset.extra_columns": "Z" if limit_z_slices is not None else [],
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
