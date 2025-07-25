@@ -10,6 +10,7 @@ from src.endo_pipeline.configs import (
     load_dataset_collection_config,
 )
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
+from src.endo_pipeline.library.process.z_stack_selection import get_centered_plane_indices
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
@@ -39,11 +40,11 @@ def generate_zarr_csv_for_model_eval(
     if limit_z_slices:
         # FOR CHANTELLE: this is a wrapper function to get z-slice ranges
         # from dataset name and position in the dataset
-        def _get_z_slices(zarr_file_path: Path, dataset_name: str) -> list[int]:
+        def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
             # get position from zarr path as 'P{x}'
             position = zarr_file_path.stem.split("_")[-1].split(".")[0]
-            # ADD CALL TO ACTUAL FUNCTION HERE
-            return [0, 1, 2, 3, 4]
+            z_slices = get_centered_plane_indices(dataset_config, position)
+            return z_slices
 
         # apply the function to each zarr file path
         df["Z"] = df["path"].apply(lambda x: _get_z_slices(x, dataset_config.name))

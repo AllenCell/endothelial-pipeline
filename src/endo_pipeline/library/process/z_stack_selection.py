@@ -3,8 +3,64 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.endo_pipeline.io import save_plot_to_path
+from src.endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
+from src.endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
 from src.endo_pipeline.library.process.image_processing import contrast_stretching
+
+
+def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) -> int:
+    """
+    Calculate the global center plane for a single position across all frames.
+
+    This function determines the center plane of a brightfield (BF) z-stack for a given position
+    by analyzing the standard deviations of pixel intensities across all frames. The center plane
+    is calculated as the plane with the lowest standard deviation for each frame, and the global
+    center plane is determined as the average of these values across all frames.
+
+    Args:
+        dataset_config (DatasetConfig): Configuration object with dataset-specific information.
+        position (int): The position index.
+
+    Returns:
+        int: The global center plane index for the specified position.
+    """
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+    bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
+
+    center_planes = []
+
+    for frame in range(0, dataset_config.duration, 1):
+        bf_stack = bf_stack_all_frames[frame].squeeze()
+        stdevs = bf_stack.std(axis=(1, 2)).compute()
+        center_planes.append(max(0, np.argmin(stdevs)))
+
+    mean_center_plane = np.mean(center_planes)
+    global_center_plane = round(mean_center_plane, 0)
+
+    return int(global_center_plane)
+
+
+def get_centered_plane_indices(
+    dataset_config: DatasetConfig, position: int, lower_offset: int = 5, upper_offset: int = 16
+) -> list[int]:
+    """
+    Get a list of plane indices centered around the global center plane. The minimum index is 0
+    and the maximum is 25.
+
+    Args:
+        dataset_config (DatasetConfig): Configuration object with dataset-specific information.
+        position (int): The position index.
+        lower_offset (int): The number of planes below the center plane to include.
+        upper_offset (int): The number of planes above the center plane to include.
+
+    Returns:
+        list[int]: A list of plane indices centered around the global center plane to be included
+        in the standard deviation projection.
+    """
+    global_center_plane = get_center_plane_for_position(dataset_config, position)
+    lower_bound = max(0, global_center_plane - lower_offset)
+    upper_bound = min(25, global_center_plane + upper_offset)
+    return list(range(lower_bound, upper_bound + 1))
 
 
 def plot_standard_devs_per_slice(
