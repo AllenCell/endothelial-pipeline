@@ -7,6 +7,9 @@ from typing import Literal
 from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
+    MicroscopeType,
+    ObjectiveType,
+    SampleType,
     load_all_dataset_configs,
     load_dataset_collection_config,
 )
@@ -180,9 +183,7 @@ def get_nuclear_prediction_path(
 
 
 def get_filtered_dataset_collection_name(
-    sample_type: Literal["live", "fixed"],
-    objective: Literal["20X", "40X"],
-    microscope: Literal["3i", "Nikon"],
+    sample_type: SampleType, objective: ObjectiveType, microscope: MicroscopeType
 ) -> str:
     """Get name of dataset collection filtered by sample type, objective, and microscope."""
 
@@ -190,9 +191,7 @@ def get_filtered_dataset_collection_name(
 
 
 def make_filtered_dataset_collection(
-    sample_type: Literal["live", "fixed"],
-    objective: Literal["20X", "40X"],
-    microscope: Literal["3i", "Nikon"],
+    sample_type: SampleType, objective: ObjectiveType, microscope: MicroscopeType
 ) -> DatasetCollectionConfig:
     """Create dataset collection filtered by sample type, objective, and microscope."""
 
@@ -220,9 +219,7 @@ def make_filtered_dataset_collection(
 
 
 def validate_filtered_dataset_collection(
-    sample_type: Literal["live", "fixed"],
-    objective: Literal["20X", "40X"],
-    microscope: Literal["3i", "Nikon"],
+    sample_type: SampleType, objective: ObjectiveType, microscope: MicroscopeType
 ) -> None:
     """Validate dataset collection filtered by sample type, objective, and microscope."""
 
