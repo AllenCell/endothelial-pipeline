@@ -171,7 +171,7 @@ def generate_overrides_for_track_based_crops(
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
-) -> str:
+) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
