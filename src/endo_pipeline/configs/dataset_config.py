@@ -73,6 +73,9 @@ class DatasetConfig:
     microscope: Literal["3i", "Nikon"]
     """Microscope that dataset was collected with."""
 
+    objective: Literal["20X", "40X"]
+    """Objective that dataset was collected under."""
+
     shear_stress_regime: str
     """Shear stress regime the dataset was collected under."""
 
