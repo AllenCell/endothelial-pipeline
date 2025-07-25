@@ -1,4 +1,3 @@
-from .config_io import get_config_dir
 from .dataset_config import DatasetCollectionConfig, DatasetConfig, FlowCondition, ValidTimepoints
 from .dataset_config_io import (
     get_available_dataset_collection_names,
@@ -21,15 +20,17 @@ from .dataset_config_utils import (
     get_channel_indices_for_all_positions,
     get_channel_indices_for_position,
     get_duration_at_flow,
+    get_filtered_dataset_collection_name,
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
     get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
-    make_sample_type_objective_microscope_collection,
+    make_filtered_dataset_collection,
+    validate_filtered_dataset_collection,
 )
-from .model_config import ModelConfig, ModelManifest
+from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
 from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,
@@ -48,6 +49,8 @@ from .model_config_utils import (
 )
 
 __all__ = [
+    "CellposeModelConfig",
+    "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
@@ -68,6 +71,7 @@ __all__ = [
     "get_dataset_config_dir",
     "get_datasets_in_collection",
     "get_duration_at_flow",
+    "get_filtered_dataset_collection_name",
     "get_flow_at_frame",
     "get_flow_change_frame",
     "get_frame_after_flow_change",
@@ -85,12 +89,13 @@ __all__ = [
     "load_dataset_collection_config",
     "load_dataset_config",
     "load_model_config",
-    "make_sample_type_objective_microscope_collection",
+    "make_filtered_dataset_collection",
     "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",
     "validate_all_dataset_configs",
     "validate_all_model_configs",
     "validate_dataset_config",
+    "validate_filtered_dataset_collection",
     "validate_model_config",
 ]
