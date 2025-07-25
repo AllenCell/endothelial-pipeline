@@ -183,15 +183,37 @@ def get_nuclear_prediction_path(
 
 
 def get_filtered_dataset_collection_name(
-    sample_type: SampleType, objective: ObjectiveType, microscope: MicroscopeType
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
 ) -> str:
-    """Get name of dataset collection filtered by sample type, objective, and microscope."""
+    """Get name of dataset collection with various filters applied."""
 
-    return f"{sample_type}_{objective}_objective_{microscope}_microscope"
+    name: list[str] = []
+    name.append(sample_type if sample_type is not None else "")
+    name.append(f"_{objective}_objective" if objective is not None else "")
+    name.append(f"_{microscope}_microscope" if microscope is not None else "")
+    return "".join(name)
+
+
+def get_filtered_dataset_collection_description(
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
+) -> str:
+    """Get description of dataset collection with various filtered applied."""
+
+    description: list[str] = ["Collection of"]
+    description.append(f" {sample_type} datasets" if sample_type is not None else " datasets")
+    description.append(f" with {objective} objective" if objective is not None else "")
+    description.append(f" from the {microscope} microscope" if microscope is not None else ".")
+    return "".join(description)
 
 
 def make_filtered_dataset_collection(
-    sample_type: SampleType, objective: ObjectiveType, microscope: MicroscopeType
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
 ) -> DatasetCollectionConfig:
     """Create dataset collection filtered by sample type, objective, and microscope."""
 
@@ -199,19 +221,20 @@ def make_filtered_dataset_collection(
     dataset_collection_names = []
 
     for dataset_config in dataset_configs:
-        if (
-            dataset_config.live_or_fixed_sample == sample_type
-            and objective in dataset_config.name  # this will become a key soon
-            and dataset_config.microscope == microscope
-        ):
-            dataset_collection_names.append(dataset_config.name)
+        if sample_type is not None and dataset_config.live_or_fixed_sample != sample_type:
+            continue
+
+        if objective is not None and dataset_config.objective != objective:
+            continue
+
+        if microscope is not None and dataset_config.microscope != microscope:
+            continue
+
+        dataset_collection_names.append(dataset_config.name)
 
     dataset_collection = DatasetCollectionConfig(
         name=get_filtered_dataset_collection_name(sample_type, objective, microscope),
-        description=(
-            f"Collection of {sample_type} datasets with {objective} objective "
-            f"from the {microscope} microscope."
-        ),
+        description=get_filtered_dataset_collection_description(sample_type, objective, microscope),
         datasets=sorted(dataset_collection_names),
     )
 
@@ -219,7 +242,9 @@ def make_filtered_dataset_collection(
 
 
 def validate_filtered_dataset_collection(
-    sample_type: SampleType, objective: ObjectiveType, microscope: MicroscopeType
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
 ) -> None:
     """Validate dataset collection filtered by sample type, objective, and microscope."""
 
