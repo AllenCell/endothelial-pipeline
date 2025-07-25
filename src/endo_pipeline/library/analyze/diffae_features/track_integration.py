@@ -467,6 +467,25 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
     # remove any rows that were not evaluated by the model and thus have no mlflow_id
     merged_feats_df.dropna(axis="index", how="any", subset="mlflow_id", inplace=True)
 
+    # keep only the columns that are needed for the analysis to reduce memory usage
+    cols_to_keep = [
+        "dataset_name",
+        "position",
+        "position_as_str",
+        "track_id",
+        "label",
+        "crop_index",
+        "mlflow_id",
+        "model_name",
+        "image_index",
+        "frame_number",
+        "time_hours",
+        "time_minutes",
+        "track_duration",
+    ] + [col for col in merged_feats_df.columns if "feat" in col]
+
+    merged_feats_df = merged_feats_df[cols_to_keep]
+
     # fit the PCA (uses the reference datasets)
     pca = fit_pca()
 
@@ -879,6 +898,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
     fig.savefig(
         out_subdir / f"{dataset_name}_angular_deviation_histogram.png", dpi=200, bbox_inches="tight"
     )
+    plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(4, 4))
     sns.histplot(data=test, x="track_angular_deviation_deg", y="pc1_pc2_vec_mag", binwidth=(1, None), ax=ax)  # type: ignore
@@ -894,6 +914,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         dpi=200,
         bbox_inches="tight",
     )
+    plt.close(fig)
 
     if make_integrated_plots:
 
