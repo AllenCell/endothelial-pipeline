@@ -21,7 +21,8 @@ def main(
     dataset_names: str | Sequence[str] = "live_20X_objective_3i_microscope",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
+    limit_z_slices: bool = False,
 ) -> None:
     """
     Apply a model to a multiple datasets.
@@ -47,8 +48,11 @@ def main(
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str | Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
-        Overrides to apply to the model config. By default, no overrides are applied
+    user_overrides: str or dict or None
+        Additional overrides to apply to the model config. By default, no overrides are applied.
+    limit_z_slices: bool
+        Whether to limit the number of z-slices to load from the raw brightfield images.
+        Default is False, which loads all z-slices.
     """
     # if input is a string, check if it is a dataset collection or a single dataset name
     if isinstance(dataset_names, str):
@@ -83,7 +87,8 @@ def main(
             dataset_config=dataset_config,
             resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
-            overrides=overrides,
+            user_overrides=user_overrides,
+            limit_z_slices=limit_z_slices,
         )
 
     # save out updated model config

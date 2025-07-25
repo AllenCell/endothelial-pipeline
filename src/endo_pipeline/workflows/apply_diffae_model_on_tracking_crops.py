@@ -12,7 +12,7 @@ def main(
     dataset_names: Sequence[str],
     upload_to_fms: bool = True,
     save_path: str | Path | None = None,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Apply a model to a multiple datasets.
@@ -34,8 +34,8 @@ def main(
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str | Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
-        Overrides to apply to the model config. By default, no overrides are applied
+    user_overrides: str or dict or None
+        Additional overrides to apply to the model config. By default, no overrides are applied
     """
     if isinstance(dataset_names, str):
         dataset_names = [dataset_names]
@@ -51,7 +51,7 @@ def main(
             dataset_config=dataset_config,
             upload_to_fms=upload_to_fms,
             save_path=save_path,
-            overrides=overrides,
+            user_overrides=user_overrides,
         )
 
 

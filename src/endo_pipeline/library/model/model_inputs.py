@@ -4,7 +4,11 @@ from typing import Any, Literal
 
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from src.endo_pipeline.configs import (
+    DatasetConfig,
+    get_available_zarr_files,
+    load_dataset_collection_config,
+)
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
@@ -16,21 +20,37 @@ def get_model_dir() -> Path:
 
 
 def generate_zarr_csv_for_model_eval(
-    dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
+    dataset_config: DatasetConfig,
+    save_path: Path,
+    resolution_level: int = 1,
+    limit_z_slices: bool = False,
 ) -> str:
     """Generate a CSV file with path to Zarr files for the given dataset."""
-    # generate csv with paths to zarr files
-    # this replaces the call to get_zarr_path from dataset_io
-    # note that this will likely be refactored after
-    # the new zarr methods merge
-    zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
-    zarr_path_dict = {}
-    for path in zarr_path_list:
-        zarr_path_dict[path.name] = str(path)
 
-    df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
+    # generate csv with paths to zarr files for each position in the dataset
+    zarr_path_list = sorted(get_available_zarr_files(dataset_config))
+
+    df = pd.DataFrame({"path": zarr_path_list})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = resolution_level
+
+    # if limit_z_slices is True, add a column with z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    if limit_z_slices:
+        # FOR CHANTELLE: this is a wrapper function to get z-slice ranges
+        # from dataset name and position in the dataset
+        def _get_z_slices(zarr_file_path: Path, dataset_name: str) -> list[int]:
+            # get position from zarr path as 'P{x}'
+            position = zarr_file_path.stem.split("_")[-1].split(".")[0]
+            # ADD CALL TO ACTUAL FUNCTION HERE
+            return [0, 1, 2, 3, 4]
+
+        # apply the function to each zarr file path
+        df["z_slices"] = df["path"].apply(lambda x: _get_z_slices(x, dataset_config.name))
+
+    # turn paths into strings
+    df["path"] = df["path"].apply(lambda x: str(x))
+
     data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path

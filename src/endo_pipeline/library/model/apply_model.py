@@ -74,7 +74,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
     upload_to_fms: bool = True,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
+    limit_z_slices: bool = False,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
@@ -91,12 +92,15 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str or Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
-        Overrides to apply to the model config. By default, no overrides are applied
+    user_overrides: str or dict or None
+        Additional overrides to apply to the model config. By default, no overrides are applied.
+    limit_z_slices: bool
+        Whether to limit the number of z-slices to load from the raw brightfield images.
+        Default is False, which loads all z-slices.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(overrides)
+    user_overrides_ = load_overrides(user_overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, "train", include_timestamp=False)
@@ -111,18 +115,27 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    # create zarr dataset
-    data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
+    # create csv with zarr paths and args for loading and processing images
+    data_path = generate_zarr_csv_for_model_eval(
+        dataset_config, save_path, resolution_level, limit_z_slices
+    )
 
-    # apply overrides
+    # apply overrides for model evaluation
     overrides = generate_overrides_for_model_eval(
-        overrides,
+        user_overrides=user_overrides_,
         save_path=str(save_path),
         data_path=str(data_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
     )
+
+    if limit_z_slices:
+        # additional overrides specific to z-slice selection
+        z_slice_overrides = {"data.predict_dataloaders.dataset.extra_keys": "Z"}
+        overrides.update(z_slice_overrides)
+
+    # override model config with the overrides
     model.override_config(overrides)
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
@@ -166,7 +179,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     dataset_config: DatasetConfig,
     save_path: str | Path | None = None,
     upload_to_fms: bool = True,
-    overrides: str | dict | None = None,
+    user_overrides: str | dict | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset with
@@ -184,12 +197,12 @@ def apply_model_on_tracked_crops_from_one_dataset(
         Whether to upload the prediction file to FMS. Default is True.
     save_path: str or Path | None
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    overrides: str or dict or None
-        Overrides to apply to the model config. By default, no overrides are applied
+    user_overrides: str or dict or None
+        Additional overrides to apply to the model config. By default, no overrides are applied
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(overrides)
+    user_overrides_ = load_overrides(user_overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
@@ -207,11 +220,13 @@ def apply_model_on_tracked_crops_from_one_dataset(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
+    # process tracking manifest for model evaluation
+    # this is used for loading and processing images
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
-    # apply overrides
+    # apply overrides for model evaluation on tracked crops
     overrides = generate_overrides_for_track_based_crops(
-        overrides,
+        user_overrides=user_overrides_,
         save_path=str(save_path),
         data_path=str(data_path),
         ckpt_path=path_dict["checkpoint_path"],
