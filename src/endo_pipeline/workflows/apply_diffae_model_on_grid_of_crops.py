@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def main(
-    model_name: str,
+    model_name: str = "diffae_04_10",
     dataset_names: str | Sequence[str] = "live_20X_objective_3i_microscope",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
