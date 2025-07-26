@@ -55,6 +55,9 @@ def generate_zarr_csv_for_model_eval(
         # apply the function to each zarr file path
         df["Z"] = df["path"].apply(lambda x: _get_z_slices(x, dataset_config))
 
+        # specify the T column as [0,245,570] for testing purposes
+        df["T"] = df["path"].apply(lambda x: [0, 245, 570])
+
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))
 
@@ -258,7 +261,7 @@ def generate_overrides_for_model_eval(
         "data.predict_dataloaders.dataset.csv_path": data_path,
         # if z_stack_offsets is not None, need to point to extra column
         "data.predict_dataloaders.dataset.extra_columns": (
-            "Z" if z_stack_offsets is not None else []
+            ["Z", "T"] if z_stack_offsets is not None else []
         ),
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
