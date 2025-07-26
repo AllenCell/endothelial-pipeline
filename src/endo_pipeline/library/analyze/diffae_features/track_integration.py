@@ -503,9 +503,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         np.save(precomputed_trajectories_path, traj_grids)
 
     # This takes about 5 minutes to run
-    precomputed_trajectories_path = (
-        precomputed_trajectories_path / f"{dataset_name}_traj_tracks.npy"
-    )
+    precomputed_trajectories_path = out_subdir / f"{dataset_name}_traj_tracks.npy"
     if not precomputed_trajectories_path.exists():
         logger.debug("Precomputed trajectories not found, will compute them...")
         load_precomputed_trajectories = None
