@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 import torch
@@ -23,6 +24,8 @@ from .model_outputs import (
     update_prediction_from_crops_with_metadata,
     update_prediction_from_tracks_with_metadata,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -121,6 +124,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     data_path = generate_zarr_csv_for_model_eval(
         dataset_config, save_path, resolution_level, z_stack_offsets
     )
+
+    print(f"Created zarr CSV for model evaluation at path \n [{data_path}]")
 
     # apply overrides for model evaluation
     overrides = generate_overrides_for_model_eval(

@@ -113,9 +113,12 @@ class MultiDimImageDataset(CacheDataset):
         spatial_dims: int = 3,
         scene_column: str = "scene",
         resolution_column: str = "resolution",
-        time_start_column: str = "start",
-        time_stop_column: str = "stop",
-        time_step_column: str = "step",
+        time_start_column: str = "frame_start",
+        time_stop_column: str = "frame_stop",
+        time_step_column: str = "frame_step",
+        z_start_column: str = "z_start",
+        z_stop_column: str = "z_stop",
+        z_step_column: str = "z_step",
         extra_columns: Sequence[str] = [],
         dict_meta: Optional[Dict] = None,
         transform: Optional[Union[Callable, Sequence[Callable]]] = [],
@@ -168,6 +171,9 @@ class MultiDimImageDataset(CacheDataset):
         self.time_start_column = time_start_column
         self.time_stop_column = time_stop_column
         self.time_step_column = time_step_column
+        self.z_start_column = z_start_column
+        self.z_stop_column = z_stop_column
+        self.z_step_column = z_step_column
         self.extra_columns = list(extra_columns)
         if spatial_dims not in (2, 3):
             raise ValueError(f"`spatial_dims` must be 2 or 3, got {spatial_dims}")
@@ -198,18 +204,11 @@ class MultiDimImageDataset(CacheDataset):
 
     def _get_z_slices(self, row, img):
         """Get Z slices from the row data."""
-        z_slices = row.get("z_slices", None)
-        if z_slices is not None:
-            z_slices = z_slices.strip().split(",")
-            z_slices = [int(z) for z in z_slices]
-            for z in z_slices:
-                if z < 0 or z >= img.dims.Z:
-                    raise ValueError(
-                        f"Z slice {z} is out of bounds for image {row[self.img_path_column]} with {img.dims.Z} Z slices."
-                    )
-        else:
-            z_slices = list(range(img.dims.Z))
-        return z_slices
+        z_start = row.get(self.z_start_column, 0)
+        z_stop = row.get(self.z_stop_column, -1)
+        z_step = row.get(self.z_step_column, 1)
+        z_slices = range(z_start, z_stop + 1, z_step) if z_stop > 0 else range(img.dims.Z)
+        return list(z_slices)
 
     def get_per_file_args(self, df):
         img_data = []

@@ -53,11 +53,15 @@ def generate_zarr_csv_for_model_eval(
             return z_slices
 
         # apply the function to each zarr file path
-        df["Z"] = df["path"].apply(lambda x: tuple(_get_z_slices(x, dataset_config)))
+        df["Z"] = df["path"].apply(lambda x: _get_z_slices(Path(x), dataset_config))
+        df["z_start"] = df["Z"].apply(lambda x: x[0])
+        df["z_stop"] = df["Z"].apply(lambda x: x[-1])
+        # remove the Z column as it is not needed anymore
+        df.drop(columns=["Z"], inplace=True)
 
         # specify the T column as [0,245,570] for testing purposes
-        df["start"] = df["path"].apply(lambda x: 0)
-        df["stop"] = df["path"].apply(lambda x: 2)
+        df["frame_start"] = df["path"].apply(lambda x: 0)
+        df["frame_stop"] = df["path"].apply(lambda x: 2)
 
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))
@@ -260,10 +264,6 @@ def generate_overrides_for_model_eval(
         "data.predict_dataloaders.num_workers": 128,
         "data.predict_dataloaders.batch_size": 2,
         "data.predict_dataloaders.dataset.csv_path": data_path,
-        # if z_stack_offsets is not None, need to point to extra column
-        "data.predict_dataloaders.dataset.extra_columns": (
-            ["Z", "T"] if z_stack_offsets is not None else []
-        ),
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
