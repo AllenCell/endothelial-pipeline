@@ -755,10 +755,13 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         i = 0
         for nm, df in tqdm(groups, desc=dataset_name):
             ds_nm, pos, tid = nm
+            assert (
+                tid % 1
+            ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
             plot_pc_integrated_track(
                 dataset_name=str(ds_nm),
                 position_name=str(pos),
-                track_id=tid,
+                track_id=int(tid),
                 df=df,
                 v1_grids=v1_grids,
                 v2_grids=v2_grids,
@@ -773,9 +776,6 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
                 # creating plots from a loop every 100th iteration
                 gc.collect()
 
-    # force garbage collection to keep memory free
-    # when this dataset is done being processed
-    gc.collect()
     return
 
 
