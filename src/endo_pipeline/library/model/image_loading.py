@@ -198,16 +198,20 @@ class MultiDimImageDataset(CacheDataset):
     def _get_timepoints(self, row, img):
         start = row.get(self.time_start_column, 0)
         stop = row.get(self.time_stop_column, -1)
+        if stop == -1:
+            stop = img.dims.T - 1
         step = row.get(self.time_step_column, 1)
-        timepoints = range(start, stop + 1, step) if stop > 0 else range(img.dims.T)
+        timepoints = range(start, stop + 1, step)
         return list(timepoints)
 
     def _get_z_slices(self, row, img):
         """Get Z slices from the row data."""
         z_start = row.get(self.z_start_column, 0)
         z_stop = row.get(self.z_stop_column, -1)
+        if z_stop == -1:
+            z_stop = img.dims.Z - 1
         z_step = row.get(self.z_step_column, 1)
-        z_slices = range(z_start, z_stop + 1, z_step) if z_stop > 0 else range(img.dims.Z)
+        z_slices = range(z_start, z_stop + 1, z_step)
         return list(z_slices)
 
     def get_per_file_args(self, df):

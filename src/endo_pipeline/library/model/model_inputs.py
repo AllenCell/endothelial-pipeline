@@ -25,8 +25,17 @@ def generate_zarr_csv_for_model_eval(
     save_path: Path,
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
-) -> str:
+    overwrite: bool = False,
+) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
+    if z_stack_offsets is not None:
+        data_path = save_path / "dataset_limit_z_stack.csv"
+    else:
+        data_path = save_path / "dataset.csv"
+
+    # if the file already exists and overwrite is False, return the path
+    if data_path.exists() and not overwrite:
+        return data_path
 
     # generate csv with paths to zarr files for each position in the dataset
     zarr_path_list = sorted(get_available_zarr_files(dataset_config))
@@ -61,16 +70,13 @@ def generate_zarr_csv_for_model_eval(
 
         # specify the T column as [0,245,570] for testing purposes
         df["frame_start"] = df["path"].apply(lambda x: 0)
-        df["frame_stop"] = df["path"].apply(lambda x: 2)
+        df["frame_stop"] = df["path"].apply(lambda x: -1)
+        df["frame_step"] = df["path"].apply(lambda x: 250)
 
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))
 
     # save csv and return the path
-    if z_stack_offsets is not None:
-        data_path = save_path / "dataset_limit_z_stack.csv"
-    else:
-        data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
 
@@ -261,8 +267,8 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 128,
-        "data.predict_dataloaders.batch_size": 2,
+        "data.predict_dataloaders.num_workers": 8 if z_stack_offsets is not None else 128,
+        "data.predict_dataloaders.batch_size": 1 if z_stack_offsets is not None else 2,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow

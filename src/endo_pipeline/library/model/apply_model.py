@@ -125,8 +125,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         dataset_config, save_path, resolution_level, z_stack_offsets
     )
 
-    print(f"Created zarr CSV for model evaluation at path \n [{data_path}]")
-
     # apply overrides for model evaluation
     overrides = generate_overrides_for_model_eval(
         user_overrides=user_overrides_,
