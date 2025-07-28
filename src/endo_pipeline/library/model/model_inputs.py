@@ -68,10 +68,10 @@ def generate_zarr_csv_for_model_eval(
         # remove the Z column as it is not needed anymore
         df.drop(columns=["Z"], inplace=True)
 
-        # specify the T column as [0,245,570] for testing purposes
-        df["frame_start"] = df["path"].apply(lambda x: 0)
-        df["frame_stop"] = df["path"].apply(lambda x: -1)
-        df["frame_step"] = df["path"].apply(lambda x: 250)
+    # specify the T column as [0,250,500] for testing purposes
+    df["frame_start"] = df["path"].apply(lambda x: 0)
+    df["frame_stop"] = df["path"].apply(lambda x: -1)
+    df["frame_step"] = df["path"].apply(lambda x: 250)
 
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))

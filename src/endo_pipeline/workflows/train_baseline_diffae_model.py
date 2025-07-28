@@ -133,8 +133,17 @@ def main(
     )
     _, object_dict = model.train()
 
-    # retrive MLflow run ID
+    # retrive MLflow run ID by getting
+    # the MLflow logger from the object_dict
     mlflow_logger = object_dict["logger"][0]
+
+    # Maybe this is where we can log the last
+    # checkpoint to MLflow while still having
+    # best being monitored during training?
+    # see if the Callbacks object in the object_dict
+    # contains the lask checkpoint, and if
+    # the MLflow logger allows you to log an artifact
+
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
     list_of_training_datasets = get_dataset_names_used_for_training(

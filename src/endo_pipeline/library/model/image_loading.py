@@ -120,7 +120,6 @@ class MultiDimImageDataset(CacheDataset):
         z_stop_column: str = "z_stop",
         z_step_column: str = "z_step",
         extra_columns: Sequence[str] = [],
-        dict_meta: Optional[Dict] = None,
         transform: Optional[Union[Callable, Sequence[Callable]]] = [],
         **cache_kwargs,
     ):
@@ -152,18 +151,12 @@ class MultiDimImageDataset(CacheDataset):
         extra_columns: Sequence[str] = []
             List of extra columns to include in the output dictionary. These columns will be added to the output dictionary as-is if found, otherwise their value
             will be set to None.
-        dict_meta: Optional[Dict]
-            Dictionary version of CSV file. If not provided, CSV file is read from `csv_path`.
         transform: Optional[Callable] = []
             List (or Compose Object) or Monai dictionary-style transforms to apply to the image metadata. Typically, the first transform should be BioIOImageLoaderd.
         cache_kwargs:
             Additional keyword arguments to pass to `CacheDataset`. To skip the caching mechanism, set `cache_num` to 0.
         """
-        df = (
-            pd.read_csv(csv_path)
-            if csv_path is not None
-            else pd.DataFrame(OmegaConf.to_container(dict_meta))
-        )
+        df = pd.read_csv(csv_path)
         self.img_path_column = img_path_column
         self.channel_column = channel_column
         self.scene_column = scene_column
@@ -224,8 +217,10 @@ class MultiDimImageDataset(CacheDataset):
             for scene in scenes:
                 img.set_scene(scene)
                 timepoints = self._get_timepoints(row, img)
+                print(timepoints)
                 for timepoint in timepoints:
                     z_slices = self._get_z_slices(row, img)
+                    print(z_slices)
                     image_loading_args = {
                         "dimension_order_out": "C" + "ZYX"[-self.spatial_dims :],
                         "C": row[self.channel_column],
