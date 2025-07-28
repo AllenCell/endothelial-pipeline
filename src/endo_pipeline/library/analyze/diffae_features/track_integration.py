@@ -1,6 +1,7 @@
 import gc
 import logging
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -202,7 +203,7 @@ def get_approx_vec_from_grid(
     g2_grids: np.ndarray,
     v1_grids: np.ndarray,
     v2_grids: np.ndarray,
-    slice_indexes: np.ndarray,
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
 
     # create a distance mapping
@@ -225,7 +226,7 @@ def get_approx_point_from_grid(
     g2_grids: np.ndarray,
     v1_grids: np.ndarray,
     v2_grids: np.ndarray,
-    slice_indexes: np.ndarray,
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
 
     # create a distance mapping
@@ -251,7 +252,7 @@ def plot_pc_integrated_track(
     v2_grids: np.ndarray,
     g1_grids: np.ndarray,
     g2_grids: np.ndarray,
-    slice_indexes: np.ndarray,
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     out_subdir: Path,
 ) -> None:
 
@@ -269,7 +270,7 @@ def plot_pc_integrated_track(
     plot_one_slice_quiver(
         velocities=(v1_grids, v2_grids),
         grid=(g1_grids, g2_grids),
-        slice_indexes=slice_indexes,  # type: ignore
+        slice_indexes=slice_indexes,
         ax=ax,
         color="blue",
     )
@@ -326,7 +327,7 @@ def plot_pc_integrated_track(
     plot_one_slice_quiver(
         velocities=(v1_grids, v2_grids),
         grid=(g1_grids, g2_grids),
-        slice_indexes=slice_indexes,  # type: ignore
+        slice_indexes=slice_indexes,
         ax=ax,
         color="blue",
     )
@@ -354,7 +355,9 @@ def plot_pc_integrated_track(
     )
     plt.close(fig)
 
-    gc.collect()  # force garbage collection to free up memory
+    # force garbage collection to keep memory
+    # free when creating plots from a loop
+    gc.collect()
 
     return
 
@@ -366,8 +369,8 @@ def get_vector_angles_as_grid(
     v1_tracks: np.ndarray,
     v2_tracks: np.ndarray,
     v3_tracks: np.ndarray,
-    slice_indexes: np.ndarray,
-    my_shape: tuple[int, int, int],
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    my_shape: list[int],
 ) -> np.ndarray:
     """Get the angles of the vectors as a grid."""
     vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
@@ -387,8 +390,8 @@ def get_vector_dot_products_as_grid(
     v1_tracks: np.ndarray,
     v2_tracks: np.ndarray,
     v3_tracks: np.ndarray,
-    slice_indexes: np.ndarray,
-    my_shape: tuple[int, int, int],
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    my_shape: list[int],
 ) -> np.ndarray:
     """Get the dot products of the vectors as a grid."""
     vecs_grids = np.asarray(list(zip(np.ravel(v1_grids), np.ravel(v2_grids), np.ravel(v3_grids))))
@@ -540,8 +543,8 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         v1_tracks,
         v2_tracks,
         v3_tracks,
-        slice_indexes,  # type: ignore
-        my_shape,  # type: ignore
+        slice_indexes,
+        my_shape,
     )
 
     dot_prod = get_vector_dot_products_as_grid(
@@ -551,8 +554,8 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         v1_tracks,
         v2_tracks,
         v3_tracks,
-        slice_indexes,  # type: ignore
-        my_shape,  # type: ignore
+        slice_indexes,
+        my_shape,
     )
 
     # Plot the quiver slices for the grid-based and cell-centric crops
@@ -567,7 +570,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         v2_tracks,
         g1_tracks,
         g2_tracks,
-        slice_indexes=slice_indexes,  # type: ignore
+        slice_indexes=slice_indexes,
         ds=1,
         scale=60,
     )
@@ -588,7 +591,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         v2_tracks,
         g1_tracks,
         g2_tracks,
-        slice_indexes=slice_indexes,  # type: ignore
+        slice_indexes=slice_indexes,
     )
     ax.scatter(
         traj_grids[-1, 0],
@@ -683,7 +686,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         g2_grids,
         v1_grids,
         v2_grids,
-        slice_indexes,  # type: ignore
+        slice_indexes,
     )
     get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
         columns=[["pc1", "pc2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
@@ -695,7 +698,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         g2_grids,
         v1_grids,
         v2_grids,
-        slice_indexes,  # type: ignore
+        slice_indexes,
     )
     get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
         columns=[["pc1", "pc2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
@@ -747,7 +750,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(4, 4))
-    sns.histplot(data=test, x="track_angular_deviation_deg", y="pc1_pc2_vec_mag", binwidth=(1, None), ax=ax)  # type: ignore
+    sns.histplot(data=test, x="track_angular_deviation_deg", y="pc1_pc2_vec_mag", binwidth=(1, None), ax=ax)  # type: ignore[arg-type]
     ax.axvline(90, ls="--", lw=1, c="k", label="90 deg")
     ax.set_xlim(0, 180)
     ax.set_xticks(np.arange(0, 181, 45))
@@ -766,14 +769,14 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         merged_feats_df = merged_feats_df.query("track_duration > 120")
         groups = merged_feats_df.query("track_duration > 120").groupby(
             ["dataset_name", "position_as_str", "crop_index"]
-        )  # type: ignore
+        )
         # group_names = list(merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"]).groups.keys())
         # group_names = [nm for nm, df in merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])]
 
         for nm, df in tqdm(groups, desc=dataset_name):
             # for nm in tqdm(group_names, desc=dataset_name):
             # df = merged_feats_df[(merged_feats_df[["dataset_name", "position_as_str", "crop_index"]] == nm).all(axis=1)]  # type: ignore
-            ds_nm, pos, tid = nm  # type: ignore
+            ds_nm, pos, tid = nm
             plot_pc_integrated_track(
                 dataset_name=str(ds_nm),
                 position_name=str(pos),
@@ -783,10 +786,12 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
                 v2_grids=v2_grids,
                 g1_grids=g1_grids,
                 g2_grids=g2_grids,
-                slice_indexes=slice_indexes,  # type: ignore
+                slice_indexes=slice_indexes,
                 out_subdir=out_subdir,
             )
-    gc.collect()  # force garbage collection to free up memory
+    # force garbage collection to keep memory
+    # free when creating plots from a loop
+    gc.collect()
     return
 
 
@@ -836,7 +841,7 @@ test_flow_field_points = get_approx_point_from_grid(
     test_flow_field[1][1],
     test_flow_field[0][0],
     test_flow_field[0][1],
-    slice_indexes,  # type: ignore
+    slice_indexes,
 )
 
 test_flow_field_vectors = get_approx_vec_from_grid(
@@ -845,7 +850,7 @@ test_flow_field_vectors = get_approx_vec_from_grid(
     test_flow_field[1][1],
     test_flow_field[0][0],
     test_flow_field[0][1],
-    slice_indexes,  # type: ignore
+    slice_indexes,
 )
 
 test_angular_deviation = get_vector_vector_angle_fast(test_flow_field_vectors, test_vectors)

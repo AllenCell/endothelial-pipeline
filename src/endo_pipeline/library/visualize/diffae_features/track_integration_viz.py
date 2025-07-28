@@ -338,7 +338,7 @@ def plot_grid_vs_tracks_flow_field(
     v2_tracks: np.ndarray,
     g1_tracks: np.ndarray,
     g2_tracks: np.ndarray,
-    slice_indexes: tuple[np.ndarray, np.ndarray],
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ds: int = 3,
     scale: int = 30,
 ) -> tuple[plt.Figure, plt.Axes]:
