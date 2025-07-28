@@ -355,9 +355,9 @@ def plot_pc_integrated_track(
     )
     plt.close(fig)
 
-    # force garbage collection to keep memory
-    # free when creating plots from a loop
-    gc.collect()
+    # # force garbage collection to keep memory
+    # # free when creating plots from a loop
+    # gc.collect()
 
     return
 
@@ -773,6 +773,7 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         # group_names = list(merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"]).groups.keys())
         # group_names = [nm for nm, df in merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])]
 
+        i = 0
         for nm, df in tqdm(groups, desc=dataset_name):
             # for nm in tqdm(group_names, desc=dataset_name):
             # df = merged_feats_df[(merged_feats_df[["dataset_name", "position_as_str", "crop_index"]] == nm).all(axis=1)]  # type: ignore
@@ -789,8 +790,14 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
                 slice_indexes=slice_indexes,
                 out_subdir=out_subdir,
             )
-    # force garbage collection to keep memory
-    # free when creating plots from a loop
+            i += 1
+            if i % 100 == 0:
+                # force garbage collection to keep memory free when
+                # creating plots from a loop every 100th iteration
+                gc.collect()
+
+    # force garbage collection to keep memory free
+    # when this dataset is done being processed
     gc.collect()
     return
 
