@@ -6,6 +6,15 @@ from typing import Literal
 from mashumaro.config import BaseConfig
 from pydantic.dataclasses import dataclass
 
+MicroscopeType = Literal["3i", "Nikon"]
+"""Valid microscope types."""
+
+SampleType = Literal["live", "fixed", "fixed-methanol"]
+"""Valid sample types."""
+
+ObjectiveType = Literal["20X", "40X"]
+"""Valid objective types."""
+
 
 @dataclass
 class ValidTimepoints:
@@ -64,14 +73,17 @@ class DatasetConfig:
     cell_lines: list[str]
     """List of cell lines in dataset."""
 
-    live_or_fixed_sample: Literal["live", "fixed", "fixed-methanol"]
+    live_or_fixed_sample: SampleType
     """Experimental condition that dataset was collected under."""
 
     is_timelapse: bool
     """True if dataset is a timelapse dataset, False otherwise."""
 
-    microscope: Literal["3i", "Nikon"]
+    microscope: MicroscopeType
     """Microscope that dataset was collected with."""
+
+    objective: ObjectiveType
+    """Objective that dataset was collected under."""
 
     shear_stress_regime: str
     """Shear stress regime the dataset was collected under."""
@@ -155,6 +167,8 @@ class DatasetConfig:
     """"Additional notes about dataset."""
 
     class Config(BaseConfig):
+        """Settings for dataset config."""
+
         forbid_extra_keys = True
         omit_none = False
 

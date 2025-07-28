@@ -3,8 +3,11 @@ import numpy as np
 from bioio.writers import OmeTiffWriter
 
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field
+from src.endo_pipeline.library.analyze.diffae_features import (
+    convert_coordinates_from_pc_to_latent,
+    interpolate_on_curve,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
 from src.endo_pipeline.library.model import generate_from_coords_batch
 
 
@@ -42,24 +45,20 @@ def main(model_name: str = "diffae_04_10") -> None:
 
         if isinstance(coords, np.ndarray):
             # interpolate points evenly spaced along the trajectory
-            interpolated_points = data_driven_flow_field.interpolate_on_curve(coords)
+            interpolated_points = interpolate_on_curve(coords)
 
             # transform interpolated points to full latent space
-            latent_coords = data_driven_flow_field.convert_coordinates_from_pc_to_latent(
-                interpolated_points, reducer
-            )
+            latent_coords = convert_coordinates_from_pc_to_latent(interpolated_points, reducer)
             latent_coords_batch.append(latent_coords)
             experimental_condition_list.append(experimental_condition)
 
         elif isinstance(coords, list):
             for jj, coord in enumerate(coords):
                 # interpolate points evenly spaced along the trajectory
-                interpolated_points = data_driven_flow_field.interpolate_on_curve(coord)
+                interpolated_points = interpolate_on_curve(coord)
 
                 # transform interpolated points to full latent space
-                latent_coords = data_driven_flow_field.convert_coordinates_from_pc_to_latent(
-                    interpolated_points, reducer
-                )
+                latent_coords = convert_coordinates_from_pc_to_latent(interpolated_points, reducer)
                 latent_coords_batch.append(latent_coords)
                 experimental_condition_list.append(f"{experimental_condition}_{jj}")
 

@@ -1,9 +1,9 @@
 # %% [markdown]
-# # Create Model config
+# # Create CytoDL model config
 
 # %% [markdown]
 """
-Create and save a new model config file from a `ModelConfig` object.
+Create and save a new model config file from a `CytoDLModelConfig` object.
 
 The config is saved to the `configs/models` directory with file name matching
 the name of the dataset. If a config with the same name already exists, it will
@@ -22,13 +22,13 @@ if __name__ != "__main__":
 
 # %%
 from src.endo_pipeline.configs import (  # noqa: F401, I001
-    ModelConfig,
+    CytoDLModelConfig,
     ModelManifest,
     save_model_config,
 )
 
 # %%
-model = ModelConfig(
+model = CytoDLModelConfig(
     # ============================ REQUIRED FIELDS =============================
     name="unique_model_name",
     mlflow_run_id="MLflow_run_id",

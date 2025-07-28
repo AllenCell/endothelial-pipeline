@@ -6,10 +6,15 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tqdm import tqdm
 
+from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
+    get_coarse_grained_trajectory_heatmap_data,
+)
+from src.endo_pipeline.library.analyze.numerics.binning import get_bins
 from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     get_slice_indexes,
     plot_one_slice_quiver,
@@ -82,7 +87,7 @@ def plot_quiver_slices_from_diffae_table(
     flow_field_dict_grids: dict,
     plot_trajectory: bool = True,
     plot_fixed_points: bool = True,
-) -> tuple[plt.Figure, np.ndarray]:
+) -> tuple[Figure, np.ndarray]:
 
     # get valid y and z slice indices
     yvalids_grids, zvalids_grids = get_valid_slice_indexes(
@@ -112,13 +117,13 @@ def plot_measured_feat_pcs(
     meas_feat_col: str,
     pc_cols_for_xaxis: list[str],
     pc_cols_for_yaxis: list[str],
-    fig: plt.Figure | None = None,
+    fig: Figure | None = None,
     axs: np.ndarray | None = None,
     track_id: Literal["mean"] | int | None = "mean",
     hue_norm: tuple[float, float] | None = None,
     zorder: int = 0,
     alpha: float = 1.0,
-) -> tuple[plt.Figure, np.ndarray]:
+) -> tuple[Figure, np.ndarray]:
 
     pc_cols = [pc for pc in set((*pc_cols_for_xaxis, *pc_cols_for_yaxis))]
 
@@ -127,9 +132,10 @@ def plot_measured_feat_pcs(
     ), "x and y axis must have the same number of PCs"
     if axs is not None:
         assert len(pc_cols_for_xaxis) == axs.size, "PCs must be provided for each ax in axs"
-    assert all(
-        col in measured_feat_df.columns for col in pc_cols
-    ), f"One or more PCs in {pc_cols} not found in measured feature dataframe columns. Check spelling and case?"
+    assert all(col in measured_feat_df.columns for col in pc_cols), (
+        f"One or more PCs in {pc_cols} not found in measured feature dataframe columns."
+        "Check spelling and case?"
+    )
 
     if axs is None:
         fig, axs = plt.subplots(figsize=(14, 5), ncols=2)
@@ -148,7 +154,10 @@ def plot_measured_feat_pcs(
             pass  # do not subset or aggregate the data in any way
         else:
             raise ValueError(
-                f"track_ids must be 'mean', an integer, or None. Got {track_id} (type: {type(track_id)}) instead."
+                (
+                    "track_ids must be 'mean', an integer, or None."
+                    f"Got {track_id} (type: {type(track_id)}) instead."
+                )
             )
 
         if track_id is not None:
@@ -215,7 +224,10 @@ def plot_measured_feat_overlay_on_flowfield(
         data_subset = ""
     else:
         raise ValueError(
-            f"track_ids must be 'mean', an integer, or None. Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
+            (
+                "track_ids must be 'mean', an integer, or None."
+                f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
+            )
         )
     fig.savefig(
         out_dir / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
@@ -248,6 +260,82 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
         )
     plt.tight_layout()
     fig.savefig(out_dir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
+    plt.close(fig)
+
+
+def overlay_trajectory_heatmap_on_flowfield(
+    out_dir: Path,
+    dataset_name: str,
+    diffae_grid_crops: pd.DataFrame,
+    traj_grids: np.ndarray,
+    flow_field_dict_grids: dict,
+    df_all_positions: pd.DataFrame,
+    num_bins: list[int] = [150, 150, 150],
+) -> None:
+    """
+    Overlay a coarse-grained trajectory heatmap on the flow field.
+
+    Parameters
+    ----------
+    out_dir
+        Directory to save the plot to.
+    dataset_name
+        Name of the dataset to use for the plot.
+    diffae_grid_crops
+        DataFrame containing the diffae grid crops.
+    traj_grids
+        Numpy array containing the trajectory grids.
+    flow_field_dict_grids
+        Dictionary containing the flow field data for the grids.
+    df_all_positions
+        DataFrame containing all positions and tracks.
+    num_bins
+        Number of bins to use for the heatmap in each dimension.
+    """
+    # plot flow field
+    fig, axs = plot_quiver_slices_from_diffae_table(
+        diffae_grid_crops,
+        traj_grids,
+        flow_field_dict_grids,
+        plot_trajectory=False,
+    )
+
+    bounds = get_grid_bounds(flow_field_dict_grids)
+    bins, _ = get_bins(num_bins, bin_limits=bounds)
+
+    project_axis = [2, 1]  # this is axis for projecting binned data for each plot
+    plot_dim = [1, 2]  # this is the PC dimension plotted on the y-axis against PC1
+
+    bin_data, bin_counts = get_coarse_grained_trajectory_heatmap_data(
+        df_all_positions=df_all_positions,
+        bounds=bounds,
+        num_bins=num_bins,
+    )
+
+    for j, ax in enumerate(axs):
+        plot_data = np.divide(
+            bin_data, bin_counts, out=np.zeros_like(bin_data), where=bin_counts != 0
+        )
+        plot_data = np.nanmean(plot_data, axis=project_axis[j]).T
+        plot_data = plot_data / np.nanmax(plot_data)
+        ax.imshow(
+            plot_data,
+            extent=(
+                bins[0][0],
+                bins[0][-1],
+                bins[plot_dim[j]][0],
+                bins[plot_dim[j]][-1],
+            ),
+            cmap="viridis",
+            aspect="auto",
+            origin="lower",
+            zorder=-1,
+            vmin=0,
+        )
+    cbar = plt.colorbar(ax.images[-1], ax=ax, orientation="vertical", pad=0.02)
+    cbar.set_label("Normalized trajectory time", rotation=270, labelpad=15)
+    # plt.tight_layout()
+    fig.savefig(out_dir / f"{dataset_name}_trajectory_heatmap.png", dpi=300)
     plt.close(fig)
 
 
@@ -312,7 +400,9 @@ def make_all_plots(
         # only overlay every 10th track id if there are a lot
         # of tracks to save time + space
         track_ids = track_ids[::10] if len(track_ids[::10]) > 10 else track_ids
-        for tid in tqdm(track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}"):
+        for tid in tqdm(
+            track_ids, total=len(track_ids), desc=f"Plotting tracks at {pos}", leave=False
+        ):
             # make the plots
             plot_measured_feat_overlay_on_flowfield(
                 out_subdir_indiv_pos,
@@ -327,6 +417,19 @@ def make_all_plots(
                 alpha=0.8,
                 show_plot=False,
             )
+
+    # plot trajectory heatmap
+    out_subdir_heatmap = out_subdir / "trajectory_heatmap"
+    out_subdir_heatmap.mkdir(parents=True, exist_ok=True)
+
+    overlay_trajectory_heatmap_on_flowfield(
+        out_dir=out_subdir_heatmap,
+        dataset_name=dataset_name,
+        diffae_grid_crops=diffae_grid_crops,
+        traj_grids=traj_grids,
+        flow_field_dict_grids=flow_field_dict_grids,
+        df_all_positions=df_all_positions,
+    )
 
 
 def plot_grid_vs_tracks_flow_field(
@@ -589,67 +692,4 @@ def plot_and_save_track_flow_field_deviations(
         dpi=200,
         bbox_inches="tight",
     )
-    plt.close(fig)
-
-
-def overlay_flow_fields_on_histograms(
-    dataset_name: str,
-    out_subdir: Path,
-    diffae_grid_crops: pd.DataFrame,
-    merged_feats_df: pd.DataFrame,
-    v1_grids: np.ndarray,
-    v2_grids: np.ndarray,
-    g1_grids: np.ndarray,
-    g2_grids: np.ndarray,
-    v1_tracks: np.ndarray,
-    v2_tracks: np.ndarray,
-    g1_tracks: np.ndarray,
-    g2_tracks: np.ndarray,
-    slice_indexes: tuple,
-) -> None:
-    # Plot flow fields overlaid on the PC1 vs PC2
-    # histograms to get an idea of where the flow
-    # fields have the most data to work with
-    out_path = out_subdir / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png"
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    sns.histplot(
-        data=diffae_grid_crops,
-        x="pc1",
-        y="pc2",
-        bins=50,
-        cmap="Blues",
-        ax=ax,
-    )
-    plot_one_slice_quiver(
-        velocities=(v1_grids, v2_grids),
-        grid=(g1_grids, g2_grids),
-        slice_indexes=slice_indexes,
-        ax=ax,
-        color="black",
-    )
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    fig.savefig(out_path, bbox_inches="tight")
-    plt.close(fig)
-
-    out_path = out_subdir / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png"
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    sns.histplot(
-        data=merged_feats_df,
-        x="pc1",
-        y="pc2",
-        bins=50,
-        cmap="Reds",
-        ax=ax,
-    )
-    plot_one_slice_quiver(
-        velocities=(v1_tracks, v2_tracks),
-        grid=(g1_tracks, g2_tracks),
-        slice_indexes=slice_indexes,
-        ax=ax,
-        color="black",
-    )
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)

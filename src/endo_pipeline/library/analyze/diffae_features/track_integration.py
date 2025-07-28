@@ -1,25 +1,133 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Tuple
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from matplotlib import pyplot as plt
+from seaborn import color_palette
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs import get_model_manifest, load_dataset_config, load_model_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field as ddff
 from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+    add_description_column,
+    get_manifest_for_dynamics_workflows,
+    project_manifest_to_pcs,
+)
+from src.endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from src.endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from src.endo_pipeline.library.analyze.optical_flow_calculator import (
     one_direction_vector_field_example,
 )
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 
 logger = logging.getLogger(__name__)
+
+
+def add_normalized_time(
+    df_all_positions: pd.DataFrame,
+    time_col: str = "time_hours",
+) -> pd.DataFrame:
+    """
+    Add a column to the dataframe with normalized time values
+    between 0 and 1 for each track_id in each position.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing all positions and tracks.
+    time_col
+        The name of the column containing time values.
+
+    Returns
+    -------
+    :
+        DataFrame with an additional column
+        "normalized_time" containing the normalized time values between 0 and 1.
+    """
+    for _, df_pos in df_all_positions.groupby("position_as_str"):
+        for _, df_track in df_pos.groupby("track_id"):
+
+            time_values = df_track[time_col].values.astype(np.float64)
+            sorted_inds = np.argsort(time_values)
+            time_values = time_values[sorted_inds]
+            df_track = df_track.iloc[sorted_inds]
+
+            start_time = np.min(time_values)
+            end_time = np.max(time_values)
+
+            normalized_time_values = np.divide(
+                time_values - start_time,
+                end_time - start_time,
+                out=np.zeros_like(time_values, dtype=np.float64),
+                where=(end_time - start_time) != 0,
+            )
+
+            normalized_time_values = np.clip(normalized_time_values, 0, 1)
+
+            df_all_positions.loc[
+                df_track.index,
+                "normalized_time",
+            ] = normalized_time_values
+
+    return df_all_positions
+
+
+def get_coarse_grained_trajectory_heatmap_data(
+    df_all_positions: pd.DataFrame,
+    bounds: np.ndarray | List,
+    num_bins: List[int] = [150, 150, 150],
+    pc_cols: List[str] = ["pc1", "pc2", "pc3"],
+    feature_to_use: str = "normalized_time",
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Get a coarse-grained trajectory heatmap data from the DataFrame.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing tracks for one microscope position.
+    bounds
+        Bounds for the heatmap in each dimension.
+        Should be a list of tuples or a 2D numpy array with shape (ndim, 2),
+        where ndim is the number of dimensions.
+    num_bins
+        Number of bins for each dimension in the heatmap.
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        Tuple containing the heatmap data and the bin counts.
+    """
+    if feature_to_use not in df_all_positions.columns:
+        raise ValueError(f"Feature '{feature_to_use}' not found in DataFrame columns.")
+
+    bin_data = np.zeros(num_bins)
+    bin_counts = np.zeros(num_bins, dtype=int)
+    ndim = len(pc_cols)
+    bins_array = np.array(
+        [np.linspace(bounds[i][0], bounds[i][1], num_bins[i]) for i in range(ndim)]
+    ).T
+    for _, df_one_position in df_all_positions.groupby("position_as_str"):
+        for _, df_track in df_one_position.groupby("track_id"):
+            trajectory = df_track[pc_cols].values
+            feature_values = df_track[feature_to_use].values
+            bin_indices = np.zeros((trajectory.shape[0], ndim), dtype=int)
+            for dim in range(len(pc_cols)):
+                # get the bin index in which each timepoint lies
+                bin_indices[:, dim] = np.digitize(trajectory[:, dim], bins_array[:, dim]) - 1
+                # clip the bin indices to be within the valid range
+                bin_indices[:, dim] = np.clip(bin_indices[:, dim], 0, num_bins[dim] - 1)
+            # increment the bin data and count
+            for i in range(trajectory.shape[0]):
+                bin_data[tuple(bin_indices[i])] += feature_values[i]
+                bin_counts[tuple(bin_indices[i])] += 1
+
+    return bin_data, bin_counts
 
 
 def merge_diffae_feats_liveseg_feats_tables(
@@ -49,7 +157,7 @@ def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df["crop_index"] = (
         diffae_tracking_df.groupby(["position", "track_id"], as_index=False).ngroup().astype(int)
     )
-    diffae_tracking_df = diffae_preproc.add_description_column(
+    diffae_tracking_df = add_description_column(
         diffae_tracking_df, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
     diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
@@ -139,7 +247,7 @@ def get_traj_and_flowfield(
     init = np.array([-0.1, -0.7, -0.1])
 
     num_bins = [50, 50, 50]
-    bins, centers = rh.get_bins(num_bins, bin_limits=bounds)
+    bins, centers = get_bins(num_bins, bin_limits=bounds)
 
     # get the columns to use for calculating trajectories
     # and flow fields.
@@ -151,7 +259,7 @@ def get_traj_and_flowfield(
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
-    drift_km, diff_km = rh.get_kramers_moyal(
+    drift_km, diff_km = get_kramers_moyal(
         traj_list, d_traj_list, bins=bins, dt=dt, kernel_params=kernel_params
     )
 
@@ -170,6 +278,66 @@ def get_traj_and_flowfield(
         logger.debug("ODE solved.")
 
     return traj, flow_field_dict
+
+
+def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
+    dataset_name: str,
+    merged_feats_df: pd.DataFrame,
+    diffae_grid_crops: pd.DataFrame,
+    bounds: tuple[float, float, float, float, float, float],
+    trajectory_dir: Path,
+) -> tuple[np.ndarray, dict, np.ndarray, dict]:
+    """
+    Get the trajectories and flow fields for the grid-based and cell-centric crops.
+    This function is called after loading and preprocessing the manifests.
+    The function looks for precomputed trajectories in trajectory_dir and loads them
+    from there if found. If not found then they will be computed and saved to that location.
+    The names of the files that it looks for are:
+    - {dataset_name}_traj_grids.npy for grid-based crops
+    - {dataset_name}_traj_tracks.npy for cell-centric crops
+    """
+    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
+    # This function will be defined in the main processing function
+    # to handle the specific dataset being processed.
+    precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_grids.npy"
+    if not precomputed_trajectories_path.exists():
+        logger.debug("Precomputed trajectories not found, will compute them...")
+        load_precomputed_trajectories = None
+    else:
+        load_precomputed_trajectories = precomputed_trajectories_path
+
+    logger.debug("getting trajectory and flow field for grid-based crops...")
+    # This takes about 2 minutes to compute if not loading precomputed
+    traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
+        df=diffae_grid_crops,
+        bounds=bounds,
+        load_precomputed_trajectories=load_precomputed_trajectories,
+    )
+
+    if load_precomputed_trajectories is None:
+        logger.debug("saving the trajectory data from the grid-based crops...")
+        np.save(precomputed_trajectories_path, traj_grids)
+
+    precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_tracks.npy"
+    if not precomputed_trajectories_path.exists():
+        logger.debug("Precomputed trajectories not found, will compute them...")
+        load_precomputed_trajectories = None
+    else:
+        load_precomputed_trajectories = precomputed_trajectories_path
+
+    logger.debug("getting trajectory and flow field for tracks-based crops...")
+    # This takes about 5 minutes to compute if not loading precomputed
+    traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
+        df=merged_feats_df,
+        bounds=bounds,
+        load_precomputed_trajectories=load_precomputed_trajectories,
+    )
+
+    if load_precomputed_trajectories is None:
+        logger.debug("saving the trajectory data from the track-based crops...")
+        np.save(precomputed_trajectories_path, traj_tracks)
+
+    return traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks
 
 
 def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -326,7 +494,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
     test_angular_deviation = get_vector_vector_angle_fast(test_flow_field_vectors, test_vectors)
     test_angular_deviation_deg = np.rad2deg(test_angular_deviation)
 
-    cmap = sns.color_palette("dark:red", as_cmap=True)
+    cmap = color_palette("dark:red", as_cmap=True)
     angle_deg_to_color = lambda a: cmap(np.abs(a) / 180.0)
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
@@ -380,3 +548,67 @@ def make_angular_deviation_test(out_dir: Path) -> None:
     )
     plt.close(fig)
     return
+
+
+def get_preprocessed_manifests_and_km_bounds(
+    dataset_name: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
+    """
+    Load and process the DiffAE and live segmentation feature manifests for a given dataset.
+    """
+    logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
+
+    # load the tables
+    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name, filtered=True)
+
+    # keep only the columns that are needed for the analysis to reduce memory usage
+    cols_to_keep = [
+        "dataset_name",
+        "position",
+        "position_as_str",
+        "track_id",
+        "label",
+        "crop_index",
+        "mlflow_id",
+        "model_name",
+        "image_index",
+        "frame_number",
+        "time_hours",
+        "time_minutes",
+        "track_duration",
+    ] + [col for col in merged_feats_df.columns if "feat" in col]
+
+    merged_feats_df = merged_feats_df[cols_to_keep]
+
+    # fit the PCA (uses the reference datasets)
+    pca = fit_pca()
+
+    # read in the grid crop-based diffae features
+    model_name = merged_feats_df["model_name"].unique()[0]
+    model_config = load_model_config(model_name)
+    model_manifest = get_model_manifest(dataset_name, model_config)  # type: ignore[arg-type]
+    diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
+
+    # add the PC columns to the track-based DiffAE table
+    # (the grid-based DiffAE table already has them, but
+    # but I believe that the columns are named "feat_0",
+    # "feat_1", etc. when they should be named "pc1",
+    # "pc2", etc.)
+    merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
+
+    # use the full set of datasets to be analyzed for the bounds
+    datasets_for_bounds = [
+        "20241120_20X",
+        "20250409_20X",
+        "20241217_20X",
+        "20250428_20X",
+        "20250319_20X",
+        "20250326_20X",
+    ]
+
+    model_manifest_list = [
+        get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds  # type: ignore[arg-type]
+    ]
+    bounds = get_3d_bounds_from_data(model_manifest_list, pca)
+
+    return merged_feats_df, diffae_grid_crops, bounds

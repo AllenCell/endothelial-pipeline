@@ -10,6 +10,7 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
+objective: 20X
 shear_stress_regime: low-to-high
 pixel_size_xy_in_um: 0.382
 duration: 1
@@ -22,7 +23,7 @@ flow_conditions:
 - start: -576
   stop: -288
   shear_stress: 6.17
-- start: -288
+- start: -287
   stop: 0
   shear_stress: 21.7
 channel_405_index: 0

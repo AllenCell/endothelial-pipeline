@@ -10,6 +10,7 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: Nikon
+objective: 20X
 shear_stress_regime: 24hr_low
 pixel_size_xy_in_um: 0.392
 duration: 1

@@ -4,36 +4,21 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from matplotlib import pyplot as plt
-from sklearn.pipeline import Pipeline
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import (
-    get_model_manifest,
-    load_dataset_collection_config,
-    load_model_config,
-)
-from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import configure_logging, get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
 from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
     get_approx_point_from_grid,
     get_approx_vec_from_grid,
-    get_diffae_feats_liveseg_feats_merged_table,
-    get_traj_and_flowfield,
+    get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
+    get_preprocessed_manifests_and_km_bounds,
     get_vector_angles_as_grid,
     get_vector_dot_products_as_grid,
     get_vector_vector_angle_fast,
     make_angular_deviation_test,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
-    get_manifest_for_dynamics_workflows,
-    project_manifest_to_pcs,
-)
-from src.endo_pipeline.library.analyze.numerics import data_driven_flow_field as ddff
-from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import plot_one_slice_quiver
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import (
     get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
@@ -44,125 +29,6 @@ from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz i
 )
 
 logger = logging.getLogger(__name__)
-
-
-def get_preprocessed_manifests_and_km_bounds(
-    dataset_name: str,
-) -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
-    """
-    Load and process the DiffAE and live segmentation feature manifests for a given dataset.
-    """
-    logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
-
-    # load the tables
-    merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name, filtered=True)
-
-    # keep only the columns that are needed for the analysis to reduce memory usage
-    cols_to_keep = [
-        "dataset_name",
-        "position",
-        "position_as_str",
-        "track_id",
-        "label",
-        "crop_index",
-        "mlflow_id",
-        "model_name",
-        "image_index",
-        "frame_number",
-        "time_hours",
-        "time_minutes",
-        "track_duration",
-    ] + [col for col in merged_feats_df.columns if "feat" in col]
-
-    merged_feats_df = merged_feats_df[cols_to_keep]
-
-    # fit the PCA (uses the reference datasets)
-    pca = fit_pca()
-
-    # read in the grid crop-based diffae features
-    model_name = merged_feats_df["model_name"].unique()[0]
-    model_config = load_model_config(model_name)
-    model_manifest = get_model_manifest(dataset_name, model_config)
-    diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
-
-    # add the PC columns to the track-based DiffAE table
-    # (the grid-based DiffAE table already has them, but
-    # but I believe that the columns are named "feat_0",
-    # "feat_1", etc. when they should be named "pc1",
-    # "pc2", etc.)
-    merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
-
-    # use the full set of datasets to be analyzed for the bounds
-    datasets_for_bounds = [
-        "20241120_20X",
-        "20250409_20X",
-        "20241217_20X",
-        "20250428_20X",
-        "20250319_20X",
-        "20250326_20X",
-    ]
-
-    model_manifest_list = [
-        get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds
-    ]
-    bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
-
-    return merged_feats_df, diffae_grid_crops, bounds
-
-
-def get_trajectories_and_flow_fields(
-    dataset_name: str,
-    merged_feats_df: pd.DataFrame,
-    diffae_grid_crops: pd.DataFrame,
-    bounds: tuple[float, float, float, float, float, float],
-    out_subdir: Path,
-) -> tuple[np.ndarray, dict, np.ndarray, dict]:
-    """
-    Get the trajectories and flow fields for the grid-based and cell-centric crops.
-    This function is called after loading and preprocessing the manifests.
-    """
-    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
-    # This function will be defined in the main processing function
-    # to handle the specific dataset being processed.
-    precomputed_trajectories_path = out_subdir / f"{dataset_name}_traj_grids.npy"
-    if not precomputed_trajectories_path.exists():
-        logger.debug("Precomputed trajectories not found, will compute them...")
-        load_precomputed_trajectories = None
-    else:
-        load_precomputed_trajectories = precomputed_trajectories_path
-
-    logger.debug("getting trajectory and flow field for grid-based crops...")
-    # This takes about 2 minutes to compute if not loading precomputed
-    traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
-        df=diffae_grid_crops,
-        bounds=bounds,
-        load_precomputed_trajectories=load_precomputed_trajectories,
-    )
-
-    if load_precomputed_trajectories is None:
-        logger.debug("saving the trajectory data from the grid-based crops...")
-        np.save(precomputed_trajectories_path, traj_grids)
-
-    precomputed_trajectories_path = out_subdir / f"{dataset_name}_traj_tracks.npy"
-    if not precomputed_trajectories_path.exists():
-        logger.debug("Precomputed trajectories not found, will compute them...")
-        load_precomputed_trajectories = None
-    else:
-        load_precomputed_trajectories = precomputed_trajectories_path
-
-    logger.debug("getting trajectory and flow field for tracks-based crops...")
-    # This takes about 5 minutes to compute if not loading precomputed
-    traj_tracks, flow_field_dict_tracks = get_traj_and_flowfield(
-        df=merged_feats_df,
-        bounds=bounds,
-        load_precomputed_trajectories=load_precomputed_trajectories,
-    )
-
-    if load_precomputed_trajectories is None:
-        logger.debug("saving the trajectory data from the track-based crops...")
-        np.save(precomputed_trajectories_path, traj_tracks)
-
-    return traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks
 
 
 def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> None:
@@ -179,12 +45,12 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
     # load or compute the trajectories and flow fields for the grid-based
     # and cell-centric crops
     traj_grids, flow_field_dict_grids, traj_tracks, flow_field_dict_tracks = (
-        get_trajectories_and_flow_fields(
+        get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
             dataset_name=dataset_name,
             merged_feats_df=merged_feats_df,
             diffae_grid_crops=diffae_grid_crops,
             bounds=bounds,
-            out_subdir=out_subdir,
+            trajectory_dir=out_subdir,
         )
     )
 
