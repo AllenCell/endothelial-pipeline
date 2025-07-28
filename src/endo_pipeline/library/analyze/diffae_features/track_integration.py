@@ -355,10 +355,6 @@ def plot_pc_integrated_track(
     )
     plt.close(fig)
 
-    # # force garbage collection to keep memory
-    # # free when creating plots from a loop
-    # gc.collect()
-
     return
 
 
@@ -402,21 +398,6 @@ def get_vector_dot_products_as_grid(
     test_dot_prod_arr = test_dot_prod.reshape((50, 50, 50))
     dot_prod = test_dot_prod_arr[slice_indexes].reshape(my_shape)
     return dot_prod
-
-
-# ## NOTE CODE FOR DEV ONLY
-# dataset_name = "20241120_20X"
-
-# live_seg_feats_df = pd.read_csv(
-#     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\2025-07-16\make_seg_feats_manifest\segmentation_features_manifests\20241120_20X_live_segmentation_features.tsv",
-#     sep="\t",
-# )
-# diffae_tracking_df = pd.read_parquet(
-#     r"C:\Users\serge.parent\Documents\projects\cellsmap\results\models\diffae_04_10\20241120_20X\predict_20241120_20X_diffae_04_10_tracked_crop_features.parquet"
-# )
-
-# merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
-# ## NOTE END OF DEV CODE
 
 
 ## NOTE THIS NEEDS TO BE BROKEN UP INTO SMALLER AND MORE
@@ -770,13 +751,9 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
         groups = merged_feats_df.query("track_duration > 120").groupby(
             ["dataset_name", "position_as_str", "crop_index"]
         )
-        # group_names = list(merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"]).groups.keys())
-        # group_names = [nm for nm, df in merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])]
 
         i = 0
         for nm, df in tqdm(groups, desc=dataset_name):
-            # for nm in tqdm(group_names, desc=dataset_name):
-            # df = merged_feats_df[(merged_feats_df[["dataset_name", "position_as_str", "crop_index"]] == nm).all(axis=1)]  # type: ignore
             ds_nm, pos, tid = nm
             plot_pc_integrated_track(
                 dataset_name=str(ds_nm),
@@ -803,7 +780,6 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
 
 
 dataset_name_list = load_dataset_collection_config("pca_reference").datasets[::-1]
-# dataset_name_list = ["20241217_20X"]
 
 for dataset_name in dataset_name_list:
     logger.info(f"Processing {dataset_name}...")
