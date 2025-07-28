@@ -79,6 +79,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
+    slice_by_global_center: bool = True,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
@@ -102,6 +103,10 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         If provided, limits the number of z-slices to load from the raw brightfield images.
         First element is the lower offset, how many slices below the center plane to include, and
         the second element is the upper offset, how many slices above the center plane to include.
+    slice_by_global_center: bool
+        If True, calculate the range of indices based on the global center plane for the given
+        position. If False, use `lower_offset` and `upper_offset` directly as the range bounds.
+        Defaults to True.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
@@ -122,7 +127,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # create csv with zarr paths and args for loading and processing images
     data_path = generate_zarr_csv_for_model_eval(
-        dataset_config, save_path, resolution_level, z_stack_offsets
+        dataset_config, save_path, resolution_level, z_stack_offsets, slice_by_global_center
     )
 
     # apply overrides for model evaluation
@@ -133,7 +138,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
-        z_stack_offsets=z_stack_offsets,
     )
 
     # override model config with the overrides

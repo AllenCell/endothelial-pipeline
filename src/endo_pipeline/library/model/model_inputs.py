@@ -10,7 +10,7 @@ from src.endo_pipeline.configs import (
     load_dataset_collection_config,
 )
 from src.endo_pipeline.io import get_output_path, load_dataframe_from_fms
-from src.endo_pipeline.library.process.z_stack_selection import get_centered_plane_indices
+from src.endo_pipeline.library.process.z_stack_selection import get_plane_indices
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
@@ -25,6 +25,7 @@ def generate_zarr_csv_for_model_eval(
     save_path: Path,
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
+    slice_by_global_center: bool = True,
     overwrite: bool = False,
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
@@ -53,11 +54,12 @@ def generate_zarr_csv_for_model_eval(
         def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
             position_as_int = int(zarr_file_path.stem.split("_")[-1].split(".")[0][-1])
-            z_slices = get_centered_plane_indices(
+            z_slices = get_plane_indices(
                 dataset_config,
                 position_as_int,
                 lower_offset=z_stack_offsets[0],
                 upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
             )
             return z_slices
 
@@ -255,7 +257,6 @@ def generate_overrides_for_model_eval(
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
-    z_stack_offsets: tuple[int, int] | None = None,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -267,8 +268,8 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 8 if z_stack_offsets is not None else 128,
-        "data.predict_dataloaders.batch_size": 1 if z_stack_offsets is not None else 2,
+        "data.predict_dataloaders.num_workers": 8,
+        "data.predict_dataloaders.batch_size": 1,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow

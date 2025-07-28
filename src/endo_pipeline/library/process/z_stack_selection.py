@@ -40,26 +40,39 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
     return int(global_center_plane)
 
 
-def get_centered_plane_indices(
-    dataset_config: DatasetConfig, position: int, lower_offset: int, upper_offset: int
+def get_plane_indices(
+    dataset_config: DatasetConfig,
+    position: int,
+    lower_offset: int,
+    upper_offset: int,
+    slice_by_global_center: bool = True,
 ) -> list[int]:
     """
-    Get a list of plane indices centered around the global center plane. The minimum index is 0
-    and the maximum is 24.
+    Get a list of plane indices based on the specified offsets and slicing mode. The indices
+    are constrained between 0 and 24.
 
     Args:
-        dataset_config (DatasetConfig): Configuration object with dataset-specific information.
-        position (int): The position index.
-        lower_offset (int): The number of planes below the center plane to include.
-        upper_offset (int): The number of planes above the center plane to include.
+        dataset_config (DatasetConfig): Configuration object containing dataset-specific information.
+        position (int): The position index for which the plane indices are calculated.
+        lower_offset (int): The number of planes below the center plane (or starting index if
+            `slice_by_global_center` is False) to include.
+        upper_offset (int): The number of planes above the center plane (or ending index if
+            `slice_by_global_center` is False) to include.
+        slice_by_global_center (bool, optional): If True, calculate the range of indices based on
+            the global center plane for the given position. If False, use `lower_offset` and
+            `upper_offset` directly as the range bounds. Defaults to True.
 
     Returns:
-        list[int]: A list of plane indices centered around the global center plane to be included
-        in the standard deviation projection.
+        list[int]: A list of plane indices within the specified range, constrained between 0 and 24.
     """
-    global_center_plane = get_center_plane_for_position(dataset_config, position)
-    lower_bound = max(0, global_center_plane - lower_offset)
-    upper_bound = min(24, global_center_plane + upper_offset)
+    if slice_by_global_center:
+        global_center_plane = get_center_plane_for_position(dataset_config, position)
+        lower_bound = max(0, global_center_plane - lower_offset)
+        upper_bound = min(24, global_center_plane + upper_offset)
+    else:
+        lower_bound = lower_offset
+        upper_bound = upper_offset
+
     return list(range(lower_bound, upper_bound + 1))
 
 

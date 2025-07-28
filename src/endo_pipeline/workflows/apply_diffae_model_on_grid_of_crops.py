@@ -23,6 +23,7 @@ def main(
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = (5, 16),
+    slice_by_global_center: bool = True,
 ) -> None:
     """
     Apply a model to a multiple datasets.
@@ -55,6 +56,9 @@ def main(
         If provided, limits the number of z-slices to load from the raw brightfield images.
         First element is the lower offset, how many slices below the center plane to include, and
         the second element is the upper offset, how many slices above the center plane to include.
+    slice_by_global_center: bool
+        If true, slice about a global center
+        If false, use z_stack_offsets as the upper and lower bounds for z slicing
     """
     # if input is a string, check if it is a dataset collection or a single dataset name
     if isinstance(dataset_names, str):
@@ -91,6 +95,7 @@ def main(
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
             z_stack_offsets=z_stack_offsets,
+            slice_by_global_center=slice_by_global_center,
         )
 
     # save out updated model config
