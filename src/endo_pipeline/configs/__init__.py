@@ -1,4 +1,12 @@
-from .dataset_config import DatasetCollectionConfig, DatasetConfig, FlowCondition, ValidTimepoints
+from .dataset_config import (
+    DatasetCollectionConfig,
+    DatasetConfig,
+    FlowCondition,
+    MicroscopeType,
+    ObjectiveType,
+    SampleType,
+    ValidTimepoints,
+)
 from .dataset_config_io import (
     get_available_dataset_collection_names,
     get_available_dataset_names,
@@ -54,8 +62,11 @@ __all__ = [
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
+    "MicroscopeType",
     "ModelConfig",
     "ModelManifest",
+    "ObjectiveType",
+    "SampleType",
     "ValidTimepoints",
     "add_model_manifest",
     "get_available_channels_for_all_positions",

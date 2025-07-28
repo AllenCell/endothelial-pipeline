@@ -3,12 +3,7 @@ from pathlib import Path
 import bioio
 import pytest
 
-from src.endo_pipeline.configs import (
-    DatasetConfig,
-    FlowCondition,
-    load_dataset_collection_config,
-    load_dataset_config,
-)
+from src.endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
 from src.endo_pipeline.configs.dataset_config_utils import (
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
@@ -39,6 +34,7 @@ def dataset():
         live_or_fixed_sample="live",
         is_timelapse=True,
         microscope="3i",
+        objective="20X",
         shear_stress_regime="Shear stress regime the dataset was collected under",
         pixel_size_xy_in_um=0.0,
         duration=0,
@@ -263,6 +259,12 @@ def test_get_nuclear_prediction_path_invalid_paths(dataset, nuc_seg_type):
 @pytest.mark.parametrize(
     "sample_type,objective,microscope",
     [
+        ("live", None, None),
+        ("fixed", None, None),
+        (None, "20X", None),
+        (None, "40X", None),
+        (None, None, "3i"),
+        (None, None, "Nikon"),
         ("live", "20X", "3i"),
         ("live", "20X", "Nikon"),
         ("live", "40X", "3i"),
@@ -284,9 +286,11 @@ def test_make_filtered_dataset_collection(sample_type, objective, microscope):
         load_dataset_config(dataset_name) for dataset_name in dataset_collection.datasets
     ]
 
-    assert all(
-        dataset_config.live_or_fixed_sample == sample_type
-        and objective in dataset_config.name
-        and dataset_config.microscope == microscope
-        for dataset_config in dataset_configs
-    )
+    if sample_type is not None:
+        assert all(config.live_or_fixed_sample == sample_type for config in dataset_configs)
+
+    if objective is not None:
+        assert all(config.objective == objective for config in dataset_configs)
+
+    if microscope is not None:
+        assert all(config.microscope == microscope for config in dataset_configs)
