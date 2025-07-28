@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 
 def main(
     model_name: str = "diffae_04_10",
-    dataset_names: str | Sequence[str] = "live_20X_objective_3i_microscope",
+    dataset_names: str | Sequence[str] = "20241016_20X",
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    z_stack_offsets: tuple[int, int] | None = None,
+    z_stack_offsets: tuple[int, int] | None = (5, 16),
 ) -> None:
     """
     Apply a model to a multiple datasets.

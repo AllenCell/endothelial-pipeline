@@ -1,11 +1,15 @@
 import re
-from typing import List
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Sequence, Union
 
 import numpy as np
+import pandas as pd
+import tqdm
 from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
-from monai.data import MetaTensor
+from monai.data import CacheDataset, MetaTensor
 from monai.transforms import Transform
+from omegaconf import OmegaConf
 
 
 class BioIOImageLoaderd(Transform):
@@ -94,16 +98,6 @@ class BioIOImageLoaderd(Transform):
 
         data[self.out_key] = MetaTensor(img, meta=kwargs)
         return data
-
-
-from pathlib import Path
-from typing import Callable, Dict, Optional, Sequence, Union
-
-import pandas as pd
-import tqdm
-from bioio import BioImage
-from monai.data import CacheDataset
-from omegaconf import OmegaConf
 
 
 class MultiDimImageDataset(CacheDataset):
