@@ -22,7 +22,7 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    z_stack_offsets: tuple[int, int] | None = (5, 16),
+    z_stack_offsets: tuple[int, int] | None = None,
 ) -> None:
     """
     Apply a model to a multiple datasets.

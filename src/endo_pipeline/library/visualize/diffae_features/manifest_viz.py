@@ -69,6 +69,8 @@ def plot_pc_scatter(
     pca: Pipeline,
     model_manifest_list: list[ModelManifest],
     timepoints_to_use: dict[str, list[list]] | None = None,
+    alpha: float = 0.75,
+    scatter_size: float = 0.01,
 ) -> tuple:
     """
     Plot scatter plot of PCA components for a list of datasets.
@@ -108,14 +110,14 @@ def plot_pc_scatter(
 
         # first plot: PC1 v PC2
         ax[0].scatter(
-            df[pc_column_names[0]], df[pc_column_names[1]], alpha=0.75, s=0.01, color=color
+            df[pc_column_names[0]], df[pc_column_names[1]], alpha=alpha, s=scatter_size, color=color
         )
         ax[0].set_xlabel("PC1")
         ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
         ax[1].scatter(
-            df[pc_column_names[0]], df[pc_column_names[2]], alpha=0.75, s=0.01, color=color
+            df[pc_column_names[0]], df[pc_column_names[2]], alpha=alpha, s=scatter_size, color=color
         )
         ax[1].set_xlabel("PC1")
         ax[1].set_ylabel("PC3")

@@ -70,6 +70,7 @@ def get_3d_bounds_from_data(
     model_manifest_list: list[ModelManifest],
     pca: Pipeline,
     filter_to_valid: bool = True,
+    pad: bool = False,
 ) -> list[np.ndarray]:
     """
     Set bounds for 3D state space based on the bounds
@@ -114,8 +115,14 @@ def get_3d_bounds_from_data(
         # get column names for features
         pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
         for j in range(num_dims):
-            bounds_[j][0] = min(bounds_[j][0], df[pc_column_names[j]].min())
-            bounds_[j][1] = max(bounds_[j][1], df[pc_column_names[j]].max())
+            candidate_min = df[pc_column_names[j]].min()
+            candidate_max = df[pc_column_names[j]].max()
+            if pad:
+                candidate_min = candidate_min - 0.1
+                candidate_max = candidate_max + 0.1
+            # update bounds for each dimension
+            bounds_[j][0] = min(bounds_[j][0], candidate_min)
+            bounds_[j][1] = max(bounds_[j][1], candidate_max)
 
     bounds = [np.array(bounds_[i]) for i in range(num_dims)]
 

@@ -267,7 +267,7 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 8 if z_stack_offsets is not None else 128,
+        "data.predict_dataloaders.num_workers": 8 if z_stack_offsets is not None else 12,
         "data.predict_dataloaders.batch_size": 1 if z_stack_offsets is not None else 2,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
