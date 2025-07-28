@@ -65,10 +65,14 @@ def main() -> None:
         bounds = ddff.set_3d_bounds_from_data(model_manifest_list, pca)
 
         print("getting trajectory and flow field for grid-based crops...")
-        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(diffae_grid_crops, bounds)
+        traj_grids, flow_field_dict_grids = get_traj_and_flowfield(
+            diffae_grid_crops, bounds, load_precomputed_trajectories=None
+        )
 
         print("getting trajectory and flow field for tracks-based crops...")
-        traj_tracks, _ = get_traj_and_flowfield(df_all_positions, bounds)
+        traj_tracks, _ = get_traj_and_flowfield(
+            df_all_positions, bounds, load_precomputed_trajectories=None
+        )
         # save the trajectory data from the track-based crops
         np.save(out_subdir_traj / f"{dataset_name}_traj_tracks.npy", traj_tracks)
 

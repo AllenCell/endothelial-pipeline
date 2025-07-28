@@ -420,8 +420,6 @@ def grid_vs_track_vec_dot_prod_hist2d(
     """
     vmin = -1 * abs(dot_prod).max()
     vmax = 1 * abs(dot_prod).max()
-    # vmin = dot_prod.min()
-    # vmax = dot_prod.max()
     cmap_norm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
 
     fig, ax_hist = plt.subplots(figsize=(6, 6))
@@ -445,3 +443,213 @@ def grid_vs_track_vec_dot_prod_hist2d(
     plt.tight_layout()
     if out_path is not None:
         fig.savefig(out_path, dpi=300, bbox_inches="tight")
+
+
+def plot_pc_integrated_track_as_arrows(
+    dataset_name: str,
+    position_name: str,
+    track_id: int,
+    df: pd.DataFrame,
+    v1_grids: np.ndarray,
+    v2_grids: np.ndarray,
+    g1_grids: np.ndarray,
+    g2_grids: np.ndarray,
+    slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
+    out_subdir: Path,
+) -> None:
+
+    out_subdir_integrated_tracks = out_subdir / "integrated_tracks"
+    out_subdir_integrated_tracks.mkdir(parents=True, exist_ok=True)
+
+    out_subdir_integrated_tracks_hued = out_subdir / "integrated_tracks_hued"
+    out_subdir_integrated_tracks_hued.mkdir(parents=True, exist_ok=True)
+
+    # plot a single track integrated into the flow field
+    # shown as dots connected by arrows to give an idea
+    # of the direction of motion of the cell through the
+    # flow field
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="blue",
+    )
+    ax.quiver(
+        df["pc1"].iloc[:-1],
+        df["pc2"].iloc[:-1],
+        df["dpc1"].iloc[1:],
+        df["dpc2"].iloc[1:],
+        scale_units="xy",
+        angles="xy",
+        scale=1,
+        units="width",
+        width=0.004,
+    )
+    sns.scatterplot(
+        data=df.query("time_hours == time_hours.min()"),
+        x="pc1",
+        y="pc2",
+        marker="o",
+        color="red",
+        alpha=0.7,
+        lw=0,
+        ax=ax,
+        s=50,
+        legend=False,
+    )
+    sns.scatterplot(
+        data=df.query("time_hours == time_hours.max()"),
+        x="pc1",
+        y="pc2",
+        marker="x",
+        color="red",
+        alpha=0.7,
+        lw=2,
+        ax=ax,
+        s=50,
+        legend=False,
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title(f"{dataset_name} {position_name} track {track_id}\nintegrated flow field")
+    fig.savefig(
+        out_subdir_integrated_tracks
+        / f"{dataset_name}_{position_name}_track_{track_id}_integrated_flow_field.png",
+        dpi=200,
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    cmap = sns.color_palette("dark:red", as_cmap=True)
+    angle_deg_to_color = lambda a: cmap(np.abs(a) / 180.0)
+
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="blue",
+    )
+    ax.quiver(
+        df["pc1"].iloc[:-1],
+        df["pc2"].iloc[:-1],
+        df["dpc1"].iloc[1:],
+        df["dpc2"].iloc[1:],
+        scale_units="xy",
+        angles="xy",
+        scale=1,
+        units="width",
+        width=0.005,
+        alpha=1,
+        color=angle_deg_to_color(df["track_angular_deviation_deg"].iloc[1:]),
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title(f"{dataset_name} {position_name} track {track_id}\nintegrated flow field")
+    fig.savefig(
+        out_subdir_integrated_tracks_hued
+        / f"{dataset_name}_{position_name}_track_{track_id}_integrated_flow_field_hued.png",
+        dpi=200,
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    return
+
+
+def plot_and_save_track_flow_field_deviations(
+    mean_track_deviation_dfs: pd.DataFrame, out_subdir: Path, dataset_name: str
+) -> None:
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.histplot(data=mean_track_deviation_dfs, x="track_angular_deviation_deg", binwidth=1, ax=ax)
+    ax.axvline(90, ls="--", lw=1, c="k", label="90 deg")
+    ax.set_xlim(0, 180)
+    ax.set_xticks(np.arange(0, 181, 45))
+    ax.minorticks_on()
+    ax.set_xlabel("Angular deviation (deg)")
+    ax.set_ylabel("Counts")
+    fig.savefig(
+        out_subdir / f"{dataset_name}_angular_deviation_histogram.png", dpi=200, bbox_inches="tight"
+    )
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.histplot(data=mean_track_deviation_dfs, x="track_angular_deviation_deg", y="pc1_pc2_vec_mag", binwidth=(1, None), ax=ax)  # type: ignore[arg-type]
+    ax.axvline(90, ls="--", lw=1, c="k", label="90 deg")
+    ax.set_xlim(0, 180)
+    ax.set_xticks(np.arange(0, 181, 45))
+    ax.minorticks_on()
+    ax.set_xlabel("Angular deviation (deg)")
+    ax.set_ylabel("Track PC1-PC2\nvector magnitude")
+    fig.savefig(
+        out_subdir / f"{dataset_name}_angular_deviation_vs_mag_histogram.png",
+        dpi=200,
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+
+def overlay_flow_fields_on_histograms(
+    dataset_name: str,
+    out_subdir: Path,
+    diffae_grid_crops: pd.DataFrame,
+    merged_feats_df: pd.DataFrame,
+    v1_grids: np.ndarray,
+    v2_grids: np.ndarray,
+    g1_grids: np.ndarray,
+    g2_grids: np.ndarray,
+    v1_tracks: np.ndarray,
+    v2_tracks: np.ndarray,
+    g1_tracks: np.ndarray,
+    g2_tracks: np.ndarray,
+    slice_indexes: tuple,
+) -> None:
+    # Plot flow fields overlaid on the PC1 vs PC2
+    # histograms to get an idea of where the flow
+    # fields have the most data to work with
+    out_path = out_subdir / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png"
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.histplot(
+        data=diffae_grid_crops,
+        x="pc1",
+        y="pc2",
+        bins=50,
+        cmap="Blues",
+        ax=ax,
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="black",
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+    out_path = out_subdir / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png"
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.histplot(
+        data=merged_feats_df,
+        x="pc1",
+        y="pc2",
+        bins=50,
+        cmap="Reds",
+        ax=ax,
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_tracks, v2_tracks),
+        grid=(g1_tracks, g2_tracks),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="black",
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
