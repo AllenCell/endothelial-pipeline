@@ -45,7 +45,7 @@ def get_centered_plane_indices(
 ) -> list[int]:
     """
     Get a list of plane indices centered around the global center plane. The minimum index is 0
-    and the maximum is 25.
+    and the maximum is 24.
 
     Args:
         dataset_config (DatasetConfig): Configuration object with dataset-specific information.
@@ -59,7 +59,7 @@ def get_centered_plane_indices(
     """
     global_center_plane = get_center_plane_for_position(dataset_config, position)
     lower_bound = max(0, global_center_plane - lower_offset)
-    upper_bound = min(25, global_center_plane + upper_offset)
+    upper_bound = min(24, global_center_plane + upper_offset)
     return list(range(lower_bound, upper_bound + 1))
 
 

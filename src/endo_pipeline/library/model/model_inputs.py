@@ -53,10 +53,11 @@ def generate_zarr_csv_for_model_eval(
             return z_slices
 
         # apply the function to each zarr file path
-        df["Z"] = df["path"].apply(lambda x: _get_z_slices(x, dataset_config))
+        df["Z"] = df["path"].apply(lambda x: tuple(_get_z_slices(x, dataset_config)))
 
         # specify the T column as [0,245,570] for testing purposes
-        df["T"] = df["path"].apply(lambda x: [0, 245, 570])
+        df["start"] = df["path"].apply(lambda x: 0)
+        df["stop"] = df["path"].apply(lambda x: 2)
 
     # turn paths into strings
     df["path"] = df["path"].apply(lambda x: str(x))
