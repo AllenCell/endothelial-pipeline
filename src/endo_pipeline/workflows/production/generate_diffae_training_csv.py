@@ -55,7 +55,7 @@ def main(zarr_resolution: int = 1) -> None:
 
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
 
-    # save the dataframes to csv files
+    # save the dataframes to csv files locally as intermediates
     train.to_csv(output_savedir / f"train_resolution_{zarr_resolution}.csv", index=False)
     val.to_csv(output_savedir / f"val_resolution_{zarr_resolution}.csv", index=False)
 

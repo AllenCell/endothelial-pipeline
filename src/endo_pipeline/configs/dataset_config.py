@@ -18,6 +18,8 @@ ObjectiveType = Literal["20X", "40X"]
 
 @dataclass
 class DataframeLocation:
+    """Class to hold the location of a dataframe, either in FMS or S3."""
+
     fmsid: str | None = None
     """FMS file id for dataframe."""
 
