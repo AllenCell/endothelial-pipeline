@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -46,8 +47,9 @@ def update_prediction_from_tracks_with_metadata(
 ) -> Path:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # ensure unique filename
     prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features.parquet"
+        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features_{timestamp}.parquet"
     )
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name

@@ -30,8 +30,11 @@ def main(
 
     Example usage:
     ```
-    uv run src/endo_pipeline/workflows/apply_model.py
-    --model_name diffae_04_10 --dataset_names '["20241016_20X","20250224_20X"]'
+    python src/endo_pipeline/workflows/apply_diffae_model_on_grid_of_crops.py \
+    --model_name diffae_04_10 \
+    --dataset_names '20241016_20X' \
+    --z_stack_offsets 5,10 \
+    --slice_by_global_center False
     ```
 
 
