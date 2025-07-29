@@ -36,8 +36,10 @@ def main(
     """
 
     import logging
+    from typing import cast
 
     from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
@@ -69,7 +71,7 @@ def main(
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
     # load model config
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # apply model to each dataset
     # is there a better way to do this? i.e., load model once

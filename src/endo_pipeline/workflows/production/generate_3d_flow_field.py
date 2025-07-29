@@ -21,10 +21,12 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         to the specified output directories.
     """
     import logging
+    from typing import cast
 
     import numpy as np
 
     from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
         dynamics_io,
         get_available_dataset_collection_names,
         get_available_dataset_names,
@@ -76,7 +78,7 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     #   (or default list, if not specified)
     # get timepoints to use for scatter plots
     # all timepoints except no flow
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
     pca_ref_model_manifest_list = get_pca_reference_model_manifests(model_config)
     pca_ref_configs = [
         load_dataset_config(model_manifest.dataset_name)
