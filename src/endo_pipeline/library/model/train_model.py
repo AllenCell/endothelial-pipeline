@@ -67,11 +67,6 @@ def _generate_overrides_for_model_training(
         # the rest are populated by interpolation
         "model.image_shape": [1, crop_size, crop_size],
     }
-    logging.debug(
-        "Crop size set to (%d px, %d px)",
-        overrides["model.image_shape"][1],
-        overrides["model.image_shape"][2],
-    )
     return overrides
 
 

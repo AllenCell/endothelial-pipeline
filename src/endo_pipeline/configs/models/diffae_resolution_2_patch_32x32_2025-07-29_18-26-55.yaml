@@ -1,0 +1,8 @@
+name: diffae_resolution_2_patch_32x32_2025-07-29_18-26-55
+mlflow_run_id: 7d4a6c42e94844f7821c5ac0d2f7ee55
+manifest_fmsids: []
+training_datasets:
+- 20241120_20X
+- 20250319_20X
+train_manifest_fmsid: null
+test_manifest_fmsid: null
