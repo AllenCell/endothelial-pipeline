@@ -8,7 +8,12 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 from sklearn.pipeline import Pipeline
 
-from src.endo_pipeline.configs import get_model_manifest, load_dataset_config, load_model_config
+from src.endo_pipeline.configs import (
+    get_model_manifest,
+    load_dataset_collection_config,
+    load_dataset_config,
+    load_model_config,
+)
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import load_dataframe_from_fms
 from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field as ddff
@@ -297,8 +302,9 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
     - {dataset_name}_traj_tracks.npy for cell-centric crops
     """
     logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
-    # This function will be defined in the main processing function
-    # to handle the specific dataset being processed.
+
+    # try to load the grid crop-based  data for the cell-centric
+    #  crops or, if needed, compute and save them
     precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_grids.npy"
     if not precomputed_trajectories_path.exists():
         logger.debug("Precomputed trajectories not found, will compute them...")
@@ -318,6 +324,8 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
         logger.debug("saving the trajectory data from the grid-based crops...")
         np.save(precomputed_trajectories_path, traj_grids)
 
+    # try to load the trajectory data for the cell-centric crops or,
+    # if needed, compute and save them
     precomputed_trajectories_path = trajectory_dir / f"{dataset_name}_traj_tracks.npy"
     if not precomputed_trajectories_path.exists():
         logger.debug("Precomputed trajectories not found, will compute them...")
@@ -552,39 +560,24 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
+    datasets_for_bounds: List[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
+    If no `datasets_for_bounds` are provided, it uses the reference datasets plus dataset_name
+    to compute the bounds for the PCA projection. In my experience using only the dataset_name
+    for the bounds has sometimes caused the solver to hang, perhaps due to overly restrictive bounds.
     """
     logger.info(f"Loading and processing manifests for dataset: {dataset_name}")
 
     # load the tables
     merged_feats_df = get_diffae_feats_liveseg_feats_merged_table(dataset_name, filtered=True)
 
-    # keep only the columns that are needed for the analysis to reduce memory usage
-    cols_to_keep = [
-        "dataset_name",
-        "position",
-        "position_as_str",
-        "track_id",
-        "label",
-        "crop_index",
-        "mlflow_id",
-        "model_name",
-        "image_index",
-        "frame_number",
-        "time_hours",
-        "time_minutes",
-        "track_duration",
-    ] + [col for col in merged_feats_df.columns if "feat" in col]
-
-    merged_feats_df = merged_feats_df[cols_to_keep]
-
     # fit the PCA (uses the reference datasets)
     pca = fit_pca()
 
     # read in the grid crop-based diffae features
-    model_name = merged_feats_df["model_name"].unique()[0]
+    model_name = sequence_to_scalar(merged_feats_df["model_name"])
     model_config = load_model_config(model_name)
     model_manifest = get_model_manifest(dataset_name, model_config)  # type: ignore[arg-type]
     diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
@@ -597,14 +590,10 @@ def get_preprocessed_manifests_and_km_bounds(
     merged_feats_df = project_manifest_to_pcs(merged_feats_df, pca)
 
     # use the full set of datasets to be analyzed for the bounds
-    datasets_for_bounds = [
-        "20241120_20X",
-        "20250409_20X",
-        "20241217_20X",
-        "20250428_20X",
-        "20250319_20X",
-        "20250326_20X",
-    ]
+    if datasets_for_bounds is None:
+        datasets_for_bounds = load_dataset_collection_config("pca_reference").datasets + [
+            dataset_name
+        ]
 
     model_manifest_list = [
         get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds  # type: ignore[arg-type]

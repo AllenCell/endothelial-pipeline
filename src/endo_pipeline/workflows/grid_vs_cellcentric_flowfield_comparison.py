@@ -31,7 +31,9 @@ from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz i
 logger = logging.getLogger(__name__)
 
 
-def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> None:
+def process_dataset(
+    dataset_name: str, datasets_for_bounds: list[str], make_integrated_plots: bool = True
+) -> None:
     logger.info(f"Processing dataset: {dataset_name}")
 
     out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
@@ -39,8 +41,26 @@ def process_dataset(dataset_name: str, make_integrated_plots: bool = True) -> No
 
     # load and preprocess the different diffae manifests and PCA pipeline
     merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
-        dataset_name
+        dataset_name, datasets_for_bounds=datasets_for_bounds
     )
+
+    # keep only the columns that are needed for the analysis to reduce memory usage
+    cols_to_keep = [
+        "dataset_name",
+        "position",
+        "position_as_str",
+        "track_id",
+        "label",
+        "crop_index",
+        "mlflow_id",
+        "model_name",
+        "image_index",
+        "frame_number",
+        "time_hours",
+        "time_minutes",
+        "track_duration",
+    ] + [col for col in merged_feats_df.columns if "feat" in col]
+    merged_feats_df = merged_feats_df[cols_to_keep]
 
     # load or compute the trajectories and flow fields for the grid-based
     # and cell-centric crops
@@ -270,7 +290,11 @@ def main() -> None:
 
     for dataset_name in dataset_name_list:
         logger.info(f"Processing {dataset_name}...")
-        process_dataset(dataset_name, make_integrated_plots=True)
+        process_dataset(
+            dataset_name=dataset_name,
+            datasets_for_bounds=dataset_name_list,
+            make_integrated_plots=True,
+        )
 
     # create a test flow field and test set of vectors
     # to check that the angular deviation calculation

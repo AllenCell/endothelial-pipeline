@@ -27,7 +27,7 @@ def main() -> None:
 
         # load and preprocess the different diffae manifests and PCA pipeline
         df_all_positions, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
-            dataset_name
+            dataset_name, datasets_for_bounds=dataset_name_list
         )
 
         # load or compute the trajectories and flow fields for the grid-based
