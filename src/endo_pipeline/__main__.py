@@ -214,7 +214,7 @@ def setup_logging(level: int) -> None:
 def setup_gpu() -> None:
     """Set up GPU environmental variables."""
 
-    logger.info("Running workflow with GPU")
+    logger.info("Setting up environment to run workflow using GPU")
 
     import os
     import subprocess
@@ -226,7 +226,7 @@ def setup_gpu() -> None:
     # If unable to access the driver, report error and exit
     if "failed" in gpu_memory_free:
         logger.error("Workflow is unable to communicate with the NVIDIA driver")
-        raise EnvironmentError("Error using nvidia-smi: '%s'", gpu_memory_free)
+        raise EnvironmentError(gpu_memory_free)
 
     # Select device number with the maximum free memory
     gpu_with_max_free = sorted(gpu_memory_free.split("\n"), reverse=True)[0].split(", ")[1]
