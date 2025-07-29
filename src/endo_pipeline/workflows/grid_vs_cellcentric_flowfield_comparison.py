@@ -59,7 +59,7 @@ def process_dataset(
         "time_hours",
         "time_minutes",
         "track_duration",
-    ] + [col for col in merged_feats_df.columns if "feat" in col]
+    ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
     merged_feats_df = merged_feats_df[cols_to_keep]
 
     # load or compute the trajectories and flow fields for the grid-based
