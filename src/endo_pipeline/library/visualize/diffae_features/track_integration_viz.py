@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -21,6 +22,8 @@ from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
+
+LINEART_DPI = 300
 
 
 def get_valid_slice_indexes(
@@ -444,7 +447,7 @@ def plot_grid_vs_tracks_flow_field(
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     ds: int = 3,
     scale: int = 30,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[Figure, plt.Axes]:
     """
     This function is basically a wrapper around the
     `plot_one_slice_quiver` function that plots the
@@ -559,6 +562,12 @@ def plot_pc_integrated_track_as_arrows(
     g2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
     out_subdir: Path,
+    hue_min: float,
+    hue_max: float,
+    hue_center: float = 0.0,
+    cmap_name: str = "RdBu_r",
+    hued_feat_name: str = "dot_product_grid_vs_cell",
+    track_alpha: float = 0.7,
 ) -> None:
 
     out_subdir_integrated_tracks = out_subdir / "integrated_tracks"
@@ -625,8 +634,9 @@ def plot_pc_integrated_track_as_arrows(
     )
     plt.close(fig)
 
-    cmap = sns.color_palette("dark:red", as_cmap=True)
-    angle_deg_to_color = lambda a: cmap(np.abs(a) / 180.0)
+    cmap_norm = TwoSlopeNorm(vmin=hue_min, vcenter=hue_center, vmax=hue_max)
+    cmap = sns.color_palette(cmap_name, as_cmap=True)
+    feat_to_color = lambda a: cmap(cmap_norm(a))
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     plot_one_slice_quiver(
@@ -634,7 +644,7 @@ def plot_pc_integrated_track_as_arrows(
         grid=(g1_grids, g2_grids),
         slice_indexes=slice_indexes,
         ax=ax,
-        color="blue",
+        color="grey",
     )
     ax.quiver(
         df["pc1"].iloc[:-1],
@@ -646,9 +656,19 @@ def plot_pc_integrated_track_as_arrows(
         scale=1,
         units="width",
         width=0.005,
-        alpha=1,
-        color=angle_deg_to_color(df["track_angular_deviation_deg"].iloc[1:]),
+        alpha=track_alpha,
+        color=feat_to_color(df[hued_feat_name].iloc[1:]),
     )
+    divider = make_axes_locatable(ax)
+    ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = ColorbarBase(
+        ax_cb,
+        cmap=cmap,
+        norm=cmap_norm,
+        ticks=np.linspace(hue_min, hue_max, 7).tolist(),
+        orientation="vertical",
+    )
+    cbar.set_label(hued_feat_name, rotation=270, labelpad=15)
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     ax.set_title(f"{dataset_name} {position_name} track {track_id}\nintegrated flow field")
@@ -758,3 +778,19 @@ def overlay_flow_fields_on_histograms(
     ax.set_ylabel("PC2")
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_and_save_track_flow_field_dot_product_histogram(
+    features_dataframe: pd.DataFrame,
+    feature_column_name: str,
+    out_path: Path,
+    plot_title: str | None = None,
+) -> tuple[Figure, plt.Axes]:
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.histplot(data=features_dataframe, x=feature_column_name, ax=ax)
+    ax.axvline(0, color="red", linestyle="--", label="perpendicular")
+    ax.set_xlabel("PC1-PC2 vector dot product\n(grid-based vs. cell-centric)")
+    if plot_title is not None:
+        ax.set_title(plot_title)
+    fig.savefig(out_path, bbox_inches="tight", dpi=LINEART_DPI)
+    return fig, ax

@@ -25,6 +25,7 @@ from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz i
     grid_vs_track_vec_dot_prod_hist2d,
     overlay_flow_fields_on_histograms,
     plot_and_save_track_flow_field_deviations,
+    plot_and_save_track_flow_field_dot_product_histogram,
     plot_grid_vs_tracks_flow_field,
     plot_pc_integrated_track_as_arrows,
 )
@@ -221,7 +222,7 @@ def process_dataset(
     )
 
     # Compute the angle between the approximate grid vector
-    #  and the the vector from the cell-centric PC1 and PC2
+    # and the the vector from the cell-centric PC1 and PC2
     # both in radians and degrees
     merged_feats_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
         merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
@@ -253,6 +254,39 @@ def process_dataset(
         dataset_name=dataset_name,
     )
 
+    # get the dot products
+    merged_feats_df["dot_product_grid_vs_cell"] = np.einsum(
+        "ij,ij->i",
+        merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]],
+        merged_feats_df[["pc1", "pc2"]],
+    )
+    # also aggregate the dot products by crop index (i.e. unique track id across all positions)
+    merged_feats_dot_prod_agg = (
+        merged_feats_df.groupby("crop_index")["dot_product_grid_vs_cell"]
+        .agg(["mean", "median"])
+        .reset_index()
+    )
+
+    plot_title = "Mean per track"
+    col_name = "mean"
+    out_path = out_subdir / f"{dataset_name}_dot_product_grid_vs_cell_{col_name}.png"
+    plot_and_save_track_flow_field_dot_product_histogram(
+        features_dataframe=merged_feats_dot_prod_agg,
+        feature_column_name=col_name,
+        out_path=out_path,
+        plot_title=plot_title,
+    )
+
+    plot_title = "Non-aggregated dot products"
+    col_name = "dot_product_grid_vs_cell"
+    out_path = out_subdir / f"{dataset_name}_dot_product_grid_vs_cell_{col_name}.png"
+    plot_and_save_track_flow_field_dot_product_histogram(
+        features_dataframe=merged_feats_df,
+        feature_column_name=col_name,
+        out_path=out_path,
+        plot_title=plot_title,
+    )
+
     if make_integrated_plots:
         # NOTE: this is a very memory-intensive operation despite my attempts to
         # reduce memory needs here, so if you change the minimum track duration
@@ -267,6 +301,9 @@ def process_dataset(
             assert (
                 tid % 1
             ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
+            hue_min = -1 * max(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_max = 1 * max(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_center = 0.0
             plot_pc_integrated_track_as_arrows(
                 dataset_name=str(ds_nm),
                 position_name=str(pos),
@@ -278,6 +315,12 @@ def process_dataset(
                 g2_grids=g2_grids,
                 slice_indexes=slice_indexes,
                 out_subdir=out_subdir,
+                hue_min=hue_min,
+                hue_max=hue_max,
+                hue_center=hue_center,
+                cmap_name="managua",
+                hued_feat_name="dot_product_grid_vs_cell",
+                track_alpha=0.5,
             )
             i += 1
             if i % 100 == 0:

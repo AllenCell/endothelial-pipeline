@@ -423,9 +423,9 @@ def get_vector_angles_as_grid(
     vecs_tracks = np.asarray(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
     )
-    test_ang = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
-    test_ang_arr = test_ang.reshape((50, 50, 50))
-    angles = test_ang_arr[slice_indexes].reshape(my_shape)
+    ang_full = get_vector_vector_angle_fast(vecs_grids, vecs_tracks)
+    ang_arr = ang_full.reshape((50, 50, 50))
+    angles = ang_arr[slice_indexes].reshape(my_shape)
     return angles
 
 
@@ -445,9 +445,9 @@ def get_vector_dot_products_as_grid(
     vecs_tracks = np.asarray(
         list(zip(np.ravel(v1_tracks), np.ravel(v2_tracks), np.ravel(v3_tracks)))
     )
-    test_dot_prod = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
-    test_dot_prod_arr = test_dot_prod.reshape((50, 50, 50))
-    dot_prod = test_dot_prod_arr[slice_indexes].reshape(my_shape)
+    dot_prod_full = np.einsum("ij,ij->i", vecs_grids, vecs_tracks)
+    dot_prod_arr = dot_prod_full.reshape((50, 50, 50))
+    dot_prod = dot_prod_arr[slice_indexes].reshape(my_shape)
     return dot_prod
 
 
