@@ -693,3 +693,68 @@ def plot_and_save_track_flow_field_deviations(
         bbox_inches="tight",
     )
     plt.close(fig)
+
+
+def overlay_flow_fields_on_histograms(
+    dataset_name: str,
+    out_subdir: Path,
+    diffae_grid_crops: pd.DataFrame,
+    merged_feats_df: pd.DataFrame,
+    v1_grids: np.ndarray,
+    v2_grids: np.ndarray,
+    g1_grids: np.ndarray,
+    g2_grids: np.ndarray,
+    v1_tracks: np.ndarray,
+    v2_tracks: np.ndarray,
+    g1_tracks: np.ndarray,
+    g2_tracks: np.ndarray,
+    slice_indexes: tuple,
+) -> None:
+    # Plot flow fields overlaid on the PC1 vs PC2
+    # histograms to get an idea of where the flow
+    # fields have the most data to work with
+    out_path = out_subdir / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png"
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.histplot(
+        data=diffae_grid_crops,
+        x="pc1",
+        y="pc2",
+        bins=50,
+        cmap="Blues",
+        ax=ax,
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_grids, v2_grids),
+        grid=(g1_grids, g2_grids),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="black",
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+    out_path = out_subdir / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png"
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    sns.histplot(
+        data=merged_feats_df,
+        x="pc1",
+        y="pc2",
+        bins=50,
+        cmap="Reds",
+        ax=ax,
+    )
+    plot_one_slice_quiver(
+        velocities=(v1_tracks, v2_tracks),
+        grid=(g1_tracks, g2_tracks),
+        slice_indexes=slice_indexes,
+        ax=ax,
+        color="black",
+    )
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)

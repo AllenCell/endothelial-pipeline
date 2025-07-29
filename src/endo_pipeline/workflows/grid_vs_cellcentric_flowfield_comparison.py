@@ -23,6 +23,7 @@ from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz i
     get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
     grid_vs_track_vec_dot_prod_hist2d,
+    overlay_flow_fields_on_histograms,
     plot_and_save_track_flow_field_deviations,
     plot_grid_vs_tracks_flow_field,
     plot_pc_integrated_track_as_arrows,
@@ -254,9 +255,7 @@ def process_dataset(
 
     if make_integrated_plots:
         merged_feats_df = merged_feats_df.query("track_duration > 120")
-        groups = merged_feats_df.query("track_duration > 120").groupby(
-            ["dataset_name", "position_as_str", "crop_index"]
-        )
+        groups = merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])
 
         i = 0
         for nm, df in tqdm(groups, desc=dataset_name):
@@ -281,6 +280,24 @@ def process_dataset(
                 # force garbage collection to keep memory free when
                 # creating plots from a loop every 100th iteration
                 gc.collect()
+
+    # overlay flow fields on the histograms of the data to see where
+    # most of the data being used to extrapolate flow fields is
+    overlay_flow_fields_on_histograms(
+        dataset_name,
+        out_subdir,
+        diffae_grid_crops,
+        merged_feats_df,
+        v1_grids,
+        v2_grids,
+        g1_grids,
+        g2_grids,
+        v1_tracks,
+        v2_tracks,
+        g1_tracks,
+        g2_tracks,
+        slice_indexes,
+    )
 
     return
 
