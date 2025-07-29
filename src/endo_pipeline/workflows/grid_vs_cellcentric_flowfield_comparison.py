@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import configure_logging, get_output_path
-from src.endo_pipeline.library.analyze.track_integration import (
+from src.endo_pipeline.library.analyze.integration.track_integration import (
     get_approx_point_from_grid,
     get_approx_vec_from_grid,
     get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
@@ -19,7 +19,7 @@ from src.endo_pipeline.library.analyze.track_integration import (
     get_vector_vector_angle_fast,
     make_angular_deviation_test,
 )
-from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import (
+from src.endo_pipeline.library.visualize.integration.track_integration_viz import (
     get_valid_slice_indexes,
     grid_vs_track_vec_angle_hist2d,
     grid_vs_track_vec_dot_prod_hist2d,
