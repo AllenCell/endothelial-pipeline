@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Literal
@@ -8,6 +9,8 @@ from omegaconf import DictConfig, ListConfig
 
 from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import get_output_path
+
+logger = logging.getLogger(__name__)
 
 
 def get_model_dir() -> Path:
@@ -64,6 +67,11 @@ def _generate_overrides_for_model_training(
         # the rest are populated by interpolation
         "model.image_shape": [1, crop_size, crop_size],
     }
+    logging.debug(
+        "Crop size set to (%d px, %d px)",
+        overrides["model.image_shape"][1],
+        overrides["model.image_shape"][2],
+    )
     return overrides
 
 

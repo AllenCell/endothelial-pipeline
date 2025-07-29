@@ -31,6 +31,7 @@ def main(
         MLflow run ID and the list of datasets used for training.
     """
     import datetime
+    import logging
 
     from omegaconf import OmegaConf
 
@@ -42,9 +43,13 @@ def main(
         initialize_diffae_model,
     )
 
+    logger = logging.getLogger(__name__)
+
     # get valid CSV paths for training and validation datasets based on zarr resolution
     train_csv_path = get_valid_csv_path_for_training(train_csv_path, zarr_resolution, "train")
     val_csv_path = get_valid_csv_path_for_training(val_csv_path, zarr_resolution, "val")
+    logger.debug("Loading training subset from \n %s", train_csv_path)
+    logger.debug("Loading validation subset from \n %s", val_csv_path)
 
     # load template training config
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
@@ -52,6 +57,7 @@ def main(
     # set model name via zarr resolution, crop size, and current timestamp
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
     model_name = f"diffae_resolution_{zarr_resolution}_patch_{crop_size}x{crop_size}_{timestamp}"
+    logger.debug("Model name: [ %s ]", model_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(

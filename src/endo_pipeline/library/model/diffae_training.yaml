@@ -14,7 +14,7 @@ data:
   train_dataloaders:
     _target_: monai.data.DataLoader
     num_workers: 8
-    batch_size: 1
+    batch_size: 4
     pin_memory: true
     persistent_workers: false
     shuffle: true
