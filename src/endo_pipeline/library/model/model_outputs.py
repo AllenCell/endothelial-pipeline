@@ -40,7 +40,9 @@ def update_prediction_from_crops_with_metadata(
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_{timestamp}.parquet"
+    prediction_path = (
+        save_path / f"predict_{dataset_name}_{model_name}_features_{timestamp}.parquet"
+    )
     pred_df.to_parquet(prediction_path)
     return prediction_path
 
