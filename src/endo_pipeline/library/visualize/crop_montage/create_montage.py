@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
@@ -17,7 +19,7 @@ def plot_crop_montage(
     pc_val: float,
     image_content: str,
     channel_index: int | None,
-    save_dir: str,
+    save_dir: Path,
 ) -> None:
     """
     Plot a montage of crops from a list of crops.
@@ -63,7 +65,7 @@ def generate_contact_sheet(
     df_sample: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
-    fig_savedir: str,
+    fig_savedir: Path,
 ) -> None:
     """
     Generate and save montages (contact sheets) for various image crops, including
@@ -77,7 +79,7 @@ def generate_contact_sheet(
         Principal component axis used for titling.
     pc_val : float
         Value of the principal component bin used for titling.
-    fig_savedir : str
+    fig_savedir : Path
         Directory to save montage images.
     """
     # Get image crops and sorted sample DataFrame

@@ -1,4 +1,5 @@
 from .dataset_config import (
+    DataframeLocation,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -36,6 +37,7 @@ from .dataset_config_utils import (
     get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
+    validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
 from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
@@ -59,6 +61,7 @@ from .model_config_utils import (
 __all__ = [
     "CellposeModelConfig",
     "CytoDLModelConfig",
+    "DataframeLocation",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
@@ -103,6 +106,7 @@ __all__ = [
     "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",
+    "validate_3d_flow_field_dataset_collection",
     "validate_all_dataset_configs",
     "validate_all_model_configs",
     "validate_dataset_config",

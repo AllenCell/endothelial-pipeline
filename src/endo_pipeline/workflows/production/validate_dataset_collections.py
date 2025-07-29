@@ -6,12 +6,17 @@ def main() -> None:
 
     import logging
 
-    from src.endo_pipeline.configs import validate_filtered_dataset_collection
+    from src.endo_pipeline.configs import (
+        validate_3d_flow_field_dataset_collection,
+        validate_filtered_dataset_collection,
+    )
 
     logger = logging.getLogger(__name__)
 
-    logger.info("Starting validation of dataset configs")
+    logger.info("Starting validation of dataset collection configs")
 
     validate_filtered_dataset_collection("live", "20X", "3i")
 
-    logger.info("Finished validation of dataset configs")
+    validate_3d_flow_field_dataset_collection()
+
+    logger.info("Finished validation of dataset collection configs")

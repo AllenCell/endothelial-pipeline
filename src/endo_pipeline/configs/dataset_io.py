@@ -1438,11 +1438,6 @@ def extract_T(
     return t_value if int_only else f"T{t_value}"
 
 
-@deprecated(
-    """
-    Use extract_position_from_filepath in library.process.image_filepath_utils instead
-    """
-)
 def extract_P(
     fp_as_string: str | Path,
     int_only: bool = True,

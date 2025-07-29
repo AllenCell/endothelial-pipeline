@@ -16,8 +16,14 @@ from src.endo_pipeline.configs import (
 )
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import load_dataframe_from_fms
-from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field as ddff
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
+from src.endo_pipeline.library.analyze.diffae_features import (
+    compute_extrapolated_vector_field,
+    solve_ddff_ode,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    add_description_column,
+    get_traj_and_diff,
+)
 from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
     add_description_column,
@@ -158,7 +164,6 @@ def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df = diffae_tracking_df[diffae_tracking_df["is_unique"]]
 
     # give the crop_index column the same value as the track_ids
-    # diffae_tracking_df["crop_index"] = diffae_tracking_df["track_id"]
     diffae_tracking_df["crop_index"] = (
         diffae_tracking_df.groupby(["position", "track_id"], as_index=False).ngroup().astype(int)
     )
@@ -260,7 +265,7 @@ def get_traj_and_flowfield(
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = rh.get_traj_and_diff(df, cols)
+    traj_list, d_traj_list = get_traj_and_diff(df, cols)
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
@@ -269,9 +274,7 @@ def get_traj_and_flowfield(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = ddff.compute_extrapolated_vector_field(
-        drift_km, centers, interpolator="nearest"
-    )
+    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
 
     if load_precomputed_trajectories is not None:
         logger.debug("Loading precomputed trajectories...")
@@ -279,7 +282,7 @@ def get_traj_and_flowfield(
     else:
         # solve IVP, get back trajectory
         logger.debug("Trying to solve ODE...")
-        traj = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
+        traj = solve_ddff_ode(flow_field_dict, init, time_span)
         logger.debug("ODE solved.")
 
     return traj, flow_field_dict

@@ -4,7 +4,7 @@ from pathlib import Path
 from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
+from src.endo_pipeline.library.analyze.track_integration import (
     add_normalized_time,
     get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
     get_preprocessed_manifests_and_km_bounds,
