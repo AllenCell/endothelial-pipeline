@@ -254,7 +254,11 @@ def process_dataset(
     )
 
     if make_integrated_plots:
-        merged_feats_df = merged_feats_df.query("track_duration > 120")
+        # NOTE: this is a very memory-intensive operation despite my attempts to
+        # reduce memory needs here, so if you change the minimum track duration
+        # then expect the workflow to require a lot more memory or crash if you
+        # don't have enough
+        merged_feats_df = merged_feats_df.query("track_duration > 180")
         groups = merged_feats_df.groupby(["dataset_name", "position_as_str", "crop_index"])
 
         i = 0
