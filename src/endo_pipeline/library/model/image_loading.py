@@ -217,10 +217,8 @@ class MultiDimImageDataset(CacheDataset):
             for scene in scenes:
                 img.set_scene(scene)
                 timepoints = self._get_timepoints(row, img)
-                print(timepoints)
                 for timepoint in timepoints:
                     z_slices = self._get_z_slices(row, img)
-                    print(z_slices)
                     image_loading_args = {
                         "dimension_order_out": "C" + "ZYX"[-self.spatial_dims :],
                         "C": row[self.channel_column],
