@@ -8,6 +8,7 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
+objective: 20X
 shear_stress_regime: 48hr_high
 pixel_size_xy_in_um: 0.382
 duration: 577
