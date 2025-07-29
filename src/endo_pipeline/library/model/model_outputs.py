@@ -38,6 +38,9 @@ def update_prediction_from_crops_with_metadata(
 
     pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_{timestamp}.parquet"
     pred_df.to_parquet(prediction_path)
     return prediction_path
 
@@ -47,9 +50,8 @@ def update_prediction_from_tracks_with_metadata(
 ) -> Path:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # ensure unique filename
     prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features_{timestamp}.parquet"
+        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features.parquet"
     )
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
@@ -67,5 +69,10 @@ def update_prediction_from_tracks_with_metadata(
     pred_df["crop_size_x"] = crop_size[1]
     pred_df["position"] = pred_df["filename_or_obj"].apply(lambda s: extract_P(s, int_only=False))
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    prediction_path = (
+        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features_{timestamp}.parquet"
+    )
     pred_df.to_parquet(prediction_path)
     return prediction_path
