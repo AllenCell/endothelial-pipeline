@@ -1,14 +1,3 @@
-import fire
-import numpy as np
-
-from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-
-from .data_driven_dynamics_summary import _get_and_analyze_ddd
-from .generate_3d_flow_field import _get_and_analyze_ddff
-
-
 def main(
     dataset_names: str | list[str] | None = None,
     model_name: str = "diffae_04_10",
@@ -21,6 +10,14 @@ def main(
     Includes model summary and comparison to data as used in, e.g.,
     the `summarize_sde` workflow.
     """
+    import numpy as np
+
+    from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
+    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+
+    from .data_driven_dynamics_summary import _get_and_analyze_ddd
 
     # if not provided in command line, run
     # on default list of datasets
@@ -123,7 +120,7 @@ def main(
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
-        _get_and_analyze_ddff(
+        get_and_analyze_ddff(
             model_manifest_list,
             pca,
             kernel_params,
@@ -137,4 +134,6 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

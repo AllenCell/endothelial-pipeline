@@ -1,4 +1,5 @@
 # %%
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -7,12 +8,15 @@ from sklearn.pipeline import Pipeline
 from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import (
     ModelManifest,
+    get_available_dataset_collection_names,
+    get_available_dataset_names,
+    get_datasets_in_collection,
     get_model_manifest,
     get_timelapse_model_manifests,
     load_model_config,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
     get_manifest_for_dynamics_workflows,
 )
 from src.endo_pipeline.library.analyze.numerics import (
@@ -25,48 +29,64 @@ from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
     plot_principal_component_histogram,
 )
 
+logger = logging.getLogger(__name__)
+
 N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
 
 def load_data(
-    dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10"
+    dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
 ) -> tuple[pd.DataFrame, Pipeline, list[ModelManifest]]:
     """
     Load manifest DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
-    dataset_names : str | list[str] | None
-        Name(s) of the dataset(s) to include.
-        If None, loads all available timelapse datasets.
+    dataset_name
+        Name of the dataset(s) to include, either a single dataset name or
+        the name of a dataset collection.
+    model_name
+        Name of the model for which to load the feature manifest data.
 
     Returns
     -------
-    df_all : pd.DataFrame
+    :
         Concatenated manifest DataFrame for the specified datasets.
-    pca : sklearn.decomposition.PCA
-        PCA object fitted.
-    model_manifest_list : list[ModelManifest]
+    :
+        Fit PCA object for the model.
+    :
         List of model manifests for the specified datasets.
     """
     model_config = load_model_config(model_name)
-    if isinstance(dataset_names, str):
-        model_manifest_list = [
-            get_model_manifest(
-                dataset_names,
-                model_config,
-            )
-        ]
-    elif dataset_names is None:
+
+    # check if input is a dataset collection or a single dataset name
+    if dataset_name is None:
         model_manifest_list = get_timelapse_model_manifests(model_config)
-    else:
+    elif dataset_name in get_available_dataset_collection_names():
+        # if it is a dataset collection, load all datasets in the collection
+        # and get their model manifests
         model_manifest_list = [
             get_model_manifest(
                 dataset_name,
                 model_config,
             )
-            for dataset_name in dataset_names
+            for dataset_name in get_datasets_in_collection(dataset_name)
         ]
+    elif dataset_name in get_available_dataset_names():
+        # if it is a single dataset name, load its model manifest
+        # as a list with one element
+        model_manifest_list = [
+            get_model_manifest(
+                dataset_name,
+                model_config,
+            )
+        ]
+    else:
+        logger.error(
+            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
+            dataset_name,
+        )
+        raise ValueError(f"Invalid dataset name: {dataset_name}")
 
     pca = fit_pca(model_name=model_name)
 

@@ -1,38 +1,46 @@
-import fire
-import numpy as np
-
-from src.endo_pipeline.configs import dynamics_io, get_timelapse_model_manifests, load_model_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features import (
-    load_sde_model,
-    model_data_comparison,
-    run_epr_analysis,
-    run_fixed_point_analysis,
-    run_gen_potential_analysis,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-from src.endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
+TAGS = ["dynamical_systems", "diffae_features"]
 
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Summarize the qualitative and quantitative results of the
-    dynamical systems model fit to the manifest data (Diff AE).
+    Summarize the qualitative and quantitative results of the dynamical systems model
+    fit to the crop-based feature manifest data (Diff AE features).
 
-    Input:
-    - config_name (str): Name of the configuration to load from dynamics_config.yaml.
-        Default is "default".
-    - model_name (str): Name of the model that manifest data is loaded
-        and analyzed for. Default is "diffae_04_10".
+    Parameters
+    ----------
+    dynamics_config_name
+        Name of the configuration to load from dynamics_config.yaml.
+    model_name
+        Name of the model from which manifest data is loaded and analyzed.
 
-    Output:
-    - Saves the figures and analysis results in a specified directory.
+    Returns
+    -------
+    :
+        Saves the figures and analysis results in a specified directory.
         The figures include:
         - Model-data comparison plots (histograms and phase plane plots)
         - Fixed point analysis plots (fixed points as a function of shear stress)
         - Entropy production rate as a function of shear stress
         - Generalized potential energy landscape plots (for various shear stresses)
     """
+    import numpy as np
+
+    from src.endo_pipeline.configs import (
+        dynamics_io,
+        get_timelapse_model_manifests,
+        load_model_config,
+    )
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.analyze.diffae_features import (
+        load_sde_model,
+        model_data_comparison,
+        run_epr_analysis,
+        run_fixed_point_analysis,
+        run_gen_potential_analysis,
+    )
+    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
+
     ################### Load configs from dynamics_config ###################
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
 
@@ -153,4 +161,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

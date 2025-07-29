@@ -7,11 +7,16 @@ import pandas as pd
 from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import load_dataframe_from_fms
-from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_field as ddff
-from src.endo_pipeline.library.analyze.diffae_features import regression_helper as rh
-from src.endo_pipeline.library.analyze.diffae_manifest import preprocessing as diffae_preproc
-from src.endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics.binning import get_bins
+from src.endo_pipeline.library.analyze.diffae_features import (
+    compute_extrapolated_vector_field,
+    solve_ddff_ode,
+)
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    add_description_column,
+    get_traj_and_diff,
+)
+from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
+from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 
 logger = logging.getLogger(__name__)
@@ -144,7 +149,7 @@ def merge_diffae_feats_liveseg_feats_tables(
     diffae_tracking_df["crop_index"] = diffae_tracking_df.groupby(
         ["position", "track_id"], as_index=False
     ).ngroup()
-    diffae_tracking_df = diffae_preproc.add_description_column(
+    diffae_tracking_df = add_description_column(
         diffae_tracking_df, dataset_name, simple=True
     )  # add description column (e.g., 48hr_High)
     diffae_tracking_df["track_id"] = diffae_tracking_df["track_id"].astype(int)
@@ -233,7 +238,7 @@ def get_traj_and_flowfield(
 
     # get list of per-crop trajectories, the corresponding
     # displacement vectors, and time differences
-    traj_list, d_traj_list = rh.get_traj_and_diff(df, cols)
+    traj_list, d_traj_list = get_traj_and_diff(df, cols)
 
     # get drift and diffusion estimates
     # (Kramers-Moyal coefficients)
@@ -242,13 +247,11 @@ def get_traj_and_flowfield(
     )
 
     # compute interpolated flow field - drift
-    flow_field_dict = ddff.compute_extrapolated_vector_field(
-        drift_km, centers, interpolator="nearest"
-    )
+    flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
 
     # solve IVP, get back trajectory
     print("Trying to solve ODE...")
-    traj = ddff.solve_ddff_ode(flow_field_dict, init, time_span)
+    traj = solve_ddff_ode(flow_field_dict, init, time_span)
     print("ODE solved.")
 
     return traj, flow_field_dict

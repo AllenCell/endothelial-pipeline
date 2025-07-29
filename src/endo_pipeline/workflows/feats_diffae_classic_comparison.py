@@ -10,17 +10,17 @@ from src.endo_pipeline.configs import (
 )
 from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_features.track_integration import (
-    add_normalized_time,
-    get_diffae_feats_liveseg_feats_merged_table,
-    get_traj_and_flowfield,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data
+from src.endo_pipeline.library.analyze.track_integration import (
+    add_normalized_time,
+    get_diffae_feats_liveseg_feats_merged_table,
+    get_traj_and_flowfield,
+)
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize.diffae_features.track_integration_viz import make_all_plots
 
