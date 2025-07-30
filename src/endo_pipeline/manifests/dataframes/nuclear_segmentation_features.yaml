@@ -1,0 +1,16 @@
+name: nuclear_segmentation_features
+workflow_name: unknown
+workflow_parameters: {}
+dataframe_locations:
+  20241120_20X:
+    fmsid: a9ef7c8557334f1fb36393f79b582609
+    s3uri: null
+  20241016_20X:
+    fmsid: a90e321dff584e7f95e0c5e81122c751
+    s3uri: null
+  20250224_20X:
+    fmsid: dd80c432b37e4268a4dc44d96fb3e475
+    s3uri: null
+  20241217_20X:
+    fmsid: 225e4e4f67934f2781caba8db82401f6
+    s3uri: null
