@@ -17,15 +17,6 @@ ObjectiveType = Literal["20X", "40X"]
 
 
 @dataclass
-class DataframeLocation:
-    fmsid: str | None = None
-    """FMS file id for dataframe."""
-
-    s3uri: str | None = None
-    """S3 URI for dataframe (starting with s3://)."""
-
-
-@dataclass
 class ValidTimepoints:
     """
     Timepoints that are visually validated to be after steady state from no flow to a set

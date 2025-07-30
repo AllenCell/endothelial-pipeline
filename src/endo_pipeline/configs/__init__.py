@@ -1,5 +1,4 @@
 from .dataset_config import (
-    DataframeLocation,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -61,7 +60,6 @@ from .model_config_utils import (
 __all__ = [
     "CellposeModelConfig",
     "CytoDLModelConfig",
-    "DataframeLocation",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
