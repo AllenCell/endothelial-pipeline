@@ -21,6 +21,36 @@ from src.endo_pipeline.library.process.image_processing import (
 
 
 #%%
+def plot_mean_intensity_distribution(mean_list: list, save_dir: Path) -> None:
+    """
+    Plot the mean intensity distribution of brightfield images and saves the plot.
+
+    Args:
+        mean_list (list): List of mean intensity values.
+        save_dir (path): Directory to save the plot.
+        
+    Returns:
+        None. Saves the plot to the specified directory.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Round mean values and calculate unique values with counts
+    rounded_mean_list = [round(x, -3) for x in mean_list]
+    unique_values, counts = np.unique(rounded_mean_list, return_counts=True)
+
+    # Convert unique values to string labels for the x-axis
+    unique_labels = [str(int(val)) for val in unique_values]
+
+    ax.bar(unique_labels, counts, color='gray', alpha=0.7)
+    ax.set_title("Mean Intensity of Brightfield Images")
+    ax.set_xlabel("Mean Intensity")
+    ax.set_ylabel("Frequency")
+    ax.set_xticklabels(unique_labels, rotation=45)
+
+    fname="mean_intensity_barplot_brightfield"
+    save_plot_to_path(fig, save_dir, fname)
+
+
 def visualize_images_with_histograms(
     images: list[tuple[str, np.ndarray]],
     save_dir: Path,
@@ -76,7 +106,7 @@ datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 mean_list = []
 for dataset in datasets:
     config = load_dataset_config(dataset)
-    position = 5
+    position = 0
     timepoints = 0
     
     save_dir = get_output_path("model_input_visualization", "brightfield")
@@ -102,7 +132,7 @@ for dataset in datasets:
     # STEP 4: Z-score normalize
     normalized_im = z_score_normalize_intensity(clipped_im)
 
-    # Bundle image steps into a list of (title, image) tuples
+    # Visualize steps
     image_processing_steps = [
         ("BF Slice", bf_stack_float32_computed[15]),
         ("Std Dev Projection", standard_dev_proj),
@@ -120,32 +150,12 @@ for dataset in datasets:
     mean_list.append(mean_instensity)
 
 
-#%%   
-save_dir = get_output_path("bf_varation") 
+#%%
+save_dir = get_output_path("bf_variation")
+plot_mean_intensity_distribution(mean_list, save_dir)
 
-# Create a figure and axis for the plot
-fig, ax = plt.subplots(figsize=(10, 6))
 
-# Round mean values and calculate unique values with counts
-rounded_mean_list = [round(x, -3) for x in mean_list]
-unique_values, counts = np.unique(rounded_mean_list, return_counts=True)
-
-# Convert unique values to string labels for the x-axis
-unique_labels = [str(int(val)) for val in unique_values]
-
-# Plot the bar graph
-ax.bar(unique_labels, counts, color='gray', alpha=0.7)
-ax.set_title("Mean Intensity Distribution of Brightfield Images")
-ax.set_xlabel("Mean Intensity")
-ax.set_ylabel("Frequency")
-ax.set_xticklabels(unique_labels, rotation=45)
-
-# Save the plot
-fname = "mean_intensity_distribution_brightfield"
-save_plot_to_path(fig, save_dir, fname)
-    
-    
-# %%
+# %% CDH5 Visualization
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 for dataset in datasets:
     config = load_dataset_config(dataset)
@@ -182,4 +192,4 @@ for dataset in datasets:
         save_dir=save_dir,
         fname_prefix=f"{dataset}_P{position}_T{timepoints}_CDH5"
     )
-# %%
+# %% Load images 

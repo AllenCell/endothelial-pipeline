@@ -17,7 +17,7 @@ def bf_slice(img: BioImage, frame: int) -> np.ndarray:
     return bf_slice.compute()
 
 
-def bf_std_dev(img: BioImage, frame: int, unbiased=True) -> np.ndarray:
+def bf_std_dev(img: BioImage, frame: int) -> np.ndarray:
     """Calculate the standard deviation of the brightfield image for a given frame."""
     bf_img = img.get_image_dask_data("ZYX", C=1, T=frame, ddof=1)
     bf_std_dev = bf_img.std(axis=0)
