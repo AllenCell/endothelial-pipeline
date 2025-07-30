@@ -17,9 +17,9 @@ def bf_slice(img: BioImage, frame: int) -> np.ndarray:
     return bf_slice.compute()
 
 
-def bf_std_dev(img: BioImage, frame: int) -> np.ndarray:
+def bf_std_dev(img: BioImage, frame: int, unbiased=True) -> np.ndarray:
     """Calculate the standard deviation of the brightfield image for a given frame."""
-    bf_img = img.get_image_dask_data("ZYX", C=1, T=frame)
+    bf_img = img.get_image_dask_data("ZYX", C=1, T=frame, ddof=1)
     bf_std_dev = bf_img.std(axis=0)
     return bf_std_dev.compute()
 
@@ -73,10 +73,64 @@ def sum_proj(stack: da.Array, axis: int) -> np.ndarray:
     return sum_proj.compute()
 
 
-def std_dev(stack: da.Array, axis: int) -> np.ndarray:
-    """Get the standard deviation projection stack as a Dask array."""
-    std_dev = stack.std(axis)  # Standard deviation along the Z-axis
-    return std_dev.compute()
+def std_dev(
+    stack: da.Array,
+    axis: int,
+    unbiased: bool = False,
+) -> np.ndarray:
+    """
+    Compute the standard deviation projection along the specified axis on a Dask array.
+
+    Args:
+        stack: Dask array to project.
+        axis: Axis along which to compute std.
+        unbiased: Whether to use unbiased estimator (ddof=1). Default False.
+
+    Returns:
+        NumPy ndarray with std projection.
+    """
+    ddof = 1 if unbiased else 0
+    std_projection = stack.std(axis=axis, ddof=ddof).compute()
+    return std_projection
+
+
+def clip_image(arr: np.ndarray, low_pct: float = 0.1, high_pct: float = 99.9) -> np.ndarray:
+    """
+    Clip the values in a NumPy array to the specified percentiles.
+
+    Parameters:
+        arr (np.ndarray): Input array to be clipped.
+        low_pct (float): Lower percentile for clipping (default is 0.1).
+        high_pct (float): Upper percentile for clipping (default is 99.9).
+
+    Returns:
+        np.ndarray: The clipped array with values constrained between the specified percentiles.
+    """
+    low_val = np.percentile(arr, low_pct)
+    high_val = np.percentile(arr, high_pct)
+    return np.clip(arr, low_val, high_val)
+
+
+def z_score_normalize_intensity(image: np.ndarray) -> np.ndarray:
+    """
+    Normalize intensity including zeros (default MONAI behavior).
+
+    Args:
+        image: Input NumPy array.
+
+    Returns:
+        Normalized image with zero mean and unit std.
+    """
+    mean = image.mean()
+    std = image.std()
+
+    # Avoid division by zero
+    if std == 0:
+        return image - mean
+
+    normalized = (image - mean) / std
+    return normalized
+
 
 
 def get_global_custom_range(
