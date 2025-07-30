@@ -107,7 +107,11 @@ class DiffAEFinetune(DiffusionAutoEncoder):
     ) -> tuple[dict, torch.Tensor, None]:
         """Run a model step for the DiffAE finetune model."""
         batch = convert_to_tensor(batch)
-        loss = {"diffusion": 0}
+        # initialize loss dictionary
+        loss = {
+            "diffusion": torch.Tensor(0.0, device=batch.device),
+            "mse": torch.Tensor(0.0, device=batch.device),
+        }
         if not self.hparams.use_separate_encoders:
             loss, _, _ = super().model_step(stage, batch, batch_idx)
             # regular DiffAE only has diffusion loss
