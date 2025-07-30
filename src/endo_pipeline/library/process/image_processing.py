@@ -98,7 +98,7 @@ def clip_image(arr: np.ndarray, low_pct: float = 0.1, high_pct: float = 99.9) ->
     """
     Clip the values in a NumPy array to the specified percentiles.
 
-    Parameters:
+    Args:
         arr (np.ndarray): Input array to be clipped.
         low_pct (float): Lower percentile for clipping (default is 0.1).
         high_pct (float): Upper percentile for clipping (default is 99.9).
@@ -131,7 +131,36 @@ def z_score_normalize_intensity(image: np.ndarray) -> np.ndarray:
     normalized = (image - mean) / std
     return normalized
 
+def scale_intensity_range_percentiles(
+    img: np.ndarray,
+    lower: float = 10,
+    upper: float = 98,
+    b_min: float = -1.0,
+    b_max: float = 1.0,
+    clip: bool = True
+) -> np.ndarray:
+    """
+    Scale image intensities based on percentile range to a target range [b_min, b_max].
 
+    Args:
+        img (np.ndarray): Input image.
+        lower (float): Lower percentile (e.g., 10).
+        upper (float): Upper percentile (e.g., 98).
+        b_min (float): Output minimum value.
+        b_max (float): Output maximum value.
+        clip (bool): Whether to clip values outside [b_min, b_max].
+
+    Returns:
+        image (np.ndarray): Scaled image.
+    """
+    p_low = np.percentile(img, lower)
+    p_high = np.percentile(img, upper)
+
+    scaled = (img - p_low) / (p_high - p_low) * (b_max - b_min) + b_min
+    if clip:
+        scaled = np.clip(scaled, b_min, b_max)
+
+    return scaled
 
 def get_global_custom_range(
     image_list: list[np.ndarray], method: Literal["min-max", "percentile"] = "percentile"
