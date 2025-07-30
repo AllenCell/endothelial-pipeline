@@ -1,7 +1,7 @@
 name: immunofluorescence
-workflow_name: generate_if_manifest
-workflow_parameters: {}
-dataframe_locations:
+workflow: generate_if_manifest
+parameters: {}
+locations:
   20250509_20X_IF1:
     fmsid: 59ac02ab805c4e50b54cb633072a9dea
     s3uri: null
