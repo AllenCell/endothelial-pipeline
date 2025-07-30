@@ -108,10 +108,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         """Run a model step for the DiffAE finetune model."""
         batch = convert_to_tensor(batch)
         # initialize loss dictionary
-        loss = {
-            "diffusion": torch.Tensor(0.0, device=batch.device),
-            "mse": torch.Tensor(0.0, device=batch.device),
-        }
+        loss = {"diffusion": 0}
         if not self.hparams.use_separate_encoders:
             loss, _, _ = super().model_step(stage, batch, batch_idx)
             # regular DiffAE only has diffusion loss
@@ -125,7 +122,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         )
 
         # compute matching loss
-        loss["mse"] = torch.nn.functional.mse_loss(x_feats, y_feats)
+        loss["mse"] = torch.nn.functional.mse_loss(x_feats, y_feats)  # type: ignore[assignment]
         loss["loss"] = loss["diffusion"] + loss["mse"]
 
         return loss, y_feats, None
