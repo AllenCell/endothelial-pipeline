@@ -10,7 +10,11 @@ from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_ima
     add_backdrop_fname_to_manifest,
     generate_backdrops,
 )
-from src.endo_pipeline.manifests import DataframeManifest, load_dataframe_manifest
+from src.endo_pipeline.manifests import (
+    DataframeManifest,
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+)
 
 NUC_SEG_TYPE = "nuclear_stain_seg_path"
 
@@ -41,7 +45,7 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df = load_dataframe(dataframe_manifest.dataframe_locations[dataset])
+    df = load_dataframe(get_dataframe_location_for_dataset(dataframe_manifest, dataset))
     df["track_id"] = df["label"]
     df["tid"] = df["track_id"]
     df["image_index"] = 0

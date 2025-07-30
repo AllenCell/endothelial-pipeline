@@ -86,9 +86,9 @@ def update_dataframe_manifest(dataset: str, fms_id: str) -> None:
     try:
         manifest = load_dataframe_manifest("immunofluorescence")
     except FileNotFoundError:
-        manifest = DataframeManifest(name="immunofluorescence", workflow_name=Path(__file__).stem)
+        manifest = DataframeManifest(name="immunofluorescence", workflow=Path(__file__).stem)
 
-    manifest.dataframe_locations[dataset] = DataframeLocation(fmsid=fms_id)
+    manifest.locations[dataset] = DataframeLocation(fmsid=fms_id)
     save_dataframe_manifest(manifest)
 
 

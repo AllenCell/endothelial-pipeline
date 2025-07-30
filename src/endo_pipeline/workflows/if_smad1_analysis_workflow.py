@@ -3,7 +3,7 @@ import pandas as pd
 
 from src.endo_pipeline.io import get_output_path, load_dataframe
 from src.endo_pipeline.library.analyze.immunofluorescence import filter, plot
-from src.endo_pipeline.manifests import load_dataframe_manifest
+from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 output_dir = get_output_path("immunofluorescence_analysis", "SMAD1")
 # %%
@@ -34,7 +34,7 @@ flow_rates = {
 
 # %%
 if_manifest_list = [
-    load_dataframe(IF_DATAFRAME_MANIFEST.dataframe_locations[dataset])
+    load_dataframe(get_dataframe_location_for_dataset(IF_DATAFRAME_MANIFEST, dataset))
     for dataset in IF_SMAD_DATASETS
 ]
 if_manifest = pd.concat(if_manifest_list, ignore_index=True)
