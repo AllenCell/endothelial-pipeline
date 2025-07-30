@@ -1,7 +1,7 @@
 name: nuclear_segmentation_features
-workflow_name: unknown
-workflow_parameters: {}
-dataframe_locations:
+workflow: unknown
+parameters: {}
+locations:
   20241120_20X:
     fmsid: a9ef7c8557334f1fb36393f79b582609
     s3uri: null
