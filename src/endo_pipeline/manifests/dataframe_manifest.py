@@ -24,13 +24,13 @@ class DataframeManifest:
     name: str
     """Unique name of the dataframe manifest."""
 
-    workflow_name: str
+    workflow: str
     """Name of workflow that produced the dataframes."""
 
-    workflow_parameters: dict = field(default_factory=dict)
+    parameters: dict = field(default_factory=dict)
     """Specific workflow parameters used to produce the dataframes."""
 
-    dataframe_locations: dict[str, DataframeLocation] = field(default_factory=dict)
+    locations: dict[str, DataframeLocation] = field(default_factory=dict)
     """Locations of individual dataframes."""
 
     class Config(BaseConfig):

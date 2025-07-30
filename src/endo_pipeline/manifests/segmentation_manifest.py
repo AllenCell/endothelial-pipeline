@@ -22,13 +22,13 @@ class SegmentationManifest:
     name: str
     """Unique name of the segmentation manifest."""
 
-    workflow_name: str
+    workflow: str
     """Name of workflow that produced the segmentations."""
 
-    workflow_parameters: dict = field(default_factory=dict)
+    parameters: dict = field(default_factory=dict)
     """Specific workflow parameters used to produce the segmentations."""
 
-    segmentation_locations: dict[str, SegmentationLocation] = field(default_factory=dict)
+    locations: dict[str, SegmentationLocation] = field(default_factory=dict)
     """Locations of individual segmentations."""
 
     class Config(BaseConfig):
