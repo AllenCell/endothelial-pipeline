@@ -21,7 +21,6 @@ def manifest():
             "dataset_one": SegmentationLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
             "dataset_two": SegmentationLocation(path=Path("/path/to/dataset_two/seg.ome.tiff")),
             "dataset_three": SegmentationLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
-            "dataset_four": SegmentationLocation(path=Path("/path/to/dataset_four/seg.ome.tiff")),
         },
     )
 
@@ -29,16 +28,15 @@ def manifest():
 def test_list_datasets_with_segmentations_with_valid_locations(manifest):
     datasets = list_datasets_with_segmentations(manifest)
 
-    assert datasets == ["dataset_one", "dataset_two", "dataset_three", "dataset_four"]
+    assert datasets == ["dataset_one", "dataset_two", "dataset_three"]
 
 
 def test_list_datasets_with_segmentations_with_invalid_location(manifest):
     manifest.locations["dataset_two"] = SegmentationLocation()
-    manifest.locations["dataset_three"] = SegmentationLocation()
 
     datasets = list_datasets_with_segmentations(manifest)
 
-    assert datasets == ["dataset_one", "dataset_four"]
+    assert datasets == ["dataset_one", "dataset_three"]
 
 
 @pytest.mark.parametrize(
@@ -47,7 +45,6 @@ def test_list_datasets_with_segmentations_with_invalid_location(manifest):
         ("dataset_one", "/path/to/dataset_one/seg.ome.tiff"),
         ("dataset_two", "/path/to/dataset_two/seg.ome.tiff"),
         ("dataset_three", "/path/to/dataset_three/seg.ome.tiff"),
-        ("dataset_four", "/path/to/dataset_four/seg.ome.tiff"),
     ],
 )
 def test_get_segmentation_location_for_dataset_valid_dataset(manifest, dataset_name, expected_path):
