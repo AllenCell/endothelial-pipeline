@@ -789,6 +789,8 @@ def plot_and_save_track_flow_field_dot_product_histogram(
     fig, ax = plt.subplots(figsize=(4, 4))
     sns.histplot(data=features_dataframe, x=feature_column_name, ax=ax)
     ax.axvline(0, color="red", linestyle="--", label="perpendicular")
+    ax.minorticks_on()
+    plt.xticks(rotation=30, ha="right")
     ax.set_xlabel("PC1-PC2 vector dot product\n(grid-based vs. cell-centric)")
     if plot_title is not None:
         ax.set_title(plot_title)

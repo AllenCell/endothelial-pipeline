@@ -258,7 +258,7 @@ def process_dataset(
     merged_feats_df["dot_product_grid_vs_cell"] = np.einsum(
         "ij,ij->i",
         merged_feats_df[["approx_vec_pc1", "approx_vec_pc2"]],
-        merged_feats_df[["pc1", "pc2"]],
+        merged_feats_df[["dpc1", "dpc2"]],
     )
     # also aggregate the dot products by crop index (i.e. unique track id across all positions)
     merged_feats_dot_prod_agg = (
@@ -301,8 +301,8 @@ def process_dataset(
             assert (
                 tid % 1
             ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
-            hue_min = -1 * max(merged_feats_df["dot_product_grid_vs_cell"].abs())
-            hue_max = 1 * max(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_min = -1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
+            hue_max = 1 * np.nanmax(merged_feats_df["dot_product_grid_vs_cell"].abs())
             hue_center = 0.0
             plot_pc_integrated_track_as_arrows(
                 dataset_name=str(ds_nm),
