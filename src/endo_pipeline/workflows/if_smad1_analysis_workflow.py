@@ -1,7 +1,9 @@
 # %%
-from cellsmap.util.manifest_io import get_manifest
-from src.endo_pipeline.io.output import get_output_path
+import pandas as pd
+
+from src.endo_pipeline.io import get_output_path, load_dataframe
 from src.endo_pipeline.library.analyze.immunofluorescence import filter, plot
+from src.endo_pipeline.manifests import load_dataframe_manifest
 
 output_dir = get_output_path("immunofluorescence_analysis", "SMAD1")
 # %%
@@ -14,6 +16,8 @@ IF_SMAD_DATASETS = [
     "20250509_20X_IF1",
     "20250509_20X_IF9",
 ]
+
+IF_DATAFRAME_MANIFEST = load_dataframe_manifest("immunofluorescence")
 
 # 1, 2, 12 are higher density and fixed on a different date
 # 5, 7, 1, 9 are lower density and fixed on the same date
@@ -29,7 +33,11 @@ flow_rates = {
 }
 
 # %%
-if_manifest = get_manifest(IF_SMAD_DATASETS, "immunofluorescence_manifest_fmsid")
+if_manifest_list = [
+    load_dataframe(IF_DATAFRAME_MANIFEST.dataframe_locations[dataset])
+    for dataset in IF_SMAD_DATASETS
+]
+if_manifest = pd.concat(if_manifest_list, ignore_index=True)
 if_manifest = filter.filter_small_objects(if_manifest)
 if_manifest = filter.filter_edge_objects(if_manifest)
 if_manifest["SMAD1_norm_NucViolet_mean_sum_proj"] = (
