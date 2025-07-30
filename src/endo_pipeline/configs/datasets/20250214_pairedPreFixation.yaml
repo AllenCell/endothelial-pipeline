@@ -26,7 +26,6 @@ channel_561_index: null
 channel_640_index: null
 nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
-nuclear_seg_manifest_fmsid: ''
 cdh5_seg_path: null
 tracking_integration_fmsid: null
 diffae_tracking_integration_fmsid: null
