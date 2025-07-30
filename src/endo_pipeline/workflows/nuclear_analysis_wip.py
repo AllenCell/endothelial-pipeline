@@ -1,14 +1,19 @@
 # %%
-from cellsmap.util.manifest_io import get_nuclear_manifest, list_datasets_with_manifest
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.io import load_dataframe
 from src.endo_pipeline.library.analyze.nuclear_based_features import nuclear_plots
+from src.endo_pipeline.manifests import load_dataframe_manifest
 
 # %%
 SAVE_DIR = get_output_path("nuclear_based_density_workflow/figs")
 
 # %% Load datasets
-dataset_list = list_datasets_with_manifest("nuclear_seg_manifest_fmsid")
-dataframes = {dataset_name: get_nuclear_manifest(dataset_name) for dataset_name in dataset_list}
+manifest = load_dataframe_manifest("nuclear_segmentation_features")
+dataset_list = list(manifest.dataframe_locations.keys())
+dataframes = {
+    dataset_name: load_dataframe(dataframe_location)
+    for dataset_name, dataframe_location in manifest.dataframe_locations.items()
+}
 print(f"Loaded {len(dataframes)} datasets.")
 print(f"Datasets: {list(dataframes.keys())}")
 
