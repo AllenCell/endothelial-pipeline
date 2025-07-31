@@ -3,8 +3,7 @@ TAGS = ["dynamical_systems", "diffae_features"]
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Summarize the qualitative and quantitative results of the dynamical systems model
-    fit to the crop-based feature manifest data (Diff AE features).
+    Summarize the the dynamical systems model fit to the crop-based Diff AE feature data.
 
     Parameters
     ----------
