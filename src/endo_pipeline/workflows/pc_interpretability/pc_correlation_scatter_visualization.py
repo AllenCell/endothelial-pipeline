@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Literal
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -58,7 +61,13 @@ def add_plot_to_lower_triangle(
     return [ymin, ymax]
 
 
-def add_plot_to_upper_triangle(ax: Axes, feat1: np.ndarray, feat2: np.ndarray) -> None:
+def add_plot_to_upper_triangle(
+    ax: Axes,
+    feat1: np.ndarray,
+    feat2: np.ndarray,
+    threshold: float = 0.3,
+    measure: Literal["pearson", "spearman"] = "spearman",
+) -> None:
     """
     Add plots to the upper triangle of the num_features X num_features grid.
     Parameters
@@ -69,18 +78,27 @@ def add_plot_to_upper_triangle(ax: Axes, feat1: np.ndarray, feat2: np.ndarray) -
         Feature to be ploted in x axis
     feat2 : array
         Feature to be ploted in y axis
+    threshold : float
+        Threshold for the correlation to be highlighted
     """
     x, y = feat1, feat2
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)
     ax.tick_params(axis="x", which="both", length=0.0)
     ax.tick_params(axis="y", which="both", length=0.0)
-    pearson, p_pvalue = spstats.pearsonr(x, y)
-    spearman, s_pvalue = spstats.spearmanr(x, y)
-    ax.text(0.05, 0.8, f"Pearson: {pearson:.2f}", size=10, ha="left", transform=ax.transAxes)
-    ax.text(0.05, 0.6, f"P-value: {p_pvalue:.1E}", size=10, ha="left", transform=ax.transAxes)
+    pearson, _ = spstats.pearsonr(x, y)
+    spearman, _ = spstats.spearmanr(x, y)
+    corr_dict = {
+        "pearson": pearson,
+        "spearman": spearman,
+    }
+    if corr_dict[measure] > threshold:
+        for spine in ax.spines.values():
+            spine.set_color("red")
+    ax.text(0.05, 0.6, f"Pearson: {pearson:.2f}", size=10, ha="left", transform=ax.transAxes)
+    # ax.text(0.05, 0.6, f"P-value: {p_pvalue:.1E}", size=10, ha="left", transform=ax.transAxes)
     ax.text(0.05, 0.4, f"Spearman: {spearman:.2f}", size=10, ha="left", transform=ax.transAxes)
-    ax.text(0.05, 0.2, f"P-value: {s_pvalue:.1E}", size=10, ha="left", transform=ax.transAxes)
+    # ax.text(0.05, 0.2, f"P-value: {s_pvalue:.1E}", size=10, ha="left", transform=ax.transAxes)
 
 
 def add_plot_to_diagonal(ax: Axes, feat: np.ndarray, valids: np.ndarray, cmap: Colormap) -> None:
@@ -129,6 +147,7 @@ def plot_multi_feature_correlations(
     include_outlines: bool = True,
     save: Path | None = None,
     dpi: int = 150,
+    title: str | None = None,
 ) -> None:
     """
     Create a scatter plot of all the columns in the dataframe
@@ -155,7 +174,7 @@ def plot_multi_feature_correlations(
     cmap = plt.colormaps["tab10"]
     prange = []
     for f in df.columns:
-        prange.append(np.nanpercentile(df[f].values, [off, 100 - off]))
+        prange.append(np.nanpercentile(df[f].to_numpy(), [off, 100 - off]))
 
     # Create a grid of num_featuresxnum_features
     fig, axs = plt.subplots(
@@ -174,8 +193,8 @@ def plot_multi_feature_correlations(
             ax = axs[f1id, f2id]
             if not include_outlines:
                 ax.axis("off")
-            y = df[f1].values
-            x = df[f2].values
+            y = df[f1].to_numpy()
+            x = df[f2].to_numpy()
             valids = np.where(
                 (
                     (y > prange[f1id][0])
@@ -183,7 +202,7 @@ def plot_multi_feature_correlations(
                     & (x > prange[f2id][0])
                     & (x < prange[f2id][1])
                 )
-            )
+            )[0]
 
             # Make plots
             if f2id < f1id:
@@ -206,10 +225,10 @@ def plot_multi_feature_correlations(
 
             if f1id == num_features - 1:
                 # ax.set_xlabel(f"{f2_label} {f2_unit}", fontsize=7)
-                ax.set_xlabel(f2, fontsize=7)
+                ax.set_xlabel(f2, fontsize=12)
             if not f2id and f1id:
                 # ax.set_ylabel(f"{f1_label} {f1_unit}", fontsize=7)
-                ax.set_ylabel(f1, fontsize=7)
+                ax.set_ylabel(f1, fontsize=12)
         if yrange:
             ymin = np.min([ymin for (ymin, _) in yrange])
             ymax = np.max([ymax for (_, ymax) in yrange])
@@ -218,11 +237,14 @@ def plot_multi_feature_correlations(
                 if f2id < f1id:
                     ax.set_ylim(ymin, ymax)
 
-    # Global annotation
     fig.add_subplot(111, frameon=False)
     plt.tick_params(labelcolor="none", top=False, bottom=False, left=False, right=False)
+    plt.tight_layout()
     if include_outlines:
-        plt.title(f"Total number of points: {npts}", fontsize=24)
+        if title is not None:
+            plt.title(title, fontsize=24)
+        else:
+            plt.title(f"Total number of points: {npts}", fontsize=24)
     if save is None:
         plt.show()
         return
