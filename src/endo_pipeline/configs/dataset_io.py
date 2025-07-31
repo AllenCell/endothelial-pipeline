@@ -1115,7 +1115,7 @@ def get_measurement_data_raws(
 
 def get_measured_segmentation_table(
     dataset_name_list: list,
-    kind: Literal["nuclei_labelfree", "cdh5_tracking"],
+    kind: Literal["nuclei_labelfree"],
 ) -> pd.DataFrame:
     """
     Loads one of the available kinds of segmentation features tables
@@ -1135,8 +1135,6 @@ def get_measured_segmentation_table(
     match kind:
         case "nuclei_labelfree":
             fmsid_field = "nuclei_label_free_seg_manifest_fmsid"
-        case "cdh5_tracking":
-            fmsid_field = "cdh5_classic_seg_tracking_manifest_fmsid"
         case _:
             raise ValueError(
                 f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."

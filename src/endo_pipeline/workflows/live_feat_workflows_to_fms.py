@@ -54,9 +54,18 @@ def fms_upload_cdh5_classic_seg_tracking(
         file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.cdh5_classic_seg_tracking_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+
+    manifest_name = "cdh5_classic_segmentation_tracking"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
         f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."

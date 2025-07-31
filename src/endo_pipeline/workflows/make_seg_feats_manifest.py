@@ -39,10 +39,9 @@ def create_segmentation_measured_feature_manifest(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # load the tracking data and the segmentation feature data
-    tracking_df = get_measured_segmentation_table(
-        dataset_name_list=[dataset_name],
-        kind="cdh5_tracking",
-    )
+    tracking_manifest = load_dataframe_manifest("cdh5_classic_segmentation_tracking")
+    tracking_location = get_dataframe_location_for_dataset(tracking_manifest, dataset_name)
+    tracking_df = load_dataframe(tracking_location)
 
     segprops_manifest = load_dataframe_manifest("cdh5_classic_segmentation")
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
