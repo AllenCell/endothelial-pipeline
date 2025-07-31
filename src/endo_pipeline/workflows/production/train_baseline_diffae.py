@@ -1,5 +1,3 @@
-from pathlib import Path
-
 TAGS = ["diffae_model_training"]
 
 
@@ -53,7 +51,7 @@ def main(
     # and using the DatasetLocation objects to get the paths
     manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
     if workflow_testing:
-        manifest_name += "_workflow_testing"
+        manifest_name += "_test_workflow"
     dataframe_manifest = load_dataframe_manifest(manifest_name)
     train_csv_location = dataframe_manifest.locations["train"]
     val_csv_location = dataframe_manifest.locations["val"]
