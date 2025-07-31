@@ -1,4 +1,5 @@
 from .input import (
+    get_local_fms_path_from_fmsid,
     load_dataframe,
     load_dataframe_from_fms,
     load_dataframe_from_path,
@@ -19,6 +20,7 @@ __all__ = [
     "build_fms_annotations",
     "build_fms_annotations_for_model_training_inputs",
     "configure_logging",
+    "get_local_fms_path_from_fmsid",
     "get_output_dir",
     "get_output_path",
     "load_dataframe",

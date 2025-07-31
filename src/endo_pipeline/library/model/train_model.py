@@ -11,6 +11,7 @@ from omegaconf import DictConfig, ListConfig
 from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import (
     build_fms_annotations_for_model_training_inputs,
+    get_local_fms_path_from_fmsid,
     get_output_path,
     upload_file_to_fms,
 )
@@ -315,32 +316,8 @@ def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Pa
         # if s3uri is provided, use that for loading
         dataframe_csv_path = dataframe_location.s3uri
     else:
-        # the following code block is from the io function `load_dataframe_from_fms`
-        if not Path("//allen").exists():
-            logger.error("Workflow unable to access [ /allen ] drive")
-            raise ConnectionError("Workflow does not have access to AICS intranet")
-
-        try:
-            from aicsfiles import FileLevelMetadataKeys, fms
-        except ModuleNotFoundError:
-            logger.error("Required dependency [ aicsfiles ] not found")
-            raise
-        except ImportError:
-            logger.error("Unable to import [ fms | FileLevelMetadataKeys ] from [ aicsfiles ]")
-            raise
-        # find the record in FMS using the file ID
-        fmsid = dataframe_location.fmsid
-        annotations = {FileLevelMetadataKeys.FILE_ID.value: fmsid}
-        record = list(fms.find(annotations=annotations))
-
-        if not record:
-            logger.error("Record for FMS ID [ %s ] not found", fmsid)
-            raise LookupError(f"cannot find file id '{fmsid}' in FMS 'prod' environment")
-
-        # Loading from local path.
-        fms_bucket_name = "production.files.allencell.org"
-        local_fms_path = "//allen/programs/allencell/data/proj0/"
-        dataframe_csv_path = Path(record[0].path.replace(fms_bucket_name, local_fms_path))
+        # get local path from FMS ID
+        dataframe_csv_path = get_local_fms_path_from_fmsid(dataframe_location.fmsid)
 
     return dataframe_csv_path
 
