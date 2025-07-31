@@ -27,7 +27,6 @@ channel_640_index: null
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250319_20X
 nuclear_stain_seg_path: null
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250319_20X
-nuclei_label_free_seg_manifest_fmsid: a9c2d08eecfc45a19a43239dd06a4b22
 live_merged_seg_features_manifest_fmsid: 474c500583954ab6ad62f5f28d103e91
 valid_timepoints:
   start: [117]
