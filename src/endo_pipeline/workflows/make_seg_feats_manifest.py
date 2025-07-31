@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
-    get_measured_segmentation_table,
     ipython_cli_flexecute,
 )
 from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
@@ -47,10 +46,10 @@ def create_segmentation_measured_feature_manifest(
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
     segprops_df = load_dataframe(segprops_location)
 
-    nucprops_df = get_measured_segmentation_table(
-        dataset_name_list=[dataset_name],
-        kind="nuclei_labelfree",
-    )
+    nucprops_manifest = load_dataframe_manifest("nuclei_label_free_segmentation")
+    nucprops_location = get_dataframe_location_for_dataset(nucprops_manifest, dataset_name)
+    nucprops_df = load_dataframe(nucprops_location)
+
     if tracking_df.empty or segprops_df.empty or nucprops_df.empty:
         logger.info(
             f"No tracking data or segmentation properties data found for {dataset_name}. Skipping..."
