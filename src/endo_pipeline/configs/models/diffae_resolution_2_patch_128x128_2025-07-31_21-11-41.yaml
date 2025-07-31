@@ -1,0 +1,14 @@
+name: diffae_resolution_2_patch_128x128_2025-07-31_21-11-41
+mlflow_run_id: c05da6800c0047f08666e22a9865aed7
+manifest_fmsids: []
+training_datasets:
+- 20241016_20X
+- 20241120_20X
+- 20241217_20X
+- 20250224_20X
+- 20250319_20X
+- 20250326_20X
+- 20250409_20X
+- 20250428_20X
+train_dataframe: null
+test_dataframe: null
