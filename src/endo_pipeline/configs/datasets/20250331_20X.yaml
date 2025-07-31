@@ -30,7 +30,6 @@ channel_640_index: null
 nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250331_20X
 nuclear_stain_seg_path: null
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250331_20X
-live_merged_seg_features_manifest_fmsid: 5be28137118146be93c66d55481218fb
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null
