@@ -1,165 +1,24 @@
 # %%
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sb
-
 from src.endo_pipeline.configs import get_model_manifest, load_model_config
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_manifest_for_dynamics_workflows,
-    get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
 from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data
-from src.endo_pipeline.library.visualize import viz_base
-
-
-# %%
-def feature_density(
-    df_all: pd.DataFrame,
-    # dataset_name_list: list[str],
-    feature: str,
-    # save_dir: str,
-    xlim: list[float],
-    pool_positions: bool = False,
-) -> None:
-
-    fig = plt.figure(figsize=(15, 6))
-
-    def calc_stats(df: pd.DataFrame, feature: str) -> tuple:
-        mean = np.mean(df[feature])
-        cov = np.std(df[feature]) / mean
-        low, high = bootstrap_confidence_cov(df, feature)
-        return mean, cov, low, high
-
-    if pool_positions:
-        mean, cov, low, high = calc_stats(df_all, feature)
-        label = f"N={len(df_all)}, Mean={mean:.2f}, COV={cov:.2f}, CI=({low:.2f}, {high:.2f})"
-        ax = sb.kdeplot(df_all[feature], label=label, alpha=0.85, linestyle="-")
-    else:
-        for position, df_position in df_all.groupby("position"):
-            mean, cov, low, high = calc_stats(df_position, feature)
-            label = (
-                f"Pos={position}, "
-                f"N={len(df_position)}, Mean={mean:.2f}, COV={cov:.2f}, CI=({low:.2f}, {high:.2f})"
-            )
-            ax = sb.kdeplot(df_position[feature], label=label, alpha=0.85)
-
-        ax.set_xlabel(f"{feature}")
-        ax.set_ylabel("Density")
-        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
-        ax.set_xlim(xlim[0], xlim[1])
-        # ax.set_ylim(ylim)
-        plt.tight_layout()
-        plt.show()
-
-    return fig, ax
-
-    # fname = f"{feature}_poolpos{pool_positions}_all_datasets_density_plot"
-    # output_dir = save_dir / fname
-    # save_plot(fig, str(output_dir), transparent=True)
-
-
-# %%
-def plot_scatter_by_position_and_frame(
-    df: pd.DataFrame, target_frame: int
-) -> tuple[plt.Figure, np.ndarray]:
-    fig, ax = viz_base.init_subplots(figsize=(15, 5))
-    pc_column_names = get_pc_column_names(df, [0, 1, 2])
-
-    target_frame = 0
-
-    for position, df_pos in df.groupby("position"):
-        df_ = df_pos[df_pos["frame_number"] == target_frame]
-        # first plot: PC1 v PC2
-        ax[0].scatter(df_[pc_column_names[0]], df_[pc_column_names[1]], s=20)
-
-        # second plot: PC1 v PC3
-        ax[1].scatter(df_[pc_column_names[0]], df_[pc_column_names[2]], s=20, label=position)
-
-    ax[0].set_xlim(bounds[0])
-    ax[0].set_ylim(bounds[1])
-    ax[0].set_xlabel("PC1")
-    ax[0].set_ylabel("PC2")
-
-    ax[1].set_xlim(bounds[0])
-    ax[1].set_ylim(bounds[2])
-    ax[1].set_xlabel("PC1")
-    ax[1].set_ylabel("PC3")
-
-    ax[1].legend(loc=(1.05, 0.75))
-    fig.suptitle(f"Frame {target_frame}")
-
-    return fig, ax
-
-
-def plot_distribution_by_position_and_frame(
-    df: pd.DataFrame, target_frame: int
-) -> tuple[plt.Figure, np.ndarray]:
-    fig, ax = viz_base.init_subplots(1, 3, figsize=(15, 5))
-    pc_column_names = get_pc_column_names(df, [0, 1, 2])
-
-    target_frame = 0
-
-    for position, df_pos in df.groupby("position"):
-        df_ = df_pos[df_pos["frame_number"] == target_frame]
-
-        ax[0].hist(df_[pc_column_names[0]], bins=50, alpha=0.5, label=position)
-        ax[1].hist(df_[pc_column_names[1]], bins=50, alpha=0.5, label=position)
-        ax[2].hist(df_[pc_column_names[2]], bins=50, alpha=0.5, label=position)
-
-    ax[0].set_xlabel("PC1")
-    ax[0].set_ylabel("Count")
-
-    ax[1].set_xlabel("PC2")
-    ax[1].set_ylabel("Count")
-
-    ax[2].set_xlabel("PC3")
-    ax[2].set_ylabel("Count")
-
-    ax[2].legend(loc=(1.05, 0.75))
-    fig.suptitle(f"Frame {target_frame}")
-
-    return fig, ax
-
-
-def plot_distribution_by_frame(
-    df_list: list[pd.DataFrame], df_info: list[str], target_frame: int
-) -> tuple[plt.Figure, np.ndarray]:
-    fig, ax = viz_base.init_subplots(1, 3, figsize=(15, 5))
-    pc_column_names = get_pc_column_names(df1, [0, 1, 2])
-
-    target_frame = 0
-
-    for df, z_slice in zip(df_list, df_info):
-        df_ = df[df["frame_number"] == target_frame]
-
-        ax[0].hist(df_[pc_column_names[0]], bins=50, alpha=0.5, label=z_slice)
-        ax[1].hist(df_[pc_column_names[1]], bins=50, alpha=0.5, label=z_slice)
-        ax[2].hist(df_[pc_column_names[2]], bins=50, alpha=0.5, label=z_slice)
-
-        ax[0].set_xlabel("PC1")
-        ax[0].set_ylabel("Count")
-
-        ax[1].set_xlabel("PC2")
-        ax[1].set_ylabel("Count")
-
-        ax[2].set_xlabel("PC3")
-        ax[2].set_ylabel("Count")
-
-        ax[2].legend(loc=(1.05, 0.75))
-        fig.suptitle(f"Frame {target_frame}")
-
-    return fig, ax
-
+from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
+    feature_density,
+    plot_distribution_by_frame,
+    plot_distribution_by_position_and_frame,
+    plot_scatter_by_position_and_frame,
+)
 
 # %%
 model_config = load_model_config("diffae_04_10")
-dataset_name = "20241016_20X"
+# dataset_name = "20241016_20X"
+dataset_name = "20250331_20X"
 
 model_manifest1 = get_model_manifest(dataset_name, model_config)
-model_manifest2 = get_model_manifest(dataset_name, model_config, [5, 16])
+model_manifest2 = get_model_manifest(dataset_name, model_config, [5, 10])
 model_manifest3 = get_model_manifest(dataset_name, model_config, [0, 16])
 model_manifest4 = get_model_manifest(dataset_name, model_config, [9, 25])
 
@@ -173,20 +32,20 @@ df4 = get_manifest_for_dynamics_workflows(model_manifest4, pca)
 # %%
 manifest_list = [model_manifest1, model_manifest2, model_manifest3, model_manifest4]
 df_list = [df1, df2, df3, df4]
-df_info = ["all slices", "centered slices (-5, +16)", "bottom slices (0, 16)", "top slices (9, 25)"]
+df_info = ["all slices", "centered slices (-5, +10)", "bottom slices (0, 16)", "top slices (9, 25)"]
 
 bounds = get_3d_bounds_from_data(manifest_list, pca)
 
 # %%
 target_frame = 0
-fig, ax = plot_scatter_by_position_and_frame(df1, target_frame)
-fig, ax = plot_scatter_by_position_and_frame(df2, target_frame)
+fig, ax = plot_scatter_by_position_and_frame(df1, target_frame, bounds)
+fig, ax = plot_scatter_by_position_and_frame(df2, target_frame, bounds)
 # %%
 target_frame = 0
 fig, ax = plot_distribution_by_position_and_frame(df1, target_frame)
 fig, ax = plot_distribution_by_position_and_frame(df1, target_frame)
 # %%
-fig, ax = plot_distribution_by_frame(df_list, df_info, target_frame)
+plot_distribution_by_frame(df_list, df_info, target_frame)
 # %%
 for target_frame in [0, 250, 500]:
     print(target_frame)
@@ -211,4 +70,21 @@ for target_frame in [0, 250, 500]:
 
     df = df2[df2["frame_number"] == target_frame]
     fig, ax = feature_density(df, "pc3", bounds[2])
+# %%
+for target_frame in [0, 250, 500]:
+    print(f"Comparing frame: {target_frame}")
+
+    # Filter rows for the current frame
+    df3_frame = df3[df3["frame_number"] == target_frame]
+    df2_frame = df2[df2["frame_number"] == target_frame]
+
+    # Find rows in df1 but not in df2
+    diff_df3 = df3_frame[~df3_frame.isin(df2_frame.to_dict(orient="list")).all(axis=1)]
+    print(f"Rows in df1 but not in df2 for frame {target_frame}:")
+    print(diff_df1)
+
+    # Find rows in df2 but not in df1
+    diff_df2 = df2_frame[~df2_frame.isin(df3_frame.to_dict(orient="list")).all(axis=1)]
+    print(f"Rows in df2 but not in df1 for frame {target_frame}:")
+    print(diff_df2)
 # %%
