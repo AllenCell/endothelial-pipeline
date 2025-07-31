@@ -217,6 +217,7 @@ def setup_gpu() -> None:
     logger.info("Setting up environment to run workflow using GPU")
 
     import os
+    import re
     import subprocess
 
     # Query to get free memory of available GPU devices
@@ -229,7 +230,8 @@ def setup_gpu() -> None:
         raise EnvironmentError(gpu_memory_free)
 
     # Select device number with the maximum free memory
-    gpu_with_max_free = sorted(gpu_memory_free.split("\n"), reverse=True)[0].split(", ")[1]
+    gpu_options = [(int(free), gpu) for free, gpu in re.findall(r"(\d+), (\d+)", gpu_memory_free)]
+    _, gpu_with_max_free = sorted(gpu_options, reverse=True)[0]
 
     # Set the CUDA_VISIBLE_DEVICES environment variable to selected GPU
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_with_max_free
