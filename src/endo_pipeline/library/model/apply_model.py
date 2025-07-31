@@ -19,6 +19,12 @@ from src.endo_pipeline.io import (
     upload_file_to_fms,
 )
 from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
+)
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
@@ -540,7 +546,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
             file_type="parquet",
         )
 
-        # tracking integration FMS ID
-        # is stored in the dataset config
-        dataset_config.diffae_tracking_integration_fmsid = file_id
-        save_dataset_config(dataset_config)
+        # Store FMS ID in dataframe manifest
+
+        manifest_name = "diffae_tracking_integration"
+        workflow_name = "apply_diffae_model_on_tracked_crops"
+
+        try:
+            manifest = load_dataframe_manifest(manifest_name)
+        except FileNotFoundError:
+            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+        save_dataframe_manifest(manifest)
