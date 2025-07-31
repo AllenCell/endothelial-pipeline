@@ -1,5 +1,5 @@
 name: cell_mean_features
-workflow: unknown
+workflow: measure_per_cell_features
 parameters: {}
 locations:
   20241120_20X:

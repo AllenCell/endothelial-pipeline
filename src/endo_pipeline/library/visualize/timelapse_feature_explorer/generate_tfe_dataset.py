@@ -3,9 +3,7 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from cellsmap.util.manifest_io import get_cell_mean_features_manifest
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.io import load_dataframe, load_dataframe_from_fms
+from src.endo_pipeline.io import load_dataframe
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -51,10 +49,11 @@ def generate_tfe_dataset(
     df_tracks = load_dataframe(segprops_location)
     df_position = df_tracks[df_tracks["position"] == position]
 
-    dataset_config = load_dataset_config(dataset)
-    if dataset_config.cell_mean_features is not None:
-        load_dataframe_from_fms(dataset_config.cell_mean_features)
-        df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
+    cell_mean_manifest = load_dataframe_manifest("cell_mean_features")
+
+    if dataset in cell_mean_manifest.locations:
+        cell_mean_location = get_dataframe_location_for_dataset(cell_mean_manifest, dataset)
+        df_diffae_cell_mean = load_dataframe(cell_mean_location)
         df_diffae_cell_mean = df_diffae_cell_mean[df_diffae_cell_mean["position"] == f"P{position}"]
         df_diffae_cell_mean["position"] = position
         df_diffae_cell_mean = df_diffae_cell_mean.rename(columns={"frame_number": "image_index"})
@@ -72,7 +71,8 @@ def generate_tfe_dataset(
 
     df = add_dynamic_features_with_filtering(df_merge_features)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
-    if dataset_config.cell_mean_features is not None:
+
+    if dataset in cell_mean_manifest.locations:
         df = add_intensity_mean_pcs(df)
 
     if backdrops:

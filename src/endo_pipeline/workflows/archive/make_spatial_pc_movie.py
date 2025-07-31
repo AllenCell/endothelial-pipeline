@@ -8,6 +8,13 @@ import pandas as pd
 from bioio import BioImage
 from skimage.measure import regionprops_table
 
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
+)
+
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
 
@@ -306,10 +313,18 @@ def measure_per_cell_features(
             file_type="parquet",
         )
 
-        # update dataset config with the FMS ID
-        # of the prediction file
-        dataset_config.cell_mean_features = file_id
-        save_dataset_config(dataset_config)
+        # Store FMS ID in dataframe manifest
+
+        manifest_name = "cell_mean_features"
+        workflow_name = "measure_per_cell_features"
+
+        try:
+            manifest = load_dataframe_manifest(manifest_name)
+        except FileNotFoundError:
+            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+        save_dataframe_manifest(manifest)
 
 
 def main(
