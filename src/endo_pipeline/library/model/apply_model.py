@@ -371,7 +371,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-) -> ModelConfig:
+) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
 
