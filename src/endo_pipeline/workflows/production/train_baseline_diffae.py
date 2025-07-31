@@ -6,8 +6,6 @@ TAGS = ["diffae_model_training"]
 def main(
     zarr_resolution: int = 1,
     crop_size: int = 128,
-    train_csv_path: Path | str | None = None,
-    val_csv_path: Path | str | None = None,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.
@@ -19,10 +17,6 @@ def main(
         which corresponds to downsampling by half.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
-    train_csv_path
-        Optional user-specified path to the training dataset CSV file.
-    val_csv_path
-        Optional user-specified path to the validation dataset CSV file.
 
     Returns
     -------
@@ -42,16 +36,26 @@ def main(
         get_valid_csv_path_for_training,
         initialize_diffae_model,
     )
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     # set lightning logger level to WARNING to avoid excessive logging
     lightning_logger = logging.getLogger("lightning.pytorch")
     lightning_logger.setLevel(logging.WARNING)
 
-    # get valid CSV paths for training and validation datasets based on zarr resolution
+    # get training and validation datasets based on zarr resolution
+    # by loading the DataframeManifest from the model directory
+    # and using the DatasetLocation objects to get the paths
+    dataframe_manifest = load_dataframe_manifest(
+        f"diffae_training_csv_resolution_{zarr_resolution}"
+    )
+    train_csv_location = dataframe_manifest.locations["train"]
+    val_csv_location = dataframe_manifest.locations["val"]
 
-    train_dataframe_location = ""
-    train_csv_path = get_valid_csv_path_for_training(train_csv_path, zarr_resolution, "train")
-    val_csv_path = get_valid_csv_path_for_training(val_csv_path, zarr_resolution, "val")
+    # get csv paths from the DataframeLocation objects
+    # to pass into the DiffAE model training script
+    # (need csv paths for training config setup and CytoDL dataloaders)
+    train_csv_path = get_valid_csv_path_for_training(train_csv_location)
+    val_csv_path = get_valid_csv_path_for_training(val_csv_location)
 
     # load template training config
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
@@ -74,6 +78,7 @@ def main(
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
+    # based on content of train and val dataframes
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_csv_path,
         val_csv_path,

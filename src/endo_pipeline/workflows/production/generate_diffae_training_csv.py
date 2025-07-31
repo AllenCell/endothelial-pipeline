@@ -36,20 +36,10 @@ def main(zarr_resolution: int = 1) -> None:
         load_dataset_collection_config,
         load_dataset_config,
     )
-    from src.endo_pipeline.io import (
-        build_fms_annotations_for_model_training_inputs,
-        get_output_path,
-        upload_file_to_fms,
-    )
-    from src.endo_pipeline.manifests import (
-        DataframeLocation,
-        DataframeManifest,
-        get_available_dataframe_manifest_names,
-        load_dataframe_manifest,
-        save_dataframe_manifest,
-    )
+    from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
 
-    output_savedir = get_output_path("manifests", include_timestamp=False)
+    output_savedir = get_output_path("dataframes", include_timestamp=False)
 
     # load data config
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
@@ -68,63 +58,12 @@ def main(zarr_resolution: int = 1) -> None:
 
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
 
-    # save the dataframes to csv files locally as intermediates
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    train_output_path = output_savedir / f"train_resolution_{zarr_resolution}_{timestamp}.csv"
-    val_output_path = output_savedir / f"val_resolution_{zarr_resolution}_{timestamp}.csv"
-    train.to_csv(train_output_path, index=False)
-    val.to_csv(val_output_path, index=False)
-
-    # upload dataframes to fms
-    train_annotations = build_fms_annotations_for_model_training_inputs(
-        "training",
-        dataset_name_list,
-        zarr_resolution,
-        include_timestamp=False,
-        include_git_info=False,
+    # upload dataframes to FMS, then build and save out DataframeManifest
+    # object with FMS IDs to be used in the DiffAE model training script
+    # note that this can be swapped out with uploading to S3 later on
+    build_and_save_dataframe_manifest_for_training(
+        train, val, zarr_resolution, dataset_name_list, output_savedir
     )
-    val_annotations = build_fms_annotations_for_model_training_inputs(
-        "validation",
-        dataset_name_list,
-        zarr_resolution,
-        include_timestamp=False,
-        include_git_info=False,
-    )
-
-    train_fmsid = upload_file_to_fms(
-        train_output_path,
-        annotations=train_annotations,
-        file_type="csv",
-    )
-    val_fmsid = upload_file_to_fms(
-        val_output_path,
-        annotations=val_annotations,
-        file_type="csv",
-    )
-
-    # build and save out DataframeManifest object with FMS IDs
-
-    # first check if a manifest already exists for this resolution,
-    # if so load it and update the locations
-    available_manifest_names = get_available_dataframe_manifest_names()
-    manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
-    if manifest_name in available_manifest_names:
-        dataframe_manifest = load_dataframe_manifest(manifest_name)
-        dataframe_manifest.locations["train"] = DataframeLocation(fmsid=train_fmsid, s3uri=None)
-        dataframe_manifest.locations["val"] = DataframeLocation(fmsid=val_fmsid, s3uri=None)
-    # if no manifest exists, create a new one
-    else:
-        dataframe_manifest = DataframeManifest(
-            name=f"diffae_training_csv_resolution_{zarr_resolution}",
-            workflow="generate_diffae_training_csv",
-            parameters={"zarr_resolution": zarr_resolution},
-            locations={
-                "train": DataframeLocation(fmsid=train_fmsid, s3uri=None),
-                "val": DataframeLocation(fmsid=val_fmsid, s3uri=None),
-            },
-        )
-
-    save_dataframe_manifest(dataframe_manifest)
 
 
 if __name__ == "__main__":
