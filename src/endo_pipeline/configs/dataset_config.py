@@ -130,9 +130,6 @@ class DatasetConfig:
     cdh5_seg_path: str | None = None
     """Path to Cdh5 segmentations."""
 
-    tracking_integration_fmsid: str | None = None
-    """FMS ID for tracking integration."""
-
     diffae_tracking_integration_fmsid: str | None = None
     """FMS ID for diffusion autoencoder tracking integration."""
 
