@@ -44,6 +44,8 @@ def main(zarr_resolution: int = 1) -> None:
     from src.endo_pipeline.manifests import (
         DataframeLocation,
         DataframeManifest,
+        get_available_dataframe_manifest_names,
+        load_dataframe_manifest,
         save_dataframe_manifest,
     )
 
@@ -101,15 +103,26 @@ def main(zarr_resolution: int = 1) -> None:
     )
 
     # build and save out DataframeManifest object with FMS IDs
-    dataframe_manifest = DataframeManifest(
-        name=f"diffae_training_csv_resolution_{zarr_resolution}_{timestamp}",
-        workflow="generate_diffae_training_csv",
-        parameters={"zarr_resolution": zarr_resolution},
-        locations={
-            "train": DataframeLocation(fmsid=train_fmsid, s3uri=None),
-            "val": DataframeLocation(fmsid=val_fmsid, s3uri=None),
-        },
-    )
+
+    # first check if a manifest already exists for this resolution,
+    # if so load it and update the locations
+    available_manifest_names = get_available_dataframe_manifest_names()
+    manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
+    if manifest_name in available_manifest_names:
+        dataframe_manifest = load_dataframe_manifest(manifest_name)
+        dataframe_manifest.locations["train"] = DataframeLocation(fmsid=train_fmsid, s3uri=None)
+        dataframe_manifest.locations["val"] = DataframeLocation(fmsid=val_fmsid, s3uri=None)
+    # if no manifest exists, create a new one
+    else:
+        dataframe_manifest = DataframeManifest(
+            name=f"diffae_training_csv_resolution_{zarr_resolution}",
+            workflow="generate_diffae_training_csv",
+            parameters={"zarr_resolution": zarr_resolution},
+            locations={
+                "train": DataframeLocation(fmsid=train_fmsid, s3uri=None),
+                "val": DataframeLocation(fmsid=val_fmsid, s3uri=None),
+            },
+        )
 
     save_dataframe_manifest(dataframe_manifest)
 

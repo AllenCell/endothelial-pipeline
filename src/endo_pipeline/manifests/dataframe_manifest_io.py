@@ -17,6 +17,13 @@ def get_dataframe_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "dataframes"
 
 
+def get_available_dataframe_manifest_names() -> list[str]:
+    """Get list of available dataframe manifest names."""
+    manifest_names = [path.stem for path in get_dataframe_manifest_dir().iterdir()]
+    logger.info("Available dataframe manifests [ %s ]", " | ".join(manifest_names))
+    return manifest_names
+
+
 def load_dataframe_manifest(manifest_name: str) -> DataframeManifest:
     """Load dataframe manifest by name."""
 

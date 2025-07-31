@@ -48,6 +48,8 @@ def main(
     lightning_logger.setLevel(logging.WARNING)
 
     # get valid CSV paths for training and validation datasets based on zarr resolution
+
+    train_dataframe_location = ""
     train_csv_path = get_valid_csv_path_for_training(train_csv_path, zarr_resolution, "train")
     val_csv_path = get_valid_csv_path_for_training(val_csv_path, zarr_resolution, "val")
 
