@@ -8,6 +8,7 @@ from .input import (
 from .log_funcs import configure_logging
 from .output import (
     build_fms_annotations,
+    build_fms_annotations_for_model_training_inputs,
     get_output_dir,
     get_output_path,
     save_plot_to_path,
@@ -16,6 +17,7 @@ from .output import (
 
 __all__ = [
     "build_fms_annotations",
+    "build_fms_annotations_for_model_training_inputs",
     "configure_logging",
     "get_output_dir",
     "get_output_path",
