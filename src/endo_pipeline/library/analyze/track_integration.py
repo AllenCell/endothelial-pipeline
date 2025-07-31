@@ -4,9 +4,8 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
-from src.endo_pipeline.io import load_dataframe, load_dataframe_from_fms
+from src.endo_pipeline.io import load_dataframe
 from src.endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
@@ -176,10 +175,6 @@ def merge_diffae_feats_liveseg_feats_tables(
 
 
 def get_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> pd.DataFrame:
-
-    logging.debug(f"Loading dataset config file for dataset: {dataset_name}...")
-    dataset_config = load_dataset_config(dataset_name)
-
     # read in the segmentation-based diffae features if available
     logging.debug("loading diffae features from tracking data...")
     diffae_track_manifest = load_dataframe_manifest("diffae_tracking_integration")
@@ -188,13 +183,9 @@ def get_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> pd.DataFra
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
-    live_seg_fmsid = dataset_config.live_merged_seg_features_manifest_fmsid
-    if live_seg_fmsid is None:
-        logging.warning(
-            f"No live segmentation features FMS ID for {dataset_name}. Returning empty dataframe."
-        )
-        return pd.DataFrame()
-    live_seg_feats_df = load_dataframe_from_fms(live_seg_fmsid)  # this takes a minute
+    live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
+    live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
+    live_seg_feats_df = load_dataframe(live_seg_location)
 
     # merge the two tables
     merged_feats_df = merge_diffae_feats_liveseg_feats_tables(diffae_tracking_df, live_seg_feats_df)
