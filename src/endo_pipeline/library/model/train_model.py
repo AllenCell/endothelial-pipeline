@@ -216,9 +216,8 @@ def get_valid_csv_path_for_training(
         A valid Path object pointing to the CSV file for training or validation sets.
     """
     if csv_path is None:
-        csv_path = (
-            get_output_path("manifests", include_timestamp=False)
-            / f"{csv_name}_resolution_{zarr_resolution}.csv"
+        csv_path = get_output_path(
+            "manifests", f"{csv_name}_resolution_{zarr_resolution}.csv", include_timestamp=False
         )
 
     if isinstance(csv_path, str):
