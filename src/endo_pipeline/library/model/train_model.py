@@ -17,8 +17,6 @@ from src.endo_pipeline.io import (
 from src.endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
-    get_available_dataframe_manifest_names,
-    load_dataframe_manifest,
     save_dataframe_manifest,
 )
 
@@ -209,13 +207,19 @@ def _upload_train_and_val_to_fms(
     output_savedir: Path,
 ) -> tuple[str, str]:
     # save the dataframes to csv files locally as intermediates
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # use timestamp to ensure unique filenames
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     train_output_path = output_savedir / f"train_resolution_{zarr_resolution}_{timestamp}.csv"
     val_output_path = output_savedir / f"val_resolution_{zarr_resolution}_{timestamp}.csv"
     train_dataframe.to_csv(train_output_path, index=False)
     val_dataframe.to_csv(val_output_path, index=False)
-
+    logger.debug(
+        "Saved training CSV to \n %s \n and validation CSV to \n %s",
+        train_output_path,
+        val_output_path,
+    )
     # upload dataframes to fms
+    logger.debug("Building FMS annotations for training and validation CSVs...")
     train_annotations = build_fms_annotations_for_model_training_inputs(
         "training",
         dataset_name_list,
@@ -231,6 +235,7 @@ def _upload_train_and_val_to_fms(
         include_git_info=False,
     )
 
+    logger.debug("Annotations built, uploading to FMS...")
     train_fmsid = upload_file_to_fms(
         train_output_path,
         annotations=train_annotations,
@@ -271,25 +276,18 @@ def build_and_save_dataframe_manifest_for_training(
         output_savedir,
     )
 
-    # check if a manifest already exists for this resolution,
-    # if so load it and update the locations
-    available_manifest_names = get_available_dataframe_manifest_names()
-    manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
-    if manifest_name in available_manifest_names:
-        dataframe_manifest = load_dataframe_manifest(manifest_name)
-        dataframe_manifest.locations["train"] = DataframeLocation(fmsid=train_fmsid, s3uri=None)
-        dataframe_manifest.locations["val"] = DataframeLocation(fmsid=val_fmsid, s3uri=None)
-    # if no manifest exists, create a new one
-    else:
-        dataframe_manifest = DataframeManifest(
-            name=f"diffae_training_csv_resolution_{zarr_resolution}",
-            workflow="generate_diffae_training_csv",
-            parameters={"zarr_resolution": zarr_resolution},
-            locations={
-                "train": DataframeLocation(fmsid=train_fmsid, s3uri=None),
-                "val": DataframeLocation(fmsid=val_fmsid, s3uri=None),
-            },
-        )
+    # create the DataframeManifest object
+    # note that this will overwrite any existing manifest with the same name
+    # (intended behavior)
+    dataframe_manifest = DataframeManifest(
+        name=f"diffae_training_csv_resolution_{zarr_resolution}",
+        workflow="generate_diffae_training_csv",
+        parameters={"zarr_resolution": zarr_resolution},
+        locations={
+            "train": DataframeLocation(fmsid=train_fmsid, s3uri=None),
+            "val": DataframeLocation(fmsid=val_fmsid, s3uri=None),
+        },
+    )
 
     # save the updated or new manifest
     save_dataframe_manifest(dataframe_manifest)

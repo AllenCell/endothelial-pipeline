@@ -145,9 +145,9 @@ def build_fms_annotations_for_model_training_inputs(
 
     notes = [
         "This file was produced by the Endothelial Pipeline repository.\n",
-        f"Dataframe of images for {image_dataset_type} set.",
-        f"Dataset(s) included in complete training/validation sets: {', '.join(dataset_names)}",
-        f"Resolution level for zarr loading: {zarr_resolution}",
+        f"Dataframe of images for {image_dataset_type} set.\n",
+        f"Dataset(s) included in complete training/validation sets: {', '.join(dataset_names)}\n",
+        f"Resolution level for zarr loading: {zarr_resolution}\n",
         f"Effort: {effort}",
     ]
 
