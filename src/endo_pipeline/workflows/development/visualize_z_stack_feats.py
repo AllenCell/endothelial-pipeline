@@ -14,14 +14,17 @@ from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
 
 # %%
 model_config = load_model_config("diffae_04_10")
-# dataset_name = "20241016_20X"
-dataset_name = "20250331_20X"
-
+dataset_name = "20241016_20X"
+# dataset_name = "20250331_20X"
+# %%
 model_manifest1 = get_model_manifest(dataset_name, model_config)
 model_manifest2 = get_model_manifest(dataset_name, model_config, [5, 10])
 model_manifest3 = get_model_manifest(dataset_name, model_config, [0, 16])
 model_manifest4 = get_model_manifest(dataset_name, model_config, [9, 25])
-
+# %%
+for model_manifest in [model_manifest1, model_manifest2, model_manifest3, model_manifest4]:
+    print(model_manifest.z_stack_offsets)
+    print(model_manifest.fmsid)
 # %%
 pca = fit_pca()
 # %%
@@ -33,7 +36,6 @@ df4 = get_manifest_for_dynamics_workflows(model_manifest4, pca)
 manifest_list = [model_manifest1, model_manifest2, model_manifest3, model_manifest4]
 df_list = [df1, df2, df3, df4]
 df_info = ["all slices", "centered slices (-5, +10)", "bottom slices (0, 16)", "top slices (9, 25)"]
-
 bounds = get_3d_bounds_from_data(manifest_list, pca)
 
 # %%
@@ -45,7 +47,7 @@ target_frame = 0
 fig, ax = plot_distribution_by_position_and_frame(df1, target_frame)
 fig, ax = plot_distribution_by_position_and_frame(df1, target_frame)
 # %%
-plot_distribution_by_frame(df_list, df_info, target_frame)
+plot_distribution_by_frame(df_list, df_info, target_frame=0)
 # %%
 for target_frame in [0, 250, 500]:
     print(target_frame)
