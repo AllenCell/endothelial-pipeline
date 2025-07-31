@@ -263,6 +263,7 @@ def build_and_save_dataframe_manifest_for_training(
     zarr_resolution: int,
     dataset_name_list: list[str],
     output_savedir: Path,
+    workflow_testing: bool = False,
 ) -> None:
     """
     Upload training and validation dataframes to FMS and save a DataframeManifest
@@ -280,8 +281,12 @@ def build_and_save_dataframe_manifest_for_training(
     # create the DataframeManifest object
     # note that this will overwrite any existing manifest with the same name
     # (intended behavior)
+    manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
+    if workflow_testing:
+        # if workflow_testing is True, append "_test_workflow" to the manifest name
+        manifest_name += "_test_workflow"
     dataframe_manifest = DataframeManifest(
-        name=f"diffae_training_csv_resolution_{zarr_resolution}",
+        name=manifest_name,
         workflow="generate_diffae_training_csv",
         parameters={"zarr_resolution": zarr_resolution},
         locations={
