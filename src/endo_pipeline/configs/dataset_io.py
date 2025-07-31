@@ -1029,71 +1029,6 @@ def load_cdh5_classic_segmentation(
     in the same location as this one.
     """
 )
-def get_tracking_data_paths(
-    dataset_name: str,
-    position: int,
-) -> Path:
-    # NOTE the tracking paths should probably be added to some
-    # sort of config file at some point, but in the interest of
-    # going fast they are hardcoded here for now
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
-    )
-    base_path = base_path / f"{dataset_name}/P{position}"
-    data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
-    return data_path
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_tracking_data_raws(
-    dataset_name_list: list,
-    position: int | None = None,
-    as_dask: bool = True,
-) -> pd.DataFrame:
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    table_reader = dd if as_dask else pd
-    tracking_data_list = []
-    for dataset_name in dataset_name_list:
-        position_list = (
-            range(get_total_number_of_positions(dataset_name)) if position == None else [position]
-        )
-        for pos in position_list:
-            data_path = Path(get_tracking_data_paths(dataset_name, pos))
-            if not data_path.exists():
-                print(f"No tracking data found for {dataset_name} P{pos}. Skipping...")
-                continue
-            else:
-                # open the data tables
-                tracking_data = table_reader.read_csv(data_path, sep="\t")
-                # the tracking data by default does not have the
-                # dataset name or the position, so add those in
-                tracking_data["dataset_name"] = dataset_name
-                tracking_data["position"] = pos
-                # also include the path to the table that this
-                # part of the dataframe was loaded from
-                tracking_data["source_tracking_table_path"] = data_path.as_posix()
-                tracking_data_list.append(tracking_data)
-    # concatenate the dataframes into a single dataframe and return it
-    if tracking_data_list:
-        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
-    else:  # create an empty dataframe
-        tracking_dataframe = table_reader.DataFrame.from_dict({})
-    return tracking_dataframe
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
 def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -> pd.DataFrame:
     """
     NOTE: Cannot use only dask here because if it is called in the
@@ -1180,7 +1115,7 @@ def get_measurement_data_raws(
 
 def get_measured_segmentation_table(
     dataset_name_list: list,
-    kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
+    kind: Literal["nuclei_labelfree", "cdh5_tracking"],
 ) -> pd.DataFrame:
     """
     Loads one of the available kinds of segmentation features tables
@@ -1198,8 +1133,6 @@ def get_measured_segmentation_table(
         - primarily contains tracking IDs mapped to segmentations label IDs
     """
     match kind:
-        case "cdh5_segmentations":
-            fmsid_field = "cdh5_classic_seg_manifest_fmsid"
         case "nuclei_labelfree":
             fmsid_field = "nuclei_label_free_seg_manifest_fmsid"
         case "cdh5_tracking":

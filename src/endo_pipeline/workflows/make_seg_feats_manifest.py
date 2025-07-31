@@ -10,7 +10,7 @@ from src.endo_pipeline.configs.dataset_io import (
     get_measured_segmentation_table,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path
+from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
 from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_cell_segmentation_path_column,
     add_filter_columns,
@@ -19,6 +19,7 @@ from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_man
     filter_and_save_track_data_for_landscape_integration,
     merge_measured_segmentation_features_tables,
 )
+from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +43,11 @@ def create_segmentation_measured_feature_manifest(
         dataset_name_list=[dataset_name],
         kind="cdh5_tracking",
     )
-    segprops_df = get_measured_segmentation_table(
-        dataset_name_list=[dataset_name],
-        kind="cdh5_segmentations",
-    )
+
+    segprops_manifest = load_dataframe_manifest("cdh5_classic_segmentation")
+    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
+    segprops_df = load_dataframe(segprops_location)
+
     nucprops_df = get_measured_segmentation_table(
         dataset_name_list=[dataset_name],
         kind="nuclei_labelfree",
