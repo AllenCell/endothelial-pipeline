@@ -133,9 +133,6 @@ class DatasetConfig:
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
 
-    cell_mean_features: str | None = None
-    """FMS ID for cell mean features."""
-
     include_scenes: list[int] | None = None
     """List of scenes to include."""
 

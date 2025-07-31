@@ -28,6 +28,5 @@ nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
 cdh5_seg_path: null
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: cells become extremely crowded at end of video

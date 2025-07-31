@@ -31,6 +31,5 @@ nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/seg
 nuclear_stain_seg_path: null
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20241016_20X
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: This is a high-to-low flow dataset. There is some cell debris in the CDH5 channel.

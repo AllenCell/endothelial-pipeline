@@ -30,6 +30,5 @@ cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh
 valid_timepoints:
   start: [129]
   stop: [345]
-cell_mean_features: null
 include_scenes: null
 notes: ''
