@@ -45,5 +45,5 @@ training_datasets:
 - 20250402_20X
 - 20250409_20X
 - 20250428_20X
-train_manifest_fmsid: null
-test_manifest_fmsid: null
+train_dataframe: null
+test_dataframe: null

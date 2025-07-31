@@ -371,23 +371,23 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-) -> ModelConfig:
+) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
 
     Parameters
     ----------
-    model_config: CytoDLModelConfig
+    model_config
         Configuration of the model to apply.
-    dataset_config: DatasetConfig
+    dataset_config
         Configuration of the dataset to apply the model to.
-    resolution_level: int
+    resolution_level
         Resolution level to apply the model at. Default is 1 (zarr sample resolution)
-    upload_to_fms: bool
+    upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path: str or Path | None
+    save_path
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    user_overrides: str or dict or None
+    user_overrides
         Optional user overrides to apply to the model config.
     """
     if not torch.cuda.is_available():

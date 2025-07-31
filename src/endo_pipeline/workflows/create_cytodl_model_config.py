@@ -21,8 +21,9 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from src.endo_pipeline.configs import (  # noqa: F401, I001
+from src.endo_pipeline.configs import (  # noqa: F401
     CytoDLModelConfig,
+    DataframeLocation,
     ModelManifest,
     save_model_config,
 )
@@ -43,8 +44,8 @@ model = CytoDLModelConfig(
     #     "dataset_name1",
     #     "dataset_name2",
     # ]
-    # train_manifest_fmsid="FMS ID for the training manifest dataset",
-    # test_manifest_fmsid="FMS ID for the test manifest dataset",
+    # train_dataframe=DataframeLocation(fmsid="FMS ID for the training dataset"),
+    # test_dataframe=DataframeLocation(fmsid="FMS ID for the validation dataset"),
 )
 
 save_model_config(model)

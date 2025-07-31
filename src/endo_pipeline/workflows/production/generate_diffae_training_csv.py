@@ -1,7 +1,7 @@
 TAGS = ["diffae_model_training"]
 
 
-def main() -> None:
+def main(zarr_resolution: int = 1) -> None:
     """
     Generate .csv files with paths to zarr files for training a DiffAE model.
 
@@ -15,12 +15,14 @@ def main() -> None:
 
     Parameters
     ----------
-    None
+    zarr_resolution
+        The resolution level of the zarr files to be used for training. Default is 1,
+        which corresponds to downsampling by half.
 
     Returns
     -------
     :
-        Saves the training and validation dataframes to `train.csv` and `val.csv`
+        Saves the training and validation dataframes to train.csv and val.csv
         in the specified output directory.
     """
 
@@ -49,13 +51,13 @@ def main() -> None:
 
     zarr_path_df = pd.DataFrame({"path": zarr_file_paths})
     zarr_path_df["channel"] = "0,1"  # cdh5, brightfield
-    zarr_path_df["resolution"] = 1  # downsample by half
+    zarr_path_df["resolution"] = zarr_resolution  # downsampling factor
 
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
 
-    # save the dataframes to csv files
-    train.to_csv(output_savedir / "train.csv", index=False)
-    val.to_csv(output_savedir / "val.csv", index=False)
+    # save the dataframes to csv files locally as intermediates
+    train.to_csv(output_savedir / f"train_resolution_{zarr_resolution}.csv", index=False)
+    val.to_csv(output_savedir / f"val_resolution_{zarr_resolution}.csv", index=False)
 
 
 if __name__ == "__main__":
