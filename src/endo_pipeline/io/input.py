@@ -108,9 +108,9 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     raise ValueError(f"Invalid dataframe file format '{path.suffix}'")
 
 
-def get_local_fms_path_from_fmsid(fmsid: str) -> Path:
+def get_local_path_from_fmsid(fmsid: str) -> Path:
     """
-    Get local path for FMS file ID.
+    Get local path for a given FMS file ID.
 
     This method requires the workflow to be run on the AICS intranet and have
     the optional dependency `aicsfiles` installed.
@@ -171,7 +171,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
         File loaded as dataframe.
     """
 
-    local_path = get_local_fms_path_from_fmsid(fmsid)
+    local_path = get_local_path_from_fmsid(fmsid)
 
     return load_dataframe_from_path(local_path)
 

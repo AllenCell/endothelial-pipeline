@@ -11,7 +11,7 @@ from omegaconf import DictConfig, ListConfig
 from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import (
     build_fms_annotations_for_model_training_inputs,
-    get_local_fms_path_from_fmsid,
+    get_local_path_from_fmsid,
     get_output_path,
     upload_file_to_fms,
 )
@@ -317,7 +317,7 @@ def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Pa
         dataframe_csv_path = dataframe_location.s3uri
     else:
         # get local path from FMS ID
-        dataframe_csv_path = get_local_fms_path_from_fmsid(dataframe_location.fmsid)
+        dataframe_csv_path = get_local_path_from_fmsid(dataframe_location.fmsid)
 
     return dataframe_csv_path
 
