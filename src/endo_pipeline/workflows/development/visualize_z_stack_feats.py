@@ -14,8 +14,8 @@ from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
 
 # %%
 model_config = load_model_config("diffae_04_10")
-dataset_name = "20241016_20X"
-# dataset_name = "20250331_20X"
+# dataset_name = "20241016_20X"
+dataset_name = "20250331_20X"
 # %%
 model_manifest1 = get_model_manifest(dataset_name, model_config)
 model_manifest2 = get_model_manifest(dataset_name, model_config, [5, 10])
@@ -29,6 +29,7 @@ for model_manifest in [model_manifest1, model_manifest2, model_manifest3, model_
 pca = fit_pca()
 # %%
 df1 = get_manifest_for_dynamics_workflows(model_manifest1, pca, filter_to_valid=False)
+df1 = df1[df1["frame_number"].isin([0, 250, 500])].reset_index(drop=True)
 df2 = get_manifest_for_dynamics_workflows(model_manifest2, pca, filter_to_valid=False)
 df3 = get_manifest_for_dynamics_workflows(model_manifest3, pca, filter_to_valid=False)
 df4 = get_manifest_for_dynamics_workflows(model_manifest4, pca, filter_to_valid=False)

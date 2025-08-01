@@ -140,9 +140,9 @@ def plot_distribution_by_frame(
         fig, ax = viz_base.init_subplots(1, 3, figsize=(15, 5))
         df_ = df[df["frame_number"] == target_frame]
 
-        ax[0].hist(df_[pc_column_names[0]], bins=bin_number, alpha=0.5, label=z_slice)
-        ax[1].hist(df_[pc_column_names[1]], bins=bin_number, alpha=0.5, label=z_slice)
-        ax[2].hist(df_[pc_column_names[2]], bins=bin_number, alpha=0.5, label=z_slice)
+        ax[0].hist(df_[pc_column_names[0]], bins=50, alpha=0.5, label=z_slice)
+        ax[1].hist(df_[pc_column_names[1]], bins=50, alpha=0.5, label=z_slice)
+        ax[2].hist(df_[pc_column_names[2]], bins=50, alpha=0.5, label=z_slice)
 
         ax[0].set_xlabel("PC1")
         ax[0].set_ylabel("Count")
