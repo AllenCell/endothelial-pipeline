@@ -20,7 +20,7 @@ dataset_name = "20241016_20X"
 model_manifest1 = get_model_manifest(dataset_name, model_config)
 model_manifest2 = get_model_manifest(dataset_name, model_config, [5, 10])
 model_manifest3 = get_model_manifest(dataset_name, model_config, [0, 16])
-model_manifest4 = get_model_manifest(dataset_name, model_config, [9, 25])
+model_manifest4 = get_model_manifest(dataset_name, model_config, [9, 24])
 # %%
 for model_manifest in [model_manifest1, model_manifest2, model_manifest3, model_manifest4]:
     print(model_manifest.z_stack_offsets)
@@ -83,7 +83,7 @@ for target_frame in [0, 250, 500]:
     # Find rows in df1 but not in df2
     diff_df3 = df3_frame[~df3_frame.isin(df2_frame.to_dict(orient="list")).all(axis=1)]
     print(f"Rows in df1 but not in df2 for frame {target_frame}:")
-    print(diff_df1)
+    print(diff_df3)
 
     # Find rows in df2 but not in df1
     diff_df2 = df2_frame[~df2_frame.isin(df3_frame.to_dict(orient="list")).all(axis=1)]

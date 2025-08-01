@@ -18,6 +18,7 @@ from .model_inputs import (
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
+    get_model_dir,
     preprocess_tracking_manifest_for_model_eval,
 )
 from .model_outputs import (
@@ -115,6 +116,15 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, "train", include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
+
+    # right now, need to use the tracked version of the config if using the
+    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
+    # models trained with the new pipeline)
+    if model_config.name == "diffae_04_10":
+        path_dict["config_path"] = get_model_dir / "diffae_04_10_eval.yaml"
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from \n %s", path_dict["config_path"]
+        )
 
     # set default output path
     save_path = get_output_path(
