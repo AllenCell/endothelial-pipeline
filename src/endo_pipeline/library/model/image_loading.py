@@ -1,6 +1,8 @@
+import logging
 import re
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -24,7 +26,7 @@ class BioIOImageLoaderd(Transform):
         path_key: str = "path",
         scene_key: str = "scene",
         resolution_key: str = "resolution",
-        kwargs_keys: List[str] = ["dimension_order_out", "C", "T", "Z"],
+        kwargs_keys: list[str] = ["dimension_order_out", "C", "T", "Z"],
         out_key: str = "raw",
         allow_missing_keys=False,
         dtype: np.dtype = np.float16,
@@ -63,6 +65,7 @@ class BioIOImageLoaderd(Transform):
         self.include_meta_in_filename = include_meta_in_filename
 
     def split_args(self, arg):
+        """Split arguments that are comma-separated strings into lists of integers."""
         if isinstance(arg, str) and "," in arg:
             return list(map(int, arg.split(",")))
         return arg
@@ -86,6 +89,7 @@ class BioIOImageLoaderd(Transform):
         if self.resolution_key in data:
             img.set_resolution_level(data[self.resolution_key])
         kwargs = {k: self.split_args(data[k]) for k in self.kwargs_keys if k in data}
+
         if self.dask_load:
             img = img.get_image_dask_data(**kwargs).compute()
         else:
@@ -100,13 +104,15 @@ class BioIOImageLoaderd(Transform):
 
 
 class MultiDimImageDataset(CacheDataset):
-    """Dataset converting a `.csv` file or dictionary listing multi dimensional (timelapse or
+    """
+    Dataset converting a `.csv` file or dictionary listing multi dimensional (timelapse or
     multi-scene) files and some metadata into batches of metadata intended for the
-    BioIOImageLoaderd class."""
+    BioIOImageLoaderd class.
+    """
 
     def __init__(
         self,
-        csv_path: Optional[Union[Path, str]] = None,
+        csv_path: Path | str | None = None,
         img_path_column: str = "path",
         channel_column: str = "channel",
         spatial_dims: int = 3,
@@ -119,41 +125,66 @@ class MultiDimImageDataset(CacheDataset):
         z_stop_column: str = "z_stop",
         z_step_column: str = "z_step",
         extra_columns: Sequence[str] = [],
-        transform: Optional[Union[Callable, Sequence[Callable]]] = [],
+        transform: Callable | Sequence[Callable] | None = None,
         **cache_kwargs,
     ):
         """
-        Parameterss
+        Initialize a dataset that reads multi-dimensional images from a CSV file
+        and prepares them for processing.
+
+        Parameters
         ----------
         csv_path: Union[Path, str]
             path to csv
         img_path_column: str
-            column in `csv_path` that contains path to multi dimensional (timelapse or multi-scene) file
+            column in `csv_path` that contains path to multi dimensional
+            (timelapse or multi-scene) file
         channel_column:str
-            Column in `csv_path` that contains which channel to extract from multi dimensional (timelapse or multi-scene) file. Should be an integer.
+            Column in `csv_path` that contains which channel to extract from multi dimensional
+            (timelapse or multi-scene) file. Should be an integer.
         spatial_dims:int=3
-            Spatial dimension of output image. Must be 2 for YX or 3 for ZYX. Spatial dimensions are used to specify the dimension order of the output image, which will be in the format `CZYX` or `CYX` to ensure compatibility with dictionary-based MONAI-style transforms.
+            Spatial dimension of output image. Must be 2 for YX or 3 for ZYX. Spatial dimensions
+            are used to specify the dimension order of the output image, which will be in the format
+            `CZYX` or `CYX` to ensure compatibility with dictionary-based MONAI-style transforms.
         scene_column:str="scene",
-            Column in `csv_path` that contains scenes to extract from multi-scene file. If not specified, all scenes will
-            be extracted. If multiple scenes are specified, they should be separated by a comma (e.g. `scene1,scene2`)
+            Column in `csv_path` that contains scenes to extract from multi-scene file. If not
+            specified, all scenes will be extracted. If multiple scenes are specified, they should
+            be separated by a comma (e.g. `scene1,scene2`)
         resolution_column:str="resolution"
-            Column in `csv_path` that contains resolution to extract from multi-resolution file. If not specified, resolution is assumed to be 0.
+            Column in `csv_path` that contains resolution to extract from multi-resolution file.
+            If not specified, resolution is assumed to be 0.
         time_start_column:str="start"
-            Column in `csv_path` specifying which timepoint in timelapse image to start extracting. If any of `start_column`, `stop_column`, or `step_column`
+            Column in `csv_path` specifying which timepoint in timelapse image to start extracting.
+            If any of `start_column`, `stop_column`, or `step_column`
             are not specified, all timepoints are extracted.
         time_stop_column:str="stop"
-            Column in `csv_path` specifying which timepoint in timelapse image to stop extracting. If any of `start_column`, `stop_column`, or `step_column`
+            Column in `csv_path` specifying which timepoint in timelapse image to stop extracting.
+            If any of `start_column`, `stop_column`, or `step_column`
             are not specified, all timepoints are extracted.
         time_step_column:str="step"
-            Column in `csv_path` specifying step between timepoints. For example, values in this column should be `2` if every other timepoint should be run.
-            If any of `start_column`, `stop_column`, or `step_column` are not specified, all timepoints are extracted.
+            Column in `csv_path` specifying step between timepoints. For example, values in this
+            column should be `2` if every other timepoint should be run.
+            If any of `start_column`, `stop_column`, or `step_column` are not specified, all
+            timepoints are extracted.
+        z_start_column:str="z_start"
+            Column in `csv_path` specifying which Z slice to start extracting. If not specified,
+            the first Z slice is used.
+        z_stop_column:str="z_stop"
+            Column in `csv_path` specifying which Z slice to stop extracting. If not specified,
+            the last Z slice is used.
+        z_step_column:str="z_step"
+            Column in `csv_path` specifying step between Z slices. For example, values in this
+            column should be `2` if every other Z slice should be run.
         extra_columns: Sequence[str] = []
-            List of extra columns to include in the output dictionary. These columns will be added to the output dictionary as-is if found, otherwise their value
+            List of extra columns to include in the output dictionary. These columns will be added
+            to the output dictionary as-is if found, otherwise their value
             will be set to None.
         transform: Optional[Callable] = []
-            List (or Compose Object) or Monai dictionary-style transforms to apply to the image metadata. Typically, the first transform should be BioIOImageLoaderd.
+            List (or Compose Object) or Monai dictionary-style transforms to apply to the image
+            metadata. Typically, the first transform should be BioIOImageLoaderd.
         cache_kwargs:
-            Additional keyword arguments to pass to `CacheDataset`. To skip the caching mechanism, set `cache_num` to 0.
+            Additional keyword arguments to pass to `CacheDataset`. To skip the caching mechanism,
+            set `cache_num` to 0.
         """
         df = pd.read_csv(csv_path)
         self.img_path_column = img_path_column
@@ -172,6 +203,9 @@ class MultiDimImageDataset(CacheDataset):
         self.spatial_dims = spatial_dims
         data = self.get_per_file_args(df)
 
+        if transform is None:
+            transform = []
+
         super().__init__(data, transform, **cache_kwargs)
 
     def _get_scenes(self, row, img):
@@ -181,7 +215,8 @@ class MultiDimImageDataset(CacheDataset):
             for scene in scenes:
                 if scene not in img.scenes:
                     raise ValueError(
-                        f"For image {row[self.img_path_column]} unable to find scene `{scene}`, available scenes are {img.scenes}"
+                        f"For image {row[self.img_path_column]} unable to find scene `{scene}`,"
+                        f"available scenes are {img.scenes}"
                     )
         else:
             scenes = img.scenes
@@ -207,6 +242,7 @@ class MultiDimImageDataset(CacheDataset):
         return list(z_slices)
 
     def get_per_file_args(self, df):
+        """Get image loading arguments for each file in the dataframe."""
         img_data = []
         for row in tqdm.tqdm(df.itertuples()):
             row_data = []

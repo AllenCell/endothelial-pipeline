@@ -26,13 +26,19 @@ def generate_zarr_csv_for_model_eval(
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    overwrite: bool = False,
+    overwrite: bool = True,
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
+
+    # get unique name for the CSV file
+    file_name = "dataset"
     if z_stack_offsets is not None:
-        data_path = save_path / "dataset_limit_z_stack.csv"
-    else:
-        data_path = save_path / "dataset.csv"
+        file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
+    if slice_by_global_center:
+        file_name = f"{file_name}_ctr"
+
+    file_name = f"{file_name}.csv"
+    data_path = save_path / file_name
 
     # if the file already exists and overwrite is False, return the path
     if data_path.exists() and not overwrite:

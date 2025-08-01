@@ -28,7 +28,7 @@ for model_manifest in [model_manifest1, model_manifest2, model_manifest3, model_
 # %%
 pca = fit_pca()
 # %%
-df1 = get_manifest_for_dynamics_workflows(model_manifest1, pca)
+df1 = get_manifest_for_dynamics_workflows(model_manifest1, pca, filter_to_valid=False)
 df2 = get_manifest_for_dynamics_workflows(model_manifest2, pca)
 df3 = get_manifest_for_dynamics_workflows(model_manifest3, pca)
 df4 = get_manifest_for_dynamics_workflows(model_manifest4, pca)

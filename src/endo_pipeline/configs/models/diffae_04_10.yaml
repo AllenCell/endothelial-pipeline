@@ -83,50 +83,20 @@ manifest_fmsids:
   fmsid: f5d7a1bb5c74430bbb0d6217076dfa81
   z_stack_offsets: []
 - dataset_name: 20241016_20X
-  fmsid: 4cc993c8e6e046bcbb0858ef270bba24
-  z_stack_offsets:
-  - 5
-  - 16
-- dataset_name: 20241016_20X
   fmsid: a3870f821055464eaa74b229483b892f
   z_stack_offsets: []
-# - dataset_name: 20241016_20X
-#   fmsid: 765ab987f09f4f2282749b894240524d
-#   z_stack_offsets:
-#   - 9
-#   - 25
-# - dataset_name: 20241016_20X
-#   fmsid: 8819bb8c8f634f81bc2be9772407e8a9
-#   z_stack_offsets:
-#   - 0
-#   - 16
 - dataset_name: 20241016_20X
-  fmsid: dd1f4e5ffee7428b81685492005fa165
+  fmsid: 27587ca373db448c9645036b50acefa0
   z_stack_offsets:
   - 5
   - 10
-- dataset_name: 20250331_20X
-  fmsid: 50b5c637776d4627a8e95a6bd616b46c
-  z_stack_offsets:
-  - 5
-  - 10
-- dataset_name: 20250331_20X
-  fmsid: 76e56e0b196b42ce8182b94b889f9c99
-  z_stack_offsets:
-  - 0
-  - 16
-- dataset_name: 20250331_20X
-  fmsid: 35538e33300a4123865f402ac868eb6a
-  z_stack_offsets:
-  - 9
-  - 25
 - dataset_name: 20241016_20X
-  fmsid: a518922e434e4398884f54b1cb912d8d
+  fmsid: bdd6478d7edd4594ba61ffcbf256734e
   z_stack_offsets:
   - 0
   - 16
 - dataset_name: 20241016_20X
-  fmsid: 57921ea6daf34860994e7b80186e212b
+  fmsid: e713b6cb96904ceebae381ae8547a2b8
   z_stack_offsets:
   - 9
   - 25
