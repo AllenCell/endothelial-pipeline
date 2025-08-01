@@ -26,7 +26,6 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
 
     # fit PCA model to the datasets in the given dataset collection
     pca = fit_pca(dataset_collection_name=dataset_collection_name, model_name=model_name)
-    print(pca.components_.shape)
 
     # plot cumulative explained variance ratio of PCA components
     fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_)

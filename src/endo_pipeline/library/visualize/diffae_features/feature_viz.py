@@ -51,12 +51,16 @@ def plot_component_loadings(components: np.ndarray) -> tuple[plt.Figure, plt.Axe
     """
     fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
 
+    # list of markers for each component
+    markers = ["o", "s", "D", "^", "v", "X", "*", "p"]
+
     # plot component loadings for each component
     for i in range(components.shape[0]):
-        ax.plot(components[i], label=f"PC{i + 1}", alpha=0.95, linewidth=1.5)
+        ax.plot(components[i], markers[i], label=f"PC{i + 1}", markersize=10)
     ax.set_xlabel("Feature index")
     ax.set_ylabel("Loading value")
     ax.set_title("PCA Component Loadings")
+    ax.legend(loc=(1.05, 0.5), title="PCs")
 
     return fig, ax
 
@@ -111,6 +115,7 @@ def plot_pc_scatter(
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
 
     for model_manifest in model_manifest_list:
+        dataset_name = model_manifest.dataset_name
         # load dataframe and get top 3 PCs
         df = get_manifest_for_dynamics_workflows(model_manifest, pca)
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
@@ -130,17 +135,28 @@ def plot_pc_scatter(
 
         # first plot: PC1 v PC2
         ax[0].scatter(
-            df[pc_column_names[0]], df[pc_column_names[1]], alpha=0.75, s=0.01, color=color
+            df[pc_column_names[0]],
+            df[pc_column_names[1]],
+            alpha=0.75,
+            s=0.01,
+            color=color,
+            label=dataset_name,
         )
         ax[0].set_xlabel("PC1")
         ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
         ax[1].scatter(
-            df[pc_column_names[0]], df[pc_column_names[2]], alpha=0.75, s=0.01, color=color
+            df[pc_column_names[0]],
+            df[pc_column_names[2]],
+            alpha=0.75,
+            s=0.01,
+            color=color,
+            label=dataset_name,
         )
         ax[1].set_xlabel("PC1")
         ax[1].set_ylabel("PC3")
+        ax[1].legend(loc=(1.05, 0.5), title="Datasets")
 
     return fig, ax
 
