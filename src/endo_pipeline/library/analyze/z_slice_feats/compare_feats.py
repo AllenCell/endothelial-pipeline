@@ -16,7 +16,7 @@ def feature_density(
     xlim: list[float],
     pool_positions: bool = False,
     title: str | None = None,
-) -> None:
+) -> tuple[plt.Figure, sb.axisgrid.FacetGrid]:
 
     fig = plt.figure(figsize=(15, 6))
 

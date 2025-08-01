@@ -1,5 +1,6 @@
 # %%
 from src.endo_pipeline.configs import get_model_manifest, load_model_config
+from src.endo_pipeline.io.output import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_manifest_for_dynamics_workflows,
@@ -8,7 +9,6 @@ from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data
 from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
     feature_density,
     plot_distribution_by_frame,
-    plot_distribution_by_position_and_frame,
     plot_scatter_by_position_and_frame,
 )
 
@@ -16,6 +16,8 @@ from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
 model_config = load_model_config("diffae_04_10")
 dataset_name = "20241016_20X"
 # dataset_name = "20250331_20X"
+
+save_dir = get_output_path("visualize_z_stack_feats", model_config.name, dataset_name)
 # %%
 model_manifest1 = get_model_manifest(dataset_name, model_config)
 model_manifest2 = get_model_manifest(dataset_name, model_config, [5, 10])
@@ -54,21 +56,36 @@ plot_distribution_by_frame(df_list, df_info, target_frame=0)
 for target_frame in [0, 250, 500]:
     for df, info in zip(df_list, df_info):
         df = df[df["frame_number"] == target_frame]
-        feature_density(
+        fig, ax = feature_density(
             df, "pc1", bounds[0], title=f"{dataset_name} {info}, T={target_frame} (frames)"
         )
-# %%
-for target_frame in [0, 250, 500]:
-    for df, info in zip(df_list, df_info):
-        df = df[df["frame_number"] == target_frame]
-        feature_density(
-            df, "pc2", bounds[1], title=f"{dataset_name} {info}, T={target_frame} (frames)"
+        save_plot_to_path(
+            fig,
+            save_dir,
+            f"{dataset_name}_{info}_pc1_T{target_frame}_density_plot",
         )
 # %%
 for target_frame in [0, 250, 500]:
     for df, info in zip(df_list, df_info):
         df = df[df["frame_number"] == target_frame]
-        feature_density(
+        fig, ax = feature_density(
+            df, "pc2", bounds[1], title=f"{dataset_name} {info}, T={target_frame} (frames)"
+        )
+        save_plot_to_path(
+            fig,
+            save_dir,
+            f"{dataset_name}_{info}_pc2_T{target_frame}_density_plot",
+        )
+# %%
+for target_frame in [0, 250, 500]:
+    for df, info in zip(df_list, df_info):
+        df = df[df["frame_number"] == target_frame]
+        fig, ax = feature_density(
             df, "pc3", bounds[2], title=f"{dataset_name} {info}, T={target_frame} (frames)"
+        )
+        save_plot_to_path(
+            fig,
+            save_dir,
+            f"{dataset_name}_{info}_pc3_T{target_frame}_density_plot",
         )
 # %%
