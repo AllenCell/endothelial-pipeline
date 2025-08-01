@@ -15,6 +15,7 @@ def feature_density(
     # save_dir: str,
     xlim: list[float],
     pool_positions: bool = False,
+    title: str | None = None,
 ) -> None:
 
     fig = plt.figure(figsize=(15, 6))
@@ -43,6 +44,10 @@ def feature_density(
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
         ax.set_xlim(xlim[0], xlim[1])
         # ax.set_ylim(ylim)
+
+        if title is not None:
+            ax.set_title(title)
+
         plt.tight_layout()
         plt.show()
 
@@ -121,14 +126,17 @@ def plot_distribution_by_position_and_frame(
 
 
 def plot_distribution_by_frame(
-    df_list: list[pd.DataFrame], df_info: list[str], target_frame: int, bin_number: int = 50
+    df_list: list[pd.DataFrame], df_info: list[str], target_frame: int, position: int | None = None
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_column_names = get_pc_column_names(df_list[0], [0, 1, 2])
 
     target_frame = 0
 
-    for df, z_slice in zip(df_list, df_info, strict=True):
+    for df, z_slice in zip(df_list, df_info):
+        if position is not None:
+            df = df[df["position"] == f"P{position}"]
+
         fig, ax = viz_base.init_subplots(1, 3, figsize=(15, 5))
         df_ = df[df["frame_number"] == target_frame]
 
@@ -147,6 +155,9 @@ def plot_distribution_by_frame(
 
         ax[2].legend(loc=(1.05, 0.75))
         fig.suptitle(f"Frame {target_frame}")
+
+        if position is not None:
+            fig.suptitle(f"Frame {target_frame}, Position {position}")
 
         plt.show()
 
