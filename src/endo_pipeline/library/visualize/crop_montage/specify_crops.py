@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import (
@@ -36,7 +36,7 @@ N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat ar
 
 def load_data(
     dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
-) -> tuple[pd.DataFrame, Pipeline, list[ModelManifest]]:
+) -> tuple[pd.DataFrame, PCA, list[ModelManifest]]:
     """
     Load manifest DataFrames for one or more datasets and optionally apply PCA.
 
@@ -106,7 +106,7 @@ def filter_dataframe(
     pc_axis: int,
     pc_val: float,
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     fig_savedir: Path,
     frame_range: list[int] | None = None,
     plot_heatmap: bool = False,

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.io import load_dataframe_from_fms
@@ -101,7 +101,7 @@ def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
 
 def project_manifest_to_pcs(
     df: pd.DataFrame,
-    pca: Pipeline,
+    pca: PCA,
     feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
@@ -111,8 +111,7 @@ def project_manifest_to_pcs(
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata columns
         for dataset_name, T, FOV_ID, start_x, start_y
-    - pca: Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
-        - can include any preprocessing steps before PCA, e.g., scaling
+    - pca: PCA model fit to feature data
     - feature_cols: list, custom list of feature columns to project onto PCA axes
         - default is None, in which case all feature columns are used
 
@@ -136,7 +135,7 @@ def project_manifest_to_pcs(
 
 def get_manifest_for_dynamics_workflows(
     model_manifest: ModelManifest,
-    pca: Pipeline | None = None,
+    pca: PCA | None = None,
     filter_to_valid: bool = True,
 ) -> pd.DataFrame:
     """
@@ -147,8 +146,8 @@ def get_manifest_for_dynamics_workflows(
     Inputs:
     - model_manifest: ModelManifest, manifest information for loading feature from
         a given model for a give dataset
-    - pca: Pipeline or None
-        - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
+    - pca:
+        - if PCA, PCA model fit to feature data
         - if None, do not project feature data onto PCA axes
     - filter_to_valid: bool, whether to filter DataFrame to only valid timepoints
 

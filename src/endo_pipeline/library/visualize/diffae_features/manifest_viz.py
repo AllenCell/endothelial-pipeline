@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
@@ -66,7 +66,7 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
-    pca: Pipeline,
+    pca: PCA,
     model_manifest_list: list[ModelManifest],
     timepoints_to_use: dict[str, list[list]] | None = None,
 ) -> tuple:
@@ -74,9 +74,8 @@ def plot_pc_scatter(
     Plot scatter plot of PCA components for a list of datasets.
 
     Input:
-    - pca: Pipeline, the PCA model used to project the
+    - pca: the PCA model used to project the
         feature data onto the PCA space
-        - can include any preprocessing steps before PCA, such as scaling
     - model_manifest_list: list[str], list of dataset names to plot
         - each dataset should have a DiffAE manifest file
     - timepoints_to_use: dict[list[list]] | None, optional

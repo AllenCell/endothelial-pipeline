@@ -7,7 +7,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.io import save_plot_to_path
@@ -210,7 +210,7 @@ def model_data_comparison_one_dataset(
 def model_data_comparison(
     sde_model: list[Callable],
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     pc_axes: list,
     bins: list,
     pplane_xvec: np.ndarray,
@@ -228,8 +228,7 @@ def model_data_comparison(
     - sde_model: list of Callable functions, [drift, diffusion]
     - model_manifests: list of ModelManifest objects, each
         containing feature data information for one dataset
-    - pca: Pipeline object, PCA object fit to feature data
-        (can include scaling)
+    - pca: PCA object fit to feature data
     - pc_axes: list of ints, indices of which PCs model
         fitting was performed on
     - bins: list of np.ndarrays, bin edges for each PC
