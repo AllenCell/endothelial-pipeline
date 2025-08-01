@@ -11,6 +11,7 @@ from .diffae import (
     generate_from_coords,
     generate_from_coords_batch,
 )
+from .image_loading import BioIOImageLoaderd, MultiDimImageDataset
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .model_inputs import (
     generate_overrides_for_finetuning,
@@ -28,8 +29,10 @@ from .model_outputs import (
 )
 
 __all__ = [
+    "BioIOImageLoaderd",
     "DiffAEFinetune",
     "MinStdCropd",
+    "MultiDimImageDataset",
     "RotateRanged",
     "apply_model_on_grid_of_crops_from_one_dataset",
     "apply_model_on_tracked_crops_from_one_dataset",

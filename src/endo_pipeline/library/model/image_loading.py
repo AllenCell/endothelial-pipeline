@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -9,7 +9,6 @@ from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
 from monai.data import CacheDataset, MetaTensor
 from monai.transforms import Transform
-from omegaconf import OmegaConf
 
 
 class BioIOImageLoaderd(Transform):
