@@ -17,7 +17,7 @@ POSITION = 0
 TIMEPOINT = 0
 
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
-# datasets = ["20241016"] # Uncomment this line to test with a single dataset
+# datasets = ["20241016_20X"] # Uncomment this line to test with a single dataset
 
 # %% Brightfield Visualization
 for dataset in datasets:
