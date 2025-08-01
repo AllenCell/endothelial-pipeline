@@ -122,7 +122,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # models trained with the new pipeline)
     if model_config.name == "diffae_04_10":
         path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
-        print("Loading legacy model config for diffae_04_10 from \n %s", path_dict["config_path"])
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from \n %s", path_dict["config_path"]
+        )
 
     # set default output path
     save_path = get_output_path(
