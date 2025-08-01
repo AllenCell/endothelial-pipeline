@@ -63,12 +63,12 @@ def plot_scatter_by_position_and_frame(
     df: pd.DataFrame,
     target_frame: int,
     bounds: list,
+    info: str | None = None,
+    dataset_name: str | None = None,
 ) -> tuple[plt.Figure, np.ndarray]:
 
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
     pc_column_names = get_pc_column_names(df, [0, 1, 2])
-
-    target_frame = 0
 
     for position, df_pos in df.groupby("position"):
         df_ = df_pos[df_pos["frame_number"] == target_frame]
@@ -89,7 +89,7 @@ def plot_scatter_by_position_and_frame(
     ax[1].set_ylabel("PC3")
 
     ax[1].legend(loc=(1.05, 0.75))
-    fig.suptitle(f"Frame {target_frame}")
+    fig.suptitle(f"{dataset_name}, {info}, T={target_frame} (frames)")
 
     return fig, ax
 
@@ -130,8 +130,6 @@ def plot_distribution_by_frame(
 ) -> tuple[plt.Figure, np.ndarray]:
 
     pc_column_names = get_pc_column_names(df_list[0], [0, 1, 2])
-
-    target_frame = 0
 
     for df, z_slice in zip(df_list, df_info):
         if position is not None:
