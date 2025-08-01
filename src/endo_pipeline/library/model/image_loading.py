@@ -15,8 +15,9 @@ class BioIOImageLoaderd(Transform):
     """Enumerates scenes and timepoints for dictionary with format.
 
     {path_key: path, channel_key: channel, scene_key: scene, timepoint_key: timepoint}.
-    Differs from monai_bio_reader in that reading kwargs are passed in the dictionary, instead of fixed at
-    initialization. The filepath will be saved in the dictionary as 'filename_or_obj' (with or without metadata depending on `include_meta_in_filename`).
+    Differs from monai_bio_reader in that reading kwargs are passed in the dictionary,
+    instead of being fixed at initialization. The filepath will be saved in the dictionary
+    as 'filename_or_obj' (with or without metadata depending on `include_meta_in_filename`).
     """
 
     def __init__(
@@ -24,7 +25,7 @@ class BioIOImageLoaderd(Transform):
         path_key: str = "path",
         scene_key: str = "scene",
         resolution_key: str = "resolution",
-        kwargs_keys: list[str] = ["dimension_order_out", "C", "T", "Z"],
+        kwargs_keys: list[str] | None = None,
         out_key: str = "raw",
         allow_missing_keys=False,
         dtype: np.dtype = np.float16,
@@ -32,27 +33,36 @@ class BioIOImageLoaderd(Transform):
         include_meta_in_filename: bool = False,
     ):
         """
+        Initialize the BioIOImageLoaderd transform.
+
         Parameters
         ----------
-        path_key : str = "path"
+        path_key
             Key for the path to the image
-        scene_key : str = "scene"
+        scene_key
             Key for the scene number
-        kwargs_keys : List = ["dimension_order_out", "C", "T"]
-            Keys for the kwargs to pass to BioImage.get_image_dask_data. Values in the csv can be comma separated list.
-        out_key : str = "raw"
+        resolution_key
+            Key for the resolution level
+        kwargs_keys
+            Keys for the kwargs to pass to BioImage.get_image_dask_data.
+            Defaults to ["dimension_order_out", "C", "T", "Z"].
+        out_key
             Key for the output image
-        allow_missing_keys : bool = False
+        allow_missing_keys
             Whether to allow missing keys in the data dictionary
-        dtype : np.dtype = np.float16
+        dtype
             Data type to cast the image to
-        dask_load: bool = True
-            Whether to use dask to load images. If False, full images are loaded into memory before extracting specified scenes/timepoints.
+        dask_load
+            Whether to use dask to load images.
+            If False, full images are loaded into memory before extracting specified scenes/frames.
         include_meta_in_filename: bool = False
-            Whether to include metadata in the filename. Useful when loading multi-dimensional images with different kwargs.
+            Whether to include metadata in the filename.
+            Useful when loading multi-dimensional images with different kwargs.
         """
         super().__init__()
         self.path_key = path_key
+        if kwargs_keys is None:
+            kwargs_keys = ["dimension_order_out", "C", "T", "Z"]
         self.kwargs_keys = kwargs_keys
         self.allow_missing_keys = allow_missing_keys
         self.out_key = out_key
@@ -76,7 +86,13 @@ class BioIOImageLoaderd(Transform):
         return path
 
     def __call__(self, data):
-        # copying prevents the dataset from being modified inplace - important when using partially cached datasets so that the memory use doesn't increase over time
+        """
+        Load image data from the path specified in the data dictionary
+        using the arguments specified in the data dictionary.
+        """
+        # copying prevents the dataset from being modified inplace
+        # important when using partially cached datasets so that the
+        # memory use doesn't increase over time
         data = data.copy()
         if self.path_key not in data and not self.allow_missing_keys:
             raise KeyError(f"Missing key {self.path_key} in data dictionary")
