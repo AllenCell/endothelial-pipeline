@@ -1,4 +1,5 @@
 import concurrent
+import re
 from pathlib import Path
 from typing import Any, Literal
 
@@ -23,102 +24,6 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
 )
-
-# if __name__ == "__main__":
-
-# dataset_name_list = load_dataset_collection_config("pca_reference").datasets
-# dataset_name = dataset_name_list[0]  # for testing purposes
-# out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
-
-# # load and preprocess the different diffae manifests and PCA pipeline
-# # NOTE: this takes a little over a minute to load; we can consider
-# # using dask dataframes and only computing the desired columns
-# merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
-#     dataset_name, datasets_for_bounds=dataset_name_list
-# )
-
-# # # keep only the columns that are needed for the analysis to reduce memory usage
-# # cols_to_keep = [
-# #     "dataset_name",
-# #     "position",
-# #     "position_as_str",
-# #     "track_id",
-# #     "label",
-# #     "crop_index",
-# #     "mlflow_id",
-# #     "model_name",
-# #     "image_index",
-# #     "frame_number",
-# #     "time_hours",
-# #     "time_minutes",
-# #     "track_duration",
-# # ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
-# # merged_feats_df = merged_feats_df[cols_to_keep]
-
-# pc_col_names = [col_nm for col_nm in merged_feats_df.columns if re.match("pc[0-9]", col_nm)]
-# feat_col_names = [
-#     col_nm for col_nm in merged_feats_df.columns if re.match("feat_[0-9]+", col_nm)
-# ]
-# measured_col_names = [
-#     "alignment_deg_rel_to_flow",
-#     "area",
-#     "perimeter",
-#     "eccentricity",
-#     "aspect_ratio",
-#     "nematic_order",
-#     "centroid_Y",
-#     "centroid_X",
-#     "nuc_with_most_overlap_0_centroid_Y",
-#     "nuc_with_most_overlap_0_centroid_X",
-#     "cell_fluorescence_mean (a.u.)",
-#     "cell_solidity",
-#     "number_of_neighbors",
-#     "nuc_pos_rel_cell_angle_deg",
-# ]
-# for col in measured_col_names + pc_col_names:
-#     if col not in merged_feats_df.columns:
-#         print(
-#             f"Column {col} not found in merged_feats_df. Available columns: {merged_feats_df.columns.tolist()}"
-#         )
-
-# for pc in pc_col_names:
-#     fig, ax = plt.subplots(figsize=(10, 6))
-#     ax.set_title(f"{pc.upper()}")
-#     sns.lineplot(data=merged_feats_df, x="time_hours", y=pc)
-#     # ax2 = ax.twinx()
-#     # sns.lineplot(
-#     #     data=merged_feats_df,
-#     #     x="time_hours",
-#     #     y="alignment_deg_rel_to_flow",
-#     #     ax=ax2,
-#     #     c="tab:orange",
-#     # )
-#     plt.show()
-
-# for prop in measured_col_names:
-#     fig, ax = plt.subplots(figsize=(10, 6))
-#     ax.set_title(f"{prop}")
-#     sns.lineplot(data=merged_feats_df, x="time_hours", y=prop)
-#     # ax2 = ax.twinx()
-#     # sns.lineplot(
-#     #     data=merged_feats_df,
-#     #     x="time_hours",
-#     #     y="alignment_deg_rel_to_flow",
-#     #     ax=ax2,
-#     #     c="tab:orange",
-#     # )
-#     plt.show()
-
-# # compute the correlation between the PCs and the alignment to flow
-# correlation_results = []
-# for pc in pc_col_names:
-#     result = pearsonr(
-#         merged_feats_df[pc],
-#         merged_feats_df["alignment_deg_rel_to_flow"],
-#     )
-#     correlation_results.append(result)
-
-#     # print(f"PC{i} vs. Alignment to Flow: r={corr:.2f}, p={pval:.2e}")
 
 
 def adjust_crop_bounds_to_0th_level(
@@ -381,3 +286,121 @@ if __name__ == "__main__":
 
     # add the number of nuclei columns
     merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df)
+
+    out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
+
+    # # keep only the columns that are needed for the analysis to reduce memory usage
+    # cols_to_keep = [
+    #     "dataset_name",
+    #     "position",
+    #     "position_as_str",
+    #     "track_id",
+    #     "label",
+    #     "crop_index",
+    #     "mlflow_id",
+    #     "model_name",
+    #     "image_index",
+    #     "frame_number",
+    #     "time_hours",
+    #     "time_minutes",
+    #     "track_duration",
+    # ] + [col for col in merged_feats_df.columns if "feat" in col or "pc" in col]
+    # merged_feats_df = merged_feats_df[cols_to_keep]
+
+    pc_col_names = [col_nm for col_nm in merged_feats_df.columns if re.match("pc[0-9]", col_nm)]
+    feat_col_names = [
+        col_nm for col_nm in merged_feats_df.columns if re.match("feat_[0-9]+", col_nm)
+    ]
+    measured_col_names = [
+        "alignment_deg_rel_to_flow",
+        "nematic_order",
+        "area",
+        "perimeter",
+        "eccentricity",
+        "aspect_ratio",
+        # "centroid_Y",
+        # "centroid_X",
+        # "nuc_with_most_overlap_0_centroid_Y",
+        # "nuc_with_most_overlap_0_centroid_X",
+        "cell_fluorescence_mean (a.u.)",
+        "cell_solidity",
+        "number_of_neighbors",
+        "nuc_pos_rel_cell_angle_deg",
+        "num_nuclei_in_crop",
+    ]
+    for col in measured_col_names + pc_col_names + feat_col_names:
+        if col not in merged_feats_df.columns:
+            print(
+                f"Column {col} not found in merged_feats_df. Available columns: {merged_feats_df.columns.tolist()}"
+            )
+
+    # for pc in pc_col_names:
+    #     fig, ax = plt.subplots(figsize=(10, 6))
+    #     ax.set_title(f"{pc.upper()}")
+    #     sns.lineplot(data=merged_feats_df, x="time_hours", y=pc)
+    #     # ax2 = ax.twinx()
+    #     # sns.lineplot(
+    #     #     data=merged_feats_df,
+    #     #     x="time_hours",
+    #     #     y="alignment_deg_rel_to_flow",
+    #     #     ax=ax2,
+    #     #     c="tab:orange",
+    #     # )
+    #     plt.show()
+
+    # for prop in measured_col_names:
+    #     fig, ax = plt.subplots(figsize=(10, 6))
+    #     ax.set_title(f"{prop}")
+    #     sns.lineplot(data=merged_feats_df, x="time_hours", y=prop)
+    #     # ax2 = ax.twinx()
+    #     # sns.lineplot(
+    #     #     data=merged_feats_df,
+    #     #     x="time_hours",
+    #     #     y="alignment_deg_rel_to_flow",
+    #     #     ax=ax2,
+    #     #     c="tab:orange",
+    #     # )
+    #     plt.show()
+
+    from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+
+    for meas in measured_col_names:
+        if not np.isfinite(merged_feats_df[meas]).all():
+            print(f"{meas} contains non-finite values")
+
+    # 1. get the PCA
+    pca = fit_pca()
+
+    # 2. find which of the diffae features make up each PC
+    pca.n_components
+    pca.components_
+
+    # 3. find which of the diffae features correlate with which measured features
+    correlation_results = []
+    pval_results = []
+    for feat in feat_col_names:
+        corr_res_per_feat = []
+        pval_res_per_feat = []
+        for meas in measured_col_names:
+            # np.isfinite(merged_feats_df[feat])
+            valid_records = np.isfinite(merged_feats_df[meas])
+            corr, pval = pearsonr(
+                merged_feats_df[feat][valid_records],
+                merged_feats_df[meas][valid_records],
+            )
+            print(f"{feat} vs. {meas}: r={corr:.2f}, p={pval:.2e}")
+
+            corr_res_per_feat.append(corr)
+            pval_res_per_feat.append(pval)
+        correlation_results.append(corr_res_per_feat)
+        pval_results.append(pval_res_per_feat)
+
+    # instead of an array turn this in to a dataframe
+    # and plot with seaborn so that you can use
+    # a diverging colormap and see both positive and
+    # negative correlations more clearly
+    correlation_array, pval_array = np.array(correlation_results), np.array(pval_results)
+
+    correlation_array.max()
+
+    plt.imshow(np.abs(correlation_array))
