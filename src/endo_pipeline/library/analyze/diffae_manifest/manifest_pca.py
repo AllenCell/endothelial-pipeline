@@ -73,9 +73,15 @@ def fit_pca(
     feature_cols = get_feature_column_names(data_ref)
     pca.fit(data_ref[feature_cols].values)  # fit PCA
 
+    # log info about explained variance ratio
+    logger.info(
+        "Explained variance ratios: %s",
+        np.round(pca.explained_variance_ratio_, 4).tolist(),
+    )
+
     cumul_exp_var = np.cumsum(pca.explained_variance_ratio_)
     logger.info(
-        "Cumulative Explained Variance: %s",
+        "Cumulative explained variance: %s",
         np.round(cumul_exp_var, 4).tolist(),
     )
 
