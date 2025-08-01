@@ -26,7 +26,7 @@ def generate_zarr_csv_for_model_eval(
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    overwrite: bool = True,
+    overwrite: bool = False,
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
 

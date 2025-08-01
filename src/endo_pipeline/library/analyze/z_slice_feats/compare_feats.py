@@ -95,7 +95,7 @@ def plot_scatter_by_position_and_frame(
 
 
 def plot_distribution_by_position_and_frame(
-    df: pd.DataFrame, target_frame: int
+    df: pd.DataFrame, target_frame: int, bin_number: int = 50
 ) -> tuple[plt.Figure, np.ndarray]:
 
     fig, ax = viz_base.init_subplots(1, 3, figsize=(15, 5))
@@ -106,9 +106,9 @@ def plot_distribution_by_position_and_frame(
     for position, df_pos in df.groupby("position"):
         df_ = df_pos[df_pos["frame_number"] == target_frame]
 
-        ax[0].hist(df_[pc_column_names[0]], bins=50, alpha=0.5, label=position)
-        ax[1].hist(df_[pc_column_names[1]], bins=50, alpha=0.5, label=position)
-        ax[2].hist(df_[pc_column_names[2]], bins=50, alpha=0.5, label=position)
+        ax[0].hist(df_[pc_column_names[0]], bins=bin_number, alpha=0.5, label=position)
+        ax[1].hist(df_[pc_column_names[1]], bins=bin_number, alpha=0.5, label=position)
+        ax[2].hist(df_[pc_column_names[2]], bins=bin_number, alpha=0.5, label=position)
 
     ax[0].set_xlabel("PC1")
     ax[0].set_ylabel("Count")

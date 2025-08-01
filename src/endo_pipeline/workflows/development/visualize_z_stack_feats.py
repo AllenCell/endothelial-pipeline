@@ -31,6 +31,7 @@ for model_manifest in [model_manifest1, model_manifest2, model_manifest3, model_
 pca = fit_pca()
 # %%
 df1 = get_manifest_for_dynamics_workflows(model_manifest1, pca, filter_to_valid=False)
+df1 = df1[df1["frame_number"].isin([0, 250, 500])].reset_index(drop=True)
 df2 = get_manifest_for_dynamics_workflows(model_manifest2, pca, filter_to_valid=False)
 df3 = get_manifest_for_dynamics_workflows(model_manifest3, pca, filter_to_valid=False)
 df4 = get_manifest_for_dynamics_workflows(model_manifest4, pca, filter_to_valid=False)
@@ -44,7 +45,7 @@ df_info = ["all slices", "centered slices (-5, +10)", "bottom slices (0, 16)", "
 bounds = get_3d_bounds_from_data(manifest_list, pca)
 
 # %%
-target_frame = 0
+target_frame = 500
 fig, ax = plot_scatter_by_position_and_frame(df1, target_frame, bounds)
 fig, ax = plot_scatter_by_position_and_frame(df2, target_frame, bounds)
 fig, ax = plot_scatter_by_position_and_frame(df3, target_frame, bounds)
