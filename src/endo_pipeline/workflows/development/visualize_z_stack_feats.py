@@ -35,7 +35,7 @@ df4 = get_manifest_for_dynamics_workflows(model_manifest4, pca)
 # %%
 manifest_list = [model_manifest1, model_manifest2, model_manifest3, model_manifest4]
 df_list = [df1, df2, df3, df4]
-df_info = ["all slices", "centered slices (-5, +10)", "bottom slices (0, 16)", "top slices (9, 25)"]
+df_info = ["all slices", "centered slices (-5, +10)", "bottom slices (0, 16)", "top slices (9, 24)"]
 bounds = get_3d_bounds_from_data(manifest_list, pca)
 
 # %%
