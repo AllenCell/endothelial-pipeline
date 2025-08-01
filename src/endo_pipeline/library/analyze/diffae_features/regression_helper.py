@@ -15,7 +15,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_bins
-from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
 
 def _kramers_moyal_train_test_one_dataset(
@@ -121,7 +121,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # plot drift and diffusion estimates
         kmc = np.concatenate([drift_km_, diff_km_], axis=-1).T
-        fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
+        fig = feature_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
         save_plot_to_path(
             fig,
             fig_savedir,
@@ -130,7 +130,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
+            fig = feature_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             save_plot_to_path(
                 fig,
                 fig_savedir,

@@ -4,7 +4,12 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
+from src.endo_pipeline.configs import (
+    get_datasets_in_collection,
+    get_model_manifest,
+    get_pca_reference_model_manifests,
+    load_model_config,
+)
 from src.endo_pipeline.io import load_dataframe_from_fms
 
 from .diffae_manifest_utils import get_feature_column_names
@@ -15,13 +20,20 @@ logger = logging.getLogger(__name__)
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def fit_pca(model_name: str = "diffae_04_10", num_pcs: int = 8) -> PCA:
+def fit_pca(
+    dataset_collection_name: str = "pca_reference",
+    model_name: str = "diffae_04_10",
+    num_pcs: int = 8,
+) -> PCA:
     """
-    Fit PCA model to fixed set of reference datasets, as defined in the
-    'pca_reference' dataset collection.
+    Fit PCA model to fixed set of reference datasets, as defined in the given
+    dataset collection name.
 
     Parameters
     ----------
+    dataset_collection_name
+        Name of the dataset collection to load reference datasets from.
+        This is used to load the model manifests that contain the reference datasets.
     model_name
         Name of the DiffAE model whose features to fit PCA on.
     num_pcs
@@ -34,9 +46,18 @@ def fit_pca(model_name: str = "diffae_04_10", num_pcs: int = 8) -> PCA:
     """
     # load model config to get avaiable manifest names
     model_config = load_model_config(model_name)
-    model_manifest_list = get_pca_reference_model_manifests(model_config)
+    if dataset_collection_name == "pca_reference":
+        # use default function
+        model_manifest_list = get_pca_reference_model_manifests(model_config)
+    else:
+        # load model manifests for the given dataset collection
+        dataset_names = get_datasets_in_collection(dataset_collection_name)
+        model_manifest_list = [
+            get_model_manifest(dataset_name, model_name) for dataset_name in dataset_names
+        ]
+
     logger.info(
-        "\nReference datasets for PCA: \n %s",
+        "\nDatasets being used to fit PCA: \n %s",
         [model_manifest.dataset_name for model_manifest in model_manifest_list],
     )
     data_ref = pd.concat(

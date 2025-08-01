@@ -25,7 +25,7 @@ from src.endo_pipeline.library.analyze.numerics import (
     get_histogram_by_component,
 )
 from src.endo_pipeline.library.visualize import viz_base
-from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
+from src.endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
 

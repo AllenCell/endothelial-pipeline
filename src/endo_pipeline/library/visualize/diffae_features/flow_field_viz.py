@@ -10,7 +10,7 @@ from src.endo_pipeline.library.analyze.diffae_features import data_driven_flow_f
 from src.endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from src.endo_pipeline.library.visualize import viz_base
-from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
 
 def set_slice_plot_bounds_and_labels(
@@ -286,7 +286,7 @@ def plot_flow_field_slices(
     if df_cond is not None:
         # get the color for the scatter plot
         dataset_name = sequence_to_scalar(df_cond["dataset"])
-        scatter_color = manifest_viz.get_dataset_color(dataset_name)
+        scatter_color = feature_viz.get_dataset_color(dataset_name)
         # plot scatter of data overlaid on quiver plot
         ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.15)
         ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.15)
@@ -370,7 +370,7 @@ def plot_stable_fixed_points_together(
     for name in list_of_datasets:
         condition = conditions[name]
         coords = traj_dict[condition]
-        scatter_color = manifest_viz.get_dataset_color(name)
+        scatter_color = feature_viz.get_dataset_color(name)
 
         if type(coords) is np.ndarray:  # single attractor
             # get last point of trajectory
@@ -467,7 +467,7 @@ def flow_field_viz_main(
     fig, ax = viz_base.init_subplots(figsize=(14, 5))
 
     # get the color for the scatter plot
-    scatter_color = manifest_viz.get_dataset_color(name)
+    scatter_color = feature_viz.get_dataset_color(name)
     # plot scatter of data overlaid on quiver plot
     ax[0].scatter(df_cond.pc1, df_cond.pc2, s=0.25, color=scatter_color, alpha=0.05)
     ax[1].scatter(df_cond.pc1, df_cond.pc3, s=0.25, color=scatter_color, alpha=0.05)

@@ -38,6 +38,29 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
+def plot_component_loadings(components: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot component loadings of PCA model.
+
+    Input:
+    - components: np.ndarray, PCA components
+
+    Output:
+    - fig: plt.Figure
+    - ax: plt.Axes
+    """
+    fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
+
+    # plot component loadings for each component
+    for i in range(components.shape[0]):
+        ax.plot(components[i], label=f"PC{i + 1}", alpha=0.95, linewidth=1.5)
+    ax.set_xlabel("Feature index")
+    ax.set_ylabel("Loading value")
+    ax.set_title("PCA Component Loadings")
+
+    return fig, ax
+
+
 def get_dataset_color(dataset_name: str) -> str:
     """
     Get standard color for a dataset based on its name.

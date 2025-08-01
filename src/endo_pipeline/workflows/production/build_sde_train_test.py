@@ -37,7 +37,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         save_train_test,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+    from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
     logger = logging.getLogger(__name__)
 
@@ -62,11 +62,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     # fit PCA to reference timepoints of reference datasets
     pca = fit_pca(model_name=model_name)
-
-    ################### Visualize PCA results ###################
-    # plot explained variance ratio of PCA components
-    fig, _ = manifest_viz.plot_explained_variance(pca["pca"].explained_variance_ratio_)
-    save_plot_to_path(fig, fig_savedir, "explained_variance_ratio")
 
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
