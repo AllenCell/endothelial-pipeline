@@ -4,7 +4,7 @@ TAGS = ["diffae_model_training"]
 def main(
     zarr_resolution: int = 1,
     crop_size: int = 128,
-    workflow_testing: bool = False,
+    workflow_testing: bool = True,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.
@@ -40,7 +40,7 @@ def main(
         get_valid_csv_path_for_training,
         initialize_diffae_model,
     )
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from src.endo_pipeline.manifests import DataframeLocation, load_dataframe_manifest
 
     # set lightning logger level to WARNING to avoid excessive logging
     lightning_logger = logging.getLogger("lightning.pytorch")
@@ -94,6 +94,8 @@ def main(
         name=model_name,
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
+        train_dataframe=train_csv_location,
+        test_dataframe=val_csv_location,
     )
     # save the model config
     save_model_config(model_config)

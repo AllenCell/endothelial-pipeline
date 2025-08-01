@@ -7,7 +7,7 @@ import dask
 import pandas as pd
 from bioio import BioImage
 
-from src.endo_pipeline.configs import DataframeLocation
+from src.endo_pipeline.manifests import DataframeLocation
 
 logger = logging.getLogger(__name__)
 
