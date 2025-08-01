@@ -39,11 +39,11 @@ df_info = ["all slices", "centered slices (-5, +10)", "bottom slices (0, 16)", "
 bounds = get_3d_bounds_from_data(manifest_list, pca)
 
 # %%
-target_frame = 0
+target_frame = 500
 fig, ax = plot_scatter_by_position_and_frame(df1, target_frame, bounds)
 fig, ax = plot_scatter_by_position_and_frame(df2, target_frame, bounds)
 # %%
-target_frame = 0
+target_frame = 500
 fig, ax = plot_distribution_by_position_and_frame(df1, target_frame)
 fig, ax = plot_distribution_by_position_and_frame(df1, target_frame)
 # %%
