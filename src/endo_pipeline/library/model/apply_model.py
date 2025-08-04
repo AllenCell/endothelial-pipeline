@@ -172,7 +172,7 @@ def generate_overrides_for_track_based_crops(
 
 
 def generate_zarr_csv_for_model_eval(
-    dataset_config: DatasetConfig, save_path: Path, resolution_level: int = 1
+    dataset_config: DatasetConfig, save_path: Path, zarr_resolution: int = 1
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
@@ -186,7 +186,7 @@ def generate_zarr_csv_for_model_eval(
 
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = resolution_level
+    df["resolution"] = zarr_resolution
     data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
@@ -368,7 +368,7 @@ def update_prediction_from_tracks_with_metadata(
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
-    resolution_level: int = 1,
+    zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
 ) -> CytoDLModelConfig:
@@ -381,8 +381,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Configuration of the model to apply.
     dataset_config
         Configuration of the dataset to apply the model to.
-    resolution_level
-        Resolution level to apply the model at. Default is 1 (zarr sample resolution)
+    zarr_resolution
+        Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
     save_path
@@ -408,7 +408,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model.load_config_from_file(path_dict["config_path"])
 
     # create zarr dataset
-    data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
+    data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, zarr_resolution)
 
     # apply overrides
     overrides = generate_overrides_for_model_eval(
@@ -435,8 +435,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         # build FMS annotations
         dataset_annotations = build_fms_annotations(
             dataset_config,
-            include_timestamp=False,
-            include_git_info=False,
             model=model_config,
         )
 
@@ -528,8 +526,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
         # build FMS annotations
         dataset_annotations = build_fms_annotations(
             dataset_config,
-            include_timestamp=False,
-            include_git_info=False,
             model=model_config,
         )
 

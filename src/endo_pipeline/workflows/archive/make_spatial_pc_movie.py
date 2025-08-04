@@ -294,8 +294,6 @@ def measure_per_cell_features(
 
         dataset_annotations = build_fms_annotations(
             dataset_config,
-            include_timestamp=False,
-            include_git_info=False,
             model=model_config,
         )
 

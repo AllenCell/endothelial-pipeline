@@ -72,13 +72,12 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
 
 
 def build_fms_annotations(
-    dataset: DatasetConfig,
+    dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
     include_git_info: bool = True,
     model: ModelConfig | None = None,
     effort: Literal["Core", "Parallel"] = "Core",
     additional_notes: str = "",
-    env: Literal["prod", "stg"] = "prod",
 ) -> dict[str, list]:
     """
     Build the annotations dictionary for upload to FMS.
@@ -87,37 +86,36 @@ def build_fms_annotations(
 
     - Program = "Endothelial" (prod only)
     - Produced By = "python code"
-    - mlflow run id = MLFlow run id from model config object, if provided
-    - Notes = additional notes formatted as:
+    - Notes = additional notes
 
+    The `Notes` annotation is formatted as follows:
         This file was produced by the Endothelial Pipeline repository.
 
-        Dataset: <dataset name> (<dataset FMS file id>)
+        Dataset(s):                                                  (if multiple datasets provided)
+            - <dataset name> (<original dataset FMS file id>)
+            - <dataset name> (<original dataset FMS file id>)
+            ...etc
+        - OR -
+        Dataset: <dataset name> (<original dataset FMS file id>)        (if single dataset provided)
+        Model: <model name> (<mlflow run id>)                           (if model provided)
         Effort: "Core" or "Parallel"
-        Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
-        Branch: <current branch name> (if `include_git_info` is selected)
-        Commit: <latest commit hash> (if `include_git_info` is selected)
 
         (any additional notes appended here)
 
     Parameters
     ----------
     dataset
-        The dataset config object used to generate the file.
+        The dataset config or list of dataset configs used to generate the file.
     include_timestamp
-        True to add current timestamp to the annotations, False otherwise.
+        True to include a timestamp in the annotations, False otherwise.
     include_git_info
-        True to add branch name and commit hash of code used to generate the
-        file to the annotations, False otherwise.
+        True to include git information in the annotations, False otherwise.
     model
-        The model config object used to generate the file, if applicable.
+        The model config used to generate the file, if applicable.
     effort
         The program effort for the file ("Core" or "Parallel").
     additional_notes
         Additional relevant notes to append to notes annotation.
-    env
-        The FMS environment to validate annotations against. Valid options
-        include: "prod" for production or "stg" for staging.
     """
 
     try:
@@ -131,20 +129,18 @@ def build_fms_annotations(
 
     metadata_builder = fms.create_file_metadata_builder()
 
-    # Currently, only the prod environment has "Endothelial as a valid Program
-    # annotation. Program annotations will become required in a future release
-    # of aicsfiles (see aics-int/aicsfiles-python#131) so we will need to add
-    # Endothelial as a valid Program option in the stg environment.
-    if env == "prod":
-        metadata_builder.add_annotation("Program", "Endothelial")
-
-    metadata_builder.add_annotation("Produced By", "python code")
+    metadata_builder.add_annotation("Program", "Endothelial")
 
     notes = [
         "This file was produced by the Endothelial Pipeline repository.\n",
-        f"Dataset: {dataset.name} ({dataset.fmsid})",
         f"Effort: {effort}",
     ]
+
+    if isinstance(dataset, list):
+        notes.append("Dataset(s):")
+        notes.extend([f"- {item.name} ({item.fmsid})" for item in dataset])
+    else:
+        notes.append(f"Dataset: {dataset.name} ({dataset.fmsid})")
 
     if include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
@@ -156,11 +152,14 @@ def build_fms_annotations(
         notes.append(f"Commit: {repo.commit().hexsha}")
 
     if model is not None:
-        if hasattr(model, "mlflow_run_id"):
-            metadata_builder.add_annotation("mlflow run id", model.mlflow_run_id)
-        notes.append(f"Model: {model.name}")
+        if hasattr(model, "mlflow_run_id") and model.mlflow_run_id:
+            notes.append(f"Model: {model.name} ({model.mlflow_run_id})")
+        else:
+            notes.append(f"Model: {model.name} (no MLflow run id)")
 
     notes.append(f"\n{additional_notes}")
+
+    metadata_builder.add_annotation("Produced By", "python code")
 
     metadata_builder.add_annotation("Notes", "\n".join(notes))
 
