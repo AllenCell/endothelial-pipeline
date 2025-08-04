@@ -73,6 +73,8 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
 
 def build_fms_annotations(
     dataset: DatasetConfig | list[DatasetConfig],
+    include_timestamp: bool = True,
+    include_git_info: bool = True,
     model: ModelConfig | None = None,
     effort: Literal["Core", "Parallel"] = "Core",
     additional_notes: str = "",
@@ -104,6 +106,10 @@ def build_fms_annotations(
     ----------
     dataset
         The dataset config or list of dataset configs used to generate the file.
+    include_timestamp
+        True to include a timestamp in the annotations, False otherwise.
+    include_git_info
+        True to include git information in the annotations, False otherwise.
     model
         The model config used to generate the file, if applicable.
     effort
@@ -135,6 +141,15 @@ def build_fms_annotations(
         notes.extend([f"- {item.name} ({item.fmsid})" for item in dataset])
     else:
         notes.append(f"Dataset: {dataset.name} ({dataset.fmsid})")
+
+    if include_timestamp:
+        timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
+        notes.append(f"Timestamp: {timestamp}")
+
+    if include_git_info:
+        repo = Repo(search_parent_directories=True)
+        notes.append(f"Branch: {repo.active_branch.name}")
+        notes.append(f"Commit: {repo.commit().hexsha}")
 
     if model is not None:
         if hasattr(model, "mlflow_run_id") and model.mlflow_run_id:
