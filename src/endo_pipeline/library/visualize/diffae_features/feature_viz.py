@@ -39,26 +39,28 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_component_loadings(scaled_components: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
+def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot component loadings of PCA model.
 
-    Input:
-    - scaled_components: np.ndarray, PCA components scaled by the square root of
-        the explained variance (PCA.components * sqrt(PCA.explained_variance_))
+    Parameters
+    ----------
+    loading_matrix:
+        PCA component loadings matrix, shape (n_features, n_components).
 
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    Returns
+    -------
+    :
+        Figure and Axes objects for the plot.
     """
     fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
 
     # list of markers for each component
     markers = ["o", "s", "D", "^", "v", "X", "*", "p"]
 
-    # plot component loadings for each component
-    for i in range(scaled_components.shape[0]):
-        ax.plot(scaled_components[i], markers[i], label=f"PC{i + 1}", markersize=10)
+    # plot loadings for each component
+    for i in range(loading_matrix.shape[1]):
+        ax.plot(loading_matrix[:, i], markers[i], label=f"PC{i + 1}", markersize=10)
     ax.set_xlabel("Feature index")
     ax.set_ylabel("Loading value")
     ax.set_title("PCA Loadings")
