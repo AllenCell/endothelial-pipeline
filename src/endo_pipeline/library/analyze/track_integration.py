@@ -6,7 +6,7 @@ import pandas as pd
 
 from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.io import load_dataframe, load_dataframe_from_fms
 from src.endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
@@ -18,6 +18,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_bins
 from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -181,13 +182,9 @@ def get_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> pd.DataFra
 
     # read in the segmentation-based diffae features if available
     logging.debug("loading diffae features from tracking data...")
-    diffae_fms_id = dataset_config.diffae_tracking_integration_fmsid
-    if diffae_fms_id is None:
-        logging.warning(
-            f"No DiffAE track integration FMS ID for {dataset_name}. Returning empty dataframe."
-        )
-        return pd.DataFrame()
-    diffae_tracking_df = load_dataframe_from_fms(diffae_fms_id)
+    diffae_track_manifest = load_dataframe_manifest("diffae_tracking_integration")
+    diffae_track_location = get_dataframe_location_for_dataset(diffae_track_manifest, dataset_name)
+    diffae_tracking_df = load_dataframe(diffae_track_location)
 
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")

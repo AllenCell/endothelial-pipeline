@@ -154,27 +154,6 @@ DiffAE tracking manifests:
     from src.endo_pipeline.io import load_dataframe_from_fms
 
     dataset = load_dataset_config(dataset_name)
-    load_dataframe_from_fms(dataset.diffae_tracking_integration_fmsid)
-"""
-)
-def get_track_diffae_manifest(dataset_name: str) -> pd.DataFrame:
-    fmsid = dataset_io.get_dataset_info(dataset_name).get("diffae_tracking_integration_fmsid", None)
-    if fmsid:
-        return get_dataframe_by_fmsid(fmsid)
-    else:
-        print(f"No DiffAE manifest found for dataset {dataset_name}")
-        return None
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. Use the following pattern to load
-DiffAE tracking manifests:
-
-    from src.endo_pipeline.configs import load_dataset_config
-    from src.endo_pipeline.io import load_dataframe_from_fms
-
-    dataset = load_dataset_config(dataset_name)
     load_dataframe_from_fms(dataset.cell_mean_features)
 """
 )
