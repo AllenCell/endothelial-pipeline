@@ -21,9 +21,11 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
-from src.endo_pipeline.library.model.mlflow_utils import download_model
-from src.endo_pipeline.library.model.model_inputs import generate_overrides_for_model_eval
+from src.endo_pipeline.library.model import (
+    download_model,
+    generate_overrides_for_model_eval,
+    get_cytodl_commit_hash,
+)
 from src.endo_pipeline.library.process.registration import align_all_positions
 
 
@@ -56,8 +58,6 @@ def add_paired_fixed_live_data_fmsid_to_config(
     # build FMS annotations
     dataset_annotations = build_fms_annotations(
         dataset_config,
-        include_timestamp=False,
-        include_git_info=False,
         model=model_config,
         additional_notes=get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
     )

@@ -69,7 +69,7 @@ def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
     # object with FMS IDs to be used in the DiffAE model training script
     # note that this can be swapped out with uploading to S3 later on
     build_and_save_dataframe_manifest_for_training(
-        train, val, zarr_resolution, dataset_name_list, output_savedir, workflow_testing
+        train, val, zarr_resolution, dataset_config_list, output_savedir, workflow_testing
     )
 
 

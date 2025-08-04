@@ -435,8 +435,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         # build FMS annotations
         dataset_annotations = build_fms_annotations(
             dataset_config,
-            include_timestamp=False,
-            include_git_info=False,
             model=model_config,
         )
 
@@ -528,8 +526,6 @@ def apply_model_on_tracked_crops_from_one_dataset(
         # build FMS annotations
         dataset_annotations = build_fms_annotations(
             dataset_config,
-            include_timestamp=False,
-            include_git_info=False,
             model=model_config,
         )
 

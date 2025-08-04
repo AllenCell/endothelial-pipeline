@@ -40,7 +40,7 @@ def main(
         get_valid_csv_path_for_training,
         initialize_diffae_model,
     )
-    from src.endo_pipeline.manifests import DataframeLocation, load_dataframe_manifest
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     # set lightning logger level to WARNING to avoid excessive logging
     lightning_logger = logging.getLogger("lightning.pytorch")
@@ -53,8 +53,8 @@ def main(
     if workflow_testing:
         manifest_name += "_test_workflow"
     dataframe_manifest = load_dataframe_manifest(manifest_name)
-    train_csv_location = dataframe_manifest.locations["train"]
-    val_csv_location = dataframe_manifest.locations["val"]
+    train_csv_location = dataframe_manifest.locations["training"]
+    val_csv_location = dataframe_manifest.locations["validation"]
 
     # get csv paths from the DataframeLocation objects
     # to pass into the DiffAE model training script

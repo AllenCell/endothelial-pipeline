@@ -8,9 +8,9 @@ import pandas as pd
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig
 
-from src.endo_pipeline.configs import load_dataset_collection_config
+from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from src.endo_pipeline.io import (
-    build_fms_annotations_for_model_training_inputs,
+    build_fms_annotations,
     get_local_path_from_fmsid,
     get_output_path,
     upload_file_to_fms,
@@ -200,68 +200,44 @@ def initialize_diffae_model(
     return cytodl_model
 
 
-def _upload_train_and_val_to_fms(
-    train_dataframe: pd.DataFrame,
-    val_dataframe: pd.DataFrame,
+def _upload_zarr_dataframe_to_fms(
+    dataframe: pd.DataFrame,
+    dataset_type: Literal["training", "validation"],
     zarr_resolution: int,
-    dataset_name_list: list[str],
+    dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
 ) -> tuple[str, str]:
     # save the dataframes to csv files locally as intermediates
     # use timestamp to ensure unique filenames
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    train_output_path = output_savedir / f"train_resolution_{zarr_resolution}_{timestamp}.csv"
-    val_output_path = output_savedir / f"val_resolution_{zarr_resolution}_{timestamp}.csv"
-    train_dataframe.to_csv(train_output_path, index=False)
-    val_dataframe.to_csv(val_output_path, index=False)
-    logger.debug(
-        "Saved training CSV to \n %s \n and validation CSV to \n %s",
-        train_output_path,
-        val_output_path,
-    )
+    output_path = output_savedir / f"{dataset_type}_resolution_{zarr_resolution}_{timestamp}.csv"
+    dataframe.to_csv(output_path, index=False)
+    logger.debug("Saved % s CSV to \n %s", dataset_type, output_path)
     # upload dataframes to fms
     logger.debug("Building FMS annotations for training and validation CSVs...")
-    train_annotations = build_fms_annotations_for_model_training_inputs(
-        "training",
-        dataset_name_list,
-        zarr_resolution,
-        include_timestamp=False,
-        include_git_info=False,
-    )
-    val_annotations = build_fms_annotations_for_model_training_inputs(
-        "validation",
-        dataset_name_list,
-        zarr_resolution,
-        include_timestamp=False,
-        include_git_info=False,
+    fms_annotations = build_fms_annotations(
+        dataset_config_list,
+        additional_notes=f"Dataframe of images for {dataset_type} set. \
+            Resolution level for zarr loading: {zarr_resolution}",
     )
 
     logger.debug("Annotations built, uploading to FMS...")
-    train_fmsid = upload_file_to_fms(
-        train_output_path,
-        annotations=train_annotations,
-        file_type="csv",
-    )
-    val_fmsid = upload_file_to_fms(
-        val_output_path,
-        annotations=val_annotations,
+    fmsid = upload_file_to_fms(
+        output_path,
+        annotations=fms_annotations,
         file_type="csv",
     )
 
-    logger.info(
-        "Uploaded training CSV to FMS with ID: [ %s ], validation CSV with ID: [ %s ]",
-        train_fmsid,
-        val_fmsid,
-    )
+    logger.info("Uploaded % s CSV to FMS with ID: [ %s ]", dataset_type, fmsid)
 
-    return train_fmsid, val_fmsid
+    return fmsid
 
 
 def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
     zarr_resolution: int,
-    dataset_name_list: list[str],
+    dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     workflow_testing: bool = False,
 ) -> None:
@@ -270,11 +246,19 @@ def build_and_save_dataframe_manifest_for_training(
     with the DatasetLocation objects containing the FMS IDs of the uploaded files.
     """
     # first, upload the train and val dataframes to FMS
-    train_fmsid, val_fmsid = _upload_train_and_val_to_fms(
+    train_fmsid = _upload_zarr_dataframe_to_fms(
         train_dataframe,
-        val_dataframe,
+        "training",
         zarr_resolution,
-        dataset_name_list,
+        dataset_config_list,
+        output_savedir,
+    )
+
+    val_fmsid = _upload_zarr_dataframe_to_fms(
+        val_dataframe,
+        "validation",
+        zarr_resolution,
+        dataset_config_list,
         output_savedir,
     )
 
@@ -290,8 +274,8 @@ def build_and_save_dataframe_manifest_for_training(
         workflow="generate_diffae_training_csv",
         parameters={"zarr_resolution": zarr_resolution},
         locations={
-            "train": DataframeLocation(fmsid=train_fmsid, s3uri=None),
-            "val": DataframeLocation(fmsid=val_fmsid, s3uri=None),
+            "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
+            "validation": DataframeLocation(fmsid=val_fmsid, s3uri=None),
         },
     )
 
