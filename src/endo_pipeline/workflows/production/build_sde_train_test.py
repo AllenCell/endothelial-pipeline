@@ -30,13 +30,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         get_timelapse_model_manifests,
         load_model_config,
     )
-    from src.endo_pipeline.io import get_output_path, save_plot_to_path
+    from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_features import (
         build_kramers_moyal_train_test,
         save_train_test,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
     logger = logging.getLogger(__name__)
 

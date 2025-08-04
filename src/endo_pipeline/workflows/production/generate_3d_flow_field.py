@@ -32,16 +32,11 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         get_available_dataset_names,
         get_datasets_in_collection,
         get_model_manifest,
-        get_pca_reference_model_manifests,
-        load_dataset_config,
         load_model_config,
     )
     from src.endo_pipeline.io import get_output_path, save_plot_to_path
     from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
-    from src.endo_pipeline.library.analyze.diffae_manifest import (
-        fit_pca,
-        get_timepoints_for_plotting_pcs,
-    )
+    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
     logger = logging.getLogger(__name__)
