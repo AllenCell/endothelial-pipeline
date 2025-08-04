@@ -136,9 +136,6 @@ class DatasetConfig:
     diffae_tracking_integration_fmsid: str | None = None
     """FMS ID for diffusion autoencoder tracking integration."""
 
-    immunofluorescence_manifest_fmsid: str | None = None
-    """FMS ID for immunofluorescence manifest."""
-
     cdh5_classic_seg_tracking_manifest_fmsid: str | None = None
     """FMS ID for classic segmentation tracking output manifest."""
 
