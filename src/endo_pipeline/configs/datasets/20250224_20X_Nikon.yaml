@@ -30,7 +30,6 @@ channel_640_index: null
 nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
 cdh5_seg_path: null
-live_merged_seg_features_manifest_fmsid: null
 valid_timepoints: null
 cell_mean_features: null
 include_scenes: null

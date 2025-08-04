@@ -1058,37 +1058,6 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     return tracking_dataframe
 
 
-def get_live_segmentation_features_manifest(
-    dataset_name_list: list,
-) -> pd.DataFrame:
-    """
-    Get the segmentation features manifest for a given dataset.
-    The manifest is a TSV file that contains the measurements
-    from the tracked segmentations of a dataset.
-    These datasets are raw / unfiltered.
-    """
-
-    seg_feat_data_list = []
-    for dataset_name in dataset_name_list:
-        # get the fmsid of the live data segmentation
-        # features manifest for the dataset
-        fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
-        # load the manifest associated with this fmsid as a dataframe
-        if fmsid is not None:
-            seg_feat_data = load_dataframe_from_fms(fmsid)
-        else:
-            logger.info(f"No segmentation features manifest found for {dataset_name}. Skipping...")
-            continue
-        # add the fmsid name to the dataframe
-        seg_feat_data["live_merged_seg_features_manifest_fmsid"] = fmsid
-        # add the dataframe to the list of datasets
-        seg_feat_data_list.append(seg_feat_data)
-    # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = pd.concat(seg_feat_data_list, axis=0, ignore_index=True)
-
-    return seg_feat_dataframe
-
-
 # fire argparsing methods
 def fire_parse_list_from_CLI(fire_str_or_list_like_input: Sequence) -> list[str]:
     if isinstance(fire_str_or_list_like_input, str):

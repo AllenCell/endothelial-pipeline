@@ -5,8 +5,7 @@ from colorizer_data import convert_colorizer_data
 
 from cellsmap.util.manifest_io import get_cell_mean_features_manifest
 from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import get_live_segmentation_features_manifest
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.io import load_dataframe, load_dataframe_from_fms
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -17,6 +16,7 @@ from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest
     add_intensity_mean_pcs,
     update_manifest_for_tfe,
 )
+from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,10 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df_tracks = get_live_segmentation_features_manifest([dataset])
+    segprops_manifest = load_dataframe_manifest("live_merged_seg_features")
+    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
+
+    df_tracks = load_dataframe(segprops_location)
     df_position = df_tracks[df_tracks["position"] == position]
 
     dataset_config = load_dataset_config(dataset)
