@@ -127,9 +127,6 @@ class DatasetConfig:
     nuclear_stain_seg_path: str | None = None
     """Path to nuclear stain segmentation."""
 
-    nuclear_seg_manifest_fmsid: str | None = None
-    """FMS ID for nuclear segmentation manifest."""
-
     cdh5_seg_path: str | None = None
     """Path to Cdh5 segmentations."""
 

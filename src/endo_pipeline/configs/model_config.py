@@ -4,7 +4,7 @@ from mashumaro.config import BaseConfig
 from mashumaro.types import Discriminator
 from pydantic.dataclasses import dataclass
 
-from src.endo_pipeline.configs.dataset_config import DataframeLocation
+from src.endo_pipeline.manifests import DataframeLocation
 
 
 @dataclass
