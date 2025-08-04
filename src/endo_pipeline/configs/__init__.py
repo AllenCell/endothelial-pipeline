@@ -1,5 +1,4 @@
 from .dataset_config import (
-    DataframeLocation,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -61,7 +60,6 @@ from .model_config_utils import (
 __all__ = [
     "CellposeModelConfig",
     "CytoDLModelConfig",
-    "DataframeLocation",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
@@ -80,7 +78,6 @@ __all__ = [
     "get_available_zarr_files",
     "get_channel_indices_for_all_positions",
     "get_channel_indices_for_position",
-    "get_config_dir",
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",
