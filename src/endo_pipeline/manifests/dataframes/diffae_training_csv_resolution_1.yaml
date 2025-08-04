@@ -3,9 +3,9 @@ workflow: generate_diffae_training_csv
 parameters:
   zarr_resolution: 1
 locations:
-  train:
+  training:
     fmsid: a0d1c6c596f94be3980ff4a1157a0bc5
     s3uri: null
-  val:
+  validation:
     fmsid: 9b174a7640a44daea27b273566a9d2fb
     s3uri: null
