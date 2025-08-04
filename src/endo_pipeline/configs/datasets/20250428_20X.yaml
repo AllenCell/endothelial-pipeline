@@ -30,7 +30,6 @@ cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh
 valid_timepoints:
   start: [217]
   stop: [351]
-cell_mean_features: null
 include_scenes: null
 notes: This is an intermediate flow dataset. There cells are very crowded by the end
   of the movie.

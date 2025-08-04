@@ -28,7 +28,6 @@ nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/seg
 nuclear_stain_seg_path: null
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250604_20X
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: Flow history. Cells exposed to flow for 3h 20min prior to start of imaging.
   Cells show mixed alignment leaning towards more parallel

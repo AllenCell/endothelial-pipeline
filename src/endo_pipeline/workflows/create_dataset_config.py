@@ -64,7 +64,6 @@ dataset = DatasetConfig(
     # nuclear_label_free_seg_path="/path/to/nuclear/label/free/segmentation",
     # nuclear_stain_seg_path="/path/to/nuclear/stain/segmentation",
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
-    # cell_mean_features="FMS ID for cell mean features",
     # include_scenes=[0, 0, 0],
     # notes="",
 )

@@ -3,9 +3,7 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from cellsmap.util.manifest_io import get_cell_mean_features_manifest
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.io import load_dataframe, load_dataframe_from_fms
+from src.endo_pipeline.io import load_dataframe
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -13,7 +11,6 @@ from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
     add_feature_metadata,
-    add_intensity_mean_pcs,
     update_manifest_for_tfe,
 )
 from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -51,29 +48,8 @@ def generate_tfe_dataset(
     df_tracks = load_dataframe(segprops_location)
     df_position = df_tracks[df_tracks["position"] == position]
 
-    dataset_config = load_dataset_config(dataset)
-    if dataset_config.cell_mean_features is not None:
-        load_dataframe_from_fms(dataset_config.cell_mean_features)
-        df_diffae_cell_mean = get_cell_mean_features_manifest(dataset)
-        df_diffae_cell_mean = df_diffae_cell_mean[df_diffae_cell_mean["position"] == f"P{position}"]
-        df_diffae_cell_mean["position"] = position
-        df_diffae_cell_mean = df_diffae_cell_mean.rename(columns={"frame_number": "image_index"})
-
-        df_merge_features = df_position.merge(
-            df_diffae_cell_mean,
-            how="inner",
-            on=["label", "image_index", "position"],
-        )
-    else:
-        logger.info(
-            f"Dataset {dataset} does not have cell mean features defined in its configuration."
-        )
-        df_merge_features = df_position
-
-    df = add_dynamic_features_with_filtering(df_merge_features)
+    df = add_dynamic_features_with_filtering(df_position)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
-    if dataset_config.cell_mean_features is not None:
-        df = add_intensity_mean_pcs(df)
 
     if backdrops:
         generate_backdrops(

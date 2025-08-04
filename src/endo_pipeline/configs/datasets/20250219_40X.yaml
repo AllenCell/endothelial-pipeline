@@ -29,7 +29,6 @@ nuclear_label_free_seg_path: null
 nuclear_stain_seg_path: null
 cdh5_seg_path: null
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: 48 hour timelapse flow was 5.6 but then slowly dropped to 3 did not keep 48
   hour timelapse

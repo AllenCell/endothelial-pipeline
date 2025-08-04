@@ -28,7 +28,6 @@ nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/seg
 nuclear_stain_seg_path: null
 cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250611_20X
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become
   overgrown earlier than in previous timelapse experiments (~25h)

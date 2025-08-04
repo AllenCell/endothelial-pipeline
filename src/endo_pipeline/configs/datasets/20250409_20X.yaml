@@ -30,6 +30,5 @@ cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh
 valid_timepoints:
   start: [190]
   stop: [410]
-cell_mean_features: ddfe344afade4031ad4e2cff70c77748
 include_scenes: null
 notes: cells become very crowded near end of timelapse

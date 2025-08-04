@@ -145,27 +145,6 @@ def get_diffae_manifest(
     return df
 
 
-@deprecated(
-    """
-This method is deprecated and will be removed. Use the following pattern to load
-DiffAE tracking manifests:
-
-    from src.endo_pipeline.configs import load_dataset_config
-    from src.endo_pipeline.io import load_dataframe_from_fms
-
-    dataset = load_dataset_config(dataset_name)
-    load_dataframe_from_fms(dataset.cell_mean_features)
-"""
-)
-def get_cell_mean_features_manifest(dataset_name: str) -> pd.DataFrame:
-    fmsid = dataset_io.get_dataset_info(dataset_name).get("cell_mean_features", None)
-    if fmsid:
-        return get_dataframe_by_fmsid(fmsid)
-    else:
-        print(f"No cell mean features manifest found for dataset {dataset_name}")
-        return None
-
-
 def get_feature_cols(df: pd.DataFrame) -> list:
     """
     Extract columns corresponding to DiffAE model

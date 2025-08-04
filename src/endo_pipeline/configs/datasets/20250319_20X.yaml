@@ -30,6 +30,5 @@ cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh
 valid_timepoints:
   start: [117]
   stop: [336]
-cell_mean_features: c79efb6d0f754e719b71221d7ea3c17f
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
