@@ -323,10 +323,10 @@ if __name__ == "__main__":
         # "nuc_with_most_overlap_0_centroid_Y",
         # "nuc_with_most_overlap_0_centroid_X",
         "cell_fluorescence_mean (a.u.)",
+        "num_nuclei_in_crop",
         "cell_solidity",
         "number_of_neighbors",
         "nuc_pos_rel_cell_angle_deg",
-        "num_nuclei_in_crop",
     ]
     for col in measured_col_names + pc_col_names + feat_col_names:
         if col not in merged_feats_df.columns:
@@ -372,8 +372,8 @@ if __name__ == "__main__":
     pca = fit_pca()
 
     # 2. find which of the diffae features make up each PC
-    pca.n_components
-    pca.components_
+    # pca.n_components
+    # pca.components_
 
     # 3. find which of the diffae features correlate with which measured features
     correlation_results = []
@@ -404,3 +404,54 @@ if __name__ == "__main__":
     correlation_array.max()
 
     plt.imshow(np.abs(correlation_array))
+
+    records = []
+    for feat in feat_col_names:
+        for meas in measured_col_names:
+            # np.isfinite(merged_feats_df[feat])
+            valid_records = np.isfinite(merged_feats_df[meas])
+            corr, pval = pearsonr(
+                merged_feats_df[feat][valid_records],
+                merged_feats_df[meas][valid_records],
+            )
+            # print(f"{feat} vs. {meas}: r={corr:.2f}, p={pval:.2e}")
+
+            records.append({"feature": feat, "measurement": meas, "pearsonr": corr, "pval": pval})
+
+    correlation_table_feats = pd.DataFrame.from_records(records)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    data = correlation_table_feats.pivot(index="feature", columns="measurement", values="pearsonr")
+    data.sort_index(level=0, ascending=True, inplace=True)
+    sns.heatmap(
+        data,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+    )
+    # ax.set_aspect("equal")
+
+    records = []
+    for pc in pc_col_names:
+        for meas in measured_col_names:
+            # np.isfinite(merged_feats_df[feat])
+            valid_records = np.isfinite(merged_feats_df[meas])
+            corr, pval = pearsonr(
+                merged_feats_df[pc][valid_records],
+                merged_feats_df[meas][valid_records],
+            )
+            # print(f"{pc} vs. {meas}: r={corr:.2f}, p={pval:.2e}")
+
+            records.append({"PC": pc, "measurement": meas, "pearsonr": corr, "pval": pval})
+
+    correlation_table_pcs = pd.DataFrame.from_records(records)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    data = correlation_table_pcs.pivot(index="PC", columns="measurement", values="pearsonr")
+    data.sort_index(level=0, ascending=True, inplace=True)
+    sns.heatmap(
+        data,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+    )
