@@ -38,7 +38,7 @@ def process_dataset(
 ) -> None:
     logger.info(f"Processing dataset: {dataset_name}")
 
-    out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
+    out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
     configure_logging(out_subdir, logger, verbose=True)
 
     # load and preprocess the different diffae manifests and PCA pipeline

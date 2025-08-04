@@ -22,14 +22,11 @@ from src.endo_pipeline.library.analyze.diffae_features import (
 )
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     add_description_column,
-    get_traj_and_diff,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
-    add_description_column,
     get_manifest_for_dynamics_workflows,
+    get_traj_and_diff,
     project_manifest_to_pcs,
 )
+from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
 from src.endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
 from src.endo_pipeline.library.analyze.optical_flow_calculator import (
@@ -196,7 +193,6 @@ def get_diffae_feats_liveseg_feats_merged_table(
     dataset_name: str, filtered: bool = False
 ) -> pd.DataFrame:
 
-    logging.debug(f"Loading dataset config file for dataset: {dataset_name}...")
     dataset_config = load_dataset_config(dataset_name)
 
     # read in the segmentation-based diffae features if available
@@ -234,7 +230,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
-    bounds: Pipeline,
+    bounds: list,
     load_precomputed_trajectories: Path | None,
 ) -> tuple[np.ndarray, dict]:
 
@@ -292,7 +288,7 @@ def get_gridcrop_and_cellcentric_trajectories_and_flow_fields(
     dataset_name: str,
     merged_feats_df: pd.DataFrame,
     diffae_grid_crops: pd.DataFrame,
-    bounds: tuple[float, float, float, float, float, float],
+    bounds: list[float],
     trajectory_dir: Path,
 ) -> tuple[np.ndarray, dict, np.ndarray, dict]:
     """
@@ -564,7 +560,7 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_preprocessed_manifests_and_km_bounds(
     dataset_name: str,
     datasets_for_bounds: List[str] | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
+) -> tuple[pd.DataFrame, pd.DataFrame, list]:
     """
     Load and process the DiffAE and live segmentation feature manifests for a given dataset.
     If no `datasets_for_bounds` are provided, it uses the reference datasets plus dataset_name
@@ -602,5 +598,8 @@ def get_preprocessed_manifests_and_km_bounds(
         get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds  # type: ignore[arg-type]
     ]
     bounds = get_3d_bounds_from_data(model_manifest_list, pca)
+
+    # lastly, add a normalized version of the "time_hours" column
+    merged_feats_df = add_normalized_time(merged_feats_df)
 
     return merged_feats_df, diffae_grid_crops, bounds

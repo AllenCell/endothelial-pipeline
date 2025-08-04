@@ -5,7 +5,6 @@ from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.integration.track_integration import (
-    add_normalized_time,
     get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
     get_preprocessed_manifests_and_km_bounds,
 )
@@ -41,9 +40,6 @@ def main() -> None:
                 trajectory_dir=out_subdir_traj,
             )
         )
-
-        # add normalized time to tracks
-        df_all_positions = add_normalized_time(df_all_positions)
 
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops
