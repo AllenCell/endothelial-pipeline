@@ -184,7 +184,7 @@ def feature_density(
                 )
 
         if per_dataset:
-            ax.set_xlabel(f"{feature_name}")
+            ax.set_xlabel(feature_name)
             ax.set_ylabel("Density")
             ax.set_xlim(0, xlim)
             ax.set_ylim(0, ylim)
