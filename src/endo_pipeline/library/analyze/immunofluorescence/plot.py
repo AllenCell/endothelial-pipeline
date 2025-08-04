@@ -78,6 +78,7 @@ def feature_density(
     df_all: pd.DataFrame,
     dataset_name_list: list[str],
     feature: str,
+    feature_name,
     save_dir: str,
     positions: list | None = None,
     xlim: int | None = None,
@@ -97,6 +98,8 @@ def feature_density(
         A list of datasets, each corresponding to a dataset.
     feature: str
         The feature to plot.
+    feature_name: str
+        The name of the feature to use in the plot title.
     positions: list, optional
         A list of positions to loop through and plot densities for. If None, all positions are used.
     xlim: int, optional
@@ -108,6 +111,7 @@ def feature_density(
     per_dataset: bool, optional
         If True, plot densities for each dataset separately. Default is False.
     """
+    plt.rcParams.update({'font.size': 14})
     fig = plt.figure(figsize=(6, 6))
 
     def calc_stats(df: pd.DataFrame, feature: str) -> tuple:
@@ -145,7 +149,9 @@ def feature_density(
                 f"{flow_regime}, {flow_rate} dyn/cm², All positions, "
                 f"N={len(df)}, Mean={mean:.2f}, COV={cov:.2f}, CI=({low:.2f}, {high:.2f})"
             )
-            ax = sb.kdeplot(df[feature], color=color, label=label, alpha=0.85, linestyle="-")
+            ax = sb.kdeplot(
+                df[feature], color=color, label=label, alpha=0.85, linestyle="-", linewidth=5
+            )
         else:
             # Plot densities for individual positions
             dataset_positions = (
@@ -167,11 +173,16 @@ def feature_density(
                 )
                 line_style = line_styles[idx % len(line_styles)]  # Cycle through line styles
                 ax = sb.kdeplot(
-                    df[feature], color=color, label=label, alpha=0.85, linestyle=line_style
+                    df[feature],
+                    color=color,
+                    label=label,
+                    alpha=0.85,
+                    linestyle=line_style,
+                    linewidth=5,
                 )
 
         if per_dataset:
-            ax.set_xlabel(f"{feature}")
+            ax.set_xlabel(f"{feature_name}")
             ax.set_ylabel("Density")
             ax.set_xlim(0, xlim)
             ax.set_ylim(0, ylim)
@@ -183,7 +194,7 @@ def feature_density(
             plt.close(fig)
 
     if not per_dataset:
-        ax.set_xlabel(f"{feature}")
+        ax.set_xlabel(f"{feature_name}")
         ax.set_ylabel("Density")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
         ax.set_xlim(0, xlim)
