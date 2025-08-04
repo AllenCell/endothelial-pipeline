@@ -39,12 +39,13 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_component_loadings(components: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
+def plot_component_loadings(scaled_components: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
     """
     Plot component loadings of PCA model.
 
     Input:
-    - components: np.ndarray, PCA components
+    - scaled_components: np.ndarray, PCA components scaled by the square root of
+        the explained variance (PCA.components * sqrt(PCA.explained_variance_))
 
     Output:
     - fig: plt.Figure
@@ -56,11 +57,11 @@ def plot_component_loadings(components: np.ndarray) -> tuple[plt.Figure, plt.Axe
     markers = ["o", "s", "D", "^", "v", "X", "*", "p"]
 
     # plot component loadings for each component
-    for i in range(components.shape[0]):
-        ax.plot(components[i], markers[i], label=f"PC{i + 1}", markersize=10)
+    for i in range(scaled_components.shape[0]):
+        ax.plot(scaled_components[i], markers[i], label=f"PC{i + 1}", markersize=10)
     ax.set_xlabel("Feature index")
     ax.set_ylabel("Loading value")
-    ax.set_title("PCA Component Loadings")
+    ax.set_title("PCA Loadings")
     ax.legend(loc=(1.05, 0.5), title="PCs")
 
     return fig, ax

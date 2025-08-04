@@ -5,6 +5,8 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     """Visualize key attributes of a fit PCA model."""
     from typing import cast
 
+    import numpy as np
+
     from src.endo_pipeline.configs import (
         CytoDLModelConfig,
         get_datasets_in_collection,
@@ -32,7 +34,7 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     save_plot_to_path(fig, fig_savedir, "explained_variance_ratio")
 
     # plot PC loadings (contribution of each latent dimension to each PC)
-    fig, _ = feature_viz.plot_component_loadings(pca.components_)
+    fig, _ = feature_viz.plot_component_loadings(pca.components_ * np.sqrt(pca.explained_variance_))
     save_plot_to_path(fig, fig_savedir, "pc_loadings")
 
     # plot scatter of PCA components
