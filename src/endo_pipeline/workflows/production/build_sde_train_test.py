@@ -3,8 +3,7 @@ TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Build training and test data for regression model fitting and evaluation of the dynamical
-    systems model for the crop-based feature manifest data (Diff AE features).
+    Build train/test sets to apply SINDy to the Kramers-Moyal estimates from the Diff AE features.
 
     Parameters
     ----------

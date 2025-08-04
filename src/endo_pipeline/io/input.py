@@ -7,7 +7,7 @@ import dask
 import pandas as pd
 from bioio import BioImage
 
-from src.endo_pipeline.configs import DataframeLocation
+from src.endo_pipeline.manifests import DataframeLocation
 
 logger = logging.getLogger(__name__)
 
@@ -108,9 +108,9 @@ def load_dataframe_from_path(path: Path) -> pd.DataFrame:
     raise ValueError(f"Invalid dataframe file format '{path.suffix}'")
 
 
-def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
+def get_local_path_from_fmsid(fmsid: str) -> Path:
     """
-    Load dataframe from FMS by file ID.
+    Get local path for a given FMS file ID.
 
     This method requires the workflow to be run on the AICS intranet and have
     the optional dependency `aicsfiles` installed.
@@ -123,7 +123,7 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     Returns
     -------
     :
-        File loaded as dataframe.
+        Local path to FMS file.
     """
 
     if not Path("//allen").exists():
@@ -150,6 +150,28 @@ def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
     fms_bucket_name = "production.files.allencell.org"
     local_fms_path = "//allen/programs/allencell/data/proj0/"
     local_path = Path(record[0].path.replace(fms_bucket_name, local_fms_path))
+    return local_path
+
+
+def load_dataframe_from_fms(fmsid: str) -> pd.DataFrame:
+    """
+    Load dataframe from FMS by file ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `aicsfiles` installed.
+
+    Parameters
+    ----------
+    fmsid
+        FMS file ID.
+
+    Returns
+    -------
+    :
+        File loaded as dataframe.
+    """
+
+    local_path = get_local_path_from_fmsid(fmsid)
 
     return load_dataframe_from_path(local_path)
 

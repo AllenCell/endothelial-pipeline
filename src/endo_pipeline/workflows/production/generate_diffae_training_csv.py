@@ -1,7 +1,7 @@
 TAGS = ["diffae_model_training"]
 
 
-def main(zarr_resolution: int = 1) -> None:
+def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
     """
     Generate .csv files with paths to zarr files for training a DiffAE model.
 
@@ -18,12 +18,17 @@ def main(zarr_resolution: int = 1) -> None:
     zarr_resolution
         The resolution level of the zarr files to be used for training. Default is 1,
         which corresponds to downsampling by half.
+    workflow_testing
+        Flag to indicate if this script is being run for testing purposes (e.g., code review).
+        If True, the training and validation datasets will only keep one entry each.
+        Doing so speeds up the dataloading process during model training
+        (i.e., while running train_baseline_diffae.py)
 
     Returns
     -------
     :
-        Saves the training and validation dataframes to train.csv and val.csv
-        in the specified output directory.
+        Uploads the training and validation dataframes to FMS and saves a DataframeManifest
+        with DatasetLocation objects containing the FMS IDs of the uploaded files.
     """
 
     import pandas as pd
@@ -35,8 +40,9 @@ def main(zarr_resolution: int = 1) -> None:
         load_dataset_config,
     )
     from src.endo_pipeline.io import get_output_path
+    from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
 
-    output_savedir = get_output_path("manifests", include_timestamp=False)
+    output_savedir = get_output_path("dataframes", include_timestamp=False)
 
     # load data config
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
@@ -54,10 +60,17 @@ def main(zarr_resolution: int = 1) -> None:
     zarr_path_df["resolution"] = zarr_resolution  # downsampling factor
 
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
+    if workflow_testing:
+        # for testing, only keep one entry in each dataframe
+        train = train.head(1)
+        val = val.head(1)
 
-    # save the dataframes to csv files locally as intermediates
-    train.to_csv(output_savedir / f"train_resolution_{zarr_resolution}.csv", index=False)
-    val.to_csv(output_savedir / f"val_resolution_{zarr_resolution}.csv", index=False)
+    # upload dataframes to FMS, then build and save out DataframeManifest
+    # object with FMS IDs to be used in the DiffAE model training script
+    # note that this can be swapped out with uploading to S3 later on
+    build_and_save_dataframe_manifest_for_training(
+        train, val, zarr_resolution, dataset_config_list, output_savedir, workflow_testing
+    )
 
 
 if __name__ == "__main__":

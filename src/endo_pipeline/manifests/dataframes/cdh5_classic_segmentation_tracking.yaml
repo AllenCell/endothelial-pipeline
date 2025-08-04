@@ -1,0 +1,37 @@
+name: cdh5_classic_segmentation_tracking
+workflow: live_feat_workflows_to_fms
+parameters: {}
+locations:
+  20241016_20X:
+    fmsid: 79f5d179c74347968e7b52087228300d
+    s3uri: null
+  20241120_20X:
+    fmsid: 87ac11462fc6429783291f7c811ca730
+    s3uri: null
+  20241217_20X:
+    fmsid: 5b861bc1a0cc4c50bbfe9b0de46cedb0
+    s3uri: null
+  20250224_20X:
+    fmsid: e100a4e126b2436f94907e94a4e747cb
+    s3uri: null
+  20250319_20X:
+    fmsid: 06265c5c06e84f00bec29829bd03dabe
+    s3uri: null
+  20250326_20X:
+    fmsid: de166e653aad4f50aab55e19ef677e22
+    s3uri: null
+  20250331_20X:
+    fmsid: a2c5e389e2e84d9eb388d63cd504d79b
+    s3uri: null
+  20250409_20X:
+    fmsid: a70b26260b5240e1960d0e99c57d4936
+    s3uri: null
+  20250428_20X:
+    fmsid: 1ec68d20964143a5baccf31dcb43eebb
+    s3uri: null
+  20250604_20X:
+    fmsid: ec0650fb760541f2a7a6026eac45ae21
+    s3uri: null
+  20250611_20X:
+    fmsid: 24a4907b6a0643649402cca23ed63537
+    s3uri: null

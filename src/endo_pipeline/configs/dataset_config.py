@@ -17,15 +17,6 @@ ObjectiveType = Literal["20X", "40X"]
 
 
 @dataclass
-class DataframeLocation:
-    fmsid: str | None = None
-    """FMS file id for dataframe."""
-
-    s3uri: str | None = None
-    """S3 URI for dataframe (starting with s3://)."""
-
-
-@dataclass
 class ValidTimepoints:
     """
     Timepoints that are visually validated to be after steady state from no flow to a set
@@ -136,32 +127,8 @@ class DatasetConfig:
     nuclear_stain_seg_path: str | None = None
     """Path to nuclear stain segmentation."""
 
-    nuclear_seg_manifest_fmsid: str | None = None
-    """FMS ID for nuclear segmentation manifest."""
-
     cdh5_seg_path: str | None = None
     """Path to Cdh5 segmentations."""
-
-    tracking_integration_fmsid: str | None = None
-    """FMS ID for tracking integration."""
-
-    diffae_tracking_integration_fmsid: str | None = None
-    """FMS ID for diffusion autoencoder tracking integration."""
-
-    immunofluorescence_manifest_fmsid: str | None = None
-    """FMS ID for immunofluorescence manifest."""
-
-    cdh5_classic_seg_tracking_manifest_fmsid: str | None = None
-    """FMS ID for classic segmentation tracking output manifest."""
-
-    cdh5_classic_seg_manifest_fmsid: str | None = None
-    """FMS ID for classic segmentation measurement output manifest."""
-
-    nuclei_label_free_seg_manifest_fmsid: str | None = None
-    """FMS ID for nuclei label free segmentation measurement output manifest."""
-
-    live_merged_seg_features_manifest_fmsid: str | None = None
-    """FMS ID for live dataset merged segmentation features manifest."""
 
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""

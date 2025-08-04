@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 from pathlib import Path
@@ -7,8 +8,18 @@ import pandas as pd
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig
 
-from src.endo_pipeline.configs import load_dataset_collection_config
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from src.endo_pipeline.io import (
+    build_fms_annotations,
+    get_local_path_from_fmsid,
+    get_output_path,
+    upload_file_to_fms,
+)
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    save_dataframe_manifest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -189,44 +200,115 @@ def initialize_diffae_model(
     return cytodl_model
 
 
-def get_valid_csv_path_for_training(
-    csv_path: Path | str | None, zarr_resolution: int, csv_name: Literal["train", "val"]
-) -> Path:
+def _upload_zarr_dataframe_to_fms(
+    dataframe: pd.DataFrame,
+    dataset_type: Literal["training", "validation"],
+    zarr_resolution: int,
+    dataset_config_list: list[DatasetConfig],
+    output_savedir: Path,
+) -> tuple[str, str]:
+    # save the dataframes to csv files locally as intermediates
+    # use timestamp to ensure unique filenames
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    output_path = output_savedir / f"{dataset_type}_resolution_{zarr_resolution}_{timestamp}.csv"
+    dataframe.to_csv(output_path, index=False)
+    logger.debug("Saved % s CSV to \n %s", dataset_type, output_path)
+    # upload dataframes to fms
+    logger.debug("Building FMS annotations for training and validation CSVs...")
+    fms_annotations = build_fms_annotations(
+        dataset_config_list,
+        additional_notes=f"Dataframe of images for {dataset_type} set. \
+            Resolution level for zarr loading: {zarr_resolution}",
+    )
+
+    logger.debug("Annotations built, uploading to FMS...")
+    fmsid = upload_file_to_fms(
+        output_path,
+        annotations=fms_annotations,
+        file_type="csv",
+    )
+
+    logger.info("Uploaded % s CSV to FMS with ID: [ %s ]", dataset_type, fmsid)
+
+    return fmsid
+
+
+def build_and_save_dataframe_manifest_for_training(
+    train_dataframe: pd.DataFrame,
+    val_dataframe: pd.DataFrame,
+    zarr_resolution: int,
+    dataset_config_list: list[DatasetConfig],
+    output_savedir: Path,
+    workflow_testing: bool = False,
+) -> None:
+    """
+    Upload training and validation dataframes to FMS and save a DataframeManifest
+    with the DatasetLocation objects containing the FMS IDs of the uploaded files.
+    """
+    # first, upload the train and val dataframes to FMS
+    train_fmsid = _upload_zarr_dataframe_to_fms(
+        train_dataframe,
+        "training",
+        zarr_resolution,
+        dataset_config_list,
+        output_savedir,
+    )
+
+    val_fmsid = _upload_zarr_dataframe_to_fms(
+        val_dataframe,
+        "validation",
+        zarr_resolution,
+        dataset_config_list,
+        output_savedir,
+    )
+
+    # create the DataframeManifest object
+    # note that this will overwrite any existing manifest with the same name
+    # (intended behavior)
+    manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
+    if workflow_testing:
+        # if workflow_testing is True, append "_test_workflow" to the manifest name
+        manifest_name += "_test_workflow"
+    dataframe_manifest = DataframeManifest(
+        name=manifest_name,
+        workflow="generate_diffae_training_csv",
+        parameters={"zarr_resolution": zarr_resolution},
+        locations={
+            "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
+            "validation": DataframeLocation(fmsid=val_fmsid, s3uri=None),
+        },
+    )
+
+    # save the updated or new manifest
+    save_dataframe_manifest(dataframe_manifest)
+
+
+def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Path | str:
     """
     Get a valid CSV path for training or validation datasets.
 
     Parameters
     ----------
-    csv_path
-        The given path to the CSV file.
-    zarr_resolution
-        The resolution level of the zarr files to be used for training.
-        This input is specified to ensure the correct CSV file is used
-        based on the resolution in the default case where csv_path is None.
-    csv_name
-        The name of the CSV file to validate, "train" or "val".
-        If csv_path is not None, csv_name will not be used in the path generation.
-        This input is used for the default case where csv_path is None,
-        and the path will be generated based on the csv_name (train or val).
+    dataframe_location: DataframeLocation
+        The DataframeLocation object containing either the FMS ID of the CSV file
+        or the S3 URI of the CSV file.
 
 
     Returns
     -------
     :
         A valid Path object pointing to the CSV file for training or validation sets.
+        If the DataframeLocation object has an S3 URI, it will be used. Else, this
+        function downloads the CSV file from FMS using the FMS ID and returns the local path.
     """
-    if csv_path is None:
-        csv_path = get_output_path(
-            "manifests", f"{csv_name}_resolution_{zarr_resolution}.csv", include_timestamp=False
-        )
+    if dataframe_location.s3uri is not None:
+        # if s3uri is provided, use that for loading
+        dataframe_csv_path = dataframe_location.s3uri
+    else:
+        # get local path from FMS ID
+        dataframe_csv_path = get_local_path_from_fmsid(dataframe_location.fmsid)
 
-    if isinstance(csv_path, str):
-        csv_path = Path(csv_path)
-
-    if not csv_path.exists():
-        raise FileNotFoundError(f"CSV file not found at {csv_path}. Please provide a valid path.")
-
-    return csv_path
+    return dataframe_csv_path
 
 
 def initialize_diffae_model_for_finetuning(
