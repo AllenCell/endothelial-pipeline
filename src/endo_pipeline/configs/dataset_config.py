@@ -130,15 +130,6 @@ class DatasetConfig:
     cdh5_seg_path: str | None = None
     """Path to Cdh5 segmentations."""
 
-    cdh5_classic_seg_tracking_manifest_fmsid: str | None = None
-    """FMS ID for classic segmentation tracking output manifest."""
-
-    cdh5_classic_seg_manifest_fmsid: str | None = None
-    """FMS ID for classic segmentation measurement output manifest."""
-
-    nuclei_label_free_seg_manifest_fmsid: str | None = None
-    """FMS ID for nuclei label free segmentation measurement output manifest."""
-
     live_merged_seg_features_manifest_fmsid: str | None = None
     """FMS ID for live dataset merged segmentation features manifest."""
 
