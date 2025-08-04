@@ -195,7 +195,7 @@ def feature_density(
             plt.close(fig)
 
     if not per_dataset:
-        ax.set_xlabel(f"{feature_name}")
+        ax.set_xlabel(feature_name)
         ax.set_ylabel("Density")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
         ax.set_xlim(0, xlim)
