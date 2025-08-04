@@ -11,7 +11,6 @@ from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.tfe_manifest_formatting import (
     add_dynamic_features_with_filtering,
     add_feature_metadata,
-    add_intensity_mean_pcs,
     update_manifest_for_tfe,
 )
 from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -49,31 +48,8 @@ def generate_tfe_dataset(
     df_tracks = load_dataframe(segprops_location)
     df_position = df_tracks[df_tracks["position"] == position]
 
-    cell_mean_manifest = load_dataframe_manifest("cell_mean_features")
-
-    if dataset in cell_mean_manifest.locations:
-        cell_mean_location = get_dataframe_location_for_dataset(cell_mean_manifest, dataset)
-        df_diffae_cell_mean = load_dataframe(cell_mean_location)
-        df_diffae_cell_mean = df_diffae_cell_mean[df_diffae_cell_mean["position"] == f"P{position}"]
-        df_diffae_cell_mean["position"] = position
-        df_diffae_cell_mean = df_diffae_cell_mean.rename(columns={"frame_number": "image_index"})
-
-        df_merge_features = df_position.merge(
-            df_diffae_cell_mean,
-            how="inner",
-            on=["label", "image_index", "position"],
-        )
-    else:
-        logger.info(
-            f"Dataset {dataset} does not have cell mean features defined in its configuration."
-        )
-        df_merge_features = df_position
-
-    df = add_dynamic_features_with_filtering(df_merge_features)
+    df = add_dynamic_features_with_filtering(df_position)
     df = update_manifest_for_tfe(df, dataset, position, output_dir)
-
-    if dataset in cell_mean_manifest.locations:
-        df = add_intensity_mean_pcs(df)
 
     if backdrops:
         generate_backdrops(

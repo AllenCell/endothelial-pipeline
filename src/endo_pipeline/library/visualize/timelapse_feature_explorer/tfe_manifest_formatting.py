@@ -62,6 +62,10 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     Perform PCA on the intensity mean features and add the projected features
     to the DataFrame.
 
+    Note:
+        If the associated workflow make_spatial_pc_movie.py is deleted, 
+        this function should also be removed.  
+
     Args:
         df (pd.DataFrame): The input DataFrame.
 
