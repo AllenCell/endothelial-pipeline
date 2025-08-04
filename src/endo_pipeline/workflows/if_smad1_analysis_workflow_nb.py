@@ -67,16 +67,18 @@ plot.feature_density(
     df_all=if_manifest,
     dataset_name_list=IF_SMAD_DATASETS,
     feature=PLOT_FEAT,
+    feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
     xlim=xlim,
     ylim=ylim,
     pool_positions=True,
 )
-
+#%%
 plot.feature_density(
     df_all=if_manifest,
     dataset_name_list=IF_SMAD_DATASETS,
     feature=PLOT_FEAT,
+    feature_name="SMAD1 mean intensity of sum projection\nin nuclear mask",
     save_dir=output_dir,
     xlim=xlim,
     ylim=ylim,

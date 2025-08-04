@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 
-from src.endo_pipeline.library.visualize.viz_base import save_plot
+from src.endo_pipeline.io import save_plot_to_path
 
 
 def bootstrap_confidence_cov(
@@ -78,7 +78,8 @@ def feature_density(
     df_all: pd.DataFrame,
     dataset_name_list: list[str],
     feature: str,
-    save_dir: str,
+    feature_name: str,
+    save_dir: Path,
     positions: list | None = None,
     xlim: int | None = None,
     ylim: int | None = None,
@@ -97,6 +98,10 @@ def feature_density(
         A list of datasets, each corresponding to a dataset.
     feature: str
         The feature to plot.
+    feature_name: str
+        The name of the feature to use in the plot title.
+    save_dir: Path
+        Directory to save the plot.
     positions: list, optional
         A list of positions to loop through and plot densities for. If None, all positions are used.
     xlim: int, optional
@@ -108,6 +113,7 @@ def feature_density(
     per_dataset: bool, optional
         If True, plot densities for each dataset separately. Default is False.
     """
+    plt.rcParams.update({'font.size': 14})
     fig = plt.figure(figsize=(6, 6))
 
     def calc_stats(df: pd.DataFrame, feature: str) -> tuple:
@@ -145,7 +151,9 @@ def feature_density(
                 f"{flow_regime}, {flow_rate} dyn/cm², All positions, "
                 f"N={len(df)}, Mean={mean:.2f}, COV={cov:.2f}, CI=({low:.2f}, {high:.2f})"
             )
-            ax = sb.kdeplot(df[feature], color=color, label=label, alpha=0.85, linestyle="-")
+            ax = sb.kdeplot(
+                df[feature], color=color, label=label, alpha=0.85, linestyle="-", linewidth=5
+            )
         else:
             # Plot densities for individual positions
             dataset_positions = (
@@ -167,23 +175,27 @@ def feature_density(
                 )
                 line_style = line_styles[idx % len(line_styles)]  # Cycle through line styles
                 ax = sb.kdeplot(
-                    df[feature], color=color, label=label, alpha=0.85, linestyle=line_style
+                    df[feature],
+                    color=color,
+                    label=label,
+                    alpha=0.85,
+                    linestyle=line_style,
+                    linewidth=5,
                 )
 
         if per_dataset:
-            ax.set_xlabel(f"{feature}")
+            ax.set_xlabel(feature_name)
             ax.set_ylabel("Density")
             ax.set_xlim(0, xlim)
             ax.set_ylim(0, ylim)
             plt.tight_layout()
             plt.show()
             fname = f"{feature}_{dataset_name}_poolpos{pool_positions}_density_plot"
-            output_dir = save_dir / fname
-            save_plot(fig, str(output_dir), transparent=True)
+            save_plot_to_path(fig, save_dir, fname, transparent=True)
             plt.close(fig)
 
     if not per_dataset:
-        ax.set_xlabel(f"{feature}")
+        ax.set_xlabel(feature_name)
         ax.set_ylabel("Density")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
         ax.set_xlim(0, xlim)
@@ -192,8 +204,7 @@ def feature_density(
         plt.show()
 
         fname = f"{feature}_poolpos{pool_positions}_all_datasets_density_plot"
-        output_dir = save_dir / fname
-        save_plot(fig, str(output_dir), transparent=True)
+        save_plot_to_path(fig, save_dir, fname, transparent=True)
 
 
 def plot_channel_intensity_histograms(
@@ -265,15 +276,15 @@ def plot_channel_intensity_histograms(
         axes[i].legend(fontsize=10)
 
     plt.show()
-    output_path = save_dir / f"{dataset}_intensity_histograms.png"
-    save_plot(fig, str(output_path), transparent=True)
+    fname = f"{dataset}_intensity_histograms"
+    save_plot_to_path(fig, save_dir, fname, transparent=True)
 
 
 def feature_boxplot_vs_flowrate(
     df_all: pd.DataFrame,
     dataset_name_list: list[str],
     feature: str,
-    save_dir: str,
+    save_dir: Path,
 ) -> None:
     """
     Create a boxplot of a feature against flow rate across datasets.
@@ -286,7 +297,7 @@ def feature_boxplot_vs_flowrate(
         List of dataset names to include.
     feature: str
         The feature to plot.
-    save_dir: str
+    save_dir: Path
         Directory to save the plot.
     ylim: int, optional
         Y-axis limit.
@@ -347,8 +358,8 @@ def feature_boxplot_vs_flowrate(
     plt.tight_layout()
     plt.show()
 
-    output_path = save_dir / f"{feature}_vs_flowrate_boxplot.png"
-    save_plot(ax.figure, str(output_path), transparent=True)
+    fname = f"{feature}_vs_flowrate_boxplot"
+    save_plot_to_path(ax.figure, save_dir, fname, transparent=True)
     plt.close()
 
 
@@ -356,7 +367,7 @@ def feature_boxplot_vs_sample_size(
     df_all: pd.DataFrame,
     dataset_name_list: list[str],
     feature: str,
-    save_dir: str,
+    save_dir: Path,
 ) -> None:
     """
     Create a boxplot of a feature against sample size (N), pooling all positions,
@@ -370,7 +381,7 @@ def feature_boxplot_vs_sample_size(
         List of dataset names to include.
     feature: str
         The feature to plot.
-    save_dir: str
+    save_dir: Path
         Directory to save the plot.
     """
     records = []
@@ -427,8 +438,8 @@ def feature_boxplot_vs_sample_size(
     plt.tight_layout()
     plt.show()
 
-    output_path = f"{save_dir}/{feature}_vs_sample_size_boxplot.png"
-    save_plot(ax.figure, output_path, transparent=True)
+    fname = f"{feature}_vs_sample_size_boxplot"
+    save_plot_to_path(ax.figure, save_dir, fname, transparent=True)
     plt.close()
 
 
@@ -436,7 +447,7 @@ def feature_scatter_vs_flowrate(
     df_all: pd.DataFrame,
     dataset_name_list: list[str],
     feature: str,
-    save_dir: str,
+    save_dir: Path,
     by_flowrate: bool = True,
 ) -> None:
     """
@@ -450,7 +461,7 @@ def feature_scatter_vs_flowrate(
         List of dataset names to include.
     feature: str
         The feature to plot.
-    save_dir: str
+    save_dir: Path
         Directory to save the plot.
     by_flowrate: bool, optional
         If True, plot mean vs. flow rate; if False, plot mean vs. sample size.
@@ -506,6 +517,6 @@ def feature_scatter_vs_flowrate(
     plt.tight_layout()
     plt.show()
 
-    output_path = f"{save_dir}/{feature}_vs_flowrate_sample_size_scatter.png"
-    save_plot(ax.figure, output_path, transparent=True)
+    fname = f"{feature}_vs_flowrate_sample_size_scatter_plot"
+    save_plot_to_path(ax.figure, save_dir, fname, transparent=True)
     plt.close()
