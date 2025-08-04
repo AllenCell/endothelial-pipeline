@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Literal
@@ -8,6 +9,8 @@ from omegaconf import DictConfig, ListConfig
 
 from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import get_output_path
+
+logger = logging.getLogger(__name__)
 
 
 def get_model_dir() -> Path:
@@ -26,25 +29,20 @@ def _generate_overrides_for_model_training(
 
     Parameters
     ----------
-    model_name: str
+    model_name
         The name of the model to train.
-
-    crop_size: int
-        The number of pixels in each dimension of the
-        image crop to use for training.
-
-        That is, the cropped image will be square
-        with size (crop_size px, crop_size px).
-
-    train_csv_path: Path | None
+    crop_size
+        The number of pixels in each dimension of the image crop to use for training.
+        That is, the cropped image will be square with size (crop_size px, crop_size px).
+    train_csv_path
         The path to the training dataset CSV file.
-        If None, the default path for the output of
-        generate_csv_for_training_diffae will be used.
-
-    val_csv_path: Path | None
+    val_csv_path
         The path to the validation dataset CSV file.
-        If None, the default path for the output of
-        generate_csv_for_training_diffae will be used.
+
+    Returns
+    -------
+    :
+        A dictionary of configuration overrides for the DiffAE model training.
     """
     # create output directories if they do not exist
     train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
@@ -169,15 +167,13 @@ def initialize_diffae_model(
     model_name
         The name of the model to train.
     train_csv_path
-        The path to the training dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
+        The path to the training dataset CSV file.
     val_csv_path
-        The path to the validation dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
+        The path to the validation dataset CSV file.
 
     Returns
     -------
-    cytodl_model
+    :
         An initialized CytoDLModel for training the DiffAE model.
     """
     # user overrides for training
@@ -194,7 +190,7 @@ def initialize_diffae_model(
 
 
 def get_valid_csv_path_for_training(
-    csv_path: Path | str | None, csv_name: Literal["train", "val"]
+    csv_path: Path | str | None, zarr_resolution: int, csv_name: Literal["train", "val"]
 ) -> Path:
     """
     Get a valid CSV path for training or validation datasets.
@@ -202,8 +198,11 @@ def get_valid_csv_path_for_training(
     Parameters
     ----------
     csv_path
-        The path to the CSV file, defaults to None. If None, the default path
-        for the output of `generate_csv_for_training_diffae` will be used.
+        The given path to the CSV file.
+    zarr_resolution
+        The resolution level of the zarr files to be used for training.
+        This input is specified to ensure the correct CSV file is used
+        based on the resolution in the default case where csv_path is None.
     csv_name
         The name of the CSV file to validate, "train" or "val".
         If csv_path is not None, csv_name will not be used in the path generation.
@@ -213,11 +212,13 @@ def get_valid_csv_path_for_training(
 
     Returns
     -------
-    csv_path
-        A valid Path object pointing to the CSV file.
+    :
+        A valid Path object pointing to the CSV file for training or validation sets.
     """
     if csv_path is None:
-        csv_path = get_output_path("manifests", include_timestamp=False) / f"{csv_name}.csv"
+        csv_path = get_output_path(
+            "manifests", f"{csv_name}_resolution_{zarr_resolution}.csv", include_timestamp=False
+        )
 
     if isinstance(csv_path, str):
         csv_path = Path(csv_path)

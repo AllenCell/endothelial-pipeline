@@ -23,8 +23,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         at the points X and shear stress u.
     """
     import logging
+    from typing import cast
 
     from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
         dynamics_io,
         get_timelapse_model_manifests,
         load_model_config,
@@ -77,7 +79,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         kernel_params = kramers_moyal_config["kernel_params"]
 
     # get model config from model name
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # filter out datasets that are not timelapse
     # and load model manifests

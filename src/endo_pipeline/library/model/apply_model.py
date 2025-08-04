@@ -6,19 +6,21 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from src.endo_pipeline.configs import (
-    CytoDLModelConfig,
-    DatasetConfig,
-    add_model_manifest,
-    save_dataset_config,
-)
+from src.endo_pipeline.configs import CytoDLModelConfig, DatasetConfig, add_model_manifest
 from src.endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
-    load_dataframe_from_fms,
+    load_dataframe,
     upload_file_to_fms,
 )
 from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
+)
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
@@ -196,12 +198,10 @@ def preprocess_tracking_manifest_for_model_eval(
     downsample_factor: int = 2,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
-    fms_id = dataset_config.live_merged_seg_features_manifest_fmsid
-    if fms_id is None:
-        raise ValueError(
-            f"Dataset {dataset_config.name} does not have a live segmentation features FMS ID."
-        )
-    df = load_dataframe_from_fms(fms_id)
+
+    manifest = load_dataframe_manifest("live_merged_seg_features")
+    location = get_dataframe_location_for_dataset(manifest, dataset_config.name)
+    df = load_dataframe(location)
 
     # keep only rows that were not filtered out by filter_global
     df = df[~df["filter_global"]]
@@ -371,23 +371,23 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-) -> ModelConfig:
+) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
 
     Parameters
     ----------
-    model_config: CytoDLModelConfig
+    model_config
         Configuration of the model to apply.
-    dataset_config: DatasetConfig
+    dataset_config
         Configuration of the dataset to apply the model to.
-    resolution_level: int
+    resolution_level
         Resolution level to apply the model at. Default is 1 (zarr sample resolution)
-    upload_to_fms: bool
+    upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path: str or Path | None
+    save_path
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
-    user_overrides: str or dict or None
+    user_overrides
         Optional user overrides to apply to the model config.
     """
     if not torch.cuda.is_available():
@@ -540,7 +540,15 @@ def apply_model_on_tracked_crops_from_one_dataset(
             file_type="parquet",
         )
 
-        # tracking integration FMS ID
-        # is stored in the dataset config
-        dataset_config.diffae_tracking_integration_fmsid = file_id
-        save_dataset_config(dataset_config)
+        # Store FMS ID in dataframe manifest
+
+        manifest_name = "diffae_tracking_integration"
+        workflow_name = "apply_diffae_model_on_tracked_crops"
+
+        try:
+            manifest = load_dataframe_manifest(manifest_name)
+        except FileNotFoundError:
+            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+        save_dataframe_manifest(manifest)

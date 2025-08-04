@@ -4,6 +4,8 @@ from mashumaro.config import BaseConfig
 from mashumaro.types import Discriminator
 from pydantic.dataclasses import dataclass
 
+from src.endo_pipeline.manifests import DataframeLocation
+
 
 @dataclass
 class ModelManifest:
@@ -40,7 +42,7 @@ class CytoDLModelConfig(ModelConfig):
 
     manifest_fmsids: list[ModelManifest] = field(default_factory=list)
     """
-    List of manifest FMS IDs for datasets with features obtained from the model.
+    List of DataframeLocations for datasets with features obtained from the model.
 
     (i.e., as obtained from the `apply_diffae_model` workflow)
     """
@@ -48,11 +50,11 @@ class CytoDLModelConfig(ModelConfig):
     training_datasets: list[str] = field(default_factory=list)
     """List of datasets used for training the model."""
 
-    train_manifest_fmsid: str | None = None
-    """FMS ID of the training manifest dataset."""
+    train_dataframe: DataframeLocation | None = None
+    """DataframeLocation of the training dataset used during model training."""
 
-    test_manifest_fmsid: str | None = None
-    """FMS ID of the test manifest dataset."""
+    test_dataframe: DataframeLocation | None = None
+    """DataframeLocation of the validation dataset used during model training."""
 
 
 @dataclass

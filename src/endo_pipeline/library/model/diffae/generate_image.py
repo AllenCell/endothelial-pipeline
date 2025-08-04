@@ -1,9 +1,11 @@
+from typing import cast
+
 import numpy as np
 import pandas as pd
 import torch
 
 from cellsmap.util import manifest_io
-from src.endo_pipeline.configs import load_model_config
+from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.model.mlflow_utils import load_mlflow_model
 
@@ -37,7 +39,8 @@ def generate_from_coords(
     else:
         coords_np = coords
 
-    mlflow_id = load_model_config(model_name).mlflow_run_id
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_name, "train", include_timestamp=False)
     model = load_mlflow_model(mlflow_id, save_path=model_path)
 
