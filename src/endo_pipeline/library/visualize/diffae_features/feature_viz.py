@@ -1,3 +1,4 @@
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
@@ -112,7 +113,10 @@ def plot_pc_scatter(
     - ax: plt.Axes
     """
 
+    # initialize figure and axes
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
+    # initialize color list for legend
+    patch_list_for_legend = []
 
     for model_manifest in model_manifest_list:
         dataset_name = model_manifest.dataset_name
@@ -132,6 +136,7 @@ def plot_pc_scatter(
 
         # get color for the dataset
         color = get_dataset_color(model_manifest.dataset_name)
+        patch_list_for_legend.append(mpatches.Patch(color=color, label=dataset_name))
 
         # first plot: PC1 v PC2
         ax[0].scatter(
@@ -156,7 +161,7 @@ def plot_pc_scatter(
         )
         ax[1].set_xlabel("PC1")
         ax[1].set_ylabel("PC3")
-        ax[1].legend(loc=(1.05, 0.5), title="Datasets")
+    ax[1].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
 
     return fig, ax
 
