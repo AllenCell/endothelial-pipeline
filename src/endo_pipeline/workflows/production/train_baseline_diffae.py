@@ -4,6 +4,7 @@ TAGS = ["diffae_model_training"]
 
 
 def main(
+    zarr_resolution: int = 1,
     crop_size: int = 128,
     train_csv_path: Path | str | None = None,
     val_csv_path: Path | str | None = None,
@@ -13,22 +14,24 @@ def main(
 
     Parameters
     ----------
+    zarr_resolution
+        The resolution level of the zarr files to be used for training. Default is 1,
+        which corresponds to downsampling by half.
     crop_size
         The length of the 2D image crop in pixels to use for model training.
-
     train_csv_path
         Optional user-specified path to the training dataset CSV file.
-
     val_csv_path
         Optional user-specified path to the validation dataset CSV file.
 
     Returns
     -------
     :
-        The function creates and saves a :code:`ModelConfig` object with the trained model's
+        The function creates and saves a ModelConfig object with the trained model's
         MLflow run ID and the list of datasets used for training.
     """
     import datetime
+    import logging
 
     from omegaconf import OmegaConf
 
@@ -40,19 +43,22 @@ def main(
         initialize_diffae_model,
     )
 
-    # get valid CSV paths for training and validation datasets
-    train_csv_path = get_valid_csv_path_for_training(train_csv_path, "train")
-    val_csv_path = get_valid_csv_path_for_training(val_csv_path, "val")
+    # set lightning logger level to WARNING to avoid excessive logging
+    lightning_logger = logging.getLogger("lightning.pytorch")
+    lightning_logger.setLevel(logging.WARNING)
 
-    # load training config
+    # get valid CSV paths for training and validation datasets based on zarr resolution
+    train_csv_path = get_valid_csv_path_for_training(train_csv_path, zarr_resolution, "train")
+    val_csv_path = get_valid_csv_path_for_training(val_csv_path, zarr_resolution, "val")
+
+    # load template training config
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
 
-    # set model name via timestamp and crop size
+    # set model name via zarr resolution, crop size, and current timestamp
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
-    model_name = f"diffae_patch_{crop_size}x{crop_size}_{timestamp}"
+    model_name = f"diffae_resolution_{zarr_resolution}_patch_{crop_size}x{crop_size}_{timestamp}"
 
-    # initialize DiffAE model: generates config
-    # overrides and sets up output directories
+    # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(
         template_training_config,
         crop_size,

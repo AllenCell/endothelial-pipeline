@@ -31,6 +31,8 @@ def main(
         The function creates and save a :code:`ModelConfig` object with the finetuned model's
         MLflow run ID and the list of datasets used for training.
     """
+    from typing import cast
+
     from omegaconf import OmegaConf
 
     from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
@@ -55,7 +57,8 @@ def main(
     )
 
     # download model to finetune
-    finetune_run_id = load_model_config(model_name).mlflow_run_id
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    finetune_run_id = model_config.mlflow_run_id
     diffae_ckpt_path = get_ckpt_path(run_id=finetune_run_id)
     download_mlflow_artifact(finetune_run_id, diffae_ckpt_path, model_save_path)
 
