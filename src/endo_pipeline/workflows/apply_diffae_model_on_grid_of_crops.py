@@ -32,8 +32,8 @@ def main(
     ```
     python src/endo_pipeline/workflows/apply_diffae_model_on_grid_of_crops.py \
     --model_name diffae_04_10 \
-    --dataset_names '20241016_20X' \
-    --z_stack_offsets 5,10 \
+    --dataset_names '20250409_20X' \
+    --z_stack_offsets 0,16 \
     --slice_by_global_center False
     ```
 

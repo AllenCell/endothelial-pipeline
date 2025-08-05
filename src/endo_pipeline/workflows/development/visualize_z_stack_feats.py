@@ -8,14 +8,14 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data
 from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
     feature_density,
-    plot_distribution_by_frame,
     plot_scatter_by_position_and_frame,
 )
 
 # %%
 model_config = load_model_config("diffae_04_10")
-# dataset_name = "20241016_20X"
-dataset_name = "20250331_20X"
+dataset_list = ["20241016_20X", "20250331_20X", "20250402_20X", "20250409_20X"]
+dataset_name = dataset_list[3]
+print(f"Analyzing dataset: {dataset_name}")
 
 save_dir = get_output_path("visualize_z_stack_feats", model_config.name, dataset_name)
 

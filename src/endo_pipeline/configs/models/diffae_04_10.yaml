@@ -115,6 +115,36 @@ manifest_fmsids:
   z_stack_offsets:
   - 5
   - 10
+- dataset_name: 20250402_20X
+  fmsid: 989580783fc64beb81ddb17f13e806ec
+  z_stack_offsets:
+  - 5
+  - 10
+- dataset_name: 20250402_20X
+  fmsid: 275f1b87ed1c4361ad3babf08e3869e7
+  z_stack_offsets:
+  - 0
+  - 16
+- dataset_name: 20250402_20X
+  fmsid: 082e7ad3cabc48f28b656ce7b790c389
+  z_stack_offsets:
+  - 9
+  - 24
+- dataset_name: 20250409_20X
+  fmsid: f4cb3a8809ed44cd9c040623f1f00bc0
+  z_stack_offsets:
+  - 5
+  - 10
+- dataset_name: 20250409_20X
+  fmsid: 9828b9ab943d4925ac2d4a05bfc92d60
+  z_stack_offsets:
+  - 0
+  - 16
+- dataset_name: 20250409_20X
+  fmsid: 6515cec3773f461199a96ed0fc0c7bb2
+  z_stack_offsets:
+  - 9
+  - 24
 training_datasets:
 - 20241210_20X
 - 20241016_20X
