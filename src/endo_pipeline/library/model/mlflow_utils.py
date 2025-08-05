@@ -72,7 +72,6 @@ def _get_available_artifacts(
                 run_id=run_id,
                 artifact_path=full_item_path,
                 tracking_uri=tracking_uri,
-                verbose=False,
                 _current_recursion_level=_current_recursion_level + 1,
             )
             all_found_artifacts.extend(recursive_artifacts)

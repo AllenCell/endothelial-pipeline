@@ -105,6 +105,7 @@ def generate_overrides_for_model_eval(
             ],
             "save_suffix": f"{dataset_name}_{model_name}_features",
         },
+        "extras.print_config": False,
     }
     overrides.update(user_overrides)
     return overrides
@@ -404,6 +405,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Optional user overrides to apply to the model config.
     workflow_testing
         Flag to indicate if this script is being run for testing purposes (e.g., code review).
+
         If True, then only one position and minimal timepoints from the dataset is included for
         loading and performing inferrence on the crops.
     """
