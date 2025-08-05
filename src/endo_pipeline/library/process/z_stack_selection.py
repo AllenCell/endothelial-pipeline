@@ -211,3 +211,144 @@ def plot_global_center_plane(
     plt.show()
 
     return mean_center_plane, std_center_plane
+
+
+def save_projection_image(image: np.ndarray, save_path: Path) -> None:
+    """
+    Save a processed 2D image to disk using grayscale colormap.
+
+    Intentionally not using save_plot_to_path here to avoid saving as a figure and 
+    keep the image at its original resolution.
+    
+    Parameters
+    ----------
+    image : np.ndarray
+        The processed image array to be saved.
+    save_path : Path
+        The file path where the image will be saved.
+    """
+    plt.imsave(save_path, image, cmap="gray")
+
+
+def append_projection_outputs(
+    stack,
+    zslice: list[int],
+    process_fn: callable,
+    image_list: list,
+    title_list: list,
+    bottom_list: list,
+    top_list: list,
+) -> None:
+    """
+    Process a z-slice from a stack and append outputs to given containers.
+
+    Parameters
+    ----------
+    stack : dask.array.Array
+        The full 3D image stack.
+    zslice : list[int]
+        Start and end indices for slicing the z-axis (e.g., [5, 20]).
+    process_fn : callable
+        A function that processes the sliced stack and returns outputs, with
+        the final output being the 2D projection.
+    image_list : list
+        List to collect the processed projection images.
+    title_list : list
+        List to collect slice label strings for titles.
+    bottom_list : list
+        List to collect the bottom slice of the projection range.
+    top_list : list
+        List to collect the top slice of the projection range.
+    """
+    slice_str = f"{zslice[0]}_{zslice[1]}"
+    sliced = stack[zslice[0]:zslice[1]]
+    outputs = process_fn(sliced)
+    processed = outputs[-1]
+
+    image_list.append(processed)
+    title_list.append(slice_str)
+    bottom_list.append(stack[zslice[0]])
+    top_list.append(stack[zslice[1]])
+
+
+def plot_image_row(
+    images: list[np.ndarray],
+    titles: list[str],
+    dataset: str,
+    save_dir: Path,
+    row_title: str = "Image",
+    figsize: tuple[int, int] = (16, 4)
+) -> None:
+    """
+    Plot a single row of images with corresponding titles.
+
+    Parameters
+    ----------
+    images : list[np.ndarray]
+        List of images to display.
+    titles : list[str]
+        List of titles corresponding to each image.
+    dataset : str
+        Name of the dataset for labeling the plot.
+    save_dir : Path
+        Directory where the plot will be saved.
+    row_title : str, optional
+        Prefix for each subplot title.
+    figsize : tuple[int, int], optional
+        Figure size for the matplotlib plot.
+    """
+    fig, axes = plt.subplots(1, len(images), figsize=figsize)
+    for ax, img, title in zip(axes, images, titles, strict=True):
+        ax.imshow(img, cmap="gray")
+        ax.set_title(f"{row_title} {title}")
+        ax.axis("off")
+    plt.suptitle(dataset)
+    plt.tight_layout()
+    plt.show()
+    fname = f"{dataset}_{row_title.replace(' ', '_').lower()}_image_comparison"
+    save_plot_to_path(fig, save_dir, fname)
+    
+
+
+def plot_bottom_top_slices(
+    bottoms: list,
+    tops: list,
+    titles: list[str],
+    dataset: str,
+    save_dir: Path,
+    label: str,
+    figsize: tuple[int, int] = (16, 8)
+) -> None:
+    """
+    Plot two rows of images showing bottom and top z-slices from each projection range.
+
+    Parameters
+    ----------
+    bottoms : list
+        List of bottom slices (as dask arrays) from each projection range.
+    tops : list
+        List of top slices (as dask arrays) from each projection range.
+    titles : list[str]
+        Slice range labels (e.g., "0_16", "9_24") for each column.
+    dataset : str
+        Name of the dataset for labeling the plot.
+    save_dir : Path
+        Directory where the plot will be saved.
+    label : str
+        Label prefix to distinguish BF or CDH5 channels in titles.
+    figsize : tuple[int, int], optional
+        Size of the figure to plot.
+    """
+    fig, axes = plt.subplots(2, len(bottoms), figsize=figsize)
+    for ax, img, title in zip(axes[0], bottoms, titles, strict=True):
+        ax.imshow(contrast_stretching(img.compute()), cmap="gray")
+        ax.set_title(f"{label} bottom {title}")
+        ax.axis("off")
+    for ax, img, title in zip(axes[1], tops, titles, strict=True):
+        ax.imshow(contrast_stretching(img.compute()), cmap="gray")
+        ax.set_title(f"{label} top {title}")
+        ax.axis("off")
+    plt.suptitle(dataset)
+    plt.tight_layout()
+    plt.show()
+    save_plot_to_path(fig, save_dir, f"{dataset}_{label}_bottom_top_slices")
