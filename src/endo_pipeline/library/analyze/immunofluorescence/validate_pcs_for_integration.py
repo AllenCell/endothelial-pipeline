@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
@@ -195,7 +195,7 @@ def apply_model_paired_fixed_live(
 
 
 def project_paired_fixed_live_data_into_ref_PC_space(
-    pca: Pipeline,
+    pca: PCA,
     fixed_features_path: Path = "fixed_features.parquet",
     live_features_path: Path = "live_features.parquet",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -205,7 +205,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
     Parameters
     ----------
-    pca : Pipeline | None
+    pca : PCA | None
         PCA model
     fixed_features_path : Path
         Path to the fixed features manifest
@@ -232,7 +232,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
 
 def create_reference_timelapse_datasets(
-    pca: Pipeline,
+    pca: PCA,
     reference_dataset_name: str,
     model: str = "diffae_04_10",
     time_lag: int = 3,
@@ -245,7 +245,7 @@ def create_reference_timelapse_datasets(
 
     Parameters
     ----------
-    pca : Pipeline
+    pca : PCA
         PCA model to project features into reference PC space
     reference_dataset_name : str
         Name of the reference dataset to use for creating the timelapse datasets

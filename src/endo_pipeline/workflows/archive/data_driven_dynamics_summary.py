@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest
 
@@ -91,7 +91,7 @@ def _ddd_model_analysis(
 
 def _get_and_analyze_ddd(
     model_manifest: ModelManifest,
-    pca: Pipeline,
+    pca: PCA,
     kernel_params: dict | None,
     fig_savedir: Path,
     dynamics_config: dict,
@@ -103,7 +103,7 @@ def _get_and_analyze_ddd(
     Inputs:
     - model_manifest (ModelManifest): model manifest object
         for a given dataset and deep learning model
-    - pca (Pipeline): fit PCA object
+    - pca: fit PCA object
         Used to project data into PCA space
     - kernel_params (dict): parameters for kernel method
         Used to compute drift and diffusion estimates

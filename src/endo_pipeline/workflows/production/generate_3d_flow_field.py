@@ -32,17 +32,12 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         get_available_dataset_names,
         get_datasets_in_collection,
         get_model_manifest,
-        get_pca_reference_model_manifests,
-        load_dataset_config,
         load_model_config,
     )
     from src.endo_pipeline.io import get_output_path, save_plot_to_path
     from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
-    from src.endo_pipeline.library.analyze.diffae_manifest import (
-        fit_pca,
-        get_timepoints_for_plotting_pcs,
-    )
-    from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
     logger = logging.getLogger(__name__)
 
@@ -73,37 +68,13 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     pca = fit_pca(model_name=model_name)
 
     # plot scatter of PCA components
-    # for a) just the datasets used to fit PCA
-    # and b) all datasets specified in the command line
+    # and all datasets specified in the command line
     #   (or default list, if not specified)
-    # get timepoints to use for scatter plots
-    # all timepoints except no flow
     model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-    pca_ref_model_manifest_list = get_pca_reference_model_manifests(model_config)
-    pca_ref_configs = [
-        load_dataset_config(model_manifest.dataset_name)
-        for model_manifest in pca_ref_model_manifest_list
-    ]
-    restrict_no_flow = True  # restrict plot to subset of no flow timepoints
-
-    # get timepoints to use for scatter plots
-    # this can definitely be written into a wrapper function
-    # maybe make a dictionary instead of a list?
-    timepoints_refs = get_timepoints_for_plotting_pcs(
-        pca_ref_configs, restrict_no_flow=restrict_no_flow
-    )
-
-    # scatter plot of pca reference datasets
-    fig, _ = manifest_viz.plot_pc_scatter(
-        pca, pca_ref_model_manifest_list, timepoints_to_use=timepoints_refs
-    )
-    save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
-
-    # scatter plot of all datasets specified in command line
     model_manifest_list = [
         get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
     ]
-    fig, _ = manifest_viz.plot_pc_scatter(
+    fig, _ = feature_viz.plot_pc_scatter(
         pca,
         model_manifest_list,  # all datasets specified and all timepoints
     )

@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 
 def write_text(img: np.ndarray, text: str) -> np.ndarray:
@@ -62,7 +62,7 @@ def get_walk(data: np.ndarray, n_dims: int, sigma: float, n_steps: int) -> tuple
 
 
 def get_pca_coords(
-    pca_data: np.ndarray, pca: Pipeline, num_pcs: int, sigma: float, n_steps: int
+    pca_data: np.ndarray, pca: PCA, num_pcs: int, sigma: float, n_steps: int
 ) -> tuple[list, list]:
     """
     Generate PCA coordinates and corresponding PC values for a latent walk.
@@ -71,8 +71,8 @@ def get_pca_coords(
     ----------
     pca_data: np.ndarray
         Numpy array containing the projected data onto PCA axes.
-    pca: Pipeline
-        PCA pipeline fitted to the data.
+    pca: PCA
+        PCA model fit to the data.
     num_pcs: int
         Number of principal components to use for the latent walk.
     sigma: float

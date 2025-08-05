@@ -2,8 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
 
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.io import save_plot_to_path
@@ -15,7 +15,7 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 )
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_bins
-from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
 
 def _kramers_moyal_train_test_one_dataset(
@@ -121,7 +121,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # plot drift and diffusion estimates
         kmc = np.concatenate([drift_km_, diff_km_], axis=-1).T
-        fig = manifest_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
+        fig = feature_viz.plot_km(centers, kmc, pcs, shear_list[j])[0]
         save_plot_to_path(
             fig,
             fig_savedir,
@@ -130,7 +130,7 @@ def _kramers_moyal_train_test_one_dataset(
 
         # quiver and streamplot of drift vector field
         if ndim == 2:
-            fig = manifest_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
+            fig = feature_viz.plot_km_drift_2d(centers, kmc, pcs, shear_list[j])[0]
             save_plot_to_path(
                 fig,
                 fig_savedir,
@@ -172,7 +172,7 @@ def _kramers_moyal_train_test_one_dataset(
 
 def build_kramers_moyal_train_test(
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     pcs: list[int],
     num_bins: list[int],
     dt: float,
@@ -192,7 +192,6 @@ def build_kramers_moyal_train_test(
     - model_manifest_list: list of ModelManifest objects used
         to load manifest feature data to use for Kramers-Moyal analysis
     - pca: PCA object used to project data onto principal component axes
-        (sklearn.pipeline.Pipeline, can include scaling as pre-processing step)
     - pcs: list of principal component axes to use for Kramers-Moyal analysis
     - num_bins: list of number of bins to use for histogramming data to compute
         the Kramers-Moyal coefficients
