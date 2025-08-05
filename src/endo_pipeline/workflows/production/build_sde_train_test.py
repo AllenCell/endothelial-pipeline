@@ -3,8 +3,7 @@ TAGS = ["dynamical_systems", "diffae_features", "2d_feature_space"]
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Build training and test data for regression model fitting and evaluation of the dynamical
-    systems model for the crop-based feature manifest data (Diff AE features).
+    Build train/test sets to apply SINDy to the Kramers-Moyal estimates from the Diff AE features.
 
     Parameters
     ----------
@@ -23,19 +22,20 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         at the points X and shear stress u.
     """
     import logging
+    from typing import cast
 
     from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
         dynamics_io,
         get_timelapse_model_manifests,
         load_model_config,
     )
-    from src.endo_pipeline.io import get_output_path, save_plot_to_path
+    from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_features import (
         build_kramers_moyal_train_test,
         save_train_test,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
 
     logger = logging.getLogger(__name__)
 
@@ -61,11 +61,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     # fit PCA to reference timepoints of reference datasets
     pca = fit_pca(model_name=model_name)
 
-    ################### Visualize PCA results ###################
-    # plot explained variance ratio of PCA components
-    fig, _ = manifest_viz.plot_explained_variance(pca["pca"].explained_variance_ratio_)
-    save_plot_to_path(fig, fig_savedir, "explained_variance_ratio")
-
     ################### Build train-test data for regression ###################
     # load inputs from dynamics_config.yaml
     pcs = dynamics_config["pcs_to_analyze"]
@@ -77,7 +72,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         kernel_params = kramers_moyal_config["kernel_params"]
 
     # get model config from model name
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # filter out datasets that are not timelapse
     # and load model manifests

@@ -1,0 +1,37 @@
+name: diffae_tracking_integration
+workflow: apply_diffae_model_on_tracked_crops
+parameters: {}
+locations:
+  20241016_20X:
+    fmsid: 59b2b9c848b14d1b9f730a6a0e875bd3
+    s3uri: null
+  20241120_20X:
+    fmsid: be213c4232144ac2b069b4ec52dfbab4
+    s3uri: null
+  20241217_20X:
+    fmsid: 3fcca818b44f4cfbb17c6bb9340f389c
+    s3uri: null
+  20250224_20X:
+    fmsid: b3bbae92039e43da99d4de3a01916614
+    s3uri: null
+  20250319_20X:
+    fmsid: f888fdc16dc24a6bab13446f559cd3a7
+    s3uri: null
+  20250326_20X:
+    fmsid: cbd8468be9154b0eba0c1516178e6a63
+    s3uri: null
+  20250331_20X:
+    fmsid: 90144b3d481c4547a87b5708b184af1b
+    s3uri: null
+  20250409_20X:
+    fmsid: 03c71379277941c7b6cceab51b35cf86
+    s3uri: null
+  20250428_20X:
+    fmsid: 8b33866b2a3045a7b23bfb10e4a3a26a
+    s3uri: null
+  20250604_20X:
+    fmsid: 3f59d2da192941bba979727adf3b6dee
+    s3uri: null
+  20250611_20X:
+    fmsid: 3a69bbcd8ab244d9b2d3eb9ee7eacde3
+    s3uri: null

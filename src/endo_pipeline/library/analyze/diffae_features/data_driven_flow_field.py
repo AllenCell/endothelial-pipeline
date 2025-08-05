@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
@@ -21,7 +21,7 @@ from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, 
 
 def _ddff_model_analysis(
     model_manifest: ModelManifest,
-    pca: Pipeline,
+    pca: PCA,
     kernel_params: dict,
     dt: float,
     bins: list[np.ndarray],
@@ -133,7 +133,7 @@ def _ddff_model_analysis(
 
 def get_and_analyze_ddff(
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     kernel_params: dict,
     dt: float,
     time_span: list,
@@ -421,7 +421,7 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     return interpolated_points
 
 
-def convert_coordinates_from_pc_to_latent(coords: np.ndarray, reducer: Pipeline) -> list[list]:
+def convert_coordinates_from_pc_to_latent(coords: np.ndarray, reducer: PCA) -> list[list]:
     """
     Convert coordinates in PCA-based feature space
     to latent space using the PCA model.

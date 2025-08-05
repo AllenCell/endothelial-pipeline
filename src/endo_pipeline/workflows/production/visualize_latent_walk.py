@@ -39,11 +39,16 @@ def main(
         The images are saved as a multi-channel TIFF file.
     """
     from pathlib import Path
+    from typing import cast
 
     import pandas as pd
     from bioio.writers import OmeTiffWriter
 
-    from src.endo_pipeline.configs import get_pca_reference_model_manifests, load_model_config
+    from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
+        get_pca_reference_model_manifests,
+        load_model_config,
+    )
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_manifest import (
         fit_pca,
@@ -62,7 +67,7 @@ def main(
     save_dir = get_output_path("models", model_name, include_timestamp=False)
 
     # load model configuration and reference dataset manifests
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
     reference_dataset_model_manifests = get_pca_reference_model_manifests(model_config)
 
     if use_pcs:

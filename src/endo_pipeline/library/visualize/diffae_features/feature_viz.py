@@ -1,7 +1,8 @@
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
@@ -38,6 +39,36 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
+def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot component loadings of PCA model.
+
+    Parameters
+    ----------
+    loading_matrix:
+        PCA component loadings matrix, shape (n_features, n_components).
+
+    Returns
+    -------
+    :
+        Figure and Axes objects for the plot.
+    """
+    fig, ax = viz_base.init_plot(figsize=(12, 6))  # initialize figure and axes
+
+    # list of markers for each component
+    markers = ["o", "s", "D", "^", "v", "X", "*", "p"]
+
+    # plot loadings for each component
+    for i in range(loading_matrix.shape[1]):
+        ax.plot(loading_matrix[:, i], markers[i], label=f"PC{i + 1}", markersize=10)
+    ax.set_xlabel("Feature index")
+    ax.set_ylabel("Loading value")
+    ax.set_title("PCA Loadings")
+    ax.legend(loc=(1.05, 0.5), title="PCs")
+
+    return fig, ax
+
+
 def get_dataset_color(dataset_name: str) -> str:
     """
     Get standard color for a dataset based on its name.
@@ -66,7 +97,7 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
-    pca: Pipeline,
+    pca: PCA,
     model_manifest_list: list[ModelManifest],
     timepoints_to_use: dict[str, list[list]] | None = None,
 ) -> tuple:
@@ -74,9 +105,8 @@ def plot_pc_scatter(
     Plot scatter plot of PCA components for a list of datasets.
 
     Input:
-    - pca: Pipeline, the PCA model used to project the
+    - pca: the PCA model used to project the
         feature data onto the PCA space
-        - can include any preprocessing steps before PCA, such as scaling
     - model_manifest_list: list[str], list of dataset names to plot
         - each dataset should have a DiffAE manifest file
     - timepoints_to_use: dict[list[list]] | None, optional
@@ -86,9 +116,13 @@ def plot_pc_scatter(
     - ax: plt.Axes
     """
 
+    # initialize figure and axes
     fig, ax = viz_base.init_subplots(figsize=(15, 5))
+    # initialize color list for legend
+    patch_list_for_legend = []
 
     for model_manifest in model_manifest_list:
+        dataset_name = model_manifest.dataset_name
         # load dataframe and get top 3 PCs
         df = get_manifest_for_dynamics_workflows(model_manifest, pca)
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
@@ -105,20 +139,32 @@ def plot_pc_scatter(
 
         # get color for the dataset
         color = get_dataset_color(model_manifest.dataset_name)
+        patch_list_for_legend.append(mpatches.Patch(color=color, label=dataset_name))
 
         # first plot: PC1 v PC2
         ax[0].scatter(
-            df[pc_column_names[0]], df[pc_column_names[1]], alpha=0.75, s=0.01, color=color
+            df[pc_column_names[0]],
+            df[pc_column_names[1]],
+            alpha=0.75,
+            s=0.01,
+            color=color,
+            label=dataset_name,
         )
         ax[0].set_xlabel("PC1")
         ax[0].set_ylabel("PC2")
 
         # second plot: PC1 v PC3
         ax[1].scatter(
-            df[pc_column_names[0]], df[pc_column_names[2]], alpha=0.75, s=0.01, color=color
+            df[pc_column_names[0]],
+            df[pc_column_names[2]],
+            alpha=0.75,
+            s=0.01,
+            color=color,
+            label=dataset_name,
         )
         ax[1].set_xlabel("PC1")
         ax[1].set_ylabel("PC3")
+    ax[1].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
 
     return fig, ax
 

@@ -1,0 +1,8 @@
+name: diffae_04_10_finetuned_for_live_fixed
+mlflow_run_id: 39a8cae9046b46da8089fce9e3ac7982
+manifest_fmsids: []
+training_datasets:
+- 20250214_pairedPostFixation
+- 20250214_pairedPreFixation
+train_dataframe: null
+test_dataframe: null

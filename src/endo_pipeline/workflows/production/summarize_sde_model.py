@@ -3,8 +3,7 @@ TAGS = ["dynamical_systems", "diffae_features"]
 
 def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10") -> None:
     """
-    Summarize the qualitative and quantitative results of the dynamical systems model
-    fit to the crop-based feature manifest data (Diff AE features).
+    Summarize the the dynamical systems model fit to the crop-based Diff AE feature data.
 
     Parameters
     ----------
@@ -23,9 +22,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         - Entropy production rate as a function of shear stress
         - Generalized potential energy landscape plots (for various shear stresses)
     """
+    from typing import cast
+
     import numpy as np
 
     from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
         dynamics_io,
         get_timelapse_model_manifests,
         load_model_config,
@@ -112,7 +114,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     #################### Load model manifest data ###################
     # get model config from model name
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # filter out datasets that are not timelapse
     # and load model manifests

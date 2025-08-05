@@ -18,7 +18,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         project_manifest_to_pcs,
     )
     from src.endo_pipeline.library.analyze.numerics import get_bins
-    from src.endo_pipeline.library.visualize.diffae_features import manifest_viz
+    from src.endo_pipeline.library.visualize.diffae_features import feature_viz
 
     # get model config from model name
     model_config = load_model_config(model_name)
@@ -56,11 +56,11 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         df = get_manifest_for_dynamics_workflows(model_manifest, pca=None)
         feature_column_names = get_feature_column_names(df)
         feats = df_to_array(df, feature_column_names)
-        fig, _ = manifest_viz.plot_latent_component_mean(feats)
+        fig, _ = feature_viz.plot_latent_component_mean(feats)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_mean")
 
-        fig, _ = manifest_viz.plot_latent_component_histogram(feats)
+        fig, _ = feature_viz.plot_latent_component_histogram(feats)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_histogram")
 
@@ -68,7 +68,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         pc_column_names = get_pc_column_names(df_proj, pc_axes=[0, 1, 2])
         feats = df_to_array(df_proj, pc_column_names)  # only looking at top 3 PCs
 
-        fig, _ = manifest_viz.plot_principal_component_histogram(feats, bins=bins)
+        fig, _ = feature_viz.plot_principal_component_histogram(feats, bins=bins)
         fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
         save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_pc_histogram")
 

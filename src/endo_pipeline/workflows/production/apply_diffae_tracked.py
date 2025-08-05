@@ -36,7 +36,9 @@ def main(
         Saves the model config with the applied model and model manifest objects.
         The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
     """
-    from src.endo_pipeline.configs import load_dataset_config, load_model_config
+    from typing import cast
+
+    from src.endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
     from src.endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
 
     if isinstance(dataset_names, str):
@@ -44,7 +46,7 @@ def main(
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
     # load model config
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # apply model to each dataset
     for dataset_config in dataset_config_list:

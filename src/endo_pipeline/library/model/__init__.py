@@ -26,6 +26,7 @@ from .latent_walk_utils import (
 )
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .train_model import (
+    build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
     get_model_dir,
     get_valid_csv_path_for_finetuning,
@@ -40,6 +41,7 @@ __all__ = [
     "RotateRanged",
     "apply_model_on_grid_of_crops_from_one_dataset",
     "apply_model_on_tracked_crops_from_one_dataset",
+    "build_and_save_dataframe_manifest_for_training",
     "download_mlflow_artifact",
     "download_model",
     "generate_from_coords",

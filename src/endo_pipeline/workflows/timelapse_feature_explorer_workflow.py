@@ -1,8 +1,8 @@
 import argparse
 from pathlib import Path
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import get_cdh5_classic_segmentation_path
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
@@ -35,7 +35,7 @@ def main() -> None:
     --positions : list of int
         List of positions to process. Defaults to [0].
 
-    --output_dir : str
+    --output_dir : path
         Defaults to the results folder of the current repo.
         To replace the data in the shared program directory set to
         "//allen/aics/endothelial/morphological_features/".
@@ -66,7 +66,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--output_dir",
-        type=str,
+        type=Path,
         default=get_output_path("timelapse_feature_explorer"),
         help="Directory to save the output (default: current directory).",
     )
@@ -86,8 +86,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    output_dir = Path(args.output_dir)
-
     # Iterate through datasets and positions
     for dataset in args.datasets:
         for position in args.positions:
@@ -99,7 +97,7 @@ def main() -> None:
             generate_tfe_dataset(
                 dataset=dataset,
                 position=position,
-                output_dir=output_dir,
+                output_dir=args.output_dir,
                 source_dir=source_dir_path,
                 backdrops=args.no_backdrops,
             )

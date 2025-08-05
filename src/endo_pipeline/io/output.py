@@ -72,7 +72,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
 
 
 def build_fms_annotations(
-    dataset: DatasetConfig,
+    dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
     include_git_info: bool = True,
     model: ModelConfig | None = None,
@@ -88,29 +88,48 @@ def build_fms_annotations(
     - Program = "Endothelial" (prod only)
     - Produced By = "python code"
     - mlflow run id = MLFlow run id from model config object, if provided
-    - Notes = additional notes formatted as:
+    - Notes = additional notes
+
+    For a single dataset, the "Notes" annotation is formatted as:
 
         This file was produced by the Endothelial Pipeline repository.
 
-        Dataset: <dataset name> (<dataset FMS file id>)
+        Dataset: <dataset name> (<original dataset FMS file id>)
         Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
+        Model: <model name> (if model is given)
+
+        (any additional notes appended here)
+
+    For a list of datasets, the "Notes" annotation is formatted as:
+
+        This file was produced by the Endothelial Pipeline repository.
+
+        Dataset(s):
+          - <dataset name> (<original dataset FMS file id>)
+          - <dataset name> (<original dataset FMS file id>)
+          - ...
+        Effort: "Core" or "Parallel"
+        Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
+        Branch: <current branch name> (if `include_git_info` is selected)
+        Commit: <latest commit hash> (if `include_git_info` is selected)
+        Model: <model name> (if model is given)
 
         (any additional notes appended here)
 
     Parameters
     ----------
     dataset
-        The dataset config object used to generate the file.
+        The dataset config or list of dataset configs used to generate the file.
     include_timestamp
         True to add current timestamp to the annotations, False otherwise.
     include_git_info
         True to add branch name and commit hash of code used to generate the
         file to the annotations, False otherwise.
     model
-        The model config object used to generate the file, if applicable.
+        The model config used to generate the file, if applicable.
     effort
         The program effort for the file ("Core" or "Parallel").
     additional_notes
@@ -140,11 +159,15 @@ def build_fms_annotations(
 
     metadata_builder.add_annotation("Produced By", "python code")
 
-    notes = [
-        "This file was produced by the Endothelial Pipeline repository.\n",
-        f"Dataset: {dataset.name} ({dataset.fmsid})",
-        f"Effort: {effort}",
-    ]
+    notes = ["This file was produced by the Endothelial Pipeline repository.\n"]
+
+    if isinstance(dataset, list):
+        notes.append("Dataset(s):")
+        notes.extend([f"  - {item.name} ({item.fmsid})" for item in dataset])
+    else:
+        notes.append(f"Dataset: {dataset.name} ({dataset.fmsid})")
+
+    notes.append(f"Effort: {effort}")
 
     if include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
