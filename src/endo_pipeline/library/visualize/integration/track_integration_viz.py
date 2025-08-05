@@ -12,6 +12,7 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tqdm import tqdm
 
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.integration.track_integration import (
     get_coarse_grained_trajectory_heatmap_data,
 )
@@ -22,8 +23,6 @@ from src.endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
     plot_quiver_slices,
     set_slice_plot_bounds_and_labels,
 )
-
-LINEART_DPI = 300
 
 
 def get_valid_slice_indexes(
@@ -232,9 +231,10 @@ def plot_measured_feat_overlay_on_flowfield(
                 f"Got {track_id_to_plot} (type: {type(track_id_to_plot)}) instead."
             )
         )
-    fig.savefig(
-        out_dir / f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue.png",
-        dpi=300,
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_dir,
+        figure_name=f"{dataset_name}{data_subset}_{meas_feat_col_name_for_color_coding}Hue",
     )
     if not show_plot:
         plt.close(fig)
@@ -262,7 +262,9 @@ def plot_new_traj_overlay_on_grid_traj_and_flowfield(
             zorder=10,
         )
     plt.tight_layout()
-    fig.savefig(out_dir / f"{dataset_name}_trajectory_grids_vs_tracks.png", dpi=300)
+    save_plot_to_path(
+        figure=fig, output_path=out_dir, figure_name=f"{dataset_name}_trajectory_grids_vs_tracks"
+    )
     plt.close(fig)
 
 
@@ -337,8 +339,9 @@ def overlay_trajectory_heatmap_on_flowfield(
         )
     cbar = plt.colorbar(ax.images[-1], ax=ax, orientation="vertical", pad=0.02)
     cbar.set_label("Normalized trajectory time", rotation=270, labelpad=15)
-    # plt.tight_layout()
-    fig.savefig(out_dir / f"{dataset_name}_trajectory_heatmap.png", dpi=300)
+    save_plot_to_path(
+        figure=fig, output_path=out_dir, figure_name=f"{dataset_name}_trajectory_heatmap"
+    )
     plt.close(fig)
 
 
@@ -366,7 +369,7 @@ def make_all_plots(
         diffae_grid_crops, traj_grids, flow_field_dict_grids
     )
     plt.tight_layout()
-    fig.savefig(out_subdir / f"{dataset_name}_flow_field.png", dpi=300)
+    save_plot_to_path(figure=fig, output_path=out_subdir, figure_name=f"{dataset_name}_flow_field")
     plt.close(fig)
 
     # plot the flow field and the trajectories
@@ -452,6 +455,52 @@ def plot_grid_vs_tracks_flow_field(
     This function is basically a wrapper around the
     `plot_one_slice_quiver` function that plots the
     flow field.
+    Plots the vectors "v" starting from the points "g" of a flow field with
+    vector scaling "scale" and grid spacing "ds" for both grid-based and
+    track-based crops.
+    each "v" is a meshgrid of one of the components of the vectors, and each
+    "g" is a meshgrid of the corresponding points in the flow field from
+    which the vectors start.
+    The meshgrids are 3D arrays as they are flow fields derived from the
+    first 3 PCs of the PCA of the DiffAE features.
+    slice_indexes determines which slices along these 3D arrays to get the
+    vectors and grid points for plotting.
+    The arrow spacing and scale of the vectors can be adjusted with the "ds"
+    and "scale" parameters, respectively.
+
+    Parameters
+    ----------
+    v1_grids : np.ndarray
+        The first component of the vectors of the flow field for the grid-based crops.
+    v2_grids : np.ndarray
+        The second component of the vectors of the flow field for the grid-based crops.
+    g1_grids : np.ndarray
+        The first component of the points for the grid-based crops.
+    g2_grids : np.ndarray
+        The second component of the points for the grid-based crops.
+    v1_tracks : np.ndarray
+        The first component of the vectors of the flow field for the track-based crops.
+    v2_tracks : np.ndarray
+        The second component of the vectors of the flow field for the track-based crops.
+    g1_tracks : np.ndarray
+        The first component of the points for the track-based crops.
+    g2_tracks : np.ndarray
+        The second component of the points for the track-based crops.
+    slice_indexes : tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...]
+        The slice indexes to pull the (v1, v2) and (g1, g2) values from
+        for the flow field.
+    ds : int, optional
+        The grid spacing for the flow field vectors (default is 3).
+    scale : int, optional
+        The scaling factor for the flow field vectors (default is 30).
+
+    Returns
+    -------
+    fig : Figure
+        The figure containing the flow field plot.
+    ax : plt.Axes
+        The axes of the flow field plot.
+
     """
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 12))
@@ -483,7 +532,8 @@ def plot_grid_vs_tracks_flow_field(
 
 def grid_vs_track_vec_angle_hist2d(
     angles: np.ndarray,
-    out_path: Path | None,
+    out_dir: Path,
+    filename: str,
     extent: tuple[float, float, float, float] | None = None,
 ) -> None:
     """
@@ -511,13 +561,13 @@ def grid_vs_track_vec_angle_hist2d(
     ax_hist.set_ylabel("PC2")
     ax_cb.set_ylabel("Angle (degrees)", rotation=270, verticalalignment="bottom")
     plt.tight_layout()
-    if out_path is not None:
-        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    save_plot_to_path(figure=fig, output_path=out_dir, figure_name=filename)
 
 
 def grid_vs_track_vec_dot_prod_hist2d(
     dot_prod: np.ndarray,
-    out_path: Path | None,
+    out_dir: Path,
+    filename: str,
     extent: tuple[float, float, float, float] | None = None,
 ) -> None:
     """
@@ -547,8 +597,7 @@ def grid_vs_track_vec_dot_prod_hist2d(
     ax_hist.set_ylabel("PC2")
     ax_cb.set_ylabel("Dot product", rotation=270, verticalalignment="bottom")
     plt.tight_layout()
-    if out_path is not None:
-        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    save_plot_to_path(figure=fig, output_path=out_dir, figure_name=filename)
 
 
 def plot_pc_integrated_track_as_arrows(
@@ -580,7 +629,10 @@ def plot_pc_integrated_track_as_arrows(
     # shown as dots connected by arrows to give an idea
     # of the direction of motion of the cell through the
     # flow field
-    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    # NOTE: the Figure(figsize), fig.subplots(...) pattern below is
+    # used to avoid memory leak issues in interactive sessions
+    fig = Figure(figsize=(4, 4))
+    ax = fig.subplots(nrows=1, ncols=1)
     plot_one_slice_quiver(
         velocities=(v1_grids, v2_grids),
         grid=(g1_grids, g2_grids),
@@ -626,19 +678,20 @@ def plot_pc_integrated_track_as_arrows(
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     ax.set_title(f"{dataset_name} {position_name} track {track_id}\nintegrated flow field")
-    fig.savefig(
-        out_subdir_integrated_tracks
-        / f"{dataset_name}_{position_name}_track_{track_id}_integrated_flow_field.png",
-        dpi=200,
-        bbox_inches="tight",
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_subdir_integrated_tracks,
+        figure_name=f"{dataset_name}_{position_name}_track_{track_id}_integrated_flow_field",
     )
+    fig.clf()
     plt.close(fig)
 
     cmap_norm = TwoSlopeNorm(vmin=hue_min, vcenter=hue_center, vmax=hue_max)
     cmap = sns.color_palette(cmap_name, as_cmap=True)
     feat_to_color = lambda a: cmap(cmap_norm(a))
 
-    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    fig = Figure(figsize=(4, 4))
+    ax = fig.subplots(nrows=1, ncols=1)
     plot_one_slice_quiver(
         velocities=(v1_grids, v2_grids),
         grid=(g1_grids, g2_grids),
@@ -672,12 +725,12 @@ def plot_pc_integrated_track_as_arrows(
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     ax.set_title(f"{dataset_name} {position_name} track {track_id}\nintegrated flow field")
-    fig.savefig(
-        out_subdir_integrated_tracks_hued
-        / f"{dataset_name}_{position_name}_track_{track_id}_integrated_flow_field_hued.png",
-        dpi=200,
-        bbox_inches="tight",
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_subdir_integrated_tracks_hued,
+        figure_name=f"{dataset_name}_{position_name}_track_{track_id}_integrated_flow_field_hued",
     )
+    fig.clf()
     plt.close(fig)
 
     return
@@ -694,8 +747,10 @@ def plot_and_save_track_flow_field_deviations(
     ax.minorticks_on()
     ax.set_xlabel("Angular deviation (deg)")
     ax.set_ylabel("Counts")
-    fig.savefig(
-        out_subdir / f"{dataset_name}_angular_deviation_histogram.png", dpi=200, bbox_inches="tight"
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_subdir,
+        figure_name=f"{dataset_name}_angular_deviation_histogram",
     )
     plt.close(fig)
 
@@ -707,10 +762,10 @@ def plot_and_save_track_flow_field_deviations(
     ax.minorticks_on()
     ax.set_xlabel("Angular deviation (deg)")
     ax.set_ylabel("Track PC1-PC2\nvector magnitude")
-    fig.savefig(
-        out_subdir / f"{dataset_name}_angular_deviation_vs_mag_histogram.png",
-        dpi=200,
-        bbox_inches="tight",
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_subdir,
+        figure_name=f"{dataset_name}_angular_deviation_vs_mag_histogram",
     )
     plt.close(fig)
 
@@ -733,7 +788,6 @@ def overlay_flow_fields_on_histograms(
     # Plot flow fields overlaid on the PC1 vs PC2
     # histograms to get an idea of where the flow
     # fields have the most data to work with
-    out_path = out_subdir / f"{dataset_name}_grid_crops_pc1_pc2_hist2d.png"
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
@@ -753,10 +807,12 @@ def overlay_flow_fields_on_histograms(
     )
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
-    fig.savefig(out_path, bbox_inches="tight")
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_subdir,
+        figure_name=f"{dataset_name}_grid_crops_pc1_pc2_hist2d",
+    )
     plt.close(fig)
-
-    out_path = out_subdir / f"{dataset_name}_tracked_crops_pc1_pc2_hist2d.png"
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
@@ -776,14 +832,19 @@ def overlay_flow_fields_on_histograms(
     )
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
-    fig.savefig(out_path, bbox_inches="tight")
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_subdir,
+        figure_name=f"{dataset_name}_tracked_crops_pc1_pc2_hist2d",
+    )
     plt.close(fig)
 
 
 def plot_and_save_track_flow_field_dot_product_histogram(
     features_dataframe: pd.DataFrame,
     feature_column_name: str,
-    out_path: Path,
+    out_dir: Path,
+    filename: str,
     plot_title: str | None = None,
 ) -> tuple[Figure, plt.Axes]:
     fig, ax = plt.subplots(figsize=(4, 4))
@@ -794,5 +855,9 @@ def plot_and_save_track_flow_field_dot_product_histogram(
     ax.set_xlabel("PC1-PC2 vector dot product\n(grid-based vs. cell-centric)")
     if plot_title is not None:
         ax.set_title(plot_title)
-    fig.savefig(out_path, bbox_inches="tight", dpi=LINEART_DPI)
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_dir,
+        figure_name=filename,
+    )
     return fig, ax

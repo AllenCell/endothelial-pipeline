@@ -2,12 +2,14 @@ import gc
 import logging
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from src.endo_pipeline.configs import load_dataset_collection_config
+from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.analyze.integration.track_integration import (
     get_approx_point_from_grid,
@@ -31,6 +33,11 @@ from src.endo_pipeline.library.visualize.integration.track_integration_viz impor
 )
 
 logger = logging.getLogger(__name__)
+
+# the below 2 lines are both used to control memory
+# usage problems when making many plots in a loop
+matplotlib.use("Agg")
+plt.ioff()  # turns off interactive mode in matplotlib
 
 
 def process_dataset(
@@ -160,8 +167,12 @@ def process_dataset(
         v3_tracks,
         slice_indexes,
     )
-    out_path = out_subdir / f"{dataset_name}_vecvec_angles.png"
-    grid_vs_track_vec_angle_hist2d(angles, out_path, extent=(*ax.get_xlim(), *ax.get_ylim()))
+    grid_vs_track_vec_angle_hist2d(
+        angles,
+        out_subdir,
+        filename=f"{dataset_name}_vecvec_angles",
+        extent=(*ax.get_xlim(), *ax.get_ylim()),
+    )
 
     # Plot the dot product between the grid and cell-centric crop-based
     dot_prod = get_vector_dot_products_as_grid(
@@ -173,8 +184,12 @@ def process_dataset(
         v3_tracks,
         slice_indexes,
     )
-    out_path = out_subdir / f"{dataset_name}_vecvec_dot_products.png"
-    grid_vs_track_vec_dot_prod_hist2d(dot_prod, out_path, extent=(*ax.get_xlim(), *ax.get_ylim()))
+    grid_vs_track_vec_dot_prod_hist2d(
+        dot_prod,
+        out_subdir,
+        filename=f"{dataset_name}_vecvec_dot_products",
+        extent=(*ax.get_xlim(), *ax.get_ylim()),
+    )
 
     # Compare the angles between grid crop PC vectors
     # and the PC vectors of a single track
@@ -269,21 +284,21 @@ def process_dataset(
 
     plot_title = "Mean per track"
     col_name = "mean"
-    out_path = out_subdir / f"{dataset_name}_dot_product_grid_vs_cell_{col_name}.png"
     plot_and_save_track_flow_field_dot_product_histogram(
         features_dataframe=merged_feats_dot_prod_agg,
         feature_column_name=col_name,
-        out_path=out_path,
+        out_dir=out_subdir,
+        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
         plot_title=plot_title,
     )
 
     plot_title = "Non-aggregated dot products"
     col_name = "dot_product_grid_vs_cell"
-    out_path = out_subdir / f"{dataset_name}_dot_product_grid_vs_cell_{col_name}.png"
     plot_and_save_track_flow_field_dot_product_histogram(
         features_dataframe=merged_feats_df,
         feature_column_name=col_name,
-        out_path=out_path,
+        out_dir=out_subdir,
+        filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
         plot_title=plot_title,
     )
 
@@ -350,6 +365,10 @@ def process_dataset(
 
 
 def main() -> None:
+    """
+    Makes plots comparing cell-centric and grid-based flow fields.
+    """
+
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
     for dataset_name in dataset_name_list:
@@ -368,4 +387,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    ipython_cli_flexecute(main)
