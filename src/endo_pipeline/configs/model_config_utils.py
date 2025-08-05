@@ -62,8 +62,8 @@ def add_model_manifest(
     # check if a manifest already exists for this dataset
     if any(manifest.dataset_name == dataset_name for manifest in model_config.manifest_fmsids):
         logger.warning(
-            "Manifest for dataset [ %s ] already exists in model config [ %s ],",
-            "adding potential duplicate.",
+            "Manifest for dataset [ %s ] already exists in model config [ %s ], "
+            + "adding potential duplicate.",
             dataset_name,
             model_config.name,
         )
