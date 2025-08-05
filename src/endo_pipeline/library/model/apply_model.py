@@ -473,7 +473,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             prediction_path,
             annotations=dataset_annotations,
             file_type="parquet",
-            env="prod" if not workflow_testing else "stg",
         )
 
         # add new manifest to model config
