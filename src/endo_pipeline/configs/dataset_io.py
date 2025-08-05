@@ -19,14 +19,12 @@ import re
 from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
-import fire
-
+from src.endo_pipeline.__main__ import workflow_cli
 from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.configs.dataset_config_io import (
     get_available_dataset_names,
     load_dataset_config,
 )
-from src.endo_pipeline.io import load_dataframe_from_fms
 
 logger = logging.getLogger(__name__)
 
@@ -1183,7 +1181,7 @@ def ipython_cli_flexecute(
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        results = fire.Fire(function)
+        results = workflow_cli(function)
 
     return results if return_results else None
 
