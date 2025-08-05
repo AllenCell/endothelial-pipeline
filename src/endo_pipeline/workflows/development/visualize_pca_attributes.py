@@ -78,7 +78,7 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
-    logger.info("PCA visualization complete. Figures saved to \n %s", fig_savedir)
+    logger.info("PCA visualization complete. Figures saved to [ %s ]", fig_savedir)
 
 
 if __name__ == "__main__":
