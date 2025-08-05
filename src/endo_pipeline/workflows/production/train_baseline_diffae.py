@@ -43,6 +43,8 @@ def main(
     )
     from src.endo_pipeline.manifests import load_dataframe_manifest
 
+    logger = logging.getLogger(__name__)
+
     # set lightning logger level to WARNING to avoid excessive logging
     lightning_logger = logging.getLogger("lightning.pytorch")
     lightning_logger.setLevel(logging.WARNING)
@@ -73,6 +75,7 @@ def main(
     # set model name via zarr resolution, crop size, and current timestamp
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
     model_name = f"diffae_resolution_{zarr_resolution}_patch_{crop_size}x{crop_size}_{timestamp}"
+    logger.info("Model name: [ %s ]", model_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories
     model = initialize_diffae_model(
@@ -84,11 +87,16 @@ def main(
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name}_train.yaml")
+    logger.info(
+        "Training config saved to \n [ %s ]",
+        local_config_save_path / f"{model_name}_train.yaml",
+    )
     _, object_dict = model.train()
 
     # retrive MLflow run ID
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
+    logger.info("MLflow run ID: [ %s ]", run_id)
     # get list of datasets used for training
     # based on content of train and val dataframes
     list_of_training_datasets = get_dataset_names_used_for_training(
