@@ -344,7 +344,6 @@ def plot_image_row(
     save_plot_to_path(fig, save_dir, fname)
     
 
-
 def plot_bottom_top_slices(
     bottoms: list,
     tops: list,
@@ -354,7 +353,7 @@ def plot_bottom_top_slices(
     label: str,
     figsize: tuple[int, int] = (16, 8)
 ) -> None:
-   """
+    """
     Plot two rows of images showing bottom and top z-slices from each projection range.
 
     Parameters
@@ -379,15 +378,19 @@ def plot_bottom_top_slices(
     None
     """
     fig, axes = plt.subplots(2, len(bottoms), figsize=figsize)
+
     for ax, img, title in zip(axes[0], bottoms, titles, strict=True):
         ax.imshow(contrast_stretching(img.compute()), cmap="gray")
         ax.set_title(f"{label} bottom {title}")
         ax.axis("off")
+
     for ax, img, title in zip(axes[1], tops, titles, strict=True):
         ax.imshow(contrast_stretching(img.compute()), cmap="gray")
         ax.set_title(f"{label} top {title}")
         ax.axis("off")
+
     plt.suptitle(dataset)
     plt.tight_layout()
     plt.show()
+
     save_plot_to_path(fig, save_dir, f"{dataset}_{label}_bottom_top_slices")
