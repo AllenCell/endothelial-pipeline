@@ -38,21 +38,25 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     save_plot_to_path(fig, fig_savedir, "explained_variance_ratio")
 
     # plot PC loadings (contribution of each latent dimension to each PC)
-    # first, plot for components scaled by their explained variance
+    # first, plot for components scaled by the square root of the explained variance
     fig, _ = feature_viz.plot_component_loadings(
         pca.components_.T * np.sqrt(pca.explained_variance_)
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled")
 
-    # then, plot for components without scaling
+    # then, plot components without scaling
     fig, _ = feature_viz.plot_component_loadings(pca.components_.T)
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled")
 
-    # finally, plot the absolute values of the scaled loadings
+    # plot the absolute values of the scaled loadings
     fig, _ = feature_viz.plot_component_loadings(
         np.abs(pca.components_.T * np.sqrt(pca.explained_variance_))
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled_magnitude")
+
+    # plot the absolute values of the unscaled loadings
+    fig, _ = feature_viz.plot_component_loadings(np.abs(pca.components_.T))
+    save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled_magnitude")
 
     # plot scatter of PCA components
     # for the datasets used to fit PCA
