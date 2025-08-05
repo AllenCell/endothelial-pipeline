@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -76,6 +77,7 @@ def generate_overrides_for_model_eval(
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
+    prediction_filename_suffix: str | None = None,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -103,7 +105,7 @@ def generate_overrides_for_model_eval(
                 "start_x",
                 "filename_or_obj",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_features",
+            "save_suffix": prediction_filename_suffix or f"{dataset_name}_{model_name}_features",
         },
         "extras.print_config": False,
     }
@@ -174,10 +176,10 @@ def generate_overrides_for_track_based_crops(
 
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig,
-    save_path: Path,
+    dataset_save_path: Path,
     zarr_resolution: int = 1,
     workflow_testing: bool = False,
-) -> Path:
+) -> None:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
@@ -200,9 +202,7 @@ def generate_zarr_csv_for_model_eval(
         df["start"] = 0
         df["stop"] = 1 if dataset_config.is_timelapse else 0
 
-    data_path = save_path / "dataset.csv"
-    df.to_csv(data_path, index=False)
-    return data_path
+    df.to_csv(dataset_save_path, index=False)
 
 
 def preprocess_tracking_manifest_for_model_eval(
@@ -318,14 +318,13 @@ def update_prediction_from_crops_with_metadata(
     model_name: str,
     crop_size: list[int],
     mlflow_id: str,
-    save_path: Path,
+    prediction_path: Path,
 ) -> Path:
     """
     Update the prediction file with metadata,
     return the path to the updated prediction file.
     """
     # add model and dataset information to prediction file
-    prediction_path = save_path / f"predict_{dataset_name}_{model_name}_features.parquet"
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
@@ -345,7 +344,6 @@ def update_prediction_from_crops_with_metadata(
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
-    return prediction_path
 
 
 def update_prediction_from_tracks_with_metadata(
@@ -414,42 +412,49 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     overrides = load_overrides(user_overrides)
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, "train", include_timestamp=False)
+    model_path = get_output_path("models", model_config.name, "train", include_timestamp=True)
     path_dict = download_model(mlflow_id, model_path)
 
     # set default output path
     save_path = get_output_path(
-        "models", model_config.name, dataset_config.name, include_timestamp=False
+        "models", model_config.name, dataset_config.name, include_timestamp=True
     )
+
+    # use timestamp to get unique file name for FMS upload later
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
     # create zarr dataset
-    data_path = generate_zarr_csv_for_model_eval(
-        dataset_config, save_path, zarr_resolution, workflow_testing
+    dataset_save_path = save_path / f"dataset_{timestamp}.csv"
+    generate_zarr_csv_for_model_eval(
+        dataset_config, dataset_save_path, zarr_resolution, workflow_testing
     )
 
     # apply overrides
+    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
     overrides = generate_overrides_for_model_eval(
-        overrides,
+        user_overrides,
         save_path=str(save_path),
-        data_path=str(data_path),
+        data_path=str(dataset_save_path),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
+        prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
-    prediction_path = update_prediction_from_crops_with_metadata(
+    prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
+    update_prediction_from_crops_with_metadata(
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         crop_size=crop_size,
         mlflow_id=mlflow_id,
-        save_path=save_path,
+        prediction_path=prediction_path,
     )
 
     if upload_to_fms:
@@ -464,6 +469,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             prediction_path,
             annotations=dataset_annotations,
             file_type="parquet",
+            env="prod" if not workflow_testing else "stg",
         )
 
         # add new manifest to model config

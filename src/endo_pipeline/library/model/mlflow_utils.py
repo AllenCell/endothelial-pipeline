@@ -83,8 +83,8 @@ def _get_available_artifacts(
     # print found items from top level call
     if _current_recursion_level == 0:
         if all_found_artifacts:
-            logger.info(
-                "Artifacts found for run [ %s ] under path [ %s ]: [ %s ]",
+            logger.debug(
+                "Artifacts found for run [ %s ] under path [ %s ]: \n %s",
                 run_id,
                 artifact_path,
                 all_found_artifacts,
@@ -150,7 +150,11 @@ def download_mlflow_artifact(
     """
 
     if (dst_path / artifact_path).exists():
-        print(f"Artifact exists! Skipping download of {artifact_path}...")
+        logger.debug(
+            "Artifact [ %s ] already exists at destination [ %s ]. Skipping download.",
+            artifact_path,
+            dst_path,
+        )
         return
 
     available_artifacts = _get_available_artifacts(
