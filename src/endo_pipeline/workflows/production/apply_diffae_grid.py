@@ -2,7 +2,7 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 
 
 def main(
-    model_name: str,
+    model_name: str = "diffae_04_10",
     dataset_name: str = "live_20X_objective_3i_microscope",
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
