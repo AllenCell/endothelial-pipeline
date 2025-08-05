@@ -47,9 +47,13 @@ bounds = get_3d_bounds_from_data(manifest_list, pca)
 for target_frame in [0, 250, 500]:
     for df, info in zip(df_list, df_info):
         fig, ax = plot_scatter_by_position_and_frame(df, target_frame, bounds, info, dataset_name)
+        save_plot_to_path(
+            fig,
+            save_dir,
+            f"{dataset_name}_{info}_pc1_T{target_frame}_scatter_plot",
+            transparent=True,
+        )
 
-# %%
-# plot_distribution_by_frame(df_list, df_info, target_frame=0)
 # %%
 for target_frame in [0, 250, 500]:
     for df, info in zip(df_list, df_info):
@@ -61,6 +65,7 @@ for target_frame in [0, 250, 500]:
             fig,
             save_dir,
             f"{dataset_name}_{info}_pc1_T{target_frame}_density_plot",
+            transparent=True,
         )
 # %%
 for target_frame in [0, 250, 500]:
@@ -73,6 +78,7 @@ for target_frame in [0, 250, 500]:
             fig,
             save_dir,
             f"{dataset_name}_{info}_pc2_T{target_frame}_density_plot",
+            transparent=True,
         )
 # %%
 for target_frame in [0, 250, 500]:
@@ -85,5 +91,6 @@ for target_frame in [0, 250, 500]:
             fig,
             save_dir,
             f"{dataset_name}_{info}_pc3_T{target_frame}_density_plot",
+            transparent=True,
         )
 # %%
