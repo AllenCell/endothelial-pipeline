@@ -1,7 +1,7 @@
 import concurrent
 import re
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 
 import dask.array as dd
 import numpy as np
@@ -26,7 +26,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 
 
-def adjust_crop_bounds_to_0th_level(
+def adjust_crop_bounds_to_0th_bin_level(
     merged_feats_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
@@ -283,7 +283,7 @@ if __name__ == "__main__":
         )
 
         # ensure the crop coordinates have an integer datatype
-        merged_feats_df = adjust_crop_bounds_to_0th_level(merged_feats_df)
+        merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
 
         # add the number of nuclei columns
         merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df)
@@ -309,7 +309,7 @@ if __name__ == "__main__":
         # merged_feats_df = merged_feats_df[cols_to_keep]
 
         pc_col_names = [col_nm for col_nm in merged_feats_df.columns if re.match("pc[0-9]", col_nm)]
-        feat_col_names = [
+        diffae_feature_col_names = [
             col_nm for col_nm in merged_feats_df.columns if re.match("feat_[0-9]+", col_nm)
         ]
         measured_col_names = [
@@ -325,7 +325,7 @@ if __name__ == "__main__":
             "number_of_neighbors",
             "nuc_pos_rel_cell_angle_deg",
         ]
-        for col in measured_col_names + pc_col_names + feat_col_names:
+        for col in measured_col_names + pc_col_names + diffae_feature_col_names:
             if col not in merged_feats_df.columns:
                 print(
                     f"Column {col} not found in merged_feats_df. Available columns: {merged_feats_df.columns.tolist()}"
@@ -344,6 +344,31 @@ if __name__ == "__main__":
         # pca.components_
 
         # 3. find which of the diffae features correlate with which measured features
+        def get_correlation_matrix_df(
+            merged_feats_df: pd.DataFrame,
+            diffae_feature_col_names: Sequence[str],
+            measured_col_names: Sequence[str],
+        ) -> pd.DataFrame:
+            """
+            Get the correlations between the diffae features and the measured features.
+            """
+            records = []
+            for feat in diffae_feature_col_names:
+                for meas in measured_col_names:
+                    # np.isfinite(merged_feats_df[feat])
+                    valid_records = np.isfinite(merged_feats_df[feat])
+                    corr, pval = pearsonr(
+                        merged_feats_df[feat][valid_records],
+                        merged_feats_df[meas][valid_records],
+                    )
+                    # print(f"{feat} vs. {meas}: r={corr:.2f}, p={pval:.2e}")
+
+                    records.append(
+                        {"feature": feat, "measurement": meas, "pearsonr": corr, "pval": pval}
+                    )
+
+            return pd.DataFrame(records)
+
         records = []
         for feat in feat_col_names:
             for meas in measured_col_names:
@@ -359,20 +384,15 @@ if __name__ == "__main__":
                     {"feature": feat, "measurement": meas, "pearsonr": corr, "pval": pval}
                 )
 
-        correlation_table_feats = pd.DataFrame.from_records(records)
+        correlation_table_feats = pd.DataFrame(records)
 
         fig, ax = plt.subplots(figsize=(10, 10))
         data = correlation_table_feats.pivot(
             index="feature", columns="measurement", values="pearsonr"
         )
-        data.sort_index(level=0, ascending=True, inplace=True)
-        sns.heatmap(
-            data,
-            annot=True,
-            cmap="RdBu",
-            center=0,
-        )
-        # ax.set_aspect("equal")
+        data.sort_index(axis="index", ascending=True, inplace=True)  # sort the PCs
+        data = data[measured_col_names]  # sort the measured features
+        sns.heatmap(data, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
         save_plot_to_path(
             figure=fig,
             output_path=out_subdir,
@@ -396,15 +416,23 @@ if __name__ == "__main__":
 
         fig, ax = plt.subplots(figsize=(10, 10))
         data = correlation_table_pcs.pivot(index="PC", columns="measurement", values="pearsonr")
-        data.sort_index(level=0, ascending=True, inplace=True)
-        sns.heatmap(
-            data,
-            annot=True,
-            cmap="RdBu",
-            center=0,
-        )
+        data.sort_index(axis="index", ascending=True, inplace=True)  # sort the PCs
+        data = data[measured_col_names]  # sort the measured features
+        sns.heatmap(data, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
         save_plot_to_path(
             figure=fig,
             output_path=out_subdir,
             figure_name=f"correlation_pcs_vs_measured_feats_{dataset_name}",
+        )
+
+        # repeat the above correlations but filter data table
+        # to only include the steady state timepoints
+        from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import (
+            get_valid_subset,
+        )
+
+        merged_feats_df = get_valid_subset(
+            merged_feats_df,
+            dataset_name=dataset_name,
+            verbose=False,
         )
