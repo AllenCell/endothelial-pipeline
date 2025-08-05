@@ -34,6 +34,7 @@ def main(
     from omegaconf import OmegaConf
 
     from src.endo_pipeline.configs import CytoDLModelConfig, save_model_config
+    from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
@@ -45,6 +46,10 @@ def main(
     # set lightning logger level to WARNING to avoid excessive logging
     lightning_logger = logging.getLogger("lightning.pytorch")
     lightning_logger.setLevel(logging.WARNING)
+
+    # set cyto_dl logger ERROR level to avoid excessive logging outputs
+    cyto_dl_logger = logging.getLogger("cyto_dl")
+    cyto_dl_logger.setLevel(logging.ERROR)
 
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
@@ -77,6 +82,8 @@ def main(
         train_csv_path,
         val_csv_path,
     )
+    local_config_save_path = get_output_path("models", "training_configs")
+    model.save_config(local_config_save_path / f"{model_name}_train.yaml")
     _, object_dict = model.train()
 
     # retrive MLflow run ID

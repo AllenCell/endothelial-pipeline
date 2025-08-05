@@ -77,6 +77,8 @@ def _generate_overrides_for_model_training(
         # set crop size from input via model.image_shape,
         # the rest are populated by interpolation
         "model.image_shape": [1, crop_size, crop_size],
+        # turn off config printing, will get saved locally instead
+        "extras.print_config": False,
     }
     return overrides
 
