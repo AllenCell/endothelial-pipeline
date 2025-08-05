@@ -3,6 +3,7 @@ TAGS = ["diffae_features", "visualization"]
 
 def main(dataset_collection_name: str = "pca_reference", model_name: str = "diffae_04_10") -> None:
     """Visualize key attributes of a fit PCA model."""
+    import logging
     from typing import cast
 
     import numpy as np
@@ -20,6 +21,9 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
         get_timepoints_for_plotting_pcs,
     )
     from src.endo_pipeline.library.visualize.diffae_features import feature_viz
+
+    # set up logger
+    logger = logging.getLogger(__name__)
 
     # set up output directory for figures
     fig_savedir = get_output_path(
@@ -74,7 +78,7 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
-    return
+    logger.info("PCA visualization complete. Figures saved to \n %s", fig_savedir)
 
 
 if __name__ == "__main__":
