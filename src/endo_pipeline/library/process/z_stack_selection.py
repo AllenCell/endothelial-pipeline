@@ -17,12 +17,17 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
     is calculated as the plane with the lowest standard deviation for each frame, and the global
     center plane is determined as the average of these values across all frames.
 
-    Args:
-        dataset_config (DatasetConfig): Configuration object with dataset-specific information.
-        position (int): The position index.
+    Parameters
+    ----------
+    dataset_config
+        Configuration object with dataset-specific information.
+    position
+        The position index.
 
-    Returns:
-        int: The global center plane index for the specified position.
+    Returns
+    -------
+    int
+        The global center plane index for the specified position.
     """
     zarr_file = get_zarr_file_for_position(dataset_config, position)
     bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
@@ -46,16 +51,24 @@ def plot_standard_devs_per_slice(
     """
     Plot the standard deviations of each slice vs plane index, highlighting the center plane.
 
-    Args:
-        stdevs (list): A list of standard deviation values for each bf plane in the z-stack.
-        center_plane (int): The index of the center plane to highlight on the plot.
-        dataset (str): The name of the dataset.
-        position (int): The position index.
-        frame (int): The frame index.
-        output_dir (Path): The directory where the plot will be saved.
+    Parameters
+    ----------
+    stdevs
+        List of standard deviation values for each BF plane in the z-stack.
+    center_plane
+        The index of the center plane to highlight on the plot.
+    dataset
+        The name of the dataset.
+    position
+        The position index.
+    frame
+        The frame index.
+    output_dir
+        Directory where the plot will be saved.
 
-    Returns:
-        None
+    Returns
+    -------
+    None
     """
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(stdevs)
@@ -85,22 +98,33 @@ def visualize_slice_selection(
     output_dir: Path,
 ) -> None:
     """
-    Plot the center z-slice with slices n planes above (upper offset) and below (lower offset)
-    the center slice for the bf and chd5 channels.
+    Plot the center z-slice with slices n planes above and below the center slice
+    for the BF and CDH5 channels.
 
-    Args:
-        bf_stack (np.ndarray): Brightfield image stack.
-        cdh5_stack (np.ndarray): CDH5 image stack.
-        center_plane (int): Index of the center plane.
-        lower_offset (int): Number of planes below the center plane to visualize.
-        upper_offest (int): Number of planes above the center plane to visualize.
-        dataset (str): Dataset name.
-        frame (int): Frame index.
-        position (int): Zarr Position index.
-        output_dir (path): Directory to save the output plot.
+    Parameters
+    ----------
+    bf_stack
+        Brightfield image stack.
+    cdh5_stack
+        CDH5 image stack.
+    center_plane
+        Index of the center plane.
+    lower_offset
+        Number of planes below the center plane to visualize.
+    upper_offest
+        Number of planes above the center plane to visualize.
+    dataset
+        Dataset name.
+    position
+        Zarr position index.
+    frame
+        Frame index.
+    output_dir
+        Directory to save the output plot.
 
-    Returns:
-        None
+    Returns
+    -------
+    None
     """
     im_center = contrast_stretching(bf_stack[center_plane].compute())
     im_below = contrast_stretching(bf_stack[center_plane - lower_offset].compute())
@@ -154,14 +178,21 @@ def plot_global_center_plane(
     """
     Plot center planes for a dataset and return mean center plane and standard deviation.
 
-    Args:
-        center_planes (list): List of center plane indices.
-        dataset (str): Dataset name for labeling the plot.
-        position (int): Position index for labeling the plot.
-        output_dir (Path): Directory to save the output plot.
+    Parameters
+    ----------
+    center_planes
+        List of center plane indices.
+    dataset
+        Dataset name for labeling the plot.
+    position
+        Position index for labeling the plot.
+    output_dir
+        Directory to save the output plot.
 
-    Returns:
-        tuple (float, float): Mean and standard deviation of center planes.
+    Returns
+    -------
+    tuple
+        Mean and standard deviation of center planes.
     """
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))  # Create two subplots
 
@@ -222,9 +253,9 @@ def save_projection_image(image: np.ndarray, save_path: Path) -> None:
     
     Parameters
     ----------
-    image : np.ndarray
+    image
         The processed image array to be saved.
-    save_path : Path
+    save_path
         The file path where the image will be saved.
     """
     plt.imsave(save_path, image, cmap="gray")
@@ -244,20 +275,20 @@ def append_projection_outputs(
 
     Parameters
     ----------
-    stack : dask.array.Array
+    stack
         The full 3D image stack.
-    zslice : list[int]
+    zslice
         Start and end indices for slicing the z-axis (e.g., [5, 20]).
-    process_fn : callable
+    process_fn
         A function that processes the sliced stack and returns outputs, with
         the final output being the 2D projection.
-    image_list : list
+    image_list
         List to collect the processed projection images.
-    title_list : list
+    title_list
         List to collect slice label strings for titles.
-    bottom_list : list
+    bottom_list
         List to collect the bottom slice of the projection range.
-    top_list : list
+    top_list
         List to collect the top slice of the projection range.
     """
     slice_str = f"{zslice[0]}_{zslice[1]}"
@@ -284,18 +315,22 @@ def plot_image_row(
 
     Parameters
     ----------
-    images : list[np.ndarray]
+    images
         List of images to display.
-    titles : list[str]
-        List of titles corresponding to each image.
-    dataset : str
+    titles
+        Titles corresponding to each image.
+    dataset
         Name of the dataset for labeling the plot.
-    save_dir : Path
+    save_dir
         Directory where the plot will be saved.
-    row_title : str, optional
-        Prefix for each subplot title.
-    figsize : tuple[int, int], optional
-        Figure size for the matplotlib plot.
+    row_title
+        Prefix for each subplot title. Default is "Image".
+    figsize
+        Figure size for the matplotlib plot. Default is (16, 4).
+
+    Returns
+    -------
+    None
     """
     fig, axes = plt.subplots(1, len(images), figsize=figsize)
     for ax, img, title in zip(axes, images, titles, strict=True):
@@ -319,25 +354,29 @@ def plot_bottom_top_slices(
     label: str,
     figsize: tuple[int, int] = (16, 8)
 ) -> None:
-    """
+   """
     Plot two rows of images showing bottom and top z-slices from each projection range.
 
     Parameters
     ----------
-    bottoms : list
+    bottoms
         List of bottom slices (as dask arrays) from each projection range.
-    tops : list
+    tops
         List of top slices (as dask arrays) from each projection range.
-    titles : list[str]
+    titles
         Slice range labels (e.g., "0_16", "9_24") for each column.
-    dataset : str
+    dataset
         Name of the dataset for labeling the plot.
-    save_dir : Path
+    save_dir
         Directory where the plot will be saved.
-    label : str
+    label
         Label prefix to distinguish BF or CDH5 channels in titles.
-    figsize : tuple[int, int], optional
-        Size of the figure to plot.
+    figsize
+        Size of the figure to plot. Default is (16, 8).
+
+    Returns
+    -------
+    None
     """
     fig, axes = plt.subplots(2, len(bottoms), figsize=figsize)
     for ax, img, title in zip(axes[0], bottoms, titles, strict=True):
