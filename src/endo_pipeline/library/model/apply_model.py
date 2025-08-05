@@ -172,7 +172,10 @@ def generate_overrides_for_track_based_crops(
 
 
 def generate_zarr_csv_for_model_eval(
-    dataset_config: DatasetConfig, save_path: Path, zarr_resolution: int = 1
+    dataset_config: DatasetConfig,
+    save_path: Path,
+    zarr_resolution: int = 1,
+    workflow_testing: bool = False,
 ) -> Path:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
@@ -187,6 +190,15 @@ def generate_zarr_csv_for_model_eval(
     df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = zarr_resolution
+
+    if workflow_testing:
+        # for workflow testing, only use first position from each dataset
+        # and first two timepoints to speed up the dataloading process
+        # (if dataset is not timelapse, then only one timepoint is used)
+        df = df.head(1)
+        df["start"] = 0
+        df["stop"] = 1 if dataset_config.is_timelapse else 0
+
     data_path = save_path / "dataset.csv"
     df.to_csv(data_path, index=False)
     return data_path
@@ -371,6 +383,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
+    workflow_testing: bool = False,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
@@ -389,6 +402,10 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
+    workflow_testing
+        Flag to indicate if this script is being run for testing purposes (e.g., code review).
+        If True, then only one position and minimal timepoints from the dataset is included for
+        loading and performing inferrence on the crops.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
@@ -408,7 +425,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model.load_config_from_file(path_dict["config_path"])
 
     # create zarr dataset
-    data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, zarr_resolution)
+    data_path = generate_zarr_csv_for_model_eval(
+        dataset_config, save_path, zarr_resolution, workflow_testing
+    )
 
     # apply overrides
     overrides = generate_overrides_for_model_eval(

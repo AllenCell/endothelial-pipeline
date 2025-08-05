@@ -896,21 +896,6 @@ def valley_vector_field_example(
     return vfield
 
 
-def one_direction_vector_field_example(
-    show_vector_field: bool = False,
-) -> tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]:
-    xx, yy = np.meshgrid(np.arange(-10, 11), np.arange(-10, 11))
-    vx = 1 * np.ones_like(xx)
-    vy = 0 * yy
-    vfield = (vx, vy)
-    if show_vector_field:
-        fig, ax = plt.subplots()
-        ax.quiver(xx, yy, *vfield)
-        ax.set_aspect("equal")
-        plt.show()
-    return vfield, (xx, yy)
-
-
 def solenoidal_vector_field_example(
     show_vector_field: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:

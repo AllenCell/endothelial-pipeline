@@ -7,6 +7,7 @@ def main(
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
+    workflow_testing: bool = False,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -27,12 +28,17 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     user_overrides
         Optional user overrides to apply to the model config.
+    workflow_testing
+        Flag to indicate if this script is being run for testing purposes (e.g., code review).
+        If True, the only one position and minimal timepoints from each dataset is included for
+        loading and performing inferrence on the crops. This speeds up the dataloading process
+        during model evaluation.
 
     Returns
     -------
     :
         Saves the model config with the applied model and model manifest objects.
-        The model config is saved to :code:`endo_pipeline/configs/models/{model_name}.yaml`.
+        The model config is saved to [ endo_pipeline/configs/models/{model_name}.yaml ].
     """
 
     import logging
@@ -84,6 +90,7 @@ def main(
             zarr_resolution=zarr_resolution,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
+            workflow_testing=workflow_testing,
         )
 
     # save out updated model config
