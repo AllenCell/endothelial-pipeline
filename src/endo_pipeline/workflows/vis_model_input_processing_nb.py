@@ -24,7 +24,7 @@ POSITION = 0
 TIMEPOINT = 0
 
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
-# datasets = ["20241016_20X"]  # Uncomment this line to test with a single dataset
+# datasets = ["20250409_20X", "20250402_20X"]  # Uncomment this line to test with a single dataset
 
 # %% Brightfield Visualization
 for dataset in datasets:
@@ -129,10 +129,23 @@ for dataset in datasets:
         cdh5_fname = save_dir / f"{dataset}_P{POSITION}_T{TIMEPOINT}_CDH5_max_proj_{slice_str}.png"
         save_projection_image(cdh5_images[-1], cdh5_fname)
 
-    plot_image_row(bf_images, bf_titles, dataset, save_dir, row_title="BF slice")
-    plot_image_row(cdh5_images, cdh5_titles, dataset, save_dir, row_title="CDH5 slice")
-    plot_bottom_top_slices(bf_bottom_slice, bf_top_slice, bf_titles, dataset, save_dir, label="BF")
+    plot_image_row(
+        bf_images, bf_titles, dataset, POSITION, TIMEPOINT, save_dir, row_title="BF slice"
+    )
+    plot_image_row(
+        cdh5_images, cdh5_titles, dataset, POSITION, TIMEPOINT, save_dir, row_title="CDH5 slice"
+    )
     plot_bottom_top_slices(
-        cdh5_bottom_slice, cdh5_top_slice, cdh5_titles, dataset, save_dir, label="CDH5"
+        bf_bottom_slice, bf_top_slice, bf_titles, dataset, POSITION, TIMEPOINT, save_dir, label="BF"
+    )
+    plot_bottom_top_slices(
+        cdh5_bottom_slice,
+        cdh5_top_slice,
+        cdh5_titles,
+        dataset,
+        POSITION,
+        TIMEPOINT,
+        save_dir,
+        label="CDH5",
     )
 # %%

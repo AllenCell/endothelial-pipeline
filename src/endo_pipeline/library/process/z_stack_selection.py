@@ -2,6 +2,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from dask.array import Array
 
 from src.endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
 from src.endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
@@ -262,7 +263,7 @@ def save_projection_image(image: np.ndarray, save_path: Path) -> None:
 
 
 def append_projection_outputs(
-    stack,
+    stack: Array,
     zslice: list[int],
     process_fn: callable,
     image_list: list,
@@ -306,6 +307,8 @@ def plot_image_row(
     images: list[np.ndarray],
     titles: list[str],
     dataset: str,
+    position: int,
+    timepoint: int,
     save_dir: Path,
     row_title: str = "Image",
     figsize: tuple[int, int] = (16, 4)
@@ -321,6 +324,10 @@ def plot_image_row(
         Titles corresponding to each image.
     dataset
         Name of the dataset for labeling the plot.
+    position
+        Position index for labeling the plot.
+    timepoint
+        Timepoint index for labeling the plot.
     save_dir
         Directory where the plot will be saved.
     row_title
@@ -337,10 +344,10 @@ def plot_image_row(
         ax.imshow(img, cmap="gray")
         ax.set_title(f"{row_title} {title}")
         ax.axis("off")
-    plt.suptitle(dataset)
+    plt.suptitle(f"{dataset} P{position}_T{timepoint}")
     plt.tight_layout()
     plt.show()
-    fname = f"{dataset}_{row_title.replace(' ', '_').lower()}_image_comparison"
+    fname = f"{dataset}_P{position}_T{timepoint}_{row_title.replace(' ', '_').lower()}_comparison"
     save_plot_to_path(fig, save_dir, fname)
     
 
@@ -349,6 +356,8 @@ def plot_bottom_top_slices(
     tops: list,
     titles: list[str],
     dataset: str,
+    position: int,
+    timepoint: int,
     save_dir: Path,
     label: str,
     figsize: tuple[int, int] = (16, 8)
@@ -366,6 +375,10 @@ def plot_bottom_top_slices(
         Slice range labels (e.g., "0_16", "9_24") for each column.
     dataset
         Name of the dataset for labeling the plot.
+    position
+        Position index for labeling the plot.
+    timepoint
+        Timepoint index for labeling the plot.
     save_dir
         Directory where the plot will be saved.
     label
@@ -389,8 +402,9 @@ def plot_bottom_top_slices(
         ax.set_title(f"{label} top {title}")
         ax.axis("off")
 
-    plt.suptitle(dataset)
+    plt.suptitle(f"{dataset} P{position}_T{timepoint}")
     plt.tight_layout()
     plt.show()
 
-    save_plot_to_path(fig, save_dir, f"{dataset}_{label}_bottom_top_slices")
+    fname = f"{dataset}_P{position}_T{timepoint}_{label}_bottom_top_slices"
+    save_plot_to_path(fig, save_dir, fname)
