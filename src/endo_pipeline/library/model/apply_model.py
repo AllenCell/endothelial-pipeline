@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,8 @@ from src.endo_pipeline.manifests import (
 )
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
+
+logger = logging.getLogger(__name__)
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -408,8 +411,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         loading and performing inferrence on the crops.
     """
     if not torch.cuda.is_available():
+        logger.error("CUDA is not available. Please run on a GPU machine.")
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-    overrides = load_overrides(user_overrides)
+
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, "train", include_timestamp=True)
@@ -436,7 +440,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
     overrides = generate_overrides_for_model_eval(
-        user_overrides,
+        load_overrides(user_overrides),
         save_path=str(save_path),
         data_path=str(dataset_save_path),
         ckpt_path=path_dict["checkpoint_path"],
