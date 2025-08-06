@@ -172,6 +172,18 @@ def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
             None,
             11,
         ),
+        (
+            "missing_position_no_timepoint",
+            "/path/to/seg/P{{position}}_seg.ome.tiff",
+            None,
+            None,
+        ),
+        (
+            "no_position_missing_timepoint",
+            "/path/to/seg/T{{timepoint}}_seg.ome.tiff",
+            None,
+            None,
+        ),
     ],
 )
 def test_get_segmentation_location_for_dataset_valid_dataset_invalid_arguments(

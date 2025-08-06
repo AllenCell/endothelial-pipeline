@@ -41,7 +41,8 @@ def get_segmentation_location_for_dataset(
         return location
 
     # If position is provided, replace any uses of {{position}} with the given
-    # position (if valid for the dataset).
+    # position (if valid for the dataset). If position is not provided and
+    # {{position}} is in the location, raise an exception.
     if position is not None:
         if position not in dataset.zarr_positions:
             logger.error("Position [ %d ] not valid for dataset [ %s ]", position, dataset.name)
@@ -50,6 +51,9 @@ def get_segmentation_location_for_dataset(
             logger.warning("Provided position [ %d ] not used for location key", position)
         else:
             location.path = Path(str(location.path).replace("{{position}}", str(position)))
+    elif "{{position}}" in str(location.path):
+        logger.error("Dataset [ %s ] location requires position", dataset.name)
+        raise ValueError(f"Position cannot be 'None' for location '{location.path}'")
 
     # If timepoint is provided, replace any uses of {{timepoint}} with the given
     # timepoint (if valid for the dataset).
@@ -61,5 +65,8 @@ def get_segmentation_location_for_dataset(
             logger.warning("Provided timepoint [ %d ] not used for location key", timepoint)
         else:
             location.path = Path(str(location.path).replace("{{timepoint}}", str(timepoint)))
+    elif "{{timepoint}}" in str(location.path):
+        logger.error("Dataset [ %s ] location requires timepoint", dataset.name)
+        raise ValueError(f"Timepoint cannot be 'None' for location '{location.path}'")
 
     return location
