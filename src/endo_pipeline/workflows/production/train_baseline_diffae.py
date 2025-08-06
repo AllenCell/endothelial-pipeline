@@ -65,7 +65,16 @@ def main(
     manifest_name = f"diffae_training_csv_resolution_{zarr_resolution}"
     if workflow_testing:
         manifest_name += "_test_workflow"
-    dataframe_manifest = load_dataframe_manifest(manifest_name)
+    try:
+        dataframe_manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        logger.error(
+            "Dataframe manifest [ %s ] not found. %s %s",
+            manifest_name,
+            "Please run the generate_diffae_training_csv script first ",
+            "with the appropriate zarr_resolution and workflow_testing parameters.",
+        )
+        raise
     train_csv_location = dataframe_manifest.locations["training"]
     val_csv_location = dataframe_manifest.locations["validation"]
 

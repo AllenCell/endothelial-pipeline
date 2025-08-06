@@ -83,7 +83,9 @@ def _generate_overrides_for_model_training(
         "model.image_shape": [1, crop_size, crop_size],
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
+        # set the max number of epochs for training based on workflow_testing flag
         "trainer.max_epochs": 1 if workflow_testing else 1000,
+        "trainer.log_every_n_steps": 1 if workflow_testing else 50,
     }
     return overrides
 
