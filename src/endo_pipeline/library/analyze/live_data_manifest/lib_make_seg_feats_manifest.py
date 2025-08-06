@@ -688,6 +688,41 @@ def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     return seg_path_dict
 
 
+def adjust_crop_bounds_to_0th_bin_level(
+    merged_feats_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Adjust the crop bounds to the 0th level of resolution for the imaging data.
+    Context: the start_y, end_y, start_x, end_x columns that are used to define
+    a crop in the merged_feats_df DataFrame are recorded for the image at bin
+    level 1 since that is what the DiffAE model was learning at the time.
+
+    Parameters
+    ----------
+    merged_feats_df : pd.DataFrame
+        The DataFrame containing crop bound columns in the form of
+        (starty, end_y, start_x, end_x) and a column "resolution_level"
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the crop bounds adjusted to the 0th level of resolution.
+    """
+    # adjust the crop bounds to the 0th level of resolution
+    merged_feats_df["start_y"] = (
+        merged_feats_df["start_y"] * (merged_feats_df["resolution_level"] + 1)
+    ).astype(int)
+    merged_feats_df["end_y"] = (
+        merged_feats_df["end_y"] * (merged_feats_df["resolution_level"] + 1)
+    ).astype(int)
+    merged_feats_df["start_x"] = (
+        merged_feats_df["start_x"] * (merged_feats_df["resolution_level"] + 1)
+    ).astype(int)
+    merged_feats_df["end_x"] = (
+        merged_feats_df["end_x"] * (merged_feats_df["resolution_level"] + 1)
+    ).astype(int)
+    return merged_feats_df
+
+
 def get_nuclei_coords(
     props: regionprops,  # type:ignore
     props_dim_order: str,
@@ -900,7 +935,7 @@ def compute_nuclei_centroids_multiproc(args: tuple[str, int, int]) -> dict:
 
 def add_num_nuclei_in_crop_column(
     merged_feats_df: pd.DataFrame,
-    use_precomputed_if_available: bool = False,
+    use_precomputed: bool = False,
 ) -> pd.DataFrame:
     """
     Add the number of nuclei in each crop to the merged features DataFrame.
@@ -913,7 +948,7 @@ def add_num_nuclei_in_crop_column(
     merged_feats_df : pd.DataFrame
         The DataFrame containing the merged features, which includes
         the crop bounds and the nuclei coordinates.
-    use_precomputed_if_available : bool, optional
+    use_precomputed : bool, optional
         If True, the function will use precomputed nuclei centroids
         if they are available. If False, the function will always
         compute the nuclei centroids. Default is True.
@@ -941,6 +976,10 @@ def add_num_nuclei_in_crop_column(
     be computed each time this function is called.
     """
 
+    # adjust the crop coordinates back to the native resolution since
+    # the label-free nuclei predictions are saved at that resolution
+    merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
+
     groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
 
     # get the nuclei coordinates
@@ -949,7 +988,7 @@ def add_num_nuclei_in_crop_column(
     nuclei_centroids_path = nuclei_centroids_dir / f"{dataset_name}_nuclei_centroids.parquet"
 
     # if the nuclei coordinates are already computed, load them
-    if use_precomputed_if_available and nuclei_centroids_path.exists():
+    if use_precomputed and nuclei_centroids_path.exists():
         nuc_centroid_indices = pd.read_parquet(nuclei_centroids_path)
     # otherwise, compute and save them
     # (this will take about 60 minutes divided by n_cores used)

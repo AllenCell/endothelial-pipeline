@@ -20,47 +20,12 @@ from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_man
 )
 
 
-def adjust_crop_bounds_to_0th_bin_level(
-    merged_feats_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Adjust the crop bounds to the 0th level of resolution for the imaging data.
-    Context: the start_y, end_y, start_x, end_x columns that are used to define
-    a crop in the merged_feats_df DataFrame are recorded for the image at bin
-    level 1 since that is what the DiffAE model was learning at the time.
-
-    Parameters
-    ----------
-    merged_feats_df : pd.DataFrame
-        The DataFrame containing crop bound columns in the form of
-        (starty, end_y, start_x, end_x) and a column "resolution_level"
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame with the crop bounds adjusted to the 0th level of resolution.
-    """
-    # adjust the crop bounds to the 0th level of resolution
-    merged_feats_df["start_y"] = (
-        merged_feats_df["start_y"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    merged_feats_df["end_y"] = (
-        merged_feats_df["end_y"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    merged_feats_df["start_x"] = (
-        merged_feats_df["start_x"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    merged_feats_df["end_x"] = (
-        merged_feats_df["end_x"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    return merged_feats_df
-
-
 def get_correlation_matrix_df(
     features_df: pd.DataFrame,
     column_names_for_x_axis: list[str],
     column_names_for_y_axis: list[str],
-    name_of_x_axis: str,
-    name_of_y_axis: str,
+    x_axis_label: str,
+    y_axis_label: str,
     df_format: Literal["long", "wide-corrcoeff", "wide-pval"] = "long",
 ) -> pd.DataFrame:
     """
@@ -120,8 +85,8 @@ def get_correlation_matrix_df(
             )
             records.append(
                 {
-                    name_of_y_axis: col_for_y,
-                    name_of_x_axis: col_for_x,
+                    y_axis_label: col_for_y,
+                    x_axis_label: col_for_x,
                     "pearsonr": corr,
                     "pval": pval,
                 }
@@ -134,8 +99,8 @@ def get_correlation_matrix_df(
         elif df_format == "wide-pval":
             value_col = "pval"
         correlation_df = correlation_df.pivot(
-            index=name_of_y_axis,
-            columns=name_of_x_axis,
+            index=y_axis_label,
+            columns=x_axis_label,
             values=value_col,
         )
         correlation_df = correlation_df[column_names_for_x_axis]  # sort the columns
@@ -150,9 +115,12 @@ def get_correlation_matrix_df(
 
 
 if __name__ == "__main__":
+
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
-    # dataset_name = dataset_name_list[0]  # for testing purposes
+
     for dataset_name in dataset_name_list:
+
+        out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
 
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
@@ -160,14 +128,8 @@ if __name__ == "__main__":
             dataset_name, datasets_for_bounds=dataset_name_list
         )
 
-        # adjust the crop coordinates back to the native resolution since
-        # the label-free nuclei predictions are saved at that resolution
-        merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
-
         # add the number of nuclei columns
-        merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df)
-
-        out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
+        merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df, use_precomputed=True)
 
         # get the names of the columns that you are interested in comparing
         pc_col_names = []
@@ -203,60 +165,45 @@ if __name__ == "__main__":
             f"Missing: {set(measured_col_names) - set(merged_feats_df.columns)}"
         )
 
-        # 1. create heatmaps of the correlations between measured properties
+        # create heatmaps of the correlations between measured properties
         # and the diffae features or PCs:
-        # heatmap for measurements vs. DiffAE features
-        correlation_df_feats = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=diffae_feature_col_names,
-            name_of_x_axis="measurement",
-            name_of_y_axis="feature",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df_feats, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_feats_vs_measured",
-        )
-
-        # heatmap for measurements vs. PCs
-        correlation_df_pcs = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=pc_col_names,
-            name_of_x_axis="measurement",
-            name_of_y_axis="PC",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df_pcs, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_pcs_vs_measured",
-        )
-
-        # heatmaps for the measurements vs. themselves
-        # to see if any measures tend to co-occur
-        correlation_df = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=measured_col_names,
-            name_of_x_axis="measure1",
-            name_of_y_axis="measure2",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        ax.set_xlabel(""), ax.set_ylabel("")
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_measured_vs_measured",
-        )
+        comparisons_to_make = [
+            (  # heatmap args for measurements vs. DiffAE features
+                "Measurement",
+                measured_col_names,
+                "DiffAE Feature",
+                diffae_feature_col_names,
+                f"{dataset_name}_correlation_feats_vs_measured",
+            ),
+            (  # heatmap args for measurements vs. PCs
+                "Measurement",
+                measured_col_names,
+                "PC",
+                pc_col_names,
+                f"{dataset_name}_correlation_pcs_vs_measured",
+            ),
+            (  # heatmaps for the measurements vs. themselves to see check for co-occurrence
+                "Measurement 1",
+                measured_col_names,
+                "Measurement 2",
+                measured_col_names,
+                f"{dataset_name}_correlation_measured_vs_measured",
+            ),
+        ]
+        for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
+            # create the correlation DataFrame
+            correlation_df = get_correlation_matrix_df(
+                features_df=merged_feats_df,
+                column_names_for_x_axis=x_cols,
+                column_names_for_y_axis=y_cols,
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label,
+                df_format="wide-corrcoeff",
+            )
+            # make the heatmap
+            fig, ax = plt.subplots(figsize=(10, 10))
+            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+            save_plot_to_path(fig, output_path=out_subdir, figure_name=filename)
 
         # repeat the above correlations but filter data table
         # to only include the steady state timepoints that are
@@ -268,78 +215,21 @@ if __name__ == "__main__":
             verbose=False,
         )
 
-        # heatmap for measurements vs. DiffAE features
-        correlation_df_feats = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=diffae_feature_col_names,
-            name_of_x_axis="measurement",
-            name_of_y_axis="feature",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df_feats, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_feats_vs_measured_steady_state",
-        )
-
-        # heatmap for measurements vs. PCs
-        correlation_df_pcs = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=pc_col_names,
-            name_of_x_axis="measurement",
-            name_of_y_axis="PC",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df_pcs, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_pcs_vs_measured_steady_state",
-        )
-
-        # heatmaps for the measurements vs. themselves
-        # to see if any measures tend to co-occur
-        correlation_df = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=measured_col_names,
-            name_of_x_axis="measure1",
-            name_of_y_axis="measure2",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        ax.set_xlabel(""), ax.set_ylabel("")
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_measured_vs_measured_steady_state",
-        )
-
-        # 2. plot the PC loadings
-        # from src.endo_pipeline.workflows.development.visualize_pca_attributes import (
-        #     plot_component_loadings,
-        # )
-
-        # 3. correlations between diffae features and PCs
-        # (NOTE THAT GETTING THE PC LOADINGS IS THE CORRECT APPROACH)
-        correlation_df = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=diffae_feature_col_names,
-            column_names_for_y_axis=pc_col_names,
-            name_of_x_axis="feature",
-            name_of_y_axis="PC",
-            df_format="wide-corrcoeff",
-        )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_pcs_vs_diffae_feats",
-        )
+        for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
+            # create the correlation DataFrame
+            correlation_df = get_correlation_matrix_df(
+                features_df=merged_feats_df,
+                column_names_for_x_axis=x_cols,
+                column_names_for_y_axis=y_cols,
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label,
+                df_format="wide-corrcoeff",
+            )
+            # make the heatmap
+            fig, ax = plt.subplots(figsize=(10, 10))
+            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+            save_plot_to_path(
+                figure=fig,
+                output_path=out_subdir,
+                figure_name=f"{filename}_steady_state",
+            )
