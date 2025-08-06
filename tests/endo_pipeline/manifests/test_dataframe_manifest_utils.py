@@ -12,22 +12,28 @@ def manifest():
     return DataframeManifest(
         name="unique_dataframe_manifest_name",
         workflow="workflow_name",
-        locations={
-            "dataset_one": DataframeLocation(fmsid="dataset_one_fmsid"),
-            "dataset_two": DataframeLocation(fmsid="dataset_two_fmsid", s3uri="s3://dataset_two"),
-            "dataset_three": DataframeLocation(s3uri="s3://dataset_three"),
-        },
+        locations={},
     )
 
 
 def test_list_datasets_with_dataframes_with_valid_locations(manifest):
+    manifest.locations = {
+        "dataset_one": DataframeLocation(fmsid="dataset_one_fmsid"),
+        "dataset_two": DataframeLocation(fmsid="dataset_two_fmsid", s3uri="s3://dataset_two"),
+        "dataset_three": DataframeLocation(s3uri="s3://dataset_three"),
+    }
+
     datasets = list_datasets_with_dataframes(manifest)
 
     assert datasets == ["dataset_one", "dataset_two", "dataset_three"]
 
 
 def test_list_datasets_with_dataframes_with_invalid_location(manifest):
-    manifest.locations["dataset_two"] = DataframeLocation()
+    manifest.locations = {
+        "dataset_one": DataframeLocation(fmsid="dataset_one_fmsid"),
+        "dataset_two": DataframeLocation(),
+        "dataset_three": DataframeLocation(s3uri="s3://dataset_three"),
+    }
 
     datasets = list_datasets_with_dataframes(manifest)
 
@@ -45,6 +51,12 @@ def test_list_datasets_with_dataframes_with_invalid_location(manifest):
 def test_get_dataframe_location_for_dataset_valid_dataset(
     manifest, dataset_name, expected_fmsid, expected_s3uri
 ):
+    manifest.locations = {
+        "dataset_one": DataframeLocation(fmsid="dataset_one_fmsid"),
+        "dataset_two": DataframeLocation(fmsid="dataset_two_fmsid", s3uri="s3://dataset_two"),
+        "dataset_three": DataframeLocation(s3uri="s3://dataset_three"),
+    }
+
     location = get_dataframe_location_for_dataset(manifest, dataset_name)
 
     if expected_fmsid is None:

@@ -12,7 +12,8 @@ class SegmentationLocation:
     """Storage locations for segmentations."""
 
     path: Path | None = None
-    """Local path to segmentation."""
+    """Local path to segmentation. Use {{position}} or {{timepoint}} as
+    placeholders for dynamic values of position or timepoint, respectively."""
 
 
 @dataclass

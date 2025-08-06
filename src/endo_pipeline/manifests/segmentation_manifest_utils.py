@@ -1,7 +1,10 @@
 """Methods for working with segmentation manifests."""
 
+import dataclasses
 import logging
+from pathlib import Path
 
+from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.manifests import SegmentationLocation, SegmentationManifest
 
 logger = logging.getLogger(__name__)
@@ -14,7 +17,10 @@ def list_datasets_with_segmentations(manifest: SegmentationManifest) -> list[str
 
 
 def get_segmentation_location_for_dataset(
-    manifest: SegmentationManifest, dataset_name: str
+    manifest: SegmentationManifest,
+    dataset_name: str,
+    position: int | None = None,
+    timepoint: int | None = None,
 ) -> SegmentationLocation:
     """Get the segmentation location for the given dataset from the manifest, if it exists."""
 
@@ -24,6 +30,36 @@ def get_segmentation_location_for_dataset(
             dataset_name,
             manifest.name,
         )
-        raise KeyError("Unable to find dataset %s in segmentation manifest.")
+        raise KeyError(f"Unable to find dataset {dataset_name} in segmentation manifest.")
 
-    return manifest.locations[dataset_name]
+    dataset = load_dataset_config(dataset_name)
+    location = dataclasses.replace(manifest.locations[dataset_name])
+
+    # If location has no path defined, do not need to do position or timepoint
+    # replacements so return as is.
+    if location.path is None:
+        return location
+
+    # If position is provided, replace any uses of {{position}} with the given
+    # position (if valid for the dataset).
+    if position is not None:
+        if position not in dataset.zarr_positions:
+            logger.error("Position [ %d ] not valid for dataset [ %s ]", position, dataset.name)
+            raise ValueError(f"Dataset {dataset_name} only has positions: {dataset.zarr_positions}")
+        elif "{{position}}" not in str(location.path):
+            logger.warning("Provided position [ %d ] not used for location key", position)
+        else:
+            location.path = Path(str(location.path).replace("{{position}}", str(position)))
+
+    # If timepoint is provided, replace any uses of {{timepoint}} with the given
+    # timepoint (if valid for the dataset).
+    if timepoint is not None:
+        if timepoint < 0 or timepoint >= dataset.duration:
+            logger.error("Timepoint [ %d ] not valid for dataset [ %s ]", timepoint, dataset.name)
+            raise ValueError(f"Dataset {dataset_name} only has {dataset.duration} timepoints")
+        elif "{{timepoint}}" not in str(location.path):
+            logger.warning("Provided timepoint [ %d ] not used for location key", timepoint)
+        else:
+            location.path = Path(str(location.path).replace("{{timepoint}}", str(timepoint)))
+
+    return location
