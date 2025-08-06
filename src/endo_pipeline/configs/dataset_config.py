@@ -121,9 +121,6 @@ class DatasetConfig:
     channel_640_index: int | None = None
     """Index of the 640 channel."""
 
-    nuclear_label_free_seg_path: str | None = None
-    """Path to nuclear label free segmentation."""
-
     nuclear_stain_seg_path: str | None = None
     """Path to nuclear stain segmentation."""
 
