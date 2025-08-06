@@ -124,6 +124,7 @@ def run_correlation_heatmap_workflow() -> None:
     -----
     This workflow takes approximately 45 minutes to run with an 8 core CPU if
     nuclei centroids are not pre-computed.
+    If they are pre-computed, it takes about 7 minutes.
     """
 
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
@@ -134,7 +135,7 @@ def run_correlation_heatmap_workflow() -> None:
 
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
-        merged_feats_df, diffae_grid_crops, bounds = get_preprocessed_manifests_and_km_bounds(
+        merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
             dataset_name, datasets_for_bounds=dataset_name_list
         )
 
@@ -213,6 +214,7 @@ def run_correlation_heatmap_workflow() -> None:
             # make the heatmap
             fig, ax = plt.subplots(figsize=(10, 10))
             sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
             save_plot_to_path(fig, output_path=out_subdir, figure_name=filename)
 
         # repeat the above correlations but filter data table
@@ -246,6 +248,8 @@ def run_correlation_heatmap_workflow() -> None:
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
-    workflow_cli(run_correlation_heatmap_workflow)
+    # NOTE: ipython_cli_flexecute calls `workflow_cli` internally
+    #  if run from the command line
+    ipython_cli_flexecute(run_correlation_heatmap_workflow)
