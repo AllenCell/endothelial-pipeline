@@ -273,7 +273,6 @@ callbacks:
     divergence_threshold: null
     check_on_train_epoch_end: null
   model_summary: null
-  weights_summary: null
   rich_progress_bar:
     _target_: lightning.pytorch.callbacks.RichProgressBar
   latent_walk:
@@ -299,6 +298,7 @@ trainer:
   deterministic: false
   detect_anomaly: false
   max_time: null
+  enable_model_summary: null
 paths:
   root_dir: null
   data_dir: null

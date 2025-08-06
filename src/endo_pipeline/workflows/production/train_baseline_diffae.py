@@ -90,6 +90,7 @@ def main(
         model_name,
         train_csv_path,
         val_csv_path,
+        workflow_testing=workflow_testing,
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name}_train.yaml")
