@@ -61,8 +61,6 @@ dataset = DatasetConfig(
     # channel_405_index=0,
     # channel_561_index=0,
     # channel_640_index=0,
-    # nuclear_label_free_seg_path="/path/to/nuclear/label/free/segmentation",
-    # nuclear_stain_seg_path="/path/to/nuclear/stain/segmentation",
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",

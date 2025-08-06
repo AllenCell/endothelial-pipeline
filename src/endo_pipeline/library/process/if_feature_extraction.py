@@ -6,15 +6,20 @@ from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
 from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.io import load_segmentation
 from src.endo_pipeline.library.process.image_processing import (
     background_subtract,
     max_proj,
     normalize_image,
     sum_proj,
 )
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
+)
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
-NUC_SEG_TYPE = "nuclear_stain_seg_path"
+NUC_SEG_TYPE = "nuclear_stain"
 
 
 def get_labeled_nuclei(
@@ -32,13 +37,11 @@ def get_labeled_nuclei(
     Returns:
         np.ndarray: A labeled image where each connected component is assigned a unique integer label.
     """
-    seg_image = dataset_io.load_nuclei_prediction(
-        dataset_name=dataset,
-        position=position,
-        T=timepoint,
-        nuc_seg_type=nuc_seg_type,
-        dim_order="YX",
-    )
+
+    seg_manifest = load_segmentation_manifest(nuc_seg_type)
+    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset, position, timepoint)
+    seg_image = load_segmentation(seg_location)
+
     return label(seg_image)
 
 
@@ -257,7 +260,7 @@ def run_nuclei_feature_extraction(
         timepoint (int): The timepoint index for the dataset.
             Default is 0, as IF data is only at timepoint 0.
         nuc_seg_type (str): The type of nuclear segmentation to use.
-            Default is "nuclear_stain_seg_path", IF data uses the segmentations
+            Default is "nuclear_stain", IF data uses the segmentations
             generated from the nuclear stain.
 
     Returns:
