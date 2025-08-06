@@ -1,7 +1,6 @@
 import concurrent
 import re
-from pathlib import Path
-from typing import Any, Literal, Sequence
+from typing import Any, Literal
 
 import dask.array as dd
 import numpy as np
@@ -32,6 +31,19 @@ def adjust_crop_bounds_to_0th_bin_level(
 ) -> pd.DataFrame:
     """
     Adjust the crop bounds to the 0th level of resolution for the imaging data.
+    Context: the start_y, end_y, start_x, end_x columns that are used to define
+    a crop in the merged_feats_df DataFrame are recorded for the image at bin
+    level 1 since that is what the DiffAE model was learning at the time.
+
+    Parameters
+    ----------
+    merged_feats_df : pd.DataFrame
+        The DataFrame containing crop bound columns in the form of
+        (starty, end_y, start_x, end_x) and a column "resolution_level"
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the crop bounds adjusted to the 0th level of resolution.
     """
     # adjust the crop bounds to the 0th level of resolution
     merged_feats_df["start_y"] = (
@@ -54,12 +66,31 @@ def get_nuclei_coords(
     props_dim_order: str,
     kind: Literal["centroid", "all"] = "centroid",
 ) -> dict[str, np.ndarray]:
+    """
+    Get the coordinates of the nuclei in the image.
+    Parameters
+    ----------
+    props : regionprops
+        The properties of the labeled nuclei in the image.
+    props_dim_order : str
+        The dimension order of the properties, e.g. "YX" or "ZYX".
+        NOTE: this has only been tested with dim_order = "YX".
+    kind : Literal["centroid", "all"]
+        The kind of coordinates to return.
+        "centroid" will return only the centroids of the labeled nuclei,
+        while "all" will return all the coordinates of the nuclei.
+    Returns
+    -------
+    dict[str, np.ndarray]
+        A dictionary with the coordinates of the nuclei in the image.
+        The keys are "coords_Y", "coords_X", etc. depending on props_dim_order.
+    """
+
     if kind == "all":
         # find the largest nuclei in the image because we
         # will need it for padding the coordinates later
         biggest_nuc_mask = max([p.num_pixels for p in props])  # type:ignore
 
-    # centroids
     nuclei_coords: dict = {f"coords_{d}": [] for d in props_dim_order}
     for p in props:  # type:ignore
         match kind:
@@ -89,6 +120,27 @@ def get_num_unique_values_in_bounds_from_df(
     crop_bounds_X: tuple[pd.Series, pd.Series],
 ) -> np.ndarray:
     """
+    Returns the number of uniquely labeled coordinates within some crop bounds.
+    This is used to count the number of nuclei in each crop.
+
+    Parameters
+    ----------
+    nuclei_coords_Y : pd.Series
+        The Y coordinates of the nuclei centroids.
+    nuclei_coords_X : pd.Series
+        The X coordinates of the nuclei centroids.
+    crop_bounds_Y : tuple[pd.Series, pd.Series]
+        The start and end Y coordinates of the crop bounds.
+    crop_bounds_X : tuple[pd.Series, pd.Series]
+        The start and end X coordinates of the crop bounds.
+
+    Returns
+    -------
+    np.ndarray
+        An array with the number of unique nuclei in each crop.
+
+    Notes
+    -----
     nuclei_coords_Y and nuclei_coords_X have the shape:
     (n_crops x n_unique_labels)
     crop_bounds_Y has the shape (n_crops, 2)
@@ -109,43 +161,45 @@ def get_num_unique_values_in_bounds_from_df(
     return num_nuclei_in_crop
 
 
-# unused: get_num_unique_values_in_bounds
-def get_num_unique_values_in_bounds(
-    nuclei_coords_Y: np.ndarray,
-    nuclei_coords_X: np.ndarray,
-    crop_bounds_Y: tuple[np.typing.ArrayLike, np.typing.ArrayLike],
-    crop_bounds_X: tuple[np.typing.ArrayLike, np.typing.ArrayLike],
-) -> np.ndarray:
-    """
-    nuclei_coords_Y and nuclei_coords_X have the shape:
-    (n_unique_labels x n_coords_per_label)
-    crop_bounds_Y has the shape (n_crops, 2)
-    """
-    start_y, end_y = crop_bounds_Y
-    start_x, end_x = crop_bounds_X
+# # unused: get_num_unique_values_in_bounds
+# def get_num_unique_values_in_bounds(
+#     nuclei_coords_Y: np.ndarray,
+#     nuclei_coords_X: np.ndarray,
+#     crop_bounds_Y: tuple[np.typing.ArrayLike, np.typing.ArrayLike],
+#     crop_bounds_X: tuple[np.typing.ArrayLike, np.typing.ArrayLike],
+# ) -> np.ndarray:
+#     """
+#     Returns the number of uniquely labeled coordinates within some crop bounds.
+#     This is used to count the number of nuclei in each crop.
 
-    coord_in_Y_bounds = np.logical_and(
-        np.reshape(nuclei_coords_Y, (*nuclei_coords_Y.shape, 1))
-        >= np.reshape(start_y, (1, 1, len(start_y))),  # type:ignore[arg-type]
-        np.reshape(nuclei_coords_Y, (*nuclei_coords_Y.shape, 1))
-        <= np.reshape(end_y, (1, 1, len(end_y))),  # type:ignore[arg-type]
-    )
-    coord_in_Y_bounds = coord_in_Y_bounds.any(axis=1)
+#     nuclei_coords_Y and nuclei_coords_X have the shape:
+#     (n_unique_labels x n_coords_per_label)
+#     crop_bounds_Y has the shape (n_crops, 2)
+#     """
+#     start_y, end_y = crop_bounds_Y
+#     start_x, end_x = crop_bounds_X
 
-    coord_in_X_bounds = np.logical_and(
-        np.reshape(nuclei_coords_X, (*nuclei_coords_X.shape, 1))
-        >= np.reshape(start_x, (1, 1, len(start_x))),  # type:ignore[arg-type]
-        np.reshape(nuclei_coords_X, (*nuclei_coords_X.shape, 1))
-        <= np.reshape(end_x, (1, 1, len(end_x))),  # type:ignore[arg-type]
-    )
-    coord_in_X_bounds = coord_in_X_bounds.any(axis=1)
+#     coord_in_Y_bounds = np.logical_and(
+#         np.reshape(nuclei_coords_Y, (*nuclei_coords_Y.shape, 1))
+#         >= np.reshape(start_y, (1, 1, len(start_y))),  # type:ignore[arg-type]
+#         np.reshape(nuclei_coords_Y, (*nuclei_coords_Y.shape, 1))
+#         <= np.reshape(end_y, (1, 1, len(end_y))),  # type:ignore[arg-type]
+#     )
+#     coord_in_Y_bounds = coord_in_Y_bounds.any(axis=1)
 
-    num_nuclei_in_crop = np.logical_and(coord_in_Y_bounds, coord_in_X_bounds).sum(axis=0)
+#     coord_in_X_bounds = np.logical_and(
+#         np.reshape(nuclei_coords_X, (*nuclei_coords_X.shape, 1))
+#         >= np.reshape(start_x, (1, 1, len(start_x))),  # type:ignore[arg-type]
+#         np.reshape(nuclei_coords_X, (*nuclei_coords_X.shape, 1))
+#         <= np.reshape(end_x, (1, 1, len(end_x))),  # type:ignore[arg-type]
+#     )
+#     coord_in_X_bounds = coord_in_X_bounds.any(axis=1)
 
-    return num_nuclei_in_crop
+#     num_nuclei_in_crop = np.logical_and(coord_in_Y_bounds, coord_in_X_bounds).sum(axis=0)
+
+#     return num_nuclei_in_crop
 
 
-# unused: get_num_nuclei_in_array
 def get_num_nuclei_in_array(img_arr: np.ndarray | dd.Array, crop: tuple[slice, ...] | None) -> int:
     """
     Get the number of labeled nuclei in an array or dask array.
@@ -153,6 +207,21 @@ def get_num_nuclei_in_array(img_arr: np.ndarray | dd.Array, crop: tuple[slice, .
     If there is even 1 pixel of a labeled nuclei then it will be counted,
     therefore you may want to create an image of the centroids or cleaned
     up nuclei before counting.
+    Parameters
+    ----------
+    img_arr : np.ndarray or dd.Array
+        The array containing the labeled nuclei.
+    crop : tuple[slice, ...] or None
+        The crop to apply to the array before counting nuclei.
+
+    Returns
+    -------
+    int
+        The number of unique labeled nuclei in the array.
+
+    Notes
+    -----
+    This function is not currently used but is still included for convenience.
     """
     if crop is not None:
         img_arr = img_arr[crop]
@@ -172,6 +241,26 @@ def compute_nuclei_centroids(
     position: int,
     timeframe: int,
 ) -> dict:
+    """
+    Compute the nuclei centroids for a given dataset, position, and timeframe.
+
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the dataset to compute the nuclei centroids for.
+    position : int
+        The position of the dataset to compute the nuclei centroids for.
+    timeframe : int
+        The timeframe of the dataset to compute the nuclei centroids for.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the centroids of the nuclei in the image.
+        The keys include "coords_Y", "coords_X", etc. depending on the
+        dimension order as well as "dataset_name", "position", and
+        "image_index" (i.e. the timeframe).
+    """
 
     # get the nuclei prediction
     dim_order = get_default_dim_order()
@@ -188,7 +277,6 @@ def compute_nuclei_centroids(
     dim_shapes = dict(zip(dim_order, nuc_seg.shape))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
-    # centroid_indices_Y_arr, centroid_indices_X_arr = get_nuclei_coords(
     centroids: dict[str, Any] = get_nuclei_coords(
         props=props,
         props_dim_order=dim_order_squeezed,
@@ -202,6 +290,23 @@ def compute_nuclei_centroids(
 
 
 def compute_nuclei_centroids_multiproc(args: tuple[str, int, int]) -> dict:
+    """
+    Wrapper function to compute nuclei centroids for multiprocessing.
+    This function is used to unpack the arguments for multiprocessing.
+
+    Parameters
+    ----------
+    args : tuple[str, int, int]
+        A tuple containing the dataset name, position, and timeframe.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the centroids of the nuclei in the image.
+        The keys include "coords_Y", "coords_X", etc. depending on the
+        dimension order as well as "dataset_name", "position", and
+        "image_index" (i.e. the timeframe).
+    """
     return compute_nuclei_centroids(*args)
 
 
@@ -210,14 +315,43 @@ def add_num_nuclei_in_crop_column(
 ) -> pd.DataFrame:
     """
     Add the number of nuclei in each crop to the merged features DataFrame.
+    This function computes the number of nuclei in each crop by
+    computing the nuclei centroids and then counting the number of
+    unique nuclei coordinates that fall within the crop bounds.
+
+    Parameters
+    ----------
+    merged_feats_df : pd.DataFrame
+        The DataFrame containing the merged features, which includes
+        the crop bounds and the nuclei coordinates.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with an additional column "num_nuclei_in_crop"
+        that contains the number of nuclei in each crop.
+
+    Notes
+    -----
+    The merged_feats_df DataFrame should contain the following columns:
+    - "dataset_name": the name of the dataset to analyze
+    - "position": the position in the dataset to analyze
+    - "image_index": the timeframe in the dataset to analyze
+    - "coords_Y": the Y coordinates of the nuclei centroids
+    - "coords_X": the X coordinates of the nuclei centroids
+    - "start_y": the start Y coordinate of the crop
+    - "end_y": the end Y coordinate of the crop
+    - "start_x": the start X coordinate of the crop
+    - "end_x": the end X coordinate of the crop
+    This function will take a long time to run, so it will save the
+    nuclei coordinates to a file locally so that it does not have to
+    be computed each time this function is called.
     """
 
     groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
 
     # get the nuclei coordinates
-    nuclei_centroids_dir = get_output_path(
-        Path(__file__).stem, "nuclei_coords", include_timestamp=False
-    )
+    nuclei_centroids_dir = get_output_path(__file__, "nuclei_coords", include_timestamp=False)
     dataset_name = sequence_to_scalar(merged_feats_df["dataset_name"])
     nuclei_centroids_path = nuclei_centroids_dir / f"{dataset_name}_nuclei_centroids.parquet"
 
@@ -310,6 +444,19 @@ def get_correlation_matrix_df(
         correlation coefficients from the "long" version of the table.
         "wide-pval" is similar to "wide-corrcoeff" but the values correspond to the p-values.
         Defaults to "long".
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the Pearson correlation coefficients and p-values between
+        the specified columns in `features_df`. The format of the DataFrame depends on
+        the `df_format` parameter.
+
+    Notes
+    -----
+    Rows with non-finite values in the features_df DataFrame will be dropped
+    For the specific comparison where the non-finite value would show up
+    (but not for the other comparisons).
     """
     records = []
     for col_for_y in column_names_for_y_axis:
@@ -354,7 +501,6 @@ if __name__ == "__main__":
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
     # dataset_name = dataset_name_list[0]  # for testing purposes
     for dataset_name in dataset_name_list:
-        # out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
 
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
@@ -362,28 +508,32 @@ if __name__ == "__main__":
             dataset_name, datasets_for_bounds=dataset_name_list
         )
 
-        # ensure the crop coordinates have an integer datatype
+        # adjust the crop coordinates back to the native resolution since
+        # the label-free nuclei predictions are saved at that resolution
         merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
 
         # add the number of nuclei columns
         merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df)
 
-        out_subdir = get_output_path(Path(__file__).stem, dataset_name, include_timestamp=False)
+        out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
 
-        # get the names of the columns that you are interested in using
+        # get the names of the columns that you are interested in comparing
         pc_col_names = []
         diffae_feature_col_names = []
         for col_nm in merged_feats_df.columns:
+            # get any pc column names
             if re.match("pc[0-9]", col_nm):
                 pc_col_names.append(col_nm)
+            # get any diffae feature column names
             elif re.match("feat_[0-9]+", col_nm):
                 diffae_feature_col_names.append(col_nm)
             else:
                 continue
 
+        # get select measurement column names
         measured_col_names = [
             "alignment_deg_rel_to_flow",
-            "nematic_order",
+            "nematic_order",  # note: this is calculated from alignment_deg_rel_to_flow
             "area",
             "perimeter",
             "eccentricity",
@@ -394,16 +544,16 @@ if __name__ == "__main__":
             "number_of_neighbors",
             "nuc_pos_rel_cell_angle_deg",
         ]
+        # double-check that the chosen measurement column names
+        # are actually in the DataFrame
         assert all(np.isin(measured_col_names, merged_feats_df.columns)), (
             f"Not all measured_col_names are in merged_feats_df. "
             f"Missing: {set(measured_col_names) - set(merged_feats_df.columns)}"
         )
 
-        for meas in measured_col_names:
-            if not np.isfinite(merged_feats_df[meas]).all():
-                print(f"{meas} contains non-finite values")
-
-        # 1. find which of the diffae features correlate with which measured features
+        # 1. create heatmaps of the correlations between measured properties
+        # and the diffae features or PCs:
+        # heatmap for measurements vs. DiffAE features
         correlation_df_feats = get_correlation_matrix_df(
             features_df=merged_feats_df,
             column_names_for_x_axis=measured_col_names,
@@ -412,15 +562,15 @@ if __name__ == "__main__":
             name_of_y_axis="feature",
             df_format="wide-corrcoeff",
         )
-
         fig, ax = plt.subplots(figsize=(10, 10))
         sns.heatmap(correlation_df_feats, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
         save_plot_to_path(
             figure=fig,
             output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_feats_vs_measured_feats",
+            figure_name=f"{dataset_name}_correlation_feats_vs_measured",
         )
 
+        # heatmap for measurements vs. PCs
         correlation_df_pcs = get_correlation_matrix_df(
             features_df=merged_feats_df,
             column_names_for_x_axis=measured_col_names,
@@ -429,23 +579,44 @@ if __name__ == "__main__":
             name_of_y_axis="PC",
             df_format="wide-corrcoeff",
         )
-
         fig, ax = plt.subplots(figsize=(10, 10))
         sns.heatmap(correlation_df_pcs, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
         save_plot_to_path(
             figure=fig,
             output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_pcs_vs_measured_feats",
+            figure_name=f"{dataset_name}_correlation_pcs_vs_measured",
+        )
+
+        # heatmaps for the measurements vs. themselves
+        # to see if any measures tend to co-occur
+        correlation_df = get_correlation_matrix_df(
+            features_df=merged_feats_df,
+            column_names_for_x_axis=measured_col_names,
+            column_names_for_y_axis=measured_col_names,
+            name_of_x_axis="measure1",
+            name_of_y_axis="measure2",
+            df_format="wide-corrcoeff",
+        )
+        fig, ax = plt.subplots(figsize=(10, 10))
+        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+        ax.set_xlabel(""), ax.set_ylabel("")
+        save_plot_to_path(
+            figure=fig,
+            output_path=out_subdir,
+            figure_name=f"{dataset_name}_correlation_measured_vs_measured",
         )
 
         # repeat the above correlations but filter data table
-        # to only include the steady state timepoints
+        # to only include the steady state timepoints that are
+        # used when projecting the DiffAE features onto PCA axes
+        # in the segmentation-free dynamics workflow
         merged_feats_df = get_valid_subset(
             merged_feats_df,
             dataset_name=dataset_name,
             verbose=False,
         )
 
+        # heatmap for measurements vs. DiffAE features
         correlation_df_feats = get_correlation_matrix_df(
             features_df=merged_feats_df,
             column_names_for_x_axis=measured_col_names,
@@ -454,15 +625,15 @@ if __name__ == "__main__":
             name_of_y_axis="feature",
             df_format="wide-corrcoeff",
         )
-
         fig, ax = plt.subplots(figsize=(10, 10))
         sns.heatmap(correlation_df_feats, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
         save_plot_to_path(
             figure=fig,
             output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_feats_vs_measured_feats_steady_state",
+            figure_name=f"{dataset_name}_correlation_feats_vs_measured_steady_state",
         )
 
+        # heatmap for measurements vs. PCs
         correlation_df_pcs = get_correlation_matrix_df(
             features_df=merged_feats_df,
             column_names_for_x_axis=measured_col_names,
@@ -471,13 +642,31 @@ if __name__ == "__main__":
             name_of_y_axis="PC",
             df_format="wide-corrcoeff",
         )
-
         fig, ax = plt.subplots(figsize=(10, 10))
         sns.heatmap(correlation_df_pcs, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
         save_plot_to_path(
             figure=fig,
             output_path=out_subdir,
-            figure_name=f"{dataset_name}_correlation_pcs_vs_measured_feats_steady_state",
+            figure_name=f"{dataset_name}_correlation_pcs_vs_measured_steady_state",
+        )
+
+        # heatmaps for the measurements vs. themselves
+        # to see if any measures tend to co-occur
+        correlation_df = get_correlation_matrix_df(
+            features_df=merged_feats_df,
+            column_names_for_x_axis=measured_col_names,
+            column_names_for_y_axis=measured_col_names,
+            name_of_x_axis="measure1",
+            name_of_y_axis="measure2",
+            df_format="wide-corrcoeff",
+        )
+        fig, ax = plt.subplots(figsize=(10, 10))
+        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+        ax.set_xlabel(""), ax.set_ylabel("")
+        save_plot_to_path(
+            figure=fig,
+            output_path=out_subdir,
+            figure_name=f"{dataset_name}_correlation_measured_vs_measured_steady_state",
         )
 
         # 2. plot the PC loadings
@@ -497,16 +686,8 @@ if __name__ == "__main__":
         )
         fig, ax = plt.subplots(figsize=(10, 10))
         sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
-
-        # 3. correlate the measured features with each other
-        # to see if any measures tend to co-occur
-        correlation_df = get_correlation_matrix_df(
-            features_df=merged_feats_df,
-            column_names_for_x_axis=measured_col_names,
-            column_names_for_y_axis=measured_col_names,
-            name_of_x_axis="measure1",
-            name_of_y_axis="measure2",
-            df_format="wide-corrcoeff",
+        save_plot_to_path(
+            figure=fig,
+            output_path=out_subdir,
+            figure_name=f"{dataset_name}_correlation_pcs_vs_diffae_feats",
         )
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
