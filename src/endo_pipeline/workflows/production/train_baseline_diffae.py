@@ -45,11 +45,17 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # set lightning logger level to WARNING to avoid excessive logging
-    lightning_logger = logging.getLogger("lightning.pytorch")
-    lightning_logger.setLevel(logging.WARNING)
+    # set lightning loggers' levels to WARNING to avoid excessive logging
+    lightning_pytorch_logger = logging.getLogger("lightning.pytorch")
+    lightning_pytorch_logger.setLevel(logging.WARNING)
+    lightning_util_logger = logging.getLogger("lightning.fabric.utilities")
+    lightning_util_logger.setLevel(logging.WARNING)
 
-    # set cyto_dl logger ERROR level to avoid excessive logging outputs
+    # set torch logger WARNING level to avoid excessive logging outputs
+    torch_logger = logging.getLogger("torch")
+    torch_logger.setLevel(logging.WARNING)
+
+    # set cyto_dl logger to ERROR level to avoid excessive logging outputs
     cyto_dl_logger = logging.getLogger("cyto_dl")
     cyto_dl_logger.setLevel(logging.ERROR)
 
@@ -88,7 +94,7 @@ def main(
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name}_train.yaml")
     logger.info(
-        "Training config saved to \n [ %s ]",
+        "Training config saved to [ %s ]",
         local_config_save_path / f"{model_name}_train.yaml",
     )
     _, object_dict = model.train()
