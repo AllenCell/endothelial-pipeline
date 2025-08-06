@@ -1,10 +1,13 @@
 import argparse
 from pathlib import Path
 
-from src.endo_pipeline.configs.dataset_io import get_cdh5_classic_segmentation_path
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
+)
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
 )
 
 
@@ -90,8 +93,13 @@ def main() -> None:
     for dataset in args.datasets:
         for position in args.positions:
             if args.segmentation == "CDH5":
-                source_dir = get_cdh5_classic_segmentation_path(dataset, position)
-                source_dir_path = Path(source_dir)
+                manifest = load_segmentation_manifest("cdh5_classic")
+                location = get_segmentation_location_for_dataset(manifest, dataset, position)
+
+                if location.path is not None:
+                    source_dir_path = location.path.parent
+                else:
+                    continue
 
             # Generate the TFE dataset
             generate_tfe_dataset(

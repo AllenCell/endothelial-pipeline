@@ -11,7 +11,9 @@ from skimage.measure import regionprops_table
 from src.endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
+    get_segmentation_location_for_dataset,
     load_dataframe_manifest,
+    load_segmentation_manifest,
     save_dataframe_manifest,
 )
 
@@ -57,20 +59,6 @@ def get_physical_pixel_sizes(filename):
     return im.physical_pixel_sizes
 
 
-def get_segmentation_path_at_frame(dataset_name: str, position: int, timepoint: int) -> Path:
-    """
-    Temporary helper function to extract timepoints based on local
-    path until segmentation paths are in data manifest.
-    """
-    from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
-
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
-    seg_path = next(
-        [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint]
-    )
-    return seg_path
-
-
 def _get_per_cell_features(
     data: pd.DataFrame,
     feat_cols: list[str],
@@ -88,7 +76,10 @@ def _get_per_cell_features(
         (len(feat_cols), movie_shape_y, movie_shape_x), data, feat_cols
     ).compute()
 
-    segmentation_path = get_segmentation_path_at_frame(dataset_name, position[1:], timepoint)
+    manifest = load_segmentation_manifest("cdh5_classic")
+    segmentation_path = get_segmentation_location_for_dataset(
+        manifest, dataset_name, int(position[1:]), int(timepoint) // 6
+    )
 
     # TODO set resolution to 1 once segmentations are zarrs
     segmentation = BioImage(segmentation_path).get_image_dask_data("YX").compute()
