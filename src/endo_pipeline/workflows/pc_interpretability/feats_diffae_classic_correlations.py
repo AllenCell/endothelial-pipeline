@@ -3,8 +3,6 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-
-# for data exploration; remove later
 import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
@@ -114,7 +112,19 @@ def get_correlation_matrix_df(
     return correlation_df
 
 
-if __name__ == "__main__":
+def run_correlation_heatmap_workflow() -> None:
+    """
+    Run the workflow to generate correlation heatmaps between DiffAE features, PCA components,
+    and measured properties for each dataset in the PCA reference collection.
+    This function loads the dataset collection configuration, preprocesses the manifests,
+    computes the correlations, and saves the heatmaps to the projects results directory
+    under a folder with the same name as this script.
+
+    Notes
+    -----
+    This workflow takes approximately 45 minutes to run with an 8 core CPU if
+    nuclei centroids are not pre-computed.
+    """
 
     dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
@@ -233,3 +243,9 @@ if __name__ == "__main__":
                 output_path=out_subdir,
                 figure_name=f"{filename}_steady_state",
             )
+
+
+if __name__ == "__main__":
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(run_correlation_heatmap_workflow)
