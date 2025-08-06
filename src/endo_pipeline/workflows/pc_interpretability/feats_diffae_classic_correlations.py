@@ -240,6 +240,7 @@ def run_correlation_heatmap_workflow() -> None:
             # make the heatmap
             fig, ax = plt.subplots(figsize=(10, 10))
             sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
             save_plot_to_path(
                 figure=fig,
                 output_path=out_subdir,
