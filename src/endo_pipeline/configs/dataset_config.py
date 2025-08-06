@@ -121,9 +121,6 @@ class DatasetConfig:
     channel_640_index: int | None = None
     """Index of the 640 channel."""
 
-    cdh5_seg_path: str | None = None
-    """Path to Cdh5 segmentations."""
-
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
 
