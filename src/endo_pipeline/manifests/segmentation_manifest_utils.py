@@ -56,7 +56,8 @@ def get_segmentation_location_for_dataset(
         raise ValueError(f"Position cannot be 'None' for location '{location.path}'")
 
     # If timepoint is provided, replace any uses of {{timepoint}} with the given
-    # timepoint (if valid for the dataset).
+    # timepoint (if valid for the dataset). If timepoint is not provided and
+    # {{timepoint}} is in the location, raise an exception.
     if timepoint is not None:
         if timepoint < 0 or timepoint >= dataset.duration:
             logger.error("Timepoint [ %d ] not valid for dataset [ %s ]", timepoint, dataset.name)
