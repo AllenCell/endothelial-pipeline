@@ -1,5 +1,8 @@
 TAGS = ["diffae_model_training"]
 
+ZARR_CDH5_CHANNEL = 0
+ZARR_BF_CHANNEL = 1
+
 
 def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
     """
@@ -42,21 +45,28 @@ def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
 
-    output_savedir = get_output_path("dataframes", include_timestamp=False)
+    output_savedir = get_output_path(
+        "dataframes",
+    )
 
     # load data config
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
 
     zarr_file_paths = []
+    timelapse_bool_list = []
     for dataset_config in dataset_config_list:
+        # get available zarr files for each dataset
         available_zarr_files = get_available_zarr_files(dataset_config)
         zarr_file_paths.extend(
             [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
         )
+        # check if the dataset is a timelapse dataset (i.e., has multiple timepoints)
+        timelapse_bool_list.extend([dataset_config.is_timelapse for _ in available_zarr_files])
 
     zarr_path_df = pd.DataFrame({"path": zarr_file_paths})
-    zarr_path_df["channel"] = "0,1"  # cdh5, brightfield
+    zarr_path_df["timelapse"] = timelapse_bool_list  # whether the dataset is a timelapse dataset
+    zarr_path_df["channel"] = f"{ZARR_CDH5_CHANNEL},{ZARR_BF_CHANNEL}"  # cdh5, brightfield
     zarr_path_df["resolution"] = zarr_resolution  # downsampling factor
 
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
@@ -64,6 +74,15 @@ def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
         # for testing, only keep one entry in each dataframe
         train = train.head(1)
         val = val.head(1)
+        # and only keep the first two timepoints if available
+        train["start"] = 0  # start timepoint
+        train["stop"] = train["timelapse"].apply(lambda x: 1 if x else 0)
+        val["start"] = 0
+        val["stop"] = val["timelapse"].apply(lambda x: 1 if x else 0)
+
+    # drop the 'timelapse' column as it is not needed for training
+    train = train.drop(columns=["timelapse"])
+    val = val.drop(columns=["timelapse"])
 
     # upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script

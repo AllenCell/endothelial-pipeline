@@ -8,7 +8,12 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from src.endo_pipeline.configs import CytoDLModelConfig, DatasetConfig, add_model_manifest
+from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
+    DatasetConfig,
+    add_model_manifest,
+    get_available_zarr_files,
+)
 from src.endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
@@ -188,12 +193,10 @@ def generate_zarr_csv_for_model_eval(
     # this replaces the call to get_zarr_path from dataset_io
     # note that this will likely be refactored after
     # the new zarr methods merge
-    zarr_path_list = list(Path(dataset_config.zarr_path).glob("*.zarr"))
-    zarr_path_dict = {}
-    for path in zarr_path_list:
-        zarr_path_dict[path.name] = str(path)
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
 
-    df = pd.DataFrame({"path": sorted(zarr_path_dict.values())})
+    df = pd.DataFrame({"path": zarr_file_paths})
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = zarr_resolution
 

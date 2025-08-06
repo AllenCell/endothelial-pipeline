@@ -298,7 +298,7 @@ trainer:
   deterministic: false
   detect_anomaly: false
   max_time: null
-  enable_model_summary: null
+  enable_model_summary: False
 paths:
   root_dir: null
   data_dir: null
