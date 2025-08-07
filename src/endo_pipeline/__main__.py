@@ -115,8 +115,7 @@ def pipeline_entrypoint(
         setup_gpu()
 
     if not show_external_logs:
-        for logger_name in EXTERNAL_LOGGERS.keys():
-            show_external_logs_logger(logger_name, EXTERNAL_LOGGERS[logger_name])
+        silence_external_loggers(EXTERNAL_LOGGERS)
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -170,8 +169,7 @@ def workflow_entrypoint(
         setup_gpu()
 
     if not show_external_logs:
-        for logger_name in EXTERNAL_LOGGERS.keys():
-            show_external_logs_logger(logger_name, EXTERNAL_LOGGERS[logger_name])
+        silence_external_loggers(EXTERNAL_LOGGERS)
 
     workflow_app(tokens)
 
@@ -236,20 +234,18 @@ def setup_logging(level: int) -> None:
     logger.addHandler(file_handler)
 
 
-def show_external_logs_logger(logger_name: str, logging_level: int = logging.WARNING) -> None:
+def silence_external_loggers(external_loggers: dict) -> None:
     """
     Set external logger to a specific logging level to avoid excessive logging outputs.
 
     Parameters
     ----------
-    logger_name
-        Name of the logger to silence.
-    logging_level
-        Logging level to set for the external loggers.
+    external_loggers
+        Dictionary of external loggers and their respective logging levels.
     """
-    # set lightning logger WARNING level to avoid excessive logging outputs
-    external_logger = logging.getLogger(logger_name)
-    external_logger.setLevel(logging_level)
+    for logger_name, logging_level in external_loggers.items():
+        external_logger = logging.getLogger(logger_name)
+        external_logger.setLevel(logging_level)
 
 
 def setup_gpu() -> None:
