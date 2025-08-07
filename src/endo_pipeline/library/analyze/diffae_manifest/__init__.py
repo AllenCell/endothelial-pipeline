@@ -7,7 +7,7 @@ from .diffae_manifest_utils import (
     get_valid_subset,
     split_dataset_by_flow,
 )
-from .manifest_pca import fit_pca
+from .manifest_pca import fit_pca, get_pca_loadings, get_pca_loadings_as_df
 from .preprocessing import (
     add_crop_index,
     add_description_column,
@@ -21,6 +21,8 @@ __all__ = [
     "add_description_column",
     "df_to_array",
     "fit_pca",
+    "get_pca_loadings",
+    "get_pca_loadings_as_df",
     "get_dataset_descriptions",
     "get_feature_column_names",
     "get_manifest_for_dynamics_workflows",
