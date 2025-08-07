@@ -18,6 +18,7 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     from src.endo_pipeline.io import get_output_path, save_plot_to_path
     from src.endo_pipeline.library.analyze.diffae_manifest import (
         fit_pca,
+        get_pca_loadings,
         get_timepoints_for_plotting_pcs,
     )
     from src.endo_pipeline.library.visualize.diffae_features import feature_viz
@@ -40,22 +41,24 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     # plot PC loadings (contribution of each latent dimension to each PC)
     # first, plot for components scaled by the square root of the explained variance
     fig, _ = feature_viz.plot_component_loadings(
-        pca.components_.T * np.sqrt(pca.explained_variance_)
+        get_pca_loadings(pca, scaled=True, magnitude=False)
     )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled")
 
     # then, plot components without scaling
-    fig, _ = feature_viz.plot_component_loadings(pca.components_.T)
+    fig, _ = feature_viz.plot_component_loadings(
+        get_pca_loadings(pca, scaled=False, magnitude=False)
+    )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled")
 
     # plot the absolute values of the scaled loadings
-    fig, _ = feature_viz.plot_component_loadings(
-        np.abs(pca.components_.T * np.sqrt(pca.explained_variance_))
-    )
+    fig, _ = feature_viz.plot_component_loadings(get_pca_loadings(pca, scaled=True, magnitude=True))
     save_plot_to_path(fig, fig_savedir, "pc_loadings_scaled_magnitude")
 
     # plot the absolute values of the unscaled loadings
-    fig, _ = feature_viz.plot_component_loadings(np.abs(pca.components_.T))
+    fig, _ = feature_viz.plot_component_loadings(
+        get_pca_loadings(pca, scaled=False, magnitude=True)
+    )
     save_plot_to_path(fig, fig_savedir, "pc_loadings_unscaled_magnitude")
 
     # plot scatter of PCA components

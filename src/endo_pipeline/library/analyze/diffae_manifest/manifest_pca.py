@@ -1,4 +1,5 @@
 import logging
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -87,3 +88,86 @@ def fit_pca(
 
     # return the fit PCA pipeline
     return pca
+
+
+def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) -> np.ndarray:
+    """
+    Get the PCA loading matrix, which contains the contribution of each feature to each principal component.
+    The loading matrix is the transpose of the PCA components matrix.
+
+    Parameters
+    ----------
+    pca : PCA
+        The fitted PCA object.
+    kind : str, optional
+        Whether to return the loading matrix unscaled or scaled by the square root of the explained variance.
+        Options are "unscaled" or "scaled". Default is "unscaled".
+    magnitude : bool, optional
+        Whether to return the absolute values of the loadings. Default is False.
+
+    Returns
+    -------
+    loading_matrix : np.ndarray
+        The PCA loading matrix. Has shape (n_features, n_components).
+    """
+
+    if scaled:  # create scaled loading matrix
+        loading_matrix = pca.components_.T * np.sqrt(pca.explained_variance_)
+    else:  # create unscaled loading matrix
+        loading_matrix = pca.components_.T
+
+    if magnitude:
+        loading_matrix = np.abs(loading_matrix)
+
+    return loading_matrix
+
+
+def get_pca_loadings_as_df(
+    pca: PCA,
+    scaled: bool = False,
+    magnitude: bool = False,
+    df_format: Literal["long", "wide"] = "long",
+) -> pd.DataFrame:
+    """
+    Get the PCA loading matrix as a DataFrame.
+    This is a wrapper around `get_pca_loadings` that formats the output as a DataFrame.
+
+    Parameters
+    ----------
+    pca : PCA
+        The fitted PCA object.
+    kind : str, optional
+        Whether to return the loading matrix unscaled or scaled by the square root of the explained variance.
+        Options are "unscaled" or "scaled". Default is "unscaled".
+    magnitude : bool, optional
+        Whether to return the absolute values of the loadings. Default is False.
+    df_format : str, optional
+        The format of the DataFrame to return. Options are "long" or "wide".
+        If "long", the DataFrame will have columns for 'feature', 'PC', and 'loading_value'.
+        If "wide", the DataFrame will have one column per PC, indexed by feature.
+        Default is "long".
+
+    Returns
+    -------
+    loading_matrix_df : pd.DataFrame
+        The PCA loading matrix as a DataFrame.
+
+    """
+    loading_matrix = get_pca_loadings(pca, scaled, magnitude)
+
+    num_features, num_pcs = loading_matrix.shape
+    feat_col_names = [f"feat_{i}" for i in range(num_features)]
+    pc_col_names = [f"pc{i+1}" for i in range(num_pcs)]
+
+    loading_matrix_df = pd.DataFrame(loading_matrix, columns=pc_col_names, index=feat_col_names)
+    if df_format == "long":
+        loading_matrix_df = loading_matrix_df.reset_index().melt(
+            id_vars="index", var_name="pc", value_name="loading_value"
+        )
+        loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})
+    elif df_format == "wide":
+        pass
+    else:
+        raise ValueError("df_format must be either 'long' or 'wide'.")
+
+    return loading_matrix_df
