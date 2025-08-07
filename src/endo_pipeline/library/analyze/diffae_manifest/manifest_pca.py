@@ -111,10 +111,10 @@ def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) ->
         The PCA loading matrix. Has shape (n_features, n_components).
     """
 
+    loading_matrix = pca.components_.T  # create unscaled loading matrix
+
     if scaled:  # create scaled loading matrix
         loading_matrix = pca.components_.T * np.sqrt(pca.explained_variance_)
-    else:  # create unscaled loading matrix
-        loading_matrix = pca.components_.T
 
     if magnitude:
         loading_matrix = np.abs(loading_matrix)
