@@ -69,12 +69,12 @@ def main(
         dataframe_manifest = load_dataframe_manifest(manifest_name)
     except FileNotFoundError:
         logger.error(
-            "Dataframe manifest [ %s ] for zarr_resolution [ %s ] and test_workflow [ %s ] not found. %s %s",
+            "Dataframe manifest [ %s ] for zarr_resolution [ %s ] and test_workflow [ %s ] "
+            "not found. Please run the create_diffae_training_dataframe script first "
+            "with the appropriate zarr_resolution and test_workflow parameters.",
             manifest_name,
             zarr_resolution,
             test_workflow,
-            "Please run the create_diffae_training_dataframe script first ",
-            "with the appropriate zarr_resolution and test_workflow parameters.",
         )
         raise
     train_csv_location = dataframe_manifest.locations["training"]
