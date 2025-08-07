@@ -31,7 +31,7 @@ def main(
     test_workflow
         Flag to indicate if this script is being run for testing purposes (e.g., code review).
 
-        If True, the only one position and minimal timepoints from each dataset is included for
+        If True, only one position and minimal timepoints from each dataset is included for
         loading and performing inferrence on the crops. This speeds up the dataloading process
         during model evaluation.
 
