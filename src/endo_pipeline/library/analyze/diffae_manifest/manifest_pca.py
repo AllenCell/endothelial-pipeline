@@ -99,9 +99,9 @@ def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) ->
     ----------
     pca : PCA
         The fitted PCA object.
-    kind : str, optional
+    scaled : bool, optional
         Whether to return the loading matrix unscaled or scaled by the square root of the explained variance.
-        Options are "unscaled" or "scaled". Default is "unscaled".
+        Default is False (i.e. return unscaled loadings).
     magnitude : bool, optional
         Whether to return the absolute values of the loadings. Default is False.
 
@@ -136,9 +136,9 @@ def get_pca_loadings_as_df(
     ----------
     pca : PCA
         The fitted PCA object.
-    kind : str, optional
+    scaled : bool, optional
         Whether to return the loading matrix unscaled or scaled by the square root of the explained variance.
-        Options are "unscaled" or "scaled". Default is "unscaled".
+        Default is False (i.e. return unscaled loadings).
     magnitude : bool, optional
         Whether to return the absolute values of the loadings. Default is False.
     df_format : str, optional
