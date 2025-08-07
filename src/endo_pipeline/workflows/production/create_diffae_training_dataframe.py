@@ -45,9 +45,7 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
 
-    output_savedir = get_output_path(
-        "dataframes",
-    )
+    output_savedir = get_output_path("dataframes")
 
     # load data config
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
