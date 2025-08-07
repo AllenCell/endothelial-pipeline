@@ -419,13 +419,11 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
-    model_path = get_output_path("models", model_config.name, "train", include_timestamp=True)
+    model_path = get_output_path("models", model_config.name, "train")
     path_dict = download_model(mlflow_id, model_path)
 
     # set default output path
-    save_path = get_output_path(
-        "models", model_config.name, dataset_config.name, include_timestamp=True
-    )
+    save_path = get_output_path("models", model_config.name, dataset_config.name)
 
     # use timestamp to get unique file name for FMS upload later
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
