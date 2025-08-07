@@ -4,7 +4,7 @@ TAGS = ["diffae_model_training"]
 def main(
     zarr_resolution: int = 1,
     crop_size: int = 128,
-    test_workflow: bool = True,
+    test_workflow: bool = False,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.

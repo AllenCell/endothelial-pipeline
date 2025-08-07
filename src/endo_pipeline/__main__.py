@@ -25,12 +25,12 @@ workflow_app = App(
 
 tags: dict[str, list[str]] = {}
 
-EXTERNAL_LOGGERS = [
-    {"logger_name": "lightning.pytorch", "level": logging.WARNING},
-    {"logger_name": "lightning.fabric.utilities", "level": logging.WARNING},
-    {"logger_name": "torch", "level": logging.WARNING},
-    {"logger_name": "cyto_dl", "level": logging.ERROR},
-]
+EXTERNAL_LOGGERS = {
+    "lightning.pytorch": logging.WARNING,
+    "lightning.fabric.utilities": logging.WARNING,
+    "torch": logging.WARNING,
+    "cyto_dl": logging.ERROR,
+}
 
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
@@ -77,7 +77,9 @@ def pipeline_entrypoint(
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
     run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
-    silence_external: Annotated[bool, Parameter(alias="-s", show_default=False)] = True,
+    show_external_logs: Annotated[
+        bool, Parameter(alias="-s", show_default=False, negative=())
+    ] = False,
 ) -> None:
     """
     Parameters
@@ -98,8 +100,8 @@ def pipeline_entrypoint(
         Path to user configuration file.
     run_with_gpu
         Run workflow with GPU settings.
-    silence_external
-        Silence external libraries' logging to avoid excessive outputs.
+    show_external_logs
+        Show logging outputs from external libraries.
     """
 
     if debug:
@@ -112,9 +114,9 @@ def pipeline_entrypoint(
     if run_with_gpu:
         setup_gpu()
 
-    if silence_external:
-        for logger_info in EXTERNAL_LOGGERS:
-            silence_external_logger(logger_info["logger_name"], logger_info["level"])
+    if not show_external_logs:
+        for logger_name in EXTERNAL_LOGGERS.keys():
+            show_external_logs_logger(logger_name, EXTERNAL_LOGGERS[logger_name])
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -138,7 +140,9 @@ def workflow_entrypoint(
     verbose: Annotated[bool, Parameter(alias="-v", show_default=False, negative=())] = False,
     debug: Annotated[bool, Parameter(alias="-vv", show_default=False, negative=())] = False,
     run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
-    silence_external: Annotated[bool, Parameter(alias="-s", show_default=False)] = True,
+    show_external_logs: Annotated[
+        bool, Parameter(alias="-s", show_default=False, negative=())
+    ] = False,
 ) -> None:
     """
     Parameters
@@ -151,8 +155,8 @@ def workflow_entrypoint(
         Show debug logging.
     run_with_gpu
         Run workflow with GPU settings.
-    silence_external
-        Silence external libraries' logging to avoid excessive outputs.
+    show_external_logs
+        Show logging outputs from external libraries.
     """
 
     if debug:
@@ -165,9 +169,9 @@ def workflow_entrypoint(
     if run_with_gpu:
         setup_gpu()
 
-    if silence_external:
-        for logger_info in EXTERNAL_LOGGERS:
-            silence_external_logger(logger_info["logger_name"], logger_info["level"])
+    if not show_external_logs:
+        for logger_name in EXTERNAL_LOGGERS.keys():
+            show_external_logs_logger(logger_name, EXTERNAL_LOGGERS[logger_name])
 
     workflow_app(tokens)
 
@@ -232,7 +236,7 @@ def setup_logging(level: int) -> None:
     logger.addHandler(file_handler)
 
 
-def silence_external_logger(logger_name: str, logging_level: int = logging.WARNING) -> None:
+def show_external_logs_logger(logger_name: str, logging_level: int = logging.WARNING) -> None:
     """
     Set external logger to a specific logging level to avoid excessive logging outputs.
 
