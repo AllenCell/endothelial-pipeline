@@ -27,6 +27,8 @@ tags: dict[str, list[str]] = {}
 
 EXTERNAL_LOGGERS = {
     "lightning.pytorch": logging.WARNING,
+    "lightning.pytorch.utilities.rank_zero": logging.WARNING,
+    "lightning_utilities.core.rank_zero": logging.WARNING,
     "lightning.fabric.utilities": logging.WARNING,
     "torch": logging.WARNING,
     "cyto_dl": logging.ERROR,
