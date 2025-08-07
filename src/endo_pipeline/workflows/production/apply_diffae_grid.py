@@ -7,7 +7,7 @@ def main(
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    workflow_testing: bool = False,
+    test_workflow: bool = False,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -28,7 +28,7 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     user_overrides
         Optional user overrides to apply to the model config.
-    workflow_testing
+    test_workflow
         Flag to indicate if this script is being run for testing purposes (e.g., code review).
 
         If True, the only one position and minimal timepoints from each dataset is included for
@@ -103,8 +103,15 @@ def main(
             zarr_resolution=zarr_resolution,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
-            workflow_testing=workflow_testing,
+            test_workflow=test_workflow,
         )
+        if test_workflow:
+            # if test workflow, only process the first dataset
+            logger.warning(
+                "Workflow testing is enabled, only processing the first dataset: [ %s ]",
+                dataset_config.name,
+            )
+            break
 
     # save out updated model config
     save_model_config(model_config)
