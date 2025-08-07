@@ -8,30 +8,42 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
 
-    This script collects zarr file paths from multiple datasets, splits them into
-    training and validation sets, and saves them as .csv files in a specified directory.
-    It also includes metadata such as channel and resolution level.
+    This script collects zarr file paths from multiple datasets, splits them
+    into training and validation sets, and saves them as .csv files in a
+    specified directory. It also includes metadata such as channel and
+    resolution level. These dataframes are accessed by the data loader in the
+    DiffAE model training script.
 
-    The datasets are defined in the `diffae_model_training` dataset collection configuration.
+    **Dataset collection**
 
-    These dataframes are accessed by the data loader in the DiffAE model training script.
+    The datasets are defined in the ``diffae_model_training`` dataset collection
+    configuration.
+
+    **Zarr resolution**
+
+    Zarr files used by training can be used as different resolutions. The
+    default resolution of 1 corresponds to downsampling by half.
+
+    **Workflow testing**
+
+    The ``test_workflow`` flag can be used to run a simplified version of this
+    workflow for testing purposes (e.g. during code review). The training and
+    validation datasets will only keep one entry, which speeds up the data
+    loading process during model training.
 
     Parameters
     ----------
     zarr_resolution
-        The resolution level of the zarr files to be used for training. Default is 1,
-        which corresponds to downsampling by half.
+        The resolution level of the zarr files to be used for training.
     test_workflow
-        Flag to indicate if this script is being run for testing purposes (e.g., code review).
-        If True, the training and validation datasets will only keep one entry each.
-        Doing so speeds up the dataloading process during model training
-        (i.e., while running train_baseline_diffae.py)
+        True to run the script in testing mode, False otherwise.
 
     Returns
     -------
     :
-        Uploads the training and validation dataframes to FMS and saves a DataframeManifest
-        with DatasetLocation objects containing the FMS IDs of the uploaded files.
+        Uploads the training and validation dataframes to FMS and saves a
+        DataframeManifest with DatasetLocation objects containing the FMS IDs of
+        the uploaded files.
     """
 
     import pandas as pd
