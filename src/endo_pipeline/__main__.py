@@ -77,6 +77,7 @@ def pipeline_entrypoint(
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
     run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
+    silence_external: Annotated[bool, Parameter(alias="-s", show_default=False)] = True,
 ) -> None:
     """
     Parameters
@@ -97,6 +98,8 @@ def pipeline_entrypoint(
         Path to user configuration file.
     run_with_gpu
         Run workflow with GPU settings.
+    silence_external
+        Silence external libraries' logging to avoid excessive outputs.
     """
 
     if debug:
@@ -108,6 +111,10 @@ def pipeline_entrypoint(
 
     if run_with_gpu:
         setup_gpu()
+
+    if silence_external:
+        for logger_info in EXTERNAL_LOGGERS:
+            silence_external_logger(logger_info["logger_name"], logger_info["level"])
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -160,7 +167,7 @@ def workflow_entrypoint(
 
     if silence_external:
         for logger_info in EXTERNAL_LOGGERS:
-            silence_external_logging(logger_info["logger_name"], logger_info["level"])
+            silence_external_logger(logger_info["logger_name"], logger_info["level"])
 
     workflow_app(tokens)
 
@@ -225,9 +232,9 @@ def setup_logging(level: int) -> None:
     logger.addHandler(file_handler)
 
 
-def silence_external_logging(logger_name: str, logging_level: int = logging.WARNING) -> None:
+def silence_external_logger(logger_name: str, logging_level: int = logging.WARNING) -> None:
     """
-    Set external loggers to a specific logging level to avoid excessive logging outputs.
+    Set external logger to a specific logging level to avoid excessive logging outputs.
 
     Parameters
     ----------
