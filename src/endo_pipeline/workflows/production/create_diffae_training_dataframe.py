@@ -6,7 +6,7 @@ ZARR_BF_CHANNEL = 1
 
 def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
     """
-    Generate .csv files with paths to zarr files for training a DiffAE model.
+    Generate dataframes with paths to zarr files for training a DiffAE model.
 
     This script collects zarr file paths from multiple datasets, splits them into
     training and validation sets, and saves them as .csv files in a specified directory.
@@ -14,7 +14,7 @@ def main(zarr_resolution: int = 1, workflow_testing: bool = False) -> None:
 
     The datasets are defined in the `diffae_model_training` dataset collection configuration.
 
-    These csv files are accessed by the data loader in the DiffAE model training script.
+    These dataframes are accessed by the data loader in the DiffAE model training script.
 
     Parameters
     ----------

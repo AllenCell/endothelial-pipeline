@@ -71,7 +71,7 @@ def main(
         logger.error(
             "Dataframe manifest [ %s ] not found. %s %s",
             manifest_name,
-            "Please run the generate_diffae_training_csv script first ",
+            "Please run the create_diffae_training_dataframe script first ",
             "with the appropriate zarr_resolution and workflow_testing parameters.",
         )
         raise
