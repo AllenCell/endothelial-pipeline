@@ -23,8 +23,8 @@ def _get_options(available_artifacts: list[str], patterns: list[str]) -> str:
         if len(matches) > 1:
             logger.error("Multiple artifacts found for pattern [ %s ]: [ %s ]", p, matches)
             raise ValueError(
-                f"Multiple artifacts found for pattern {p}: {matches}.",
-                "Please specify the artifact path.",
+                f"Multiple artifacts found for pattern {p}: {matches}. "
+                "Please specify the artifact path."
             )
 
     logger.error(
