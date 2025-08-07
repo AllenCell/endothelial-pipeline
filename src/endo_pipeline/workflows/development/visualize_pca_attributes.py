@@ -6,8 +6,6 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     import logging
     from typing import cast
 
-    import numpy as np
-
     from src.endo_pipeline.configs import (
         CytoDLModelConfig,
         get_datasets_in_collection,
