@@ -25,6 +25,13 @@ workflow_app = App(
 
 tags: dict[str, list[str]] = {}
 
+EXTERNAL_LOGGERS = [
+    {"logger_name": "lightning.pytorch", "level": logging.WARNING},
+    {"logger_name": "lightning.fabric.utilities", "level": logging.WARNING},
+    {"logger_name": "torch", "level": logging.WARNING},
+    {"logger_name": "cyto_dl", "level": logging.ERROR},
+]
+
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
@@ -124,6 +131,7 @@ def workflow_entrypoint(
     verbose: Annotated[bool, Parameter(alias="-v", show_default=False, negative=())] = False,
     debug: Annotated[bool, Parameter(alias="-vv", show_default=False, negative=())] = False,
     run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
+    silence_external: Annotated[bool, Parameter(alias="-s", show_default=False)] = True,
 ) -> None:
     """
     Parameters
@@ -136,6 +144,8 @@ def workflow_entrypoint(
         Show debug logging.
     run_with_gpu
         Run workflow with GPU settings.
+    silence_external
+        Silence external libraries' logging to avoid excessive outputs.
     """
 
     if debug:
@@ -147,6 +157,10 @@ def workflow_entrypoint(
 
     if run_with_gpu:
         setup_gpu()
+
+    if silence_external:
+        for logger_info in EXTERNAL_LOGGERS:
+            silence_external_logging(logger_info["logger_name"], logger_info["level"])
 
     workflow_app(tokens)
 
@@ -209,6 +223,22 @@ def setup_logging(level: int) -> None:
 
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
+
+
+def silence_external_logging(logger_name: str, logging_level: int = logging.WARNING) -> None:
+    """
+    Set external loggers to a specific logging level to avoid excessive logging outputs.
+
+    Parameters
+    ----------
+    logger_name
+        Name of the logger to silence.
+    logging_level
+        Logging level to set for the external loggers.
+    """
+    # set lightning logger WARNING level to avoid excessive logging outputs
+    external_logger = logging.getLogger(logger_name)
+    external_logger.setLevel(logging_level)
 
 
 def setup_gpu() -> None:

@@ -45,20 +45,6 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # set lightning loggers' levels to WARNING to avoid excessive logging
-    lightning_pytorch_logger = logging.getLogger("lightning.pytorch")
-    lightning_pytorch_logger.setLevel(logging.WARNING)
-    lightning_util_logger = logging.getLogger("lightning.fabric.utilities")
-    lightning_util_logger.setLevel(logging.WARNING)
-
-    # set torch logger WARNING level to avoid excessive logging outputs
-    torch_logger = logging.getLogger("torch")
-    torch_logger.setLevel(logging.WARNING)
-
-    # set cyto_dl logger to ERROR level to avoid excessive logging outputs
-    cyto_dl_logger = logging.getLogger("cyto_dl")
-    cyto_dl_logger.setLevel(logging.ERROR)
-
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
     # and using the DatasetLocation objects to get the paths

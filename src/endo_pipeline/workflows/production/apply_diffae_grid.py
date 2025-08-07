@@ -57,19 +57,6 @@ def main(
     from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
     logger = logging.getLogger(__name__)
-
-    # set lightning logger WARNING level to avoid excessive logging outputs
-    lightning_logger = logging.getLogger("lightning.pytorch")
-    lightning_logger.setLevel(logging.WARNING)
-
-    # set torch logger WARNING level to avoid excessive logging outputs
-    torch_logger = logging.getLogger("torch")
-    torch_logger.setLevel(logging.WARNING)
-
-    # set cyto_dl logger ERROR level to avoid excessive logging outputs
-    cyto_dl_logger = logging.getLogger("cyto_dl")
-    cyto_dl_logger.setLevel(logging.ERROR)
-
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
