@@ -49,12 +49,12 @@ def fit_pca(
     model_config = load_model_config(model_name)
     if dataset_collection_name == "pca_reference":
         # use default function
-        model_manifest_list = get_pca_reference_model_manifests(model_config)
+        model_manifest_list = get_pca_reference_model_manifests(model_config)  # type: ignore[arg-type]
     else:
         # load model manifests for the given dataset collection
         dataset_names = get_datasets_in_collection(dataset_collection_name)
         model_manifest_list = [
-            get_model_manifest(dataset_name, model_name) for dataset_name in dataset_names
+            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names  # type: ignore[arg-type]
         ]
 
     logger.info(
@@ -92,7 +92,8 @@ def fit_pca(
 
 def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) -> np.ndarray:
     """
-    Get the PCA loading matrix, which contains the contribution of each feature to each principal component.
+    Get the PCA loading matrix, which contains the contribution of each feature to each
+    principal component.
     The loading matrix is the transpose of the PCA components matrix.
 
     Parameters
@@ -100,7 +101,8 @@ def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) ->
     pca : PCA
         The fitted PCA object.
     scaled : bool, optional
-        Whether to return the loading matrix unscaled or scaled by the square root of the explained variance.
+        Whether to return the loading matrix unscaled or scaled by the square root of the
+        explained variance.
         Default is False (i.e. return unscaled loadings).
     magnitude : bool, optional
         Whether to return the absolute values of the loadings. Default is False.
@@ -137,7 +139,8 @@ def get_pca_loadings_as_df(
     pca : PCA
         The fitted PCA object.
     scaled : bool, optional
-        Whether to return the loading matrix unscaled or scaled by the square root of the explained variance.
+        Whether to return the loading matrix unscaled or scaled by the square root of the
+        explained variance.
         Default is False (i.e. return unscaled loadings).
     magnitude : bool, optional
         Whether to return the absolute values of the loadings. Default is False.
