@@ -1,11 +1,12 @@
 import logging
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     get_datasets_in_collection,
     get_model_manifest,
     get_pca_reference_model_manifests,
@@ -46,15 +47,15 @@ def fit_pca(
         Fit PCA object
     """
     # load model config to get avaiable manifest names
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
     if dataset_collection_name == "pca_reference":
         # use default function
-        model_manifest_list = get_pca_reference_model_manifests(model_config)  # type: ignore[arg-type]
+        model_manifest_list = get_pca_reference_model_manifests(model_config)
     else:
         # load model manifests for the given dataset collection
         dataset_names = get_datasets_in_collection(dataset_collection_name)
         model_manifest_list = [
-            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names  # type: ignore[arg-type]
+            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
         ]
 
     logger.info(
