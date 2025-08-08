@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, Sequence
+from typing import Literal
 
 import dask.array as da
 import numpy as np
@@ -29,7 +29,7 @@ def get_zarr_img_for_dataset(
     return img
 
 
-def get_crop(
+def _get_crop(
     img: BioImage,
     channel: int | list | None,
     timepoint: int | None,
@@ -97,11 +97,11 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[
         with tqdm(total=len(df_dataset), desc=f"Processing crops for {dataset}") as pbar:
             # Loop through each position available in the dataset
             for position, df_pos in df_dataset.groupby("position"):
-                p = dataset_io.extract_P(position)
-                img = get_zarr_img_for_dataset(dataset, p, resolution_level=1)
+                position_integer = position[-1]  # Extract the position number from the string
+                img = get_zarr_img_for_dataset(dataset, position_integer, resolution_level=1)
                 for _, row in df_pos.iterrows():
                     timepoint = row["frame_number"]
-                    crop = get_crop(
+                    crop = _get_crop(
                         img,
                         channel=None,
                         timepoint=timepoint,
@@ -144,13 +144,19 @@ def global_contrast_crop_list(
     """
     Apply the same contrast stretching to all crops in the list.
 
-    Args:
-        crop_list (list): List of crops to apply contrast stretching to.
-        channel_index (int): Index of the channel to apply contrast stretching on.
-        contrast_method (str): Method for contrast stretching.
+    Parameters
+    ----------
+    crop_list
+        List of crops to apply contrast stretching to.
+    channel_index
+        Index of the channel to apply contrast stretching on.
+    contrast_method
+        Method for contrast stretching.
 
-    Returns:
-        contrasted_crops (list): List of crops with contrast stretching applied.
+    Returns
+    -------
+    :
+        List of crops with contrast stretching applied.
     """
     low, high = get_global_custom_range(crop_list, method=contrast_method)
 
@@ -168,12 +174,17 @@ def individual_contrast_crop_list(
     """
     Apply individual contrast stretching to each crop in the list.
 
-    Args:
-        crop_list (list): List of crops to apply contrast stretching to.
-        contrast_method (str): Method for contrast stretching.
+    Parameters
+    ----------
+    crop_list
+        List of crops to apply contrast stretching to.
+    contrast_method
+        Method for contrast stretching.
 
-    Returns:
-        contrasted_crops (list): List of crops with contrast stretching applied.
+    Returns
+    -------
+    :
+        List of crops with contrast stretching applied.
     """
     contrasted_channel = []
     for crop in crop_list:
