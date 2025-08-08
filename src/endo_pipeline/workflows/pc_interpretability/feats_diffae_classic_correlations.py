@@ -115,7 +115,7 @@ def get_correlation_matrix_df(
         pass
     else:
         raise ValueError(
-            f"Unsupported df_format: {df_format}. Supported formats are 'long', 'wide-corrcoeff', 'wide-pval'."
+            f"Unsupported df_format: {df_format}. Supported: 'long', 'wide-corrcoeff', 'wide-pval'."
         )
     return correlation_df
 
