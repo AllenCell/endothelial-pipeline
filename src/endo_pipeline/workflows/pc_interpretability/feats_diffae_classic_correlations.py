@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -7,9 +7,17 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 
-from src.endo_pipeline.configs import load_dataset_collection_config
+from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
+    load_dataset_collection_config,
+    load_model_config,
+)
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import get_valid_subset
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
+    get_pca_loadings_as_df,
+    get_valid_subset,
+)
 from src.endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
@@ -127,7 +135,21 @@ def run_correlation_heatmap_workflow() -> None:
     If they are pre-computed, it takes about 7 minutes.
     """
 
-    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+    # dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+
+    model_name = "diffae_04_10"
+    dataset_name_list = []
+    for manifest in cast(CytoDLModelConfig, load_model_config(model_name)).manifest_fmsids:
+        if (
+            manifest.dataset_name
+            in load_dataset_collection_config(
+                "live_20X_objective_3i_microscope_timelapses"
+            ).datasets
+        ):
+            dataset_name_list.append(manifest.dataset_name)
+
+    # instantiate an empty list to hold the DataFrames for later analysis
+    df_list = []
 
     for dataset_name in dataset_name_list:
 
@@ -159,22 +181,41 @@ def run_correlation_heatmap_workflow() -> None:
         measured_col_names = [
             "alignment_deg_rel_to_flow",
             "nematic_order",  # note: this is calculated from alignment_deg_rel_to_flow
-            "area",
-            "perimeter",
             "eccentricity",
             "aspect_ratio",
             "cell_fluorescence_mean (a.u.)",
             "num_nuclei_in_crop",
+            "perimeter",
+            "area",
             "cell_solidity",
             "number_of_neighbors",
             "nuc_pos_rel_cell_angle_deg",
         ]
+        dataset_info_cols = [
+            "dataset_name",
+            "position",
+            "image_index",
+            "frame_number",
+            "track_id",
+            "crop_index",
+            "label",
+        ]
         # double-check that the chosen measurement column names
         # are actually in the DataFrame
-        assert all(np.isin(measured_col_names, merged_feats_df.columns)), (
-            f"Not all measured_col_names are in merged_feats_df. "
-            f"Missing: {set(measured_col_names) - set(merged_feats_df.columns)}"
+        assert all(np.isin(measured_col_names + dataset_info_cols, merged_feats_df.columns)), (
+            f"Not all columns names are in merged_feats_df. "
+            f"Missing: {set(measured_col_names + dataset_info_cols) - set(merged_feats_df.columns)}"
         )
+
+        # keep only the columns that will be used to conserve memory
+        cols_to_keep = (
+            dataset_info_cols + measured_col_names + diffae_feature_col_names + pc_col_names
+        )
+        merged_feats_df = merged_feats_df[cols_to_keep]
+
+        # add the dataframe to a list with all of them so we can
+        # do a correlation analysis across all listed datasets
+        df_list.append(merged_feats_df)
 
         # create heatmaps of the correlations between measured properties
         # and the diffae features or PCs:
@@ -213,7 +254,7 @@ def run_correlation_heatmap_workflow() -> None:
             )
             # make the heatmap
             fig, ax = plt.subplots(figsize=(10, 10))
-            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
             ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
             save_plot_to_path(fig, output_path=out_subdir, figure_name=filename)
 
@@ -239,13 +280,83 @@ def run_correlation_heatmap_workflow() -> None:
             )
             # make the heatmap
             fig, ax = plt.subplots(figsize=(10, 10))
-            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1)
+            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
             ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
             save_plot_to_path(
                 figure=fig,
                 output_path=out_subdir,
                 figure_name=f"{filename}_steady_state",
             )
+
+    # get the PCA loadings DataFrame
+    pca = fit_pca()
+    pca_loadings_df = get_pca_loadings_as_df(pca, scaled=True, magnitude=False, df_format="wide")
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    sns.heatmap(
+        pca_loadings_df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        ax=ax,
+        cbar_kws={"label": "Scaled Loading Value"},
+    )
+    ax.set_xlabel("PC")
+    ax.set_ylabel("Latent Feature")
+    save_plot_to_path(
+        figure=fig,
+        output_path=get_output_path(__file__, include_timestamp=False),
+        figure_name="pca_loadings_scaled_heatmap",
+    )
+
+    # produce correlation heatmaps across all datasets
+    all_feats_df = pd.concat(df_list, ignore_index=True)
+
+    comparisons_to_make = [
+        (  # heatmap args for measurements vs. DiffAE features
+            "Measurement",
+            measured_col_names,
+            "DiffAE Feature",
+            diffae_feature_col_names,
+            f"multi_dataset_correlation_feats_vs_measured",
+        ),
+        (  # heatmap args for measurements vs. PCs
+            "Measurement",
+            measured_col_names,
+            "PC",
+            pc_col_names,
+            f"multi_dataset_correlation_pcs_vs_measured",
+        ),
+        (  # heatmaps for the measurements vs. themselves to see check for co-occurrence
+            "Measurement 1",
+            measured_col_names,
+            "Measurement 2",
+            measured_col_names,
+            f"multi_dataset_correlation_measured_vs_measured",
+        ),
+    ]
+
+    out_subdir = get_output_path(__file__, "aggregated_dataset_analysis", include_timestamp=False)
+
+    for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
+        # create the correlation DataFrame
+        correlation_df = get_correlation_matrix_df(
+            features_df=all_feats_df,
+            column_names_for_x_axis=x_cols,
+            column_names_for_y_axis=y_cols,
+            x_axis_label=x_axis_label,
+            y_axis_label=y_axis_label,
+            df_format="wide-corrcoeff",
+        )
+        # make the heatmap
+        fig, ax = plt.subplots(figsize=(10, 10))
+        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
+        ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
+        save_plot_to_path(
+            figure=fig,
+            output_path=out_subdir,
+            figure_name=filename,
+        )
 
 
 if __name__ == "__main__":
