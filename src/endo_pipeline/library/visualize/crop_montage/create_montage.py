@@ -138,7 +138,6 @@ def generate_contact_sheet(
     for image_content, crop_list_channel in contrast_crops.items():
         plot_crop_montage(
             crop_list_channel,
-            df_sample_sorted,
             pc_axis,
             pc_val,
             image_content=image_content,

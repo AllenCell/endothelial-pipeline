@@ -1,11 +1,12 @@
 import logging
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     ModelManifest,
     get_available_dataset_collection_names,
     get_available_dataset_names,
@@ -14,16 +15,17 @@ from src.endo_pipeline.configs import (
     get_timelapse_model_manifests,
     load_model_config,
 )
+from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_manifest_for_dynamics_workflows,
+    get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import (
     get_3d_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,
 )
-from src.endo_pipeline.library.visualize import viz_base
 from src.endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
@@ -35,9 +37,9 @@ N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat ar
 
 def load_data(
     dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
-) -> tuple[pd.DataFrame, Pipeline, list[ModelManifest]]:
+) -> tuple[pd.DataFrame, PCA, list[ModelManifest]]:
     """
-    Load manifest DataFrames for one or more datasets and optionally apply PCA.
+    Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
@@ -45,18 +47,18 @@ def load_data(
         Name of the dataset(s) to include, either a single dataset name or
         the name of a dataset collection.
     model_name
-        Name of the model for which to load the feature manifest data.
+        Name of the model for which to load the feature dataframe.
 
     Returns
     -------
     :
-        Concatenated manifest DataFrame for the specified datasets.
+        Concatenated feature DataFrame for the specified datasets.
     :
         Fit PCA object for the model.
     :
         List of model manifests for the specified datasets.
     """
-    model_config = load_model_config(model_name)
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # check if input is a dataset collection or a single dataset name
     if dataset_name is None:
@@ -105,7 +107,7 @@ def filter_dataframe(
     pc_axis: int,
     pc_val: float,
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     fig_savedir: Path,
     frame_range: list[int] | None = None,
     plot_heatmap: bool = False,
@@ -142,7 +144,7 @@ def filter_dataframe(
         df_all,
         N_BINS,
         bin_limits,
-        feat_cols=manifest_io.get_feature_cols(df_all)[:3],
+        feat_cols=get_pc_column_names(df_all, pc_axes=[0, 1, 2]),
     )
 
     if plot_heatmap:
@@ -150,7 +152,7 @@ def filter_dataframe(
             dataset_name = model_manifest.dataset_name
             fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
-            viz_base.save_plot(fig, fig_savedir + f"{dataset_name}_pc_histogram")
+            save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
     df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
