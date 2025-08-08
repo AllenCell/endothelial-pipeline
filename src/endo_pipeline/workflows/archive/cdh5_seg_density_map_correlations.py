@@ -1,26 +1,23 @@
-from pathlib import Path
+def _evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, nsamples=1000):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    from skimage.measure import label, regionprops
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from skimage.measure import label, regionprops
+    from src.endo_pipeline.configs import dataset_io
+    from src.endo_pipeline.io import load_segmentation
+    from src.endo_pipeline.manifests import (
+        get_segmentation_location_for_dataset,
+        load_segmentation_manifest,
+    )
+    from src.endo_pipeline.workflows.archive import cdh5_seg_density_map as cellsden
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.io import load_segmentation
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
-from src.endo_pipeline.workflows.archive import cdh5_seg_density_map as cellsden
+    # silence the max number of plots warning
+    plt.rcParams.update({"figure.max_open_warning": 0})
 
-# silence the max number of plots warning
-plt.rcParams.update({"figure.max_open_warning": 0})
-
-
-def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, nsamples=1000):
     np.random.seed(666)
-    # The density maps from thresholds and segmentations are comparable form my test on dataset 20240305_T01_001
+    # The density maps from thresholds and segmentations are comparable form
+    # my test on dataset 20240305_T01_001
     # dmap = cellsden.get_density_map_from_segmentations(dataset_name, T, density_map_sigma=10)
     dmap = cellsden.get_density_map_from_thresholds(dataset_name, T, density_map_sigma=40)
     nuc_seg = dataset_io.load_dataset(
@@ -89,17 +86,33 @@ def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, 
     return df, pearson, fig
 
 
-def save_results(out_dir, t, df, pearson, fig):
+def _save_results(out_dir, t, df, pearson, fig):
+    from pathlib import Path
+
     Path.mkdir(out_dir / "plots", exist_ok=True, parents=True)
     Path.mkdir(out_dir / "tables", exist_ok=True, parents=True)
     fig.savefig(out_dir / f"plots/T{t}_pearson={pearson:.2f}.png")
     df.to_csv(out_dir / f"tables/T{t}_results.csv")
 
 
-if __name__ == "__main__":
-    dataset_name_list = [
-        "20240305_T01_001",
-    ]
+def main(dataset_name_list: list[str] | None = None) -> None:
+    """Make density map correlations for CDH5 segmentation datasets."""
+
+    from pathlib import Path
+
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    import seaborn as sns
+
+    from src.endo_pipeline.configs import dataset_io
+
+    # silence the max number of plots warning
+    plt.rcParams.update({"figure.max_open_warning": 0})
+
+    if dataset_name_list is None:
+        dataset_name_list = [
+            "20240305_T01_001",
+        ]
 
     for dataset_name in dataset_name_list:
         print(dataset_name)
@@ -110,10 +123,10 @@ if __name__ == "__main__":
 
         for t in T_range:
             print(f"T={t}")
-            df, pearson, fig = evaluate_density_against_number_of_nuclei(
+            df, pearson, fig = _evaluate_density_against_number_of_nuclei(
                 dataset_name, t, bbox_radius=256, nsamples=1000
             )
-            save_results(out_dir, t, df, pearson, fig)
+            _save_results(out_dir, t, df, pearson, fig)
 
         table_paths = [fp for fp in out_dir.glob("tables/*.csv")]
         master_table = pd.concat([pd.read_csv(fp) for fp in table_paths])
@@ -147,3 +160,9 @@ if __name__ == "__main__":
         ax.set_adjustable("box")
         plt.tight_layout()
         fig.savefig(out_dir / "plots/T_vs_pearson.png")
+
+
+if __name__ == "__main__":
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
