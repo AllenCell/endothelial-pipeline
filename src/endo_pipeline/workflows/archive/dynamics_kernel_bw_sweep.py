@@ -5,8 +5,8 @@ from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_mode
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
 
-from .data_driven_dynamics_summary import _get_and_analyze_ddd
-from .generate_3d_flow_field import _get_and_analyze_ddff
+from ..archive.data_driven_dynamics_summary import _get_and_analyze_ddd
+from ..production.generate_3d_flow_field import _get_and_analyze_ddff
 
 
 def main(
