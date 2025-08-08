@@ -17,12 +17,17 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
     is calculated as the plane with the lowest standard deviation for each frame, and the global
     center plane is determined as the average of these values across all frames.
 
-    Args:
-        dataset_config (DatasetConfig): Configuration object with dataset-specific information.
-        position (int): The position index.
+    Parameters
+    ----------
+    dataset_config
+        Configuration object with dataset-specific information.
+    position
+        The position index.
 
-    Returns:
-        int: The global center plane index for the specified position.
+    Returns
+    -------
+    int
+        The global center plane index for the specified position.
     """
     zarr_file = get_zarr_file_for_position(dataset_config, position)
     bf_stack_all_frames = load_zarr_as_dask_array(zarr_file, channels=["BF"], level=1)
@@ -51,19 +56,27 @@ def get_plane_indices(
     Get a list of plane indices based on the specified offsets and slicing mode. The indices
     are constrained between 0 and 24.
 
-    Args:
-        dataset_config (DatasetConfig): Configuration object containing dataset-specific information.
-        position (int): The position index for which the plane indices are calculated.
-        lower_offset (int): The number of planes below the center plane (or starting index if
-            `slice_by_global_center` is False) to include.
-        upper_offset (int): The number of planes above the center plane (or ending index if
-            `slice_by_global_center` is False) to include.
-        slice_by_global_center (bool, optional): If True, calculate the range of indices based on
-            the global center plane for the given position. If False, use `lower_offset` and
-            `upper_offset` directly as the range bounds. Defaults to True.
+    Parameters
+    ----------
+    dataset_config
+        Configuration object containing dataset-specific information.
+    position
+        The position index for which the plane indices are calculated.
+    lower_offset
+        The number of planes below the center plane (or starting index if
+        `slice_by_global_center` is False) to include.
+    upper_offset
+        The number of planes above the center plane (or ending index if
+        `slice_by_global_center` is False) to include.
+    slice_by_global_center
+        If True, calculate the range of indices based on the global center plane
+        for the given position. If False, use `lower_offset` and `upper_offset`
+        directly as the range bounds. Defaults to True.
 
-    Returns:
-        list[int]: A list of plane indices within the specified range, constrained between 0 and 24.
+    Returns
+    -------
+    list
+        A list of plane indices within the specified range, constrained between 0 and 24.
     """
     if slice_by_global_center:
         global_center_plane = get_center_plane_for_position(dataset_config, position)
