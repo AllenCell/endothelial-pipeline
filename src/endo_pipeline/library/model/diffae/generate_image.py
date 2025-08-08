@@ -1,13 +1,16 @@
+import logging
 from typing import cast
 
 import numpy as np
 import pandas as pd
 import torch
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config
 from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.analyze.diffae_manifest import get_feature_column_names
 from src.endo_pipeline.library.model.mlflow_utils import load_mlflow_model
+
+logger = logging.getLogger(__name__)
 
 
 def generate_from_coords(
@@ -76,6 +79,7 @@ def generate_from_coords_batch(
     """
 
     coords_concat = np.concatenate(coords_batch, axis=0)
+    logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
     img = generate_from_coords(model_name, coords=coords_concat)
     walk_imgs = np.split(img, len(coords_batch))
 
@@ -91,13 +95,13 @@ def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> list:
     # convert to list of lists for input into DiffAE model
     num_points = df.shape[0]
     latent_coords = []
-    feat_cols = manifest_io.get_feature_cols(df)
+    feat_cols = get_feature_column_names(df)
     for i in range(num_points):
         latent_coords.append(df[feat_cols].iloc[i].tolist())
 
     # pass into DiffAE model to generate reconstructed crops
     walk_img = generate_from_coords_batch(
-        "diffae_04_10", latent_coords
+        "diffae_04_10", np.array(latent_coords)
     )  # output is a numpy array: (# coords x 128 x 128), greyscale image
 
     # convert to list of numpy arrays
