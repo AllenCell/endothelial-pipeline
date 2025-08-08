@@ -120,13 +120,20 @@ def get_correlation_matrix_df(
     return correlation_df
 
 
-def run_correlation_heatmap_workflow() -> None:
+def run_correlation_heatmap_workflow(aggregate: bool = False) -> None:
     """
     Run the workflow to generate correlation heatmaps between DiffAE features, PCA components,
     and measured properties for each dataset in the PCA reference collection.
     This function loads the dataset collection configuration, preprocesses the manifests,
     computes the correlations, and saves the heatmaps to the projects results directory
     under a folder with the same name as this script.
+
+    Parameters
+    ----------
+    aggregate : bool, optional
+        If True, the workflow will aggregate the results across all datasets
+        and produce a single set of correlation heatmaps. If False, it will
+        produce separate heatmaps for each dataset. Defaults to False.
 
     Notes
     -----
@@ -135,18 +142,18 @@ def run_correlation_heatmap_workflow() -> None:
     If they are pre-computed, it takes about 7 minutes.
     """
 
-    # dataset_name_list = load_dataset_collection_config("pca_reference").datasets
+    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
 
-    model_name = "diffae_04_10"
-    dataset_name_list = []
-    for manifest in cast(CytoDLModelConfig, load_model_config(model_name)).manifest_fmsids:
-        if (
-            manifest.dataset_name
-            in load_dataset_collection_config(
-                "live_20X_objective_3i_microscope_timelapses"
-            ).datasets
-        ):
-            dataset_name_list.append(manifest.dataset_name)
+    # model_name = "diffae_04_10"
+    # dataset_name_list = []
+    # for manifest in cast(CytoDLModelConfig, load_model_config(model_name)).manifest_fmsids:
+    #     if (
+    #         manifest.dataset_name
+    #         in load_dataset_collection_config(
+    #             "live_20X_objective_3i_microscope_timelapses"
+    #         ).datasets
+    #     ):
+    #         dataset_name_list.append(manifest.dataset_name)
 
     # instantiate an empty list to hold the DataFrames for later analysis
     df_list = []
@@ -180,16 +187,13 @@ def run_correlation_heatmap_workflow() -> None:
         # get select measurement column names
         measured_col_names = [
             "alignment_deg_rel_to_flow",
-            "nematic_order",  # note: this is calculated from alignment_deg_rel_to_flow
-            "eccentricity",
             "aspect_ratio",
             "cell_fluorescence_mean (a.u.)",
             "num_nuclei_in_crop",
-            "perimeter",
             "area",
             "cell_solidity",
-            "number_of_neighbors",
             "nuc_pos_rel_cell_angle_deg",
+            "number_of_neighbors",
         ]
         dataset_info_cols = [
             "dataset_name",
@@ -212,10 +216,6 @@ def run_correlation_heatmap_workflow() -> None:
             dataset_info_cols + measured_col_names + diffae_feature_col_names + pc_col_names
         )
         merged_feats_df = merged_feats_df[cols_to_keep]
-
-        # add the dataframe to a list with all of them so we can
-        # do a correlation analysis across all listed datasets
-        df_list.append(merged_feats_df.copy())
 
         # create heatmaps of the correlations between measured properties
         # and the diffae features or PCs:
@@ -242,21 +242,6 @@ def run_correlation_heatmap_workflow() -> None:
                 f"{dataset_name}_correlation_measured_vs_measured",
             ),
         ]
-        for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
-            # create the correlation DataFrame
-            correlation_df = get_correlation_matrix_df(
-                features_df=merged_feats_df,
-                column_names_for_x_axis=x_cols,
-                column_names_for_y_axis=y_cols,
-                x_axis_label=x_axis_label,
-                y_axis_label=y_axis_label,
-                df_format="wide-corrcoeff",
-            )
-            # make the heatmap
-            fig, ax = plt.subplots(figsize=(10, 10))
-            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
-            save_plot_to_path(fig, output_path=out_subdir, figure_name=filename)
 
         # repeat the above correlations but filter data table
         # to only include the steady state timepoints that are
@@ -288,9 +273,36 @@ def run_correlation_heatmap_workflow() -> None:
                 figure_name=f"{filename}_steady_state",
             )
 
+            # make clustermap
+            fig, ax = plt.subplots(figsize=(10, 10))
+            sns.clustermap(
+                correlation_df,
+                annot=True,
+                cmap="RdBu",
+                center=0,
+                vmin=-1,
+                vmax=1,
+                figsize=(10, 10),
+                row_cluster=False,
+                col_cluster=True,
+            )
+            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
+            save_plot_to_path(
+                figure=fig,
+                output_path=out_subdir,
+                figure_name=f"{filename}_steady_state_clustermap",
+            )
+
+        # add the dataframe to a list with all of them so we can
+        # do a correlation analysis across all listed datasets
+        df_list.append(merged_feats_df.copy())
+        break
+
     # get the PCA loadings DataFrame
     pca = fit_pca()
-    pca_loadings_df = get_pca_loadings_as_df(pca, scaled=True, magnitude=False, df_format="wide")
+    pca_loadings_df = get_pca_loadings_as_df(
+        pca, scaled=False, magnitude=False, squared_norm=True, df_format="wide"
+    )
 
     fig, ax = plt.subplots(figsize=(10, 10))
     sns.heatmap(
@@ -310,53 +322,56 @@ def run_correlation_heatmap_workflow() -> None:
     )
 
     # produce correlation heatmaps across all datasets
-    all_feats_df = pd.concat(df_list, ignore_index=True)
+    if aggregate:
+        all_feats_df = pd.concat(df_list, ignore_index=True)
 
-    comparisons_to_make = [
-        (  # heatmap args for measurements vs. DiffAE features
-            "Measurement",
-            measured_col_names,
-            "DiffAE Feature",
-            diffae_feature_col_names,
-            f"multi_dataset_correlation_feats_vs_measured",
-        ),
-        (  # heatmap args for measurements vs. PCs
-            "Measurement",
-            measured_col_names,
-            "PC",
-            pc_col_names,
-            f"multi_dataset_correlation_pcs_vs_measured",
-        ),
-        (  # heatmaps for the measurements vs. themselves to see check for co-occurrence
-            "Measurement 1",
-            measured_col_names,
-            "Measurement 2",
-            measured_col_names,
-            f"multi_dataset_correlation_measured_vs_measured",
-        ),
-    ]
+        comparisons_to_make = [
+            (  # heatmap args for measurements vs. DiffAE features
+                "Measurement",
+                measured_col_names,
+                "DiffAE Feature",
+                diffae_feature_col_names,
+                f"multi_dataset_correlation_feats_vs_measured",
+            ),
+            (  # heatmap args for measurements vs. PCs
+                "Measurement",
+                measured_col_names,
+                "PC",
+                pc_col_names,
+                f"multi_dataset_correlation_pcs_vs_measured",
+            ),
+            (  # heatmaps for the measurements vs. themselves to see check for co-occurrence
+                "Measurement 1",
+                measured_col_names,
+                "Measurement 2",
+                measured_col_names,
+                f"multi_dataset_correlation_measured_vs_measured",
+            ),
+        ]
 
-    out_subdir = get_output_path(__file__, "aggregated_dataset_analysis", include_timestamp=False)
-
-    for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
-        # create the correlation DataFrame
-        correlation_df = get_correlation_matrix_df(
-            features_df=all_feats_df,
-            column_names_for_x_axis=x_cols,
-            column_names_for_y_axis=y_cols,
-            x_axis_label=x_axis_label,
-            y_axis_label=y_axis_label,
-            df_format="wide-corrcoeff",
+        out_subdir = get_output_path(
+            __file__, "aggregated_dataset_analysis", include_timestamp=False
         )
-        # make the heatmap
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-        ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_subdir,
-            figure_name=filename,
-        )
+
+        for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
+            # create the correlation DataFrame
+            correlation_df = get_correlation_matrix_df(
+                features_df=all_feats_df,
+                column_names_for_x_axis=x_cols,
+                column_names_for_y_axis=y_cols,
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label,
+                df_format="wide-corrcoeff",
+            )
+            # make the heatmap
+            fig, ax = plt.subplots(figsize=(10, 10))
+            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
+            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
+            save_plot_to_path(
+                figure=fig,
+                output_path=out_subdir,
+                figure_name=filename,
+            )
 
 
 if __name__ == "__main__":
