@@ -24,4 +24,9 @@ LABEL_MAP = {
     "filter_max_smoothed_area_normd_change_0.1": ("Filter: Max Smoothed Area Change (0.1)"),
     "filter_min_track_duration_24": "Filter: Min Track Duration (24)",
     "filter_valid_points_20": "Filter: Valid Points (20)",
+    # Cell-centric DiffAE features and PCs
+    **dict(((f"feat_{i}", f"DiffAE Feature {i}") for i in range(8))),
+    "pc1": "PC 1",
+    "pc2": "PC 2",
+    "pc3": "PC 3",
 }

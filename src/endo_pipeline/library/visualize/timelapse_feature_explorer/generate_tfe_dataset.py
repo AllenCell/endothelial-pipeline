@@ -3,7 +3,13 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from src.endo_pipeline.io import load_dataframe
+from src.endo_pipeline.configs import get_datasets_in_collection, get_model_manifest
+
+# from src.endo_pipeline.io import load_dataframe
+from src.endo_pipeline.library.analyze.integration.track_integration import (
+    get_diffae_feats_liveseg_feats_merged_table,
+    get_preprocessed_manifests_and_km_bounds,
+)
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     generate_backdrops,
 )
@@ -42,10 +48,12 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    segprops_manifest = load_dataframe_manifest("live_merged_seg_features")
-    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset)
-
-    df_tracks = load_dataframe(segprops_location)
+    # Load dataframe with the diffae features and computed PCs
+    datasets_for_bounds = list(set([dataset, *get_datasets_in_collection("pca_reference")]))
+    # only take the dataframe from the output (which is the 0th element)
+    df_tracks = get_preprocessed_manifests_and_km_bounds(
+        dataset, datasets_for_bounds, apply_filter=False
+    )[0]
     df_position = df_tracks[df_tracks["position"] == position]
 
     df = add_dynamic_features_with_filtering(df_position)

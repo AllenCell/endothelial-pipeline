@@ -91,17 +91,19 @@ def main() -> None:
         for position in args.positions:
             if args.segmentation == "CDH5":
                 source_dir = get_cdh5_classic_segmentation_path(dataset, position)
-                source_dir_path = Path(source_dir)
 
-            # Generate the TFE dataset
-            generate_tfe_dataset(
-                dataset=dataset,
-                position=position,
-                output_dir=args.output_dir,
-                source_dir=source_dir_path,
-                backdrops=args.no_backdrops,
-            )
-            print(f"Processed dataset: {dataset}, position: {position}")
+            if source_dir is not None:
+                # Generate the TFE dataset
+                generate_tfe_dataset(
+                    dataset=dataset,
+                    position=position,
+                    output_dir=args.output_dir,
+                    source_dir=source_dir,
+                    backdrops=args.no_backdrops,
+                )
+                print(f"Processed dataset: {dataset}, position: {position}")
+            else:
+                print(f"Segmentation directory not found for {dataset}, position: {position}")
 
 
 if __name__ == "__main__":
