@@ -14,7 +14,6 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
-    get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
@@ -230,30 +229,6 @@ def test_get_duration_at_flow(dataset, flow, expected_duration):
     ]
 
     assert get_duration_at_flow(dataset, flow) == expected_duration
-
-
-@pytest.mark.parametrize(
-    "nuc_seg_type,position,expected",
-    [
-        ("label_free", 1, "/path/to/label/free/seg/P1"),
-        ("stain", 2, "/path/to/stain/seg/P2"),
-    ],
-)
-def test_get_nuclear_prediction_path_valid_paths(dataset, nuc_seg_type, position, expected):
-    dataset.nuclear_label_free_seg_path = "/path/to/label/free/seg"
-    dataset.nuclear_stain_seg_path = "/path/to/stain/seg/"
-
-    nuclear_prediction_path = get_nuclear_prediction_path(dataset, position, nuc_seg_type)
-    assert nuclear_prediction_path.as_posix() == expected
-
-
-@pytest.mark.parametrize("nuc_seg_type", ["label_free", "stain", "invalid"])
-def test_get_nuclear_prediction_path_invalid_paths(dataset, nuc_seg_type):
-    dataset.nuclear_label_free_seg_path = None
-    dataset.nuclear_stain_seg_path = None
-
-    with pytest.raises(ValueError):
-        get_nuclear_prediction_path(dataset, 0, nuc_seg_type)
 
 
 @pytest.mark.parametrize(
