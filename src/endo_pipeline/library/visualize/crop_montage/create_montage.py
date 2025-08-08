@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def _pc_val_to_str(pc_val: float) -> str:
+    """Transform a principal component value to a string for use in filenames."""
     pc_val_string = str(pc_val)
     if pc_val < 0:
         pc_val_string = pc_val_string.replace("-", "neg")
@@ -23,7 +24,7 @@ def _pc_val_to_str(pc_val: float) -> str:
     return pc_val_string
 
 
-def plot_crop_montage(
+def _plot_crop_montage(
     list_of_crops: list,
     pc_axis: int,
     pc_val: float,
@@ -33,6 +34,9 @@ def plot_crop_montage(
 ) -> None:
     """
     Plot a montage of crops from a list of crops.
+
+    This function is called by `generate_contact_sheet` in a loop
+    to create the montages for each type of image content.
 
     Parameters
     ----------
@@ -95,6 +99,11 @@ def generate_contact_sheet(
         Value of the principal component bin used for titling.
     fig_savedir
         Directory to save montage images.
+
+    Returns
+    -------
+    :
+        Saves montage images to the specified directory.
     """
     # Get image crops and sorted sample DataFrame
     (
@@ -140,7 +149,7 @@ def generate_contact_sheet(
 
     # Generate montages for each image content type
     for image_content, crop_list_channel in contrast_crops.items():
-        plot_crop_montage(
+        _plot_crop_montage(
             crop_list_channel,
             pc_axis,
             pc_val,

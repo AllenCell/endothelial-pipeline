@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
 
-def load_data(
+def load_data_for_montage(
     dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
 ) -> tuple[pd.DataFrame, PCA, list[ModelManifest]]:
     """

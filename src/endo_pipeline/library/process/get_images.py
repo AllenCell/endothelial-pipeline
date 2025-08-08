@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import dask.array as da
 import numpy as np
@@ -94,10 +94,12 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[
 
     # loop through each dataset in the dataframe
     for dataset, df_dataset in df.groupby("dataset"):
+        dataset = cast(str, dataset)  # Ensure dataset is a string
         with tqdm(total=len(df_dataset), desc=f"Processing crops for {dataset}") as pbar:
             # Loop through each position available in the dataset
             for position, df_pos in df_dataset.groupby("position"):
-                position_integer = position[-1]  # Extract the position number from the string
+                position = cast(str, position)  # Ensure position is a string
+                position_integer = int(position[-1])  # Extract the position number from the string
                 img = get_zarr_img_for_dataset(dataset, position_integer, resolution_level=1)
                 for _, row in df_pos.iterrows():
                     timepoint = row["frame_number"]
