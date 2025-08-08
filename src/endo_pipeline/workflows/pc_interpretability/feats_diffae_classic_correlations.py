@@ -33,6 +33,7 @@ def get_correlation_matrix_df(
     x_axis_label: str,
     y_axis_label: str,
     df_format: Literal["long", "wide-corrcoeff", "wide-pval"] = "long",
+    sort_by_correlation: bool = False,
 ) -> pd.DataFrame:
     """
     Get the Pearson correlations between each column in `column_names_for_x_axis`
@@ -67,6 +68,8 @@ def get_correlation_matrix_df(
         correlation coefficients from the "long" version of the table.
         "wide-pval" is similar to "wide-corrcoeff" but the values correspond to the p-values.
         Defaults to "long".
+    sort_by_correlation : bool, optional
+        If True, the output DataFrame will be sorted by the correlation coefficients
 
     Returns
     -------
@@ -111,6 +114,10 @@ def get_correlation_matrix_df(
         )
         correlation_df = correlation_df[column_names_for_x_axis]  # sort the columns
         correlation_df = correlation_df.reindex(index=column_names_for_y_axis)  # sort the index
+        if sort_by_correlation:
+            correlation_df = correlation_df.T.sort_values(
+                by=[column_names_for_x_axis], axis=0, ascending=False
+            ).T
     elif df_format == "long":
         pass
     else:
@@ -262,6 +269,7 @@ def run_correlation_heatmap_workflow(aggregate: bool = False) -> None:
                 x_axis_label=x_axis_label,
                 y_axis_label=y_axis_label,
                 df_format="wide-corrcoeff",
+                sort_by_correlation=True,
             )
             # make the heatmap
             fig, ax = plt.subplots(figsize=(10, 10))
