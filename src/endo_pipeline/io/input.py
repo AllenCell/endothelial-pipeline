@@ -4,10 +4,11 @@ import logging
 from pathlib import Path
 
 import dask
+import numpy as np
 import pandas as pd
 from bioio import BioImage
 
-from src.endo_pipeline.manifests import DataframeLocation
+from src.endo_pipeline.manifests import DataframeLocation, SegmentationLocation
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,52 @@ def load_zarr_as_dask_array(
         return image.squeeze()
 
     return image
+
+
+def load_segmentation_from_path(path: Path) -> np.ndarray:
+    """
+    Load segmentation from path.
+
+    Currently supports files ending in .ome.tiff.
+
+    Parameters
+    ----------
+    path
+        Path to segmentation file.
+
+    Returns
+    -------
+    :
+        File loaded as dask array.
+    """
+
+    if not path.exists():
+        logger.error("Path [ %s ] could not be loaded", path)
+        raise FileNotFoundError(f"No such file '{path}'")
+
+    if path.suffixes == [".ome", ".tiff"]:
+        logger.info("Loading path [ %s ] as OME TIFF file", path)
+        return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
+
+    logger.error("Path [ %s ] cannot be loaded as segmentation", path)
+    raise ValueError(f"Invalid segmentation file format '{path.suffix}'")
+
+
+def load_segmentation(location: SegmentationLocation) -> np.ndarray:
+    """
+    Load segmentation from location.
+
+    Parameters
+    ----------
+    location
+        Segmentation location object.
+    """
+
+    if location.path is not None:
+        return load_segmentation_from_path(location.path)
+
+    logger.error("Location does not have a path.")
+    raise FileNotFoundError("Unable to load segmentation; no available locations.")
 
 
 def load_dataframe_from_path(path: Path) -> pd.DataFrame:
@@ -150,6 +197,7 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     fms_bucket_name = "production.files.allencell.org"
     local_fms_path = "//allen/programs/allencell/data/proj0/"
     local_path = Path(record[0].path.replace(fms_bucket_name, local_fms_path))
+
     return local_path
 
 
@@ -248,4 +296,4 @@ def load_dataframe(location: DataframeLocation) -> pd.DataFrame:
         return load_dataframe_from_s3(location.s3uri)
 
     logger.error("Location does not have an FMS ID or S3 URI.")
-    raise FileNotFoundError("Unable to load manifest; no available locations.")
+    raise FileNotFoundError("Unable to load dataframe; no available locations.")

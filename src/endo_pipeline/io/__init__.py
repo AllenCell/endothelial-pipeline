@@ -4,6 +4,8 @@ from .input import (
     load_dataframe_from_fms,
     load_dataframe_from_path,
     load_dataframe_from_s3,
+    load_segmentation,
+    load_segmentation_from_path,
     load_zarr_as_dask_array,
 )
 from .log_funcs import configure_logging
@@ -25,6 +27,8 @@ __all__ = [
     "load_dataframe_from_fms",
     "load_dataframe_from_path",
     "load_dataframe_from_s3",
+    "load_segmentation",
+    "load_segmentation_from_path",
     "load_zarr_as_dask_array",
     "save_plot_to_path",
     "upload_file_to_fms",
