@@ -25,6 +25,15 @@ workflow_app = App(
 
 tags: dict[str, list[str]] = {}
 
+EXTERNAL_LOGGERS = {
+    "lightning.pytorch": logging.WARNING,
+    "lightning.pytorch.accelerators.cuda": logging.WARNING,
+    "lightning.pytorch.utilities.rank_zero": logging.WARNING,
+    "lightning.fabric.utilities": logging.WARNING,
+    "torch": logging.WARNING,
+    "cyto_dl": logging.ERROR,
+}
+
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
 DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
@@ -70,6 +79,9 @@ def pipeline_entrypoint(
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
     run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
+    show_external_logs: Annotated[
+        bool, Parameter(alias="-s", show_default=False, negative=())
+    ] = False,
 ) -> None:
     """
     Parameters
@@ -90,6 +102,8 @@ def pipeline_entrypoint(
         Path to user configuration file.
     run_with_gpu
         Run workflow with GPU settings.
+    show_external_logs
+        Show logging outputs from external libraries.
     """
 
     if debug:
@@ -101,6 +115,9 @@ def pipeline_entrypoint(
 
     if run_with_gpu:
         setup_gpu()
+
+    if not show_external_logs:
+        silence_external_loggers(EXTERNAL_LOGGERS)
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -124,6 +141,9 @@ def workflow_entrypoint(
     verbose: Annotated[bool, Parameter(alias="-v", show_default=False, negative=())] = False,
     debug: Annotated[bool, Parameter(alias="-vv", show_default=False, negative=())] = False,
     run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
+    show_external_logs: Annotated[
+        bool, Parameter(alias="-s", show_default=False, negative=())
+    ] = False,
 ) -> None:
     """
     Parameters
@@ -136,6 +156,8 @@ def workflow_entrypoint(
         Show debug logging.
     run_with_gpu
         Run workflow with GPU settings.
+    show_external_logs
+        Show logging outputs from external libraries.
     """
 
     if debug:
@@ -147,6 +169,9 @@ def workflow_entrypoint(
 
     if run_with_gpu:
         setup_gpu()
+
+    if not show_external_logs:
+        silence_external_loggers(EXTERNAL_LOGGERS)
 
     workflow_app(tokens)
 
@@ -209,6 +234,20 @@ def setup_logging(level: int) -> None:
 
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
+
+
+def silence_external_loggers(external_loggers: dict) -> None:
+    """
+    Set external logger to a specific logging level to avoid excessive logging outputs.
+
+    Parameters
+    ----------
+    external_loggers
+        Dictionary of external loggers and their respective logging levels.
+    """
+    for logger_name, logging_level in external_loggers.items():
+        external_logger = logging.getLogger(logger_name)
+        external_logger.setLevel(logging_level)
 
 
 def setup_gpu() -> None:
