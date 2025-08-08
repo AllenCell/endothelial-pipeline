@@ -159,7 +159,11 @@ def workflow_entrypoint(
 
 
 def apply_entrypoint_settings(
-    verbose: bool, debug: bool, run_with_gpu: bool, show_external_logs: bool, testing_mode: bool
+    verbose: bool = False,
+    debug: bool = False,
+    run_with_gpu: bool = False,
+    show_external_logs: bool = False,
+    testing_mode: bool = False,
 ):
     """
     Apply settings shared between pipeline and workflow entrypoints.
