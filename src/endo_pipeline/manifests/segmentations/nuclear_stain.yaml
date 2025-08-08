@@ -1,5 +1,5 @@
 name: nuclear_stain
-workflow: unknown
+workflow: segment_nuclear_stain (manifest updated manually)
 parameters: {}
 locations:
   20250509_20X_IF1:

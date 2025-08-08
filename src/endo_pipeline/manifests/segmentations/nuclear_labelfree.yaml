@@ -1,5 +1,5 @@
 name: nuclear_labelfree
-workflow: unknown
+workflow: generate_label_free_nuc_pred (manifest updated manually)
 parameters: {}
 locations:
   20241016_20X:
