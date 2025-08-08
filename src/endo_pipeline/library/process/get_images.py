@@ -56,49 +56,76 @@ def get_crops_in_dataframe(df: pd.DataFrame) -> tuple[
     pd.DataFrame,  # Sorted dataframe
 ]:
     """
-    Get crops of images from the dataframe for a
-    given dataset and save in individual lists for each channel.
-    """
-    dataset = df["dataset"].iloc[0]
+    Get crops of images from a dataframe with metadata for those crops
+    and save in individual lists for each channel/projection.
 
+    Dataframe should contain the following columns:
+        - dataset: Name of the dataset
+        - position: Position of the image
+        - frame_number: Timepoint of the image
+        - start_x: Starting x-coordinate of the crop
+        - start_y: Starting y-coordinate of the crop
+        - crop_size_x: Width of the crop
+        - crop_size_y: Height of the crop
+
+    Parameters
+    ----------
+    df
+        DataFrame containing crop metadata.
+
+    Returns
+    -------
+    :
+        List of crops of a single slice for brightfield images.
+    :
+        List of crops of max projection for brightfield images.
+    :
+        List of crops of standard deviation for brightfield images.
+    :
+        List of crops of max projection for GFP images.
+    :
+        DataFrame sorted in the same order as images.
+    """
     crops_bf_single_slice = []  # List to store brightfield single slice crops
     crops_bf_max_projection = []  # List to store brightfield max projection crops
     crops_bf_std_deviation = []  # List to store brightfield standard deviation crops
     crops_gfp_max_projection = []  # List to store GFP max projection crops
     sorted_rows = []  # List to store rows in the same order as images
 
-    with tqdm(total=len(df), desc="Processing crops") as pbar:
-        # Loop through each position in the dataframe
-        for position, df_pos in df.groupby("position"):
-            p = dataset_io.extract_P(position)
-            img = get_zarr_img_for_dataset(dataset, p, resolution_level=1)
+    # loop through each dataset in the dataframe
+    for dataset, df_dataset in df.groupby("dataset"):
+        with tqdm(total=len(df_dataset), desc=f"Processing crops for {dataset}") as pbar:
+            # Loop through each position available in the dataset
+            for position, df_pos in df_dataset.groupby("position"):
+                p = dataset_io.extract_P(position)
+                img = get_zarr_img_for_dataset(dataset, p, resolution_level=1)
+                for _, row in df_pos.iterrows():
+                    timepoint = row["frame_number"]
+                    crop = get_crop(
+                        img,
+                        channel=None,
+                        timepoint=timepoint,
+                        start_x=row["start_x"],
+                        start_y=row["start_y"],
+                        crop_size_x=row["crop_size_x"],
+                        crop_size_y=row["crop_size_y"],
+                    )
 
-            for _, row in df_pos.iterrows():
-                timepoint = row["frame_number"]
-                crop = get_crop(
-                    img,
-                    channel=None,
-                    timepoint=timepoint,
-                    start_x=row["start_x"],
-                    start_y=row["start_y"],
-                    crop_size_x=row["crop_size_x"],
-                    crop_size_y=row["crop_size_y"],
-                )
+                    # Extract channels once, these channel indecies are hardcoded
+                    # because we defined the order of channels in the zarr
+                    bf_channel = crop[:, 1, :, :, :].squeeze()
+                    gfp_channel = crop[:, 0, :, :, :].squeeze()
 
-                # Extract channels once, these channel indecies are hardcoded
-                # because we defined the order of channels in the zarr
-                bf_channel = crop[:, 1, :, :, :].squeeze()
-                gfp_channel = crop[:, 0, :, :, :].squeeze()
+                    # Process channels
+                    crops_bf_single_slice.append(get_single_bf_plane(bf_channel))
+                    crops_bf_max_projection.append(max_proj(bf_channel, 0))
+                    crops_bf_std_deviation.append(std_dev(bf_channel, 0))
+                    crops_gfp_max_projection.append(max_proj(gfp_channel, 0))
 
-                # Process channels
-                crops_bf_single_slice.append(get_single_bf_plane(bf_channel))
-                crops_bf_max_projection.append(max_proj(bf_channel, 0))
-                crops_bf_std_deviation.append(std_dev(bf_channel, 0))
-                crops_gfp_max_projection.append(max_proj(gfp_channel, 0))
+                    sorted_rows.append(row)
+                    pbar.update(1)
 
-                sorted_rows.append(row)
-                pbar.update(1)
-
+    # return dataframe with the same order as images
     df_sorted = pd.DataFrame(sorted_rows).reset_index(drop=True)
 
     return (
