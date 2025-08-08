@@ -2,7 +2,7 @@ TAGS = ["pc_interpretation", "diffae_image_generation"]
 
 
 def main(
-    dataset_name: str = "live_20X_objective_3i_microscope",
+    dataset_name: str = "pca_reference",
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
