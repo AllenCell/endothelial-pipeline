@@ -96,53 +96,54 @@ def save_results(out_dir, t, df, pearson, fig):
     df.to_csv(out_dir / f"tables/T{t}_results.csv")
 
 
-dataset_name_list = [
-    "20240305_T01_001",
-]
+if __name__ == "__main__":
+    dataset_name_list = [
+        "20240305_T01_001",
+    ]
 
-for dataset_name in dataset_name_list:
-    print(dataset_name)
-    T_range = range(0, dataset_io.get_dataset_duration_in_frames(dataset_name), 6)
+    for dataset_name in dataset_name_list:
+        print(dataset_name)
+        T_range = range(0, dataset_io.get_dataset_duration_in_frames(dataset_name), 6)
 
-    prj_dir = Path("../").resolve()
-    out_dir = prj_dir / "results/cdh5_seg_density_map_correlations" / dataset_name
+        prj_dir = Path("../").resolve()
+        out_dir = prj_dir / "results/cdh5_seg_density_map_correlations" / dataset_name
 
-    for t in T_range:
-        print(f"T={t}")
-        df, pearson, fig = evaluate_density_against_number_of_nuclei(
-            dataset_name, t, bbox_radius=256, nsamples=1000
+        for t in T_range:
+            print(f"T={t}")
+            df, pearson, fig = evaluate_density_against_number_of_nuclei(
+                dataset_name, t, bbox_radius=256, nsamples=1000
+            )
+            save_results(out_dir, t, df, pearson, fig)
+
+        table_paths = [fp for fp in out_dir.glob("tables/*.csv")]
+        master_table = pd.concat([pd.read_csv(fp) for fp in table_paths])
+
+        fig, ax = plt.subplots(figsize=(8, 6), ncols=1, nrows=1)
+        sns.lineplot(x="T", y="pearson_nuclei", data=master_table, ls="-", marker="o", ax=ax)
+        ax2 = ax.twinx()
+        sns.lineplot(
+            x="T",
+            y="pearson_cdh5_regions",
+            data=master_table,
+            ls="-",
+            marker="o",
+            c="tab:orange",
+            ax=ax2,
         )
-        save_results(out_dir, t, df, pearson, fig)
-
-    table_paths = [fp for fp in out_dir.glob("tables/*.csv")]
-    master_table = pd.concat([pd.read_csv(fp) for fp in table_paths])
-
-    fig, ax = plt.subplots(figsize=(8, 6), ncols=1, nrows=1)
-    sns.lineplot(x="T", y="pearson_nuclei", data=master_table, ls="-", marker="o", ax=ax)
-    ax2 = ax.twinx()
-    sns.lineplot(
-        x="T",
-        y="pearson_cdh5_regions",
-        data=master_table,
-        ls="-",
-        marker="o",
-        c="tab:orange",
-        ax=ax2,
-    )
-    ax.set_ylim(-1, 1)
-    ax2.set_ylim(-1, 1)
-    ax.axhline(0, color="black", linestyle="--")
-    [ax.axhline(y, color="grey", linestyle=":") for y in (-0.5, 0.5)]
-    ax.yaxis.set_tick_params(labelcolor="tab:blue")
-    ax2.yaxis.set_tick_params(labelcolor="tab:orange")
-    ax.set_ylabel(
-        "Pearson correlation coefficient between threshold \n density map and number of nuclei"
-    )
-    ax2.set_ylabel(
-        "Pearson correlation coefficient between threshold \n density map and number of CDH5 regions",
-        rotation=-90,
-        verticalalignment="bottom",
-    )
-    ax.set_adjustable("box")
-    plt.tight_layout()
-    fig.savefig(out_dir / "plots/T_vs_pearson.png")
+        ax.set_ylim(-1, 1)
+        ax2.set_ylim(-1, 1)
+        ax.axhline(0, color="black", linestyle="--")
+        [ax.axhline(y, color="grey", linestyle=":") for y in (-0.5, 0.5)]
+        ax.yaxis.set_tick_params(labelcolor="tab:blue")
+        ax2.yaxis.set_tick_params(labelcolor="tab:orange")
+        ax.set_ylabel(
+            "Pearson correlation coefficient between threshold \n density map and number of nuclei"
+        )
+        ax2.set_ylabel(
+            "Pearson correlation coefficient between threshold \n density map and number of CDH5 regions",
+            rotation=-90,
+            verticalalignment="bottom",
+        )
+        ax.set_adjustable("box")
+        plt.tight_layout()
+        fig.savefig(out_dir / "plots/T_vs_pearson.png")
