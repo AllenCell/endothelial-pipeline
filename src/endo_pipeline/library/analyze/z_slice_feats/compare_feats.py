@@ -80,8 +80,8 @@ def feature_density(
         if title is not None:
             ax.set_title(title)
 
-        plt.tight_layout()
-        plt.show()
+    plt.tight_layout()
+    plt.show()
 
     return fig, ax
 
