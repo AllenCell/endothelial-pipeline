@@ -980,8 +980,6 @@ def add_num_nuclei_in_crop_column(
     # the label-free nuclei predictions are saved at that resolution
     merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
 
-    groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
-
     # get the nuclei coordinates
     nuclei_centroids_dir = get_output_path(__file__, "nuclei_coords", include_timestamp=False)
     dataset_name = sequence_to_scalar(merged_feats_df["dataset_name"])
@@ -995,13 +993,14 @@ def add_num_nuclei_in_crop_column(
     else:
         # compute the nuclei prediction centroids
         max_cores = None
+        groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
         args = groups.groups.keys()
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
             results = list(
                 tqdm(
                     executor.map(compute_nuclei_centroids_multiproc, args),
                     total=len(groups),
-                    desc="Computing nuclei centroids",
+                    desc=f"Computing nuclei centroids: {dataset_name}",
                 )
             )
         # convert results to DataFrame
@@ -1019,7 +1018,7 @@ def add_num_nuclei_in_crop_column(
     groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
 
     num_nuclei_in_crop = []
-    for nm, df in tqdm(groups, desc="Counting nuclei in crops"):
+    for nm, df in tqdm(groups, desc=f"Counting nuclei in crops: {dataset_name}"):
         # get the number of nuclei in the crops at each timepoint
         num_nuc_centroids = get_num_unique_values_in_bounds_from_df(
             nuclei_coords_Y=np.stack(list(df["coords_Y"])),

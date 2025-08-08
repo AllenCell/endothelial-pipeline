@@ -215,7 +215,7 @@ def run_correlation_heatmap_workflow() -> None:
 
         # add the dataframe to a list with all of them so we can
         # do a correlation analysis across all listed datasets
-        df_list.append(merged_feats_df)
+        df_list.append(merged_feats_df.copy())
 
         # create heatmaps of the correlations between measured properties
         # and the diffae features or PCs:
