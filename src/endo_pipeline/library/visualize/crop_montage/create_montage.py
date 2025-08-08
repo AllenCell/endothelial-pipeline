@@ -130,11 +130,15 @@ def generate_contact_sheet(
         )
 
         reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_sample_sorted)
+        assert [crop.shape == (128, 128) for crop in reconstructed_crop_list], (
+            "Reconstructed crops should be of shape (128, 128), "
+            f"but found shapes: {[crop.shape for crop in reconstructed_crop_list]}"
+        )
         contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
     else:
         logger.warning("GPU not available, skipping reconstruction of crops.")
 
-    # Generate montages
+    # Generate montages for each image content type
     for image_content, crop_list_channel in contrast_crops.items():
         plot_crop_montage(
             crop_list_channel,

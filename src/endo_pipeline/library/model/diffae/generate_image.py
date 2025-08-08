@@ -78,10 +78,18 @@ def generate_from_coords_batch(
         A batch of lists of coordinates in the latent space of the model.
     """
 
-    coords_concat = np.concatenate(coords_batch, axis=0)
+    # note to self: need to debug what the input type is here
+    # I think the outlier is the latent walk? or maybe the crop
+    # reconstruction? need to check
+    if isinstance(coords_batch, np.ndarray):
+        coords_concat = coords_batch.copy()
+    elif isinstance(coords_batch, list):
+        coords_concat = np.array(coords_batch)
+    else:
+        coords_concat = np.concatenate(coords_batch, axis=0)
     logger.debug("Concatenated coordinates shape: [ %s ]", coords_concat.shape)
     img = generate_from_coords(model_name, coords=coords_concat)
-    walk_imgs = np.split(img, len(coords_batch))
+    walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs
 
@@ -100,13 +108,8 @@ def get_reconstructed_crops_in_dataframe(df: pd.DataFrame) -> list:
         latent_coords.append(df[feat_cols].iloc[i].tolist())
 
     # pass into DiffAE model to generate reconstructed crops
-    walk_img = generate_from_coords_batch(
+    walk_imgs = generate_from_coords_batch(
         "diffae_04_10", np.array(latent_coords)
-    )  # output is a numpy array: (# coords x 128 x 128), greyscale image
+    )  # output is a list of numpy arrays
 
-    # convert to list of numpy arrays
-    walk_img_list = []
-    for i in range(num_points):
-        walk_img_list.append(walk_img[i])
-
-    return walk_img_list
+    return walk_imgs
