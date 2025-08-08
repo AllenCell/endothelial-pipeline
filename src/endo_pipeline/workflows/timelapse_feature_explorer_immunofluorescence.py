@@ -136,7 +136,7 @@ for dataset_name in IF_SMAD_DATASETS:
     for position in POSITIONS:
         print(f"Processing dataset: {dataset_name}, position: {position}")
 
-        seg_file = get_segmentation_location_for_dataset(SEG_MANIFEST, dataset_name, position)
+        seg_file = get_segmentation_location_for_dataset(SEG_MANIFEST, dataset_name, position, 0)
         if seg_file.path is not None:
             seg_path = seg_file.path.parent
         else:
