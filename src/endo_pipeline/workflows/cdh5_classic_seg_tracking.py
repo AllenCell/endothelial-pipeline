@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
-    get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_original_path,
     get_zarr_name,
@@ -24,6 +24,10 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     sequence_to_scalar,
 )
 from src.endo_pipeline.library.process.lib_tracking import run_tracking
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +44,14 @@ def run_workflow(queue: Sequence) -> None:
     use_sldy_data = sequence_to_scalar(queue_df["use_sldy_data"])
 
     # get the segmentation images
-    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position=position)
-    if seg_dir is not None:
-        seg_dir = Path(seg_dir)
-    else:
-        logger.info(
-            f"No segmentation directory found for {dataset_name}. Skipping tracking analysis."
-        )
-        return
+    dataset = load_dataset_config(dataset_name)
+    manifest = load_segmentation_manifest("cdh5_classic")
+    seg_locations = [
+        get_segmentation_location_for_dataset(manifest, dataset_name, position, timepoint)
+        for timepoint in range(dataset.duration)
+    ]
+    seg_filepaths = [location.path for location in seg_locations if location.path is not None]
 
-    seg_filepaths = sorted(seg_dir.glob("*.ome.tif*"), key=lambda fp: extract_T(fp.name))
     segmentation_channel = 0  # the segmentation images only contain a single channel
 
     # run the tracking workflow

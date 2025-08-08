@@ -24,7 +24,6 @@ flow_conditions:
 channel_405_index: 1
 channel_561_index: null
 channel_640_index: null
-cdh5_seg_path: null
 valid_timepoints: null
 include_scenes: [0, 1, 2, 4]
 notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours

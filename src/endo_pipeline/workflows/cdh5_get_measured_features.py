@@ -5,15 +5,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from bioio import BioImage
-from deprecated import deprecated  # type: ignore[import-untyped]
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
-    extract_T,
     fire_parse_generate_dataset_name_list,
-    get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_original_path,
     get_zarr_name,
@@ -21,11 +18,15 @@ from src.endo_pipeline.configs.dataset_io import (
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path
+from src.endo_pipeline.io import configure_logging, get_output_path, load_segmentation
 from src.endo_pipeline.library.analyze import shape_features as feat
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
+)
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
 )
 
 logger = logging.getLogger(__name__)
@@ -211,23 +212,12 @@ def build_measured_features_tables(
         voxel_size = BioImage(image_path).physical_pixel_sizes
 
     logger.debug(f"T={T} -- loading classic segmentation")
-    # load the segmentation images
-    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
-    if seg_dir is not None:
-        seg_dir = Path(seg_dir)
-    else:
-        logger.warning(
-            f"No segmentation directory found for {dataset_name}. Skipping cdh5 measurements."
-        )
-        return
 
-    seg_filepath_list = [fp for fp in seg_dir.glob("*.ome.tif*") if extract_T(fp.name) == T]
-    assert (
-        len(seg_filepath_list) == 1
-    ), f"Found {len(seg_filepath_list)} segmentation files for T={T} in {dataset_name}. Expected 1."
-    seg_filepath = seg_filepath_list[0]
-    seg = BioImage(seg_filepath)
-    seg_arr = seg.get_image_dask_data(dim_order).compute().squeeze()
+    seg_manifest = load_segmentation_manifest("cdh5_classic")
+    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
+    seg_arr = load_segmentation(seg_location)
+    seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
+
     # NOTE: the segmentation images are stored as a single channel and single timepoint
     seg_borders = find_boundaries(seg_arr)
 

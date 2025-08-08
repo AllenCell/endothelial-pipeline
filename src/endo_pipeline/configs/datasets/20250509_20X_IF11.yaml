@@ -24,7 +24,6 @@ flow_conditions:
 channel_405_index: 0
 channel_561_index: 2
 channel_640_index: 3
-cdh5_seg_path: null
 valid_timepoints: null
 include_scenes: null
 notes: Secondary only immunofluorescence control

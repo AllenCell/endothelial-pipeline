@@ -24,7 +24,6 @@ flow_conditions:
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null
-cdh5_seg_path: null
 valid_timepoints: null
 include_scenes: null
 notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
