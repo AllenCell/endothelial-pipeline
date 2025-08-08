@@ -38,6 +38,7 @@ def generate_from_coords(
         if isinstance(coords, list):
             coords_np = np.array(coords)
         else:
+            logger.error("Parameter `coords` must be a numpy array or a list of lists.")
             raise ValueError("coords must be a numpy array or a list of lists")
     else:
         coords_np = coords
