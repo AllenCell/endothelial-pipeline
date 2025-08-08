@@ -30,13 +30,12 @@ def main(
 
     Example usage:
     ```
-    python src/endo_pipeline/workflows/apply_diffae_model_on_grid_of_crops.py \
+    python src/endo_pipeline/workflows/production/apply_diffae_grid.py \
     --model_name diffae_04_10 \
     --dataset_names '20250409_20X' \
     --z_stack_offsets 0,16 \
     --slice_by_global_center False
     ```
-
 
     Parameters
     ----------
