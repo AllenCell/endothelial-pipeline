@@ -179,7 +179,7 @@ model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
   save_images_every_n_epochs: 10
   save_dir: ${paths.output_dir}
-  image_shape: # this is where crop size is defined
+  image_shape: # this is where crop size is defined, gets overridden with user input by training script
   - 1
   - 128
   - 128
@@ -249,9 +249,9 @@ callbacks:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
     dirpath: null
     filename: epoch_{epoch:03d}
-    monitor: val/loss
+    monitor: null
     verbose: false
-    save_last: true
+    save_last: false
     save_top_k: 1
     mode: min
     auto_insert_metric_name: false
@@ -272,9 +272,7 @@ callbacks:
     stopping_threshold: null
     divergence_threshold: null
     check_on_train_epoch_end: null
-  model_summary:
-    _target_: lightning.pytorch.callbacks.RichModelSummary
-    max_depth: -1
+  model_summary: null
   rich_progress_bar:
     _target_: lightning.pytorch.callbacks.RichProgressBar
   latent_walk:
@@ -287,7 +285,7 @@ logger:
     _target_: cyto_dl.loggers.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
     experiment_name: endo_diffae
-    run_name: diffae_patch_${model.image_shape[1]}x${model.image_shape[2]}
+    run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
   default_root_dir: ${paths.output_dir}
@@ -295,11 +293,12 @@ trainer:
   max_epochs: 1000
   accelerator: gpu
   devices: 1
-  precision: 16
+  precision: 16-mixed
   check_val_every_n_epoch: 1
   deterministic: false
   detect_anomaly: false
   max_time: null
+  enable_model_summary: False
 paths:
   root_dir: null
   data_dir: null

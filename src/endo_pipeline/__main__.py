@@ -9,6 +9,8 @@ import cyclopts
 from cyclopts import App, Group, Parameter, validators
 from rich.console import Console
 
+logger = logging.getLogger("")
+
 pipeline_app = App(
     help="Endothelial pipeline CLI",
     version_flags=[],
@@ -22,6 +24,15 @@ workflow_app = App(
 )
 
 tags: dict[str, list[str]] = {}
+
+EXTERNAL_LOGGERS = {
+    "lightning.pytorch": logging.WARNING,
+    "lightning.pytorch.accelerators.cuda": logging.WARNING,
+    "lightning.pytorch.utilities.rank_zero": logging.WARNING,
+    "lightning.fabric.utilities": logging.WARNING,
+    "torch": logging.WARNING,
+    "cyto_dl": logging.ERROR,
+}
 
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
@@ -67,6 +78,10 @@ def pipeline_entrypoint(
     show_tags: Annotated[bool, Parameter(alias="-t", show_default=False)] = False,
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
+    run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
+    show_external_logs: Annotated[
+        bool, Parameter(alias="-s", show_default=False, negative=())
+    ] = False,
 ) -> None:
     """
     Parameters
@@ -85,6 +100,10 @@ def pipeline_entrypoint(
         Filter workflows by given tag.
     config
         Path to user configuration file.
+    run_with_gpu
+        Run workflow with GPU settings.
+    show_external_logs
+        Show logging outputs from external libraries.
     """
 
     if debug:
@@ -93,6 +112,12 @@ def pipeline_entrypoint(
         setup_logging(logging.INFO)
     else:
         setup_logging(logging.WARNING)
+
+    if run_with_gpu:
+        setup_gpu()
+
+    if not show_external_logs:
+        silence_external_loggers(EXTERNAL_LOGGERS)
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -115,6 +140,10 @@ def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     verbose: Annotated[bool, Parameter(alias="-v", show_default=False, negative=())] = False,
     debug: Annotated[bool, Parameter(alias="-vv", show_default=False, negative=())] = False,
+    run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
+    show_external_logs: Annotated[
+        bool, Parameter(alias="-s", show_default=False, negative=())
+    ] = False,
 ) -> None:
     """
     Parameters
@@ -125,6 +154,10 @@ def workflow_entrypoint(
         Show verbose logging.
     debug
         Show debug logging.
+    run_with_gpu
+        Run workflow with GPU settings.
+    show_external_logs
+        Show logging outputs from external libraries.
     """
 
     if debug:
@@ -133,6 +166,12 @@ def workflow_entrypoint(
         setup_logging(logging.INFO)
     else:
         setup_logging(logging.WARNING)
+
+    if run_with_gpu:
+        setup_gpu()
+
+    if not show_external_logs:
+        silence_external_loggers(EXTERNAL_LOGGERS)
 
     workflow_app(tokens)
 
@@ -177,7 +216,6 @@ class CustomStreamLoggingFormatter(logging.Formatter):
 def setup_logging(level: int) -> None:
     """Set up logging handlers and assign logging levels."""
 
-    logger = logging.getLogger("")
     logger.setLevel(logging.DEBUG)
 
     log_path = Path(__file__).resolve().parents[2] / "logs"
@@ -196,6 +234,47 @@ def setup_logging(level: int) -> None:
 
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
+
+
+def silence_external_loggers(external_loggers: dict) -> None:
+    """
+    Set external logger to a specific logging level to avoid excessive logging outputs.
+
+    Parameters
+    ----------
+    external_loggers
+        Dictionary of external loggers and their respective logging levels.
+    """
+    for logger_name, logging_level in external_loggers.items():
+        external_logger = logging.getLogger(logger_name)
+        external_logger.setLevel(logging_level)
+
+
+def setup_gpu() -> None:
+    """Set up GPU environmental variables."""
+
+    logger.info("Setting up environment to run workflow using GPU")
+
+    import os
+    import re
+    import subprocess
+
+    # Query to get free memory of available GPU devices
+    command = ["nvidia-smi", "--query-gpu=memory.free,index", "--format=csv,noheader,nounits"]
+    gpu_memory_free = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode().strip()
+
+    # If unable to access the driver, report error and exit
+    if "failed" in gpu_memory_free:
+        logger.error("Workflow is unable to communicate with the NVIDIA driver")
+        raise EnvironmentError(gpu_memory_free)
+
+    # Select device number with the maximum free memory
+    gpu_options = [(int(free), gpu) for free, gpu in re.findall(r"(\d+), (\d+)", gpu_memory_free)]
+    _, gpu_with_max_free = sorted(gpu_options, reverse=True)[0]
+
+    # Set the CUDA_VISIBLE_DEVICES environment variable to selected GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_with_max_free
+    logger.info("Setting CUDA_VISIBLE_DEVICES to [ %s ]", gpu_with_max_free)
 
 
 if __name__ == "__main__":

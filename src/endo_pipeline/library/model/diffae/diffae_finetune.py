@@ -15,8 +15,8 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         paired_condition_key: str,
         use_separate_encoders: bool = True,
         infer_with_fixed: bool = True,
-        **base_kwargs,
-    ):
+        **base_kwargs: dict,
+    ) -> None:
         """
         Finetune a DiffAE model using paired data (e.g. fixed vs. live).
         A checkpoint should be provided when using this class, as it will
@@ -59,7 +59,7 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         else:
             self.fixed_semantic_encoder = self.semantic_encoder
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> tuple[list, list]:
         """Configure optimizers for the DiffAE finetune model."""
         if self.hparams.use_separate_encoders:
             # only optimizing the paired encoder to match the semantic encoder
@@ -73,7 +73,9 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         sched = self.lr_scheduler(optimizer=opt)
         return [opt], [sched]
 
-    def matching_forward(self, x, y, batch_idx, stage=None):
+    def matching_forward(
+        self, x: torch.Tensor, y: torch.Tensor, batch_idx: int, stage: str | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Extract features from appropriate encoders
         for matching and plot correlation between them.
@@ -100,9 +102,12 @@ class DiffAEFinetune(DiffusionAutoEncoder):
             plt.close(fig)
         return x_feats, y_feats
 
-    def model_step(self, stage, batch, batch_idx):
+    def model_step(
+        self, stage: str, batch: torch.Tensor, batch_idx: int
+    ) -> tuple[dict, torch.Tensor, None]:
         """Run a model step for the DiffAE finetune model."""
         batch = convert_to_tensor(batch)
+        # initialize loss dictionary
         loss = {"diffusion": 0}
         if not self.hparams.use_separate_encoders:
             loss, _, _ = super().model_step(stage, batch, batch_idx)
@@ -117,12 +122,12 @@ class DiffAEFinetune(DiffusionAutoEncoder):
         )
 
         # compute matching loss
-        loss["mse"] = torch.nn.functional.mse_loss(x_feats, y_feats)
+        loss["mse"] = torch.nn.functional.mse_loss(x_feats, y_feats)  # type: ignore[assignment]
         loss["loss"] = loss["diffusion"] + loss["mse"]
 
         return loss, y_feats, None
 
-    def encode_image(self, x):
+    def encode_image(self, x: torch.Tensor) -> tuple[torch.Tensor, dict]:
         """
         Encode an image using the appropriate encoder.
         If `infer_with_fixed` is True, use the fixed semantic encoder;

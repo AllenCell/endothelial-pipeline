@@ -9,7 +9,6 @@ from src.endo_pipeline.configs import (
     load_all_dataset_configs,
     load_dataset_config,
     load_model_config,
-    save_dataset_config,
 )
 from src.endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
 from src.endo_pipeline.io import (
@@ -17,6 +16,12 @@ from src.endo_pipeline.io import (
     configure_logging,
     get_output_path,
     upload_file_to_fms,
+)
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
 )
 
 """
@@ -48,9 +53,18 @@ def fms_upload_cdh5_classic_seg_tracking(
         file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.cdh5_classic_seg_tracking_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+
+    manifest_name = "cdh5_classic_segmentation_tracking"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
         f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
@@ -76,9 +90,18 @@ def fms_upload_cdh5_get_measured_features(
         file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.cdh5_classic_seg_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+
+    manifest_name = "cdh5_classic_segmentation"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
         f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
@@ -104,9 +127,18 @@ def fms_upload_nuc_get_measured_features(
         file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.nuclei_label_free_seg_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+
+    manifest_name = "nuclei_label_free_segmentation"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
         f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
@@ -132,9 +164,18 @@ def fms_upload_make_seg_feats_manifest(
         file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.live_merged_seg_features_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+
+    manifest_name = "live_merged_seg_features"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
         f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."

@@ -1,0 +1,11 @@
+name: diffae_training_dataframe_resolution_0
+workflow: create_diffae_training_dataframe
+parameters:
+  zarr_resolution: 0
+locations:
+  training:
+    fmsid: 02a23527d6be4faebe6b3fb0c2761f4f
+    s3uri: null
+  validation:
+    fmsid: 7d479685dfd745a28008ff5d0b419147
+    s3uri: null

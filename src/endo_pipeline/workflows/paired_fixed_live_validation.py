@@ -1,4 +1,4 @@
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
 from src.endo_pipeline.library.analyze.immunofluorescence import validate_pcs_for_integration
 from src.endo_pipeline.library.visualize import viz_validate_pcs_for_integration
 

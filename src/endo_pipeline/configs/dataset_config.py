@@ -6,6 +6,15 @@ from typing import Literal
 from mashumaro.config import BaseConfig
 from pydantic.dataclasses import dataclass
 
+MicroscopeType = Literal["3i", "Nikon"]
+"""Valid microscope types."""
+
+SampleType = Literal["live", "fixed", "fixed-methanol"]
+"""Valid sample types."""
+
+ObjectiveType = Literal["20X", "40X"]
+"""Valid objective types."""
+
 
 @dataclass
 class ValidTimepoints:
@@ -64,14 +73,17 @@ class DatasetConfig:
     cell_lines: list[str]
     """List of cell lines in dataset."""
 
-    live_or_fixed_sample: Literal["live", "fixed", "fixed-methanol"]
+    live_or_fixed_sample: SampleType
     """Experimental condition that dataset was collected under."""
 
     is_timelapse: bool
     """True if dataset is a timelapse dataset, False otherwise."""
 
-    microscope: Literal["3i", "Nikon"]
+    microscope: MicroscopeType
     """Microscope that dataset was collected with."""
+
+    objective: ObjectiveType
+    """Objective that dataset was collected under."""
 
     shear_stress_regime: str
     """Shear stress regime the dataset was collected under."""
@@ -115,38 +127,11 @@ class DatasetConfig:
     nuclear_stain_seg_path: str | None = None
     """Path to nuclear stain segmentation."""
 
-    nuclear_seg_manifest_fmsid: str | None = None
-    """FMS ID for nuclear segmentation manifest."""
-
     cdh5_seg_path: str | None = None
     """Path to Cdh5 segmentations."""
 
-    tracking_integration_fmsid: str | None = None
-    """FMS ID for tracking integration."""
-
-    diffae_tracking_integration_fmsid: str | None = None
-    """FMS ID for diffusion autoencoder tracking integration."""
-
-    immunofluorescence_manifest_fmsid: str | None = None
-    """FMS ID for immunofluorescence manifest."""
-
-    cdh5_classic_seg_tracking_manifest_fmsid: str | None = None
-    """FMS ID for classic segmentation tracking output manifest."""
-
-    cdh5_classic_seg_manifest_fmsid: str | None = None
-    """FMS ID for classic segmentation measurement output manifest."""
-
-    nuclei_label_free_seg_manifest_fmsid: str | None = None
-    """FMS ID for nuclei label free segmentation measurement output manifest."""
-
-    live_merged_seg_features_manifest_fmsid: str | None = None
-    """FMS ID for live dataset merged segmentation features manifest."""
-
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""
-
-    cell_mean_features: str | None = None
-    """FMS ID for cell mean features."""
 
     include_scenes: list[int] | None = None
     """List of scenes to include."""
