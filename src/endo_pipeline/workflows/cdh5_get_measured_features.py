@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from bioio import BioImage
-from deprecated import deprecated  # type: ignore[import-untyped]
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
@@ -217,6 +216,7 @@ def build_measured_features_tables(
     seg_manifest = load_segmentation_manifest("cdh5_classic")
     seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
     seg_arr = load_segmentation(seg_location)
+    seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
     seg_borders = find_boundaries(seg_arr)
