@@ -177,17 +177,10 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
         logger.error("Workflow unable to access [ /allen ] drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
-    try:
-        from aicsfiles import FileLevelMetadataKeys, fms
-    except ModuleNotFoundError:
-        logger.error("Required dependency [ aicsfiles ] not found")
-        raise
-    except ImportError:
-        logger.error("Unable to import [ fms | FileLevelMetadataKeys ] from [ aicsfiles ]")
-        raise
+    from src.endo_pipeline.io.fms import FMS, FMS_FILE_ID
 
-    annotations = {FileLevelMetadataKeys.FILE_ID.value: fmsid}
-    record = list(fms.find(annotations=annotations))
+    annotations = {FMS_FILE_ID: fmsid}
+    record = list(FMS.find(annotations=annotations))
 
     if not record:
         logger.error("Record for FMS ID [ %s ] not found", fmsid)
