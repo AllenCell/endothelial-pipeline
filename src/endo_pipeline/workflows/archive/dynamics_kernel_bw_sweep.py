@@ -121,7 +121,8 @@ def main(
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")
         # 3D viz outputs
         get_and_analyze_ddff(
-            model_manifest_list,
+            dataset_names,
+            manifest,
             pca,
             kernel_params,
             dt,

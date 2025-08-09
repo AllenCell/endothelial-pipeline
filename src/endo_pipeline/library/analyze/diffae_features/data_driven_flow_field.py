@@ -132,7 +132,8 @@ def _ddff_model_analysis(
 
 
 def get_and_analyze_ddff(
-    model_manifest_list: list[ModelManifest],
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict,
     dt: float,
@@ -147,9 +148,8 @@ def get_and_analyze_ddff(
     the "data-driven flow field" (DDFF) for a list of datasets.
 
     Inputs:
-    - model_manifest_list: list of ModelManifest objects
-        - each manifest contains the dataset name and
-            the fmsid of the model manifest for the dataset
+    - dataset_names: list of dataset names to use for computing DDFF
+    - manifest: manifest of model feature dataframes
     - pca: PCA model to use for transforming the data
     - kernel_params: parameters for the kernel-based
         estimation of Kramers-Moyal coefficients
@@ -175,15 +175,13 @@ def get_and_analyze_ddff(
 
     # get experimental condition
     # descriptions of each dataset
-    condition_dict = get_dataset_descriptions(
-        [model_manifest.dataset_name for model_manifest in model_manifest_list], simple=True
-    )
+    condition_dict = get_dataset_descriptions(dataset_names, simple=True)
 
     # initialize dict to save trajectories
     # used for crop reconstruction
     traj_dict = {}
-    for model_manifest in model_manifest_list:
-        print(f"******** Processing dataset: {model_manifest.dataset_name} ******** \n")
+    for dataset_name in dataset_names:
+        print(f"******** Processing dataset: {dataset_name} ******** \n")
         traj = _ddff_model_analysis(
             dataset_name,
             manifest,
@@ -200,7 +198,7 @@ def get_and_analyze_ddff(
         )
 
         # save out using dataset descriptions
-        condition = condition_dict[model_manifest.dataset_name]
+        condition = condition_dict[dataset_name]
         traj_dict[condition] = traj
 
     np.save(output_savedir / "traj_dict", traj_dict, allow_pickle=True)  # type: ignore
@@ -208,8 +206,7 @@ def get_and_analyze_ddff(
     # generate plot of stable fixed points from different datasets
     # overlaid on top of each other
     # (for comparison of stable fixed points across conditions)
-    list_of_datasets = [model_manifest.dataset_name for model_manifest in model_manifest_list]
-    flow_field_viz.plot_stable_fixed_points_together(list_of_datasets, fig_savedir, output_savedir)
+    flow_field_viz.plot_stable_fixed_points_together(dataset_names, fig_savedir, output_savedir)
 
 
 def compute_extrapolated_vector_field(

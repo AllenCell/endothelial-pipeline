@@ -100,7 +100,8 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     init = np.array([-0.1, -0.7, -0.1])
 
     get_and_analyze_ddff(
-        model_manifest_list,
+        dataset_names,
+        manifest,
         pca,
         kernel_params,
         dt,
