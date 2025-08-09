@@ -1044,8 +1044,9 @@ def ipython_cli_flexecute(
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        results = None
-        workflow_cli(function)
+        import fire
+
+        results = fire.Fire(function)
 
     return results if return_results else None
 
