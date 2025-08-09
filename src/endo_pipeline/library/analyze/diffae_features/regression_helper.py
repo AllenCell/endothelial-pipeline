@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from src.endo_pipeline.configs import ModelManifest, load_dataset_config
 from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
     get_traj_and_diff,
     split_dataset_by_flow,
@@ -236,7 +236,7 @@ def build_kramers_moyal_train_test(
         # load DiffAE feature data from this one dataset
         # and get features projected onto principal component axes
         # as defined by fit PCA object pca.
-        df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+        df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=pca)
 
         # get train test split for this dataset
         x_train, x_test, y_train, y_test, v_train, v_test, u_train, u_test = (

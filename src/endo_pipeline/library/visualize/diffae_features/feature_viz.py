@@ -4,9 +4,8 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize import viz_base
@@ -124,7 +123,7 @@ def plot_pc_scatter(
     for model_manifest in model_manifest_list:
         dataset_name = model_manifest.dataset_name
         # load dataframe and get top 3 PCs
-        df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
 
         # if timepoints_to_use is provided, restrict to those timepoints

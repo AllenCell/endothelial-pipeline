@@ -18,7 +18,7 @@ from src.endo_pipeline.configs import (
 from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import (
@@ -93,7 +93,7 @@ def load_data_for_montage(
 
     df_all = pd.concat(
         [
-            get_manifest_for_dynamics_workflows(model_manifest, pca=pca, filter_to_valid=False)
+            get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca, filter_to_valid=False)
             for model_manifest in model_manifest_list
         ],
         ignore_index=True,

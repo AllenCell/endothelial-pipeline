@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 
@@ -108,9 +108,7 @@ def get_3d_bounds_from_data(
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
     for model_manifest in model_manifest_list:
-        df = get_manifest_for_dynamics_workflows(
-            model_manifest, pca, filter_to_valid=filter_to_valid
-        )
+        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca, filter_to_valid)
         # get column names for features
         pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
         for j in range(num_dims):

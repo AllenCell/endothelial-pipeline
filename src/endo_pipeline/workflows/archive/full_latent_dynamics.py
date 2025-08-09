@@ -12,8 +12,8 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     from src.endo_pipeline.library.analyze.diffae_manifest import (
         df_to_array,
         fit_pca,
+        get_dataframe_for_dynamics_workflows,
         get_feature_column_names,
-        get_manifest_for_dynamics_workflows,
         get_pc_column_names,
         project_manifest_to_pcs,
     )
@@ -53,7 +53,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
 
     for model_manifest in model_manifest_list:
         print(f"Processing dataset: {model_manifest.dataset_name}")
-        df = get_manifest_for_dynamics_workflows(model_manifest, pca=None)
+        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=None)
         feature_column_names = get_feature_column_names(df)
         feats = df_to_array(df, feature_column_names)
         fig, _ = feature_viz.plot_latent_component_mean(feats)

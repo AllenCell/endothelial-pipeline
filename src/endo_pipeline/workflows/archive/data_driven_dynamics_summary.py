@@ -125,7 +125,7 @@ def _get_and_analyze_ddd(
         get_callable_vector_field,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import (
-        get_manifest_for_dynamics_workflows,
+        get_dataframe_for_dynamics_workflows,
         get_pc_column_names,
         get_traj_and_diff,
         split_dataset_by_flow,
@@ -150,7 +150,7 @@ def _get_and_analyze_ddd(
     # load DiffAE feature data from this one dataset
     # projected onto principal component axes as defined
     # by fit PCA object pca. Restrict to stationary frames if provided
-    df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+    df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
     # get pc columns for axes of interest
     pc_column_names = get_pc_column_names(df_proj, pc_axes)

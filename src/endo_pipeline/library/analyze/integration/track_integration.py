@@ -20,7 +20,7 @@ from src.endo_pipeline.library.analyze.diffae_features import (
 )
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     add_description_column,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
     project_manifest_to_pcs,
 )
@@ -566,9 +566,8 @@ def get_preprocessed_manifests_and_km_bounds(
 
     # read in the grid crop-based diffae features
     model_name = sequence_to_scalar(merged_feats_df["model_name"])
-    model_config = load_model_config(model_name)
-    model_manifest = get_model_manifest(dataset_name, model_config)  # type: ignore[arg-type]
-    diffae_grid_crops = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    manifest = load_dataframe_manifest(model_name)
+    diffae_grid_crops = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
     # add the PC columns to the track-based DiffAE table
     # (the grid-based DiffAE table already has them, but

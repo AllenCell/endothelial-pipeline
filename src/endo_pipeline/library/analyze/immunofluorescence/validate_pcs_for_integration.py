@@ -18,7 +18,7 @@ from src.endo_pipeline.configs import (
 from src.endo_pipeline.configs.model_config_utils import get_model_manifest
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
 from src.endo_pipeline.library.model import (
@@ -265,9 +265,8 @@ def create_reference_timelapse_datasets(
     """
 
     # Load the PC data for reference no flow timelapse dataset
-    model_config = load_model_config(model)
-    model_manifest = get_model_manifest(reference_dataset_name, model_config)
-    reference_features = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    manifest = load_dataframe_manifest(model)
+    reference_features = get_dataframe_for_dynamics_workflows(reference_dataset_name, manifest, pca)
 
     # Create and return lagged and truncated datasets
     reference_features = reference_features.sort_values(by="frame_number")

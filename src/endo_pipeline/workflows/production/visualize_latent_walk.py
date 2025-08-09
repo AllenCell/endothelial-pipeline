@@ -52,8 +52,8 @@ def main(
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_manifest import (
         fit_pca,
+        get_dataframe_for_dynamics_workflows,
         get_feature_column_names,
-        get_manifest_for_dynamics_workflows,
         get_pc_column_names,
     )
     from src.endo_pipeline.library.model import (
@@ -75,8 +75,8 @@ def main(
         pca = fit_pca(model_name=model_name, num_pcs=num_pcs)
         manifest_dataframe = pd.concat(
             [
-                get_manifest_for_dynamics_workflows(model_manifest, pca)
-                for model_manifest in reference_dataset_model_manifests
+                get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
+                for dataset_name in dataset_names
             ]
         )
         pc_column_names = get_pc_column_names(manifest_dataframe, pc_axes=list(range(num_pcs)))
@@ -86,8 +86,8 @@ def main(
         # perform latent walk along the raw latent dimensions
         manifest_dataframe = pd.concat(
             [
-                get_manifest_for_dynamics_workflows(model_manifest, pca=None)
-                for model_manifest in reference_dataset_model_manifests
+                get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=None)
+                for dataset_name in dataset_names
             ]
         )
         feature_column_names = get_feature_column_names(manifest_dataframe)

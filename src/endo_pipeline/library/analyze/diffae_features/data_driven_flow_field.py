@@ -7,10 +7,9 @@ from scipy import interpolate as spinterp
 from scipy.integrate import solve_ivp
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
+    get_dataframe_for_dynamics_workflows,
     get_dataset_descriptions,
-    get_manifest_for_dynamics_workflows,
     get_pc_column_names,
     get_traj_and_diff,
 )
@@ -70,7 +69,7 @@ def _ddff_model_analysis(
             two stable fixed points for these conditions)
     """
     # load dataframe and get top 3 PCs
-    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
     pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
     # get list of per-crop trajectories, the corresponding
