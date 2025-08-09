@@ -115,7 +115,7 @@ def main(
 
             # 2D viz outputs
             _get_and_analyze_ddd(
-                model_manifest, pca, kernel_params, fig_savedir_kernel, dynamics_config
+                dataset_name, manifest, pca, kernel_params, fig_savedir_kernel, dynamics_config
             )
 
         print("\nRunning 3D flow field estimation workflow for all datasets. \n")

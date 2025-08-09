@@ -90,7 +90,8 @@ def _ddd_model_analysis(
 
 
 def _get_and_analyze_ddd(
-    model_manifest: ModelManifest,
+    dataset_name: str,
+    manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict | None,
     fig_savedir: Path,
@@ -101,8 +102,8 @@ def _get_and_analyze_ddd(
     Wrapper function for _ddd_model_analysis, called by main.
 
     Inputs:
-    - model_manifest (ModelManifest): model manifest object
-        for a given dataset and deep learning model
+    - dataset_name: name of dataset
+    - manifest: manifest of model feature dataframes
     - pca: fit PCA object
         Used to project data into PCA space
     - kernel_params (dict): parameters for kernel method
@@ -156,9 +157,7 @@ def _get_and_analyze_ddd(
     pc_column_names = get_pc_column_names(df_proj, pc_axes)
 
     # split out data by flow condition
-    df_by_flow, shear_list = split_dataset_by_flow(
-        df_proj, load_dataset_config(model_manifest.dataset_name)
-    )
+    df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))
     num_flow = len(shear_list)
 
     # get drift and diffusion estimates
@@ -197,7 +196,7 @@ def _get_and_analyze_ddd(
         # call main model analysis function
         # for the data driven dynamics workflow
         _ddd_model_analysis(
-            model_manifest.dataset_name,
+            dataset_name,
             [drift_, diffusion_],
             df_by_flow[j],
             shear_list[j],
@@ -259,7 +258,8 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         print(f"Computing drift and diffusion fields for dataset {model_manifest.dataset_name}")
 
         _get_and_analyze_ddd(
-            model_manifest,
+            dataset_name,
+            manifest,
             pca,
             kernel_params,
             fig_savedir,
