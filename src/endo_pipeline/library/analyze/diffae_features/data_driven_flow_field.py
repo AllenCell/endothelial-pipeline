@@ -16,10 +16,12 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 from src.endo_pipeline.library.analyze.kramersmoyal import get_kramers_moyal
 from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data, get_bins
 from src.endo_pipeline.library.visualize.diffae_features import flow_field_viz, vtk_io
+from src.endo_pipeline.manifests import DataframeManifest
 
 
 def _ddff_model_analysis(
-    model_manifest: ModelManifest,
+    dataset_name: str,
+    manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict,
     dt: float,
@@ -37,7 +39,8 @@ def _ddff_model_analysis(
     and output summary figures and vtk files for visualization.
 
     Inputs:
-    - model_manifest: ModelManifest object for the dataset
+    - dataset_name: name of dataset
+    - manifest: manifest of model feature dataframes
     - pca: PCA model to use for transforming the data
     - kernel_params: parameters for the kernel-based
         estimation of Kramers-Moyal coefficients
@@ -85,14 +88,12 @@ def _ddff_model_analysis(
     flow_field_dict = compute_extrapolated_vector_field(drift_km, centers, interpolator="nearest")
     # save flow field dictionary as npy
     np.save(
-        output_savedir / f"flow_field_dict_{model_manifest.dataset_name}.npy",
+        output_savedir / f"flow_field_dict_{dataset_name}.npy",
         flow_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save flow field as vtk image data
-    vtk_io.save_vector_field_as_vtk(
-        flow_field_dict, vtk_savedir / f"flow_field_{model_manifest.dataset_name}.vtk"
-    )
+    vtk_io.save_vector_field_as_vtk(flow_field_dict, vtk_savedir / f"flow_field_{dataset_name}.vtk")
 
     # compute interpolated diffusion field
     # (diagonal diffusion tensor represented as 3D vector field)
@@ -101,13 +102,13 @@ def _ddff_model_analysis(
     )
     # save diffusion field dictionary as npy
     np.save(
-        output_savedir / f"diffusion_field_dict_{model_manifest.dataset_name}.npy",
+        output_savedir / f"diffusion_field_dict_{dataset_name}.npy",
         diffusion_field_dict,  # type: ignore
         allow_pickle=True,
     )
     # save diffusion field as vtk image data
     vtk_io.save_vector_field_as_vtk(
-        diffusion_field_dict, vtk_savedir / f"diffusion_field_{model_manifest.dataset_name}.vtk"
+        diffusion_field_dict, vtk_savedir / f"diffusion_field_{dataset_name}.vtk"
     )
 
     ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
@@ -120,7 +121,7 @@ def _ddff_model_analysis(
 
     # hack-y work around for intermediate shear stress
     # simulate second trajectory to get second stable point
-    if model_manifest.dataset_name == "20250319_20X":
+    if dataset_name == "20250319_20X":
         init = np.array([1.1, 0.0, -0.2])
         time_span = [0, 5000]
         traj_2 = solve_ddff_ode(flow_field_dict, init, time_span)
@@ -184,7 +185,8 @@ def get_and_analyze_ddff(
     for model_manifest in model_manifest_list:
         print(f"******** Processing dataset: {model_manifest.dataset_name} ******** \n")
         traj = _ddff_model_analysis(
-            model_manifest,
+            dataset_name,
+            manifest,
             pca,
             kernel_params,
             dt,
