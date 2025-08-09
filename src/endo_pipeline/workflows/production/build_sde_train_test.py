@@ -80,7 +80,8 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     # build train-test data for regression
     train_test_dict = build_kramers_moyal_train_test(
-        model_manifest_list,
+        dataset_names,
+        manifest,
         pca,
         pcs,
         num_bins,
