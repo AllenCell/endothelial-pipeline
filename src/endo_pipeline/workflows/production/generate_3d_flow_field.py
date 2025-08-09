@@ -74,10 +74,7 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
     model_manifest_list = [
         get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
     ]
-    fig, _ = feature_viz.plot_pc_scatter(
-        pca,
-        model_manifest_list,  # all datasets specified and all timepoints
-    )
+    fig, _ = feature_viz.plot_pc_scatter(dataset_names, manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
     # load default config, get kernel params

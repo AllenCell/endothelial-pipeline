@@ -79,7 +79,7 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
 
     # scatter plot of pca reference datasets
     fig, _ = feature_viz.plot_pc_scatter(
-        pca, model_manifest_list, timepoints_to_use=timepoints_refs
+        dataset_names, manifest, pca, timepoints_to_use=timepoints_refs
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
 
