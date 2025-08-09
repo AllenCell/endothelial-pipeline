@@ -6,17 +6,6 @@ from pydantic.dataclasses import dataclass
 
 
 @dataclass
-class ModelManifest:
-    """Model manifest information for a dataset."""
-
-    dataset_name: str
-    """Name of the dataset for which the model was applied."""
-
-    fmsid: str
-    """FMS ID of the resulting feature manifest."""
-
-
-@dataclass
 class ModelConfig:
     """Model configuration for pipeline."""
 

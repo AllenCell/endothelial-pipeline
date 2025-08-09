@@ -38,7 +38,7 @@ from .dataset_config_utils import (
     validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
-from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
+from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig
 from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,
@@ -64,7 +64,6 @@ __all__ = [
     "FlowCondition",
     "MicroscopeType",
     "ModelConfig",
-    "ModelManifest",
     "ObjectiveType",
     "SampleType",
     "ValidTimepoints",
