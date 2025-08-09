@@ -22,16 +22,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         - Entropy production rate as a function of shear stress
         - Generalized potential energy landscape plots (for various shear stresses)
     """
-    from typing import cast
 
     import numpy as np
 
-    from src.endo_pipeline.configs import (
-        CytoDLModelConfig,
-        dynamics_io,
-        get_timelapse_model_manifests,
-        load_model_config,
-    )
+    from src.endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_features import (
         load_sde_model,
@@ -42,6 +36,7 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from src.endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     ################### Load configs from dynamics_config ###################
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
@@ -113,12 +108,8 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     sde_model = [drift, diffusion]
 
     #################### Load model manifest data ###################
-    # get model config from model name
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-
-    # filter out datasets that are not timelapse
-    # and load model manifests
-    model_manifest_list = get_timelapse_model_manifests(model_config)
+    dataset_names = get_datasets_in_collection("timelapse")
+    manifest = load_dataframe_manifest(model_name)
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset

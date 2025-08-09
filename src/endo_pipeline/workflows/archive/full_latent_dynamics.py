@@ -3,11 +3,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     Run base visualization of Diff AE latent space
     feature dynamics for a specified list of datasets.
     """
-    from src.endo_pipeline.configs import (
-        get_model_manifest,
-        get_timelapse_model_manifests,
-        load_model_config,
-    )
+    from src.endo_pipeline.configs import get_datasets_in_collection
     from src.endo_pipeline.io import get_output_path, save_plot_to_path
     from src.endo_pipeline.library.analyze.diffae_manifest import (
         df_to_array,
@@ -19,13 +15,12 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     )
     from src.endo_pipeline.library.analyze.numerics import get_bins
     from src.endo_pipeline.library.visualize.diffae_features import feature_viz
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
-    # get model config from model name
-    model_config = load_model_config(model_name)
     if dataset_names is None:
-        # filter out datasets that are not timelapse
-        # and load model manifests
-        model_manifest_list = get_timelapse_model_manifests(model_config)
+        dataset_name_list = get_datasets_in_collection("timelapse")
+    elif isinstance(dataset_names, str):
+        dataset_name_list = [dataset_names]
     else:
         dataset_name_list = dataset_names
 

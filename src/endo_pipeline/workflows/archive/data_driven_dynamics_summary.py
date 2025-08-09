@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
+from src.endo_pipeline.manifests import DataframeManifest
 
 
 def _ddd_model_analysis(
@@ -214,13 +214,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     Includes model summary and comparison to data as used in, e.g.,
     the `summarize_sde_model` workflow.
     """
-    from src.endo_pipeline.configs import (
-        dynamics_io,
-        get_timelapse_model_manifests,
-        load_model_config,
-    )
+    from src.endo_pipeline.configs import dynamics_io, get_datasets_in_collection, load_model_config
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     #### Load manifest data and fit PCA ####
     # make save directory for workflow outputs
@@ -250,12 +247,12 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     # get model config from model name
     model_config = load_model_config(model_name)
 
-    # filter out datasets that are not timelapse
-    # and load model manifests
-    model_manifest_list = get_timelapse_model_manifests(model_config)
+    # filter out datasets that are not timelapse and load model manifests
+    dataset_names = get_datasets_in_collection("timelapse")
+    manifest = load_dataframe_manifest(model_name)
 
-    for model_manifest in model_manifest_list:
-        print(f"Computing drift and diffusion fields for dataset {model_manifest.dataset_name}")
+    for dataset_name in dataset_names:
+        print(f"Computing drift and diffusion fields for dataset {dataset_name}")
 
         _get_and_analyze_ddd(
             dataset_name,
