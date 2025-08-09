@@ -7,11 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from src.endo_pipeline.configs import (
-    get_model_manifest,
-    load_dataset_collection_config,
-    load_model_config,
-)
+from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
 from src.endo_pipeline.io import load_dataframe
 from src.endo_pipeline.library.analyze.diffae_features import (
@@ -582,10 +578,7 @@ def get_preprocessed_manifests_and_km_bounds(
             dataset_name
         ]
 
-    model_manifest_list = [
-        get_model_manifest(dataset_name, model_config) for dataset_name in datasets_for_bounds  # type: ignore[arg-type]
-    ]
-    bounds = get_3d_bounds_from_data(model_manifest_list, pca)
+    bounds = get_3d_bounds_from_data(datasets_for_bounds, manifest, pca)
 
     # lastly, add a normalized version of the "time_hours" column
     merged_feats_df = add_normalized_time(merged_feats_df)

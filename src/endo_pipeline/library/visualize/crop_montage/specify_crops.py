@@ -139,7 +139,7 @@ def filter_dataframe(
     :
         DataFrame filtered by the specified PC bin and optional frame range.
     """
-    bin_limits = get_3d_bounds_from_data(model_manifest_list, pca, filter_to_valid=False)
+    bin_limits = get_3d_bounds_from_data(dataset_names, manifest, pca, filter_to_valid=False)
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
         N_BINS,

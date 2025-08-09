@@ -169,7 +169,7 @@ def get_and_analyze_ddff(
             of what other files are saved out for each dataset
     """
     # get bins for KMCs
-    bounds = get_3d_bounds_from_data(model_manifest_list, pca)
+    bounds = get_3d_bounds_from_data(dataset_names, manifest, pca)
     num_bins = [50, 50, 50]
     bins, centers = get_bins(num_bins, bin_limits=bounds)
 

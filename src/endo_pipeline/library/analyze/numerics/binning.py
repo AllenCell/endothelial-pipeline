@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
+from src.endo_pipeline.manifests import DataframeManifest
 
 
 def get_bins(
@@ -67,7 +67,8 @@ def get_bins(
 
 
 def get_3d_bounds_from_data(
-    model_manifest_list: list[ModelManifest],
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
     filter_to_valid: bool = True,
 ) -> list[np.ndarray]:
@@ -79,7 +80,8 @@ def get_3d_bounds_from_data(
     on a fixed set of reference datasets.
 
     Inputs:
-    - list_of_datasets: list of dataset names to use
+    - dataset_names: list of datasets
+    - manifest: manifest of model feature dataframes
     - pca: PCA model to use for transforming the data
     - col_names: which columns to use for bounds
         - "pc": data is coming from a workflow where
@@ -107,7 +109,7 @@ def get_3d_bounds_from_data(
     # initialize bounds
     bounds_ = [[np.inf, -np.inf] for _ in range(num_dims)]
 
-    for model_manifest in model_manifest_list:
+    for dataset_name in dataset_names:
         df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca, filter_to_valid)
         # get column names for features
         pc_column_names = get_pc_column_names(df, pc_axes=[0, 1, 2])
