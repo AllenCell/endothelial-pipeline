@@ -12,10 +12,11 @@ def main(
     """
     import numpy as np
 
-    from src.endo_pipeline.configs import dynamics_io, get_model_manifest, load_model_config
+    from src.endo_pipeline.configs import dynamics_io
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     from .data_driven_dynamics_summary import _get_and_analyze_ddd
 
@@ -74,13 +75,7 @@ def main(
 
     #################### Load model manifest data ###################
     # get model config from model name
-    model_config = load_model_config(model_name)
-
-    # filter out datasets that are not timelapse
-    # and load model manifests
-    model_manifest_list = [
-        get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
-    ]
+    manifest = load_dataframe_manifest(model_name)
 
     # loop over bandwidths
     for bw in logspace_bw:
@@ -107,10 +102,10 @@ def main(
 
         # loop through datasets, get flow field
         # estimates, and save out figures
-        for model_manifest in model_manifest_list:
+        for dataset_name in dataset_names:
             print(
                 "\nComputing 2D drift and diffusion fields",
-                f"for dataset {model_manifest.dataset_name}",
+                f"for dataset {dataset_name}",
             )
 
             # 2D viz outputs

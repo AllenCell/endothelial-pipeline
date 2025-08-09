@@ -21,23 +21,20 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         to the specified output directories.
     """
     import logging
-    from typing import cast
 
     import numpy as np
 
     from src.endo_pipeline.configs import (
-        CytoDLModelConfig,
         dynamics_io,
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
-        get_model_manifest,
-        load_model_config,
     )
     from src.endo_pipeline.io import get_output_path, save_plot_to_path
     from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from src.endo_pipeline.library.visualize.diffae_features import feature_viz
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
 
@@ -67,13 +64,9 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         )
     pca = fit_pca(model_name=model_name)
 
-    # plot scatter of PCA components
-    # and all datasets specified in the command line
-    #   (or default list, if not specified)
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-    model_manifest_list = [
-        get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
-    ]
+    # plot scatter of PCA components and all datasets specified in the command
+    # line (or default list, if not specified)
+    manifest = load_dataframe_manifest(model_name)
     fig, _ = feature_viz.plot_pc_scatter(dataset_names, manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 

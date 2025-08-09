@@ -27,13 +27,7 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         # and load model manifests
         model_manifest_list = get_timelapse_model_manifests(model_config)
     else:
-        if isinstance(dataset_names, str):
-            # if a single dataset is specified, convert to list
-            dataset_names = [dataset_names]
-        # load manifests for the specified datasets
-        model_manifest_list = [
-            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
-        ]
+        dataset_name_list = dataset_names
 
     # get output subdirectory for intermediate workflow outputs
     # (set in config file dynamics_config.yaml)
@@ -51,26 +45,26 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     bin_limits_pcs = [[-1, 1], [-0.8, 0.7], [-0.8, 0.7]]
     bins = get_bins(num_bins, bin_limits=bin_limits_pcs)[0]
 
-    for model_manifest in model_manifest_list:
-        print(f"Processing dataset: {model_manifest.dataset_name}")
+    for dataset_name in dataset_name_list:
+        print(f"Processing dataset: {dataset_name}")
         df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca=None)
         feature_column_names = get_feature_column_names(df)
         feats = df_to_array(df, feature_column_names)
         fig, _ = feature_viz.plot_latent_component_mean(feats)
-        fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
-        save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_mean")
+        fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
+        save_plot_to_path(fig, fig_savedir, f"{dataset_name}_latent_mean")
 
         fig, _ = feature_viz.plot_latent_component_histogram(feats)
-        fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
-        save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_latent_histogram")
+        fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
+        save_plot_to_path(fig, fig_savedir, f"{dataset_name}_latent_histogram")
 
         df_proj = project_manifest_to_pcs(df, pca, feat_cols=feature_column_names)
         pc_column_names = get_pc_column_names(df_proj, pc_axes=[0, 1, 2])
         feats = df_to_array(df_proj, pc_column_names)  # only looking at top 3 PCs
 
         fig, _ = feature_viz.plot_principal_component_histogram(feats, bins=bins)
-        fig.suptitle(f"Dataset: {model_manifest.dataset_name}", y=0.95, fontsize=25)
-        save_plot_to_path(fig, fig_savedir, f"{model_manifest.dataset_name}_pc_histogram")
+        fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
+        save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
 
 if __name__ == "__main__":
