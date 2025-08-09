@@ -8,12 +8,7 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from src.endo_pipeline.configs import (
-    CytoDLModelConfig,
-    DatasetConfig,
-    add_model_manifest,
-    get_available_zarr_files,
-)
+from src.endo_pipeline.configs import CytoDLModelConfig, DatasetConfig, get_available_zarr_files
 from src.endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
@@ -476,12 +471,17 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             file_type="parquet",
         )
 
-        # add new manifest to model config
-        model_config = add_model_manifest(
-            model_config,
-            dataset_config.name,
-            file_id,
-        )
+        # Store FMS ID in dataframe manifest
+        manifest_name = model_config.name
+        workflow_name = "apply_model_on_grid_of_crops"
+
+        try:
+            manifest = load_dataframe_manifest(manifest_name)
+        except FileNotFoundError:
+            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+        save_dataframe_manifest(manifest)
 
     return model_config
 

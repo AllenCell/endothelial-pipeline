@@ -48,7 +48,7 @@ from .model_config_io import (
     validate_all_model_configs,
     validate_model_config,
 )
-from .model_config_utils import add_model_manifest, get_labelfree_nuclei_prediction_model_name
+from .model_config_utils import get_labelfree_nuclei_prediction_model_name
 
 __all__ = [
     "CellposeModelConfig",
@@ -61,7 +61,6 @@ __all__ = [
     "ObjectiveType",
     "SampleType",
     "ValidTimepoints",
-    "add_model_manifest",
     "get_available_channels_for_all_positions",
     "get_available_channels_for_position",
     "get_available_dataset_collection_names",

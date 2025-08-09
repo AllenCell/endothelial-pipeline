@@ -10,12 +10,9 @@ from sklearn.decomposition import PCA
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
-    add_model_manifest,
     load_dataset_config,
     load_model_config,
-    save_model_config,
 )
-from src.endo_pipeline.configs.model_config_utils import get_model_manifest
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
@@ -27,14 +24,19 @@ from src.endo_pipeline.library.model import (
     get_cytodl_commit_hash,
 )
 from src.endo_pipeline.library.process.registration import align_all_positions
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
+)
 
 
-def add_paired_fixed_live_data_fmsid_to_config(
+def add_paired_fixed_live_data_fmsid_to_manifest(
     prediction_path: Path,
     dataset_config: DatasetConfig,
     model_config: CytoDLModelConfig,
     model_path: Path,
-) -> CytoDLModelConfig:
+) -> None:
     """
     Upload path to FMS and add the FMS ID to the dataset config file for a dataset
     of paired fixed and live data.
@@ -70,8 +72,9 @@ def add_paired_fixed_live_data_fmsid_to_config(
     )
 
     # Update the model config with the FMS ID of the prediction file
-    model_config_updated = add_model_manifest(model_config, dataset_config.name, file_id)
-    return model_config_updated
+    manifest = load_dataframe_manifest(model_config.name)
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
 
 def apply_model_paired_fixed_live(
@@ -177,19 +180,18 @@ def apply_model_paired_fixed_live(
 
     if upload_features_to_FMS:
         print("Uploading fixed and live dataset feature manifests to FMS")
-        model_config_updated_with_fixed = add_paired_fixed_live_data_fmsid_to_config(
+        add_paired_fixed_live_data_fmsid_to_manifest(
             fixed_features_path,
             fixed_dataset_config,
             model_config,
             model_path,
         )
-        model_config_updated_with_live = add_paired_fixed_live_data_fmsid_to_config(
+        add_paired_fixed_live_data_fmsid_to_manifest(
             live_features_path,
             live_dataset_config,
-            model_config_updated_with_fixed,
+            model_config,
             model_path,
         )
-        save_model_config(model_config_updated_with_live)
 
     return save_path, fixed_features_path, live_features_path
 
