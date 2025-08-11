@@ -1,7 +1,7 @@
 name: diffae_training_dataframe_resolution_0
 workflow: create_diffae_training_dataframe
 parameters:
-  zarr_resolution: 0
+  resolution_level: 0
 locations:
   training:
     fmsid: 02a23527d6be4faebe6b3fb0c2761f4f

@@ -195,7 +195,7 @@ def generate_overrides_for_track_based_crops(
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig,
     dataset_save_path: Path,
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
     overwrite: bool = False,
@@ -213,7 +213,7 @@ def generate_zarr_csv_for_model_eval(
 
     df = pd.DataFrame({"path": zarr_file_paths})
     df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = zarr_resolution
+    df["resolution"] = resolution_level
 
     # if z_stack_offsets is not None, add a column with z-slice ranges
     # for each position in the dataset (i.e., zarr file)
@@ -390,7 +390,7 @@ def update_prediction_dataframe_with_metadata(
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
@@ -410,7 +410,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Configuration of the model to apply.
     dataset_config
         Configuration of the dataset to apply the model to.
-    zarr_resolution
+    resolution_level
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
@@ -471,7 +471,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     generate_zarr_csv_for_model_eval(
         dataset_config,
         dataset_save_path,
-        zarr_resolution,
+        resolution_level,
         z_stack_offsets=z_stack_offsets,
         slice_by_global_center=slice_by_global_center,
         test_workflow=test_workflow,
