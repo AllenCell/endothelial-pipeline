@@ -108,8 +108,8 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     sde_model = [drift, diffusion]
 
     #################### Load model manifest data ###################
-    dataset_names = get_datasets_in_collection("timelapse")
     manifest = load_dataframe_manifest(model_name)
+    dataset_names = get_datasets_in_collection("timelapse", list(manifest.locations.keys()))
 
     ################### Model-data comparison ###################
     # run comparison of model and data for each dataset

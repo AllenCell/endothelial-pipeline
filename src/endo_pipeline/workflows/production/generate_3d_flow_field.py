@@ -46,10 +46,12 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
         workflow_name, model_name, "outputs", "vtk", include_timestamp=False
     )
 
+    manifest = load_dataframe_manifest(model_name)
+
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
-        dataset_names = get_datasets_in_collection(dataset_name)
+        dataset_names = get_datasets_in_collection(dataset_name, list(manifest.locations.keys()))
     elif dataset_name in get_available_dataset_names():
         # if it is a single dataset name, keep it as is
         dataset_names = [dataset_name]
@@ -66,7 +68,6 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name: str = "diffae
 
     # plot scatter of PCA components and all datasets specified in the command
     # line (or default list, if not specified)
-    manifest = load_dataframe_manifest(model_name)
     fig, _ = feature_viz.plot_pc_scatter(dataset_names, manifest, pca)
     save_plot_to_path(fig, fig_savedir, "pca_scatter_all")
 
