@@ -244,6 +244,7 @@ def main(
     verbose: bool = False,
     use_sldy_data: bool = False,
     is_test: bool = False,
+    concatenate_tables_only: bool = False,
 ) -> None:
 
     out_dir = get_output_path(Path(__file__).stem)
@@ -253,35 +254,36 @@ def main(
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")
 
-    # build analysis queue
-    analysis_queue = build_analysis_queue(
-        dataset_name_list,
-        save_output=save_output,
-        out_dir=out_dir,
-        overwrite=True,
-        verbose=verbose,
-        is_test=is_test,
-        image_validation_frequency=None,
-        use_sldy_data=use_sldy_data,
-    )
+    if concatenate_tables_only:
+        # build analysis queue
+        analysis_queue = build_analysis_queue(
+            dataset_name_list,
+            save_output=save_output,
+            out_dir=out_dir,
+            overwrite=True,
+            verbose=verbose,
+            is_test=is_test,
+            image_validation_frequency=None,
+            use_sldy_data=use_sldy_data,
+        )
 
-    # get and save results from images in analysis queue
-    if n_proc > 1:
-        with ProcessPoolExecutor(max_workers=n_proc) as executor:
-            list(
-                tqdm(
-                    executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
-                    total=len(analysis_queue),
-                    desc="Getting nuclei features (MP)",
+        # get and save results from images in analysis queue
+        if n_proc > 1:
+            with ProcessPoolExecutor(max_workers=n_proc) as executor:
+                list(
+                    tqdm(
+                        executor.map(get_and_save_nuclei_features_arg_unpacker, analysis_queue),
+                        total=len(analysis_queue),
+                        desc="Getting nuclei features (MP)",
+                    )
                 )
-            )
-    else:
-        for args in tqdm(
-            analysis_queue,
-            total=len(analysis_queue),
-            desc="Getting nuclei features (1P)",
-        ):
-            get_and_save_nuclei_features_arg_unpacker(args)
+        else:
+            for args in tqdm(
+                analysis_queue,
+                total=len(analysis_queue),
+                desc="Getting nuclei features (1P)",
+            ):
+                get_and_save_nuclei_features_arg_unpacker(args)
 
     # concatenate the results outputs from above in to a single table
     if save_output:
