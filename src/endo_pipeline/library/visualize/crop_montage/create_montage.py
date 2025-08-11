@@ -1,3 +1,6 @@
+import logging
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
@@ -9,28 +12,51 @@ from src.endo_pipeline.library.process.get_images import (
     individual_contrast_crop_list,
 )
 
+logger = logging.getLogger(__name__)
 
-def plot_crop_montage(
+
+def _pc_val_to_str(pc_val: float) -> str:
+    """Transform a principal component value to a string for use in filenames."""
+    pc_val_string = str(pc_val)
+    if pc_val < 0:
+        pc_val_string = pc_val_string.replace("-", "neg")
+    pc_val_string = pc_val_string.replace(".", "p")
+    return pc_val_string
+
+
+def _plot_crop_montage(
     list_of_crops: list,
-    df_sample_sorted: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
     image_content: str,
     channel_index: int | None,
-    save_dir: str,
+    save_dir: Path,
 ) -> None:
     """
     Plot a montage of crops from a list of crops.
 
-    Args:
-        list_of_crops (list): List of crops to plot.
-        df_sample_sorted (pd.DataFrame): DataFrame containing metadata for the crops.
-        pc_axis (int): Principal component axis to use for the title.
-        pc_val (float): Value of the principal component to use for the title.
-        image_content (str): Content type of the image (e.g., "stddev_bf").
-        channel_index (int or None): Index of the channel to plot.
-            If None, the crop is assumed to be single-channel.
-        save_dir (str): Directory to save the plot. If None, the plot is not saved.
+    This function is called by `generate_contact_sheet` in a loop
+    to create the montages for each type of image content.
+
+    Parameters
+    ----------
+    list_of_crops
+        List of crops to plot.
+    pc_axis
+        Principal component axis to use for the title.
+    pc_val
+        Value of the principal component to use for the title.
+    image_content
+        Content type of the image (e.g., "stddev_bf").
+    channel_index
+        Index of the channel to plot, if applicable.
+    save_dir
+        Directory to save the plot.
+
+    Returns
+    -------
+    :
+        Plots a montage of the crops and saves it to the specified directory.
     """
     fig, ax = plt.subplots(10, 10, figsize=(32, 32))
     for i, crop in enumerate(list_of_crops):
@@ -41,20 +67,15 @@ def plot_crop_montage(
             # multichannel, grab one
             crop_ = crop[channel_index, 0]
         ax[i // 10, i % 10].imshow(crop_, cmap="gray")
-        ax[i // 10, i % 10].set_title(
-            f"{i+1}"
-            # f"\n{df_sample_sorted['dataset'].iloc[i]}, "
-            # f"{df_sample_sorted['frame_number'].iloc[i]}"
-        )
+        ax[i // 10, i % 10].set_title(f"{i+1}")
         ax[i // 10, i % 10].axis("off")
     fig.suptitle(f"PC{pc_axis+1} value: {pc_val}", y=1.0, fontsize=45)
     plt.tight_layout()
+    pc_val_str = _pc_val_to_str(pc_val)
     save_plot_to_path(
         fig,
         save_dir,
-        f"PC{pc_axis+1}_val_"
-        + "p".join(str(pc_val).split("."))
-        + f"_{image_content}_crops_montage",
+        f"PC{pc_axis+1}_val_{pc_val_str}_{image_content}_crops_montage",
     )
     plt.show()
 
@@ -63,22 +84,26 @@ def generate_contact_sheet(
     df_sample: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
-    fig_savedir: str,
+    fig_savedir: Path,
 ) -> None:
     """
-    Generate and save montages (contact sheets) for various image crops, including
-    contrast-enhanced and optionally reconstructed views.
+    Generate and save montages for various image crops and various contrast enhancements.
 
     Parameters
     ----------
-    df_sample : pd.DataFrame
+    df_sample
         DataFrame containing sampled crop metadata.
-    pc_axis : int
+    pc_axis
         Principal component axis used for titling.
-    pc_val : float
+    pc_val
         Value of the principal component bin used for titling.
-    fig_savedir : str
+    fig_savedir
         Directory to save montage images.
+
+    Returns
+    -------
+    :
+        Saves montage images to the specified directory.
     """
     # Get image crops and sorted sample DataFrame
     (
@@ -114,15 +139,18 @@ def generate_contact_sheet(
         )
 
         reconstructed_crop_list = get_reconstructed_crops_in_dataframe(df_sample_sorted)
+        assert [crop.shape == (128, 128) for crop in reconstructed_crop_list], (
+            "Reconstructed crops should be of shape (128, 128), "
+            f"but found shapes: {[crop.shape for crop in reconstructed_crop_list]}"
+        )
         contrast_crops["reconstructed_cdh5"] = reconstructed_crop_list
     else:
-        print("GPU not available, skipping reconstruction of crops.")
+        logger.warning("GPU not available, skipping reconstruction of crops.")
 
-    # Generate montages
+    # Generate montages for each image content type
     for image_content, crop_list_channel in contrast_crops.items():
-        plot_crop_montage(
+        _plot_crop_montage(
             crop_list_channel,
-            df_sample_sorted,
             pc_axis,
             pc_val,
             image_content=image_content,

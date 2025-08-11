@@ -7,8 +7,12 @@ from typing import Literal
 from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
+    MicroscopeType,
+    ObjectiveType,
+    SampleType,
     load_all_dataset_configs,
     load_dataset_collection_config,
+    load_dataset_config,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,48 +155,38 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
     return duration
 
 
-def get_nuclear_prediction_path(
-    dataset: DatasetConfig,
-    position: int,
-    nuc_seg_type: Literal["label_free", "stain"],
-) -> Path:
-    """Get path to nuclear prediction for given position."""
-
-    if nuc_seg_type == "label_free":
-        if dataset.nuclear_label_free_seg_path is None:
-            logger.error(
-                "Dataset [ %s ] does not have a nuclear label free segmentation path", dataset.name
-            )
-            raise ValueError("'nuclear_label_free_seg_path' is None")
-        else:
-            return Path(dataset.nuclear_label_free_seg_path) / f"P{position}"
-    elif nuc_seg_type == "stain":
-        if dataset.nuclear_stain_seg_path is None:
-            logger.error(
-                "Dataset [ %s ] does not have nuclear stain segmentation path", dataset.name
-            )
-            raise ValueError("'nuclear_stain_seg_path' is None")
-        else:
-            return Path(dataset.nuclear_stain_seg_path) / f"P{position}"
-    else:
-        logger.error("Nuclear segmentation type [ %s ] is not valid", nuc_seg_type)
-        raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
-
-
 def get_filtered_dataset_collection_name(
-    sample_type: Literal["live", "fixed"],
-    objective: Literal["20X", "40X"],
-    microscope: Literal["3i", "Nikon"],
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
 ) -> str:
-    """Get name of dataset collection filtered by sample type, objective, and microscope."""
+    """Get name of dataset collection with various filters applied."""
 
-    return f"{sample_type}_{objective}_objective_{microscope}_microscope"
+    name: list[str] = []
+    name.append(sample_type if sample_type is not None else "")
+    name.append(f"_{objective}_objective" if objective is not None else "")
+    name.append(f"_{microscope}_microscope" if microscope is not None else "")
+    return "".join(name)
+
+
+def get_filtered_dataset_collection_description(
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
+) -> str:
+    """Get description of dataset collection with various filtered applied."""
+
+    description: list[str] = ["Collection of"]
+    description.append(f" {sample_type} datasets" if sample_type is not None else " datasets")
+    description.append(f" with {objective} objective" if objective is not None else "")
+    description.append(f" from the {microscope} microscope" if microscope is not None else ".")
+    return "".join(description)
 
 
 def make_filtered_dataset_collection(
-    sample_type: Literal["live", "fixed"],
-    objective: Literal["20X", "40X"],
-    microscope: Literal["3i", "Nikon"],
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
 ) -> DatasetCollectionConfig:
     """Create dataset collection filtered by sample type, objective, and microscope."""
 
@@ -200,29 +194,58 @@ def make_filtered_dataset_collection(
     dataset_collection_names = []
 
     for dataset_config in dataset_configs:
-        if (
-            dataset_config.live_or_fixed_sample == sample_type
-            and objective in dataset_config.name  # this will become a key soon
-            and dataset_config.microscope == microscope
-        ):
-            dataset_collection_names.append(dataset_config.name)
+        if sample_type is not None and dataset_config.live_or_fixed_sample != sample_type:
+            continue
+
+        if objective is not None and dataset_config.objective != objective:
+            continue
+
+        if microscope is not None and dataset_config.microscope != microscope:
+            continue
+
+        dataset_collection_names.append(dataset_config.name)
 
     dataset_collection = DatasetCollectionConfig(
         name=get_filtered_dataset_collection_name(sample_type, objective, microscope),
-        description=(
-            f"Collection of {sample_type} datasets with {objective} objective "
-            f"from the {microscope} microscope."
-        ),
+        description=get_filtered_dataset_collection_description(sample_type, objective, microscope),
         datasets=sorted(dataset_collection_names),
     )
 
     return dataset_collection
 
 
+def validate_3d_flow_field_dataset_collection() -> None:
+    """
+    Validate dataset collection used as default for generate_3d_flow_field.
+
+    Validation checks that each dataset in the collection is from an experiment
+    with a single flow condition, and that the collection contains each of the
+    datasets in the 'pca_reference' collection.
+    """
+
+    analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
+    pca_reference_datasets = load_dataset_collection_config("pca_reference").datasets
+
+    for dataset_name in analysis_datasets:
+        dataset_config = load_dataset_config(dataset_name)
+        if len(dataset_config.flow_conditions) != 1:
+            logger.error(
+                "Dataset [ %s ] in [ 3d_flow_field_analysis ] has multiple flow conditions.",
+                dataset_name,
+            )
+
+    for pca_dataset_name in pca_reference_datasets:
+        if pca_dataset_name not in analysis_datasets:
+            logger.error(
+                "Dataset [ %s ] used for fitting PCA is not in the collection.",
+                dataset_name,
+            )
+
+
 def validate_filtered_dataset_collection(
-    sample_type: Literal["live", "fixed"],
-    objective: Literal["20X", "40X"],
-    microscope: Literal["3i", "Nikon"],
+    sample_type: SampleType | None = None,
+    objective: ObjectiveType | None = None,
+    microscope: MicroscopeType | None = None,
 ) -> None:
     """Validate dataset collection filtered by sample type, objective, and microscope."""
 

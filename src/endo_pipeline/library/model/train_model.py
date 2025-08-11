@@ -24,11 +24,6 @@ from src.endo_pipeline.manifests import (
 logger = logging.getLogger(__name__)
 
 
-def get_model_dir() -> Path:
-    """Get the path to `src.endo_pipeline.library.model`."""
-    return Path(__file__).resolve().parent
-
-
 def _generate_overrides_for_model_training(
     model_name: str,
     crop_size: int,

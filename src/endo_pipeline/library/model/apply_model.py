@@ -366,7 +366,7 @@ def update_prediction_from_crops_with_metadata(
     crop_size: list[int],
     mlflow_id: str,
     prediction_path: Path,
-) -> Path:
+) -> None:
     """
     Update the prediction file with metadata,
     return the path to the updated prediction file.
@@ -395,7 +395,7 @@ def update_prediction_from_crops_with_metadata(
 
 def update_prediction_from_tracks_with_metadata(
     dataset_name: str, model_name: str, mlflow_id: str, prediction_path: Path
-) -> Path:
+) -> None:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)

@@ -1,72 +1,93 @@
-# %%
+import logging
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
-from cellsmap.util import manifest_io
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     ModelManifest,
+    get_available_dataset_collection_names,
+    get_available_dataset_names,
+    get_datasets_in_collection,
     get_model_manifest,
     get_timelapse_model_manifests,
     load_model_config,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+from src.endo_pipeline.io import save_plot_to_path
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    fit_pca,
     get_manifest_for_dynamics_workflows,
+    get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import (
     get_3d_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,
 )
-from src.endo_pipeline.library.visualize import viz_base
-from src.endo_pipeline.library.visualize.diffae_features.manifest_viz import (
+from src.endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
+
+logger = logging.getLogger(__name__)
 
 N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat arbitrary
 
 
-def load_data(
-    dataset_names: str | list[str] | None = None, model_name: str = "diffae_04_10"
-) -> tuple[pd.DataFrame, Pipeline, list[ModelManifest]]:
+def load_data_for_montage(
+    dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
+) -> tuple[pd.DataFrame, PCA, list[ModelManifest]]:
     """
-    Load manifest DataFrames for one or more datasets and optionally apply PCA.
+    Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
 
     Parameters
     ----------
-    dataset_names : str | list[str] | None
-        Name(s) of the dataset(s) to include.
-        If None, loads all available timelapse datasets.
+    dataset_name
+        Name of the dataset(s) to include, either a single dataset name or
+        the name of a dataset collection.
+    model_name
+        Name of the model for which to load the feature dataframe.
 
     Returns
     -------
-    df_all : pd.DataFrame
-        Concatenated manifest DataFrame for the specified datasets.
-    pca : sklearn.decomposition.PCA
-        PCA object fitted.
-    model_manifest_list : list[ModelManifest]
+    :
+        Concatenated feature DataFrame for the specified datasets.
+    :
+        Fit PCA object for the model.
+    :
         List of model manifests for the specified datasets.
     """
-    model_config = load_model_config(model_name)
-    if isinstance(dataset_names, str):
-        model_manifest_list = [
-            get_model_manifest(
-                dataset_names,
-                model_config,
-            )
-        ]
-    elif dataset_names is None:
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+
+    # check if input is a dataset collection or a single dataset name
+    if dataset_name is None:
         model_manifest_list = get_timelapse_model_manifests(model_config)
-    else:
+    elif dataset_name in get_available_dataset_collection_names():
+        # if it is a dataset collection, load all datasets in the collection
+        # and get their model manifests
         model_manifest_list = [
             get_model_manifest(
                 dataset_name,
                 model_config,
             )
-            for dataset_name in dataset_names
+            for dataset_name in get_datasets_in_collection(dataset_name)
         ]
+    elif dataset_name in get_available_dataset_names():
+        # if it is a single dataset name, load its model manifest
+        # as a list with one element
+        model_manifest_list = [
+            get_model_manifest(
+                dataset_name,
+                model_config,
+            )
+        ]
+    else:
+        logger.error(
+            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
+            dataset_name,
+        )
+        raise ValueError(f"Invalid dataset name: {dataset_name}")
 
     pca = fit_pca(model_name=model_name)
 
@@ -86,7 +107,7 @@ def filter_dataframe(
     pc_axis: int,
     pc_val: float,
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     fig_savedir: Path,
     frame_range: list[int] | None = None,
     plot_heatmap: bool = False,
@@ -96,26 +117,26 @@ def filter_dataframe(
 
     Parameters
     ----------
-    df_all : pd.DataFrame
+    df_all
         Combined manifest DataFrame with PCA features.
-    pc_axis : int
+    pc_axis
         Index of the principal component (0-indexed) to filter by.
-    pc_val : float
+    pc_val
         Target bin value (between 0 and 1) of the selected PC to sample crops from.
-    model_manifest_list : list[ModelManifest]
+    model_manifest_list
         List of model manifests for the datasets being processed.
-    pca : PCA object
+    pca
         PCA object used to transform the original features.
-    fig_savedir : Path
+    fig_savedir
         Directory where the PC histograms will be saved.
-    frame_range : list[int] | None
+    frame_range
         Optional timepoint range [start, end] to further filter the DataFrame.
-    plot_heatmap : bool
+    plot_heatmap
         If True, generates and saves PC histograms for each dataset.
 
     Returns
     -------
-    df_filtered : pd.DataFrame
+    :
         DataFrame filtered by the specified PC bin and optional frame range.
     """
     bin_limits = get_3d_bounds_from_data(model_manifest_list, pca, filter_to_valid=False)
@@ -123,7 +144,7 @@ def filter_dataframe(
         df_all,
         N_BINS,
         bin_limits,
-        feat_cols=manifest_io.get_feature_cols(df_all)[:3],
+        feat_cols=get_pc_column_names(df_all, pc_axes=[0, 1, 2]),
     )
 
     if plot_heatmap:
@@ -131,7 +152,7 @@ def filter_dataframe(
             dataset_name = model_manifest.dataset_name
             fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
-            viz_base.save_plot(fig, fig_savedir + f"{dataset_name}_pc_histogram")
+            save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
     df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
 
@@ -154,16 +175,16 @@ def sample_dataframe(
 
     Parameters
     ----------
-    df_filtered : pd.DataFrame
-        DataFrame already filtered by PC value (and optionally frame range).
-    n_num_crops : int
+    df_filtered
+        DataFrame already filtered by PC value (and optionally, frame range).
+    n_num_crops
         Number of samples (rows) to return.
-    random_seed : int
+    random_seed
         Seed for reproducibility in random sampling.
 
     Returns
     -------
-    df_sample : pd.DataFrame
+    :
         Random sample of the filtered DataFrame.
     """
     return df_filtered.sample(n=n_num_crops, random_state=random_seed, replace=False)

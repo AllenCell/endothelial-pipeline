@@ -1,0 +1,12 @@
+name: diffae_model_training
+description: Datasets used for running the 'generate_3d_flow_field' workflow (live, timelapse, 20X, 3i, single flow condition)
+datasets:
+- 20241120_20X
+- 20241217_20X
+- 20250319_20X
+- 20250326_20X
+- 20250409_20X
+- 20250428_20X
+- 20250604_20X
+- 20250611_20X
+- 20250618_20X

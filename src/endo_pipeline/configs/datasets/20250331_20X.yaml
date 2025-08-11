@@ -8,6 +8,7 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
+objective: 20X
 shear_stress_regime: 24hr_high-to-24hr_low
 pixel_size_xy_in_um: 0.382
 duration: 577
@@ -26,18 +27,6 @@ flow_conditions:
 channel_405_index: null
 channel_561_index: null
 channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250331_20X
-nuclear_stain_seg_path: null
-nuclear_seg_manifest_fmsid: ''
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250331_20X
-tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: 90144b3d481c4547a87b5708b184af1b
-immunofluorescence_manifest_fmsid: null
-cdh5_classic_seg_tracking_manifest_fmsid: a2c5e389e2e84d9eb388d63cd504d79b
-cdh5_classic_seg_manifest_fmsid: 52895b0142ae4880a21d0b180c6abe7d
-nuclei_label_free_seg_manifest_fmsid: 1d5007fa233c4c43bfd01e13d899936c
-live_merged_seg_features_manifest_fmsid: 5be28137118146be93c66d55481218fb
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: Frame of flow switch was ~275.

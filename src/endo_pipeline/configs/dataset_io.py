@@ -19,14 +19,12 @@ import re
 from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
-import fire
-
+from src.endo_pipeline.__main__ import workflow_cli
 from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.configs.dataset_config_io import (
     get_available_dataset_names,
     load_dataset_config,
 )
-from src.endo_pipeline.io import load_dataframe_from_fms
 
 logger = logging.getLogger(__name__)
 
@@ -888,208 +886,6 @@ def get_fmsid(dataset_name: str) -> str:
 
 @deprecated(
     """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-Then use this replacement method:
-
-        configs.get_nuclear_prediction_path(dataset, channel, nuc_seg_type)
-"""
-)
-def get_nuclear_prediction_path(
-    dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
-) -> str:
-    """
-    Get the file path for the nuclear prediction data for a specific dataset and position.
-
-    Args:
-        dataset_name (str): The name of the dataset.
-        position (int): The position index within the dataset.
-        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
-            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
-
-    Returns:
-        str: The file path to the nuclear prediction data for the specified dataset and position.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info[nuc_seg_type]
-    position_path = f"{base_path}/P{position}/"
-    return position_path
-
-
-def load_nuclei_prediction(
-    dataset_name: str,
-    position: int,
-    T: int,
-    dim_order: str = "ZYX",
-    nuc_seg_type: str = "nuclear_label_free_seg_path",
-) -> dask.array.Array:
-    """
-    Load the nuclei prediction data as a Dask array for a given dataset, position, and timepoint.
-
-    Args:
-        dataset_name (str): The name of the dataset.
-        position (int): The position index within the dataset.
-        T (int): The timepoint index to load.
-        dim_order (str, optional): The dimension order of the data (e.g., "ZYX").
-            Defaults to "ZYX".
-        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
-            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
-
-    Returns:
-        dask.array.Array: A Dask array containing the nuclei prediction data for the specified
-        dataset, position, and timepoint. If the file is not found, an empty Dask array is returned.
-    """
-    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position, nuc_seg_type))
-    nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
-    nuc_path = nuc_path_dict[T]
-
-    if nuc_path.exists():
-        # Load the nuclei prediction as a Dask array
-        nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=0)
-        return nuc_dask_arr
-    else:
-        print(
-            f"Nuclei prediction file not found for T={T} in {nuc_dir}, returning empty dask array."
-        )
-        return dask.array.empty(shape=[0] * len(dim_order))
-
-
-def get_cdh5_classic_segmentation_path(
-    dataset_name: str,
-    position: int,
-    T: int | None = None,
-    missing_file_exception: Literal["raise", "warn"] = "warn",
-) -> Path | None:
-    """
-    Get the path to the CDH5 classic segmentation file for a given dataset, position, and timepoint.
-    If T is None, it returns the directory for the position.
-    If T is provided, it returns the specific file for that timepoint.
-    If the file is not found, it raises a FileNotFoundError or logs a warning based on the
-    `missing_file_exception` parameter.
-    """
-
-    cdh5_seg_dir = load_dataset_config(dataset_name).cdh5_seg_path
-
-    if cdh5_seg_dir is None:
-        logger.warn(f"No Cdh5 segmentations for {dataset_name}.")
-        return None
-    else:
-        position_path = Path(cdh5_seg_dir) / f"P{position}"
-
-    if T is None:
-        return position_path
-    else:
-        cdh5_seg_path_dict = {
-            extract_T(fp.stem): fp
-            for fp in position_path.glob("*.ome.tif*")
-            if extract_T(fp.name) == T
-        }
-        cdh5_seg_path = cdh5_seg_path_dict.get(T, None)
-        if cdh5_seg_path is not None:
-            return cdh5_seg_path
-
-        match missing_file_exception:
-            case "raise":
-                logger.error(f"CDH5 segmentation for T={T} not found in {position_path}.")
-                raise FileNotFoundError()
-            case "warn":
-                logger.warn(
-                    f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
-                )
-                return None
-
-
-def load_cdh5_classic_segmentation(
-    dataset_name: str,
-    position: int,
-    T: int,
-    dim_order: str = "ZYX",
-) -> dask.array.Array:
-    """
-    Load the CDH5 classic segmentation for a given dataset, position, and timepoint.
-    """
-    cdh5_seg_path = get_cdh5_classic_segmentation_path(dataset_name, position, T)
-    if cdh5_seg_path is not None and cdh5_seg_path.exists():
-        # Load the CDH5 classic segmentation as a Dask array
-        cdh5_dask_arr = BioImage(cdh5_seg_path).get_image_dask_data(dim_order, T=0)
-        return cdh5_dask_arr
-    else:
-        print(
-            f"CDH5 classic segmentation file not found for T={T} in {cdh5_seg_path}, returning empty dask array."
-        )
-        return dask.array.empty(shape=[0] * len(dim_order))
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_tracking_data_paths(
-    dataset_name: str,
-    position: int,
-) -> Path:
-    # NOTE the tracking paths should probably be added to some
-    # sort of config file at some point, but in the interest of
-    # going fast they are hardcoded here for now
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
-    )
-    base_path = base_path / f"{dataset_name}/P{position}"
-    data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
-    return data_path
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_tracking_data_raws(
-    dataset_name_list: list,
-    position: int | None = None,
-    as_dask: bool = True,
-) -> pd.DataFrame:
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    table_reader = dd if as_dask else pd
-    tracking_data_list = []
-    for dataset_name in dataset_name_list:
-        position_list = (
-            range(get_total_number_of_positions(dataset_name)) if position == None else [position]
-        )
-        for pos in position_list:
-            data_path = Path(get_tracking_data_paths(dataset_name, pos))
-            if not data_path.exists():
-                print(f"No tracking data found for {dataset_name} P{pos}. Skipping...")
-                continue
-            else:
-                # open the data tables
-                tracking_data = table_reader.read_csv(data_path, sep="\t")
-                # the tracking data by default does not have the
-                # dataset name or the position, so add those in
-                tracking_data["dataset_name"] = dataset_name
-                tracking_data["position"] = pos
-                # also include the path to the table that this
-                # part of the dataframe was loaded from
-                tracking_data["source_tracking_table_path"] = data_path.as_posix()
-                tracking_data_list.append(tracking_data)
-    # concatenate the dataframes into a single dataframe and return it
-    if tracking_data_list:
-        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
-    else:  # create an empty dataframe
-        tracking_dataframe = table_reader.DataFrame.from_dict({})
-    return tracking_dataframe
-
-
-@deprecated(
-    """
     This function was replaced by the function get_measured_segmentation_table
     in the same location as this one.
     """
@@ -1121,143 +917,6 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     # concatenate the dataframes into a single dataframe and return it
     tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_measurement_data_paths(
-    dataset_name: str, kind: Literal["alignments", "segmentation_properties"]
-) -> Path:
-    # NOTE the tracking paths should probably be added to some
-    # sort of config file at some point, but in the interest of
-    # going fast they are hardcoded here for now
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/cdh5_nodes_and_edges"
-    )
-    base_path = base_path / dataset_name
-    data_path = base_path / f"{dataset_name}_{kind}.csv"
-    return data_path
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_measurement_data_raws(
-    dataset_name_list: list,
-    kind: Literal["alignments", "segmentation_properties"],
-    as_dask: bool = True,
-) -> pd.DataFrame:
-    table_reader = dd if as_dask else pd
-    measurement_data_list = []
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    for dataset_name in dataset_name_list:
-        data_path = Path(get_measurement_data_paths(dataset_name, kind))
-        if not data_path.exists():
-            print(f"No {kind} tracking data found for {dataset_name}. Skipping...")
-            continue
-        else:
-            measurement_data = table_reader.read_csv(data_path)
-            measurement_data["source_measurement_table_path"] = data_path.as_posix()
-            measurement_data_list.append(measurement_data)
-    # open the files and concatenate them into a single dataframe
-    if measurement_data_list:
-        measurement_dataframe = table_reader.concat(
-            measurement_data_list, axis=0, ignore_index=True
-        )
-    else:  # create an empty dataframe
-        measurement_dataframe = table_reader.DataFrame.from_dict({})
-    return measurement_dataframe
-
-
-def get_measured_segmentation_table(
-    dataset_name_list: list,
-    kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
-) -> pd.DataFrame:
-    """
-    Loads one of the available kinds of segmentation features tables
-    for a given dataset.
-    Different kinds of segmentation features tables include:
-    - cdh5_segmentations: properties for segmentations based on cdh5
-        - includes cell segmentation centroids, orientations, number of neighbors,
-            neighbor information, elongation, and other properties
-        - does not contain dynamics-dependent features such as velocities
-            (those can be computed from this dataset with
-            src.endo_pipeline.workflows.make_seg_feats_manifest.calculate_derived_data_dynamics_dependent
-    - nuclei_labelfree: properties for segmentations based on nuclei label-free
-        - primarily predicted nuclei centroids
-    - cdh5_tracking: properties for segmentations based on cdh5 tracking
-        - primarily contains tracking IDs mapped to segmentations label IDs
-    """
-    match kind:
-        case "cdh5_segmentations":
-            fmsid_field = "cdh5_classic_seg_manifest_fmsid"
-        case "nuclei_labelfree":
-            fmsid_field = "nuclei_label_free_seg_manifest_fmsid"
-        case "cdh5_tracking":
-            fmsid_field = "cdh5_classic_seg_tracking_manifest_fmsid"
-        case _:
-            raise ValueError(
-                f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
-            )
-    measured_data_list = []
-    for dataset_name in dataset_name_list:
-        fmsid = getattr(load_dataset_config(dataset_name), fmsid_field)
-        if fmsid is not None:
-            measured_data = load_dataframe_from_fms(fmsid)
-        else:
-            logger.info(f"No {kind} data found for {dataset_name}. Skipping...")
-            continue
-        # add the fmsid name to the dataframe
-        measured_data[f"fmsid_{kind}_measurements_table"] = fmsid
-        # add the dataframe to the list of datasets
-        measured_data_list.append(measured_data)
-    # concatenate the dataframes into a single dataframe and return it
-    if measured_data_list:
-        measured_dataframe = pd.concat(measured_data_list, axis=0, ignore_index=True)
-    else:  # create an empty dataframe
-        measured_dataframe = pd.DataFrame.from_dict({})
-
-    return measured_dataframe
-
-
-def get_live_segmentation_features_manifest(
-    dataset_name_list: list,
-) -> pd.DataFrame:
-    """
-    Get the segmentation features manifest for a given dataset.
-    The manifest is a TSV file that contains the measurements
-    from the tracked segmentations of a dataset.
-    These datasets are raw / unfiltered.
-    """
-
-    seg_feat_data_list = []
-    for dataset_name in dataset_name_list:
-        # get the fmsid of the live data segmentation
-        # features manifest for the dataset
-        fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
-        # load the manifest associated with this fmsid as a dataframe
-        if fmsid is not None:
-            seg_feat_data = load_dataframe_from_fms(fmsid)
-        else:
-            logger.info(f"No segmentation features manifest found for {dataset_name}. Skipping...")
-            continue
-        # add the fmsid name to the dataframe
-        seg_feat_data["live_merged_seg_features_manifest_fmsid"] = fmsid
-        # add the dataframe to the list of datasets
-        seg_feat_data_list.append(seg_feat_data)
-    # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = pd.concat(seg_feat_data_list, axis=0, ignore_index=True)
-
-    return seg_feat_dataframe
 
 
 # fire argparsing methods
@@ -1385,7 +1044,7 @@ def ipython_cli_flexecute(
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        results = fire.Fire(function)
+        results = workflow_cli(function)
 
     return results if return_results else None
 
@@ -1438,11 +1097,6 @@ def extract_T(
     return t_value if int_only else f"T{t_value}"
 
 
-@deprecated(
-    """
-    Use extract_position_from_filepath in library.process.image_filepath_utils instead
-    """
-)
 def extract_P(
     fp_as_string: str | Path,
     int_only: bool = True,

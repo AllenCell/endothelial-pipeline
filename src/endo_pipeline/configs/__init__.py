@@ -1,4 +1,12 @@
-from .dataset_config import DatasetCollectionConfig, DatasetConfig, FlowCondition, ValidTimepoints
+from .dataset_config import (
+    DatasetCollectionConfig,
+    DatasetConfig,
+    FlowCondition,
+    MicroscopeType,
+    ObjectiveType,
+    SampleType,
+    ValidTimepoints,
+)
 from .dataset_config_io import (
     get_available_dataset_collection_names,
     get_available_dataset_names,
@@ -24,10 +32,10 @@ from .dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
-    get_nuclear_prediction_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
+    validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
 from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
@@ -54,8 +62,11 @@ __all__ = [
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",
+    "MicroscopeType",
     "ModelConfig",
     "ModelManifest",
+    "ObjectiveType",
+    "SampleType",
     "ValidTimepoints",
     "add_model_manifest",
     "get_available_channels_for_all_positions",
@@ -66,7 +77,6 @@ __all__ = [
     "get_available_zarr_files",
     "get_channel_indices_for_all_positions",
     "get_channel_indices_for_position",
-    "get_config_dir",
     "get_dataset_collection_config_dir",
     "get_dataset_config_dir",
     "get_datasets_in_collection",
@@ -78,7 +88,6 @@ __all__ = [
     "get_labelfree_nuclei_prediction_model_name",
     "get_model_config_dir",
     "get_model_manifest",
-    "get_nuclear_prediction_path",
     "get_pca_reference_model_manifests",
     "get_specific_channel_order",
     "get_timelapse_model_manifests",
@@ -92,6 +101,7 @@ __all__ = [
     "save_dataset_collection_config",
     "save_dataset_config",
     "save_model_config",
+    "validate_3d_flow_field_dataset_collection",
     "validate_all_dataset_configs",
     "validate_all_model_configs",
     "validate_dataset_config",

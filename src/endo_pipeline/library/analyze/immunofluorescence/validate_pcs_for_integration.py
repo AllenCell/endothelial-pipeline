@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
@@ -17,13 +17,15 @@ from src.endo_pipeline.configs import (
 )
 from src.endo_pipeline.configs.model_config_utils import get_model_manifest
 from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import (
+from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_manifest_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.model.apply_model import get_cytodl_commit_hash
-from src.endo_pipeline.library.model.mlflow_utils import download_model
-from src.endo_pipeline.library.model.model_inputs import generate_overrides_for_model_eval
+from src.endo_pipeline.library.model import (
+    download_model,
+    generate_overrides_for_model_eval,
+    get_cytodl_commit_hash,
+)
 from src.endo_pipeline.library.process.registration import align_all_positions
 
 
@@ -56,8 +58,6 @@ def add_paired_fixed_live_data_fmsid_to_config(
     # build FMS annotations
     dataset_annotations = build_fms_annotations(
         dataset_config,
-        include_timestamp=False,
-        include_git_info=False,
         model=model_config,
         additional_notes=get_cytodl_commit_hash(model_config.mlflow_run_id, model_path),
     )
@@ -195,7 +195,7 @@ def apply_model_paired_fixed_live(
 
 
 def project_paired_fixed_live_data_into_ref_PC_space(
-    pca: Pipeline,
+    pca: PCA,
     fixed_features_path: Path = "fixed_features.parquet",
     live_features_path: Path = "live_features.parquet",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -205,7 +205,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
     Parameters
     ----------
-    pca : Pipeline | None
+    pca : PCA | None
         PCA model
     fixed_features_path : Path
         Path to the fixed features manifest
@@ -232,7 +232,7 @@ def project_paired_fixed_live_data_into_ref_PC_space(
 
 
 def create_reference_timelapse_datasets(
-    pca: Pipeline,
+    pca: PCA,
     reference_dataset_name: str,
     model: str = "diffae_04_10",
     time_lag: int = 3,
@@ -245,7 +245,7 @@ def create_reference_timelapse_datasets(
 
     Parameters
     ----------
-    pca : Pipeline
+    pca : PCA
         PCA model to project features into reference PC space
     reference_dataset_name : str
         Name of the reference dataset to use for creating the timelapse datasets

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
@@ -68,7 +68,7 @@ def get_bins(
 
 def get_3d_bounds_from_data(
     model_manifest_list: list[ModelManifest],
-    pca: Pipeline,
+    pca: PCA,
     filter_to_valid: bool = True,
     pad: bool = False,
 ) -> list[np.ndarray]:
@@ -76,7 +76,7 @@ def get_3d_bounds_from_data(
     Set bounds for 3D state space based on the bounds
     of the features in the datasets. The 3D state space
     is based on the first three principal components
-    of the input pca Pipeline object, which is fit
+    of the input pca object, which is fit
     on a fixed set of reference datasets.
 
     Inputs:
