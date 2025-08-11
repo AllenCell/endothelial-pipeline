@@ -1,0 +1,7 @@
+name: diffae_test
+workflow: apply_model_on_grid_of_crops
+parameters: {}
+locations:
+  20241016_20X:
+    fmsid: e5f9b58213b84f7ea94d57a701edaf4a
+    s3uri: null
