@@ -254,7 +254,7 @@ def main(
     configure_logging(out_dir, logger, verbose=verbose)
     logger.info(f"datasets analyzed: {dataset_name_list}")
 
-    if concatenate_tables_only:
+    if not concatenate_tables_only:
         # build analysis queue
         analysis_queue = build_analysis_queue(
             dataset_name_list,
