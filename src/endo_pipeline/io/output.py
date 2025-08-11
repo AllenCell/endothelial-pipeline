@@ -76,7 +76,6 @@ def build_fms_annotations(
     include_timestamp: bool = True,
     include_git_info: bool = True,
     model: ModelConfig | None = None,
-    effort: Literal["Core", "Parallel"] = "Core",
     additional_notes: str = "",
 ) -> dict[str, list]:
     """
@@ -94,7 +93,6 @@ def build_fms_annotations(
         This file was produced by the Endothelial Pipeline repository.
 
         Dataset: <dataset name> (<original dataset FMS file id>)
-        Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
@@ -110,7 +108,6 @@ def build_fms_annotations(
           - <dataset name> (<original dataset FMS file id>)
           - <dataset name> (<original dataset FMS file id>)
           - ...
-        Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
@@ -129,8 +126,6 @@ def build_fms_annotations(
         file to the annotations, False otherwise.
     model
         The model config used to generate the file, if applicable.
-    effort
-        The program effort for the file ("Core" or "Parallel").
     additional_notes
         Additional relevant notes to append to notes annotation.
     """
@@ -148,8 +143,6 @@ def build_fms_annotations(
         notes.extend([f"  - {item.name} ({item.fmsid})" for item in dataset])
     else:
         notes.append(f"Dataset: {dataset.name} ({dataset.fmsid})")
-
-    notes.append(f"Effort: {effort}")
 
     if include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
