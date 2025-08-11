@@ -4,7 +4,7 @@ TAGS = ["apply_diffae_model", "diffae_features"]
 def main(
     model_name: str = "diffae_04_10",
     dataset_name: str = "live_20X_objective_3i_microscope",
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
@@ -41,7 +41,7 @@ def main(
     dataset_name
         Dataset(s) to load images from, either a single dataset name or the name
         of a dataset collection.
-    zarr_resolution
+    resolution_level
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         True to upload the prediction file for each dataset to FMS, False to only save locally.
@@ -110,7 +110,7 @@ def main(
         model_config = apply_model_on_grid_of_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
-            zarr_resolution=zarr_resolution,
+            resolution_level=resolution_level,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
             z_stack_offsets=z_stack_offsets,
