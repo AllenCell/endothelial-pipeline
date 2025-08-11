@@ -263,10 +263,9 @@ def build_measured_features_tables(
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
             }
         )
-        table.to_csv(
-            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_cdh5_alignments.tsv",
+        table.to_parquet(
+            tables_out_dir_alignments / f"{dataset_name}_P{position}_T{T}_cdh5_alignments.parquet",
             index=False,
-            sep="\t",
         )
 
         if create_validation_image:
@@ -353,10 +352,9 @@ def build_measured_features_tables(
                     "touches_image_border": labeled_region_metrics["touches_image_border"],
                 }
             )
-            table.to_csv(
-                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_cdh5_segprops.tsv",
+            table.to_parquet(
+                tables_out_dir_segprops / f"{dataset_name}_P{position}_T{T}_cdh5_segprops.parquet",
                 index=False,
-                sep="\t",
             )
 
 
@@ -416,7 +414,7 @@ def main(
                 dataset_name,
                 out_file_suffix="cdh5_alignments",
                 input_filename_contains="cdh5_alignments",
-                file_extension=".tsv",
+                file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
             concatenate_and_save_feature_tables(
@@ -424,7 +422,7 @@ def main(
                 dataset_name,
                 out_file_suffix="cdh5_segprops",
                 input_filename_contains="cdh5_segprops",
-                file_extension=".tsv",
+                file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
 
