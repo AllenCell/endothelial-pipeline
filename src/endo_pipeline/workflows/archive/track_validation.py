@@ -1,32 +1,7 @@
-from multiprocessing import Pool
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bioio import BioImage
-from skimage import measure
-from skimage.color import label2rgb
-from skimage.exposure import rescale_intensity
-from skimage.segmentation import find_boundaries
-from tqdm import tqdm
-
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_dataset_info,
-    get_tracking_data_filtered,
-    ipython_cli_flexecute,
-)
-from src.endo_pipeline.io import load_segmentation
-from src.endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    get_dim_map,
-)
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
 
 
 def save_validation_images(
@@ -40,6 +15,11 @@ def save_validation_images(
     T: int,
     padding: int = 50,
 ) -> None:
+    import matplotlib.pyplot as plt
+    from skimage.color import label2rgb
+    from skimage.exposure import rescale_intensity
+    from skimage.segmentation import find_boundaries
+
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
     crop_img = img_arr[expanded_bbox].squeeze()
@@ -72,6 +52,16 @@ def save_validation_images(
 
 
 def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
+    from bioio import BioImage
+    from skimage import measure
+
+    from src.endo_pipeline.configs.dataset_io import get_dataset_info
+    from src.endo_pipeline.io import load_segmentation
+    from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
+    from src.endo_pipeline.manifests import (
+        get_segmentation_location_for_dataset,
+        load_segmentation_manifest,
+    )
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -149,6 +139,18 @@ def main(
     verbose: bool = False,
 ) -> None:
     """t_final is really only used for testing purposes."""
+
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from cellsmap.util.set_output import get_output_path
+    from src.endo_pipeline.configs.dataset_io import (
+        fire_parse_generate_dataset_name_list,
+        get_tracking_data_filtered,
+    )
+    from src.endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
@@ -231,4 +233,6 @@ def main(
 
 
 if __name__ == "__main__":
+    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
     ipython_cli_flexecute(main)
