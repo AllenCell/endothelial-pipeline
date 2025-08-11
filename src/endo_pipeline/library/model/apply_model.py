@@ -473,7 +473,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
         # Store FMS ID in dataframe manifest
         manifest_name = model_config.name
-        workflow_name = "apply_model_on_grid_of_crops"
+        workflow_name = "apply_diffae_grid"
 
         try:
             manifest = load_dataframe_manifest(manifest_name)
