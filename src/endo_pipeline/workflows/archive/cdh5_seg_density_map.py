@@ -18,13 +18,13 @@ from src.endo_pipeline.configs.dataset_io import (
     load_config,
     load_dataset,
 )
-from src.endo_pipeline.library.process.cdh5_preprocessing import (
-    extract_T,
-    get_cdh5_classic_segmentation_paths,
-    get_thresholds,
-    preprocess,
-)
+from src.endo_pipeline.io import load_segmentation
+from src.endo_pipeline.library.process.cdh5_preprocessing import get_thresholds, preprocess
 from src.endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
+)
 
 mpl.rc("image", cmap="gray")
 from multiprocessing import Pool
@@ -149,10 +149,15 @@ def get_density_map_from_segmentations(
     img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
 
     print(f"T={T} -- loading segmentation") if VERBOSE else None
-    image_filepaths = get_cdh5_classic_segmentation_paths(dataset_name, sort_paths=True)
-    image_filepath = Path(str(*[fp for fp in image_filepaths if extract_T(fp.name) == T]))
-    segmentation_channel = get_chan_map(image_filepath)["segmentations_merged"]
-    seg = BioImage(image_filepath).get_image_data("TCYX", C=segmentation_channel).squeeze()
+    # --------------------------------------------------------------------------
+    # WARNING: This block loading the segmentation originally called a now
+    # deprecated method. It has been replaced with a partial refactor using
+    # newer methods, but has not been fully tested because this workflow is
+    # archived. Use with caution!
+    manifest = load_segmentation_manifest("cdh5_classic")
+    location = get_segmentation_location_for_dataset(manifest, dataset_name, 0, T)
+    seg = load_segmentation(location)
+    # --------------------------------------------------------------------------
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None
     seg_borders = pyramid_reduce(skeletonize(find_boundaries(seg)), downscale=2**img_bin_level)

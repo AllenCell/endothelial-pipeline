@@ -12,14 +12,16 @@ from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
-    load_cdh5_classic_segmentation,
     load_dataset_position_as_dask_array,
-    load_nuclei_prediction,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path
+from src.endo_pipeline.io import configure_logging, get_output_path, load_segmentation
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
+)
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
 )
 
 logger = logging.getLogger(__name__)
@@ -183,27 +185,13 @@ def get_nuclei_features_from_dataset_at_T(
     # Load segmentations and image
     dim_order = get_default_dim_order()
 
-    nuc_seg = (
-        load_nuclei_prediction(
-            dataset_name=dataset_name,
-            position=position,
-            T=T,
-            dim_order=dim_order,
-        )
-        .squeeze()
-        .compute()
-    )
+    nuc_manifest = load_segmentation_manifest("nuclear_labelfree")
+    nuc_location = get_segmentation_location_for_dataset(nuc_manifest, dataset_name, position, T)
+    nuc_seg = load_segmentation(nuc_location)
 
-    cdh5_seg = (
-        load_cdh5_classic_segmentation(
-            dataset_name=dataset_name,
-            position=position,
-            T=T,
-            dim_order=dim_order,
-        )
-        .squeeze()
-        .compute()
-    )
+    cdh5_manifest = load_segmentation_manifest("cdh5_classic")
+    cdh5_location = get_segmentation_location_for_dataset(cdh5_manifest, dataset_name, position, T)
+    cdh5_seg = load_segmentation(cdh5_location)
 
     raw_img = load_dataset_position_as_dask_array(
         dataset_name=dataset_name,

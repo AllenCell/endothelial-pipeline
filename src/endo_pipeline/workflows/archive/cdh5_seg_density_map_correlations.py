@@ -7,8 +7,12 @@ import seaborn as sns
 from skimage.measure import label, regionprops
 
 from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
-from src.endo_pipeline.workflows import cdh5_seg_density_map as cellsden
+from src.endo_pipeline.io import load_segmentation
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
+)
+from src.endo_pipeline.workflows.archive import cdh5_seg_density_map as cellsden
 
 # silence the max number of plots warning
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -22,9 +26,17 @@ def evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256, 
     nuc_seg = dataset_io.load_dataset(
         dataset_name, channels=["Nuc_Seg"], time_start=T, time_end=T, level=0
     ).squeeze()
-    region_seg = np.array(
-        *preproc.get_cdh5_classic_segmentation(dataset_name, T, channels=["segmentations_merged"])
-    ).squeeze()
+
+    # --------------------------------------------------------------------------
+    # WARNING: This block loading the segmentation originally called a now
+    # deprecated method. It has been replaced with a partial refactor using
+    # newer methods, but has not been fully tested because this workflow is
+    # archived. Use with caution!
+    manifest = load_segmentation_manifest("cdh5_classic")
+    location = get_segmentation_location_for_dataset(manifest, dataset_name, 0, T)
+    region_seg = load_segmentation(location)
+    # --------------------------------------------------------------------------
+
     nuc_seg = nuc_seg.compute().astype(int)
     df = []
     r = bbox_radius
