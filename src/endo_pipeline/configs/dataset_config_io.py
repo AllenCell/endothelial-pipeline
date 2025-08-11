@@ -182,8 +182,15 @@ def save_dataset_collection_config(collection: DatasetCollectionConfig) -> None:
         raise
 
 
-def get_datasets_in_collection(collection_name: str) -> list[str]:
+def get_datasets_in_collection(collection_name: str, subset: list[str] | None = None) -> list[str]:
     """Get list of dataset names in given collection."""
 
     collection = load_dataset_collection_config(collection_name)
-    return collection.datasets
+    datasets = collection.datasets
+
+    # Optional filtering of dataset names based on provided subset. Only dataset
+    # names in both the collection and the subset are returned.
+    if subset is not None:
+        datasets = [name for name in datasets if name in subset]
+
+    return datasets
