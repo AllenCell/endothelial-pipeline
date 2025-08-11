@@ -14,7 +14,15 @@ except ImportError:
     logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
     raise
 
-FILE_ENV = "stg" if TESTING_MODE else "prod"
+if TESTING_MODE:
+    FILE_ENV = "stg"
+    FMS_BUCKET_NAME = "staging.files.allencell.org"
+    FMS_LOCAL_PATH = "//allen/aics/fms/staging/fss"
+else:
+    FILE_ENV = "prod"
+    FMS_BUCKET_NAME = "production.files.allencell.org"
+    FMS_LOCAL_PATH = "//allen/programs/allencell/data/proj0/"
+
 FMS = FileManagementSystem.from_env(FILE_ENV)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
 

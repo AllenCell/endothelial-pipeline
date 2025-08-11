@@ -177,7 +177,7 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
         logger.error("Workflow unable to access [ /allen ] drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
-    from src.endo_pipeline.io.fms import FMS, FMS_FILE_ID
+    from src.endo_pipeline.io.fms import FMS, FMS_BUCKET_NAME, FMS_FILE_ID, FMS_LOCAL_PATH
 
     annotations = {FMS_FILE_ID: fmsid}
     record = list(FMS.find(annotations=annotations))
@@ -186,10 +186,7 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
         logger.error("Record for FMS ID [ %s ] not found", fmsid)
         raise LookupError(f"cannot find file id '{fmsid}' in FMS 'prod' environment")
 
-    # Loading from local path.
-    fms_bucket_name = "production.files.allencell.org"
-    local_fms_path = "//allen/programs/allencell/data/proj0/"
-    local_path = Path(record[0].path.replace(fms_bucket_name, local_fms_path))
+    local_path = Path(record[0].path.replace(FMS_BUCKET_NAME, FMS_LOCAL_PATH))
 
     return local_path
 

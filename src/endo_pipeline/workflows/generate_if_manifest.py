@@ -66,7 +66,6 @@ def upload_manifest_to_fms(save_path: str, dataset: str) -> str:
         file_type="csv",
         model_version="",
         mlflow_run_id=None,
-        env="prod",
     )
     return fms_id
 
