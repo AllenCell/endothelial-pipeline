@@ -11,7 +11,7 @@ quickly before SAC.
 """
 
 
-def main(dataset_name: str, env: Literal["stg", "prod"]) -> None:
+def main(dataset_name: str) -> None:
     # the current commit hash:
     git_commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
     integration_data_dir = Path(
@@ -32,7 +32,6 @@ def main(dataset_name: str, env: Literal["stg", "prod"]) -> None:
         commit_hash=git_commit_hash,
         file_type="csv",
         misc_notes=notes,
-        env=env,
     )
 
 
