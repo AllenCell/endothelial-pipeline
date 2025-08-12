@@ -47,7 +47,9 @@ def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) 
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
 
@@ -80,7 +82,9 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
 
@@ -113,7 +117,9 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
 
@@ -146,7 +152,9 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
+    file_id = upload_file_to_fms(
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
+    )
 
     # Store FMS ID in dataframe manifest
 
@@ -200,7 +208,6 @@ def main(
     if dataset_name_list is None:
         # This is the current list of all analyzed datasets
         dataset_name_list = [
-            "20241016_20X",
             "20241120_20X",
             "20241217_20X",
             "20250224_20X",
@@ -222,18 +229,18 @@ def main(
             available_live_datasets.append(ds_cfg.name)
 
     path_modifiers = {
-        "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.tsv"},
+        "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.parquet"},
         "cdh5_seg_measurements": {
             "subdir": "cdh5_get_measured_features",
-            "suffix": "_cdh5_segprops.tsv",
+            "suffix": "_cdh5_segprops.parquet",
         },
         "nuclei_labelfree": {
             "subdir": "nuc_labelfree_get_measured_features",
-            "suffix": "_nuclei_labelfree_features.tsv",
+            "suffix": "_nuclei_labelfree_features.parquet",
         },
         "merged_live_data_manifests": {
             "subdir": "segmentation_features",
-            "suffix": "_live_segmentation_features.tsv",
+            "suffix": "_live_segmentation_features.parquet",
         },
     }
 
