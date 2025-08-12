@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
+from src.endo_pipeline import TESTING_MODE
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
@@ -186,7 +187,6 @@ def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig,
     dataset_save_path: Path,
     zarr_resolution: int = 1,
-    test_workflow: bool = False,
 ) -> None:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
@@ -200,13 +200,17 @@ def generate_zarr_csv_for_model_eval(
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = zarr_resolution
 
-    if test_workflow:
+    if TESTING_MODE:
         # for workflow testing, only use first position from each dataset
         # and first two timepoints to speed up the dataloading process
         # (if dataset is not timelapse, then only one timepoint is used)
         df = df.head(1)
         df["start"] = 0
         df["stop"] = 1 if dataset_config.is_timelapse else 0
+        logger.warning(
+            "Workflow testing is enabled, only processing the first few timepoints "
+            "of the first position of each dataset."
+        )
 
     df.to_csv(dataset_save_path, index=False)
 
@@ -388,10 +392,14 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    test_workflow: bool = False,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
+
+    **TESTING MODE**:
+    If `TESTING_MODE` is set to True, the model will only be applied to the first
+    position of the dataset and only the first two timepoints will be used. The
+    `staging` environment of FMS will be used for uploading the prediction file.
 
     Parameters
     ----------
@@ -407,11 +415,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
-    test_workflow
-        Flag to indicate if this script is being run for testing purposes (e.g., code review).
-
-        If True, then only one position and minimal timepoints from the dataset is included for
-        loading and performing inferrence on the crops.
     """
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
@@ -434,9 +437,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # create zarr dataset
     dataset_save_path = save_path / f"dataset_{timestamp}.csv"
-    generate_zarr_csv_for_model_eval(
-        dataset_config, dataset_save_path, zarr_resolution, test_workflow
-    )
+    generate_zarr_csv_for_model_eval(dataset_config, dataset_save_path, zarr_resolution)
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"

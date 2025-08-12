@@ -7,7 +7,6 @@ def main(
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    test_workflow: bool = False,
 ) -> None:
     """
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
@@ -28,12 +27,6 @@ def main(
         True to upload the prediction file for each dataset to FMS, False to only save locally.
     user_overrides
         Optional user overrides to apply to the model config.
-    test_workflow
-        Flag to indicate if this script is being run for testing purposes (e.g., code review).
-
-        If True, only one position and minimal timepoints from each dataset is included for
-        loading and performing inferrence on the crops. This speeds up the dataloading process
-        during model evaluation.
 
     Returns
     -------
@@ -45,6 +38,7 @@ def main(
     import logging
     from typing import cast
 
+    from src.endo_pipeline import TESTING_MODE
     from src.endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
@@ -57,6 +51,7 @@ def main(
     from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
     logger = logging.getLogger(__name__)
+
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
@@ -76,6 +71,11 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
+    if TESTING_MODE:
+        logger.warning(
+            "Workflow testing is enabled, will only be processing one position per dataset."
+        )
+
     # load model config
     model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
@@ -90,13 +90,12 @@ def main(
             zarr_resolution=zarr_resolution,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
-            test_workflow=test_workflow,
         )
-        if test_workflow:
+        if TESTING_MODE:
             # if test workflow, only process the first dataset
             logger.warning(
                 "Workflow testing is enabled, only processing the first dataset: [ %s ]",
-                dataset_config.name,
+                dataset_config_list[0].name,
             )
             break
 

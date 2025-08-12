@@ -4,7 +4,7 @@ ZARR_CDH5_CHANNEL = 0
 ZARR_BF_CHANNEL = 1
 
 
-def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
+def main(zarr_resolution: int = 1) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
 
@@ -26,17 +26,16 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
 
     **Workflow testing**
 
-    The ``test_workflow`` flag can be used to run a simplified version of this
-    workflow for testing purposes (e.g. during code review). The training and
-    validation datasets will only keep one entry, which speeds up the data
-    loading process during model training.
+    The ``--testing-mode`` (aka ``-x``) flag can be used to run a simplified version of this
+    workflow for testing purposes (e.g. during code review). The training and validation datasets
+    will only keep one position and minimal timepoints, which speeds up the data loading process
+    during model training. Furthermore, the script will use the `staging` environment instead of
+    `production` for FMS uploads.
 
     Parameters
     ----------
     zarr_resolution
         The resolution level of the zarr files to be used for training.
-    test_workflow
-        True to run the script in testing mode, False otherwise.
 
     Returns
     -------
@@ -45,10 +44,12 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
         DataframeManifest with DatasetLocation objects containing the FMS IDs of
         the uploaded files.
     """
+    import logging
 
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
+    from src.endo_pipeline import TESTING_MODE
     from src.endo_pipeline.configs import (
         get_available_zarr_files,
         load_dataset_collection_config,
@@ -56,6 +57,8 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
     )
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
+
+    logger = logging.getLogger(__name__)
 
     output_savedir = get_output_path("dataframes")
 
@@ -80,7 +83,11 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
     zarr_path_df["resolution"] = zarr_resolution  # downsampling factor
 
     train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
-    if test_workflow:
+    if TESTING_MODE:
+        logger.warning(
+            "Workflow testing is enabled, only processing the first few timepoints "
+            "of the first position of each dataset."
+        )
         # for testing, only keep one entry in each dataframe
         train = train.head(1)
         val = val.head(1)
@@ -94,11 +101,11 @@ def main(zarr_resolution: int = 1, test_workflow: bool = False) -> None:
     train = train.drop(columns=["timelapse"])
     val = val.drop(columns=["timelapse"])
 
-    # upload dataframes to FMS, then build and save out DataframeManifest
-    # object with FMS IDs to be used in the DiffAE model training script
-    # note that this can be swapped out with uploading to S3 later on
+    # Upload dataframes to FMS, then build and save out DataframeManifest
+    # object with FMS IDs to be used in the DiffAE model training script.
+    # Note that this can be swapped out with uploading to S3 later on.
     build_and_save_dataframe_manifest_for_training(
-        train, val, zarr_resolution, dataset_config_list, output_savedir, test_workflow
+        train, val, zarr_resolution, dataset_config_list, output_savedir
     )
 
 
