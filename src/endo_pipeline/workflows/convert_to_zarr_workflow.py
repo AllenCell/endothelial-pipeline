@@ -1,6 +1,6 @@
 import argparse
 
-from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.convert_to_zarr.convert_dataset import (
     convert_dataset,
 )
@@ -8,9 +8,6 @@ from src.endo_pipeline.library.process.convert_to_zarr.convert_dataset import (
 """
 This script processes images from a dataset and writes them to Zarr format.
 Zarrs are saved in this default channel order: 488, BF, 405, 561, 640.
-
-Usage:
-    python write_zarr.py <dataset> <output_path>
 
 Arguments:
     dataset : str
