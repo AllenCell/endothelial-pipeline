@@ -30,7 +30,6 @@ from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_pat
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
-    get_model_dir,
     get_valid_csv_path_for_finetuning,
     get_valid_csv_path_for_training,
     initialize_diffae_model,
