@@ -382,6 +382,30 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": None,
             "discrete_ticks": True,
         },
+        "num_nuclei_in_crop": {
+            "column_name": "num_nuclei_in_crop",
+            "label": "Number of Nuclei in Crop",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
+        },
+        "cell_fluorescence_mean": {
+            "column_name": "cell_fluorescence_mean (a.u.)",
+            "label": "Mean Cell Fluorescence",
+            "lims": (0, "max"),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
+        },
+        "cell_solidity": {
+            "column_name": "cell_solidity",
+            "label": "Cell Solidity",
+            "lims": (0, 1),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
+        },
     }
 
     return feat_args

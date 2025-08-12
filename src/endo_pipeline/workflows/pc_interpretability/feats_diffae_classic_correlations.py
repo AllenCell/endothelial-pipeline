@@ -1,17 +1,16 @@
-import re
-from typing import Literal, cast
+import itertools
+import logging
+from pathlib import Path
+from typing import Any, Dict, Literal
 
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from scipy.cluster.hierarchy import linkage
 from scipy.stats import pearsonr
 
-from src.endo_pipeline.configs import (
-    CytoDLModelConfig,
-    load_dataset_collection_config,
-    load_model_config,
-)
+from src.endo_pipeline.configs import load_dataset_collection_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
@@ -24,6 +23,83 @@ from src.endo_pipeline.library.analyze.integration.track_integration import (
 from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_num_nuclei_in_crop_column,
 )
+from src.endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
+from src.endo_pipeline.library.visualize.multi_feature_visualization import (
+    plot_multi_feature_correlations,
+)
+from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    get_seg_feat_plot_args,
+)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+CLASSICAL_FEATURE_COLUMNS = [
+    "alignment_deg_rel_to_flow",
+    "aspect_ratio",
+    "cell_fluorescence_mean (a.u.)",
+    "num_nuclei_in_crop",
+    "area (um**2)",
+    "nuc_pos_rel_cell_angle_deg",
+    "number_of_neighbors",
+]
+DATASET_INFO_COLUMNS = [
+    "dataset_name",
+    "position",
+    "image_index",
+    "frame_number",
+    "track_id",
+    "crop_index",
+    "label",
+]
+DIFFAE_FEATURE_COLUMNS = [f"feat_{i}" for i in range(8)]
+PC_COLUMNS = [f"pc{i}" for i in range(1, 4)]
+
+
+def get_label_for_column(
+    column_name: str,
+    mapping_dict: Dict[str, dict[str, Any]] | None = None,
+    capitalize: bool = False,
+) -> str:
+    """
+    Convert dataframe column names to human-readable labels.
+
+    Parameters
+    ----------
+    column_name
+        Column name to convert.
+        Expects diffae feature names to have the form "feat_0", "feat_1", etc.,
+        Expects PC names to have the form "pc1", "pc2", etc.
+    mapping_dict
+        Optional dictionary mapping column names to human-readable labels.
+        If provided, it will be used to map the column names to labels.
+    capitalize
+        If True, the returned label will be capitalized.
+        If False, the label will be returned as is.
+
+    Returns
+    -------
+    :
+        Human-readable label for the column name.
+    """
+    if mapping_dict is None:
+        mapping_dict = get_seg_feat_plot_args()
+
+    if column_name in mapping_dict:
+        return mapping_dict[column_name]["label"]
+
+    if column_name.startswith("feat_"):
+        feature_number = column_name.split("_")[1]
+        return f"Feature {feature_number}"
+    elif column_name.startswith("pc"):
+        pc_number = column_name.split("pc")[1]
+        return f"PC {pc_number}"
+    else:
+        for _, info_dict in mapping_dict.items():
+            if column_name == info_dict["column_name"]:
+                return info_dict["label"]
+
+    return column_name.replace("_", " ").capitalize() if capitalize else column_name
 
 
 def get_correlation_matrix_df(
@@ -46,17 +122,17 @@ def get_correlation_matrix_df(
 
     Parameters
     ----------
-    features_df : pd.DataFrame
+    features_df
         The DataFrame containing the features to correlate.
-    column_names_for_x_axis : list[str]
+    column_names_for_x_axis
         The names of the columns to use for the x-axis.
-    column_names_for_y_axis : list[str]
+    column_names_for_y_axis
         The names of the columns to use for the y-axis.
-    name_of_x_axis : str
+    name_of_x_axis
         The name of the x-axis.
-    name_of_y_axis : str
+    name_of_y_axis
         The name of the y-axis.
-    df_format : Literal["long", "wide"], optional
+    df_format
         The format of the output DataFrame. If "long", the output DataFrame will have columns:
         - name_of_y_axis
         - name_of_x_axis
@@ -68,12 +144,12 @@ def get_correlation_matrix_df(
         correlation coefficients from the "long" version of the table.
         "wide-pval" is similar to "wide-corrcoeff" but the values correspond to the p-values.
         Defaults to "long".
-    sort_by_correlation : bool, optional
+    sort_by_correlation
         If True, the output DataFrame will be sorted by the correlation coefficients
 
     Returns
     -------
-    pd.DataFrame
+    :
         A DataFrame containing the Pearson correlation coefficients and p-values between
         the specified columns in `features_df`. The format of the DataFrame depends on
         the `df_format` parameter.
@@ -115,9 +191,13 @@ def get_correlation_matrix_df(
         correlation_df = correlation_df[column_names_for_x_axis]  # sort the columns
         correlation_df = correlation_df.reindex(index=column_names_for_y_axis)  # sort the index
         if sort_by_correlation:
-            correlation_df = correlation_df.T.sort_values(
-                by=[column_names_for_x_axis], axis=0, ascending=False
-            ).T
+            correlation_df = correlation_df.T.loc[
+                correlation_df.T[column_names_for_y_axis]
+                .abs()
+                .sort_values(by=column_names_for_y_axis, axis=0, ascending=False)
+                .index
+            ].T
+
     elif df_format == "long":
         pass
     else:
@@ -127,48 +207,42 @@ def get_correlation_matrix_df(
     return correlation_df
 
 
-def run_correlation_heatmap_workflow(aggregate: bool = False) -> None:
+def get_merged_feature_df(
+    dataset_name_list: list[str],
+    dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
+    classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
+    pc_columns: list[str] = PC_COLUMNS,
+    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMNS,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Run the workflow to generate correlation heatmaps between DiffAE features, PCA components,
-    and measured properties for each dataset in the PCA reference collection.
-    This function loads the dataset collection configuration, preprocesses the manifests,
-    computes the correlations, and saves the heatmaps to the projects results directory
-    under a folder with the same name as this script.
+    Load and preprocess the manifests for the given dataset names,
+    and return a DataFrame containing the merged features
+    from all datasets at all timepoints, and a DataFrame
+    containing the steady state timepoints only.
 
     Parameters
     ----------
-    aggregate : bool, optional
-        If True, the workflow will aggregate the results across all datasets
-        and produce a single set of correlation heatmaps. If False, it will
-        produce separate heatmaps for each dataset. Defaults to False.
+    dataset_name_list
+        List of dataset names to process.
+    dataset_info_columns
+        List of columns containing dataset information.
+    classical_features
+        List of classical feature column names.
+    pc_columns
+        List of PCA component column names.
+    diffae_feature_columns
+        List of DiffAE feature column names.
 
-    Notes
-    -----
-    This workflow takes approximately 45 minutes to run with an 8 core CPU if
-    nuclei centroids are not pre-computed.
-    If they are pre-computed, it takes about 7 minutes.
+    Returns
+    -------
+    :
+        A tuple containing two DataFrames:
+        - The first DataFrame contains all timepoints for the given datasets.
+        - The second DataFrame contains only the steady state timepoints.
     """
-
-    dataset_name_list = load_dataset_collection_config("pca_reference").datasets
-
-    # model_name = "diffae_04_10"
-    # dataset_name_list = []
-    # for manifest in cast(CytoDLModelConfig, load_model_config(model_name)).manifest_fmsids:
-    #     if (
-    #         manifest.dataset_name
-    #         in load_dataset_collection_config(
-    #             "live_20X_objective_3i_microscope_timelapses"
-    #         ).datasets
-    #     ):
-    #         dataset_name_list.append(manifest.dataset_name)
-
-    # instantiate an empty list to hold the DataFrames for later analysis
-    df_list = []
-
+    df_list_all_tps = []
+    df_list_ss = []
     for dataset_name in dataset_name_list:
-
-        out_subdir = get_output_path(__file__, dataset_name, include_timestamp=False)
-
         # load and preprocess the different diffae manifests and PCA pipeline
         # NOTE: this takes a little over a minute to load
         merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
@@ -178,139 +252,136 @@ def run_correlation_heatmap_workflow(aggregate: bool = False) -> None:
         # add the number of nuclei columns
         merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df, use_precomputed=True)
 
-        # get the names of the columns that you are interested in comparing
-        pc_col_names = []
-        diffae_feature_col_names = []
-        for col_nm in merged_feats_df.columns:
-            # get any pc column names
-            if re.match("pc[0-9]", col_nm):
-                pc_col_names.append(col_nm)
-            # get any diffae feature column names
-            elif re.match("feat_[0-9]+", col_nm):
-                diffae_feature_col_names.append(col_nm)
-            else:
-                continue
-
-        # get select measurement column names
-        measured_col_names = [
-            "alignment_deg_rel_to_flow",
-            "aspect_ratio",
-            "cell_fluorescence_mean (a.u.)",
-            "num_nuclei_in_crop",
-            "area",
-            "cell_solidity",
-            "nuc_pos_rel_cell_angle_deg",
-            "number_of_neighbors",
-        ]
-        dataset_info_cols = [
-            "dataset_name",
-            "position",
-            "image_index",
-            "frame_number",
-            "track_id",
-            "crop_index",
-            "label",
-        ]
-        # double-check that the chosen measurement column names
+        # check that the chosen measurement column names
         # are actually in the DataFrame
-        assert all(np.isin(measured_col_names + dataset_info_cols, merged_feats_df.columns)), (
-            f"Not all columns names are in merged_feats_df. "
-            f"Missing: {set(measured_col_names + dataset_info_cols) - set(merged_feats_df.columns)}"
+        columns_to_check = classical_feature_columns + dataset_info_columns
+        assert all(np.isin(columns_to_check, merged_feats_df.columns)), (
+            f"Not all columns names are in merged_feats_df. Missing:\n"
+            f"{set(columns_to_check) - set(merged_feats_df.columns)}"
         )
 
-        # keep only the columns that will be used to conserve memory
-        cols_to_keep = (
-            dataset_info_cols + measured_col_names + diffae_feature_col_names + pc_col_names
-        )
-        merged_feats_df = merged_feats_df[cols_to_keep]
-
-        # create heatmaps of the correlations between measured properties
-        # and the diffae features or PCs:
-        comparisons_to_make = [
-            (  # heatmap args for measurements vs. DiffAE features
-                "Measurement",
-                measured_col_names,
-                "DiffAE Feature",
-                diffae_feature_col_names,
-                f"{dataset_name}_correlation_feats_vs_measured",
-            ),
-            (  # heatmap args for measurements vs. PCs
-                "Measurement",
-                measured_col_names,
-                "PC",
-                pc_col_names,
-                f"{dataset_name}_correlation_pcs_vs_measured",
-            ),
-            (  # heatmaps for the measurements vs. themselves to see check for co-occurrence
-                "Measurement 1",
-                measured_col_names,
-                "Measurement 2",
-                measured_col_names,
-                f"{dataset_name}_correlation_measured_vs_measured",
-            ),
-        ]
-
-        # repeat the above correlations but filter data table
-        # to only include the steady state timepoints that are
+        # filter data table to only include the steady state timepoints that are
         # used when projecting the DiffAE features onto PCA axes
         # in the segmentation-free dynamics workflow
-        merged_feats_df = get_valid_subset(
-            merged_feats_df,
+        merged_feats_df_ss = get_valid_subset(
+            df=merged_feats_df,
             dataset_name=dataset_name,
             verbose=False,
         )
 
-        for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
-            # create the correlation DataFrame
-            correlation_df = get_correlation_matrix_df(
-                features_df=merged_feats_df,
-                column_names_for_x_axis=x_cols,
-                column_names_for_y_axis=y_cols,
-                x_axis_label=x_axis_label,
-                y_axis_label=y_axis_label,
-                df_format="wide-corrcoeff",
-                sort_by_correlation=True,
-            )
-            # make the heatmap
-            fig, ax = plt.subplots(figsize=(10, 10))
-            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_subdir,
-                figure_name=f"{filename}_steady_state",
-            )
+        # keep only the columns that will be used
+        cols_to_keep = (
+            dataset_info_columns + classical_feature_columns + diffae_feature_columns + pc_columns
+        )
 
-            # make clustermap
-            fig, ax = plt.subplots(figsize=(10, 10))
-            sns.clustermap(
-                correlation_df,
-                annot=True,
-                cmap="RdBu",
-                center=0,
-                vmin=-1,
-                vmax=1,
-                figsize=(10, 10),
-                row_cluster=False,
-                col_cluster=True,
-            )
-            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_subdir,
-                figure_name=f"{filename}_steady_state_clustermap",
-            )
+        for df, df_list in zip(
+            (merged_feats_df, merged_feats_df_ss),
+            (df_list_all_tps, df_list_ss),
+        ):
+            df = df[cols_to_keep].copy()
+            df.rename(columns=get_label_for_column, inplace=True)
+            df_list.append(df)
+    # merge the DataFrames from all datasets
+    df_all_timepoints = pd.concat(df_list_all_tps, ignore_index=True)
+    df_ss = pd.concat(df_list_ss, ignore_index=True)
 
-        # add the dataframe to a list with all of them so we can
-        # do a correlation analysis across all listed datasets
-        df_list.append(merged_feats_df.copy())
-        break
+    return df_all_timepoints, df_ss
 
+
+def plot_and_save_heatmap(
+    df: pd.DataFrame,
+    output_folder: Path,
+    filename: str = "correlation_heatmap",
+) -> None:
+    """
+    Plot and save a heatmap of the correlation matrix from the given DataFrame.
+
+    Parameters
+    ----------
+    df
+        The DataFrame containing the correlation matrix.
+    output_folder
+        The folder where the heatmap will be saved.
+    filename
+        The name of the file to save the heatmap as.
+    """
+    fig, ax = plt.subplots(figsize=(10, 10))
+    sns.heatmap(df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
+    ax.tick_params(axis="y", rotation=0)
+    save_plot_to_path(
+        figure=fig,
+        output_path=output_folder,
+        figure_name=filename,
+    )
+
+
+def plot_and_save_clustermap(
+    df: pd.DataFrame,
+    output_folder: Path,
+    filename: str = "correlation_clustermap",
+):
+    """
+    Plot and save a clustermap of the correlation matrix from the given DataFrame.
+    Clustering is performed on absolute values of the correlation coefficients.
+
+    Parameters
+    ----------
+    df
+        The DataFrame containing the correlation matrix.
+    output_folder
+        The folder where the clustermap will be saved.
+    filename
+        The name of the file to save the clustermap as.
+    """
+    abs_data = df.abs().T
+    col_linkage = linkage(abs_data)
+    cluster_grid = sns.clustermap(
+        df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        vmin=-1,
+        vmax=1,
+        figsize=(10, 10),
+        row_cluster=False,
+        col_cluster=True,
+        col_linkage=col_linkage,
+    )
+    save_plot_to_path(
+        figure=cluster_grid.figure,
+        output_path=output_folder,
+        figure_name=filename,
+    )
+
+
+def pc_loading_heatmap_workflow(
+    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMNS,
+    pc_columns: list[str] = PC_COLUMNS,
+) -> None:
+    """
+    Workflow to visualize PCA loadings as a heatmap and clustermap.
+    This function fits a PCA model, retrieves the PCA loadings,
+    and generates a heatmap and clustermap of the PCA loadings.
+
+    Parameters
+    ----------
+    diffae_feature_columns
+        List of DiffAE feature column names to include in the heatmap.
+        Defaults to DIFFAE_FEATURE_COLUMNS.
+    pc_columns
+        List of PCA column names to include in the heatmap.
+        Defaults to PC_COLUMNS.
+    """
     # get the PCA loadings DataFrame
     pca = fit_pca()
-    pca_loadings_df = get_pca_loadings_as_df(
-        pca, scaled=False, magnitude=False, squared_norm=True, df_format="wide"
-    )
+    pca_loadings_df = get_pca_loadings_as_df(pca, df_format="wide")
+
+    # only use the features and PCs specified
+    pca_loadings_df = pca_loadings_df.loc[pca_loadings_df.index.isin(diffae_feature_columns)]
+    pca_loadings_df = pca_loadings_df[pca_loadings_df.columns.intersection(pc_columns)]
+    # label the rows and columns
+    pca_loadings_df.index = pca_loadings_df.index.map(get_label_for_column)
+    pca_loadings_df.columns = pca_loadings_df.columns.map(get_label_for_column)
 
     fig, ax = plt.subplots(figsize=(10, 10))
     sns.heatmap(
@@ -319,72 +390,177 @@ def run_correlation_heatmap_workflow(aggregate: bool = False) -> None:
         cmap="RdBu",
         center=0,
         ax=ax,
-        cbar_kws={"label": "Scaled Loading Value"},
+        cbar_kws={"label": "Loading Value"},
     )
     ax.set_xlabel("PC")
     ax.set_ylabel("Latent Feature")
+
     save_plot_to_path(
         figure=fig,
         output_path=get_output_path(__file__, include_timestamp=False),
-        figure_name="pca_loadings_scaled_heatmap",
+        figure_name="pca_loadings_heatmap",
     )
 
-    # produce correlation heatmaps across all datasets
+    # cluster pcs together
+    cluster_grid = sns.clustermap(
+        pca_loadings_df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        figsize=(10, 10),
+        row_cluster=True,
+        col_cluster=False,
+    )
+    cluster_grid.ax_heatmap.set_xlabel("PC")
+    cluster_grid.ax_heatmap.set_ylabel("Latent Feature")
+
+    save_plot_to_path(
+        figure=cluster_grid.figure,
+        output_path=get_output_path(__file__, include_timestamp=False),
+        figure_name="pca_loadings_clustermap",
+    )
+
+
+def run_correlation_heatmap_workflow(
+    dataset_collection_name: str = "pca_reference",
+    classical_feature_columns: list[str] = CLASSICAL_FEATURE_COLUMNS,
+    pc_columns: list[str] = PC_COLUMNS,
+    diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMNS,
+    aggregate: bool = False,
+) -> None:
+    """
+    Run the workflow to generate correlation heatmaps between DiffAE features, PCA components,
+    and measured properties for each dataset in the PCA reference collection.
+
+    Parameters
+    ----------
+    dataset_collection_name
+        The name of the dataset collection to use.
+        Uses the pca reference collection by default.
+    classical_feature_columns
+        List of classical feature column names.
+        Defaults to CLASSICAL_FEATURE_COLUMNS.
+    pc_columns
+        List of PCA component column names.
+        Defaults to PC_COLUMNS.
+    diffae_feature_columns
+        List of DiffAE feature column names.
+        Defaults to DIFFAE_FEATURE_COLUMNS.
+    aggregate
+        If True, include an aggregated dataset in the analysis.
+        Defaults to False.
+    """
+    dataset_name_list = load_dataset_collection_config(dataset_collection_name).datasets
+
+    df_all_timepoints, df_ss = get_merged_feature_df(
+        dataset_name_list,
+        classical_feature_columns=classical_feature_columns,
+        pc_columns=pc_columns,
+        diffae_feature_columns=diffae_feature_columns,
+    )
+
+    label_column_tuples = [
+        ("Measurement", [get_label_for_column(col) for col in classical_feature_columns]),
+        ("PC", [get_label_for_column(col) for col in pc_columns]),
+        ("DiffAE Feature", [get_label_for_column(col) for col in diffae_feature_columns]),
+    ]
+
     if aggregate:
-        all_feats_df = pd.concat(df_list, ignore_index=True)
+        dataset_name_list = dataset_name_list + ["aggregate"]
 
-        comparisons_to_make = [
-            (  # heatmap args for measurements vs. DiffAE features
-                "Measurement",
-                measured_col_names,
-                "DiffAE Feature",
-                diffae_feature_col_names,
-                f"multi_dataset_correlation_feats_vs_measured",
-            ),
-            (  # heatmap args for measurements vs. PCs
-                "Measurement",
-                measured_col_names,
-                "PC",
-                pc_col_names,
-                f"multi_dataset_correlation_pcs_vs_measured",
-            ),
-            (  # heatmaps for the measurements vs. themselves to see check for co-occurrence
-                "Measurement 1",
-                measured_col_names,
-                "Measurement 2",
-                measured_col_names,
-                f"multi_dataset_correlation_measured_vs_measured",
-            ),
-        ]
+    for dataset_name in dataset_name_list:
+        # if the dataset name is "aggregate", use the full DataFrame
+        # otherwise, filter the DataFrame for the specific dataset
+        if dataset_name == "aggregate":
+            df_dataset = df_all_timepoints
+            df_dataset_ss = df_ss
+        else:
+            df_dataset = df_all_timepoints.query("dataset_name==@dataset_name").copy()
+            df_dataset_ss = df_ss.query("dataset_name==@dataset_name").copy()
 
-        out_subdir = get_output_path(
-            __file__, "aggregated_dataset_analysis", include_timestamp=False
-        )
-
-        for x_axis_label, x_cols, y_axis_label, y_cols, filename in comparisons_to_make:
-            # create the correlation DataFrame
-            correlation_df = get_correlation_matrix_df(
-                features_df=all_feats_df,
-                column_names_for_x_axis=x_cols,
-                column_names_for_y_axis=y_cols,
-                x_axis_label=x_axis_label,
-                y_axis_label=y_axis_label,
-                df_format="wide-corrcoeff",
+        for (x_axis_label, x_cols), (
+            y_axis_label,
+            y_cols,
+        ) in itertools.combinations_with_replacement(label_column_tuples, 2):
+            logger.debug(
+                f"Processing correlation between {x_axis_label} and {y_axis_label} "
+                f"for dataset {dataset_name}"
             )
-            # make the heatmap
-            fig, ax = plt.subplots(figsize=(10, 10))
-            sns.heatmap(correlation_df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-            ax.tick_params(axis="y", rotation=0)  # rotate y-axis labels for better readability
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_subdir,
-                figure_name=filename,
-            )
+            # loop over all combinations
+            x_filename = x_axis_label.replace(" ", "_").lower()
+            y_filename = y_axis_label.replace(" ", "_").lower()
+            base_filename = f"correlation_{x_filename}_vs_{y_filename}"
+
+            if x_axis_label == y_axis_label:
+                x_axis_label = f"{x_axis_label} 1"
+                y_axis_label = f"{y_axis_label} 2"
+
+            for df, timepoint_label in zip(
+                (df_dataset_ss, df_dataset),
+                ("steady_state", "all_timepoints"),
+            ):
+                out_subdir = get_output_path(
+                    __file__,
+                    dataset_name,
+                    timepoint_label,
+                    f"{x_filename}_vs_{y_filename}",
+                    include_timestamp=False,
+                )
+
+                # create the correlation DataFrame
+                correlation_df = get_correlation_matrix_df(
+                    features_df=df,
+                    column_names_for_x_axis=x_cols,
+                    column_names_for_y_axis=y_cols,
+                    x_axis_label=x_axis_label,
+                    y_axis_label=y_axis_label,
+                    df_format="wide-corrcoeff",
+                )
+
+                # make correlation heatmap
+                plot_and_save_heatmap(
+                    df=correlation_df,
+                    output_folder=out_subdir,
+                    filename=f"{base_filename}_{timepoint_label}_heatmap",
+                )
+
+                # make correlation clustermap
+                plot_and_save_clustermap(
+                    df=correlation_df,
+                    output_folder=out_subdir,
+                    filename=f"{base_filename}_{timepoint_label}_clustermap",
+                )
+
+                # make scatter plot
+                colors = df["dataset_name"].apply(lambda x: get_dataset_color(x)).tolist()
+                column_list = []
+                for col in x_cols + y_cols:
+                    if col not in column_list:
+                        column_list.append(col)  # this preserves column order
+
+                plot_multi_feature_correlations(
+                    df=df[column_list],
+                    output_folder=out_subdir,
+                    filename=f"{base_filename}_{timepoint_label}_scatter",
+                    color=colors,
+                )
+
+
+def main():
+    """
+    Main function to run the correlation heatmap workflow.
+    """
+    run_correlation_heatmap_workflow(
+        dataset_collection_name="pca_reference",
+        classical_feature_columns=CLASSICAL_FEATURE_COLUMNS,
+        pc_columns=PC_COLUMNS,
+        diffae_feature_columns=DIFFAE_FEATURE_COLUMNS,
+        aggregate=True,
+    )
+    pc_loading_heatmap_workflow()
 
 
 if __name__ == "__main__":
     from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
-    # NOTE: ipython_cli_flexecute calls `workflow_cli` internally
-    #  if run from the command line
-    ipython_cli_flexecute(run_correlation_heatmap_workflow)
+    ipython_cli_flexecute(main)
