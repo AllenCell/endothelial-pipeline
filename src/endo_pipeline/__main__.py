@@ -40,7 +40,9 @@ DEVELOPMENT_WORKFLOWS = Group("Development Workflows", sort_key=2)
 ARCHIVED_WORKFLOWS = Group("Archived Workflows", sort_key=3)
 
 SETTINGS = Group("Settings", sort_key=100)
-LOGGING = (SETTINGS, Group(validator=validators.MutuallyExclusive()))
+FLAGS = Parameter(negative="", show_default=False)
+LOGGING = (SETTINGS, Group(validator=validators.MutuallyExclusive(), default_parameter=FLAGS))
+OPTIONS = (SETTINGS, Group(default_parameter=FLAGS))
 
 
 def pipeline_cli() -> None:
@@ -72,16 +74,15 @@ def workflow_cli(workflow: Callable) -> None:
 
 def pipeline_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING, show_default=False)] = False,
-    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING, show_default=False)] = False,
-    show_archive: Annotated[bool, Parameter(alias="-a", show_default=False)] = False,
-    show_tags: Annotated[bool, Parameter(alias="-t", show_default=False)] = False,
+    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
+    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
+    show_archive: Annotated[bool, Parameter(alias="-a", group=OPTIONS)] = False,
+    show_tags: Annotated[bool, Parameter(alias="-t", group=OPTIONS)] = False,
     filter_tag: Annotated[str | None, Parameter(alias="-f")] = None,
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
-    run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
-    show_external_logs: Annotated[
-        bool, Parameter(alias="-s", show_default=False, negative=())
-    ] = False,
+    run_with_gpu: Annotated[bool, Parameter(alias="-g", group=OPTIONS)] = False,
+    show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
+    testing_mode: Annotated[bool, Parameter(alias="-x", group=OPTIONS)] = False,
 ) -> None:
     """
     Parameters
@@ -104,20 +105,11 @@ def pipeline_entrypoint(
         Run workflow with GPU settings.
     show_external_logs
         Show logging outputs from external libraries.
+    testing_mode
+        Run workflows in testing mode.
     """
 
-    if debug:
-        setup_logging(logging.DEBUG)
-    elif verbose:
-        setup_logging(logging.INFO)
-    else:
-        setup_logging(logging.WARNING)
-
-    if run_with_gpu:
-        setup_gpu()
-
-    if not show_external_logs:
-        silence_external_loggers(EXTERNAL_LOGGERS)
+    apply_entrypoint_settings(verbose, debug, run_with_gpu, show_external_logs, testing_mode)
 
     if config.read_text() != "":
         pipeline_app.config = cyclopts.config.Yaml(config)  # type: ignore[assignment]
@@ -138,12 +130,11 @@ def pipeline_entrypoint(
 
 def workflow_entrypoint(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    verbose: Annotated[bool, Parameter(alias="-v", show_default=False, negative=())] = False,
-    debug: Annotated[bool, Parameter(alias="-vv", show_default=False, negative=())] = False,
-    run_with_gpu: Annotated[bool, Parameter(alias="-g", show_default=False)] = False,
-    show_external_logs: Annotated[
-        bool, Parameter(alias="-s", show_default=False, negative=())
-    ] = False,
+    verbose: Annotated[bool, Parameter(alias="-v", group=LOGGING)] = False,
+    debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
+    run_with_gpu: Annotated[bool, Parameter(alias="-g", group=OPTIONS)] = False,
+    show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
+    testing_mode: Annotated[bool, Parameter(alias="-x", group=OPTIONS)] = False,
 ) -> None:
     """
     Parameters
@@ -158,6 +149,35 @@ def workflow_entrypoint(
         Run workflow with GPU settings.
     show_external_logs
         Show logging outputs from external libraries.
+    testing_mode
+        Run workflows in testing mode.
+    """
+
+    apply_entrypoint_settings(verbose, debug, run_with_gpu, show_external_logs, testing_mode)
+
+    workflow_app(tokens)
+
+
+def apply_entrypoint_settings(
+    verbose: bool = False,
+    debug: bool = False,
+    run_with_gpu: bool = False,
+    show_external_logs: bool = False,
+    testing_mode: bool = False,
+):
+    """
+    Apply settings shared between pipeline and workflow entrypoints.
+
+    Parameters
+    ----------
+    verbose
+        Show verbose logging.
+    run_with_gpu
+        Run workflow with GPU settings.
+    show_external_logs
+        Show logging outputs from external libraries.
+    testing_mode
+        Run workflows in testing mode.
     """
 
     if debug:
@@ -173,7 +193,10 @@ def workflow_entrypoint(
     if not show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    workflow_app(tokens)
+    if testing_mode:
+        import src.endo_pipeline
+
+        src.endo_pipeline.TESTING_MODE = True
 
 
 def build_cli_group(group: Group, directory: str, show: bool) -> None:

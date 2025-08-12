@@ -76,16 +76,14 @@ def build_fms_annotations(
     include_timestamp: bool = True,
     include_git_info: bool = True,
     model: ModelConfig | None = None,
-    effort: Literal["Core", "Parallel"] = "Core",
     additional_notes: str = "",
-    env: Literal["prod", "stg"] = "prod",
 ) -> dict[str, list]:
     """
     Build the annotations dictionary for upload to FMS.
 
     The following annotations are included:
 
-    - Program = "Endothelial" (prod only)
+    - Program = "Endothelial"
     - Produced By = "python code"
     - mlflow run id = MLFlow run id from model config object, if provided
     - Notes = additional notes
@@ -95,7 +93,6 @@ def build_fms_annotations(
         This file was produced by the Endothelial Pipeline repository.
 
         Dataset: <dataset name> (<original dataset FMS file id>)
-        Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
@@ -111,7 +108,6 @@ def build_fms_annotations(
           - <dataset name> (<original dataset FMS file id>)
           - <dataset name> (<original dataset FMS file id>)
           - ...
-        Effort: "Core" or "Parallel"
         Timestamp: YYYY-MM-DD HH:mm:ss (if `include_timestamp` is selected)
         Branch: <current branch name> (if `include_git_info` is selected)
         Commit: <latest commit hash> (if `include_git_info` is selected)
@@ -130,32 +126,13 @@ def build_fms_annotations(
         file to the annotations, False otherwise.
     model
         The model config used to generate the file, if applicable.
-    effort
-        The program effort for the file ("Core" or "Parallel").
     additional_notes
         Additional relevant notes to append to notes annotation.
-    env
-        The FMS environment to validate annotations against. Valid options
-        include: "prod" for production or "stg" for staging.
     """
 
-    try:
-        from aicsfiles import fms
-    except ModuleNotFoundError:
-        logger.error("Required dependency [ aicsfiles ] not found")
-        raise
-    except ImportError:
-        logger.error("Unable to import [ fms ] from [ aicsfiles ]")
-        raise
+    from src.endo_pipeline.io.fms import FMS
 
-    metadata_builder = fms.create_file_metadata_builder()
-
-    # Currently, only the prod environment has "Endothelial as a valid Program
-    # annotation. Program annotations will become required in a future release
-    # of aicsfiles (see aics-int/aicsfiles-python#131) so we will need to add
-    # Endothelial as a valid Program option in the stg environment.
-    if env == "prod":
-        metadata_builder.add_annotation("Program", "Endothelial")
+    metadata_builder = FMS.create_file_metadata_builder("Endothelial")
 
     metadata_builder.add_annotation("Produced By", "python code")
 
@@ -166,8 +143,6 @@ def build_fms_annotations(
         notes.extend([f"  - {item.name} ({item.fmsid})" for item in dataset])
     else:
         notes.append(f"Dataset: {dataset.name} ({dataset.fmsid})")
-
-    notes.append(f"Effort: {effort}")
 
     if include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
@@ -194,7 +169,6 @@ def upload_file_to_fms(
     file_path: Path | str,
     annotations: dict[str, list],
     file_type: Literal["parquet", "csv", "tsv"],
-    env: Literal["prod", "stg"] = "prod",
 ) -> str:
     """
     Upload a file to FMS with the associated annotations.
@@ -207,9 +181,6 @@ def upload_file_to_fms(
         The annotations associated with the file.
     file_type
         The file type. Valid options include: csv, tsv, parquet.
-    env
-        The FMS environment to upload to. Valid options include: "prod" for
-        production or "stg" for staging.
 
     Returns
     -------
@@ -224,22 +195,11 @@ def upload_file_to_fms(
         logger.error("File [ %s ] could not be found", file_path)
         raise FileNotFoundError(f"No such file '{file_path}'")
 
-    try:
-        from aicsfiles import FileManagementSystem
-    except ModuleNotFoundError:
-        logger.error("Required dependency [ aicsfiles ] not found")
-        raise
-    except ImportError:
-        logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
-        raise
+    from src.endo_pipeline.io.fms import FMS
 
-    fms = FileManagementSystem.from_env(env)
-
-    logger.debug("Starting upload of [ %s ] to [ %s ] FMS", file_path, env)
-    fms_file = fms.upload_file(str(file_path), file_type, annotations)
-    logger.debug(
-        "Finished upload of [ %s ] to [ %s ] FMS with file id [ %s ]", file_path, env, fms_file.id
-    )
+    logger.debug("Starting upload of [ %s ] to FMS", file_path)
+    fms_file = FMS.upload_file(str(file_path), file_type, annotations)
+    logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
 
     return fms_file.id
 
