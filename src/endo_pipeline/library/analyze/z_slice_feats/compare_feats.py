@@ -41,7 +41,7 @@ def feature_density(
     title: str | None = None,
 ) -> tuple[plt.Figure, sb.axisgrid.FacetGrid]:
     """
-    Plot the density distribution of a feature for each position in the DataFrame.
+    Plot the probability density distribution of a feature for each position in the DataFrame.
 
     Parameters
     ----------
@@ -73,15 +73,15 @@ def feature_density(
         ax = sb.kdeplot(df_position[feature], label=label, alpha=0.85)
 
         ax.set_xlabel(f"{feature}")
-        ax.set_ylabel("Density")
+        ax.set_ylabel("Probability Density")
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
         ax.set_xlim(xlim[0], xlim[1])
 
         if title is not None:
             ax.set_title(title)
 
-        plt.tight_layout()
-        plt.show()
+    plt.tight_layout()
+    plt.show()
 
     return fig, ax
 
