@@ -16,11 +16,11 @@ def main(
 
     Example usage:
     ```
-    python src/endo_pipeline/workflows/apply_diffae_model_on_grid_of_crops.py \
-    --model_name diffae_04_10 \
-    --dataset_names '20250409_20X' \
-    --z_stack_offsets 0,16 \
-    --slice_by_global_center False
+    endopipe -v -g apply-diffae-grid \
+    --model-name diffae_04_10 \
+    --dataset-name 20250409_20X \
+    --z-stack-offsets 0 16 \
+    --no-slice-by-global-center
     ```
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
 
@@ -130,6 +130,56 @@ def main(
 
 
 if __name__ == "__main__":
+    import argparse
+
     from src.endo_pipeline.__main__ import workflow_cli
 
-    workflow_cli(main)
+    parser = argparse.ArgumentParser(description="Run the DiffAE grid application workflow.")
+    parser.add_argument(
+        "--model-name", type=str, default="diffae_04_10", help="Name of the model to use."
+    )
+    parser.add_argument(
+        "--dataset-name",
+        type=str,
+        default="live_20X_objective_3i_microscope",
+        help="Name of the dataset. Defaults to dataset collection.",
+    )
+    parser.add_argument("--resolution-level", type=int, default=1, help="Resolution level to use.")
+    parser.add_argument(
+        "--upload-to-fms", type=bool, default=True, help="Whether to upload results to FMS."
+    )
+    parser.add_argument(
+        "--user-overrides", type=str, default=None, help="User overrides as a string or JSON."
+    )
+    parser.add_argument(
+        "--z-stack-offsets",
+        type=int,
+        nargs=2,
+        default=None,
+        help="Z-stack offsets as two integers.",
+    )
+    parser.add_argument(
+        "--no-slice-by-global-center",
+        dest="slice_by_global_center",
+        action="store_false",
+        default=True,  # Default is True
+        help="Disable slicing by global center (default: enabled).",
+    )
+    parser.add_argument(
+        "--test-workflow", action="store_true", help="Run the workflow in test mode."
+    )
+
+    args = parser.parse_args()
+
+    workflow_cli(
+        lambda: main(
+            model_name=args.model_name,
+            dataset_name=args.dataset_name,
+            resolution_level=args.resolution_level,
+            upload_to_fms=args.upload_to_fms,
+            user_overrides=args.user_overrides,
+            z_stack_offsets=tuple(args.z_stack_offsets) if args.z_stack_offsets else None,
+            slice_by_global_center=args.slice_by_global_center,
+            test_workflow=args.test_workflow,
+        )
+    )
