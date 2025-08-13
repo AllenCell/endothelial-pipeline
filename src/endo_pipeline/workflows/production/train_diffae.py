@@ -2,7 +2,7 @@ TAGS = ["diffae_model_training"]
 
 
 def main(
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
     crop_size: int = 128,
 ) -> None:
     """
@@ -17,7 +17,7 @@ def main(
 
     Parameters
     ----------
-    zarr_resolution
+    resolution_level
         The resolution level of the zarr files to be used for training. Default is 1,
         which corresponds to downsampling by half.
     crop_size
@@ -50,18 +50,18 @@ def main(
     # get training and validation datasets based on zarr resolution
     # by loading the DataframeManifest from the model directory
     # and using the DatasetLocation objects to get the paths
-    manifest_name = f"diffae_training_dataframe_resolution_{zarr_resolution}"
+    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}"
     if TESTING_MODE:
         manifest_name += "_test_workflow"
     try:
         dataframe_manifest = load_dataframe_manifest(manifest_name)
     except FileNotFoundError:
         logger.error(
-            "Dataframe manifest [ %s ] for zarr_resolution [ %s ] and TESTING_MODE [ %s ] "
-            "not found. Please run the create_diffae_training_dataframe script first "
-            "with the appropriate zarr_resolution and TESTING_MODE parameters.",
+            "Dataframe manifest [ %s ] for resolution_level [ %s ] not found. "
+            "Please run the create_diffae_training_dataframe script first "
+            "with the appropriate resolution_level.",
             manifest_name,
-            zarr_resolution,
+            resolution_level,
         )
         raise
     train_csv_location = dataframe_manifest.locations["training"]
@@ -78,7 +78,7 @@ def main(
 
     # set model name via zarr resolution, crop size, and current timestamp
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
-    model_name = f"diffae_resolution_{zarr_resolution}_patch_{crop_size}x{crop_size}_{timestamp}"
+    model_name = f"diffae_resolution_{resolution_level}_patch_{crop_size}x{crop_size}_{timestamp}"
     logger.info("Model name: [ %s ]", model_name)
 
     # initialize DiffAE model: generates config overrides and sets up output directories

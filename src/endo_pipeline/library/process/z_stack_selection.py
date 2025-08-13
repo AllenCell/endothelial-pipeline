@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,12 +40,57 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
     for frame in range(0, dataset_config.duration, 1):
         bf_stack = bf_stack_all_frames[frame].squeeze()
         stdevs = bf_stack.std(axis=(1, 2)).compute()
-        center_planes.append(max(0, np.argmin(stdevs)))
+        center_plane_selection = cast(float, max(0, np.argmin(stdevs)))
+        center_planes.append(center_plane_selection)
 
     mean_center_plane = np.mean(center_planes)
     global_center_plane = round(mean_center_plane, 0)
 
     return int(global_center_plane)
+
+
+def get_plane_indices(
+    dataset_config: DatasetConfig,
+    position: int,
+    lower_offset: int,
+    upper_offset: int,
+    slice_by_global_center: bool = True,
+) -> list[int]:
+    """
+    Get a list of plane indices based on the specified offsets and slicing mode. The indices
+    are constrained between 0 and 24.
+
+    Parameters
+    ----------
+    dataset_config
+        Configuration object containing dataset-specific information.
+    position
+        The position index for which the plane indices are calculated.
+    lower_offset
+        The number of planes below the center plane (or starting index if
+        `slice_by_global_center` is False) to include.
+    upper_offset
+        The number of planes above the center plane (or ending index if
+        `slice_by_global_center` is False) to include.
+    slice_by_global_center
+        If True, calculate the range of indices based on the global center plane
+        for the given position. If False, use `lower_offset` and `upper_offset`
+        directly as the range bounds. Defaults to True.
+
+    Returns
+    -------
+    list
+        A list of plane indices within the specified range, constrained between 0 and 24.
+    """
+    if slice_by_global_center:
+        global_center_plane = get_center_plane_for_position(dataset_config, position)
+        lower_bound = max(0, global_center_plane - lower_offset)
+        upper_bound = min(24, global_center_plane + upper_offset)
+    else:
+        lower_bound = lower_offset
+        upper_bound = upper_offset
+
+    return list(range(lower_bound, upper_bound + 1))
 
 
 def plot_standard_devs_per_slice(
@@ -249,9 +296,9 @@ def save_projection_image(image: np.ndarray, save_path: Path) -> None:
     """
     Save a processed 2D image to disk using grayscale colormap.
 
-    Intentionally not using save_plot_to_path here to avoid saving as a figure and 
+    Intentionally not using save_plot_to_path here to avoid saving as a figure and
     keep the image at its original resolution.
-    
+
     Parameters
     ----------
     image
@@ -265,7 +312,7 @@ def save_projection_image(image: np.ndarray, save_path: Path) -> None:
 def append_projection_outputs(
     stack: Array,
     zslice: list[int],
-    process_fn: callable,
+    process_fn: Callable,
     image_list: list,
     title_list: list,
     bottom_list: list,
@@ -293,7 +340,7 @@ def append_projection_outputs(
         List to collect the top slice of the projection range.
     """
     slice_str = f"{zslice[0]}_{zslice[1]}"
-    sliced = stack[zslice[0]:zslice[1]]
+    sliced = stack[zslice[0] : zslice[1]]
     outputs = process_fn(sliced)
     processed = outputs[-1]
 
@@ -311,7 +358,7 @@ def plot_image_row(
     timepoint: int,
     save_dir: Path,
     row_title: str = "Image",
-    figsize: tuple[int, int] = (16, 4)
+    figsize: tuple[int, int] = (16, 4),
 ) -> None:
     """
     Plot a single row of images with corresponding titles.
@@ -349,7 +396,7 @@ def plot_image_row(
     plt.show()
     fname = f"{dataset}_P{position}_T{timepoint}_{row_title.replace(' ', '_').lower()}_comparison"
     save_plot_to_path(fig, save_dir, fname)
-    
+
 
 def plot_bottom_top_slices(
     bottoms: list,
@@ -360,7 +407,7 @@ def plot_bottom_top_slices(
     timepoint: int,
     save_dir: Path,
     label: str,
-    figsize: tuple[int, int] = (16, 8)
+    figsize: tuple[int, int] = (16, 8),
 ) -> None:
     """
     Plot two rows of images showing bottom and top z-slices from each projection range.

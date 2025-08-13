@@ -29,11 +29,6 @@ from src.endo_pipeline.manifests import (
 logger = logging.getLogger(__name__)
 
 
-def get_model_dir() -> Path:
-    """Get the path to `src.endo_pipeline.library.model`."""
-    return Path(__file__).resolve().parent
-
-
 def _generate_overrides_for_model_training(
     model_name: str,
     crop_size: int,
@@ -249,14 +244,14 @@ def initialize_diffae_model(
 def _upload_zarr_dataframe_to_fms(
     dataframe: pd.DataFrame,
     dataset_type: Literal["training", "validation"],
-    zarr_resolution: int,
+    resolution_level: int,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
-) -> tuple[str, str]:
+) -> str:
     # save the dataframes to csv files locally as intermediates
     # use timestamp to ensure unique filenames
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    output_path = output_savedir / f"{dataset_type}_resolution_{zarr_resolution}_{timestamp}.csv"
+    output_path = output_savedir / f"{dataset_type}_resolution_{resolution_level}_{timestamp}.csv"
     dataframe.to_csv(output_path, index=False)
     logger.debug("Saved % s dataframe to \n %s", dataset_type, output_path)
     # upload dataframes to fms
@@ -264,7 +259,7 @@ def _upload_zarr_dataframe_to_fms(
     fms_annotations = build_fms_annotations(
         dataset_config_list,
         additional_notes=f"Dataframe of images for {dataset_type} set. \
-            Resolution level for zarr loading: {zarr_resolution}",
+            Resolution level for zarr loading: {resolution_level}",
     )
 
     logger.debug("Annotations built, uploading to FMS...")
@@ -325,7 +320,7 @@ def generate_training_zarr_dataframe_for_one_dataset(
 def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
-    zarr_resolution: int,
+    resolution_level: int,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
@@ -346,7 +341,7 @@ def build_and_save_dataframe_manifest_for_training(
         The training dataframe containing paths to zarr files and other metadata.
     val_dataframe
         The validation dataframe containing paths to zarr files and other metadata.
-    zarr_resolution
+    resolution_level
         The resolution level of the zarr files to be used for training.
     dataset_config_list
         A list of DatasetConfig objects for the datasets used in training.
@@ -367,7 +362,7 @@ def build_and_save_dataframe_manifest_for_training(
     train_fmsid = _upload_zarr_dataframe_to_fms(
         train_dataframe,
         "training",
-        zarr_resolution,
+        resolution_level,
         dataset_config_list,
         output_savedir,
     )
@@ -375,7 +370,7 @@ def build_and_save_dataframe_manifest_for_training(
     val_fmsid = _upload_zarr_dataframe_to_fms(
         val_dataframe,
         "validation",
-        zarr_resolution,
+        resolution_level,
         dataset_config_list,
         output_savedir,
     )
@@ -386,7 +381,7 @@ def build_and_save_dataframe_manifest_for_training(
     dataframe_manifest = DataframeManifest(
         name=manifest_name,
         workflow="create_diffae_training_dataframe",
-        parameters={"zarr_resolution": zarr_resolution},
+        parameters={"resolution_level": resolution_level},
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
             "validation": DataframeLocation(fmsid=val_fmsid, s3uri=None),
@@ -397,7 +392,7 @@ def build_and_save_dataframe_manifest_for_training(
     save_dataframe_manifest(dataframe_manifest)
 
 
-def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Path | str:
+def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Path:
     """
     Get a valid CSV path for training or validation datasets.
 
@@ -417,9 +412,18 @@ def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Pa
     """
     if dataframe_location.s3uri is not None:
         # if s3uri is provided, use that for loading
-        dataframe_csv_path = dataframe_location.s3uri
+        dataframe_csv_path = Path(dataframe_location.s3uri)
     else:
         # get local path from FMS ID
+        if dataframe_location.fmsid is None:
+            logger.error(
+                "DataframeLocation does not have a FMS ID or S3 URI. "
+                "Please provide a valid DataframeLocation object."
+            )
+            raise ValueError(
+                "DataframeLocation does not have a FMS ID or S3 URI. "
+                "Please provide a valid DataframeLocation object."
+            )
         dataframe_csv_path = get_local_path_from_fmsid(dataframe_location.fmsid)
 
     return dataframe_csv_path
