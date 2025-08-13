@@ -229,7 +229,7 @@ def register_notebook_to_cli(name: str, group: Group, show: bool, module: str, p
         importlib.import_module(module)
 
     # Set help message based on DESCRIPTION variable (if it exists)
-    description_match = re.findall(r'DESCRIPTION = "([\w\d\s+]+)"', path.read_text())
+    description_match = re.findall(r'DESCRIPTION = "([\w\.\s+]+)"', path.read_text())
     default_doc = f"Run notebook ``{path.name}``"
     module_wrapper.__doc__ = description_match[0] if description_match else default_doc
 
