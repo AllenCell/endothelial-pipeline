@@ -218,7 +218,7 @@ def _upload_zarr_dataframe_to_fms(
     resolution_level: int,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
-) -> tuple[str, str]:
+) -> str:
     # save the dataframes to csv files locally as intermediates
     # use timestamp to ensure unique filenames
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -295,7 +295,7 @@ def build_and_save_dataframe_manifest_for_training(
     save_dataframe_manifest(dataframe_manifest)
 
 
-def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Path | str:
+def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Path:
     """
     Get a valid CSV path for training or validation datasets.
 
@@ -315,9 +315,18 @@ def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Pa
     """
     if dataframe_location.s3uri is not None:
         # if s3uri is provided, use that for loading
-        dataframe_csv_path = dataframe_location.s3uri
+        dataframe_csv_path = Path(dataframe_location.s3uri)
     else:
         # get local path from FMS ID
+        if dataframe_location.fmsid is None:
+            logger.error(
+                "DataframeLocation does not have a FMS ID or S3 URI. "
+                "Please provide a valid DataframeLocation object."
+            )
+            raise ValueError(
+                "DataframeLocation does not have a FMS ID or S3 URI. "
+                "Please provide a valid DataframeLocation object."
+            )
         dataframe_csv_path = get_local_path_from_fmsid(dataframe_location.fmsid)
 
     return dataframe_csv_path

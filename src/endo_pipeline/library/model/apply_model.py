@@ -199,7 +199,7 @@ def generate_zarr_csv_for_model_eval(
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
     test_workflow: bool = False,
-) -> Path:
+) -> None:
     """Generate a CSV file with zarr loading metadata for the given dataset."""
 
     # generate csv with paths to zarr files for each position in the dataset
@@ -248,7 +248,7 @@ def generate_zarr_csv_for_model_eval(
         df["frame_stop"] = df["path"].apply(lambda x: -1)
         df["frame_step"] = df["path"].apply(lambda x: 250)
 
-    # save csv and return the path
+    # save csv
     df.to_csv(dataset_save_path, index=False)
 
 

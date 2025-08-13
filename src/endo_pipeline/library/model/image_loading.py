@@ -9,6 +9,7 @@ from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
 from monai.data import CacheDataset, MetaTensor
 from monai.transforms import Transform
+from numpy.typing import DTypeLike
 
 
 class BioIOImageLoaderd(Transform):
@@ -27,11 +28,11 @@ class BioIOImageLoaderd(Transform):
         resolution_key: str = "resolution",
         kwargs_keys: list[str] | None = None,
         out_key: str = "raw",
-        allow_missing_keys=False,
-        dtype: np.dtype = np.float16,
+        allow_missing_keys: bool = False,
+        dtype: np.dtype | DTypeLike = np.float16,
         dask_load: bool = True,
         include_meta_in_filename: bool = False,
-    ):
+    ) -> None:
         """
         Initialize the BioIOImageLoaderd transform.
 
@@ -72,20 +73,20 @@ class BioIOImageLoaderd(Transform):
         self.dask_load = dask_load
         self.include_meta_in_filename = include_meta_in_filename
 
-    def split_args(self, arg):
+    def split_args(self, arg: str) -> list[int] | str:
         """Split arguments that are comma-separated strings into lists of integers."""
         if isinstance(arg, str) and "," in arg:
             return list(map(int, arg.split(",")))
         return arg
 
-    def _get_filename(self, path, kwargs):
+    def _get_filename(self, path: str, kwargs: dict) -> str:
         if self.include_meta_in_filename:
             path = path.split(".")[0] + "_" + "_".join([f"{k}_{v}" for k, v in kwargs.items()])
         # remove illegal characters from filename
         path = re.sub(r'[<>:"|?*]', "", path)
         return path
 
-    def __call__(self, data):
+    def __call__(self, data: dict) -> dict:
         """
         Load image data from the path specified in the data dictionary
         using the arguments specified in the data dictionary.
@@ -105,15 +106,15 @@ class BioIOImageLoaderd(Transform):
         kwargs = {k: self.split_args(data[k]) for k in self.kwargs_keys if k in data}
 
         if self.dask_load:
-            img = img.get_image_dask_data(**kwargs).compute()
+            img_as_array = img.get_image_dask_data(**kwargs).compute()  # type: ignore[arg-type]
         else:
-            img = img.get_image_data(**kwargs)
-        img = img.astype(self.dtype)
+            img_as_array = img.get_image_data(**kwargs)  # type: ignore[arg-type]
+        img_as_array = img_as_array.astype(self.dtype)
         if self.scene_key in data:
             kwargs["scene"] = data[self.scene_key]
         kwargs.update({"filename_or_obj": self._get_filename(path, kwargs)})
 
-        data[self.out_key] = MetaTensor(img, meta=kwargs)
+        data[self.out_key] = MetaTensor(img_as_array, meta=kwargs)
         return data
 
 
@@ -124,9 +125,9 @@ class MultiDimImageDataset(CacheDataset):
     BioIOImageLoaderd class.
     """
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
-        csv_path: Path | str | None = None,
+        csv_path: Path | str,
         img_path_column: str = "path",
         channel_column: str = "channel",
         spatial_dims: int = 3,
@@ -141,64 +142,100 @@ class MultiDimImageDataset(CacheDataset):
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
         **cache_kwargs,
-    ):
+    ) -> None:
         """
-        Initialize a dataset that reads multi-dimensional images from a CSV file
+        Initialize a dataset that reads multi-dimensional images using metadata from a CSV file
         and prepares them for processing.
+
+        ** Multi-channel images **
+        The `channel_column` parameter should be specified to indicate which channel(s)
+        to extract from the image. To load multiple channels, the entries of this column
+        should be the channel indices separated by commas (e.g. `0,1,2`). Else, this
+        column should contain a single channel index (e.g. `0` or `1`).
+
+        ** Image spatial dimensions **
+        The output image will be in the format `CZYX` or `CYX` depending on the
+        `spatial_dims` parameter. This is to ensure compatibility with dictionary-based
+        MONAI-style transforms. The `spatial_dims` parameter specifies the number of spatial
+        dimensions in the output image, which can be either 2 (for YX) or 3 (for ZYX).
+
+        ** Multi-scene images **
+        If the input images are multi-scene images, the `scene_column` parameter should be
+        specified. This column should contain the names of the scenes to extract from the
+        multi-scene image. If not specified, all scenes will be extracted. If multiple scenes
+        are specified, they should be separated by a comma (e.g. `scene1,scene2`).
+
+        ** Multi-resolution images **
+        If the there are multiple resolution level available for the input images, the
+        `resolution_column` parameter should be specified. This column should contain the resolution
+        level at which to load the image. If not specified, the resolution level is assumed to be 0.
+
+        ** Timelapse images **
+        If there are multiple timepoints available for the input images, the `time_start_column`,
+        `time_stop_column`, and `time_step_column` parameters should be specified. These columns
+        should contain the start timepoint, stop timepoint, and step between timepoints (step
+        defaults to 1) respectively. If not specified, all timepoints are extracted. To specify the
+        last timepoint, you can use -1 in the `time_stop_column`, which will be interpreted as the
+        last timepoint available in the image. The timepoints are zero-indexed, so the first
+        timepoint is 0.
+
+        ** Z slices **
+        If the input images are 3D and you want to extract specific Z slices, the `z_start_column`,
+        `z_stop_column`, and `z_step_column` parameters should be specified. These columns
+        should contain the start Z slice, stop Z slice, and step between Z slices (step defaults
+        to 1) respectively. If not specified, all Z slices are extracted.
+
+        ** Extra columns **
+        The `extra_columns` parameter allows you to specify additional columns from the CSV file
+        that you want to include in the output dictionary. These columns will be added to the
+        output dictionary as-is if found, otherwise their values will be set to None.
+
+        ** Transforms **
+        The `transform` parameter allows you to specify a list or composition of MONAI-style
+        transforms to apply to the image metadata. The first transform in the list should be an
+        instance of `BioIOImageLoaderd`, which will load the image data from the path specified in
+        the metadata dictionary. The subsequent transforms can be any MONAI-style transforms that
+        operate on the metadata dictionary. If no transforms are specified, the dataset will
+        default to an empty list, meaning no transforms will be applied.
+
+        ** CacheDataset **
+        The dataset is a subclass of `monai.data.CacheDataset`, which means it can be used with
+        MONAI's caching mechanism to speed up data loading and processing. The `cache_kwargs`
+        parameter allows you to specify additional keyword arguments to pass to the `CacheDataset`.
+        To skip the caching mechanism, set `cache_num` to 0.
 
         Parameters
         ----------
-        csv_path: Union[Path, str]
-            path to csv
-        img_path_column: str
-            column in `csv_path` that contains path to multi dimensional
-            (timelapse or multi-scene) file
-        channel_column:str
-            Column in `csv_path` that contains which channel to extract from multi dimensional
-            (timelapse or multi-scene) file. Should be an integer.
-        spatial_dims:int=3
-            Spatial dimension of output image. Must be 2 for YX or 3 for ZYX. Spatial dimensions
-            are used to specify the dimension order of the output image, which will be in the format
-            `CZYX` or `CYX` to ensure compatibility with dictionary-based MONAI-style transforms.
-        scene_column:str="scene",
-            Column in `csv_path` that contains scenes to extract from multi-scene file. If not
-            specified, all scenes will be extracted. If multiple scenes are specified, they should
-            be separated by a comma (e.g. `scene1,scene2`)
-        resolution_column:str="resolution"
-            Column in `csv_path` that contains resolution to extract from multi-resolution file.
-            If not specified, resolution is assumed to be 0.
-        time_start_column:str="start"
-            Column in `csv_path` specifying which timepoint in timelapse image to start extracting.
-            If any of `start_column`, `stop_column`, or `step_column`
-            are not specified, all timepoints are extracted.
-        time_stop_column:str="stop"
-            Column in `csv_path` specifying which timepoint in timelapse image to stop extracting.
-            If any of `start_column`, `stop_column`, or `step_column`
-            are not specified, all timepoints are extracted.
-        time_step_column:str="step"
-            Column in `csv_path` specifying step between timepoints. For example, values in this
-            column should be `2` if every other timepoint should be run.
-            If any of `start_column`, `stop_column`, or `step_column` are not specified, all
-            timepoints are extracted.
-        z_start_column:str="z_start"
-            Column in `csv_path` specifying which Z slice to start extracting. If not specified,
-            the first Z slice is used.
-        z_stop_column:str="z_stop"
-            Column in `csv_path` specifying which Z slice to stop extracting. If not specified,
-            the last Z slice is used.
-        z_step_column:str="z_step"
-            Column in `csv_path` specifying step between Z slices. For example, values in this
-            column should be `2` if every other Z slice should be run.
-        extra_columns: Sequence[str] = []
-            List of extra columns to include in the output dictionary. These columns will be added
-            to the output dictionary as-is if found, otherwise their value
-            will be set to None.
-        transform: Optional[Callable] = []
-            List (or Compose Object) or Monai dictionary-style transforms to apply to the image
-            metadata. Typically, the first transform should be BioIOImageLoaderd.
+        csv_path
+            Path to csv file containing metadata table for loading the images.
+        img_path_column
+            Column in metadata table that contains path to timelapse or multi-scene file
+        channel_column
+            Column in metadata table that contains which channel to extract from the file.
+        spatial_dims
+            Spatial dimension of output image.
+        scene_column
+            Column in metadata table that contains scenes to extract from a multi-scene file.
+        resolution_column
+            Column in metadata table that contains resolution to extract from multi-resolution file.
+        time_start_column
+            Column in metadata table specifying the first timepoint in timelapse image to load.
+        time_stop_column
+            Column in metadata table specifying the last timepoint in timelapse image to load.
+        time_step_column
+            Column in metadata table specifying step size between timepoints.
+        z_start_column
+            Column in metadata table specifying the lowest Z slice to extract.
+        z_stop_column
+            Column in metadata table specifying the highest Z slice to extract.
+        z_step_column
+            Column in metadata table specifying step between Z slices.
+        extra_columns
+            List of extra columns to include in the output dictionary.
+        transform
+            List (or Compose Object) of Monai-style transforms to apply to the image metadata.
         cache_kwargs:
-            Additional keyword arguments to pass to `CacheDataset`. To skip the caching mechanism,
-            set `cache_num` to 0.
+            Additional keyword arguments to pass to `CacheDataset`.
         """
         df = pd.read_csv(csv_path)
         self.img_path_column = img_path_column
@@ -222,7 +259,8 @@ class MultiDimImageDataset(CacheDataset):
 
         super().__init__(data, transform, **cache_kwargs)
 
-    def _get_scenes(self, row, img):
+    def _get_scenes(self, row: dict, img: BioImage) -> tuple:
+        """Get scenes from the row data."""
         scenes = row.get(self.scene_column, -1)
         if scenes != -1:
             scenes = scenes.strip().split(",")
@@ -236,48 +274,51 @@ class MultiDimImageDataset(CacheDataset):
             scenes = img.scenes
         return scenes
 
-    def _get_timepoints(self, row, img):
+    def _get_timepoints(self, row: dict, img: BioImage) -> list:
+        """Get timepoints from the row data."""
         start = row.get(self.time_start_column, 0)
         stop = row.get(self.time_stop_column, -1)
+        # can use -1 to indicate the last timepoint
         if stop == -1:
             stop = img.dims.T - 1
         step = row.get(self.time_step_column, 1)
         timepoints = range(start, stop + 1, step)
         return list(timepoints)
 
-    def _get_z_slices(self, row, img):
+    def _get_z_slices(self, row: dict, img: BioImage) -> list:
         """Get Z slices from the row data."""
         z_start = row.get(self.z_start_column, 0)
         z_stop = row.get(self.z_stop_column, -1)
+        # can use -1 to indicate the last Z slice
         if z_stop == -1:
             z_stop = img.dims.Z - 1
         z_step = row.get(self.z_step_column, 1)
         z_slices = range(z_start, z_stop + 1, z_step)
         return list(z_slices)
 
-    def get_per_file_args(self, df):
+    def get_per_file_args(self, df: pd.DataFrame) -> list[dict]:
         """Get image loading arguments for each file in the dataframe."""
         img_data = []
         for row in tqdm.tqdm(df.itertuples()):
             row_data = []
-            row = row._asdict()
-            img = BioImage(row[self.img_path_column])
-            scenes = self._get_scenes(row, img)
+            row_dict: dict = row._asdict()  # type: ignore[operator]
+            img = BioImage(row_dict[self.img_path_column])
+            scenes = self._get_scenes(row_dict, img)
             for scene in scenes:
                 img.set_scene(scene)
-                timepoints = self._get_timepoints(row, img)
+                timepoints = self._get_timepoints(row_dict, img)
                 for timepoint in timepoints:
-                    z_slices = self._get_z_slices(row, img)
+                    z_slices = self._get_z_slices(row_dict, img)
                     image_loading_args = {
                         "dimension_order_out": "C" + "ZYX"[-self.spatial_dims :],
-                        "C": row[self.channel_column],
+                        "C": row_dict[self.channel_column],
                         "scene": scene,
                         "T": timepoint,
                         "Z": z_slices,
-                        "original_path": row[self.img_path_column],
-                        "resolution": row.get(self.resolution_column, 0),
+                        "original_path": row_dict[self.img_path_column],
+                        "resolution": row_dict.get(self.resolution_column, 0),
                     }
-                    extra_columns = {col: row.get(col) for col in self.extra_columns}
+                    extra_columns = {col: row_dict.get(col) for col in self.extra_columns}
                     extra_columns.update(image_loading_args)
                     row_data.append(extra_columns)
             img_data.extend(row_data)

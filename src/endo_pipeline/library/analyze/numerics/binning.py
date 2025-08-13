@@ -1,3 +1,5 @@
+from typing import cast
+
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
@@ -130,22 +132,26 @@ def get_3d_bounds_from_data(
 
 
 def _get_histogram_by_component_one_dataset(
-    df: pd.DataFrame, bin_edges=list[np.ndarray], feat_cols: list[str] | None = None
+    df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
 ) -> tuple[np.ndarray, pd.DataFrame]:
     """
     Compute histogram of feature data at each timepoint for each latent component.
 
-    Input:
-    - df: pd.DataFrame, feature data for a single dataset
-    - bin_edges: list[np.ndarray], bin edges for each component
-    - feat_cols: list[str] | None, column names of the features to use
-        - if None, use all feature columns in the dataframe
+    Parameters
+    ----------
+    df
+        Feature data for a single dataset.
+    bin_edges
+        Bin edges for each component.
+    feat_cols
+        Optional; specific column names of the components to analyze.
 
-    Output:
-    - hist_array: np.ndarray, histogram values for each component as a function of time
-        - shape (num_features, num_bins, num_frames)
-    - df: pd.DataFrame, updated dataframe with columns of what
-        bin each crop at frame_number t is in along the given latent dimension
+    Returns
+    -------
+    :
+        Histogram values for each component as a function of time
+    :
+        Updated dataframe with bin indices for each crop at each timepoint along each component.
     """
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
@@ -260,7 +266,7 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
     # this is done by finding the index of the first bin edge
     # that is greater than the value
     # and subtracting 1
-    bin_idx = np.digitize(val, bin_edges_1d) - 1
+    bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
 
     # check if the value is in the last bin
     # if so, set the index to the last bin

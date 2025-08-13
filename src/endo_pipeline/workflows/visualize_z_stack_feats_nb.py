@@ -1,5 +1,7 @@
 # %%
-from src.endo_pipeline.configs import get_model_manifest, load_model_config
+from typing import cast
+
+from src.endo_pipeline.configs import CytoDLModelConfig, get_model_manifest, load_model_config
 from src.endo_pipeline.io.output import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
@@ -15,7 +17,7 @@ from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
 TIMEPOINTS = [0, 250, 500]
 
 # %%
-model_config = load_model_config("diffae_04_10")
+model_config = cast(CytoDLModelConfig, load_model_config("diffae_04_10"))
 dataset_list = ["20241016_20X", "20250331_20X", "20250402_20X", "20250409_20X"]
 
 pca = fit_pca()

@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,7 +40,8 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
     for frame in range(0, dataset_config.duration, 1):
         bf_stack = bf_stack_all_frames[frame].squeeze()
         stdevs = bf_stack.std(axis=(1, 2)).compute()
-        center_planes.append(max(0, np.argmin(stdevs)))
+        center_plane_selection = cast(float, max(0, np.argmin(stdevs)))
+        center_planes.append(center_plane_selection)
 
     mean_center_plane = np.mean(center_planes)
     global_center_plane = round(mean_center_plane, 0)
@@ -309,7 +312,7 @@ def save_projection_image(image: np.ndarray, save_path: Path) -> None:
 def append_projection_outputs(
     stack: Array,
     zslice: list[int],
-    process_fn: callable,
+    process_fn: Callable,
     image_list: list,
     title_list: list,
     bottom_list: list,

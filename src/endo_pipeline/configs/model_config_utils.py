@@ -56,7 +56,7 @@ def add_model_manifest(
     model_config: CytoDLModelConfig,
     dataset_name: str,
     fmsid: str,
-    z_stack_offsets: list[int] | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
 ) -> CytoDLModelConfig:
     """
     Add a model manifest to the model configuration.
@@ -70,7 +70,9 @@ def add_model_manifest(
     - CytoDLModelConfig, updated model configuration with the new manifest added
     """
     if z_stack_offsets is None:
-        z_stack_offsets = []  # Default to empty list if not provided
+        z_stack_offsets_ = []  # Default to empty list if not provided
+    else:
+        z_stack_offsets_ = list(z_stack_offsets)  # Ensure it's a list
 
     if model_config.manifest_fmsids is None:
         model_config.manifest_fmsids = []
@@ -78,9 +80,10 @@ def add_model_manifest(
     # check if a manifest already exists for this dataset
     # with the same full_z_stack setting
     for manifest in model_config.manifest_fmsids:
-        if manifest.dataset_name == dataset_name and manifest.z_stack_offsets == z_stack_offsets:
+        if manifest.dataset_name == dataset_name and manifest.z_stack_offsets == z_stack_offsets_:
             logger.warning(
-                "Manifest for dataset %s with z-stack offsets %s already exists in model config %s.",
+                "Manifest for dataset %s with z-stack offsets %s "
+                "already exists in model config %s.",
                 dataset_name,
                 z_stack_offsets,
                 model_config.name,
@@ -88,7 +91,7 @@ def add_model_manifest(
 
     # create a new ModelManifest and add it to the model_config
     new_manifest = ModelManifest(
-        dataset_name=dataset_name, fmsid=fmsid, z_stack_offsets=z_stack_offsets
+        dataset_name=dataset_name, fmsid=fmsid, z_stack_offsets=z_stack_offsets_
     )
     model_config.manifest_fmsids.append(new_manifest)
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -37,29 +39,29 @@ def calc_stats(df: pd.DataFrame, feature: str) -> tuple:
 def feature_density(
     df_all: pd.DataFrame,
     feature: str,
-    xlim: list[float],
+    xlim: np.ndarray,
     title: str | None = None,
-) -> tuple[plt.Figure, sb.axisgrid.FacetGrid]:
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """
     Plot the probability density distribution of a feature for each position in the DataFrame.
 
     Parameters
     ----------
-    df_all : DataFrame
+    df_all
         The input DataFrame containing the data.
-    feature : str
-        The feature/column name to plot the density for.
-    xlim : list
+    feature
+        The feature/column name for which to plot the density.
+    xlim
         The x-axis limits for the plot.
-    title : str, optional
-        The title of the plot. Defaults to None.
+    title
+        Optional; the title of the plot.
 
     Returns
     -------
-    tuple
-        A tuple containing:
-        - fig : The matplotlib figure object.
-        - ax : The seaborn axis object.
+    :
+        The figure object of the plot.
+    :
+        The axis object of the plot.
     """
 
     fig = plt.figure(figsize=(15, 6))
