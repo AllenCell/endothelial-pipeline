@@ -196,6 +196,7 @@ def apply_entrypoint_settings(
     if testing_mode:
         import src.endo_pipeline
 
+        logger.info("Running workflows in testing mode")
         src.endo_pipeline.TESTING_MODE = True
 
 
