@@ -8,7 +8,6 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from src.endo_pipeline import TESTING_MODE
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
@@ -187,6 +186,10 @@ def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig,
     dataset_save_path: Path,
     zarr_resolution: int = 1,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    only_positions: list[int] | None = None,
 ) -> None:
     """Generate a CSV file with path to Zarr files for the given dataset."""
     # generate csv with paths to zarr files
@@ -200,17 +203,22 @@ def generate_zarr_csv_for_model_eval(
     df["channel"] = ZARR_BF_CHANNEL
     df["resolution"] = zarr_resolution
 
-    if TESTING_MODE:
-        # for workflow testing, only use first position from each dataset
-        # and first two timepoints to speed up the dataloading process
-        # (if dataset is not timelapse, then only one timepoint is used)
-        df = df.head(1)
-        df["start"] = 0
-        df["stop"] = 1 if dataset_config.is_timelapse else 0
-        logger.warning(
-            "Workflow testing is enabled, only processing the first few timepoints "
-            "of the first position of each dataset."
+    # only load images for specified position indices
+    if only_positions is not None:
+        df["position_index"] = df["path"].apply(
+            lambda x: int(_get_position_from_zarr_file_path(x)[-1])
         )
+        df = df[df["position_index"].isin(only_positions)]
+        logger.debug(f"Evaluating model on positions: {only_positions}")
+        df = df.drop(columns=["position_index"])
+
+    # if start and stop for loading timepoints are specified, add to dataframe
+    if (frame_start is not None) and (frame_stop is not None):
+        df["frame_start"] = frame_start
+        df["frame_stop"] = frame_stop
+    # frame step defaults in loader to 1, but can be specified
+    if frame_step is not None:
+        df["frame_step"] = frame_step
 
     df.to_csv(dataset_save_path, index=False)
 
@@ -323,6 +331,17 @@ def _bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Se
     return bbox_size_is_correct
 
 
+def _get_position_from_zarr_file_path(
+    zarr_file_path: str | Path,
+) -> str:
+    """
+    Extract position as 'P[x]' from the Zarr file path.
+
+    The position is expected to be the last part of the file name before the extension.
+    """
+    return Path(zarr_file_path).stem.split("_")[-1].split(".")[0]
+
+
 def update_prediction_from_crops_with_metadata(
     dataset_name: str,
     model_name: str,
@@ -350,7 +369,7 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_x"] = crop_size[1]
 
     pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: Path(s).stem.split("_")[-1].split(".")[0]
+        lambda s: _get_position_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
@@ -379,7 +398,7 @@ def update_prediction_from_tracks_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
     pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: Path(s).stem.split("_")[-1].split(".")[0]
+        lambda s: _get_position_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
@@ -392,12 +411,14 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     zarr_resolution: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
+    testing_mode: bool = False,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
 
-    **TESTING MODE**:
-    If `TESTING_MODE` is set to True, the model will only be applied to the first
+    ** Workflow testing **:
+
+    If `testing_mode` is set to True, the model will only be applied to the first
     position of the dataset and only the first two timepoints will be used. The
     `staging` environment of FMS will be used for uploading the prediction file.
 
@@ -415,6 +436,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
+    testing_mode
+        Execute method in workflow testing mode if True, run full model evaluation if False.
     """
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
@@ -437,7 +460,32 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # create zarr dataset
     dataset_save_path = save_path / f"dataset_{timestamp}.csv"
-    generate_zarr_csv_for_model_eval(dataset_config, dataset_save_path, zarr_resolution)
+
+    # default frame start and stop values are None, i.e., load all timepoints
+    frame_start = None
+    frame_stop = None
+    only_positions = None  # keep all rows in the dataset CSV
+
+    if testing_mode:
+        # for workflow testing, only use first position from each dataset
+        # and first two timepoints to speed up the dataloading process
+        # (if dataset is not timelapse, then only one timepoint is used)
+        frame_start = 0
+        frame_stop = 1 if dataset_config.is_timelapse else 0
+        only_positions = [0]  # only use the first position
+        logger.warning(
+            "Workflow testing is enabled, only processing the first few timepoints "
+            "of the first position the dataset."
+        )
+
+    generate_zarr_csv_for_model_eval(
+        dataset_config,
+        dataset_save_path,
+        zarr_resolution,
+        frame_start=frame_start,
+        frame_stop=frame_stop,
+        only_positions=only_positions,
+    )
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"

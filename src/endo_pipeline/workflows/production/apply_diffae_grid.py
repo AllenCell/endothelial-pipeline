@@ -96,6 +96,7 @@ def main(
             zarr_resolution=zarr_resolution,
             upload_to_fms=upload_to_fms,
             user_overrides=user_overrides,
+            testing_mode=TESTING_MODE,
         )
         if TESTING_MODE:
             # if test workflow, only process the first dataset
