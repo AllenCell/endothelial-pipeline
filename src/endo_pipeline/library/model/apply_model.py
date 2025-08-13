@@ -553,10 +553,18 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         manifest_name = model_config.name
         workflow_name = "apply_diffae_grid"
 
+        if z_stack_offsets is not None:
+            manifest_name = f"{manifest_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
+            parameters = {"z_stack_offsets": z_stack_offsets}
+        else:
+            parameters = {}
+
         try:
             manifest = load_dataframe_manifest(manifest_name)
         except FileNotFoundError:
-            manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+            manifest = DataframeManifest(
+                name=manifest_name, workflow=workflow_name, parameters=parameters
+            )
 
         manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
         save_dataframe_manifest(manifest)
