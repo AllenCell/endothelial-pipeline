@@ -21,6 +21,7 @@ from src.endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
+from src.endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
 from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from src.endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from src.endo_pipeline.manifests import (
@@ -191,73 +192,6 @@ def generate_overrides_for_track_based_crops(
     }
     overrides.update(track_specific_overrides)
     return overrides
-
-
-def generate_zarr_dataframe_for_model_eval(
-    dataset_config: DatasetConfig,
-    dataset_save_path: Path,
-    resolution_level: int = 1,
-    z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
-    frame_start: int | None = None,
-    frame_stop: int | None = None,
-    frame_step: int | None = None,
-    only_positions: list[int] | None = None,
-) -> None:
-    """Generate a CSV file with zarr loading metadata for the given dataset."""
-
-    # generate csv with paths to zarr files for each position in the dataset
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
-
-    df = pd.DataFrame({"path": zarr_file_paths})
-    df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = resolution_level
-
-    # only load images for specified position indices
-    if only_positions is not None:
-        df["position_index"] = df["path"].apply(
-            lambda x: int(get_position_string_from_zarr_file_path(x)[-1])
-        )
-        df = df[df["position_index"].isin(only_positions)]
-        logger.debug(f"Evaluating model on positions: {only_positions}")
-        df = df.drop(columns=["position_index"])
-
-    # if start and stop for loading timepoints are specified, add to dataframe
-    if (frame_start is not None) and (frame_stop is not None):
-        df["frame_start"] = frame_start
-        df["frame_stop"] = frame_stop
-    # frame step defaults in loader to 1, but can be specified
-    if frame_step is not None:
-        df["frame_step"] = frame_step
-
-    # if z_stack_offsets is not None, add a column with z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
-    if z_stack_offsets is not None:
-        # this is a wrapper function to get z-slice ranges
-        # from dataset name and position in the dataset using
-        # zarr_file_path our way to get the position
-        def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = int(zarr_file_path.stem.split("_")[-1].split(".")[0][-1])
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
-            return z_slices
-
-        # apply the function to each zarr file path
-        df["Z"] = df["path"].apply(lambda x: _get_z_slices(Path(x), dataset_config))
-        df["z_start"] = df["Z"].apply(lambda x: x[0])
-        df["z_stop"] = df["Z"].apply(lambda x: x[-1])
-        # remove the Z column as it is not needed anymore
-        df.drop(columns=["Z"], inplace=True)
-
-    # save csv
-    df.to_csv(dataset_save_path, index=False)
 
 
 def preprocess_tracking_manifest_for_model_eval(
@@ -440,7 +374,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     """
     Apply a DiffAE model to a single dataset.
 
-    ** Workflow testing **:
+    ** Workflow testing **
 
     If `testing_mode` is set to True, the model will only be applied to the first
     position of the dataset and only the first two timepoints will be used. The
@@ -542,17 +476,44 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             "of the first position the dataset."
         )
 
-    generate_zarr_dataframe_for_model_eval(
-        dataset_config,
-        dataset_save_path,
-        resolution_level=resolution_level,
-        z_stack_offsets=z_stack_offsets,
-        slice_by_global_center=slice_by_global_center,
-        frame_start=frame_start,
-        frame_stop=frame_stop,
-        frame_step=frame_step,
-        only_positions=only_positions,
-    )
+    # if z_stack_offsets is not None, get z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    z_slice_by_position = None
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    if z_stack_offsets is not None:
+        z_slice_by_position = []
+        for zarr_file_path in available_zarr_files:
+            # get position from zarr path as an integer (e.g., 'P0' -> 0)
+            position_as_int = int(get_position_string_from_zarr_file_path(zarr_file_path)[-1])
+            # get z-slice indices for the given position
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
+            )
+            z_slice_by_position.append(z_slices)
+
+    # generate dataframe with zarr loading metadata
+    df_per_position = [
+        build_zarr_image_loading_dataframe(
+            dataset_config,
+            resolution_level=resolution_level,
+            channel=ZARR_BF_CHANNEL,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            frame_step=frame_step,
+            z_start=z_slice_by_position[i][0] if z_stack_offsets else None,
+            z_stop=z_slice_by_position[i][-1] if z_stack_offsets else None,
+            only_positions=only_positions,
+        )
+        for i in range(len(available_zarr_files))
+    ]
+    # concatenate dataframes for all positions
+    df = pd.concat(df_per_position, ignore_index=True)
+    # save the dataframe to a CSV file
+    df.to_csv(dataset_save_path, index=False)
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"

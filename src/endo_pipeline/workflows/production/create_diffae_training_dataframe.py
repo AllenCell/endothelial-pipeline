@@ -4,7 +4,7 @@ ZARR_CDH5_CHANNEL = 0
 ZARR_BF_CHANNEL = 1
 
 
-def main(zarr_resolution: int = 1) -> None:
+def main(resolution_level: int = 1) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
 
@@ -34,8 +34,8 @@ def main(zarr_resolution: int = 1) -> None:
 
     Parameters
     ----------
-    zarr_resolution
-        The resolution level of the zarr files to be used for training.
+    resolution_level
+        The resolution level of the zarr files to load for training.
 
     Returns
     -------
@@ -54,7 +54,7 @@ def main(zarr_resolution: int = 1) -> None:
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
-        generate_training_zarr_dataframe_for_one_dataset,
+        build_zarr_image_loading_dataframe,
     )
 
     logger = logging.getLogger(__name__)
@@ -85,9 +85,10 @@ def main(zarr_resolution: int = 1) -> None:
                 "of the first position the dataset."
             )
         zarr_dataframes.append(
-            generate_training_zarr_dataframe_for_one_dataset(
+            build_zarr_image_loading_dataframe(
                 dataset_config=dataset_config,
-                zarr_resolution=zarr_resolution,
+                resolution_level=resolution_level,
+                channel=[ZARR_BF_CHANNEL, ZARR_CDH5_CHANNEL],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
                 only_positions=only_positions,
@@ -103,11 +104,11 @@ def main(zarr_resolution: int = 1) -> None:
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = f"diffae_training_dataframe_resolution_{zarr_resolution}"
+    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}"
     if TESTING_MODE:
         manifest_name += "_test_workflow"
     build_and_save_dataframe_manifest_for_training(
-        train, val, zarr_resolution, dataset_config_list, output_savedir, manifest_name
+        train, val, resolution_level, dataset_config_list, output_savedir, manifest_name
     )
 
 

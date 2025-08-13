@@ -274,49 +274,6 @@ def _upload_zarr_dataframe_to_fms(
     return fmsid
 
 
-def generate_training_zarr_dataframe_for_one_dataset(
-    dataset_config: DatasetConfig,
-    resolution_level: int,
-    channel: int | list[int],
-    frame_start: int | None = None,
-    frame_stop: int | None = None,
-    frame_step: int | None = None,
-    only_positions: list[str] | None = None,
-) -> pd.DataFrame:
-    """Generate a dataframe for a single dataset with metadata for loading zarr files."""
-
-    # get available zarr files for the dataset
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
-    df = pd.DataFrame({"path": zarr_file_paths})
-    # convert channel tuple to comma-separated string
-    if isinstance(channel, int):
-        df["channel"] = str(channel)
-    else:
-        df["channel"] = ",".join(str(c) for c in channel)
-    # set zarr resolution level
-    df["resolution"] = resolution_level
-
-    # only load images for specified position indices
-    if only_positions is not None:
-        df["position_index"] = df["path"].apply(
-            lambda x: int(get_position_string_from_zarr_file_path(x)[-1])
-        )
-        df = df[df["position_index"].isin(only_positions)]
-        logger.debug(f"Evaluating model on positions: {only_positions}")
-        df = df.drop(columns=["position_index"])
-
-    # if start and stop for loading timepoints are specified, add to dataframe
-    if (frame_start is not None) and (frame_stop is not None):
-        df["frame_start"] = frame_start
-        df["frame_stop"] = frame_stop
-    # frame step defaults in loader to 1, but can be specified
-    if frame_step is not None:
-        df["frame_step"] = frame_step
-
-    return df
-
-
 def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
