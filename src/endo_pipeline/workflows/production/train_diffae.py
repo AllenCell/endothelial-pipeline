@@ -88,6 +88,10 @@ def main(
         model_name,
         train_csv_path,
         val_csv_path,
+        max_num_epochs=1 if TESTING_MODE else 1000,  # for testing mode, train for 1 epoch
+        log_every_n_steps=(
+            1 if TESTING_MODE else 50
+        ),  # deafult 50, need to set to 1 for testing mode
     )
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{model_name}_train.yaml")

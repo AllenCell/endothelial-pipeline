@@ -8,8 +8,12 @@ import pandas as pd
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig
 
-from src.endo_pipeline import TESTING_MODE
-from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from src.endo_pipeline.configs import (
+    DatasetConfig,
+    get_available_zarr_files,
+    get_position_string_from_zarr_file_path,
+    load_dataset_collection_config,
+)
 from src.endo_pipeline.io import (
     build_fms_annotations,
     get_local_path_from_fmsid,
@@ -35,12 +39,18 @@ def _generate_overrides_for_model_training(
     crop_size: int,
     train_csv_path: Path,
     val_csv_path: Path,
+    max_num_epochs: int = 1000,
+    log_every_n_steps: int = 50,
 ) -> dict:
     """
     Generate overrides for the DiffAE model training configuration.
 
-    **TESTING_MODE**
-    If the `TESTING_MODE` flag is set to True, the model will be trained for only one epoch.
+    ** Workflow testing **
+
+    If the training workflow is being run in testing mode, the model will be trained for
+    only one epoch. That is, the `max_num_epochs` input will be set to 1, which overrides
+    the configuration value of `trainer.max_epochs` in the training config. The value
+    of log_every_n_steps will also be set to 1.
 
     Parameters
     ----------
@@ -50,9 +60,13 @@ def _generate_overrides_for_model_training(
         The number of pixels in each dimension of the image crop to use for training.
         That is, the cropped image will be square with size (crop_size px, crop_size px).
     train_csv_path
-        The path to the training dataset CSV file.
+        The path to the training dataset (image loading metadata) CSV file.
     val_csv_path
-        The path to the validation dataset CSV file.
+        The path to the validation dataset (image loading metadata) CSV file.
+    max_num_epochs
+        The maximum number of epochs to train the model for.
+    log_every_n_steps
+        The interval at which to log training metrics.
 
     Returns
     -------
@@ -83,9 +97,9 @@ def _generate_overrides_for_model_training(
         "model.image_shape": [1, crop_size, crop_size],
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
-        # set the max number of epochs for training based on TESTING_MODE flag
-        "trainer.max_epochs": 1 if TESTING_MODE else 1000,
-        "trainer.log_every_n_steps": 1 if TESTING_MODE else 50,
+        # set the max number of epochs for training and logging interval
+        "trainer.max_epochs": max_num_epochs,
+        "trainer.log_every_n_steps": log_every_n_steps,
     }
     return overrides
 
@@ -172,13 +186,18 @@ def initialize_diffae_model(
     model_name: str,
     train_csv_path: Path,
     val_csv_path: Path,
+    max_num_epochs: int = 1000,
+    log_every_n_steps: int = 50,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
 
-    **TESTING_MODE**
-    If the `TESTING_MODE` flag is set to True, the model will be trained for only one epoch
-    on a small subset of the training and validation datasets.
+    ** Workflow testing **
+
+    If the training workflow is being run in testing mode, the model will be trained for
+    only one epoch. That is, the `max_num_epochs` input will be set to 1, which overrides
+    the configuration value of `trainer.max_epochs` in the training config. The value
+    of `log_every_n_steps` will also be set to 1.
 
     Parameters
     ----------
@@ -191,18 +210,32 @@ def initialize_diffae_model(
     model_name
         The name of the model to train.
     train_csv_path
-        The path to the training dataset CSV file.
+        The path to the training dataset (image loading metadata) CSV file.
     val_csv_path
-        The path to the validation dataset CSV file.
+        The path to the validation dataset (image loading metadata) CSV file.
+    max_num_epochs
+        The maximum number of epochs to train the model for.
+    log_every_n_steps
+        The interval at which to log training metrics.
 
     Returns
     -------
     :
         An initialized CytoDLModel for training the DiffAE model.
     """
+
+    assert (
+        log_every_n_steps < max_num_epochs
+    ), "Logging interval must be less than the maximum number of epochs. "
+
     # user overrides for training
     overrides = _generate_overrides_for_model_training(
-        model_name, crop_size, train_csv_path, val_csv_path
+        model_name,
+        crop_size,
+        train_csv_path,
+        val_csv_path,
+        max_num_epochs=max_num_epochs,
+        log_every_n_steps=log_every_n_steps,
     )
 
     # init model
@@ -246,22 +279,66 @@ def _upload_zarr_dataframe_to_fms(
     return fmsid
 
 
+def generate_training_zarr_dataframe_for_one_dataset(
+    dataset_config: DatasetConfig,
+    resolution_level: int,
+    channel: int | list[int],
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    only_positions: list[str] | None = None,
+) -> pd.DataFrame:
+    """Generate a dataframe for a single dataset with metadata for loading zarr files."""
+
+    # get available zarr files for the dataset
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
+    df = pd.DataFrame({"path": zarr_file_paths})
+    # convert channel tuple to comma-separated string
+    if isinstance(channel, int):
+        df["channel"] = str(channel)
+    else:
+        df["channel"] = ",".join(str(c) for c in channel)
+    # set zarr resolution level
+    df["resolution"] = resolution_level
+
+    # only load images for specified position indices
+    if only_positions is not None:
+        df["position_index"] = df["path"].apply(
+            lambda x: int(get_position_string_from_zarr_file_path(x)[-1])
+        )
+        df = df[df["position_index"].isin(only_positions)]
+        logger.debug(f"Evaluating model on positions: {only_positions}")
+        df = df.drop(columns=["position_index"])
+
+    # if start and stop for loading timepoints are specified, add to dataframe
+    if (frame_start is not None) and (frame_stop is not None):
+        df["frame_start"] = frame_start
+        df["frame_stop"] = frame_stop
+    # frame step defaults in loader to 1, but can be specified
+    if frame_step is not None:
+        df["frame_step"] = frame_step
+
+    return df
+
+
 def build_and_save_dataframe_manifest_for_training(
     train_dataframe: pd.DataFrame,
     val_dataframe: pd.DataFrame,
     zarr_resolution: int,
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
+    manifest_name: str,
 ) -> None:
     """
     Upload training and validation image loading dataframes to FMS.
 
-    **TESTING_MODE**
-    If the `TESTING_MODE` flag is set to True, the script will run in testing mode,
-    which means that the training and validation datasets will only keep one entry
-    each. This is useful for testing the workflow without needing to load large datasets.
-    The dataframes will be uploaded to the `staging` environment of FMS, and the
-    resulting DataframeManifest will be saved with `_test_workflow` appended to the name.
+    ** Workflow testing **
+
+    If the dataframe building workflow is being run in testing mode, the training and validation
+    datasets will only keep one entry each. This is useful for testing the workflow without needing
+    to load large datasets. The dataframes will be uploaded to the `staging` environment of FMS,
+    and the resulting DataframeManifest will be saved with `_test_workflow` appended to the name.
 
     Parameters
     ----------
@@ -275,6 +352,8 @@ def build_and_save_dataframe_manifest_for_training(
         A list of DatasetConfig objects for the datasets used in training.
     output_savedir
         The directory where the output dataframes will be saved as intermediates.
+    manifest_name
+        The name of the DataframeManifest to be created.
 
     Returns
     -------
@@ -304,10 +383,6 @@ def build_and_save_dataframe_manifest_for_training(
     # create the DataframeManifest object
     # note that this will overwrite any existing manifest with the same name
     # (intended behavior)
-    manifest_name = f"diffae_training_dataframe_resolution_{zarr_resolution}"
-    if TESTING_MODE:
-        # if TESTING_MODE is True, append "_test_workflow" to the manifest name
-        manifest_name += "_test_workflow"
     dataframe_manifest = DataframeManifest(
         name=manifest_name,
         workflow="create_diffae_training_dataframe",

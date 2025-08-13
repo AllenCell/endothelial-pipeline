@@ -50,13 +50,12 @@ def main(zarr_resolution: int = 1) -> None:
     from sklearn.model_selection import train_test_split
 
     from src.endo_pipeline import TESTING_MODE
-    from src.endo_pipeline.configs import (
-        get_available_zarr_files,
-        load_dataset_collection_config,
-        load_dataset_config,
-    )
+    from src.endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
     from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
+    from src.endo_pipeline.library.model import (
+        build_and_save_dataframe_manifest_for_training,
+        generate_training_zarr_dataframe_for_one_dataset,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -66,46 +65,49 @@ def main(zarr_resolution: int = 1) -> None:
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
 
-    zarr_file_paths = []
-    timelapse_bool_list = []
+    zarr_dataframes = []
     for dataset_config in dataset_config_list:
-        # get available zarr files for each dataset
-        available_zarr_files = get_available_zarr_files(dataset_config)
-        zarr_file_paths.extend(
-            [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
+        # generate zarr loading metadata table for each dataset
+        # default frame start and stop values are None, i.e., load all timepoints
+        frame_start = None
+        frame_stop = None
+        only_positions = None  # keep all rows in the dataset CSV
+
+        if TESTING_MODE:
+            # for workflow testing, only use first position from each dataset
+            # and first two timepoints to speed up the dataloading process
+            # (if dataset is not timelapse, then only one timepoint is used)
+            frame_start = 0
+            frame_stop = 1 if dataset_config.is_timelapse else 0
+            only_positions = [0]  # only use the first position
+            logger.warning(
+                "Workflow testing is enabled, only processing the first few timepoints "
+                "of the first position the dataset."
+            )
+        zarr_dataframes.append(
+            generate_training_zarr_dataframe_for_one_dataset(
+                dataset_config=dataset_config,
+                zarr_resolution=zarr_resolution,
+                frame_start=frame_start,
+                frame_stop=frame_stop,
+                only_positions=only_positions,
+            )
         )
-        # check if the dataset is a timelapse dataset (i.e., has multiple timepoints)
-        timelapse_bool_list.extend([dataset_config.is_timelapse for _ in available_zarr_files])
 
-    zarr_path_df = pd.DataFrame({"path": zarr_file_paths})
-    zarr_path_df["timelapse"] = timelapse_bool_list  # whether the dataset is a timelapse dataset
-    zarr_path_df["channel"] = f"{ZARR_CDH5_CHANNEL},{ZARR_BF_CHANNEL}"  # cdh5, brightfield
-    zarr_path_df["resolution"] = zarr_resolution  # downsampling factor
+    # concatenate all dataframes into one
+    df = pd.concat(zarr_dataframes, ignore_index=True)
 
-    train, val = train_test_split(zarr_path_df, test_size=0.2, random_state=42)
-    if TESTING_MODE:
-        logger.warning(
-            "Workflow testing is enabled, only processing the first few timepoints "
-            "of the first position of each dataset."
-        )
-        # for testing, only keep one entry in each dataframe
-        train = train.head(1)
-        val = val.head(1)
-        # and only keep the first two timepoints if available
-        train["start"] = 0  # start timepoint
-        train["stop"] = train["timelapse"].apply(lambda x: 1 if x else 0)
-        val["start"] = 0
-        val["stop"] = val["timelapse"].apply(lambda x: 1 if x else 0)
-
-    # drop the 'timelapse' column as it is not needed for training
-    train = train.drop(columns=["timelapse"])
-    val = val.drop(columns=["timelapse"])
+    # split into training and validation sets
+    train, val = train_test_split(df, test_size=0.2, random_state=42)
 
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
+    manifest_name = f"diffae_training_dataframe_resolution_{zarr_resolution}"
+    if TESTING_MODE:
+        manifest_name += "_test_workflow"
     build_and_save_dataframe_manifest_for_training(
-        train, val, zarr_resolution, dataset_config_list, output_savedir
+        train, val, zarr_resolution, dataset_config_list, output_savedir, manifest_name
     )
 
 

@@ -3,7 +3,7 @@ from .apply_model import (
     apply_model_on_tracked_crops_from_one_dataset,
     generate_overrides_for_model_eval,
     generate_overrides_for_track_based_crops,
-    generate_zarr_csv_for_model_eval,
+    generate_zarr_dataframe_for_model_eval,
     get_cytodl_commit_hash,
     load_overrides,
     preprocess_tracking_manifest_for_model_eval,
@@ -27,6 +27,7 @@ from .latent_walk_utils import (
 from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_path, load_mlflow_model
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
+    generate_training_zarr_dataframe_for_one_dataset,
     get_dataset_names_used_for_training,
     get_model_dir,
     get_valid_csv_path_for_finetuning,
@@ -48,7 +49,8 @@ __all__ = [
     "generate_from_coords_batch",
     "generate_overrides_for_model_eval",
     "generate_overrides_for_track_based_crops",
-    "generate_zarr_csv_for_model_eval",
+    "generate_training_zarr_dataframe_for_one_dataset",
+    "generate_zarr_dataframe_for_model_eval",
     "get_ckpt_path",
     "get_cytodl_commit_hash",
     "get_dataset_names_used_for_training",

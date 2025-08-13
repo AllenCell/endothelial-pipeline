@@ -13,6 +13,7 @@ from src.endo_pipeline.configs import (
     DatasetConfig,
     add_model_manifest,
     get_available_zarr_files,
+    get_position_string_from_zarr_file_path,
 )
 from src.endo_pipeline.io import (
     build_fms_annotations,
@@ -182,7 +183,7 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
-def generate_zarr_csv_for_model_eval(
+def generate_zarr_dataframe_for_model_eval(
     dataset_config: DatasetConfig,
     dataset_save_path: Path,
     zarr_resolution: int = 1,
@@ -191,7 +192,7 @@ def generate_zarr_csv_for_model_eval(
     frame_step: int | None = None,
     only_positions: list[int] | None = None,
 ) -> None:
-    """Generate a CSV file with path to Zarr files for the given dataset."""
+    """Generate a dataframe with the image loading metadata for given dataset."""
     # generate csv with paths to zarr files
     # this replaces the call to get_zarr_path from dataset_io
     # note that this will likely be refactored after
@@ -206,7 +207,7 @@ def generate_zarr_csv_for_model_eval(
     # only load images for specified position indices
     if only_positions is not None:
         df["position_index"] = df["path"].apply(
-            lambda x: int(_get_position_from_zarr_file_path(x)[-1])
+            lambda x: int(get_position_string_from_zarr_file_path(x)[-1])
         )
         df = df[df["position_index"].isin(only_positions)]
         logger.debug(f"Evaluating model on positions: {only_positions}")
@@ -331,17 +332,6 @@ def _bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Se
     return bbox_size_is_correct
 
 
-def _get_position_from_zarr_file_path(
-    zarr_file_path: str | Path,
-) -> str:
-    """
-    Extract position as 'P[x]' from the Zarr file path.
-
-    The position is expected to be the last part of the file name before the extension.
-    """
-    return Path(zarr_file_path).stem.split("_")[-1].split(".")[0]
-
-
 def update_prediction_from_crops_with_metadata(
     dataset_name: str,
     model_name: str,
@@ -369,7 +359,7 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_x"] = crop_size[1]
 
     pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: _get_position_from_zarr_file_path(s)
+        lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
@@ -398,7 +388,7 @@ def update_prediction_from_tracks_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
     pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: _get_position_from_zarr_file_path(s)
+        lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
@@ -478,7 +468,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             "of the first position the dataset."
         )
 
-    generate_zarr_csv_for_model_eval(
+    generate_zarr_dataframe_for_model_eval(
         dataset_config,
         dataset_save_path,
         zarr_resolution,

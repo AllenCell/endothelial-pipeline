@@ -43,6 +43,17 @@ def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
     return zarr_file
 
 
+def get_position_string_from_zarr_file_path(
+    zarr_file_path: str | Path,
+) -> str:
+    """
+    Extract position as 'P[x]' from the Zarr file path.
+
+    The position is expected to be the last part of the file name before the extension.
+    """
+    return Path(zarr_file_path).stem.split("_")[-1].split(".")[0]
+
+
 def get_available_channels_for_all_positions(dataset: DatasetConfig) -> dict[int, list[str]]:
     """Get available channels for all positions in given dataset."""
 
