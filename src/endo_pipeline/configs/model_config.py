@@ -17,6 +17,13 @@ class ModelManifest:
     fmsid: str
     """FMS ID of the resulting feature manifest."""
 
+    z_stack_offsets: list[int] = field(default_factory=list)
+    """
+    List of z-stack offsets from the center slices used for loading images.
+
+    If an empty list, the model was applied to the projection from the full range.
+    """
+
 
 @dataclass
 class ModelConfig:

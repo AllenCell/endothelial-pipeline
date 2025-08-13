@@ -5,6 +5,7 @@ from .apply_model import (
     generate_overrides_for_track_based_crops,
     generate_zarr_csv_for_model_eval,
     get_cytodl_commit_hash,
+    get_model_dir,
     load_overrides,
     preprocess_tracking_manifest_for_model_eval,
     update_prediction_from_crops_with_metadata,
@@ -17,6 +18,7 @@ from .diffae import (
     generate_from_coords,
     generate_from_coords_batch,
 )
+from .image_loading import BioIOImageLoaderd, MultiDimImageDataset
 from .latent_walk_utils import (
     get_latent_coords,
     get_pca_coords,
@@ -28,7 +30,6 @@ from .mlflow_utils import download_mlflow_artifact, download_model, get_ckpt_pat
 from .train_model import (
     build_and_save_dataframe_manifest_for_training,
     get_dataset_names_used_for_training,
-    get_model_dir,
     get_valid_csv_path_for_finetuning,
     get_valid_csv_path_for_training,
     initialize_diffae_model,
@@ -36,8 +37,10 @@ from .train_model import (
 )
 
 __all__ = [
+    "BioIOImageLoaderd",
     "DiffAEFinetune",
     "MinStdCropd",
+    "MultiDimImageDataset",
     "RotateRanged",
     "apply_model_on_grid_of_crops_from_one_dataset",
     "apply_model_on_tracked_crops_from_one_dataset",

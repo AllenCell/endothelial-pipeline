@@ -21,6 +21,7 @@ from src.endo_pipeline.io import (
     upload_file_to_fms,
 )
 from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from src.endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from src.endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
@@ -32,6 +33,11 @@ from src.endo_pipeline.manifests import (
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
 
 logger = logging.getLogger(__name__)
+
+
+def get_model_dir() -> Path:
+    """Get the path to `src.endo_pipeline.library.model`."""
+    return Path(__file__).resolve().parent
 
 
 def get_cytodl_commit_hash(run_id: str, model_path: Path) -> str:
@@ -97,7 +103,7 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 128,
+        "data.predict_dataloaders.num_workers": 8,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
@@ -128,12 +134,16 @@ def generate_overrides_for_track_based_crops(
     ckpt_path: str,
     dataset_name: str,
     model_name: str,
+    prediction_filename_suffix: str | None = None,
 ) -> dict[str, Any]:
     """
     Generate overrides for the CytoDLModel configuration
     to evaluate model `model_name` on crops of
     tracked objects in dataset `dataset_name`.
     """
+    if prediction_filename_suffix is None:
+        prediction_filename_suffix = f"{dataset_name}_{model_name}_tracked_crop_features"
+
     overrides = generate_overrides_for_model_eval(
         user_overrides,
         save_path=save_path,
@@ -157,7 +167,7 @@ def generate_overrides_for_track_based_crops(
                 "filename_or_obj",
                 "track_id",
             ],
-            "save_suffix": f"{dataset_name}_{model_name}_tracked_crop_features",
+            "save_suffix": prediction_filename_suffix,
         },
         # add cropping transform
         "data.predict_dataloaders.dataset.transform.transforms[6]": {
@@ -185,29 +195,60 @@ def generate_overrides_for_track_based_crops(
 def generate_zarr_csv_for_model_eval(
     dataset_config: DatasetConfig,
     dataset_save_path: Path,
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
+    z_stack_offsets: tuple[int, int] | None = None,
+    slice_by_global_center: bool = True,
     test_workflow: bool = False,
 ) -> None:
-    """Generate a CSV file with path to Zarr files for the given dataset."""
-    # generate csv with paths to zarr files
-    # this replaces the call to get_zarr_path from dataset_io
-    # note that this will likely be refactored after
-    # the new zarr methods merge
+    """Generate a CSV file with zarr loading metadata for the given dataset."""
+
+    # generate csv with paths to zarr files for each position in the dataset
     available_zarr_files = get_available_zarr_files(dataset_config)
     zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
 
     df = pd.DataFrame({"path": zarr_file_paths})
     df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = zarr_resolution
+    df["resolution"] = resolution_level
 
-    if test_workflow:
+    # if z_stack_offsets is not None, add a column with z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    if z_stack_offsets is not None:
+        # this is a wrapper function to get z-slice ranges
+        # from dataset name and position in the dataset using
+        # zarr_file_path our way to get the position
+        def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
+            # get position from zarr path as an integer (e.g., 'P0' -> 0)
+            position_as_int = int(zarr_file_path.stem.split("_")[-1].split(".")[0][-1])
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
+            )
+            return z_slices
+
+        # apply the function to each zarr file path
+        df["Z"] = df["path"].apply(lambda x: _get_z_slices(Path(x), dataset_config))
+        df["z_start"] = df["Z"].apply(lambda x: x[0])
+        df["z_stop"] = df["Z"].apply(lambda x: x[-1])
+        # remove the Z column as it is not needed anymore
+        df.drop(columns=["Z"], inplace=True)
+
+    if test_workflow and z_stack_offsets is None:
         # for workflow testing, only use first position from each dataset
         # and first two timepoints to speed up the dataloading process
         # (if dataset is not timelapse, then only one timepoint is used)
         df = df.head(1)
-        df["start"] = 0
-        df["stop"] = 1 if dataset_config.is_timelapse else 0
+        df["frame_start"] = 0
+        df["frame_stop"] = 1 if dataset_config.is_timelapse else 0
+    elif z_stack_offsets is not None:
+        # specify the t column as [0,250,500] for testing z-stack offsets
+        df["frame_start"] = df["path"].apply(lambda x: 0)
+        df["frame_stop"] = df["path"].apply(lambda x: -1)
+        df["frame_step"] = df["path"].apply(lambda x: 250)
 
+    # save csv
     df.to_csv(dataset_save_path, index=False)
 
 
@@ -325,7 +366,7 @@ def update_prediction_from_crops_with_metadata(
     crop_size: list[int],
     mlflow_id: str,
     prediction_path: Path,
-) -> Path:
+) -> None:
     """
     Update the prediction file with metadata,
     return the path to the updated prediction file.
@@ -353,13 +394,10 @@ def update_prediction_from_crops_with_metadata(
 
 
 def update_prediction_from_tracks_with_metadata(
-    dataset_name: str, model_name: str, mlflow_id: str, save_path: Path
-) -> Path:
+    dataset_name: str, model_name: str, mlflow_id: str, prediction_path: Path
+) -> None:
     """Update the prediction file with metadata."""
     # add model and dataset information to prediction file
-    prediction_path = (
-        save_path / f"predict_{dataset_name}_{model_name}_tracked_crop_features.parquet"
-    )
     pred_df = pd.read_parquet(prediction_path)
     pred_df["dataset"] = dataset_name
     pred_df["model_name"] = model_name
@@ -379,15 +417,16 @@ def update_prediction_from_tracks_with_metadata(
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
-    return prediction_path
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
-    zarr_resolution: int = 1,
+    resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
+    slice_by_global_center: bool = True,
     test_workflow: bool = False,
 ) -> CytoDLModelConfig:
     """
@@ -399,7 +438,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Configuration of the model to apply.
     dataset_config
         Configuration of the dataset to apply the model to.
-    zarr_resolution
+    resolution_level
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
@@ -407,11 +446,28 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
+    z_stack_offsets: tuple[int, int] | None
+        If None, all z-slices are loaded. Default is None.
+        If provided, limits the number of z-slices to load from the raw brightfield images.
+        First element is the lower offset, how many slices below the center plane to include, and
+        the second element is the upper offset, how many slices above the center plane to include.
+    slice_by_global_center: bool
+        If True, calculate the range of indices based on the global center plane for the given
+        position. If False, use `lower_offset` and `upper_offset` directly as the range bounds.
+        Defaults to True.
     test_workflow
         Flag to indicate if this script is being run for testing purposes (e.g., code review).
 
         If True, then only one position and minimal timepoints from the dataset is included for
         loading and performing inferrence on the crops.
+
+    Returns
+    -------
+    :
+        Creates dataframe of features extracted from the crops and saves it to the output path.
+
+        If `upload_to_fms` is True, uploads the prediction file to FMS and adds the file ID to the
+        model config manifest.
     """
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
@@ -421,6 +477,15 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, "train")
     path_dict = download_model(mlflow_id, model_path)
+
+    # right now, need to use the tracked version of the config if using the
+    # "legacy" model "diffae_04_10" (temporary workaround until we are only using
+    # models trained with the new pipeline)
+    if model_config.name == "diffae_04_10":
+        path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
+        logger.info(
+            "Loading legacy model config for diffae_04_10 from \n %s", path_dict["config_path"]
+        )
 
     # set default output path
     save_path = get_output_path("models", model_config.name, dataset_config.name)
@@ -432,10 +497,23 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    # create zarr dataset
-    dataset_save_path = save_path / f"dataset_{timestamp}.csv"
+    # create zarr loading metadata dataframe
+    # get unique name for the CSV file
+    file_name = "dataset"
+    if z_stack_offsets is not None:
+        file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
+    if slice_by_global_center:
+        file_name = f"{file_name}_ctr"
+
+    file_name = f"{file_name}_{timestamp}.csv"
+    dataset_save_path = save_path / file_name
     generate_zarr_csv_for_model_eval(
-        dataset_config, dataset_save_path, zarr_resolution, test_workflow
+        dataset_config,
+        dataset_save_path,
+        resolution_level,
+        z_stack_offsets,
+        slice_by_global_center,
+        test_workflow=test_workflow,
     )
 
     # apply overrides
@@ -478,9 +556,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
         # add new manifest to model config
         model_config = add_model_manifest(
-            model_config,
-            dataset_config.name,
-            file_id,
+            model_config, dataset_config.name, file_id, z_stack_offsets=z_stack_offsets
         )
 
     return model_config
@@ -534,6 +610,10 @@ def apply_model_on_tracked_crops_from_one_dataset(
 
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
+    # use timestamp to get unique file name for FMS upload later
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
+    prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
@@ -542,15 +622,17 @@ def apply_model_on_tracked_crops_from_one_dataset(
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
+        prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
     model.predict()
 
-    prediction_path = update_prediction_from_tracks_with_metadata(
+    prediction_path = save_path / f"predict_{prediction_filename_suffix}.parquet"
+    update_prediction_from_tracks_with_metadata(
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         mlflow_id=mlflow_id,
-        save_path=save_path,
+        prediction_path=prediction_path,
     )
 
     if upload_to_fms:
