@@ -14,6 +14,12 @@ def main(
     Produces a table of latent features from a non-overlapping grid of crops
     for each dataset. The model is applied at the specified resolution level.
 
+    ** Workflow testing **
+
+    If testing mode is enabled, the model will only be evaluated on the first few timepoints
+    of the first position of the first dataset. Furthermore, the `staging` environment
+    for FMS will be used for file uploads.
+
     Parameters
     ----------
     model_name
@@ -95,7 +101,7 @@ def main(
             # if test workflow, only process the first dataset
             logger.warning(
                 "Workflow testing is enabled, only processing the first dataset: [ %s ]",
-                dataset_config_list[0].name,
+                dataset_config.name,
             )
             break
 
