@@ -336,13 +336,10 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
-    # dimensionalize the area
-    logger.info("Dimensionalizing area and perimeter...")
+    # add pixel sizes
     big_table["pixel_size_xy_in_um"] = big_table["dataset_name"].transform(
         lambda dataset_name: um_per_px_map[dataset_name]
     )
-    big_table["area (um**2)"] = big_table["area"] * big_table["pixel_size_xy_in_um"] ** 2
-    big_table["perimeter (um)"] = big_table["perimeter"] * big_table["pixel_size_xy_in_um"]
 
     # add a column for the number of neighbors
     # touching each region that is being tracked
