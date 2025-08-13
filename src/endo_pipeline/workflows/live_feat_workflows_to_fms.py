@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-import fire
 from tqdm import tqdm
 
 from src.endo_pipeline.configs import (
@@ -52,7 +51,6 @@ def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) 
     )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "cdh5_classic_segmentation_tracking"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -87,7 +85,6 @@ def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path)
     )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "cdh5_classic_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -122,7 +119,6 @@ def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) 
     )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "nuclei_label_free_segmentation"
     workflow_name = "live_feat_workflows_to_fms"
 
@@ -157,7 +153,6 @@ def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) ->
     )
 
     # Store FMS ID in dataframe manifest
-
     manifest_name = "live_merged_seg_features"
     workflow_name = "live_feat_workflows_to_fms"
 
