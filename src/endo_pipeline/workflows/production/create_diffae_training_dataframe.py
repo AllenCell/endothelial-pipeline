@@ -57,8 +57,6 @@ def main(resolution_level: int = 1) -> None:
         build_zarr_image_loading_dataframe,
     )
 
-    logger = logging.getLogger(__name__)
-
     output_savedir = get_output_path("dataframes")
 
     # load data config
@@ -80,15 +78,11 @@ def main(resolution_level: int = 1) -> None:
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_positions = [0]  # only use the first position
-            logger.warning(
-                "Workflow testing is enabled, only processing the first few timepoints "
-                "of the first position the dataset."
-            )
         zarr_dataframes.append(
             build_zarr_image_loading_dataframe(
                 dataset_config=dataset_config,
                 resolution_level=resolution_level,
-                channel=[ZARR_BF_CHANNEL, ZARR_CDH5_CHANNEL],
+                channel=[ZARR_CDH5_CHANNEL, ZARR_BF_CHANNEL],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
                 only_positions=only_positions,

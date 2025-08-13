@@ -8,12 +8,7 @@ import pandas as pd
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig
 
-from src.endo_pipeline.configs import (
-    DatasetConfig,
-    get_available_zarr_files,
-    get_position_string_from_zarr_file_path,
-    load_dataset_collection_config,
-)
+from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
 from src.endo_pipeline.io import (
     build_fms_annotations,
     get_local_path_from_fmsid,
@@ -220,8 +215,8 @@ def initialize_diffae_model(
     """
 
     assert (
-        log_every_n_steps < max_num_epochs
-    ), "Logging interval must be less than the maximum number of epochs. "
+        log_every_n_steps <= max_num_epochs
+    ), "Logging interval must be less than or equal to the maximum number of epochs. "
 
     # user overrides for training
     overrides = _generate_overrides_for_model_training(

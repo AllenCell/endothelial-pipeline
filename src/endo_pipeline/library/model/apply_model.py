@@ -361,6 +361,71 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
+def _get_zarr_dataframe_for_centered_z_offsets(
+    dataset_config: DatasetConfig,
+    resolution_level: int = 1,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
+    slice_by_global_center: bool = True,
+    only_positions: list[int] | None = None,
+) -> pd.DataFrame:
+    """
+    Get a dataframe with zarr loading metadata when z-slice selection is based
+    on the center slice for each position in the dataset.
+    """
+    # if z_stack_offsets is not None, get z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    z_slice_by_position = None
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    if z_stack_offsets is not None:
+        z_slice_by_position = []
+        for zarr_file_path in available_zarr_files:
+            # get position from zarr path as an integer (e.g., 'P0' -> 0)
+            position_as_int = int(get_position_string_from_zarr_file_path(zarr_file_path)[-1])
+            # get z-slice indices for the given position
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
+            )
+            z_slice_by_position.append(z_slices)
+
+    # generate dataframe with zarr loading metadata
+    # for each position in the dataset
+    # done this way because z-stack offsets are generally position-specific
+    df_per_position = []
+    for i in range(len(available_zarr_files)):
+        if only_positions is not None and i not in only_positions:
+            continue
+        else:
+            # build dataframe for position
+            # and append it to the list
+            if only_positions is None:
+                only_position = [i]
+            else:
+                only_position = only_positions[i]
+            df_per_position.append(
+                build_zarr_image_loading_dataframe(
+                    dataset_config,
+                    resolution_level=resolution_level,
+                    channel=ZARR_BF_CHANNEL,
+                    frame_start=frame_start,
+                    frame_stop=frame_stop,
+                    frame_step=frame_step,
+                    z_start=z_slice_by_position[i][0] if z_stack_offsets else None,
+                    z_stop=z_slice_by_position[i][-1] if z_stack_offsets else None,
+                    only_positions=only_position,
+                )
+            )
+    # concatenate dataframes for all positions
+    df = pd.concat(df_per_position, ignore_index=True)
+    return df
+
+
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
@@ -446,8 +511,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     file_name = "dataset"
     if z_stack_offsets is not None:
         file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
-    if slice_by_global_center:
-        file_name = f"{file_name}_ctr"
+        if slice_by_global_center:
+            file_name = f"{file_name}_ctr"
 
     file_name = f"{file_name}_{timestamp}.csv"
     dataset_save_path = save_path / file_name
@@ -457,12 +522,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     frame_stop = None
     frame_step = None
     only_positions = None  # keep all rows in the dataset CSV
-
-    if z_stack_offsets is not None:
-        # load timepoints 0, 250, and 500 for z-stack offsets summary
-        frame_start = 0
-        frame_stop = -1
-        frame_step = 250
 
     if testing_mode:
         # for workflow testing, only use first position from each dataset
@@ -476,42 +535,36 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             "of the first position the dataset."
         )
 
-    # if z_stack_offsets is not None, get z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
-    z_slice_by_position = None
-    available_zarr_files = get_available_zarr_files(dataset_config)
     if z_stack_offsets is not None:
-        z_slice_by_position = []
-        for zarr_file_path in available_zarr_files:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = int(get_position_string_from_zarr_file_path(zarr_file_path)[-1])
-            # get z-slice indices for the given position
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
-            z_slice_by_position.append(z_slices)
+        # load timepoints 0, 250, and 500 for z-stack offsets summary
+        frame_start = 0
+        frame_stop = -1
+        frame_step = 250
 
-    # generate dataframe with zarr loading metadata
-    df_per_position = [
-        build_zarr_image_loading_dataframe(
+        # get the dataframe with zarr loading metadata
+        df = _get_zarr_dataframe_for_centered_z_offsets(
+            dataset_config,
+            resolution_level=resolution_level,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            frame_step=frame_step,
+            z_stack_offsets=z_stack_offsets,
+            slice_by_global_center=slice_by_global_center,
+            only_positions=only_positions,
+        )
+    else:
+        # if no z-stack offsets are provided, can get the dataframe
+        # directly from the build_zarr_image_loading_dataframe function
+        df = build_zarr_image_loading_dataframe(
             dataset_config,
             resolution_level=resolution_level,
             channel=ZARR_BF_CHANNEL,
             frame_start=frame_start,
             frame_stop=frame_stop,
             frame_step=frame_step,
-            z_start=z_slice_by_position[i][0] if z_stack_offsets else None,
-            z_stop=z_slice_by_position[i][-1] if z_stack_offsets else None,
             only_positions=only_positions,
         )
-        for i in range(len(available_zarr_files))
-    ]
-    # concatenate dataframes for all positions
-    df = pd.concat(df_per_position, ignore_index=True)
+
     # save the dataframe to a CSV file
     df.to_csv(dataset_save_path, index=False)
 

@@ -74,16 +74,13 @@ def add_model_manifest(
     else:
         z_stack_offsets_ = list(z_stack_offsets)  # Ensure it's a list
 
-    if model_config.manifest_fmsids is None:
-        model_config.manifest_fmsids = []
-
     # check if a manifest already exists for this dataset
     # with the same full_z_stack setting
     for manifest in model_config.manifest_fmsids:
         if manifest.dataset_name == dataset_name and manifest.z_stack_offsets == z_stack_offsets_:
             logger.warning(
-                "Manifest for dataset %s with z-stack offsets %s "
-                "already exists in model config %s.",
+                "Manifest for dataset [ %s ] with z-stack offsets [ %s ] "
+                "already exists in model config [ %s ], adding potential duplicate.",
                 dataset_name,
                 z_stack_offsets,
                 model_config.name,

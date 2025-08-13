@@ -1,0 +1,11 @@
+name: diffae_training_dataframe_resolution_1_test_workflow
+workflow: create_diffae_training_dataframe
+parameters:
+  resolution_level: 1
+locations:
+  training:
+    fmsid: 67229e4a87884c43b1ae58ef8614648f
+    s3uri: null
+  validation:
+    fmsid: 3b44c7f705b44a2ca40c25f03cb4660f
+    s3uri: null
