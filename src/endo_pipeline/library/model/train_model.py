@@ -35,7 +35,7 @@ def _generate_overrides_for_model_training(
     """
     Generate overrides for the DiffAE model training configuration.
 
-    ** Workflow testing **
+    **Workflow testing**
 
     If the training workflow is being run in testing mode, the model will be trained for
     only one epoch. That is, the `max_num_epochs` input will be set to 1, which overrides
