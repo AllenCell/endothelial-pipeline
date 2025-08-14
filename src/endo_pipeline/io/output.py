@@ -198,7 +198,7 @@ def upload_file_to_fms(
     from src.endo_pipeline.io.fms import FMS
 
     logger.debug("Starting upload of [ %s ] to FMS", file_path)
-    fms_file = FMS.upload_file(str(file_path), file_type, annotations, should_be_in_local=True)
+    fms_file = FMS.upload_file(str(file_path), file_type, annotations)
     logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
 
     return fms_file.id
