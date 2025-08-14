@@ -44,8 +44,6 @@ def main(resolution_level: int = 1) -> None:
         DataframeManifest with DatasetLocation objects containing the FMS IDs of
         the uploaded files.
     """
-    import logging
-
     import pandas as pd
     from sklearn.model_selection import train_test_split
 

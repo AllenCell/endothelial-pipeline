@@ -145,9 +145,6 @@ manifest_fmsids:
   z_stack_offsets:
   - 9
   - 24
-- dataset_name: 20241016_20X
-  fmsid: 79f85e3d02de45d4ae503032819691b1
-  z_stack_offsets: []
 training_datasets:
 - 20241210_20X
 - 20241016_20X
