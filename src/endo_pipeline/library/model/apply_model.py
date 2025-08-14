@@ -95,6 +95,7 @@ def generate_overrides_for_model_eval(
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
+    num_workers: int = 128,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -106,7 +107,7 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 4,
+        "data.predict_dataloaders.num_workers": num_workers,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
@@ -588,7 +589,10 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
-    logger.debug("Dataframe for model evaluation created, overriding config")
+    # having issues with zarr loading when using z-slices from global center,
+    # need to decrease the num_workers
+    num_workers = 4 if (z_stack_offsets is not None and slice_by_global_center) else 128
+    logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=str(save_path),
@@ -597,8 +601,15 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         prediction_filename_suffix=prediction_filename_suffix,
+        num_workers=num_workers,
     )
     model.override_config(overrides)
+    local_config_save_path = get_output_path("models", "evaluation_configs")
+    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+    logger.info(
+        "Evaluation config saved to [ %s ]",
+        local_config_save_path / f"{model_config.name}_eval.yaml",
+    )
     logger.debug("Starting model prediction...")
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
