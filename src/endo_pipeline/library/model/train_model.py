@@ -245,7 +245,7 @@ def _upload_zarr_dataframe_to_fms(
 ) -> str:
     # save the dataframes to csv files locally as intermediates
     # use timestamp to ensure unique filenames
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M")
     output_path = output_savedir / f"{dataset_type}_resolution_{resolution_level}_{timestamp}.csv"
     dataframe.to_csv(output_path, index=False)
     logger.debug("Saved % s dataframe to \n %s", dataset_type, output_path)

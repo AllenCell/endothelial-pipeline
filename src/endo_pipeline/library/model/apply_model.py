@@ -511,7 +511,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     save_path = get_output_path("models", model_config.name, dataset_config.name)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M%S")
 
     # load model
     model = CytoDLModel()
@@ -681,7 +681,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M%S")
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
     prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides
