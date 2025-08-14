@@ -43,6 +43,8 @@ def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) 
         center_plane_selection = cast(float, max(0, np.argmin(stdevs)))
         center_planes.append(center_plane_selection)
 
+    del bf_stack_all_frames  # Free memory after processing
+
     mean_center_plane = np.mean(center_planes)
     global_center_plane = round(mean_center_plane, 0)
 
