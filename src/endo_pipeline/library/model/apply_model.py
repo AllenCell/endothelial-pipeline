@@ -591,7 +591,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
     # having issues with zarr loading when using z-slices from global center,
     # need to decrease the num_workers
-    num_workers = 4 if (z_stack_offsets is not None and slice_by_global_center) else 128
+    num_workers = 64 if (z_stack_offsets is not None and slice_by_global_center) else 128
     logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),

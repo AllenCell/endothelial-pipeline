@@ -7,7 +7,7 @@ def main(
     resolution_level: int = 1,
     upload_to_fms: bool = True,
     user_overrides: str | dict | None = None,
-    z_stack_offsets: tuple[int, int] | None = (5, 10),
+    z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
 ) -> None:
     """
@@ -65,8 +65,6 @@ def main(
     from typing import cast
 
     from src.endo_pipeline import TESTING_MODE
-
-    TESTING_MODE = True
     from src.endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
