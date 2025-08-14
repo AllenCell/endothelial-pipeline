@@ -30,9 +30,6 @@ def merge_measured_segmentation_features_tables(
     (cdh5_get_measured_features.py), and the labelfree
     nuclei measurement workflow (nuc_get_measured_features.py).
     """
-    # cellprops_df and tracking_df have redundant centroid columns; drop one
-    cellprops_df.drop(["cell_centroid"], inplace=True)
-
     big_table = pd.merge(
         left=tracking_df,
         right=cellprops_df,
@@ -45,6 +42,18 @@ def merge_measured_segmentation_features_tables(
         left_on=["dataset_name", "position", "T", "label"],
         right_on=["dataset_name", "position", "T", "cdh5_segmentation_label"],
     )
+    # the following columns are redundant with another in the table and
+    # can be dropped:
+    duplicate_cols = [
+        "label",
+        "cdh5_segmentation_label",
+        "cell_centroid",
+        "cell_area (px**2)",
+        "cell_perimeter (px)",
+        "touches_border",
+    ]
+    big_table.drop(columns=duplicate_cols, inplace=True)
+
     return big_table
 
 
@@ -340,6 +349,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table["pixel_size_xy_in_um"] = big_table["dataset_name"].transform(
         lambda dataset_name: um_per_px_map[dataset_name]
     )
+    big_table["area (um**2)"] = big_table["area"] * big_table["pixel_size_xy_in_um"] ** 2
+    big_table["perimeter (um)"] = big_table["perimeter"] * big_table["pixel_size_xy_in_um"]
 
     # add a column for the number of neighbors
     # touching each region that is being tracked
@@ -500,34 +511,6 @@ def get_aspect_ratio(eccentricity: float) -> float:
     return aspect_ratio
 
 
-# def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list | tuple:
-#     """Converts a list that is saved as a string back to a list object.
-#     Assumes that there is only one set of brackets (either '[]' or '()').
-#     """
-#     # if 'ls' is already a list of floats then return the input
-#     if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
-#         return tuple(ls) if to_tuple else ls
-#     # otherwise procede with the conversion
-#     else:
-#         strfloats = ls.strip("[]")
-#         strfloats = strfloats.strip("()")
-#         float_list: list[Any] = []
-#         for x in strfloats.split(","):
-#             try:
-#                 float_list.append(float(x))
-#             # handle allowed special cases or raise an error
-#             except ValueError:
-#                 if "masked" in x:
-#                     float_list.append(np.ma.masked)
-#                 elif "nan" in x:
-#                     float_list.append(np.nan)
-#                 elif x == "":
-#                     pass
-#                 else:
-#                     raise ValueError(f'Could not convert "{x}" to float.')
-#         return tuple(float_list) if to_tuple else float_list
-
-
 def get_centroid_velocity(
     centroid_xs: float, centroid_ys: float, timepoints: float
 ) -> tuple[float, float]:
@@ -543,52 +526,6 @@ def calculate_smoothed_normd_area(
     smoothed_area = gaussian_filter1d(area, sigma=smoothing_sigma)
     area_normd = area / smoothed_area
     return area_normd
-
-
-# def filter_and_save_track_data_for_landscape_integration(
-#     big_table: pd.DataFrame,
-#     out_filename: str | Path | None = None,
-#     crop_size: int = 256,
-#     min_num_points_per_track: int = 0,
-#     return_df: bool = False,
-# ) -> pd.DataFrame | None:
-
-#     big_table = big_table[
-#         big_table.groupby(["dataset_name", "position", "track_id"])["track_id"].transform(
-#             lambda x: x.count() > min_num_points_per_track
-#         )
-#     ]
-
-#     integration_table = big_table[
-#         [
-#             "zarr_path",
-#             "image_index",
-#             "track_id",
-#             "label",
-#             "centroid_x",
-#             "centroid_y",
-#             "image_size_x",
-#             "image_size_y",
-#         ]
-#     ].copy()
-#     integration_table["crop_size"] = crop_size
-
-#     # remove all the centroids that are closer than 128 pixels
-#     # to the image border
-#     integration_table = integration_table[integration_table["centroid_x"] > crop_size // 2]
-#     integration_table = integration_table[integration_table["centroid_y"] > crop_size // 2]
-#     integration_table = integration_table[
-#         integration_table["centroid_x"] < integration_table["image_size_x"] - crop_size // 2
-#     ]
-#     integration_table = integration_table[
-#         integration_table["centroid_y"] < integration_table["image_size_y"] - crop_size // 2
-#     ]
-
-#     if out_filename:
-#         # save the filtered data to a file
-#         integration_table.to_csv(out_filename, index=False)
-
-#     return integration_table if return_df else None
 
 
 # restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
@@ -628,18 +565,6 @@ def get_nuclei_rel_to_cell_position(
     dy = cell_centroid_y - nuclei_centroid_y
 
     return dx, dy
-
-
-# def add_cell_segmentation_path_column(
-#     big_table: pd.DataFrame,
-# ) -> pd.DataFrame:
-#     seg_path_per_pos_dict = dict()
-#     for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys():  # type: ignore[arg-type, misc]
-#         seg_path_per_pos_dict[pos] = get_segmentation_path_dict(ds_nm, pos)  # type: ignore[has-type]
-#     big_table["cdh5_classic_segmentation_path"] = big_table.apply(
-#         lambda df: (seg_path_per_pos_dict[df["position"]][df["T"]].as_posix()), axis=1
-#     )
-#     return big_table
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
