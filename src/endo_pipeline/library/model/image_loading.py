@@ -15,7 +15,7 @@ from numpy.typing import DTypeLike
 from src.endo_pipeline.configs import (
     DatasetConfig,
     get_available_zarr_files,
-    get_position_string_from_zarr_file_path,
+    get_position_integer_from_zarr_file_path,
 )
 
 ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
@@ -370,7 +370,7 @@ def build_zarr_image_loading_dataframe(
     # only load images for specified position indices
     if only_positions is not None:
         df["position_index"] = df["path"].apply(
-            lambda x: int(get_position_string_from_zarr_file_path(x)[-1])
+            lambda x: get_position_integer_from_zarr_file_path(x)
         )
         df = df[df["position_index"].isin(only_positions)]
         df = df.drop(columns=["position_index"])

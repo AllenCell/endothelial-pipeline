@@ -14,6 +14,7 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
+    get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
@@ -298,3 +299,31 @@ def test_get_position_string_from_zarr_file_path_valid_position(path, expected_p
 def test_get_position_string_from_zarr_file_path_invalid_position(path):
     with pytest.raises(ValueError):
         get_position_string_from_zarr_file_path(path)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", 1),
+        ("/path/to/file/before_P2.ome.zarr", 2),
+        ("/path/to/file/P3_after.ome.zarr", 3),
+        ("/path/to/file/before_P14_after.ome.zarr", 14),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_integer_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_integer_from_zarr_file_path(path)

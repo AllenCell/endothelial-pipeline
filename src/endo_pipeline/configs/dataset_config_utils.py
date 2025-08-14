@@ -55,6 +55,18 @@ def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
     return position[0]
 
 
+def get_position_integer_from_zarr_file_path(zarr_file_path: str | Path) -> int:
+    """Extract position as integer from the file path, if found."""
+
+    position_str = get_position_string_from_zarr_file_path(zarr_file_path)
+
+    if not position_str.startswith("P"):
+        logger.error("Position string [ %s ] does not start with 'P'", position_str)
+        raise ValueError(f"Position string '{position_str}' is not valid")
+
+    return int(position_str.replace("P", ""))  # Convert 'P[x]' to x
+
+
 def get_available_channels_for_all_positions(dataset: DatasetConfig) -> dict[int, list[str]]:
     """Get available channels for all positions in given dataset."""
 

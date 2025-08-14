@@ -13,6 +13,7 @@ from src.endo_pipeline.configs import (
     DatasetConfig,
     add_model_manifest,
     get_available_zarr_files,
+    get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
 from src.endo_pipeline.io import (
@@ -383,9 +384,7 @@ def _get_zarr_dataframe_for_z_offsets(
         z_slice_by_position = []
         for zarr_file_path in available_zarr_files:
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = int(
-                get_position_string_from_zarr_file_path(zarr_file_path).replace("P", "")
-            )
+            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
             # get z-slice indices for the given position
             z_slices = get_plane_indices(
                 dataset_config,
