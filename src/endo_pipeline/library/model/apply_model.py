@@ -383,7 +383,9 @@ def _get_zarr_dataframe_for_z_offsets(
         z_slice_by_position = []
         for zarr_file_path in available_zarr_files:
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = int(get_position_string_from_zarr_file_path(zarr_file_path).replace("P", ""))
+            position_as_int = int(
+                get_position_string_from_zarr_file_path(zarr_file_path).replace("P", "")
+            )
             # get z-slice indices for the given position
             z_slices = get_plane_indices(
                 dataset_config,
@@ -440,11 +442,24 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     """
     Apply a DiffAE model to a single dataset.
 
-    ** Workflow testing **
+    **Workflow testing**
 
-    If `testing_mode` is set to True, the model will only be applied to the first
+    If ``testing_mode`` is set to True, the model will only be applied to the first
     position of the dataset and only the first two timepoints will be used. The
-    `staging` environment of FMS will be used for uploading the prediction file.
+    staging environment of FMS will be used for uploading the prediction file.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
+
 
     Parameters
     ----------
@@ -460,15 +475,10 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
-    z_stack_offsets: tuple[int, int] | None
-        If None, all z-slices are loaded. Default is None.
-        If provided, limits the number of z-slices to load from the raw brightfield images.
-        First element is the lower offset, how many slices below the center plane to include, and
-        the second element is the upper offset, how many slices above the center plane to include.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
     slice_by_global_center: bool
-        If True, calculate the range of indices based on the global center plane for the given
-        position. If False, use `lower_offset` and `upper_offset` directly as the range bounds.
-        Defaults to True.
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
     testing_mode
         Execute method in workflow testing mode if True, run full model evaluation if False.
 
@@ -477,7 +487,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     :
         Creates dataframe of features extracted from the crops and saves it to the output path.
 
-        If `upload_to_fms` is True, uploads the prediction file to FMS and adds the file ID to the
+        If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
     if not torch.cuda.is_available():
@@ -547,9 +557,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             z_stack_offsets,
             slice_by_global_center,
         )
-        logger.debug(
-            "Frame start: [ %s ], stop: [ %s ], step: [ %s ]", frame_start, frame_stop, frame_step
-        )
+        logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
         # get the dataframe with zarr loading metadata
         df = _get_zarr_dataframe_for_z_offsets(

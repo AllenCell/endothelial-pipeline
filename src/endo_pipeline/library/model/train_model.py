@@ -39,8 +39,8 @@ def _generate_overrides_for_model_training(
 
     If the training workflow is being run in testing mode, the model will be trained for
     only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of `trainer.max_epochs` in the training config. The value
-    of log_every_n_steps will also be set to 1.
+    the configuration value of ``trainer.max_epochs`` in the training config. The value
+    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -182,21 +182,19 @@ def initialize_diffae_model(
     """
     Initialize a DiffAE model for training.
 
-    ** Workflow testing **
+    **Workflow testing**
 
     If the training workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the `max_num_epochs` input will be set to 1, which overrides
-    the configuration value of `trainer.max_epochs` in the training config. The value
-    of `log_every_n_steps` will also be set to 1.
+    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
+    the configuration value of ``trainer.max_epochs`` in the training config. The value
+    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
     template_training_config
         The template training configuration to use.
     crop_size
-        The pixel size of the image crop to use for training.
-        This is the crop size along one dimension, the image will be square
-        with size (crop_size, crop_size).
+        The pixel size of the square image crop along one dimension to use in training.
     model_name
         The name of the model to train.
     train_csv_path
@@ -211,12 +209,14 @@ def initialize_diffae_model(
     Returns
     -------
     :
-        An initialized CytoDLModel for training the DiffAE model.
+        An initialized ``CytoDLModel`` for training the DiffAE model.
     """
 
-    assert (
-        log_every_n_steps <= max_num_epochs
-    ), "Logging interval must be less than or equal to the maximum number of epochs. "
+    if log_every_n_steps > max_num_epochs:
+        logger.error("Logging interval must be less than or equal to the maximum number of epochs.")
+        raise ValueError(
+            "Logging interval must be less than or equal to the maximum number of epochs."
+        )
 
     # user overrides for training
     overrides = _generate_overrides_for_model_training(
@@ -280,12 +280,12 @@ def build_and_save_dataframe_manifest_for_training(
     """
     Upload training and validation image loading dataframes to FMS.
 
-    ** Workflow testing **
+    **Workflow testing**
 
     If the dataframe building workflow is being run in testing mode, the training and validation
     datasets will only keep one entry each. This is useful for testing the workflow without needing
-    to load large datasets. The dataframes will be uploaded to the `staging` environment of FMS,
-    and the resulting DataframeManifest will be saved with `_test_workflow` appended to the name.
+    to load large datasets. The dataframes will be uploaded to the staging environment of FMS,
+    and the resulting DataframeManifest will be saved with ``_test_workflow`` appended to the name.
 
     Parameters
     ----------
@@ -305,9 +305,9 @@ def build_and_save_dataframe_manifest_for_training(
     Returns
     -------
     :
-        Saves a DataframeManifest with DatasetLocation objects containing the FMS IDs
+        Saves a ``DataframeManifest`` with ``DatasetLocation`` objects containing the FMS IDs
         of the uploaded files. The manifest is saved to the default location for
-        DataframeManifests: `src/endo_pipeline/manifests/dataframes/`.
+        ``DataframeManifests``: [ src/endo_pipeline/manifests/dataframes/ ].
 
     """
     # first, upload the train and val dataframes to FMS
@@ -350,15 +350,15 @@ def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Pa
 
     Parameters
     ----------
-    dataframe_location: DataframeLocation
-        The DataframeLocation object containing either the FMS ID of the CSV file
-        or the S3 URI of the CSV file.
+    dataframe_location
+        The DataframeLocation object containing either the FMS ID or S3 URI of the CSV file.
 
 
     Returns
     -------
     :
         A valid Path object pointing to the CSV file for training or validation sets.
+
         If the DataframeLocation object has an S3 URI, it will be used. Else, this
         function downloads the CSV file from FMS using the FMS ID and returns the local path.
     """

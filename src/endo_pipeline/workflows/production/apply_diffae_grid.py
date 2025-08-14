@@ -13,28 +13,28 @@ def main(
     """
     Apply a model to a multiple datasets.
 
-    Example usage:
-    ```
-    endopipe apply-diffae-grid \
-    --dataset-name 20250409_20X --z-stack-offsets 0 16 --no-slice-by-global-center -v -g
-    ```
+    .. code-block:: bash
+        :caption: Example usage:
+
+        endopipe -vg apply-diffae-grid --dataset-name 20250409_20X --z-stack-offsets 0 16 --no-slice-by-global-center
+
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
 
     Produces a table of latent features from a non-overlapping grid of crops
     for each dataset. The model is applied at the specified resolution level.
 
-    ** Workflow testing **
+    **Workflow testing**
 
     If testing mode is enabled, the model will only be evaluated on the first few timepoints
     of the first position of the first dataset. Furthermore, the `staging` environment
     for FMS will be used for file uploads.
 
-    ** Z-stack offsets **
+    **Z-stack offsets**
 
-    The `z_stack_offsets` parameter allows for flexible control over the z-slice loading.
-    If `z_stack_offsets` is provided, it limits the number of z-slices to load, either
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
     by slicing about a global center or by using the provided offsets directly. If it
-    is `None`, all z-slices are loaded from the raw brightfield images.
+    is ``None``, all z-slices are loaded from the raw brightfield images.
 
 
     Parameters
@@ -60,7 +60,7 @@ def main(
     :
         Saves the model config with the applied model and model manifest objects.
         The model config is saved to [ endo_pipeline/configs/models/{model_name}.yaml ].
-    """
+    """  # noqa: E501
 
     import logging
     from typing import cast

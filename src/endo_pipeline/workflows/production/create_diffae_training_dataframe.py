@@ -29,8 +29,8 @@ def main(resolution_level: int = 1) -> None:
     The ``--testing-mode`` (aka ``-x``) flag can be used to run a simplified version of this
     workflow for testing purposes (e.g. during code review). The training and validation datasets
     will only keep one position and minimal timepoints, which speeds up the data loading process
-    during model training. Furthermore, the script will use the `staging` environment instead of
-    `production` for FMS uploads.
+    during model training. Furthermore, the script will use the staging (``stg``) environment
+    instead of the production (``prod``) environment for FMS uploads.
 
     Parameters
     ----------
