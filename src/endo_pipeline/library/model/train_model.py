@@ -38,7 +38,7 @@ def _generate_overrides_for_model_training(
     **Workflow testing**
 
     If the training workflow is being run in testing mode, the model will be trained for
-    only one epoch. That is, the `max_num_epochs` input will be set to 1, which overrides
+    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
     the configuration value of `trainer.max_epochs` in the training config. The value
     of log_every_n_steps will also be set to 1.
 
