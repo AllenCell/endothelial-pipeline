@@ -367,7 +367,6 @@ def build_zarr_image_loading_dataframe(
             lambda x: int(get_position_string_from_zarr_file_path(x)[-1])
         )
         df = df[df["position_index"].isin(only_positions)]
-        logger.debug(f"Evaluating model on positions: {only_positions}")
         df = df.drop(columns=["position_index"])
 
     # if start and stop for loading timepoints are specified, add to dataframe

@@ -361,14 +361,14 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def _get_zarr_dataframe_for_centered_z_offsets(
+def _get_zarr_dataframe_for_z_offsets(
     dataset_config: DatasetConfig,
-    resolution_level: int = 1,
+    resolution_level: int,
+    z_stack_offsets: tuple[int, int],
+    slice_by_global_center: bool = True,
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
     only_positions: list[int] | None = None,
 ) -> pd.DataFrame:
     """
@@ -407,7 +407,8 @@ def _get_zarr_dataframe_for_centered_z_offsets(
             if only_positions is None:
                 only_position = [i]
             else:
-                only_position = only_positions[i]
+                only_position = [only_positions[i]]
+            logger.debug("Building zarr dataframe for position [ %s ]", only_position[0])
             df_per_position.append(
                 build_zarr_image_loading_dataframe(
                     dataset_config,
@@ -494,7 +495,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     if model_config.name == "diffae_04_10":
         path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
         logger.info(
-            "Loading legacy model config for diffae_04_10 from \n %s", path_dict["config_path"]
+            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
         )
 
     # set default output path
@@ -507,6 +508,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
+    logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
     # get unique name for the CSV file
     file_name = "dataset"
     if z_stack_offsets is not None:
@@ -530,7 +532,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start = 0
         frame_stop = 1 if dataset_config.is_timelapse else 0
         only_positions = [0]  # only use the first position
-        logger.warning(
+        logger.debug(
             "Workflow testing is enabled, only processing the first few timepoints "
             "of the first position the dataset."
         )
@@ -540,21 +542,30 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start = 0
         frame_stop = -1
         frame_step = 250
+        logger.debug(
+            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
+            z_stack_offsets,
+            slice_by_global_center,
+        )
+        logger.debug(
+            "Frame start: [ %s ], stop: [ %s ], step: [ %s ]", frame_start, frame_stop, frame_step
+        )
 
         # get the dataframe with zarr loading metadata
-        df = _get_zarr_dataframe_for_centered_z_offsets(
+        df = _get_zarr_dataframe_for_z_offsets(
             dataset_config,
             resolution_level=resolution_level,
+            z_stack_offsets=z_stack_offsets,
+            slice_by_global_center=slice_by_global_center,
             frame_start=frame_start,
             frame_stop=frame_stop,
             frame_step=frame_step,
-            z_stack_offsets=z_stack_offsets,
-            slice_by_global_center=slice_by_global_center,
             only_positions=only_positions,
         )
     else:
         # if no z-stack offsets are provided, can get the dataframe
         # directly from the build_zarr_image_loading_dataframe function
+        logger.debug("No z-stack offsets provided, loading all z-slices.")
         df = build_zarr_image_loading_dataframe(
             dataset_config,
             resolution_level=resolution_level,

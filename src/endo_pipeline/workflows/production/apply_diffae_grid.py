@@ -98,11 +98,6 @@ def main(
 
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_names]
 
-    if TESTING_MODE:
-        logger.warning(
-            "Workflow testing is enabled, will only be processing one position per dataset."
-        )
-
     # load model config
     model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
@@ -123,7 +118,7 @@ def main(
         )
         if TESTING_MODE:
             # if test workflow, only process the first dataset
-            logger.warning(
+            logger.debug(
                 "Workflow testing is enabled, only processing the first dataset: [ %s ]",
                 dataset_config.name,
             )
