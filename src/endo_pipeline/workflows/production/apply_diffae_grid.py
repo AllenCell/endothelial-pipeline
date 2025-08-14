@@ -11,22 +11,15 @@ def main(
     slice_by_global_center: bool = True,
 ) -> None:
     """
-    Apply a model to a multiple datasets.
-
-    .. code-block:: bash
-        :caption: Example usage:
-
-        endopipe -vg apply-diffae-grid --dataset-name 20250409_20X --z-stack-offsets 0 16 --no-slice-by-global-center
-
     Apply a trained DiffAE model to grid-based crops of images from multiple datasets.
 
-    Produces a table of latent features from a non-overlapping grid of crops
-    for each dataset. The model is applied at the specified resolution level.
+    Produces a table of latent features from a non-overlapping grid of crops for each dataset.
+    The model is applied at the specified resolution level.
 
     **Workflow testing**
 
     If testing mode is enabled, the model will only be evaluated on the first few timepoints
-    of the first position of the first dataset. Furthermore, the `staging` environment
+    of the first position of the first dataset. Furthermore, the staging environment
     for FMS will be used for file uploads.
 
     **Z-stack offsets**
@@ -35,6 +28,12 @@ def main(
     If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
     by slicing about a global center or by using the provided offsets directly. If it
     is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    **Example usage**
+
+    .. code-block:: bash
+
+        endopipe -vg apply-diffae-grid --dataset-name 20250409_20X --z-stack-offsets 0 16 --no-slice-by-global-center
 
 
     Parameters

@@ -14,15 +14,18 @@ def main(resolution_level: int = 1) -> None:
     resolution level. These dataframes are accessed by the data loader in the
     DiffAE model training script.
 
+
     **Dataset collection**
 
     The datasets are defined in the ``diffae_model_training`` dataset collection
     configuration.
 
+
     **Zarr resolution**
 
     Zarr files used by training can be used as different resolutions. The
     default resolution of 1 corresponds to downsampling by half.
+
 
     **Workflow testing**
 
