@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -106,7 +106,7 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 8,
+        "data.predict_dataloaders.num_workers": 4,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
@@ -511,7 +511,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     save_path = get_output_path("models", model_config.name, dataset_config.name)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
 
     # load model
     model = CytoDLModel()
@@ -588,6 +588,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
+    logger.debug("Dataframe for model evaluation created, overriding config")
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=str(save_path),
@@ -598,6 +599,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         prediction_filename_suffix=prediction_filename_suffix,
     )
     model.override_config(overrides)
+    logger.debug("Starting model prediction...")
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
@@ -681,7 +683,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
     prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides

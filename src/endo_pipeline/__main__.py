@@ -26,8 +26,11 @@ workflow_app = App(
 tags: dict[str, list[str]] = {}
 
 EXTERNAL_LOGGERS = {
+    "aicsfiles.client.http.http_client": logging.WARNING,
     "cyto_dl": logging.ERROR,
     "fsspec.local": logging.WARNING,
+    "git.cmd": logging.WARNING,
+    "h5py._conv": logging.WARNING,
     "lightning.pytorch": logging.WARNING,
     "lightning.pytorch.accelerators.cuda": logging.WARNING,
     "lightning.pytorch.utilities.rank_zero": logging.WARNING,
@@ -35,6 +38,7 @@ EXTERNAL_LOGGERS = {
     "numcodecs": logging.WARNING,
     "matplotlib": logging.WARNING,
     "torch": logging.WARNING,
+    "urllib3.connectionpool": logging.WARNING,
 }
 
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)

@@ -97,9 +97,11 @@ class BioIOImageLoaderd(Transform):
 
     def _get_filename(self, path: str, kwargs: dict) -> str:
         if self.include_meta_in_filename:
+            logger.debug("Including metadata in filename")
             path = path.split(".")[0] + "_" + "_".join([f"{k}_{v}" for k, v in kwargs.items()])
         # remove illegal characters from filename
         path = re.sub(r'[<>:"|?*]', "", path)
+        logger.debug("Generated filename: [ %s ]", path)
         return path
 
     def __call__(self, data: dict) -> dict:
@@ -112,24 +114,34 @@ class BioIOImageLoaderd(Transform):
         # memory use doesn't increase over time
         data = data.copy()
         if self.path_key not in data and not self.allow_missing_keys:
+            logger.error("Missing key in data dictionary: [ %s ]", self.path_key)
             raise KeyError(f"Missing key {self.path_key} in data dictionary")
         path = data[self.path_key]
+        logger.debug("Loading image from path: [ %s ]", path)
         img = BioImage(path)
         if self.scene_key in data:
             img.set_scene(data[self.scene_key])
         if self.resolution_key in data:
+            logger.debug("Setting resolution level to: [ %s ]", data[self.resolution_key])
             img.set_resolution_level(data[self.resolution_key])
         kwargs = {k: self.split_args(data[k]) for k in self.kwargs_keys if k in data}
+        logger.debug("Using kwargs for image loading: [ %s ]", kwargs)
 
         if self.dask_load:
+            logger.debug("Loading image data using Dask")
             img_as_array = img.get_image_dask_data(**kwargs).compute()  # type: ignore[arg-type]
         else:
+            logger.debug("Loading image data directly into memory")
             img_as_array = img.get_image_data(**kwargs)  # type: ignore[arg-type]
+        logger.debug("Image data loaded with shape: [ %s ]", img_as_array.shape)
+        logger.debug("Casting image data to dtype: [ %s ]", self.dtype)
         img_as_array = img_as_array.astype(self.dtype)
         if self.scene_key in data:
             kwargs["scene"] = data[self.scene_key]
+        logger.debug("Updating kwargs with filename or object")
         kwargs.update({"filename_or_obj": self._get_filename(path, kwargs)})
 
+        logger.debug("Adding image data to dictionary under key: [ %s ]", self.out_key)
         data[self.out_key] = MetaTensor(img_as_array, meta=kwargs)
         return data
 
@@ -369,6 +381,7 @@ def build_zarr_image_loading_dataframe(
 
     # only load images for specified position indices
     if only_positions is not None:
+        logger.debug("Filtering Zarr files to only include positions: [ %s ]", only_positions)
         df["position_index"] = df["path"].apply(
             lambda x: get_position_integer_from_zarr_file_path(x)
         )
