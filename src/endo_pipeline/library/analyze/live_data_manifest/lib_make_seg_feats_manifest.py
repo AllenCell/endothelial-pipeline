@@ -45,7 +45,7 @@ def merge_measured_segmentation_features_tables(
     # the following columns are redundant with another in the table and
     # can be dropped:
     duplicate_cols = [
-        "label",
+        "cell_label",
         "cdh5_segmentation_label",
         "cell_centroid",
         "cell_area (px**2)",
