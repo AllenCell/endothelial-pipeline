@@ -65,7 +65,6 @@ def create_segmentation_measured_feature_manifest(
     # depend on dynamics / require clean tracks
     logger.info("Calculating dynamics-independent metrics from existing measurements...")
 
-    # big_table = add_cell_segmentation_path_column(big_table)
     big_table = calculate_derived_data_dynamics_independent(big_table)
 
     # add the size of the crop used to get DiffAE features at full res
