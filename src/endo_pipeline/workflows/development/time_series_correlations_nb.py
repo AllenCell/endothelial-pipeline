@@ -1,8 +1,7 @@
-# %%
 DESCRIPTION = "Run auto- and cross-correlation analysis on DiffAE feature time series data."
 
 TAGS = ["diffae_features"]
-
+# %%
 import logging
 import sys
 from typing import cast
