@@ -118,12 +118,11 @@ for dataset_name in list_of_datasets:
             print(
                 f"PC {i + 1} relaxation timescale: {relaxation_time:.2f} hrs.",
             )
-        else:
-            logger.info(
-                "PC %d relaxation timescale: %.2f hrs.",
-                i + 1,
-                relaxation_time,
-            )
+        logger.info(
+            "PC %d relaxation timescale: %.2f hrs.",
+            i + 1,
+            relaxation_time,
+        )
         acf_fit = exponential_decay(lags_, *exp_fit)
         ax.plot(lags_, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
     ax.legend()
@@ -171,12 +170,11 @@ for dataset_name in list_of_datasets:
             f"[ {np.min(delta_ccf, axis=0)}, {np.max(delta_ccf, axis=0)}, "
             f"{np.mean(delta_ccf, axis=0)} ] \n \n"
         )
-    else:
-        logger.info(
-            "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
-            dataset_name,
-            np.min(delta_ccf, axis=0),
-            np.max(delta_ccf, axis=0),
-            np.mean(delta_ccf, axis=0),
-        )
+    logger.info(
+        "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
+        dataset_name,
+        np.min(delta_ccf, axis=0),
+        np.max(delta_ccf, axis=0),
+        np.mean(delta_ccf, axis=0),
+    )
 # %%
