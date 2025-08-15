@@ -29,3 +29,10 @@ valid_timepoints:
   stop: [450]
 include_scenes: null
 notes: This is a nice 48hr high flow dataset.
+center_z_plane:
+  0: 14
+  1: 14
+  2: 14
+  3: 13
+  4: 14
+  5: 14

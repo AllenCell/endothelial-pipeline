@@ -28,3 +28,10 @@ valid_timepoints: null
 include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
   timelapse partway through and doesn't close
+center_z_plane:
+  0: 14
+  1: 14
+  2: 14
+  3: 14
+  4: 13
+  5: 14

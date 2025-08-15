@@ -27,3 +27,10 @@ channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: cells become extremely crowded at end of video
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 10
+  4: 10
+  5: 9

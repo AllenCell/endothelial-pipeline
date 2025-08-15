@@ -29,3 +29,10 @@ valid_timepoints:
   stop: [345]
 include_scenes: null
 notes: ''
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 11
+  4: 10
+  5: 10

@@ -27,3 +27,10 @@ channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: ''
+center_z_plane:
+  0: 8
+  1: 9
+  2: 8
+  3: 8
+  4: 7
+  5: 10

@@ -30,3 +30,10 @@ valid_timepoints:
 include_scenes: null
 notes: This is an intermediate flow dataset. There cells are very crowded by the end
   of the movie.
+center_z_plane:
+  0: 11
+  1: 12
+  2: 12
+  3: 12
+  4: 12
+  5: 12

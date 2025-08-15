@@ -28,4 +28,11 @@ valid_timepoints:
   start: [0, 300]
   stop: [100, 420]
 include_scenes: null
-notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
+notes: This dataset seems to be missing a metadata file... No flow with 1 feed only. Calculated center plane was 8, Adjusted to 13.
+center_z_plane:
+  0: 13
+  1: 13
+  2: 13
+  3: 13
+  4: 13
+  5: 13

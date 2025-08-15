@@ -30,3 +30,10 @@ channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: Frame of flow switch was ~275.
+center_z_plane:
+  0: 10
+  1: 9
+  2: 9
+  3: 9
+  4: 9
+  5: 10

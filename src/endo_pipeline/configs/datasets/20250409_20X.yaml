@@ -29,3 +29,10 @@ valid_timepoints:
   stop: [410]
 include_scenes: null
 notes: cells become very crowded near end of timelapse
+center_z_plane:
+  0: 10
+  1: 10
+  2: 10
+  3: 11
+  4: 12
+  5: 12
