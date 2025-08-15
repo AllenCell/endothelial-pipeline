@@ -1,5 +1,6 @@
 import importlib
 import logging
+import re
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -172,6 +173,8 @@ def apply_entrypoint_settings(
     ----------
     verbose
         Show verbose logging.
+    debug
+        Show debug logging.
     run_with_gpu
         Run workflow with GPU settings.
     show_external_logs
@@ -206,10 +209,49 @@ def build_cli_group(group: Group, directory: str, show: bool) -> None:
 
     for module_path in workflows_path.glob("*py"):
         relative_path = module_path.relative_to(Path(__file__).resolve().parents[2])
-        name = relative_path.stem.replace("_", "-")
-        module = importlib.import_module(".".join(relative_path.with_suffix("").parts))
-        tags[name] = module.TAGS if hasattr(module, "TAGS") else []
-        pipeline_app.command(name=name, group=group, show=show)(module.main)
+        workflow_name = relative_path.stem.replace("_", "-")
+        module_name = ".".join(relative_path.with_suffix("").parts)
+
+        if workflow_name.endswith("-nb"):
+            register_notebook_to_cli(workflow_name, group, show, module_name, relative_path)
+        else:
+            register_script_to_cli(workflow_name, group, show, module_name)
+
+
+def register_notebook_to_cli(name: str, group: Group, show: bool, module: str, path: Path) -> None:
+    """Register a notebook-style module to the pipeline CLI."""
+
+    # Rename workflow to remove the "nb" suffix
+    name = name.replace("-nb", "")
+
+    # Create wrapper around import (which "runs" the workflow when called)
+    def module_wrapper():
+        importlib.import_module(module)
+
+    # Set help message based on DESCRIPTION variable (if it exists)
+    description_match = re.findall(r'DESCRIPTION = "([\w\.\s+]+)"', path.read_text())
+    default_doc = f"Run notebook ``{path.name}``"
+    module_wrapper.__doc__ = description_match[0] if description_match else default_doc
+
+    # Set tags based on TAGS variable (if it exists)
+    tag_match = re.findall(r'TAGS = \[([\w\-, "]+)\]', path.read_text())
+    tags[name] = re.findall(r'"([\w\-]+)"', tag_match[0]) if tag_match else []
+
+    # Add workflow command to pipeline
+    pipeline_app.command(name=name, group=group, show=show)(module_wrapper)
+
+
+def register_script_to_cli(name: str, group: Group, show: bool, module: str):
+    """Register a script-style module to the pipeline CLI."""
+
+    # Dynamically import the module to access the main function
+    module_import = importlib.import_module(module)
+
+    # Set workflow tags based on TAGS variable (if it exists)
+    tags[name] = module_import.TAGS if hasattr(module_import, "TAGS") else []
+
+    # Add workflow command to pipeline
+    pipeline_app.command(name=name, group=group, show=show)(module_import.main)
 
 
 class CustomStreamLoggingFormatter(logging.Formatter):
@@ -289,7 +331,7 @@ def setup_gpu() -> None:
     # If unable to access the driver, report error and exit
     if "failed" in gpu_memory_free:
         logger.error("Workflow is unable to communicate with the NVIDIA driver")
-        raise EnvironmentError(gpu_memory_free)
+        raise OSError(gpu_memory_free)
 
     # Select device number with the maximum free memory
     gpu_options = [(int(free), gpu) for free, gpu in re.findall(r"(\d+), (\d+)", gpu_memory_free)]
