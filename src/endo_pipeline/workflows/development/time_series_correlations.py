@@ -46,11 +46,15 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name="diffae_04_10"
     # get model manifests for each dataset in the list of datasets
     # as long as the dataset exists in the model config
     for dataset_name in dataset_names:
+        if "20241217" in dataset_name:
+            # skip no flow dataset
+            continue
         try:
             model_manifest_list.append(get_model_manifest(dataset_name, model_config))
         except FileNotFoundError:
             logger.warning(
-                "No manifest found for dataset [ %s ] in model config [ %s ].",
+                "No manifest found for dataset [ %s ] in model config [ %s ]. "
+                "Continuing with other datasets.",
                 dataset_name,
                 model_config.name,
             )
