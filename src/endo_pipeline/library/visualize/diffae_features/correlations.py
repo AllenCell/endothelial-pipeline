@@ -1,12 +1,13 @@
 import logging
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import TABLEAU_COLORS
 from scipy.optimize import curve_fit
 
-from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
+from src.endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
 from src.endo_pipeline.library.analyze.numerics import (
     exponential_decay,
     get_3d_index_combinations,
@@ -69,7 +70,9 @@ def plot_acf_curves_together(
 def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
-    list_of_dataset_configs = []
+    dataset_descriptions = get_dataset_descriptions(
+        list_of_datasets, simple=True, include_duration=False, include_shear_rate=True
+    )
     output_path = get_output_path("correlations")
 
     for dataset_name in list_of_datasets:
@@ -79,6 +82,16 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
         acf = correlation_dict["acf"][dataset_name]
         ccf = correlation_dict["ccf"][dataset_name]
         delta_ccf = correlation_dict["delta_ccf"][dataset_name]
+
+        # get string for dataset description
+        dataset_description = dataset_descriptions[dataset_name]
+        # replace underscores with spaces for better readability
+        description_parsed = dataset_description.replace("_", " ")
+        # find [0-9]dyncm2, put comma and space before, put a space between number and unit,
+        # and change dyncm2 to dyn/cm^2 for better readability
+        description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm^2", description_parsed)
+        # turn captial 'S' into lowercase 's' for shear stress
+        description_parsed = description_parsed.replace(" Shear Stress", " shear stress")
 
         # plot acf for positive lags
         # (acf is symmetric around zero)
@@ -90,7 +103,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             lags_as_hours,
             acf_,
             component_labels=["PC1", "PC2", "PC3"],
-            plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+            plot_title=f"Autocorrelation of PCA Components ({description_parsed})",
             xlabel="Lag (hours)",
             linewidth=2.75,
         )
@@ -107,7 +120,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             lags_as_hours,
             acf_,
             component_labels=["PC1", "PC2", "PC3"],
-            plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+            plot_title=f"Autocorrelation of PCA Components ({description_parsed})",
             xlabel="Lag (hours)",
             linewidth=2.75,
         )
@@ -137,7 +150,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             lags_as_hours,
             acf_,
             component_labels=["PC1", "PC2", "PC3"],
-            plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+            plot_title=f"Autocorrelation of PCA Components ({description_parsed})",
             xlabel="Lag (hours)",
             linewidth=2.75,
         )
@@ -167,7 +180,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
             ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
 
-        ax.set_title(f"Cross-Correlation of PCA Components ({dataset_name})")
+        ax.set_title(f"Cross-Correlation of PCA Components ({description_parsed})")
         ax.set_xlabel("Lag (hours)")
         ax.set_ylabel("CCF")
         ax.legend()
@@ -185,7 +198,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             lags_symmetric = lags[1 + num_lags // 2 :]
             lags_symmetric_as_hours = 5 * lags_symmetric / 60
             ax.plot(lags_symmetric_as_hours, delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-        ax.set_title("$C_{ij}(\\tau) - C_{ij}(-\\tau)$" + f" ({dataset_name})")
+        ax.set_title("$C_{ij}(\\tau) - C_{ij}(-\\tau)$" + f" ({description_parsed})")
         ax.set_xlabel("Lag $\\tau$ (hours)")
         ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
         ax.legend()

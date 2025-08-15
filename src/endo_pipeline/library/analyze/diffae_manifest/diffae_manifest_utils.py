@@ -4,7 +4,12 @@ import pandas as pd
 from src.endo_pipeline.configs import DatasetConfig, load_dataset_config
 
 
-def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) -> dict:
+def get_dataset_descriptions(
+    list_of_datasets: list[str],
+    include_duration: bool = True,
+    simple: bool = False,
+    include_shear_rate: bool = False,
+) -> dict[str, str]:
     """
     Get descriptive metadata for each dataset given in the list of datasets.
 
@@ -14,48 +19,59 @@ def get_dataset_descriptions(list_of_datasets: list[str], simple: bool = False) 
     Inputs:
     - list_of_datasets: list, list of dataset names to get descriptions for
         - Each string should match the appropriate dataset name in data_config.yaml
-    - simple (optional): bool, whether to use simple description (e.g., "48hr_High")
+    - simple (optional): bool, whether to use simple regime description
+        (e.g., "48hr_High_Shear_Stress")
 
 
     Outputs:
-    - description_dic: dict, dictionary of dataset names and their descriptive metadata
+    - description_dict: dict, dictionary of dataset names and their descriptive metadata
     """
 
     # initialize dictionary to store descriptions
-    description_dic = {}
+    description_dict = {}
     for dataset_name in list_of_datasets:
         data_config = load_dataset_config(dataset_name)  # get dataset info from data_config.yaml
-        flow_config = data_config.flow  # get flow conditions for dataset
-        num_flows = len(flow_config)  # number of flow conditions in dataset
+        flow_conditions = data_config.flow  # get flow conditions for dataset
+        num_flows = len(flow_conditions)  # number of flow conditions in dataset
 
         # get shear rate for each flow condition,
         # last element in each list in flow_config
-        shear_rate = [int(flow_config[i][-1]) for i in range(num_flows)]
+        shear_rate = [int(flow_conditions[i][-1]) for i in range(num_flows)]
+        shear_rate_strings = []
         if simple:  # if simple description, use qualitative description of shear stress level
-            shear_rate_str = []
-            for shear in shear_rate:
+            shear_rate_strings = []
+            for i, shear in enumerate(shear_rate):
                 if shear >= 20:
-                    shear_rate_str.append("High")
+                    shear_rate_str = "High_Shear_Stress"
                 elif shear > 7:
-                    shear_rate_str.append(f"Intermediate_{int(shear)}")
+                    shear_rate_str = "Intermediate_Shear_Stress"
                 elif shear > 0:
-                    shear_rate_str.append("Low")
+                    shear_rate_str = "Low_Shear_Stress"
                 else:
-                    shear_rate_str.append("No")
+                    shear_rate_str = "No_Shear_Stress"
+
+                if include_duration:
+                    duration = int((flow_conditions[i][1] - flow_conditions[i][0]) * 5 / 60)
+                    shear_rate_str = f"{duration}hr_{shear_rate_str}"
+
+                if include_shear_rate:
+                    shear_rate_str = f"{shear_rate_str}_{int(shear)}dyncm2"
+
+                shear_rate_strings.append(shear_rate_str)
         else:
-            shear_rate_str = [
-                f"{int(i)}_dyncm2" for i in shear_rate
-            ]  # convert shear rates to strings
+            for i, shear in enumerate(shear_rate):
+                shear_rate_str = f"{int(shear)}_dyncm2"
+                if include_duration:
+                    duration = int((flow_conditions[i][1] - flow_conditions[i][0]) * 5 / 60)
+                    shear_rate_str = f"{duration}hr_{shear_rate_str}"
+                shear_rate_strings.append(shear_rate_str)
 
-        time_str = [
-            f"{int((flow_config[i][1]-flow_config[i][0])*5/60)}hr" for i in range(num_flows)
-        ]  # get duration of each flow condition in hours
         description = "_".join(
-            [time_str[i] + "_" + shear_rate_str[i] for i in range(num_flows)]
+            [shear_rate_strings[i] for i in range(num_flows)]
         )  # concatenate time and shear rate for each flow condition
-        description_dic[dataset_name] = description  # add description to dictionary
+        description_dict[dataset_name] = description  # add description to dictionary
 
-    return description_dic
+    return description_dict
 
 
 def split_dataset_by_flow(
