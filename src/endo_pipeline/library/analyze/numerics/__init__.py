@@ -10,7 +10,8 @@ from .correlations import (
     autocorrelation_function,
     cross_correlation_function,
     exponential_decay,
-    fit_exponential_decay,
+    fit_decay_curve,
+    power_law_decay,
 )
 from .fp_solvers import SteadyFP
 from .gen_potential import (

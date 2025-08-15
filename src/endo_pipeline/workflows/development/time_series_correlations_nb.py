@@ -20,7 +20,8 @@ from src.endo_pipeline.library.analyze.numerics import (
     autocorrelation_function,
     cross_correlation_function,
     exponential_decay,
-    fit_exponential_decay,
+    fit_decay_curve,
+    power_law_decay,
 )
 from src.endo_pipeline.library.visualize import viz_base
 
@@ -115,14 +116,14 @@ for dataset_name in list_of_datasets:
 
     # fit exponential decay to ACF
     for i in range(3):
-        exp_fit = fit_exponential_decay(lags_, acf_[:, i])
+        exp_fit = fit_decay_curve(exponential_decay, lags_, acf_[:, i])
         relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
         if print_statements:
             print(
-                f"PC {i + 1} relaxation timescale: {relaxation_time:.2f} hrs.",
+                f"PC {i + 1} relaxation timescale (exponential): {relaxation_time:.2f} hrs.",
             )
         logger.info(
-            "PC %d relaxation timescale: %.2f hrs.",
+            "PC %d relaxation timescale (exponential): %.2f hrs.",
             i + 1,
             relaxation_time,
         )
@@ -133,7 +134,26 @@ for dataset_name in list_of_datasets:
     save_plot_to_path(
         fig,
         figure_save_path,
-        f"autocorrelation_fit_{dataset_name}",
+        f"autocorrelation_exp_fit_{dataset_name}",
+    )
+
+    # fit power law decay to ACF
+    for i in range(3):
+        power_fit = fit_decay_curve(power_law_decay, lags_, acf_[:, i])
+        relaxation_time = 5 * (1 / power_fit[1]) / 60
+        if print_statements:
+            print(
+                f"PC {i + 1} relaxation timescale (power law): {relaxation_time:.2f} hrs.",
+            )
+        logger.info("PC %d relaxation timescale (power law): %.2f hrs.", i + 1, relaxation_time)
+        acf_fit = power_law_decay(lags_, *power_fit)
+        ax.plot(lags_, acf_fit, "k:", linewidth=2.0, alpha=0.85, label="")
+    ax.legend()
+    ax.set_ylim(-0.25, 1.05)
+    save_plot_to_path(
+        fig,
+        figure_save_path,
+        f"autocorrelation_power_fit_{dataset_name}",
     )
 
     # plot ccf
