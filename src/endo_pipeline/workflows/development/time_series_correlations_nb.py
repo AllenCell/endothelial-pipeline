@@ -145,7 +145,10 @@ for dataset_name in list_of_datasets:
         linewidth=2.75,
     )
     for i in range(3):
-        exp_fit, _ = curve_fit(exponential_decay, lags_, acf_[:, i], p0=(1, 0.01))
+        acf_where_positive = acf_[:, i] > 0
+        lags_pos = lags_[acf_where_positive]
+        acf_pos = acf_[acf_where_positive, i]
+        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
         relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
         if print_statements:
             print(
@@ -175,8 +178,12 @@ for dataset_name in list_of_datasets:
         linewidth=2.75,
     )
     for i in range(3):
+        # only fit power law to positive lags
+        acf_where_positive = acf_[:, i] > 0
+        lags_pos = lags_[acf_where_positive]
+        acf_pos = acf_[acf_where_positive, i]
         # fit power law decay by fitting linear decay to log-log transformed data
-        power_fit, _ = curve_fit(power_law_decay, lags_, acf_[:, i])
+        power_fit, _ = curve_fit(power_law_decay, lags_pos, acf_pos)
         relaxation_time = 5 * (1 / power_fit[1]) / 60
         if print_statements:
             print(
