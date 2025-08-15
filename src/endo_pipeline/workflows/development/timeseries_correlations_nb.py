@@ -20,7 +20,16 @@ from src.endo_pipeline.library.analyze.numerics import (
 )
 from src.endo_pipeline.library.visualize import viz_base
 
+# if being run as a script, use logging
+# instead of print statements
+print_statements = False
 logger = logging.getLogger(__name__)
+
+# set up print statements instead of logging
+# if this script is being run as a notebook
+if __name__ != "__main__":
+    print_statements = True
+
 
 # %%
 # fit PCA object
@@ -104,11 +113,16 @@ for dataset_name in list_of_datasets:
     for i in range(3):
         exp_fit = fit_exponential_decay(lags_, acf_[:, i])
         relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
-        logger.info(
-            "PC %d Relaxation Timescale: %.2f hrs.",
-            i + 1,
-            relaxation_time,
-        )
+        if print_statements:
+            print(
+                f"PC {i + 1} relaxation timescale: {relaxation_time:.2f} hrs.",
+            )
+        else:
+            logger.info(
+                "PC %d relaxation timescale: %.2f hrs.",
+                i + 1,
+                relaxation_time,
+            )
         acf_fit = exponential_decay(lags_, *exp_fit)
         ax.plot(lags_, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
     ax.legend()
@@ -150,11 +164,18 @@ for dataset_name in list_of_datasets:
         f"cross_correlation_diff_{dataset_name}",
     )
     # log summary statistics
-    logger.info(
-        "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
-        dataset_name,
-        np.min(delta_ccf, axis=0),
-        np.max(delta_ccf, axis=0),
-        np.mean(delta_ccf, axis=0),
-    )
+    if print_statements:
+        print(
+            f"Minimum, maximum, and mean of delta CCF for dataset [ {dataset_name} ]: "
+            f"[ {np.min(delta_ccf, axis=0)}, {np.max(delta_ccf, axis=0)}, "
+            f"{np.mean(delta_ccf, axis=0)} ]"
+        )
+    else:
+        logger.info(
+            "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
+            dataset_name,
+            np.min(delta_ccf, axis=0),
+            np.max(delta_ccf, axis=0),
+            np.mean(delta_ccf, axis=0),
+        )
 # %%
