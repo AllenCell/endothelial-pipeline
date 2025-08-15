@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib.colors import TABLEAU_COLORS
 from scipy.optimize import curve_fit
 
+from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.numerics import (
     exponential_decay,
@@ -68,6 +69,7 @@ def plot_acf_curves_together(
 def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
+    list_of_dataset_configs = []
     output_path = get_output_path("correlations")
 
     for dataset_name in list_of_datasets:
@@ -120,8 +122,8 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
                 i + 1,
                 relaxation_time,
             )
-            acf_fit = exponential_decay(lags_, *exp_fit)
-            ax.plot(lags_, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
+            acf_fit = exponential_decay(lags_as_hours, *exp_fit)
+            ax.plot(lags_as_hours, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
         ax.legend()
         ax.set_ylim(-0.25, 1.05)
         save_plot_to_path(
@@ -148,8 +150,8 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             power_fit, _ = curve_fit(power_law_decay, lags_pos, acf_pos)
             relaxation_time = 5 * (1 / power_fit[1]) / 60
             logger.info("PC %d relaxation timescale (power law): %.2f hrs.", i + 1, relaxation_time)
-            acf_fit = power_law_decay(lags_, *power_fit)
-            ax.plot(lags_, acf_fit, "k:", linewidth=2.0, alpha=0.85, label="")
+            acf_fit = power_law_decay(lags_as_hours, *power_fit)
+            ax.plot(lags_as_hours, acf_fit, "k:", linewidth=2.5, label="")
         ax.legend()
         ax.set_ylim(-0.25, 1.05)
         save_plot_to_path(
