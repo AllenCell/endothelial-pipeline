@@ -1,5 +1,6 @@
 # %%
 import logging
+from typing import cast
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from cellsmap.analyses.utils.numerics.correlations import (
     exponential_decay,
     fit_exponential_decay,
 )
-from src.endo_pipeline.configs import get_model_manifest, load_model_config
+from src.endo_pipeline.configs import CytoDLModelConfig, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
@@ -20,11 +21,6 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 from src.endo_pipeline.library.visualize import viz_base
 
 logger = logging.getLogger(__name__)
-
-if __name__ != "__main__":
-    # if not running as a script, set up logging
-    # level to INFO as default
-    logger.setLevel(logging.INFO)
 
 # %%
 # fit PCA object
@@ -40,7 +36,7 @@ list_of_datasets = [
 ]
 
 # load model config to get model manifest objects
-model_config = load_model_config(model_name)
+model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
 figure_save_path = get_output_path("correlations")
 

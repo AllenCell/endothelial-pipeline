@@ -6,7 +6,9 @@ from scipy.optimize import curve_fit
 logger = logging.getLogger(__name__)
 
 
-def cross_correlation_function(data: np.ndarray, component_1: int, component_2: int, lag: int):
+def cross_correlation_function(
+    data: np.ndarray, component_1: int, component_2: int, lag: int
+) -> float:
     """
     Get the normalized cross-correlation function (CCF) between vector components of an ensemble of
     stationary, vector-valued time series data.
@@ -100,7 +102,7 @@ def cross_correlation_function(data: np.ndarray, component_1: int, component_2: 
     return ccf
 
 
-def autocorrelation_function(data: np.ndarray, component_index: int, lag: int):
+def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -> float:
     """
     Get the normalized autocorrelation function (ACF) for a specific component of an ensemble of
     stationary, vector-valued time series data.
@@ -127,21 +129,21 @@ def autocorrelation_function(data: np.ndarray, component_index: int, lag: int):
     return cross_correlation_function(data, component_index, component_index, lag)
 
 
-def exponential_decay(x, a, b):
+def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
     """Define exponential decay function for curve fitting."""
     return a * np.exp(-b * x)
 
 
-def fit_exponential_decay(lags, acf):
+def fit_exponential_decay(lags: np.ndarray, acf: np.ndarray) -> np.ndarray:
     """
     Fit an exponential decay function to the autocorrelation data.
 
-    Inputs:
-    - lags: array of lag values (positive only)
-    - acf: array of autocorrelation values corresponding to the lags
-
-    Outputs:
-    - exp_fit: fitted exponential decay parameters (amplitude, decay constant)
+    Parameters
+    ----------
+    lags
+        Array of lag values (positive only).
+    acf
+        Array of autocorrelation values corresponding to the lags.
     """
 
     # Fit the exponential decay function to the data
