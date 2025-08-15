@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,8 @@ from src.endo_pipeline.configs import (
     DatasetConfig,
     add_model_manifest,
     get_available_zarr_files,
+    get_position_integer_from_zarr_file_path,
+    get_position_string_from_zarr_file_path,
 )
 from src.endo_pipeline.io import (
     build_fms_annotations,
@@ -20,6 +22,7 @@ from src.endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
+from src.endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
 from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from src.endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from src.endo_pipeline.manifests import (
@@ -92,6 +95,7 @@ def generate_overrides_for_model_eval(
     dataset_name: str,
     model_name: str,
     prediction_filename_suffix: str | None = None,
+    num_workers: int = 128,
 ) -> dict:
     """
     Generate overrides for the CytoDLModel configuration
@@ -103,7 +107,7 @@ def generate_overrides_for_model_eval(
         # and might be slow to instantiate (e.g. if they cache data)
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
-        "data.predict_dataloaders.num_workers": 8,
+        "data.predict_dataloaders.num_workers": num_workers,
         "data.predict_dataloaders.dataset.csv_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
@@ -190,66 +194,6 @@ def generate_overrides_for_track_based_crops(
     }
     overrides.update(track_specific_overrides)
     return overrides
-
-
-def generate_zarr_csv_for_model_eval(
-    dataset_config: DatasetConfig,
-    dataset_save_path: Path,
-    resolution_level: int = 1,
-    z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
-    test_workflow: bool = False,
-) -> None:
-    """Generate a CSV file with zarr loading metadata for the given dataset."""
-
-    # generate csv with paths to zarr files for each position in the dataset
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
-
-    df = pd.DataFrame({"path": zarr_file_paths})
-    df["channel"] = ZARR_BF_CHANNEL
-    df["resolution"] = resolution_level
-
-    # if z_stack_offsets is not None, add a column with z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
-    if z_stack_offsets is not None:
-        # this is a wrapper function to get z-slice ranges
-        # from dataset name and position in the dataset using
-        # zarr_file_path our way to get the position
-        def _get_z_slices(zarr_file_path: Path, dataset_config: DatasetConfig) -> list[int]:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = int(zarr_file_path.stem.split("_")[-1].split(".")[0][-1])
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
-            return z_slices
-
-        # apply the function to each zarr file path
-        df["Z"] = df["path"].apply(lambda x: _get_z_slices(Path(x), dataset_config))
-        df["z_start"] = df["Z"].apply(lambda x: x[0])
-        df["z_stop"] = df["Z"].apply(lambda x: x[-1])
-        # remove the Z column as it is not needed anymore
-        df.drop(columns=["Z"], inplace=True)
-
-    if test_workflow and z_stack_offsets is None:
-        # for workflow testing, only use first position from each dataset
-        # and first two timepoints to speed up the dataloading process
-        # (if dataset is not timelapse, then only one timepoint is used)
-        df = df.head(1)
-        df["frame_start"] = 0
-        df["frame_stop"] = 1 if dataset_config.is_timelapse else 0
-    elif z_stack_offsets is not None:
-        # specify the t column as [0,250,500] for testing z-stack offsets
-        df["frame_start"] = df["path"].apply(lambda x: 0)
-        df["frame_stop"] = df["path"].apply(lambda x: -1)
-        df["frame_step"] = df["path"].apply(lambda x: 250)
-
-    # save csv
-    df.to_csv(dataset_save_path, index=False)
 
 
 def preprocess_tracking_manifest_for_model_eval(
@@ -387,7 +331,7 @@ def update_prediction_from_crops_with_metadata(
     pred_df["crop_size_x"] = crop_size[1]
 
     pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: Path(s).stem.split("_")[-1].split(".")[0]
+        lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
@@ -413,10 +357,76 @@ def update_prediction_from_tracks_with_metadata(
     pred_df["crop_size_y"] = crop_size[0]
     pred_df["crop_size_x"] = crop_size[1]
     pred_df["position"] = pred_df["filename_or_obj"].apply(
-        lambda s: Path(s).stem.split("_")[-1].split(".")[0]
+        lambda s: get_position_string_from_zarr_file_path(s)
     )
     pred_df.rename(columns={"filename_or_obj": "zarr_path", "T": "frame_number"}, inplace=True)
     pred_df.to_parquet(prediction_path)
+
+
+def _get_zarr_dataframe_for_z_offsets(
+    dataset_config: DatasetConfig,
+    resolution_level: int,
+    z_stack_offsets: tuple[int, int],
+    slice_by_global_center: bool = True,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    only_positions: list[int] | None = None,
+) -> pd.DataFrame:
+    """
+    Get a dataframe with zarr loading metadata when z-slice selection is based
+    on the center slice for each position in the dataset.
+    """
+    # if z_stack_offsets is not None, get z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    z_slice_by_position = None
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    if z_stack_offsets is not None:
+        z_slice_by_position = []
+        for zarr_file_path in available_zarr_files:
+            # get position from zarr path as an integer (e.g., 'P0' -> 0)
+            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
+            # get z-slice indices for the given position
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
+            )
+            z_slice_by_position.append(z_slices)
+
+    # generate dataframe with zarr loading metadata
+    # for each position in the dataset
+    # done this way because z-stack offsets are generally position-specific
+    df_per_position = []
+    for i in range(len(available_zarr_files)):
+        if only_positions is not None and i not in only_positions:
+            continue
+        else:
+            # build dataframe for position
+            # and append it to the list
+            if only_positions is None:
+                only_position = [i]
+            else:
+                only_position = [only_positions[i]]
+            logger.debug("Building zarr dataframe for position [ %s ]", only_position[0])
+            df_per_position.append(
+                build_zarr_image_loading_dataframe(
+                    dataset_config,
+                    resolution_level=resolution_level,
+                    channel=ZARR_BF_CHANNEL,
+                    frame_start=frame_start,
+                    frame_stop=frame_stop,
+                    frame_step=frame_step,
+                    z_start=z_slice_by_position[i][0] if z_stack_offsets else None,
+                    z_stop=z_slice_by_position[i][-1] if z_stack_offsets else None,
+                    only_positions=only_position,
+                )
+            )
+    # concatenate dataframes for all positions
+    df = pd.concat(df_per_position, ignore_index=True)
+    return df
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
@@ -427,10 +437,29 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    test_workflow: bool = False,
+    testing_mode: bool = False,
 ) -> CytoDLModelConfig:
     """
     Apply a DiffAE model to a single dataset.
+
+    **Workflow testing**
+
+    If ``testing_mode`` is set to True, the model will only be applied to the first
+    position of the dataset and only the first two timepoints will be used. The
+    staging environment of FMS will be used for uploading the prediction file.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
+
 
     Parameters
     ----------
@@ -446,27 +475,19 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
-    z_stack_offsets: tuple[int, int] | None
-        If None, all z-slices are loaded. Default is None.
-        If provided, limits the number of z-slices to load from the raw brightfield images.
-        First element is the lower offset, how many slices below the center plane to include, and
-        the second element is the upper offset, how many slices above the center plane to include.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
     slice_by_global_center: bool
-        If True, calculate the range of indices based on the global center plane for the given
-        position. If False, use `lower_offset` and `upper_offset` directly as the range bounds.
-        Defaults to True.
-    test_workflow
-        Flag to indicate if this script is being run for testing purposes (e.g., code review).
-
-        If True, then only one position and minimal timepoints from the dataset is included for
-        loading and performing inferrence on the crops.
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+    testing_mode
+        Execute method in workflow testing mode if True, run full model evaluation if False.
 
     Returns
     -------
     :
         Creates dataframe of features extracted from the crops and saves it to the output path.
 
-        If `upload_to_fms` is True, uploads the prediction file to FMS and adds the file ID to the
+        If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
     if not torch.cuda.is_available():
@@ -484,40 +505,94 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     if model_config.name == "diffae_04_10":
         path_dict["config_path"] = get_model_dir() / "diffae_04_10_eval.yaml"
         logger.info(
-            "Loading legacy model config for diffae_04_10 from \n %s", path_dict["config_path"]
+            "Loading legacy model config for diffae_04_10 from [ %s ]", path_dict["config_path"]
         )
 
     # set default output path
     save_path = get_output_path("models", model_config.name, dataset_config.name)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
 
     # load model
     model = CytoDLModel()
     model.load_config_from_file(path_dict["config_path"])
 
-    # create zarr loading metadata dataframe
+    logger.debug("Applying model [ %s ] to dataset [ %s ]", model_config.name, dataset_config.name)
     # get unique name for the CSV file
     file_name = "dataset"
     if z_stack_offsets is not None:
         file_name = f"{file_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
-    if slice_by_global_center:
-        file_name = f"{file_name}_ctr"
+        if slice_by_global_center:
+            file_name = f"{file_name}_ctr"
 
     file_name = f"{file_name}_{timestamp}.csv"
     dataset_save_path = save_path / file_name
-    generate_zarr_csv_for_model_eval(
-        dataset_config,
-        dataset_save_path,
-        resolution_level,
-        z_stack_offsets,
-        slice_by_global_center,
-        test_workflow=test_workflow,
-    )
+
+    # default frame start and stop values are None, i.e., load all timepoints
+    frame_start = None
+    frame_stop = None
+    frame_step = None
+    only_positions = None  # keep all rows in the dataset CSV
+
+    if testing_mode:
+        # for workflow testing, only use first position from each dataset
+        # and first two timepoints to speed up the dataloading process
+        # (if dataset is not timelapse, then only one timepoint is used)
+        frame_start = 0
+        frame_stop = 1 if dataset_config.is_timelapse else 0
+        only_positions = [0]  # only use the first position
+        logger.debug(
+            "Workflow testing is enabled, only processing the first few timepoints "
+            "of the first position the dataset."
+        )
+
+    if z_stack_offsets is not None:
+        # load timepoints 0, 250, and 500 for z-stack offsets summary
+        frame_start = 0
+        frame_stop = -1
+        frame_step = 250
+        logger.debug(
+            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
+            z_stack_offsets,
+            slice_by_global_center,
+        )
+        logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
+
+        # get the dataframe with zarr loading metadata
+        df = _get_zarr_dataframe_for_z_offsets(
+            dataset_config,
+            resolution_level=resolution_level,
+            z_stack_offsets=z_stack_offsets,
+            slice_by_global_center=slice_by_global_center,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            frame_step=frame_step,
+            only_positions=only_positions,
+        )
+    else:
+        # if no z-stack offsets are provided, can get the dataframe
+        # directly from the build_zarr_image_loading_dataframe function
+        logger.debug("No z-stack offsets provided, loading all z-slices.")
+        df = build_zarr_image_loading_dataframe(
+            dataset_config,
+            resolution_level=resolution_level,
+            channel=ZARR_BF_CHANNEL,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            frame_step=frame_step,
+            only_positions=only_positions,
+        )
+
+    # save the dataframe to a CSV file
+    df.to_csv(dataset_save_path, index=False)
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
+    # having issues with zarr loading when using z-slices from global center,
+    # need to decrease the num_workers
+    num_workers = 64 if (z_stack_offsets is not None and slice_by_global_center) else 128
+    logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
         save_path=str(save_path),
@@ -526,8 +601,16 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         dataset_name=dataset_config.name,
         model_name=model_config.name,
         prediction_filename_suffix=prediction_filename_suffix,
+        num_workers=num_workers,
     )
     model.override_config(overrides)
+    local_config_save_path = get_output_path("models", "evaluation_configs")
+    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+    logger.info(
+        "Evaluation config saved to [ %s ]",
+        local_config_save_path / f"{model_config.name}_eval.yaml",
+    )
+    logger.debug("Starting model prediction...")
     model.predict()
     crop_size = model.cfg.model.spatial_inferer.splitter.patch_size
 
@@ -611,7 +694,7 @@ def apply_model_on_tracked_crops_from_one_dataset(
     data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
 
     # use timestamp to get unique file name for FMS upload later
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
     prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
     # apply overrides

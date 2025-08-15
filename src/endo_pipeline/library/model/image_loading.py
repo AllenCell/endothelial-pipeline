@@ -1,3 +1,4 @@
+import logging
 import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -11,14 +12,32 @@ from monai.data import CacheDataset, MetaTensor
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
+from src.endo_pipeline.configs import (
+    DatasetConfig,
+    get_available_zarr_files,
+    get_position_integer_from_zarr_file_path,
+)
+
+ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
+
+logger = logging.getLogger(__name__)
+
 
 class BioIOImageLoaderd(Transform):
-    """Enumerates scenes and timepoints for dictionary with format.
+    """
+    Enumerates scenes and timepoints for dictionary with format.
 
-    {path_key: path, channel_key: channel, scene_key: scene, timepoint_key: timepoint}.
-    Differs from monai_bio_reader in that reading kwargs are passed in the dictionary,
+    .. code-block:: python
+        {
+            path_key: path,
+            channel_key: channel,
+            scene_key: scene,
+            timepoint_key: timepoint
+        }
+
+    Differs from ``monai_bio_reader`` in that reading ``kwargs`` are passed in the dictionary,
     instead of being fixed at initialization. The filepath will be saved in the dictionary
-    as 'filename_or_obj' (with or without metadata depending on `include_meta_in_filename`).
+    as ``filename_or_obj`` (with or without metadata depending on ``include_meta_in_filename``).
     """
 
     def __init__(
@@ -34,31 +53,28 @@ class BioIOImageLoaderd(Transform):
         include_meta_in_filename: bool = False,
     ) -> None:
         """
-        Initialize the BioIOImageLoaderd transform.
+        Initialize the ``BioIOImageLoaderd`` transform.
 
         Parameters
         ----------
         path_key
-            Key for the path to the image
+            Key for the path to the image.
         scene_key
-            Key for the scene number
+            Key for the scene number.
         resolution_key
-            Key for the resolution level
+            Key for the resolution level.
         kwargs_keys
             Keys for the kwargs to pass to BioImage.get_image_dask_data.
-            Defaults to ["dimension_order_out", "C", "T", "Z"].
         out_key
-            Key for the output image
+            Key for the output image.
         allow_missing_keys
-            Whether to allow missing keys in the data dictionary
+            Whether to allow missing keys in the data dictionary.
         dtype
-            Data type to cast the image to
+            Data type to cast the image to after loading.
         dask_load
-            Whether to use dask to load images.
-            If False, full images are loaded into memory before extracting specified scenes/frames.
-        include_meta_in_filename: bool = False
-            Whether to include metadata in the filename.
-            Useful when loading multi-dimensional images with different kwargs.
+            Load images using Dask if True, else load them directly into memory.
+        include_meta_in_filename
+            Include metadata in the filename of the output image if True, else use only the path.
         """
         super().__init__()
         self.path_key = path_key
@@ -81,9 +97,11 @@ class BioIOImageLoaderd(Transform):
 
     def _get_filename(self, path: str, kwargs: dict) -> str:
         if self.include_meta_in_filename:
+            logger.debug("Including metadata in filename")
             path = path.split(".")[0] + "_" + "_".join([f"{k}_{v}" for k, v in kwargs.items()])
         # remove illegal characters from filename
         path = re.sub(r'[<>:"|?*]', "", path)
+        logger.debug("Generated filename: [ %s ]", path)
         return path
 
     def __call__(self, data: dict) -> dict:
@@ -96,31 +114,41 @@ class BioIOImageLoaderd(Transform):
         # memory use doesn't increase over time
         data = data.copy()
         if self.path_key not in data and not self.allow_missing_keys:
+            logger.error("Missing key in data dictionary: [ %s ]", self.path_key)
             raise KeyError(f"Missing key {self.path_key} in data dictionary")
         path = data[self.path_key]
+        logger.debug("Loading image from path: [ %s ]", path)
         img = BioImage(path)
         if self.scene_key in data:
             img.set_scene(data[self.scene_key])
         if self.resolution_key in data:
+            logger.debug("Setting resolution level to: [ %s ]", data[self.resolution_key])
             img.set_resolution_level(data[self.resolution_key])
         kwargs = {k: self.split_args(data[k]) for k in self.kwargs_keys if k in data}
+        logger.debug("Using kwargs for image loading: [ %s ]", kwargs)
 
         if self.dask_load:
+            logger.debug("Loading image data using Dask")
             img_as_array = img.get_image_dask_data(**kwargs).compute()  # type: ignore[arg-type]
         else:
+            logger.debug("Loading image data directly into memory")
             img_as_array = img.get_image_data(**kwargs)  # type: ignore[arg-type]
+        logger.debug("Image data loaded with shape: [ %s ]", img_as_array.shape)
+        logger.debug("Casting image data to dtype: [ %s ]", self.dtype)
         img_as_array = img_as_array.astype(self.dtype)
         if self.scene_key in data:
             kwargs["scene"] = data[self.scene_key]
+        logger.debug("Updating kwargs with filename or object")
         kwargs.update({"filename_or_obj": self._get_filename(path, kwargs)})
 
+        logger.debug("Adding image data to dictionary under key: [ %s ]", self.out_key)
         data[self.out_key] = MetaTensor(img_as_array, meta=kwargs)
         return data
 
 
 class MultiDimImageDataset(CacheDataset):
     """
-    Dataset converting a `.csv` file or dictionary listing multi dimensional (timelapse or
+    Dataset converting a `.csv` file listing multi dimensional (timelapse or
     multi-scene) files and some metadata into batches of metadata intended for the
     BioIOImageLoaderd class.
     """
@@ -144,65 +172,66 @@ class MultiDimImageDataset(CacheDataset):
         **cache_kwargs,
     ) -> None:
         """
-        Initialize a dataset that reads multi-dimensional images using metadata from a CSV file
-        and prepares them for processing.
+        Initialize a dataset that reads multi-dimensional images using metadata from a dataframe
+        (loaded from a CSV file) and prepares them for processing.
 
-        ** Multi-channel images **
-        The `channel_column` parameter should be specified to indicate which channel(s)
+        **Multi-channel images**
+        The ``channel_column`` parameter should be specified to indicate which channel(s)
         to extract from the image. To load multiple channels, the entries of this column
-        should be the channel indices separated by commas (e.g. `0,1,2`). Else, this
-        column should contain a single channel index (e.g. `0` or `1`).
+        should be the channel indices separated by commas (e.g. ``0,1,2``). Else, this
+        column should contain a single channel index (e.g. ``0`` or ``1``).
 
-        ** Image spatial dimensions **
-        The output image will be in the format `CZYX` or `CYX` depending on the
-        `spatial_dims` parameter. This is to ensure compatibility with dictionary-based
-        MONAI-style transforms. The `spatial_dims` parameter specifies the number of spatial
-        dimensions in the output image, which can be either 2 (for YX) or 3 (for ZYX).
+        **Image spatial dimensions**
+        The output image will be in the format ``CZYX`` or ``CYX`` depending on the
+        ``spatial_dims`` parameter. This is to ensure compatibility with dictionary-based
+        MONAI-style transforms. The ``spatial_dims`` parameter specifies the number of spatial
+        dimensions in the output image, which can be either 2 (for ``YX``) or 3 (for ``ZYX``).
 
-        ** Multi-scene images **
-        If the input images are multi-scene images, the `scene_column` parameter should be
+        **Multi-scene images**
+        If the input images are multi-scene images, the ``scene_column`` parameter should be
         specified. This column should contain the names of the scenes to extract from the
         multi-scene image. If not specified, all scenes will be extracted. If multiple scenes
-        are specified, they should be separated by a comma (e.g. `scene1,scene2`).
+        are specified, they should be separated by a comma (e.g. ``scene1,scene2``).
 
-        ** Multi-resolution images **
+        **Multi-resolution images**
         If the there are multiple resolution level available for the input images, the
-        `resolution_column` parameter should be specified. This column should contain the resolution
-        level at which to load the image. If not specified, the resolution level is assumed to be 0.
+        ``resolution_column`` parameter should be specified. This column should contain the
+        resolution level at which to load the image. If not specified, the resolution level
+        is assumed to be 0 (full resolution).
 
-        ** Timelapse images **
-        If there are multiple timepoints available for the input images, the `time_start_column`,
-        `time_stop_column`, and `time_step_column` parameters should be specified. These columns
+        **Timelapse images**
+        If there are multiple timepoints available for the input images, the ``time_start_column``,
+        ``time_stop_column``, and ``time_step_column`` parameters should be specified. These columns
         should contain the start timepoint, stop timepoint, and step between timepoints (step
         defaults to 1) respectively. If not specified, all timepoints are extracted. To specify the
-        last timepoint, you can use -1 in the `time_stop_column`, which will be interpreted as the
+        last timepoint, you can use -1 in the ``time_stop_column``, which will be interpreted as the
         last timepoint available in the image. The timepoints are zero-indexed, so the first
         timepoint is 0.
 
-        ** Z slices **
-        If the input images are 3D and you want to extract specific Z slices, the `z_start_column`,
-        `z_stop_column`, and `z_step_column` parameters should be specified. These columns
-        should contain the start Z slice, stop Z slice, and step between Z slices (step defaults
-        to 1) respectively. If not specified, all Z slices are extracted.
+        **Z slices *
+        If the input images are 3D and you want to extract specific Z slices, the
+        ``z_start_column``, ``z_stop_column``, and ``z_step_column`` parameters should be
+        specified. These columns should contain the start Z slice, stop Z slice, and step between Z
+        slices (step defaults to 1) respectively. If not specified, all Z slices are extracted.
 
-        ** Extra columns **
-        The `extra_columns` parameter allows you to specify additional columns from the CSV file
+        **Extra columns**
+        The ``extra_columns`` parameter allows you to specify additional columns from the dataframe
         that you want to include in the output dictionary. These columns will be added to the
         output dictionary as-is if found, otherwise their values will be set to None.
 
-        ** Transforms **
-        The `transform` parameter allows you to specify a list or composition of MONAI-style
+        **Transforms**
+        The ``transform`` parameter allows you to specify a list or composition of MONAI-style
         transforms to apply to the image metadata. The first transform in the list should be an
-        instance of `BioIOImageLoaderd`, which will load the image data from the path specified in
+        instance of ``BioIOImageLoaderd``, which will load the image data from the path specified in
         the metadata dictionary. The subsequent transforms can be any MONAI-style transforms that
         operate on the metadata dictionary. If no transforms are specified, the dataset will
         default to an empty list, meaning no transforms will be applied.
 
         ** CacheDataset **
-        The dataset is a subclass of `monai.data.CacheDataset`, which means it can be used with
-        MONAI's caching mechanism to speed up data loading and processing. The `cache_kwargs`
-        parameter allows you to specify additional keyword arguments to pass to the `CacheDataset`.
-        To skip the caching mechanism, set `cache_num` to 0.
+        The dataset is a subclass of ``monai.data.CacheDataset``, which means it can be used with
+        MONAI's caching mechanism to speed up data loading and processing. The ``cache_kwargs``
+        parameter allows you to specify additional keyword arguments to pass to the
+        ``CacheDataset``. To skip the caching mechanism, set ``cache_num`` to 0.
 
         Parameters
         ----------
@@ -233,9 +262,9 @@ class MultiDimImageDataset(CacheDataset):
         extra_columns
             List of extra columns to include in the output dictionary.
         transform
-            List (or Compose Object) of Monai-style transforms to apply to the image metadata.
+            List (or ``Compose`` object) of Monai-style transforms to apply to the image metadata.
         cache_kwargs:
-            Additional keyword arguments to pass to `CacheDataset`.
+            Additional keyword arguments to pass to ``CacheDataset``.
         """
         df = pd.read_csv(csv_path)
         self.img_path_column = img_path_column
@@ -323,3 +352,56 @@ class MultiDimImageDataset(CacheDataset):
                     row_data.append(extra_columns)
             img_data.extend(row_data)
         return img_data
+
+
+def build_zarr_image_loading_dataframe(
+    dataset_config: DatasetConfig,
+    resolution_level: int = 1,
+    channel: int | list[int] = ZARR_BF_CHANNEL,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    z_start: int | None = None,
+    z_stop: int | None = None,
+    z_step: int | None = None,
+    only_positions: list[int] | None = None,
+) -> pd.DataFrame:
+    """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
+    # generate csv with paths to zarr files for each position in the dataset
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    zarr_file_paths = [str(zarr_file) for zarr_file in available_zarr_files]  # convert Path to str
+
+    df = pd.DataFrame({"path": zarr_file_paths})
+    df["resolution"] = resolution_level
+    # convert channel tuple to comma-separated string
+    if isinstance(channel, int):
+        df["channel"] = str(channel)
+    else:
+        df["channel"] = ",".join(str(c) for c in channel)
+
+    # only load images for specified position indices
+    if only_positions is not None:
+        logger.debug("Filtering Zarr files to only include positions: [ %s ]", only_positions)
+        df["position_index"] = df["path"].apply(
+            lambda x: get_position_integer_from_zarr_file_path(x)
+        )
+        df = df[df["position_index"].isin(only_positions)]
+        df = df.drop(columns=["position_index"])
+
+    # if start and stop for loading timepoints are specified, add to dataframe
+    if (frame_start is not None) and (frame_stop is not None):
+        df["frame_start"] = frame_start
+        df["frame_stop"] = frame_stop
+    # frame step defaults in loader to 1, but can be specified
+    if frame_step is not None:
+        df["frame_step"] = frame_step
+
+    # if start and stop for loading z slices are specified, add to dataframe
+    if (z_start is not None) and (z_stop is not None):
+        df["z_start"] = z_start
+        df["z_stop"] = z_stop
+    # z step defaults in loader to 1, but can be specified
+    if z_step is not None:
+        df["z_step"] = z_step
+
+    return df
