@@ -73,9 +73,11 @@ def _parse_dataset_description(dataset_description: str) -> str:
     description_parsed = dataset_description.replace("_", " ")
     # find [0-9]dyncm2, put comma and space before, put a space between number and unit,
     # and change dyncm2 to dyn/cm^2 for better readability
-    description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm^2", description_parsed)
+    description_parsed = re.sub(r"(\d+)dyncm2", r", \1 dyn/cm$^2$", description_parsed)
     # turn capital 'S' into lowercase 's' for shear stress
     description_parsed = description_parsed.replace(" Shear Stress", " shear stress")
+    # remove unwanted space before comma
+    description_parsed = description_parsed.replace(" ,", ",")
     return description_parsed
 
 
@@ -134,7 +136,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             lags_pos = lags_as_hours[acf_where_positive]
             acf_pos = acf_[acf_where_positive, i]
             exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
-            relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
+            relaxation_time = 1 / exp_fit[1]
             logger.info(
                 "PC %d relaxation timescale (exponential): %.2f hrs.",
                 i + 1,
@@ -166,7 +168,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             acf_pos = acf_[acf_where_positive, i]
             # fit power law decay by fitting linear decay to log-log transformed data
             power_fit, _ = curve_fit(power_law_decay, lags_pos, acf_pos)
-            relaxation_time = 5 * (1 / power_fit[1]) / 60
+            relaxation_time = 1 / power_fit[1]
             logger.info("PC %d relaxation timescale (power law): %.2f hrs.", i + 1, relaxation_time)
             acf_fit = power_law_decay(lags_as_hours, *power_fit)
             ax.plot(lags_as_hours, acf_fit, "k:", linewidth=2.5, label="")
