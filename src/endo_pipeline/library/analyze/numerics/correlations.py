@@ -203,7 +203,9 @@ def compute_correlation_dict(
         logger.info(
             "Processing dataset [ %s ] for correlation analysis", model_manifest.dataset_name
         )
-        correlation_dict = _compute_correlations_for_one_dataset(model_manifest, correlation_dict)
+        correlation_dict = _compute_correlations_for_one_dataset(
+            model_manifest, pca, correlation_dict
+        )
     return correlation_dict
 
 
