@@ -24,6 +24,9 @@ from src.endo_pipeline.library.analyze.numerics import (
     power_law_decay,
 )
 from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.visualize.diffae_features.correlations import (
+    plot_acf_curves_together,
+)
 
 # if being run as a script, use logging
 # instead of print statements
@@ -96,18 +99,18 @@ for dataset_name in list_of_datasets:
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
-    colors = ["tab:blue", "tab:orange", "tab:green"]
     index_positive = lags > 0
     lags_ = lags[lags > 0]
     acf_ = acf[lags > 0]
-    fig, ax = viz_base.init_plot(figsize=(12, 6))
-    for i in range(3):
-        ax.plot(lags_, acf_[:, i], "k", linewidth=3.0, label="")
-        ax.plot(lags_, acf_[:, i], linewidth=2.75, label=f"PC{i+1}")
-
-    ax.set_title(f"Autocorrelation of PCA Components ({dataset_name})")
-    ax.set_xlabel("Lag")
-    ax.set_ylabel("ACF")
+    fig, ax = plot_acf_curves_together(
+        lags_,
+        acf_,
+        component_labels=feat_cols,
+        plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+        linewidth=2.75,
+    )
+    ax.legend()
+    ax.set_ylim(-0.25, 1.05)
     save_plot_to_path(
         fig,
         figure_save_path,
@@ -115,6 +118,13 @@ for dataset_name in list_of_datasets:
     )
 
     # fit exponential decay to ACF
+    fig, ax = plot_acf_curves_together(
+        lags_,
+        acf_,
+        component_labels=feat_cols,
+        plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+        linewidth=2.75,
+    )
     for i in range(3):
         exp_fit = fit_decay_curve(exponential_decay, lags_, acf_[:, i])
         relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
@@ -138,6 +148,13 @@ for dataset_name in list_of_datasets:
     )
 
     # fit power law decay to ACF
+    fig, ax = plot_acf_curves_together(
+        lags_,
+        acf_,
+        component_labels=feat_cols,
+        plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+        linewidth=2.75,
+    )
     for i in range(3):
         power_fit = fit_decay_curve(power_law_decay, lags_, acf_[:, i])
         relaxation_time = 5 * (1 / power_fit[1]) / 60
