@@ -21,6 +21,11 @@ from src.endo_pipeline.library.visualize import viz_base
 
 logger = logging.getLogger(__name__)
 
+if __name__ != "__main__":
+    # if not running as a script, set up logging
+    # level to INFO as default
+    logger.setLevel(logging.INFO)
+
 # %%
 # fit PCA object
 model_name = "diffae_04_10"
@@ -103,9 +108,10 @@ for dataset_name in list_of_datasets:
     for i in range(3):
         exp_fit = fit_exponential_decay(lags_, acf_[:, i])
         relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
-        print(
-            f"        PC{i+1} Relaxation Timescale: {relaxation_time:.2f} hrs.",
-            flush=True,
+        logger.info(
+            "PC %d Relaxation Timescale: %.2f hrs.",
+            i + 1,
+            relaxation_time,
         )
         acf_fit = exponential_decay(lags_, *exp_fit)
         ax.plot(lags_, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
