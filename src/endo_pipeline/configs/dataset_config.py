@@ -130,6 +130,12 @@ class DatasetConfig:
     notes: str = ""
     """"Additional notes about dataset."""
 
+    exclude_timepoints: dict[int, list[int]] = None
+    """For each zarr position, manually annotated tps that should be dropped due to BF artifacts."""
+
+    center_z_plane: dict[int, int] = None
+    """For each zarr position, the calculated and visually validated center Z-plane"""
+
     class Config(BaseConfig):
         """Settings for dataset config."""
 
