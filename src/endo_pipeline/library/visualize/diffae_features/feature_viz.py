@@ -334,11 +334,9 @@ def pc_loading_heatmap_workflow(
     pca_loadings_df: pd.DataFrame,
     diffae_feature_columns: list[str] | None = None,
     pc_columns: list[str] | None = None,
-) -> tuple[Figure, Figure]:
+) -> Figure:
     """
-    Workflow to visualize PCA loadings as a heatmap and clustermap.
-    This function fits a PCA model, retrieves the PCA loadings,
-    and generates a heatmap and clustermap of the PCA loadings.
+    Workflow to visualize PCA loadings as a heatmap.
 
     Parameters
     ----------
@@ -355,8 +353,6 @@ def pc_loading_heatmap_workflow(
     -------
     fig_heatmap
         Figure object for the heatmap
-    cluster_grid
-        Figure object for the clustermap.
 
     """
     if diffae_feature_columns is None:
@@ -385,20 +381,7 @@ def pc_loading_heatmap_workflow(
     ax_heatmap.set_xlabel("PC")
     ax_heatmap.set_ylabel("Latent Feature")
 
-    # cluster pcs together
-    cluster_grid = sns.clustermap(
-        pca_loadings_df,
-        annot=True,
-        cmap="RdBu",
-        center=0,
-        figsize=(10, 10),
-        row_cluster=True,
-        col_cluster=False,
-    )
-    cluster_grid.ax_heatmap.set_xlabel("PC")
-    cluster_grid.ax_heatmap.set_ylabel("Latent Feature")
-
-    return fig_heatmap, cluster_grid.figure
+    return fig_heatmap
 
 
 def get_label_for_column(

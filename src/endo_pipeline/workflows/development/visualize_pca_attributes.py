@@ -88,16 +88,11 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
 
     # heatmap and clustemap of PC loadings
     pca_loadings_df = get_pca_loadings_as_df(pca, df_format="wide")
-    fig_heatmap, fig_clustermap = feature_viz.pc_loading_heatmap_workflow(pca_loadings_df)
+    fig_heatmap = feature_viz.pc_loading_heatmap_workflow(pca_loadings_df)
     save_plot_to_path(
         figure=fig_heatmap,
-        output_path=get_output_path(__file__, include_timestamp=False),
+        output_path=fig_savedir,
         figure_name="pca_loadings_heatmap",
-    )
-    save_plot_to_path(
-        figure=fig_clustermap,
-        output_path=get_output_path(__file__, include_timestamp=False),
-        figure_name="pca_loadings_clustermap",
     )
 
     logger.info("PCA visualization complete. Figures saved to [ %s ]", fig_savedir)
