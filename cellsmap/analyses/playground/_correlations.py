@@ -4,12 +4,6 @@ from typing import cast
 
 import numpy as np
 
-from cellsmap.analyses.utils.numerics.correlations import (
-    autocorrelation_function,
-    cross_correlation_function,
-    exponential_decay,
-    fit_exponential_decay,
-)
 from src.endo_pipeline.configs import CytoDLModelConfig, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
@@ -17,6 +11,12 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_manifest_for_dynamics_workflows,
     get_pc_column_names,
+)
+from src.endo_pipeline.library.analyze.numerics import (
+    autocorrelation_function,
+    cross_correlation_function,
+    exponential_decay,
+    fit_exponential_decay,
 )
 from src.endo_pipeline.library.visualize import viz_base
 
