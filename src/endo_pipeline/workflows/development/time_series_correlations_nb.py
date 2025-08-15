@@ -1,4 +1,4 @@
-DESCRIPTION = "Run auto- and cross-correlation analysis on DiffAE feature time series data."
+DESCRIPTION = "Run correlation analysis on DiffAE feature time series data."
 
 TAGS = ["diffae_features"]
 # %%
