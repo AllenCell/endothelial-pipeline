@@ -10,7 +10,6 @@ from .correlations import (
     autocorrelation_function,
     cross_correlation_function,
     exponential_decay,
-    fit_decay_curve,
     power_law_decay,
 )
 from .fp_solvers import SteadyFP
@@ -40,6 +39,7 @@ __all__ = [
     "gradient_flow_term",
     "histogramdd",
     "mesh_grid_function",
+    "power_law_decay",
     "probability_flux",
     "vector_field_component",
     "vector_field_function",

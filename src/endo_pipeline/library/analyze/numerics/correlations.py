@@ -138,26 +138,3 @@ def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
 def power_law_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
     """Define power law decay function for curve fitting."""
     return a * np.power(x, -b)
-
-
-def fit_decay_curve(
-    decay_curve_function: Callable, lags: np.ndarray, acf: np.ndarray
-) -> np.ndarray:
-    """
-    Fit a functional form for the decay of an autocorrelation function.
-
-    Parameters
-    ----------
-    decay_curve_function
-        A callable function that defines the decay curve to fit, e.g., `exponential_decay`.
-    lags
-        Array of lag values (positive only).
-    acf
-        Array of autocorrelation values corresponding to the lags.
-    """
-
-    # Fit the decay function to the data
-    fit_params, _ = curve_fit(decay_curve_function, lags, acf)
-
-    # Return the fit parameters
-    return fit_params

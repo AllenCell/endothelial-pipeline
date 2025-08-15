@@ -7,6 +7,7 @@ import sys
 from typing import cast
 
 import numpy as np
+from scipy.optimize import curve_fit
 
 from src.endo_pipeline.configs import CytoDLModelConfig, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
@@ -20,7 +21,6 @@ from src.endo_pipeline.library.analyze.numerics import (
     autocorrelation_function,
     cross_correlation_function,
     exponential_decay,
-    fit_decay_curve,
     power_law_decay,
 )
 from src.endo_pipeline.library.visualize import viz_base
@@ -58,6 +58,10 @@ model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 figure_save_path = get_output_path("correlations")
 
 # %%
+lag_dict = {}
+acf_dict = {}
+ccf_dict = {}
+delta_ccf_dict = {}
 for dataset_name in list_of_datasets:
     logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
     # load dataframe and get top 3 PCs
@@ -97,11 +101,26 @@ for dataset_name in list_of_datasets:
     for i, _ in enumerate(index_combinations):
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
 
+    # store results in dicts
+    lag_dict[dataset_name] = lags
+    acf_dict[dataset_name] = acf
+    ccf_dict[dataset_name] = ccf
+    delta_ccf_dict[dataset_name] = delta_ccf
+
+# %%
+for dataset_name in list_of_datasets:
+    # unpack results
+    lags = lag_dict[dataset_name]
+    num_lags = len(lags)
+    acf = acf_dict[dataset_name]
+    ccf = ccf_dict[dataset_name]
+    delta_ccf = delta_ccf_dict[dataset_name]
+
     # plot acf for positive lags
     # (acf is symmetric around zero)
     index_positive = lags > 0
-    lags_ = lags[lags > 0]
-    acf_ = acf[lags > 0]
+    lags_ = lags[index_positive]
+    acf_ = acf[index_positive]
     fig, ax = plot_acf_curves_together(
         lags_,
         acf_,
@@ -126,7 +145,7 @@ for dataset_name in list_of_datasets:
         linewidth=2.75,
     )
     for i in range(3):
-        exp_fit = fit_decay_curve(exponential_decay, lags_, acf_[:, i])
+        exp_fit, _ = curve_fit(exponential_decay, lags_, acf_[:, i], p0=(1, 0.01))
         relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
         if print_statements:
             print(
@@ -156,7 +175,8 @@ for dataset_name in list_of_datasets:
         linewidth=2.75,
     )
     for i in range(3):
-        power_fit = fit_decay_curve(power_law_decay, lags_, acf_[:, i])
+        # fit power law decay by fitting linear decay to log-log transformed data
+        power_fit, _ = curve_fit(power_law_decay, lags_, acf_[:, i])
         relaxation_time = 5 * (1 / power_fit[1]) / 60
         if print_statements:
             print(
