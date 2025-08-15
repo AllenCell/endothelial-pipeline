@@ -1,8 +1,19 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import TABLEAU_COLORS
+from scipy.optimize import curve_fit
 
+from src.endo_pipeline.io import get_output_path, save_plot_to_path
+from src.endo_pipeline.library.analyze.numerics import (
+    exponential_decay,
+    get_3d_index_combinations,
+    power_law_decay,
+)
 from src.endo_pipeline.library.visualize.viz_base import init_plot
+
+logger = logging.getLogger(__name__)
 
 
 def plot_single_acf_curve(
@@ -52,3 +63,133 @@ def plot_acf_curves_together(
             **kwargs,
         )
     return fig, ax
+
+
+def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None:
+    """Plot correlation workflow outputs."""
+    list_of_datasets = list(correlation_dict["lags"].keys())
+    output_path = get_output_path("correlations")
+
+    for dataset_name in list_of_datasets:
+        # unpack results
+        lags = correlation_dict["lags"][dataset_name]
+        num_lags = len(lags)
+        acf = correlation_dict["acf"][dataset_name]
+        ccf = correlation_dict["ccf"][dataset_name]
+        delta_ccf = correlation_dict["delta_ccf"][dataset_name]
+
+        # plot acf for positive lags
+        # (acf is symmetric around zero)
+        index_positive = lags > 0
+        lags_ = lags[index_positive]
+        acf_ = acf[index_positive]
+        fig, ax = plot_acf_curves_together(
+            lags_,
+            acf_,
+            component_labels=["PC1", "PC2", "PC3"],
+            plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+            linewidth=2.75,
+        )
+        ax.legend()
+        ax.set_ylim(-0.25, 1.05)
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"autocorrelation_{dataset_name}",
+        )
+
+        # fit exponential decay to ACF
+        fig, ax = plot_acf_curves_together(
+            lags_,
+            acf_,
+            component_labels=["PC1", "PC2", "PC3"],
+            plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+            linewidth=2.75,
+        )
+        for i in range(3):
+            acf_where_positive = acf_[:, i] > 0
+            lags_pos = lags_[acf_where_positive]
+            acf_pos = acf_[acf_where_positive, i]
+            exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
+            relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
+            logger.info(
+                "PC %d relaxation timescale (exponential): %.2f hrs.",
+                i + 1,
+                relaxation_time,
+            )
+            acf_fit = exponential_decay(lags_, *exp_fit)
+            ax.plot(lags_, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
+        ax.legend()
+        ax.set_ylim(-0.25, 1.05)
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"autocorrelation_exp_fit_{dataset_name}",
+        )
+
+        # fit power law decay to ACF
+        fig, ax = plot_acf_curves_together(
+            lags_,
+            acf_,
+            component_labels=["PC1", "PC2", "PC3"],
+            plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
+            linewidth=2.75,
+        )
+        for i in range(3):
+            # only fit power law to positive lags
+            acf_where_positive = acf_[:, i] > 0
+            lags_pos = lags_[acf_where_positive]
+            acf_pos = acf_[acf_where_positive, i]
+            # fit power law decay by fitting linear decay to log-log transformed data
+            power_fit, _ = curve_fit(power_law_decay, lags_pos, acf_pos)
+            relaxation_time = 5 * (1 / power_fit[1]) / 60
+            logger.info("PC %d relaxation timescale (power law): %.2f hrs.", i + 1, relaxation_time)
+            acf_fit = power_law_decay(lags_, *power_fit)
+            ax.plot(lags_, acf_fit, "k:", linewidth=2.0, alpha=0.85, label="")
+        ax.legend()
+        ax.set_ylim(-0.25, 1.05)
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"autocorrelation_power_fit_{dataset_name}",
+        )
+
+        # plot ccf
+        index_combinations = get_3d_index_combinations()
+        fig, ax = init_plot(figsize=(12, 6))
+        for i, (j, k) in enumerate(index_combinations):
+            ax.plot(lags, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+
+        ax.set_title(f"Cross-Correlation of PCA Components ({dataset_name})")
+        ax.set_xlabel("Lag")
+        ax.set_ylabel("CCF")
+        ax.legend()
+        ax.set_ylim(-0.25, 0.75)
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"cross_correlation_{dataset_name}",
+        )
+
+        # plot delta ccf
+        fig, ax = init_plot(figsize=(12, 6))
+        for i, (j, k) in enumerate(index_combinations):
+            ax.plot(lags[1 + num_lags // 2 :], delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+        ax.set_title("$C_{ij}(\\tau) - C_{ij}(-\\tau)$" + f" ({dataset_name})")
+        ax.set_xlabel("Lag")
+        ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
+        ax.legend()
+        ax.set_ylim(-0.75, 0.75)
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"cross_correlation_diff_{dataset_name}",
+        )
+        # log summary statistics
+        logger.info(
+            "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
+            dataset_name,
+            np.min(delta_ccf, axis=0),
+            np.max(delta_ccf, axis=0),
+            np.mean(delta_ccf, axis=0),
+        )

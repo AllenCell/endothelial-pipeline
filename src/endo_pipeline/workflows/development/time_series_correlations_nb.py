@@ -1,247 +1,77 @@
-DESCRIPTION = "Run correlation analysis on DiffAE feature time series data."
-
 TAGS = ["diffae_features"]
-# %%
-import logging
-import sys
-from typing import cast
-
-import numpy as np
-from scipy.optimize import curve_fit
-
-from src.endo_pipeline.configs import CytoDLModelConfig, get_model_manifest, load_model_config
-from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
-    df_to_array,
-    fit_pca,
-    get_manifest_for_dynamics_workflows,
-    get_pc_column_names,
-)
-from src.endo_pipeline.library.analyze.numerics import (
-    autocorrelation_function,
-    cross_correlation_function,
-    exponential_decay,
-    power_law_decay,
-)
-from src.endo_pipeline.library.visualize import viz_base
-from src.endo_pipeline.library.visualize.diffae_features.correlations import (
-    plot_acf_curves_together,
-)
-
-# if being run as a script, use logging
-# instead of print statements
-print_statements = False
-logger = logging.getLogger(__name__)
-
-# set up print statements instead of logging
-# if this script is being run as a notebook
-if hasattr(sys, "ps1"):
-    print_statements = True
 
 
-# %%
-# fit PCA object
-model_name = "diffae_04_10"
-pca = fit_pca(model_name=model_name)
+def main(dataset_name: str = "3d_flow_field_analysis", model_name="diffae_04_10") -> None:
+    """Run correlation analysis on DiffAE feature time series data."""
+    import logging
+    from typing import cast
 
-# list of datasets to process
-list_of_datasets = [
-    "20250409_20X",
-    "20250319_20X",
-    "20250326_20X",
-    "20241120_20X",
-]
+    from src.endo_pipeline.configs import (
+        CytoDLModelConfig,
+        get_available_dataset_collection_names,
+        get_available_dataset_names,
+        get_datasets_in_collection,
+        get_model_manifest,
+        load_model_config,
+    )
+    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.library.analyze.numerics import compute_correlation_dict
+    from src.endo_pipeline.library.visualize.diffae_features.correlations import (
+        plot_correlation_workflow_outputs,
+    )
 
-# load model config to get model manifest objects
-model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    # initialize logger
+    logger = logging.getLogger(__name__)
 
-figure_save_path = get_output_path("correlations")
-
-# %%
-lag_dict = {}
-acf_dict = {}
-ccf_dict = {}
-delta_ccf_dict = {}
-for dataset_name in list_of_datasets:
-    logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
-    # load dataframe and get top 3 PCs
-    model_manifest = get_model_manifest(dataset_name, model_config)
-    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
-    feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
-
-    # get feature data
-    feats = df_to_array(df, feat_cols)
-
-    num_timepoints = feats.shape[1]
-    # make sure lags are symmetric around zero
-    if num_timepoints % 2 == 0:
-        # even number of timepoints
-        lags = np.arange(-num_timepoints // 4 + 1, num_timepoints // 4)
+    # check if input is a dataset collection or a single dataset name
+    if dataset_name in get_available_dataset_collection_names():
+        # if it is a dataset collection, load all datasets in the collection
+        dataset_names = get_datasets_in_collection(dataset_name)
+    elif dataset_name in get_available_dataset_names():
+        # if it is a single dataset name, keep it as is
+        dataset_names = [dataset_name]
     else:
-        # odd number of timepoints
-        lags = np.arange(-num_timepoints // 4 + 2, num_timepoints // 4)
-
-    num_lags = len(lags)
-    # autocorrelation
-    acf = np.zeros((num_lags, 3))
-    for i in range(3):
-        for k in range(num_lags):
-            acf[k, i] = autocorrelation_function(feats, i, lags[k])
-
-    ccf = np.zeros((num_lags, 3))
-    index_combinations = [(0, 1), (0, 2), (1, 2)]
-    for i, (j, k) in enumerate(index_combinations):
-        for lag_index in range(num_lags):
-            ccf[lag_index, i] = cross_correlation_function(feats, j, k, lags[lag_index])
-
-    # get difference between
-    # forward and backward lags
-    # leave out zero
-    delta_ccf = np.zeros((num_lags // 2, 3))
-    for i, _ in enumerate(index_combinations):
-        delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
-
-    # store results in dicts
-    lag_dict[dataset_name] = lags
-    acf_dict[dataset_name] = acf
-    ccf_dict[dataset_name] = ccf
-    delta_ccf_dict[dataset_name] = delta_ccf
-
-# %%
-for dataset_name in list_of_datasets:
-    # unpack results
-    lags = lag_dict[dataset_name]
-    num_lags = len(lags)
-    acf = acf_dict[dataset_name]
-    ccf = ccf_dict[dataset_name]
-    delta_ccf = delta_ccf_dict[dataset_name]
-
-    # plot acf for positive lags
-    # (acf is symmetric around zero)
-    index_positive = lags > 0
-    lags_ = lags[index_positive]
-    acf_ = acf[index_positive]
-    fig, ax = plot_acf_curves_together(
-        lags_,
-        acf_,
-        component_labels=feat_cols,
-        plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
-        linewidth=2.75,
-    )
-    ax.legend()
-    ax.set_ylim(-0.25, 1.05)
-    save_plot_to_path(
-        fig,
-        figure_save_path,
-        f"autocorrelation_{dataset_name}",
-    )
-
-    # fit exponential decay to ACF
-    fig, ax = plot_acf_curves_together(
-        lags_,
-        acf_,
-        component_labels=feat_cols,
-        plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
-        linewidth=2.75,
-    )
-    for i in range(3):
-        acf_where_positive = acf_[:, i] > 0
-        lags_pos = lags_[acf_where_positive]
-        acf_pos = acf_[acf_where_positive, i]
-        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
-        relaxation_time = 5 * (1 / exp_fit[1]) / 60  # convert to hours
-        if print_statements:
-            print(
-                f"PC {i + 1} relaxation timescale (exponential): {relaxation_time:.2f} hrs.",
-            )
-        logger.info(
-            "PC %d relaxation timescale (exponential): %.2f hrs.",
-            i + 1,
-            relaxation_time,
+        logger.error(
+            "Dataset name [ %s ] is not a valid dataset or dataset collection name",
+            dataset_name,
         )
-        acf_fit = exponential_decay(lags_, *exp_fit)
-        ax.plot(lags_, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
-    ax.legend()
-    ax.set_ylim(-0.25, 1.05)
-    save_plot_to_path(
-        fig,
-        figure_save_path,
-        f"autocorrelation_exp_fit_{dataset_name}",
-    )
-
-    # fit power law decay to ACF
-    fig, ax = plot_acf_curves_together(
-        lags_,
-        acf_,
-        component_labels=feat_cols,
-        plot_title=f"Autocorrelation of PCA Components ({dataset_name})",
-        linewidth=2.75,
-    )
-    for i in range(3):
-        # only fit power law to positive lags
-        acf_where_positive = acf_[:, i] > 0
-        lags_pos = lags_[acf_where_positive]
-        acf_pos = acf_[acf_where_positive, i]
-        # fit power law decay by fitting linear decay to log-log transformed data
-        power_fit, _ = curve_fit(power_law_decay, lags_pos, acf_pos)
-        relaxation_time = 5 * (1 / power_fit[1]) / 60
-        if print_statements:
-            print(
-                f"PC {i + 1} relaxation timescale (power law): {relaxation_time:.2f} hrs.",
-            )
-        logger.info("PC %d relaxation timescale (power law): %.2f hrs.", i + 1, relaxation_time)
-        acf_fit = power_law_decay(lags_, *power_fit)
-        ax.plot(lags_, acf_fit, "k:", linewidth=2.0, alpha=0.85, label="")
-    ax.legend()
-    ax.set_ylim(-0.25, 1.05)
-    save_plot_to_path(
-        fig,
-        figure_save_path,
-        f"autocorrelation_power_fit_{dataset_name}",
-    )
-
-    # plot ccf
-    fig, ax = viz_base.init_plot(figsize=(12, 6))
-    for i, (j, k) in enumerate(index_combinations):
-        ax.plot(lags, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-
-    ax.set_title(f"Cross-Correlation of PCA Components ({dataset_name})")
-    ax.set_xlabel("Lag")
-    ax.set_ylabel("CCF")
-    ax.legend()
-    ax.set_ylim(-0.25, 0.75)
-    save_plot_to_path(
-        fig,
-        figure_save_path,
-        f"cross_correlation_{dataset_name}",
-    )
-
-    # plot delta ccf
-    fig, ax = viz_base.init_plot(figsize=(12, 6))
-    for i, (j, k) in enumerate(index_combinations):
-        ax.plot(lags[1 + num_lags // 2 :], delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-    ax.set_title("$C_{ij}(\\tau) - C_{ij}(-\\tau)$" + f" ({dataset_name})")
-    ax.set_xlabel("Lag")
-    ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
-    ax.legend()
-    ax.set_ylim(-0.75, 0.75)
-    save_plot_to_path(
-        fig,
-        figure_save_path,
-        f"cross_correlation_diff_{dataset_name}",
-    )
-    # log summary statistics
-    if print_statements:
-        print(
-            f"Minimum, maximum, and mean of delta CCF for dataset [ {dataset_name} ]: "
-            f"[ {np.min(delta_ccf, axis=0)}, {np.max(delta_ccf, axis=0)}, "
-            f"{np.mean(delta_ccf, axis=0)} ] \n \n"
+        raise ValueError(
+            f"Dataset name [ {dataset_name} ] is not a valid",
+            "dataset or dataset collection name.",
         )
-    logger.info(
-        "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
-        dataset_name,
-        np.min(delta_ccf, axis=0),
-        np.max(delta_ccf, axis=0),
-        np.mean(delta_ccf, axis=0),
+
+    # load model config to get model manifest objects
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+    model_manifest_list = []
+    # get model manifests for each dataset in the list of datasets
+    # as long as the dataset exists in the model config
+    for dataset_name in dataset_names:
+        try:
+            model_manifest_list.append(
+                get_model_manifest(dataset_name, model_config, model_name=model_name)
+            )
+        except FileNotFoundError:
+            logger.warning(
+                "No manifest found for dataset [ %s ] in model config [ %s ].",
+                dataset_name,
+                model_config.name,
+            )
+            continue
+
+    # fit PCA object for the given model that generates the model manifests
+    pca = fit_pca(model_name=model_name)
+
+    # get cross and autocorrelation for pc features for each dataset
+    # in the list of model manifests
+    correlation_dict = compute_correlation_dict(
+        list_of_model_manifests=model_manifest_list,
+        pca=pca,
     )
-# %%
+
+    plot_correlation_workflow_outputs(correlation_dict)
+
+
+if __name__ == "__main__":
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

@@ -1,8 +1,14 @@
 import logging
-from collections.abc import Callable
 
 import numpy as np
-from scipy.optimize import curve_fit
+from sklearn.decomposition import PCA
+
+from src.endo_pipeline.configs import ModelManifest
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    df_to_array,
+    get_manifest_for_dynamics_workflows,
+    get_pc_column_names,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +134,77 @@ def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -
     """
 
     return cross_correlation_function(data, component_index, component_index, lag)
+
+
+def get_3d_index_combinations() -> list[tuple[int, int]]:
+    """Get fixed combinations of indices for 3D data."""
+    return [(0, 1), (0, 2), (1, 2)]
+
+
+def _compute_correlations_for_one_dataset(
+    model_manifest: ModelManifest, pca: PCA, correlation_dict: dict
+) -> dict[str, dict]:
+    """Compute cross-correlation and autocorrelation for features from one dataset."""
+    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
+
+    # get feature data
+    feats = df_to_array(df, feat_cols)
+
+    num_timepoints = feats.shape[1]
+    # make sure lags are symmetric around zero
+    if num_timepoints % 2 == 0:
+        # even number of timepoints
+        lags = np.arange(-num_timepoints // 4 + 1, num_timepoints // 4)
+    else:
+        # odd number of timepoints
+        lags = np.arange(-num_timepoints // 4 + 2, num_timepoints // 4)
+
+    num_lags = len(lags)
+    # autocorrelation
+    acf = np.zeros((num_lags, 3))
+    for i in range(3):
+        for k in range(num_lags):
+            acf[k, i] = autocorrelation_function(feats, i, lags[k])
+
+    ccf = np.zeros((num_lags, 3))
+    index_combinations = get_3d_index_combinations()
+    for i, (j, k) in enumerate(index_combinations):
+        for lag_index in range(num_lags):
+            ccf[lag_index, i] = cross_correlation_function(feats, j, k, lags[lag_index])
+
+    # get difference between
+    # forward and backward lags
+    # leave out zero
+    delta_ccf = np.zeros((num_lags // 2, 3))
+    for i, _ in enumerate(index_combinations):
+        delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
+
+    # store results in dict of dicts and return updated dict
+    correlation_dict["lags"][model_manifest.dataset_name] = lags
+    correlation_dict["acf"][model_manifest.dataset_name] = acf
+    correlation_dict["ccf"][model_manifest.dataset_name] = ccf
+    correlation_dict["delta_ccf"][model_manifest.dataset_name] = delta_ccf
+    return correlation_dict
+
+
+def compute_correlation_dict(
+    list_of_model_manifests: list[ModelManifest], pca: PCA
+) -> dict[str, dict]:
+    """Compute cross-correlation and autocorrelation for features from each dataset."""
+    correlation_dict = {
+        "lags": {},
+        "acf": {},
+        "ccf": {},
+        "delta_ccf": {},
+    }
+    # update dict with correlation functions for each dataset in a loop
+    for model_manifest in list_of_model_manifests:
+        logger.info(
+            "Processing dataset [ %s ] for correlation analysis", model_manifest.dataset_name
+        )
+        correlation_dict = _compute_correlations_for_one_dataset(model_manifest, correlation_dict)
+    return correlation_dict
 
 
 def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
