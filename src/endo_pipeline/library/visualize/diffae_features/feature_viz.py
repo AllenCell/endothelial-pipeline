@@ -1,6 +1,12 @@
+from typing import Any, Dict
+
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
@@ -10,6 +16,9 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    get_seg_feat_plot_args,
+)
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -21,8 +30,8 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
         ratio of PCA components
 
     Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    - fig: Figure
+    - ax: Axes
     """
     fig, ax = viz_base.init_plot()  # initialize figure and axes
 
@@ -39,7 +48,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
+def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     """
     Plot component loadings of PCA model.
 
@@ -112,8 +121,8 @@ def plot_pc_scatter(
     - timepoints_to_use: dict[list[list]] | None, optional
         - dictionary of lists of timepoint ranges to use for each dataset
     Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    - fig: Figure
+    - ax: Axes
     """
 
     # initialize figure and axes
@@ -174,7 +183,7 @@ def plot_principal_component_histogram(
     bin_edges: list[np.ndarray],
     time_tick_step: int = 100,
     bin_tick_step: int = 5,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[Figure, Axes]:
     """
     Plot histogram of latent components for a given dataset.
     At each frame in the dataset, computes the histogram of the
@@ -195,8 +204,8 @@ def plot_principal_component_histogram(
         - optional, default is 5
 
     Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    - fig: Figure
+    - ax: Axes
     """
 
     # get shape of histogram array
@@ -319,3 +328,120 @@ def plot_km_drift_2d(
     ax[1].set_ylabel(f"PC{pcs[1]+1}")
     fig.suptitle(f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
     return fig, ax
+
+
+def pc_loading_heatmap_workflow(
+    pca_loadings_df: pd.DataFrame,
+    diffae_feature_columns: list[str] | None = None,
+    pc_columns: list[str] | None = None,
+) -> tuple[Figure, Figure]:
+    """
+    Workflow to visualize PCA loadings as a heatmap and clustermap.
+    This function fits a PCA model, retrieves the PCA loadings,
+    and generates a heatmap and clustermap of the PCA loadings.
+
+    Parameters
+    ----------
+    pca_loadings_df
+        DataFrame containing PCA loadings.
+    diffae_feature_columns
+        List of DiffAE feature column names to include in the heatmap.
+        Defaults to None.
+    pc_columns
+        List of PCA column names to include in the heatmap.
+        Defaults to None.
+
+    Returns
+    -------
+    fig_heatmap
+        Figure object for the heatmap
+    cluster_grid
+        Figure object for the clustermap.
+
+    """
+    if diffae_feature_columns is None:
+        diffae_feature_columns = [f"feat_{i}" for i in range(8)]
+
+    if pc_columns is None:
+        pc_columns = [f"pc{i+1}" for i in range(8)]
+
+    # only use the features and PCs specified
+    pca_loadings_df = pca_loadings_df.loc[pca_loadings_df.index.isin(diffae_feature_columns)]
+    pca_loadings_df = pca_loadings_df[pca_loadings_df.columns.intersection(pc_columns)]
+
+    # label the rows and columns
+    pca_loadings_df.index = pca_loadings_df.index.map(get_label_for_column)
+    pca_loadings_df.columns = pca_loadings_df.columns.map(get_label_for_column)
+
+    fig_heatmap, ax_heatmap = plt.subplots(figsize=(10, 10))
+    ax_heatmap = sns.heatmap(
+        pca_loadings_df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        ax=ax_heatmap,
+        cbar_kws={"label": "Loading Value"},
+    )
+    ax_heatmap.set_xlabel("PC")
+    ax_heatmap.set_ylabel("Latent Feature")
+
+    # cluster pcs together
+    cluster_grid = sns.clustermap(
+        pca_loadings_df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        figsize=(10, 10),
+        row_cluster=True,
+        col_cluster=False,
+    )
+    cluster_grid.ax_heatmap.set_xlabel("PC")
+    cluster_grid.ax_heatmap.set_ylabel("Latent Feature")
+
+    return fig_heatmap, cluster_grid.figure
+
+
+def get_label_for_column(
+    column_name: str,
+    mapping_dict: Dict[str, dict[str, Any]] | None = None,
+    capitalize: bool = False,
+) -> str:
+    """
+    Convert dataframe column names to human-readable labels.
+
+    Parameters
+    ----------
+    column_name
+        Column name to convert.
+        Expects diffae feature names to have the form "feat_0", "feat_1", etc.,
+        Expects PC names to have the form "pc1", "pc2", etc.
+    mapping_dict
+        Optional dictionary mapping column names to human-readable labels.
+        If provided, it will be used to map the column names to labels.
+    capitalize
+        If True, the returned label will be capitalized.
+        If False, the label will be returned as is.
+
+    Returns
+    -------
+    :
+        Human-readable label for the column name.
+    """
+    if mapping_dict is None:
+        mapping_dict = get_seg_feat_plot_args()
+
+    if column_name in mapping_dict:
+        return mapping_dict[column_name]["label"]
+
+    if column_name.startswith("feat_"):
+        feature_number = column_name.split("_")[1]
+        return f"Feature {feature_number}"
+    elif column_name.startswith("pc"):
+        pc_number = column_name.split("pc")[1]
+        return f"PC {pc_number}"
+    else:
+        for _, info_dict in mapping_dict.items():
+            if column_name == info_dict["column_name"]:
+                return info_dict["label"]
+
+    return column_name.replace("_", " ").capitalize() if capitalize else column_name
