@@ -1,5 +1,6 @@
 # %%
 import logging
+import sys
 from typing import cast
 
 import numpy as np
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # set up print statements instead of logging
 # if this script is being run as a notebook
-if __name__ != "__main__":
+if hasattr(sys, "ps1"):
     print_statements = True
 
 
@@ -168,7 +169,7 @@ for dataset_name in list_of_datasets:
         print(
             f"Minimum, maximum, and mean of delta CCF for dataset [ {dataset_name} ]: "
             f"[ {np.min(delta_ccf, axis=0)}, {np.max(delta_ccf, axis=0)}, "
-            f"{np.mean(delta_ccf, axis=0)} ]"
+            f"{np.mean(delta_ccf, axis=0)} ] \n \n"
         )
     else:
         logger.info(
