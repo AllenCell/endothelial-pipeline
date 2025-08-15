@@ -435,6 +435,7 @@ def main():
                         output_folder=out_subdir,
                         filename=f"{base_filename}_{timepoint_label}_scatter",
                         color=colors,
+                        title=f"{dataset_name} {timepoint_label} {x_axis_label} vs {y_axis_label}",
                     )
 
     run_correlation_heatmap_workflow(
