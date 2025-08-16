@@ -20,9 +20,9 @@ from src.endo_pipeline.configs.dataset_io import (
     get_original_path,
     get_zarr_name,
     get_zarr_path,
-    load_nuclei_prediction,
 )
 from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io.input import load_segmentation
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
@@ -889,16 +889,17 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = get_default_dim_order()
-    nuc_seg = load_nuclei_prediction(
+    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
+    seg_location = get_segmentation_location_for_dataset(
+        manifest=seg_manifest,
         dataset_name=dataset_name,
         position=position,
-        T=timeframe,
-        dim_order=dim_order,
+        timepoint=timeframe,
     )
+    nuc_seg = load_segmentation(seg_location)
 
     # get nuclei segmentation properties and dimension order of those properties
-    nuc_seg_arr = nuc_seg.compute()
-    props = regionprops(nuc_seg_arr.squeeze())
+    props = regionprops(nuc_seg)
     dim_shapes = dict(zip(dim_order, nuc_seg.shape))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
