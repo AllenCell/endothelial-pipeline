@@ -1,28 +1,7 @@
-from multiprocessing import Pool
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bioio import BioImage
-from skimage import measure
-from skimage.color import label2rgb
-from skimage.exposure import rescale_intensity
-from skimage.segmentation import find_boundaries
-from tqdm import tqdm
-
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_cdh5_classic_segmentation_path,
-    get_dataset_info,
-    get_tracking_data_filtered,
-    ipython_cli_flexecute,
-)
-from src.endo_pipeline.library.process.general_image_preprocessing import (
-    build_analysis_queue,
-    get_dim_map,
-)
 
 
 def save_validation_images(
@@ -36,6 +15,11 @@ def save_validation_images(
     T: int,
     padding: int = 50,
 ) -> None:
+    import matplotlib.pyplot as plt
+    from skimage.color import label2rgb
+    from skimage.exposure import rescale_intensity
+    from skimage.segmentation import find_boundaries
+
     expanded_bbox = tuple([slice(max(0, sl.start - padding), sl.stop + padding) for sl in crop])
 
     crop_img = img_arr[expanded_bbox].squeeze()
@@ -68,6 +52,16 @@ def save_validation_images(
 
 
 def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
+    from bioio import BioImage
+    from skimage import measure
+
+    from src.endo_pipeline.configs.dataset_io import get_dataset_info
+    from src.endo_pipeline.io import load_segmentation
+    from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
+    from src.endo_pipeline.manifests import (
+        get_segmentation_location_for_dataset,
+        load_segmentation_manifest,
+    )
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -78,13 +72,17 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
 
     # get the raw image and segmentation image filepaths
     raw_path = Path(get_dataset_info(dataset_name)["original_path"])
-    seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
-    if seg_dir is None:
-        print(f"No segmentation directory found for {dataset_name}. Skipping tracking analysis.")
-        return
-    seg_path = seg_dir / f"{dataset_name}_P{position}_T{T}.ome.tiff"
 
-    if not seg_path.exists():
+    # Load classic segmentation for position and timepoint
+    seg_manifest = load_segmentation_manifest("cdh5_classic")
+    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
+
+    # NOTE: leaving this conditional as close to the original as possible, but
+    # flagging that the "load_segmentation" method handles all of these checks
+    # so it doesn't necessarily need to repeated here. If the "return instead of
+    # throwing an error if the segmentation is missing" behavior is desired,
+    # consider using a try-catch on load_segmentation instead.
+    if seg_location.path is not None and not seg_location.path.exists():
         print(f"No segmentation file found for {dataset_name} P{position} at T{T}.")
         return
     else:
@@ -99,8 +97,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
         img_arr = img_dask.max(axis=dim_map["Z"], keepdims=True).squeeze().compute()
 
         # print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg = BioImage(seg_path)
-        seg_arr = seg.get_image_dask_data(dim_order, T=0, C=0).squeeze().compute()
+        seg_arr = load_segmentation(seg_location)
 
         # get the labels and crops around each segmented region
         props = measure.regionprops(label_image=seg_arr)
@@ -142,6 +139,18 @@ def main(
     verbose: bool = False,
 ) -> None:
     """t_final is really only used for testing purposes."""
+
+    from multiprocessing import Pool
+
+    from tqdm import tqdm
+
+    from cellsmap.util.set_output import get_output_path
+    from src.endo_pipeline.configs.dataset_io import (
+        fire_parse_generate_dataset_name_list,
+        get_tracking_data_filtered,
+    )
+    from src.endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+
     out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
@@ -224,4 +233,6 @@ def main(
 
 
 if __name__ == "__main__":
+    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
     ipython_cli_flexecute(main)

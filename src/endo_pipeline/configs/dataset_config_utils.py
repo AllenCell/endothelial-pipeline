@@ -1,8 +1,8 @@
 """Methods for working with dataset configs."""
 
 import logging
+import re
 from pathlib import Path
-from typing import Literal
 
 from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
@@ -41,6 +41,30 @@ def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
         logger.warning("Zarr file [ %s ] does not exist", zarr_file)
 
     return zarr_file
+
+
+def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
+    """Extract position as 'P[x]' from the file path, if found."""
+
+    position = re.findall(r"(P[0-9]+)", Path(zarr_file_path).stem)
+
+    if not position:
+        logger.error("No position found in path [ %s ]", zarr_file_path)
+        raise ValueError(f"Path '{zarr_file_path}' does not contain a valid position")
+
+    return position[0]
+
+
+def get_position_integer_from_zarr_file_path(zarr_file_path: str | Path) -> int:
+    """Extract position as integer from the file path, if found."""
+
+    position_str = get_position_string_from_zarr_file_path(zarr_file_path)
+
+    if not position_str.startswith("P"):
+        logger.error("Position string [ %s ] does not start with 'P'", position_str)
+        raise ValueError(f"Position string '{position_str}' is not valid")
+
+    return int(position_str.replace("P", ""))  # Convert 'P[x]' to x
 
 
 def get_available_channels_for_all_positions(dataset: DatasetConfig) -> dict[int, list[str]]:
@@ -153,34 +177,6 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
             duration = duration + (condition.stop - condition.start)
 
     return duration
-
-
-def get_nuclear_prediction_path(
-    dataset: DatasetConfig,
-    position: int,
-    nuc_seg_type: Literal["label_free", "stain"],
-) -> Path:
-    """Get path to nuclear prediction for given position."""
-
-    if nuc_seg_type == "label_free":
-        if dataset.nuclear_label_free_seg_path is None:
-            logger.error(
-                "Dataset [ %s ] does not have a nuclear label free segmentation path", dataset.name
-            )
-            raise ValueError("'nuclear_label_free_seg_path' is None")
-        else:
-            return Path(dataset.nuclear_label_free_seg_path) / f"P{position}"
-    elif nuc_seg_type == "stain":
-        if dataset.nuclear_stain_seg_path is None:
-            logger.error(
-                "Dataset [ %s ] does not have nuclear stain segmentation path", dataset.name
-            )
-            raise ValueError("'nuclear_stain_seg_path' is None")
-        else:
-            return Path(dataset.nuclear_stain_seg_path) / f"P{position}"
-    else:
-        logger.error("Nuclear segmentation type [ %s ] is not valid", nuc_seg_type)
-        raise ValueError("'nuc_seg_type' must be 'label_free' or 'stain'")
 
 
 def get_filtered_dataset_collection_name(

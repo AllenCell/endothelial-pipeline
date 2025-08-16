@@ -1,5 +1,5 @@
-name: diffae_training_csv_resolution_0
-workflow: generate_diffae_training_csv
+name: diffae_training_dataframe_resolution_0
+workflow: create_diffae_training_dataframe
 parameters:
   zarr_resolution: 0
 locations:

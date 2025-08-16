@@ -1,43 +1,11 @@
 from pathlib import Path
 
-import matplotlib as mpl
 import numpy as np
-from bioio import BioImage
-from skimage.filters import gaussian
-from skimage.morphology import skeletonize
-from skimage.segmentation import find_boundaries
-from skimage.transform import pyramid_reduce
-
-from src.endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    get_available_channels,
-    get_dataset_duration_in_frames,
-    get_time_interval_in_minutes,
-    get_zarr_path,
-    ipython_cli_flexecute,
-    load_config,
-    load_dataset,
-)
-from src.endo_pipeline.library.process.cdh5_preprocessing import (
-    extract_T,
-    get_cdh5_classic_segmentation_paths,
-    get_thresholds,
-    preprocess,
-)
-from src.endo_pipeline.library.process.general_image_preprocessing import save_image_output
-
-mpl.rc("image", cmap="gray")
-from multiprocessing import Pool
-
-from tqdm import tqdm
-
-try:
-    from IPython import get_ipython
-except ModuleNotFoundError:
-    pass
 
 
 def get_chan_map(filepath: Path) -> dict:
+    from bioio import BioImage
+
     img = BioImage(filepath)
     return {name: index for index, name in enumerate(img.channel_names)}
 
@@ -49,6 +17,10 @@ def multiproc_wrapper(function, args):
 def initialize_workflow(
     dataset_name: str, SAVE_OUTPUT: bool = True, IS_TEST: bool = False
 ) -> tuple[Path, dict]:
+    from bioio import BioImage
+
+    from src.endo_pipeline.configs.dataset_io import get_time_interval_in_minutes, get_zarr_path
+
     # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
     PRJ_DIR = Path("../").resolve() if not IS_TEST else Path("../../tests").resolve()
@@ -92,6 +64,17 @@ def get_density_map_from_thresholds(
     -------
         density_map: the density map (values are floats and should range from 0 to 1).
     """
+    from bioio import BioImage
+    from skimage.filters import gaussian
+    from skimage.morphology import skeletonize
+
+    from src.endo_pipeline.configs.dataset_io import (
+        get_available_channels,
+        get_zarr_path,
+        load_config,
+        load_dataset,
+    )
+    from src.endo_pipeline.library.process.cdh5_preprocessing import get_thresholds, preprocess
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
@@ -139,6 +122,19 @@ def get_density_map_from_thresholds(
 def get_density_map_from_segmentations(
     dataset_name: str, T: int, density_map_sigma: float = 160, VERBOSE: bool = False
 ) -> np.ndarray:
+    from bioio import BioImage
+    from skimage.filters import gaussian
+    from skimage.morphology import skeletonize
+    from skimage.segmentation import find_boundaries
+    from skimage.transform import pyramid_reduce
+
+    from src.endo_pipeline.configs.dataset_io import get_zarr_path, load_config
+    from src.endo_pipeline.io import load_segmentation
+    from src.endo_pipeline.manifests import (
+        get_segmentation_location_for_dataset,
+        load_segmentation_manifest,
+    )
+
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
         dataset_name in DATASET_NAME_LIST
@@ -149,10 +145,15 @@ def get_density_map_from_segmentations(
     img_bin_level = sorted([level for level in BioImage(dataset_filepath).resolution_levels])[-1]
 
     print(f"T={T} -- loading segmentation") if VERBOSE else None
-    image_filepaths = get_cdh5_classic_segmentation_paths(dataset_name, sort_paths=True)
-    image_filepath = Path(str(*[fp for fp in image_filepaths if extract_T(fp.name) == T]))
-    segmentation_channel = get_chan_map(image_filepath)["segmentations_merged"]
-    seg = BioImage(image_filepath).get_image_data("TCYX", C=segmentation_channel).squeeze()
+    # --------------------------------------------------------------------------
+    # WARNING: This block loading the segmentation originally called a now
+    # deprecated method. It has been replaced with a partial refactor using
+    # newer methods, but has not been fully tested because this workflow is
+    # archived. Use with caution!
+    manifest = load_segmentation_manifest("cdh5_classic")
+    location = get_segmentation_location_for_dataset(manifest, dataset_name, 0, T)
+    seg = load_segmentation(location)
+    # --------------------------------------------------------------------------
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None
     seg_borders = pyramid_reduce(skeletonize(find_boundaries(seg)), downscale=2**img_bin_level)
@@ -173,6 +174,8 @@ def run_density_workflow(
     density_map_sigma: float,
     VERBOSE: bool = False,
 ) -> None:
+
+    from src.endo_pipeline.library.process.general_image_preprocessing import save_image_output
 
     print(f"Working on {dataset_name}, T={T}...")
     print("- getting density map...") if VERBOSE else None
@@ -219,6 +222,17 @@ def main(
     is_test: bool = False,
     verbose: bool = False,
 ) -> None:
+    from multiprocessing import Pool
+
+    import matplotlib as mpl
+    from tqdm import tqdm
+
+    mpl.rc("image", cmap="gray")
+
+    from src.endo_pipeline.configs.dataset_io import (
+        fire_parse_generate_dataset_name_list,
+        get_dataset_duration_in_frames,
+    )
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
@@ -274,4 +288,6 @@ def main(
 
 
 if __name__ == "__main__":
+    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+
     ipython_cli_flexecute(main)

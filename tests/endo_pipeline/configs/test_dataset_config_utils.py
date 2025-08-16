@@ -14,7 +14,8 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
-    get_nuclear_prediction_path,
+    get_position_integer_from_zarr_file_path,
+    get_position_string_from_zarr_file_path,
     get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
@@ -233,30 +234,6 @@ def test_get_duration_at_flow(dataset, flow, expected_duration):
 
 
 @pytest.mark.parametrize(
-    "nuc_seg_type,position,expected",
-    [
-        ("label_free", 1, "/path/to/label/free/seg/P1"),
-        ("stain", 2, "/path/to/stain/seg/P2"),
-    ],
-)
-def test_get_nuclear_prediction_path_valid_paths(dataset, nuc_seg_type, position, expected):
-    dataset.nuclear_label_free_seg_path = "/path/to/label/free/seg"
-    dataset.nuclear_stain_seg_path = "/path/to/stain/seg/"
-
-    nuclear_prediction_path = get_nuclear_prediction_path(dataset, position, nuc_seg_type)
-    assert nuclear_prediction_path.as_posix() == expected
-
-
-@pytest.mark.parametrize("nuc_seg_type", ["label_free", "stain", "invalid"])
-def test_get_nuclear_prediction_path_invalid_paths(dataset, nuc_seg_type):
-    dataset.nuclear_label_free_seg_path = None
-    dataset.nuclear_stain_seg_path = None
-
-    with pytest.raises(ValueError):
-        get_nuclear_prediction_path(dataset, 0, nuc_seg_type)
-
-
-@pytest.mark.parametrize(
     "sample_type,objective,microscope",
     [
         ("live", None, None),
@@ -294,3 +271,59 @@ def test_make_filtered_dataset_collection(sample_type, objective, microscope):
 
     if microscope is not None:
         assert all(config.microscope == microscope for config in dataset_configs)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", "P1"),
+        ("/path/to/file/before_P2.ome.zarr", "P2"),
+        ("/path/to/file/P3_after.ome.zarr", "P3"),
+        ("/path/to/file/before_P4_after.ome.zarr", "P4"),
+    ],
+)
+def test_get_position_string_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_string_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_string_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_string_from_zarr_file_path(path)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", 1),
+        ("/path/to/file/before_P2.ome.zarr", 2),
+        ("/path/to/file/P3_after.ome.zarr", 3),
+        ("/path/to/file/before_P14_after.ome.zarr", 14),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_integer_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_integer_from_zarr_file_path(path)

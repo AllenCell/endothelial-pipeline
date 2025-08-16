@@ -1,19 +1,7 @@
-from pathlib import Path
 from typing import Any
 
 import dask
-import dask.array as da
-import numpy as np
 import pandas as pd
-from bioio import BioImage
-from skimage.measure import regionprops_table
-
-from src.endo_pipeline.manifests import (
-    DataframeLocation,
-    DataframeManifest,
-    load_dataframe_manifest,
-    save_dataframe_manifest,
-)
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
@@ -21,6 +9,10 @@ BF_CHANNEL = 1
 
 def make_overlay(filename, feature_movie, end_y, end_x):
     """Make an overlay of the feature movie with the brightfield and fluorescent channels."""
+    import dask.array as da
+    import numpy as np
+    from bioio import BioImage
+
     img = BioImage(filename)
     img.set_resolution_level(1)
     n_t = range(feature_movie.shape[0])
@@ -39,6 +31,8 @@ def make_overlay(filename, feature_movie, end_y, end_x):
 @dask.delayed
 def create_frame(shape, df, feat_cols):
     """Create a frame of spatial features from a DataFrame."""
+    import numpy as np
+
     timepoint_movie = np.zeros(shape)
     count_movie = np.zeros(shape)
     coords = df[["start_y", "end_y", "start_x", "end_x"]].values
@@ -52,23 +46,11 @@ def create_frame(shape, df, feat_cols):
 
 def get_physical_pixel_sizes(filename):
     """Get resolution level 1 physical pixel sizes from a zarr file."""
+    from bioio import BioImage
+
     im = BioImage(filename)
     im.set_resolution_level(1)
     return im.physical_pixel_sizes
-
-
-def get_segmentation_path_at_frame(dataset_name: str, position: int, timepoint: int) -> Path:
-    """
-    Temporary helper function to extract timepoints based on local
-    path until segmentation paths are in data manifest.
-    """
-    from src.endo_pipeline.configs.dataset_io import extract_T, get_cdh5_classic_segmentation_path
-
-    seg_dir = Path(get_cdh5_classic_segmentation_path(dataset_name, position))
-    seg_path = next(
-        [fp for fp in seg_dir.glob("*.ome.tiff") if (extract_T(fp.name) // 6) == timepoint]
-    )
-    return seg_path
 
 
 def _get_per_cell_features(
@@ -82,13 +64,25 @@ def _get_per_cell_features(
     Rearrange a list of spatial features into an image and
     extract the mean value within each segmentation region.
     """
+    import numpy as np
+    from bioio import BioImage
+    from skimage.measure import regionprops_table
+
+    from src.endo_pipeline.manifests import (
+        get_segmentation_location_for_dataset,
+        load_segmentation_manifest,
+    )
+
     movie_shape_y, movie_shape_x = data.end_y.max(), data.end_x.max()
 
     spatial_pcs = create_frame(
         (len(feat_cols), movie_shape_y, movie_shape_x), data, feat_cols
     ).compute()
 
-    segmentation_path = get_segmentation_path_at_frame(dataset_name, position[1:], timepoint)
+    manifest = load_segmentation_manifest("cdh5_classic")
+    segmentation_path = get_segmentation_location_for_dataset(
+        manifest, dataset_name, int(position[1:]), int(timepoint) // 6
+    )
 
     # TODO set resolution to 1 once segmentations are zarrs
     segmentation = BioImage(segmentation_path).get_image_dask_data("YX").compute()
@@ -193,6 +187,9 @@ def generate_spatial_feature_movie(
 
     The movie is saved in the `models/{model_name}/spatial_pcs/{dataset_name}` directory.
     """
+    import dask.array as da
+    import numpy as np
+
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
 
@@ -264,12 +261,14 @@ def measure_per_cell_features(
     use_pca: bool = False,
 ):
     """Take within-mask mean of each feature for each cell in the segmentation."""
-    from src.endo_pipeline.configs import (
-        load_dataset_config,
-        load_model_config,
-        save_dataset_config,
-    )
+    from src.endo_pipeline.configs import load_dataset_config, load_model_config
     from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+    from src.endo_pipeline.manifests import (
+        DataframeLocation,
+        DataframeManifest,
+        load_dataframe_manifest,
+        save_dataframe_manifest,
+    )
 
     save_dir = get_output_path(
         "models", model_name, "cell_pcs", dataset_name, include_timestamp=False

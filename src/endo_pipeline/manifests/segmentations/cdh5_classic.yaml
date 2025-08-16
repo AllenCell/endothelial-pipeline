@@ -1,0 +1,26 @@
+name: cdh5_classic
+workflow: unknown
+parameters: {}
+locations:
+  20241016_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20241016_20X/P{{position}}/20241016_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20241120_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20241120_20X/P{{position}}/20241120_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20241217_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20241217_20X/P{{position}}/20241217_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250224_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250224_20X/P{{position}}/20250224_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250319_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250319_20X/P{{position}}/20250319_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250326_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250326_20X/P{{position}}/20250326_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250331_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250331_20X/P{{position}}/20250331_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250409_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250409_20X/P{{position}}/20250409_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250428_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250428_20X/P{{position}}/20250428_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250604_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250604_20X/P{{position}}/20250604_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250611_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250611_20X/P{{position}}/20250611_20X_P{{position}}_T{{timepoint}}.ome.tiff

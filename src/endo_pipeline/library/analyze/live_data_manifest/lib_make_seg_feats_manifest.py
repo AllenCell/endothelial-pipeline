@@ -14,9 +14,8 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
+from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
-    extract_T,
-    get_cdh5_classic_segmentation_path,
     get_dataset_info,
     get_original_path,
     get_zarr_name,
@@ -27,6 +26,10 @@ from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
+)
+from src.endo_pipeline.manifests import (
+    get_segmentation_location_for_dataset,
+    load_segmentation_manifest,
 )
 
 logger = logging.getLogger(__name__)
@@ -677,15 +680,14 @@ def add_cell_segmentation_path_column(
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
-    cdh5_seg_dir = get_cdh5_classic_segmentation_path(dataset_name, position)
-    if cdh5_seg_dir is None:
-        raise ValueError(
-            f"No segmentation directory found for dataset {dataset_name} position {position}."
+    dataset = load_dataset_config(dataset_name)
+    manifest = load_segmentation_manifest("cdh5_classic")
+    return {
+        timepoint: get_segmentation_location_for_dataset(
+            manifest, dataset_name, position, timepoint
         )
-    seg_path_dict = {
-        extract_T(fp.stem): fp for fp in sorted(cdh5_seg_dir.glob("**/*.ome.tif*"), key=extract_T)
+        for timepoint in range(dataset.duration)
     }
-    return seg_path_dict
 
 
 def adjust_crop_bounds_to_0th_bin_level(

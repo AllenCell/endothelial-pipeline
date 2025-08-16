@@ -28,6 +28,6 @@ def get_dataframe_location_for_dataset(
             dataset_name,
             manifest.name,
         )
-        raise KeyError("Unable to find dataset %s in dataframe manifest.")
+        raise KeyError(f"Unable to find dataset {dataset_name} in dataframe manifest.")
 
     return manifest.locations[dataset_name]

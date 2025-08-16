@@ -2,7 +2,7 @@ TAGS = ["pc_interpretation", "diffae_image_generation"]
 
 
 def main(
-    dataset_name: str = "live_20X_objective_3i_microscope",
+    dataset_name: str = "pca_reference",
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -37,13 +37,18 @@ def main(
         Saves the montage images to the output directory.
     """
     from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.visualize.crop_montage import create_montage, specify_crops
+    from src.endo_pipeline.library.visualize.crop_montage import (
+        filter_dataframe,
+        generate_contact_sheet,
+        load_data_for_montage,
+        sample_dataframe,
+    )
 
     fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
 
-    df, pca, model_manifest_list = specify_crops.load_data(dataset_name)
+    df, pca, model_manifest_list = load_data_for_montage(dataset_name)
 
-    df_filtered = specify_crops.filter_dataframe(
+    df_filtered = filter_dataframe(
         df,
         pc_axis,
         pc_val,
@@ -54,9 +59,9 @@ def main(
         plot_heatmap,
     )
 
-    df_sample = specify_crops.sample_dataframe(df_filtered)
+    df_sample = sample_dataframe(df_filtered)
 
-    create_montage.generate_contact_sheet(
+    generate_contact_sheet(
         df_sample,
         pc_axis,
         pc_val,

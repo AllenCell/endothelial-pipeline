@@ -36,9 +36,7 @@ out_dir = get_output_path(Path(__file__).stem, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 
-def fms_upload_cdh5_classic_seg_tracking(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -49,9 +47,7 @@ def fms_upload_cdh5_classic_seg_tracking(
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
-    )
+    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
 
     # Store FMS ID in dataframe manifest
 
@@ -67,15 +63,13 @@ def fms_upload_cdh5_classic_seg_tracking(
     save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def fms_upload_cdh5_get_measured_features(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -86,9 +80,7 @@ def fms_upload_cdh5_get_measured_features(
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
-    )
+    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
 
     # Store FMS ID in dataframe manifest
 
@@ -104,15 +96,13 @@ def fms_upload_cdh5_get_measured_features(
     save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def fms_upload_nuc_get_measured_features(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -123,9 +113,7 @@ def fms_upload_nuc_get_measured_features(
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
-    )
+    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
 
     # Store FMS ID in dataframe manifest
 
@@ -141,15 +129,13 @@ def fms_upload_nuc_get_measured_features(
     save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def fms_upload_make_seg_feats_manifest(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -160,9 +146,7 @@ def fms_upload_make_seg_feats_manifest(
     annotations = build_fms_annotations(dataset_config, model=model)
 
     # Upload the file to FMS
-    file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
-    )
+    file_id = upload_file_to_fms(file_path=path_to_file, annotations=annotations, file_type="tsv")
 
     # Store FMS ID in dataframe manifest
 
@@ -178,13 +162,13 @@ def fms_upload_make_seg_feats_manifest(
     save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def upload_multiple_datasets(
+def main(
     manifest_kind: Literal[
         "cdh5_seg_tracking",
         "cdh5_seg_measurements",
@@ -192,7 +176,6 @@ def upload_multiple_datasets(
         "merged_live_data_manifests",
     ],
     dataset_name_list: list | None = None,
-    fms_env: Literal["stg", "prod"] = "prod",
     endo_project_analysis_dir: (
         str | Path
     ) = "//allen/aics/endothelial/morphological_features/analysis",
@@ -268,8 +251,10 @@ def upload_multiple_datasets(
             f"Manifest file {manifest_filepath} does not exist. "
             "Please double check the file location."
         )
-        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath, fms_env)
+        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath)
 
 
 if __name__ == "__main__":
-    fire.Fire()
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)
