@@ -8,10 +8,10 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
+from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     fire_parse_generate_dataset_name_list,
-    get_dataset_info,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
@@ -190,7 +190,8 @@ def build_measured_features_tables(
     logger.debug(f"T={T} -- loading imaging datasets")
     # load the raw cdh5 image data
     if use_sldy_data:
-        cdh5_chan_index = get_dataset_info(dataset_name)["channel_488_index"]
+        dataset_config = load_dataset_config(dataset_name)
+        cdh5_chan_index = dataset_config.original_channel_indices.channel_488
         image_path = Path(get_original_path(dataset_name))
         img = BioImage(image_path)
         img.set_scene(scene)
