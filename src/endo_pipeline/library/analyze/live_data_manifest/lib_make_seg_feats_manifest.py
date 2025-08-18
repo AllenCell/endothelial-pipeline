@@ -373,7 +373,6 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         image_size_y, image_size_x = img.dims.Y, img.dims.X
 
         new_cols[(ds_nm, pos)] = {
-            # "zarr_path": zarr_path.as_posix(),
             "image_size_x": image_size_x,
             "image_size_y": image_size_y,
             "EGFP_channel_index_zarr": data_config.channel_488_index,
@@ -444,8 +443,8 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
     # recalculate the centroid speeds of each track
     # after filtering
     logger.info("Calculating centroid velocities...")
-    big_table["centroid_x_um"] = big_table["centroid_x"] * big_table["pixel_size_xy_in_um"]
-    big_table["centroid_y_um"] = big_table["centroid_y"] * big_table["pixel_size_xy_in_um"]
+    big_table["centroid_x_um"] = big_table["centroid_X"] * big_table["pixel_size_xy_in_um"]
+    big_table["centroid_y_um"] = big_table["centroid_Y"] * big_table["pixel_size_xy_in_um"]
     big_table[["centroid_dx_dt", "centroid_dy_dt"]] = (
         big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
             ["centroid_x_um", "centroid_y_um", "time_minutes"]
