@@ -17,8 +17,6 @@ For each dataset config in the `configs/models` directory, confirm:
 
 - All dataset configs follow the schema defined by `ModelConfig`.
 - All MLflow run IDs exist and can be opened (load checkpoint).
-- All datasets in the `ModelManifest` are valid (have a `DatasetConfig`)
-    and can be loaded (load manifest from the model via FMS).
 - All datasets in the `training_datasets` list have a `DatasetConfig`.
 """  # noqa: D415, D400
 # %%
@@ -90,19 +88,6 @@ for name in get_available_model_names():
             model_config.mlflow_run_id,
         )
         raise
-
-    # Check if all datasets with manifests for this model
-    # Have a DatasetConfig and can be loaded from FMS
-    manifest_fmsids = model_config.manifest_fmsids
-    logger.info("Validating manifests...")
-    for dataset_manifest in manifest_fmsids:
-        dataset_name = dataset_manifest.dataset_name
-
-        # Load dataset config
-        dataset_config = load_dataset_config(dataset_name)
-
-        # load dataframe from FMS
-        df = load_dataframe_from_fms(dataset_manifest.fmsid)
 
     # Check if all training datasets have a DatasetConfig
     # catch raised error and log a warning instead:

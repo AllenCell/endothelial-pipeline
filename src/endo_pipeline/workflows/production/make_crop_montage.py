@@ -3,6 +3,7 @@ TAGS = ["pc_interpretation", "diffae_image_generation"]
 
 def main(
     dataset_name: str = "pca_reference",
+    model_name: str = "diffae_04_10",
     pc_axis: int = 1,
     pc_val: float = 0.25,
     frame_range: list[int] | None = None,
@@ -46,13 +47,14 @@ def main(
 
     fig_savedir = get_output_path("crop_visualization", include_timestamp=False)
 
-    df, pca, model_manifest_list = load_data_for_montage(dataset_name)
+    df, pca, dataset_list = load_data_for_montage(dataset_name, model_name)
 
     df_filtered = filter_dataframe(
         df,
         pc_axis,
         pc_val,
-        model_manifest_list,
+        model_name,
+        dataset_list,
         pca,
         fig_savedir,
         frame_range,

@@ -6,19 +6,14 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 from src.endo_pipeline.configs import (
-    CytoDLModelConfig,
-    ModelManifest,
     get_available_dataset_collection_names,
     get_available_dataset_names,
     get_datasets_in_collection,
-    get_model_manifest,
-    get_timelapse_model_manifests,
-    load_model_config,
 )
 from src.endo_pipeline.io import save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import (
@@ -29,6 +24,7 @@ from src.endo_pipeline.library.analyze.numerics import (
 from src.endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
+from src.endo_pipeline.manifests import load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +33,7 @@ N_BINS = 40  # number of bins for histogram, hardcoded right now but somewhat ar
 
 def load_data_for_montage(
     dataset_name: str = "live_20X_objective_3i_microscope", model_name: str = "diffae_04_10"
-) -> tuple[pd.DataFrame, PCA, list[ModelManifest]]:
+) -> tuple[pd.DataFrame, PCA, list[str]]:
     """
     Load Diff AE feature DataFrames for one or more datasets and optionally apply PCA.
 
@@ -56,32 +52,18 @@ def load_data_for_montage(
     :
         Fit PCA object for the model.
     :
-        List of model manifests for the specified datasets.
+        List of dataset names.
     """
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
     # check if input is a dataset collection or a single dataset name
     if dataset_name is None:
-        model_manifest_list = get_timelapse_model_manifests(model_config)
+        dataset_name_list = get_datasets_in_collection("timelapse")
     elif dataset_name in get_available_dataset_collection_names():
         # if it is a dataset collection, load all datasets in the collection
-        # and get their model manifests
-        model_manifest_list = [
-            get_model_manifest(
-                dataset_name,
-                model_config,
-            )
-            for dataset_name in get_datasets_in_collection(dataset_name)
-        ]
+        dataset_name_list = get_datasets_in_collection(dataset_name)
     elif dataset_name in get_available_dataset_names():
-        # if it is a single dataset name, load its model manifest
-        # as a list with one element
-        model_manifest_list = [
-            get_model_manifest(
-                dataset_name,
-                model_config,
-            )
-        ]
+        # if it is a single dataset name, create a list with one element
+        dataset_name_list = [dataset_name]
     else:
         logger.error(
             "Dataset name [ %s ] is not a valid dataset or dataset collection name",
@@ -89,24 +71,26 @@ def load_data_for_montage(
         )
         raise ValueError(f"Invalid dataset name: {dataset_name}")
 
+    manifest = load_dataframe_manifest(model_name)
     pca = fit_pca(model_name=model_name)
 
     df_all = pd.concat(
         [
-            get_manifest_for_dynamics_workflows(model_manifest, pca=pca, filter_to_valid=False)
-            for model_manifest in model_manifest_list
+            get_dataframe_for_dynamics_workflows(name, manifest, pca, filter_to_valid=False)
+            for name in dataset_name_list
         ],
         ignore_index=True,
     )
 
-    return df_all, pca, model_manifest_list
+    return df_all, pca, dataset_name_list
 
 
 def filter_dataframe(
     df_all: pd.DataFrame,
     pc_axis: int,
     pc_val: float,
-    model_manifest_list: list[ModelManifest],
+    model_name: str,
+    dataset_names: list[str],
     pca: PCA,
     fig_savedir: Path,
     frame_range: list[int] | None = None,
@@ -123,8 +107,10 @@ def filter_dataframe(
         Index of the principal component (0-indexed) to filter by.
     pc_val
         Target bin value (between 0 and 1) of the selected PC to sample crops from.
-    model_manifest_list
-        List of model manifests for the datasets being processed.
+    model_name
+        Name of the model for which to load the feature dataframe.
+    dataset_names
+        List of datasets to be processed.
     pca
         PCA object used to transform the original features.
     fig_savedir
@@ -139,7 +125,9 @@ def filter_dataframe(
     :
         DataFrame filtered by the specified PC bin and optional frame range.
     """
-    bin_limits = get_3d_bounds_from_data(model_manifest_list, pca, filter_to_valid=False)
+
+    manifest = load_dataframe_manifest(model_name)
+    bin_limits = get_3d_bounds_from_data(dataset_names, manifest, pca, filter_to_valid=False)
     hist_array_list, bin_edges, df_with_bins = get_histogram_by_component(
         df_all,
         N_BINS,
@@ -148,8 +136,7 @@ def filter_dataframe(
     )
 
     if plot_heatmap:
-        for i, model_manifest in enumerate(model_manifest_list):
-            dataset_name = model_manifest.dataset_name
+        for i, dataset_name in enumerate(dataset_names):
             fig, _ = plot_principal_component_histogram(hist_array_list[i], bin_edges)
             fig.suptitle(f"Dataset: {dataset_name}", y=0.95, fontsize=25)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
