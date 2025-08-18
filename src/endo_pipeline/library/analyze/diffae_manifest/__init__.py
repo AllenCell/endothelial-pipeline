@@ -12,7 +12,7 @@ from .preprocessing import (
     add_crop_index,
     add_description_column,
     df_to_array,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
 
@@ -25,7 +25,7 @@ __all__ = [
     "get_pca_loadings_as_df",
     "get_dataset_descriptions",
     "get_feature_column_names",
-    "get_manifest_for_dynamics_workflows",
+    "get_dataframe_for_dynamics_workflows",
     "get_pc_column_names",
     "get_timepoints_for_plotting_pcs",
     "get_traj_and_diff",

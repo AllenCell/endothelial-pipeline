@@ -6,12 +6,12 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.manifests import DataframeManifest
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -99,8 +99,9 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
-    model_manifest_list: list[ModelManifest],
     timepoints_to_use: dict[str, list[list]] | None = None,
     alpha: float = 0.75,
     scatter_size: float = 0.01,
@@ -109,10 +110,10 @@ def plot_pc_scatter(
     Plot scatter plot of PCA components for a list of datasets.
 
     Input:
+    - dataset_names: list of dataset names to use for plotting
+    - manifest: manifest of model feature dataframes
     - pca: the PCA model used to project the
         feature data onto the PCA space
-    - model_manifest_list: list[str], list of dataset names to plot
-        - each dataset should have a DiffAE manifest file
     - timepoints_to_use: dict[list[list]] | None, optional
         - dictionary of lists of timepoint ranges to use for each dataset
     Output:
@@ -125,15 +126,14 @@ def plot_pc_scatter(
     # initialize color list for legend
     patch_list_for_legend = []
 
-    for model_manifest in model_manifest_list:
-        dataset_name = model_manifest.dataset_name
+    for dataset_name in dataset_names:
         # load dataframe and get top 3 PCs
-        df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:
-            frame_ranges = timepoints_to_use[model_manifest.dataset_name]
+            frame_ranges = timepoints_to_use[dataset_name]
             timepoints = []
             for frame_range in frame_ranges:
                 timepoints.extend(list(range(frame_range[0], frame_range[1] + 1)))
@@ -142,7 +142,7 @@ def plot_pc_scatter(
             df = df[df["valid"]]
 
         # get color for the dataset
-        color = get_dataset_color(model_manifest.dataset_name)
+        color = get_dataset_color(dataset_name)
         patch_list_for_legend.append(mpatches.Patch(color=color, label=dataset_name))
 
         # first plot: PC1 v PC2

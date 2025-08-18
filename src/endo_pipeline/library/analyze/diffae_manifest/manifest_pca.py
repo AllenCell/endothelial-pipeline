@@ -5,14 +5,9 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import (
-    CytoDLModelConfig,
-    get_datasets_in_collection,
-    get_model_manifest,
-    get_pca_reference_model_manifests,
-    load_model_config,
-)
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.configs import get_datasets_in_collection
+from src.endo_pipeline.io import load_dataframe
+from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 from .diffae_manifest_utils import get_feature_column_names
 
@@ -46,26 +41,18 @@ def fit_pca(
     :
         Fit PCA object
     """
-    # load model config to get avaiable manifest names
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-    if dataset_collection_name == "pca_reference":
-        # use default function
-        model_manifest_list = get_pca_reference_model_manifests(model_config)
-    else:
-        # load model manifests for the given dataset collection
-        dataset_names = get_datasets_in_collection(dataset_collection_name)
-        model_manifest_list = [
-            get_model_manifest(dataset_name, model_config) for dataset_name in dataset_names
-        ]
+    # Load dataframe manifest for given model
+    manifest = load_dataframe_manifest(model_name)
 
-    logger.info(
-        "\nDatasets being used to fit PCA: \n %s",
-        [model_manifest.dataset_name for model_manifest in model_manifest_list],
-    )
-    data_ref = pd.concat(
-        [load_dataframe_from_fms(model_manifest.fmsid) for model_manifest in model_manifest_list],
-        ignore_index=True,
-    )
+    # Get dataframe locations for manifest for all datasets in collection
+    dataset_names = get_datasets_in_collection(dataset_collection_name)
+    locations = [
+        get_dataframe_location_for_dataset(manifest, dataset_name) for dataset_name in dataset_names
+    ]
+    logger.info("Datasets being used to fit PCA:\n%s", ",".join(dataset_names))
+
+    # Load all dataframes
+    data_ref = pd.concat([load_dataframe(location) for location in locations], ignore_index=True)
 
     # fit PCA
     pca = PCA(n_components=num_pcs, svd_solver="full")

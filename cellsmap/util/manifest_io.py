@@ -1,20 +1,10 @@
 import os
 import pickle
 import platform
-from typing import Literal
 
 import pandas as pd
 from deprecated import deprecated
 from sklearn.pipeline import Pipeline
-
-from src.endo_pipeline.configs import (
-    dataset_io,
-    get_available_dataset_names,
-    get_model_manifest,
-    load_all_dataset_configs,
-    load_model_config,
-)
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import get_valid_subset
 
 try:
     # aicsfiles is an optional dependency for users on the AICS intranet
@@ -111,37 +101,6 @@ def get_dataframe_by_fmsid(fmsid: str) -> pd.DataFrame:
         # in the future this else statement will load from S3
 
     df = read_file_to_dataframe(path)
-    return df
-
-
-@deprecated(
-    """
-This method is deprecated and will be removed. Use the following pattern to load
-DiffAE manifests:
-
-    from src.endo_pipeline.configs import load_model_config, get_model_manifest
-    from src.endo_pipeline.io import load_dataframe_from_fms
-
-    model_config = load_model_config(model_name)
-    model_manifest = get_model_manifest(dataset_name, model_config)
-    dataframe = load_dataframe_from_fms(model_manifest.fmsid)
-
-If dataset needs to be filtered to valid subset, use the get_valid_subset method.
-"""
-)
-def get_diffae_manifest(
-    dataset_name: str,
-    model_name: str = "diffae_04_10",
-    filter_to_valid: bool = False,
-) -> pd.DataFrame:
-    model_manifest = get_model_manifest(
-        dataset_name=dataset_name,
-        model_config=load_model_config(model_name),
-    )
-    fmsid = model_manifest.fmsid
-    df = get_dataframe_by_fmsid(fmsid)
-    if filter_to_valid:
-        df = get_valid_subset(df, dataset_name, verbose=False)
     return df
 
 

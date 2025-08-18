@@ -91,12 +91,10 @@ def run_workflow(queue: Sequence) -> None:
         )
 
         # add the dataset name and position to the output table
-        tracking_table = pd.read_csv(out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t")
+        tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
         tracking_table["dataset_name"] = dataset_name
         tracking_table["position"] = position
-        tracking_table.to_csv(
-            out_dir / f"{out_filename_prefix}_tracking.tsv", sep="\t", index=False
-        )
+        tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
 
     else:
         logger.info(
@@ -160,11 +158,11 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list, desc="Replacing individual tables with combined table..."
         ):
-            table_path_out = concatenate_and_save_feature_tables(
+            concatenate_and_save_feature_tables(
                 out_dir=out_dir,
                 dataset_name=dataset_name,
                 out_file_suffix="tracking",
-                file_extension=".tsv",
+                file_extension=".parquet",
                 remove_initial_files_and_folders=True,
             )
 
