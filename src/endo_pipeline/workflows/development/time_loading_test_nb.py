@@ -31,12 +31,12 @@ df = pd.DataFrame(
 )
 
 output_path = get_output_path("test_image_loading")
-file_path = output_path / "image_loading_test.csv"
+file_path = output_path / "image_loading_test.parquet"
 
-df.to_csv(file_path, index=False)
+df.to_parquet(file_path, index=False)
 # %%
 image_dataset = MultiDimImageDataset(
-    csv_path=file_path,
+    dataframe_path=file_path,
     transform=BioIOImageLoaderd(
         path_key="original_path",
         out_key="raw",

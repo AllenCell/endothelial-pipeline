@@ -2,6 +2,7 @@ import logging
 import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -153,9 +154,9 @@ class MultiDimImageDataset(CacheDataset):
     BioIOImageLoaderd class.
     """
 
-    def __init__(  # type: ignore[no-untyped-def]
+    def __init__(
         self,
-        csv_path: Path | str,
+        dataframe_path: Path | str,
         img_path_column: str = "path",
         channel_column: str = "channel",
         spatial_dims: int = 3,
@@ -170,16 +171,16 @@ class MultiDimImageDataset(CacheDataset):
         z_step_column: str = "z_step",
         extra_columns: Sequence[str] = [],
         transform: Callable | Sequence[Callable] | None = None,
-        **cache_kwargs,
+        **cache_kwargs: Any,
     ) -> None:
         """
         Initialize a dataset that reads multi-dimensional images using metadata from a dataframe
-        (loaded from a CSV file) and prepares them for processing.
+        (loaded from a .parquet file) and prepares them for processing.
 
         **Multi-channel images**
         The ``channel_column`` parameter should be specified to indicate which channel(s)
         to extract from the image. To load multiple channels, the entries of this column
-        should be the channel indices separated by commas (e.g. ``0,1,2``). Else, this
+        should be a list of the channel indices (e.g. ``[0,1,2]``). Else, this
         column should contain a single channel index (e.g. ``0`` or ``1``).
 
         **Image spatial dimensions**
@@ -192,7 +193,7 @@ class MultiDimImageDataset(CacheDataset):
         If the input images are multi-scene images, the ``scene_column`` parameter should be
         specified. This column should contain the names of the scenes to extract from the
         multi-scene image. If not specified, all scenes will be extracted. If multiple scenes
-        are specified, they should be separated by a comma (e.g. ``scene1,scene2``).
+        are specified, the column entry should be a list (e.g. ``[scene1,scene2]``).
 
         **Multi-resolution images**
         If the there are multiple resolution level available for the input images, the
@@ -211,8 +212,8 @@ class MultiDimImageDataset(CacheDataset):
 
         **Excluding timepoints**
         If you want to exclude specific timepoints from the timelapse image, you can specify
-        the ``timepoints_to_exclude_column`` parameter. This column should contain a comma-separated
-        list of timepoints to exclude (e.g. ``1,3,5``).
+        the ``timepoints_to_exclude_column`` parameter. This column should contain a
+        list of timepoints to exclude (e.g. ``[1,3,5]``).
 
         **Z slices *
         If the input images are 3D and you want to extract specific Z slices, the
@@ -241,8 +242,8 @@ class MultiDimImageDataset(CacheDataset):
 
         Parameters
         ----------
-        csv_path
-            Path to csv file containing metadata table for loading the images.
+        dataframe_path
+            Path to .parquet file containing metadata table for loading the images.
         img_path_column
             Column in metadata table that contains path to timelapse or multi-scene file
         channel_column
@@ -274,7 +275,7 @@ class MultiDimImageDataset(CacheDataset):
         cache_kwargs:
             Additional keyword arguments to pass to ``CacheDataset``.
         """
-        df = pd.read_csv(csv_path)
+        df = pd.read_parquet(dataframe_path)
         self.img_path_column = img_path_column
         self.channel_column = channel_column
         self.scene_column = scene_column
@@ -301,12 +302,19 @@ class MultiDimImageDataset(CacheDataset):
         """Get scenes from the row data."""
         scenes = row.get(self.scene_column, -1)
         if scenes != -1:
-            scenes = scenes.strip().split(",")
+            if not isinstance(scenes, list | tuple):
+                logger.error("Scenes should be a list or tuple, got type: [ %s ]", type(scenes))
+                raise TypeError(f"Scenes should be a list or tuple, got type: {type(scenes)}")
             for scene in scenes:
                 if scene not in img.scenes:
+                    logger.error(
+                        "Scene [ %s ] not found in image [ %s ]. Available scenes: [ %s ]",
+                        scene,
+                        row[self.img_path_column],
+                        img.scenes,
+                    )
                     raise ValueError(
-                        f"For image {row[self.img_path_column]} unable to find scene `{scene}`,"
-                        f"available scenes are {img.scenes}"
+                        f"For image {row[self.img_path_column]} unable to find scene `{scene}`."
                     )
         else:
             scenes = img.scenes
@@ -322,10 +330,8 @@ class MultiDimImageDataset(CacheDataset):
         step = row.get(self.time_step_column, 1)
         timepoints = range(start, stop + 1, step)
         timepoints_as_list = list(timepoints)
-        timepoints_to_exclude = row.get(self.timepoints_to_exclude_column, "")
-        if timepoints_to_exclude != "":
-            timepoints_to_exclude = timepoints_to_exclude.strip().split(",")
-            timepoints_to_exclude = [int(tp) for tp in timepoints_to_exclude]
+        timepoints_to_exclude = row.get(self.timepoints_to_exclude_column, None)
+        if timepoints_to_exclude is not None:
             logger.debug(
                 "Excluding timepoints: [ %s ] from available timepoints: [ %s ]",
                 timepoints_to_exclude,
@@ -387,7 +393,7 @@ def build_zarr_image_loading_dataframe(
     frame_step: int | None = None,
     z_slice_info_per_position: dict[str, dict[str, int]] | None = None,
     only_positions: list[int] | None = None,
-    exclude_frames: dict[str, Sequence[int]] | None = None,
+    exclude_frames: dict[str, list[int]] | None = None,
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
     # generate csv with paths to zarr files for each position in the dataset
@@ -396,11 +402,7 @@ def build_zarr_image_loading_dataframe(
 
     df = pd.DataFrame({"path": zarr_file_paths})
     df["resolution"] = resolution_level
-    # convert channel tuple to comma-separated string
-    if isinstance(channel, int):
-        df["channel"] = str(channel)
-    else:
-        df["channel"] = ",".join(str(c) for c in channel)
+    df["channel"] = channel
 
     # add temporary column with position index for filtering
     df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
@@ -421,12 +423,15 @@ def build_zarr_image_loading_dataframe(
 
     # add column for excluding frames, if specified
     if exclude_frames is not None:
-        # if position has no frames to exclude, set to empty string
-        # this is the "null" value that the MultiDimImageDataset will use
-        df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(str(x), ""))
+        # if position has no frames to exclude, set to None
+        df["exclude_frames"] = df["position_index"].apply(
+            lambda x: exclude_frames.get(str(x), None)
+        )
 
     # if start and stop for loading z slices are specified, add to dataframe
     if z_slice_info_per_position is not None:
+        # get z info dict for each position index
+        # unpack the start, stop, and step values from those dictionaries
         df["z_start"] = df["position_index"].apply(
             lambda x: z_slice_info_per_position.get(str(x), {}).get("z_start", 0)
         )

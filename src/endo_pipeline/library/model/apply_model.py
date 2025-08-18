@@ -107,7 +107,7 @@ def generate_overrides_for_model_eval(
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": num_workers,
-        "data.predict_dataloaders.dataset.csv_path": data_path,
+        "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
@@ -500,7 +500,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         if slice_by_global_center:
             file_name = f"{file_name}_ctr"
 
-    file_name = f"{file_name}_{timestamp}.csv"
+    file_name = f"{file_name}_{timestamp}.parquet"
     dataset_save_path = save_path / file_name
 
     # default frame start and stop values are None, i.e., load all timepoints
@@ -555,8 +555,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         only_positions=only_positions,
     )
 
-    # save the dataframe to a CSV file
-    df.to_csv(dataset_save_path, index=False)
+    # save the dataframe to a parquet file
+    df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"

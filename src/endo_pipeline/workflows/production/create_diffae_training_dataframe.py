@@ -79,6 +79,9 @@ def main(resolution_level: int = 1) -> None:
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_positions = [0]  # only use the first position
+
+        # build zarr loading dataframe for the current dataset
+        # and append it to the list of dataframes
         zarr_dataframes.append(
             build_zarr_image_loading_dataframe(
                 dataset_config=dataset_config,
@@ -94,6 +97,7 @@ def main(resolution_level: int = 1) -> None:
     df = pd.concat(zarr_dataframes, ignore_index=True)
 
     # split into training and validation sets
+    # (percent split is by number of rows, i.e. positions x datasets)
     train, val = train_test_split(df, test_size=0.2, random_state=42)
 
     # Upload dataframes to FMS, then build and save out DataframeManifest

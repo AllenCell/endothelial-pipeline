@@ -154,7 +154,7 @@ data:
       _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
       cache_num: 0
       num_workers: 8
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 3
       transform:
         _target_: monai.transforms.Compose

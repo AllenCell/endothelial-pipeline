@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 def _generate_overrides_for_model_training(
     model_name: str,
     crop_size: int,
-    train_csv_path: Path,
-    val_csv_path: Path,
+    train_dataframe_path: Path,
+    val_dataframe_path: Path,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
 ) -> dict:
@@ -49,10 +49,10 @@ def _generate_overrides_for_model_training(
     crop_size
         The number of pixels in each dimension of the image crop to use for training.
         That is, the cropped image will be square with size (crop_size px, crop_size px).
-    train_csv_path
-        The path to the training dataset (image loading metadata) CSV file.
-    val_csv_path
-        The path to the validation dataset (image loading metadata) CSV file.
+    train_dataframe_path
+        The path to the training dataset (image loading metadata) .parquet file.
+    val_dataframe_path
+        The path to the validation dataset (image loading metadata) .parquet file.
     max_num_epochs
         The maximum number of epochs to train the model for.
     log_every_n_steps
@@ -70,9 +70,9 @@ def _generate_overrides_for_model_training(
 
     overrides = {
         # set path to train and val datasets
-        "data.train_dataloaders.dataset.csv_path": train_csv_path.as_posix(),
-        "data.predict_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
-        "data.val_dataloaders.dataset.csv_path": val_csv_path.as_posix(),
+        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path.as_posix(),
+        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path.as_posix(),
+        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path.as_posix(),
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.work_dir": os.getcwd(),
@@ -174,8 +174,8 @@ def initialize_diffae_model(
     template_training_config: DictConfig | ListConfig,
     crop_size: int,
     model_name: str,
-    train_csv_path: Path,
-    val_csv_path: Path,
+    train_dataframe_path: Path,
+    val_dataframe_path: Path,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
 ) -> CytoDLModel:
@@ -197,10 +197,10 @@ def initialize_diffae_model(
         The pixel size of the square image crop along one dimension to use in training.
     model_name
         The name of the model to train.
-    train_csv_path
-        The path to the training dataset (image loading metadata) CSV file.
-    val_csv_path
-        The path to the validation dataset (image loading metadata) CSV file.
+    train_dataframe_path
+        The path to the training dataset (image loading metadata) .parquet file.
+    val_dataframe_path
+        The path to the validation dataset (image loading metadata) .parquet file.
     max_num_epochs
         The maximum number of epochs to train the model for.
     log_every_n_steps
@@ -222,8 +222,8 @@ def initialize_diffae_model(
     overrides = _generate_overrides_for_model_training(
         model_name,
         crop_size,
-        train_csv_path,
-        val_csv_path,
+        train_dataframe_path,
+        val_dataframe_path,
         max_num_epochs=max_num_epochs,
         log_every_n_steps=log_every_n_steps,
     )
@@ -243,12 +243,14 @@ def _upload_zarr_dataframe_to_fms(
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
 ) -> str:
-    # save the dataframes to csv files locally as intermediates
+    # save the dataframes to parquet files locally as intermediates
     # use timestamp to ensure unique filenames
     timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d_%H%M")
-    output_path = output_savedir / f"{dataset_type}_resolution_{resolution_level}_{timestamp}.csv"
-    dataframe.to_csv(output_path, index=False)
+    output_filename = f"{dataset_type}_resolution_{resolution_level}_{timestamp}.parquet"
+    output_path = output_savedir / output_filename
+    dataframe.to_parquet(output_path, index=False)
     logger.debug("Saved % s dataframe to \n %s", dataset_type, output_path)
+
     # upload dataframes to fms
     logger.debug("Building FMS annotations for training and validation dataframes...")
     fms_annotations = build_fms_annotations(
@@ -261,7 +263,7 @@ def _upload_zarr_dataframe_to_fms(
     fmsid = upload_file_to_fms(
         output_path,
         annotations=fms_annotations,
-        file_type="csv",
+        file_type="parquet",
     )
 
     logger.info("Uploaded % s dataframe to FMS with ID: [ %s ]", dataset_type, fmsid)
@@ -344,27 +346,31 @@ def build_and_save_dataframe_manifest_for_training(
     save_dataframe_manifest(dataframe_manifest)
 
 
-def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Path:
+def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation) -> Path:
     """
-    Get a valid CSV path for training or validation datasets.
+    Get a valid path for training or validation dataframes.
+
+    These are the dataframes that are used for loading zarr files for training or validation.
+    They are either stored in FMS or on S3 as a .parquet file, and this function retrieves the path
+    to that file based on the input DataframeLocation object.
 
     Parameters
     ----------
     dataframe_location
-        The DataframeLocation object containing either the FMS ID or S3 URI of the CSV file.
+        The DataframeLocation object containing either the FMS ID or S3 URI of the .parquet file.
 
 
     Returns
     -------
     :
-        A valid Path object pointing to the CSV file for training or validation sets.
+        A valid Path object pointing to the .parquet file for training or validation sets.
 
         If the DataframeLocation object has an S3 URI, it will be used. Else, this
-        function downloads the CSV file from FMS using the FMS ID and returns the local path.
+        function downloads the file from FMS using the FMS ID and returns the local path.
     """
     if dataframe_location.s3uri is not None:
         # if s3uri is provided, use that for loading
-        dataframe_csv_path = Path(dataframe_location.s3uri)
+        dataframe_path = Path(dataframe_location.s3uri)
     else:
         # get local path from FMS ID
         if dataframe_location.fmsid is None:
@@ -376,9 +382,9 @@ def get_valid_csv_path_for_training(dataframe_location: DataframeLocation) -> Pa
                 "DataframeLocation does not have a FMS ID or S3 URI. "
                 "Please provide a valid DataframeLocation object."
             )
-        dataframe_csv_path = get_local_path_from_fmsid(dataframe_location.fmsid)
+        dataframe_path = get_local_path_from_fmsid(dataframe_location.fmsid)
 
-    return dataframe_csv_path
+    return dataframe_path
 
 
 def initialize_diffae_model_for_finetuning(
@@ -480,7 +486,7 @@ def get_valid_csv_path_for_finetuning(
 
 
 def get_dataset_names_used_for_training(
-    train_csv_path: Path, val_csv_path: Path, dataset_collection_name: str
+    train_dataframe_path: Path, val_dataframe_path: Path, dataset_collection_name: str
 ) -> list[str]:
     """
     Pull list of dataset names used for model training
@@ -488,8 +494,8 @@ def get_dataset_names_used_for_training(
     into the model training script.
     """
     # load train.csv and val.csv files as dataframes
-    train_df = pd.read_csv(train_csv_path)
-    val_df = pd.read_csv(val_csv_path)
+    train_df = pd.read_csv(train_dataframe_path)
+    val_df = pd.read_csv(val_dataframe_path)
 
     # get date part of dataset name from zarr path
     # note: this might be something that

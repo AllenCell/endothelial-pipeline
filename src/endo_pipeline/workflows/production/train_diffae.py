@@ -39,7 +39,7 @@ def main(
     from src.endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
-        get_valid_csv_path_for_training,
+        get_valid_dataframe_path_for_training,
         initialize_diffae_model,
     )
     from src.endo_pipeline.manifests import load_dataframe_manifest
@@ -63,14 +63,14 @@ def main(
             resolution_level,
         )
         raise
-    train_csv_location = dataframe_manifest.locations["training"]
-    val_csv_location = dataframe_manifest.locations["validation"]
+    train_dataframe_location = dataframe_manifest.locations["training"]
+    val_dataframe_location = dataframe_manifest.locations["validation"]
 
     # get csv paths from the DataframeLocation objects
     # to pass into the DiffAE model training script
     # (need csv paths for training config setup and CytoDL dataloaders)
-    train_csv_path = get_valid_csv_path_for_training(train_csv_location)
-    val_csv_path = get_valid_csv_path_for_training(val_csv_location)
+    train_dataframe_path = get_valid_dataframe_path_for_training(train_dataframe_location)
+    val_dataframe_path = get_valid_dataframe_path_for_training(val_dataframe_location)
 
     # load template training config
     template_training_config = OmegaConf.load(get_model_dir() / "diffae_training.yaml")
@@ -85,8 +85,8 @@ def main(
         template_training_config,
         crop_size,
         model_name,
-        train_csv_path,
-        val_csv_path,
+        train_dataframe_path,
+        val_dataframe_path,
         max_num_epochs=1 if TESTING_MODE else 1000,  # for testing mode, train for 1 epoch
         log_every_n_steps=(
             1 if TESTING_MODE else 50
@@ -107,8 +107,8 @@ def main(
     # get list of datasets used for training
     # based on content of train and val dataframes
     list_of_training_datasets = get_dataset_names_used_for_training(
-        train_csv_path,
-        val_csv_path,
+        train_dataframe_path,
+        val_dataframe_path,
         "live_20X_objective_3i_microscope",
     )
     # add run ID to model config
@@ -116,8 +116,8 @@ def main(
         name=model_name if not TESTING_MODE else f"{model_name}_test_workflow",
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
-        train_dataframe=train_csv_location,
-        test_dataframe=val_csv_location,
+        train_dataframe=train_dataframe_location,
+        test_dataframe=val_dataframe_location,
     )
     # save the model config
     save_model_config(model_config)
