@@ -363,16 +363,11 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def _get_zarr_dataframe_for_z_offsets(
+def _get_z_offset_information(
     dataset_config: DatasetConfig,
-    resolution_level: int,
     z_stack_offsets: tuple[int, int],
     slice_by_global_center: bool = True,
-    frame_start: int | None = None,
-    frame_stop: int | None = None,
-    frame_step: int | None = None,
-    only_positions: list[int] | None = None,
-) -> pd.DataFrame:
+) -> dict[str, int]:
     """
     Get a dataframe with zarr loading metadata when z-slice selection is based
     on the center slice for each position in the dataset.
@@ -382,7 +377,7 @@ def _get_zarr_dataframe_for_z_offsets(
     z_slice_by_position = None
     available_zarr_files = get_available_zarr_files(dataset_config)
     if z_stack_offsets is not None:
-        z_slice_by_position = []
+        z_slice_by_position = {}
         for zarr_file_path in available_zarr_files:
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
             position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
@@ -394,39 +389,12 @@ def _get_zarr_dataframe_for_z_offsets(
                 upper_offset=z_stack_offsets[1],
                 slice_by_global_center=slice_by_global_center,
             )
-            z_slice_by_position.append(z_slices)
+            z_slice_by_position[str(position_as_int)] = {
+                "z_start": z_slices[0],
+                "z_stop": z_slices[-1],
+            }
 
-    # generate dataframe with zarr loading metadata
-    # for each position in the dataset
-    # done this way because z-stack offsets are generally position-specific
-    df_per_position = []
-    for i in range(len(available_zarr_files)):
-        if only_positions is not None and i not in only_positions:
-            continue
-        else:
-            # build dataframe for position
-            # and append it to the list
-            if only_positions is None:
-                only_position = [i]
-            else:
-                only_position = [only_positions[i]]
-            logger.debug("Building zarr dataframe for position [ %s ]", only_position[0])
-            df_per_position.append(
-                build_zarr_image_loading_dataframe(
-                    dataset_config,
-                    resolution_level=resolution_level,
-                    channel=ZARR_BF_CHANNEL,
-                    frame_start=frame_start,
-                    frame_stop=frame_stop,
-                    frame_step=frame_step,
-                    z_start=z_slice_by_position[i][0] if z_stack_offsets else None,
-                    z_stop=z_slice_by_position[i][-1] if z_stack_offsets else None,
-                    only_positions=only_position,
-                )
-            )
-    # concatenate dataframes for all positions
-    df = pd.concat(df_per_position, ignore_index=True)
-    return df
+    return z_slice_by_position
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
@@ -559,30 +527,27 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         )
         logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
-        # get the dataframe with zarr loading metadata
-        df = _get_zarr_dataframe_for_z_offsets(
+        z_slice_by_position = _get_z_offset_information(
             dataset_config,
-            resolution_level=resolution_level,
             z_stack_offsets=z_stack_offsets,
             slice_by_global_center=slice_by_global_center,
-            frame_start=frame_start,
-            frame_stop=frame_stop,
-            frame_step=frame_step,
-            only_positions=only_positions,
         )
     else:
-        # if no z-stack offsets are provided, can get the dataframe
-        # directly from the build_zarr_image_loading_dataframe function
+        # if no z-stack offsets are provided, pass in None
+        # to the dataframe builder
         logger.debug("No z-stack offsets provided, loading all z-slices.")
-        df = build_zarr_image_loading_dataframe(
-            dataset_config,
-            resolution_level=resolution_level,
-            channel=ZARR_BF_CHANNEL,
-            frame_start=frame_start,
-            frame_stop=frame_stop,
-            frame_step=frame_step,
-            only_positions=only_positions,
-        )
+        z_slice_by_position = None
+
+    df = build_zarr_image_loading_dataframe(
+        dataset_config,
+        resolution_level=resolution_level,
+        channel=ZARR_BF_CHANNEL,
+        frame_start=frame_start,
+        frame_stop=frame_stop,
+        frame_step=frame_step,
+        z_slice_info_per_position=z_slice_by_position,
+        only_positions=only_positions,
+    )
 
     # save the dataframe to a CSV file
     df.to_csv(dataset_save_path, index=False)

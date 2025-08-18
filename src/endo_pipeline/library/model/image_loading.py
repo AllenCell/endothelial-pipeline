@@ -385,9 +385,7 @@ def build_zarr_image_loading_dataframe(
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    z_start: int | None = None,
-    z_stop: int | None = None,
-    z_step: int | None = None,
+    z_slice_info_per_position: dict[str, dict[str, int]] | None = None,
     only_positions: list[int] | None = None,
     exclude_frames: dict[str, Sequence[int]] | None = None,
 ) -> pd.DataFrame:
@@ -427,15 +425,19 @@ def build_zarr_image_loading_dataframe(
         # this is the "null" value that the MultiDimImageDataset will use
         df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(str(x), ""))
 
+    # if start and stop for loading z slices are specified, add to dataframe
+    if z_slice_info_per_position is not None:
+        df["z_start"] = df["position_index"].apply(
+            lambda x: z_slice_info_per_position.get(str(x), {}).get("z_start", 0)
+        )
+        df["z_stop"] = df["position_index"].apply(
+            lambda x: z_slice_info_per_position.get(str(x), {}).get("z_stop", -1)
+        )
+        df["z_step"] = df["position_index"].apply(
+            lambda x: z_slice_info_per_position.get(str(x), {}).get("z_step", 1)
+        )
+
     # remove temporary column with position index
     df = df.drop(columns=["position_index"])
-
-    # if start and stop for loading z slices are specified, add to dataframe
-    if (z_start is not None) and (z_stop is not None):
-        df["z_start"] = z_start
-        df["z_stop"] = z_stop
-    # z step defaults in loader to 1, but can be specified
-    if z_step is not None:
-        df["z_step"] = z_step
 
     return df
