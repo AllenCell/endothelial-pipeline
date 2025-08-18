@@ -1,4 +1,5 @@
 from .dataset_config import (
+    ChannelIndices,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -60,6 +61,7 @@ from .model_config_utils import (
 
 __all__ = [
     "CellposeModelConfig",
+    "ChannelIndices",
     "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",
