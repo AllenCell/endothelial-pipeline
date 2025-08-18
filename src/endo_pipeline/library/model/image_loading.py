@@ -164,6 +164,7 @@ class MultiDimImageDataset(CacheDataset):
         time_start_column: str = "frame_start",
         time_stop_column: str = "frame_stop",
         time_step_column: str = "frame_step",
+        timepoints_to_exclude_column: str = "exclude_frames",
         z_start_column: str = "z_start",
         z_stop_column: str = "z_stop",
         z_step_column: str = "z_step",
@@ -274,6 +275,7 @@ class MultiDimImageDataset(CacheDataset):
         self.time_start_column = time_start_column
         self.time_stop_column = time_stop_column
         self.time_step_column = time_step_column
+        self.timepoints_to_exclude_column = timepoints_to_exclude_column
         self.z_start_column = z_start_column
         self.z_stop_column = z_stop_column
         self.z_step_column = z_step_column
@@ -312,7 +314,21 @@ class MultiDimImageDataset(CacheDataset):
             stop = img.dims.T - 1
         step = row.get(self.time_step_column, 1)
         timepoints = range(start, stop + 1, step)
-        return list(timepoints)
+        timepoints_as_list = list(timepoints)
+        timepoints_to_exclude = row.get(self.timepoints_to_exclude_column, "")
+        if timepoints_to_exclude != "":
+            timepoints_to_exclude = timepoints_to_exclude.strip().split(",")
+            timepoints_to_exclude = [int(tp) for tp in timepoints_to_exclude]
+            logger.debug(
+                "Excluding timepoints: [ %s ] from available timepoints: [ %s ]",
+                timepoints_to_exclude,
+                timepoints_as_list,
+            )
+            timepoints_as_list = [
+                tp for tp in timepoints_as_list if tp not in timepoints_to_exclude
+            ]
+        logger.debug("Loading image with timepoints: [ %s ]", timepoints_as_list)
+        return timepoints_as_list
 
     def _get_z_slices(self, row: dict, img: BioImage) -> list:
         """Get Z slices from the row data."""
@@ -323,6 +339,7 @@ class MultiDimImageDataset(CacheDataset):
             z_stop = img.dims.Z - 1
         z_step = row.get(self.z_step_column, 1)
         z_slices = range(z_start, z_stop + 1, z_step)
+        logger.debug("Loading image with Z slices: [ %s ]", list(z_slices))
         return list(z_slices)
 
     def get_per_file_args(self, df: pd.DataFrame) -> list[dict]:
