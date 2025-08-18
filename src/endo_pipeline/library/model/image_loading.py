@@ -209,6 +209,11 @@ class MultiDimImageDataset(CacheDataset):
         last timepoint available in the image. The timepoints are zero-indexed, so the first
         timepoint is 0.
 
+        **Excluding timepoints**
+        If you want to exclude specific timepoints from the timelapse image, you can specify
+        the ``timepoints_to_exclude_column`` parameter. This column should contain a comma-separated
+        list of timepoints to exclude (e.g. ``1,3,5``).
+
         **Z slices *
         If the input images are 3D and you want to extract specific Z slices, the
         ``z_start_column``, ``z_stop_column``, and ``z_step_column`` parameters should be
@@ -254,6 +259,8 @@ class MultiDimImageDataset(CacheDataset):
             Column in metadata table specifying the last timepoint in timelapse image to load.
         time_step_column
             Column in metadata table specifying step size between timepoints.
+        timepoints_to_exclude_column
+            Column in metadata table specifying timepoints to exclude from the timelapse image.
         z_start_column
             Column in metadata table specifying the lowest Z slice to extract.
         z_stop_column
