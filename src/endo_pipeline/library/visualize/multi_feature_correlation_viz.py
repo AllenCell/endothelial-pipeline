@@ -1,5 +1,5 @@
 """
-Methods to visualize multi-feature correlations
+Methods to load data and visualize multi-feature correlations
 
 Creates an n_features X n_features grid of plots with:
 
@@ -22,6 +22,14 @@ from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 
 from src.endo_pipeline.io.output import save_plot_to_path
+from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import get_valid_subset
+from src.endo_pipeline.library.analyze.integration.track_integration import (
+    get_preprocessed_manifests_and_km_bounds,
+)
+from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    add_num_nuclei_in_crop_column,
+)
+from src.endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 
 
 def add_feature_scatter_plot(
@@ -269,6 +277,72 @@ def plot_multi_feature_correlations(
     )
 
 
+def plot_and_save_heatmap(
+    df: pd.DataFrame,
+    output_folder: Path,
+    filename: str = "correlation_heatmap",
+) -> None:
+    """
+    Plot and save a heatmap of the correlation matrix from the given DataFrame.
+
+    Parameters
+    ----------
+    df
+        The DataFrame containing the correlation matrix.
+    output_folder
+        The folder where the heatmap will be saved.
+    filename
+        The name of the file to save the heatmap as.
+    """
+    fig, ax = plt.subplots(figsize=(10, 10))
+    sns.heatmap(df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
+    ax.tick_params(axis="y", rotation=0)
+    save_plot_to_path(
+        figure=fig,
+        output_path=output_folder,
+        figure_name=filename,
+    )
+
+
+def plot_and_save_clustermap(
+    df: pd.DataFrame,
+    output_folder: Path,
+    filename: str = "correlation_clustermap",
+) -> None:
+    """
+    Plot and save a clustermap of the correlation matrix from the given DataFrame.
+    Clustering is performed on absolute values of the correlation coefficients.
+
+    Parameters
+    ----------
+    df
+        The DataFrame containing the correlation matrix.
+    output_folder
+        The folder where the clustermap will be saved.
+    filename
+        The name of the file to save the clustermap as.
+    """
+    abs_data = df.abs().T
+    col_linkage = linkage(abs_data)
+    cluster_grid = sns.clustermap(
+        df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        vmin=-1,
+        vmax=1,
+        figsize=(10, 10),
+        row_cluster=False,
+        col_cluster=True,
+        col_linkage=col_linkage,
+    )
+    save_plot_to_path(
+        figure=cluster_grid.figure,
+        output_path=output_folder,
+        figure_name=filename,
+    )
+
+
 def get_correlation_matrix_df(
     features_df: pd.DataFrame,
     column_names_for_x_axis: list[str],
@@ -378,67 +452,83 @@ def get_correlation_matrix_df(
     return correlation_df
 
 
-def plot_and_save_heatmap(
-    df: pd.DataFrame,
-    output_folder: Path,
-    filename: str = "correlation_heatmap",
-) -> None:
+def get_df_for_feature_correlation_viz(
+    dataset_name_list: list[str],
+    dataset_info_columns: list[str],
+    classical_feature_columns: list[str],
+    pc_columns: list[str],
+    diffae_feature_columns: list[str],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Plot and save a heatmap of the correlation matrix from the given DataFrame.
+    Load and preprocess the manifests for the given dataset names,
+    and return a DataFrame containing the merged features
+    from all datasets at all timepoints, and a DataFrame
+    containing the steady state timepoints only.
 
     Parameters
     ----------
-    df
-        The DataFrame containing the correlation matrix.
-    output_folder
-        The folder where the heatmap will be saved.
-    filename
-        The name of the file to save the heatmap as.
-    """
-    fig, ax = plt.subplots(figsize=(10, 10))
-    sns.heatmap(df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-    ax.tick_params(axis="y", rotation=0)
-    save_plot_to_path(
-        figure=fig,
-        output_path=output_folder,
-        figure_name=filename,
-    )
+    dataset_name_list
+        List of dataset names to process.
+    dataset_info_columns
+        List of columns containing dataset information.
+    classical_features
+        List of classical feature column names.
+    pc_columns
+        List of PCA component column names.
+    diffae_feature_columns
+        List of DiffAE feature column names.
 
-
-def plot_and_save_clustermap(
-    df: pd.DataFrame,
-    output_folder: Path,
-    filename: str = "correlation_clustermap",
-) -> None:
+    Returns
+    -------
+    :
+        A tuple containing two DataFrames:
+        - The first DataFrame contains all timepoints for the given datasets.
+        - The second DataFrame contains only the steady state timepoints.
     """
-    Plot and save a clustermap of the correlation matrix from the given DataFrame.
-    Clustering is performed on absolute values of the correlation coefficients.
+    df_list_all_tps: list = []
+    df_list_ss: list = []
+    for dataset_name in dataset_name_list:
+        # load and preprocess the different diffae manifests and PCA pipeline
+        # NOTE: this takes a little over a minute to load
+        merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
+            dataset_name, datasets_for_bounds=dataset_name_list
+        )
 
-    Parameters
-    ----------
-    df
-        The DataFrame containing the correlation matrix.
-    output_folder
-        The folder where the clustermap will be saved.
-    filename
-        The name of the file to save the clustermap as.
-    """
-    abs_data = df.abs().T
-    col_linkage = linkage(abs_data)
-    cluster_grid = sns.clustermap(
-        df,
-        annot=True,
-        cmap="RdBu",
-        center=0,
-        vmin=-1,
-        vmax=1,
-        figsize=(10, 10),
-        row_cluster=False,
-        col_cluster=True,
-        col_linkage=col_linkage,
-    )
-    save_plot_to_path(
-        figure=cluster_grid.figure,
-        output_path=output_folder,
-        figure_name=filename,
-    )
+        # add the number of nuclei columns
+        merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df, use_precomputed=True)
+
+        # check that the chosen measurement column names
+        # are actually in the DataFrame
+        columns_to_check = classical_feature_columns + dataset_info_columns
+        if not all(np.isin(columns_to_check, merged_feats_df.columns)):
+            missing_columns = set(columns_to_check) - set(merged_feats_df.columns)
+            raise ValueError(
+                f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
+            )
+
+        # filter data table to only include the steady state timepoints that are
+        # used when projecting the DiffAE features onto PCA axes
+        # in the segmentation-free dynamics workflow
+        merged_feats_df_ss = get_valid_subset(
+            df=merged_feats_df,
+            dataset_name=dataset_name,
+            verbose=False,
+        )
+
+        # keep only the columns that will be used
+        cols_to_keep = (
+            dataset_info_columns + classical_feature_columns + diffae_feature_columns + pc_columns
+        )
+
+        for df, df_list in zip(
+            (merged_feats_df, merged_feats_df_ss),
+            (df_list_all_tps, df_list_ss),
+        ):
+            df = df[cols_to_keep].copy()
+            df.rename(columns=get_label_for_column, inplace=True)
+            df_list.append(df)
+    # merge the DataFrames from all datasets
+    df_all_timepoints = pd.concat(df_list_all_tps, ignore_index=True)
+    df_ss = pd.concat(df_list_ss, ignore_index=True)
+
+    return df_all_timepoints, df_ss
