@@ -21,7 +21,6 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
-    get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
@@ -148,30 +147,6 @@ def test_get_channel_indices_for_position(dataset, position, expected):
     indices = get_channel_indices_for_position(dataset, position, channel_names)
 
     assert indices == expected
-
-
-def test_get_specific_channel_order_no_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = 3
-    dataset.channel_561_index = 4
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, 3, 4, 5)
-
-
-def test_get_specific_channel_order_with_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = None
-    dataset.channel_561_index = None
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, None, None, 5)
 
 
 def test_get_frame_before_flow_change_valid_flow_condition(dataset):

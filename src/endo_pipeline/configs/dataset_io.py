@@ -507,30 +507,6 @@ Use one of the following methods to load the dataset config:
         configs.load_all_dataset_configs
         configs.load_dataset_config(dataset_name)
 
-Then use this replacement method:
-
-        configs.get_specific_channel_order(dataset)
-"""
-)
-def get_specific_channel_order(dataset_name: str) -> tuple:
-    """Get the specific channel order for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("channel_488_index")
-    bf_index = dataset_info.get("brightfield_channel_index")
-    index_405 = dataset_info.get("channel_405_index", None)
-    index_561 = dataset_info.get("channel_561_index", None)
-    index_640 = dataset_info.get("channel_640_index", None)
-
-    return gfp_index, bf_index, index_405, index_561, index_640
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
 The field can then be accessed using:
 
         dataset.n_total_positions
