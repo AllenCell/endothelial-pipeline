@@ -389,6 +389,7 @@ def build_zarr_image_loading_dataframe(
     z_stop: int | None = None,
     z_step: int | None = None,
     only_positions: list[int] | None = None,
+    exclude_frames: dict[str, Sequence[int]] | None = None,
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
     # generate csv with paths to zarr files for each position in the dataset
@@ -403,14 +404,14 @@ def build_zarr_image_loading_dataframe(
     else:
         df["channel"] = ",".join(str(c) for c in channel)
 
+    # add temporary column with position index for filtering
+    df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
+
     # only load images for specified position indices
     if only_positions is not None:
         logger.debug("Filtering Zarr files to only include positions: [ %s ]", only_positions)
-        df["position_index"] = df["path"].apply(
-            lambda x: get_position_integer_from_zarr_file_path(x)
-        )
+
         df = df[df["position_index"].isin(only_positions)]
-        df = df.drop(columns=["position_index"])
 
     # if start and stop for loading timepoints are specified, add to dataframe
     if (frame_start is not None) and (frame_stop is not None):
@@ -419,6 +420,15 @@ def build_zarr_image_loading_dataframe(
     # frame step defaults in loader to 1, but can be specified
     if frame_step is not None:
         df["frame_step"] = frame_step
+
+    # add column for excluding frames, if specified
+    if exclude_frames is not None:
+        # if position has no frames to exclude, set to empty string
+        # this is the "null" value that the MultiDimImageDataset will use
+        df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(str(x), ""))
+
+    # remove temporary column with position index
+    df = df.drop(columns=["position_index"])
 
     # if start and stop for loading z slices are specified, add to dataframe
     if (z_start is not None) and (z_stop is not None):

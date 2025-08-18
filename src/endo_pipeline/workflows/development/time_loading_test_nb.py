@@ -1,0 +1,46 @@
+# %%
+import pandas as pd
+
+from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.library.model import BioIOImageLoaderd, MultiDimImageDataset
+
+# %%
+
+zarr_file_path = (
+    "//allen/aics/endothelial/morphological_features/image_data/converted_zarrs/"
+    "20241016_230d119061e749d98c1abde77f2f4fa3/20241016_230d119061e749d98c1abde77f2f4fa3_P0.ome.zarr"
+)
+
+resolution = 1
+start = "0"
+stop = "-1"
+step = "50"
+channel = "0,1"
+exclude_frames = "5,400"
+
+df = pd.DataFrame(
+    {
+        "path": [zarr_file_path],
+        "resolution": [resolution],
+        "channel": [channel],
+        "frame_start": [start],
+        "frame_stop": [stop],
+        "frame_step": [step],
+        "exclude_frames": [exclude_frames],
+    }
+)
+
+output_path = get_output_path("test_image_loading")
+file_path = output_path / "image_loading_test.csv"
+
+df.to_csv(file_path, index=False)
+# %%
+image_dataset = MultiDimImageDataset(
+    csv_path=file_path,
+    transform=BioIOImageLoaderd(
+        path_key="original_path",
+        out_key="raw",
+        dask_load=True,
+    ),
+)
+# %%
