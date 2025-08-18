@@ -8,18 +8,12 @@ def main() -> None:
     """
     import itertools
     import logging
-    from pathlib import Path
-    from typing import Literal
 
     import numpy as np
     import pandas as pd
-    import seaborn as sns
-    from matplotlib import pyplot as plt
-    from scipy.cluster.hierarchy import linkage
-    from scipy.stats import pearsonr
 
     from src.endo_pipeline.configs import get_datasets_in_collection
-    from src.endo_pipeline.io import get_output_path, save_plot_to_path
+    from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_manifest import get_valid_subset
     from src.endo_pipeline.library.analyze.integration.track_integration import (
         get_preprocessed_manifests_and_km_bounds,
@@ -32,6 +26,9 @@ def main() -> None:
         get_label_for_column,
     )
     from src.endo_pipeline.library.visualize.multi_feature_visualization import (
+        get_correlation_matrix_df,
+        plot_and_save_clustermap,
+        plot_and_save_heatmap,
         plot_multi_feature_correlations,
     )
 
@@ -60,114 +57,6 @@ def main() -> None:
     PC_COLUMNS = [f"pc{i}" for i in range(1, 4)]
 
     logger.info("Running correlation heatmap workflow...")
-
-    def get_correlation_matrix_df(
-        features_df: pd.DataFrame,
-        column_names_for_x_axis: list[str],
-        column_names_for_y_axis: list[str],
-        x_axis_label: str,
-        y_axis_label: str,
-        df_format: Literal["long", "wide-corrcoeff", "wide-pval"] = "long",
-        sort_by_correlation: bool = False,
-    ) -> pd.DataFrame:
-        """
-        Get the Pearson correlations between each column in `column_names_for_x_axis`
-        compared with each column in `column_names_for_y_axis`.
-        This is used to compare the diffae features and the measured features,
-        and then used again to compare the PCs and the measured features.
-        If `df_format` is one of the "wide" options then the outputted dataframe
-        of this function can be passed directly to `seaborn.heatmap` or
-        `seaborn.clustermap` for visualization.
-
-        Parameters
-        ----------
-        features_df
-            The DataFrame containing the features to correlate.
-        column_names_for_x_axis
-            The names of the columns to use for the x-axis.
-        column_names_for_y_axis
-            The names of the columns to use for the y-axis.
-        name_of_x_axis
-            The name of the x-axis.
-        name_of_y_axis
-            The name of the y-axis.
-        df_format
-            The format of the output DataFrame. If "long", the output DataFrame will have columns:
-            - name_of_y_axis
-            - name_of_x_axis
-            - pearsonr
-            - pval
-            If "wide-corrcoeff", the output DataFrame will have a column for each column in
-            column_names_for_x_axis and the index will be the column names in
-            column_names_for_y_axis, with the values in the DataFrame corresponding to the
-            correlation coefficients from the "long" version of the table.
-            "wide-pval" is similar to "wide-corrcoeff" but the values correspond to the p-values.
-            Defaults to "long".
-        sort_by_correlation
-            If True, the output DataFrame will be sorted by the correlation coefficients
-
-        Returns
-        -------
-        :
-            A DataFrame containing the Pearson correlation coefficients and p-values between
-            the specified columns in `features_df`. The format of the DataFrame depends on
-            the `df_format` parameter.
-
-        Notes
-        -----
-        Rows with non-finite values in the features_df DataFrame will be dropped
-        For the specific comparison where the non-finite value would show up
-        (but not for the other comparisons).
-        """
-
-        if df_format not in ("long", "wide-corrcoeff", "wide-pval"):
-            raise ValueError(
-                f"Unsupported df_format: {df_format}. "
-                f"Supported: 'long', 'wide-corrcoeff', 'wide-pval'."
-            )
-
-        records = []
-        for col_for_y in column_names_for_y_axis:
-            for col_for_x in column_names_for_x_axis:
-                valid_records = np.isfinite(features_df[[col_for_y, col_for_x]]).all(axis=1)
-                corr, pval = pearsonr(
-                    features_df[col_for_y][valid_records],
-                    features_df[col_for_x][valid_records],
-                )
-                records.append(
-                    {
-                        y_axis_label: col_for_y,
-                        x_axis_label: col_for_x,
-                        "pearsonr": corr,
-                        "pval": pval,
-                    }
-                )
-        correlation_df = pd.DataFrame(records)
-
-        if df_format in ("wide-corrcoeff", "wide-pval"):
-            if df_format == "wide-corrcoeff":
-                value_col = "pearsonr"
-            elif df_format == "wide-pval":
-                value_col = "pval"
-            correlation_df = correlation_df.pivot(
-                index=y_axis_label,
-                columns=x_axis_label,
-                values=value_col,
-            )
-            correlation_df = correlation_df[column_names_for_x_axis]  # sort the columns
-            correlation_df = correlation_df.reindex(index=column_names_for_y_axis)  # sort the index
-            if sort_by_correlation:
-                correlation_df = correlation_df.T.loc[
-                    correlation_df.T[column_names_for_y_axis]
-                    .abs()
-                    .sort_values(by=column_names_for_y_axis, axis=0, ascending=False)
-                    .index
-                ].T
-
-        else:
-            # The table is already in the "long" format by default so no changes are necessary.
-            pass
-        return correlation_df
 
     def get_merged_feature_df(
         dataset_name_list: list[str],
@@ -252,70 +141,6 @@ def main() -> None:
         df_ss = pd.concat(df_list_ss, ignore_index=True)
 
         return df_all_timepoints, df_ss
-
-    def plot_and_save_heatmap(
-        df: pd.DataFrame,
-        output_folder: Path,
-        filename: str = "correlation_heatmap",
-    ) -> None:
-        """
-        Plot and save a heatmap of the correlation matrix from the given DataFrame.
-
-        Parameters
-        ----------
-        df
-            The DataFrame containing the correlation matrix.
-        output_folder
-            The folder where the heatmap will be saved.
-        filename
-            The name of the file to save the heatmap as.
-        """
-        fig, ax = plt.subplots(figsize=(10, 10))
-        sns.heatmap(df, annot=True, cmap="RdBu", center=0, vmin=-1, vmax=1, ax=ax)
-        ax.tick_params(axis="y", rotation=0)
-        save_plot_to_path(
-            figure=fig,
-            output_path=output_folder,
-            figure_name=filename,
-        )
-
-    def plot_and_save_clustermap(
-        df: pd.DataFrame,
-        output_folder: Path,
-        filename: str = "correlation_clustermap",
-    ) -> None:
-        """
-        Plot and save a clustermap of the correlation matrix from the given DataFrame.
-        Clustering is performed on absolute values of the correlation coefficients.
-
-        Parameters
-        ----------
-        df
-            The DataFrame containing the correlation matrix.
-        output_folder
-            The folder where the clustermap will be saved.
-        filename
-            The name of the file to save the clustermap as.
-        """
-        abs_data = df.abs().T
-        col_linkage = linkage(abs_data)
-        cluster_grid = sns.clustermap(
-            df,
-            annot=True,
-            cmap="RdBu",
-            center=0,
-            vmin=-1,
-            vmax=1,
-            figsize=(10, 10),
-            row_cluster=False,
-            col_cluster=True,
-            col_linkage=col_linkage,
-        )
-        save_plot_to_path(
-            figure=cluster_grid.figure,
-            output_path=output_folder,
-            figure_name=filename,
-        )
 
     def run_correlation_heatmap_workflow(
         dataset_collection_name: str = "pca_reference",
