@@ -1,7 +1,7 @@
 TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
-def main():
+def main() -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
     and measured quantitites.
@@ -18,7 +18,7 @@ def main():
     from scipy.cluster.hierarchy import linkage
     from scipy.stats import pearsonr
 
-    from src.endo_pipeline.configs import load_dataset_collection_config
+    from src.endo_pipeline.configs import get_datasets_in_collection
     from src.endo_pipeline.io import get_output_path, save_plot_to_path
     from src.endo_pipeline.library.analyze.diffae_manifest import get_valid_subset
     from src.endo_pipeline.library.analyze.integration.track_integration import (
@@ -119,6 +119,13 @@ def main():
         For the specific comparison where the non-finite value would show up
         (but not for the other comparisons).
         """
+
+        if df_format not in ("long", "wide-corrcoeff", "wide-pval"):
+            raise ValueError(
+                f"Unsupported df_format: {df_format}. "
+                f"Supported: 'long', 'wide-corrcoeff', 'wide-pval'."
+            )
+
         records = []
         for col_for_y in column_names_for_y_axis:
             for col_for_x in column_names_for_x_axis:
@@ -157,13 +164,9 @@ def main():
                     .index
                 ].T
 
-        elif df_format == "long":
-            pass
         else:
-            raise ValueError(
-                f"Unsupported df_format: {df_format}. "
-                f"Supported: 'long', 'wide-corrcoeff', 'wide-pval'."
-            )
+            # The table is already in the "long" format by default so no changes are necessary.
+            pass
         return correlation_df
 
     def get_merged_feature_df(
@@ -199,8 +202,8 @@ def main():
             - The first DataFrame contains all timepoints for the given datasets.
             - The second DataFrame contains only the steady state timepoints.
         """
-        df_list_all_tps = []
-        df_list_ss = []
+        df_list_all_tps: list = []
+        df_list_ss: list = []
         for dataset_name in dataset_name_list:
             # load and preprocess the different diffae manifests and PCA pipeline
             # NOTE: this takes a little over a minute to load
@@ -214,10 +217,11 @@ def main():
             # check that the chosen measurement column names
             # are actually in the DataFrame
             columns_to_check = classical_feature_columns + dataset_info_columns
-            assert all(np.isin(columns_to_check, merged_feats_df.columns)), (
-                f"Not all columns names are in merged_feats_df. Missing:\n"
-                f"{set(columns_to_check) - set(merged_feats_df.columns)}"
-            )
+            if not all(np.isin(columns_to_check, merged_feats_df.columns)):
+                missing_columns = set(columns_to_check) - set(merged_feats_df.columns)
+                raise ValueError(
+                    f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
+                )
 
             # filter data table to only include the steady state timepoints that are
             # used when projecting the DiffAE features onto PCA axes
@@ -279,7 +283,7 @@ def main():
         df: pd.DataFrame,
         output_folder: Path,
         filename: str = "correlation_clustermap",
-    ):
+    ) -> None:
         """
         Plot and save a clustermap of the correlation matrix from the given DataFrame.
         Clustering is performed on absolute values of the correlation coefficients.
@@ -342,7 +346,7 @@ def main():
             If True, include an aggregated dataset in the analysis.
             Defaults to False.
         """
-        dataset_name_list = load_dataset_collection_config(dataset_collection_name).datasets
+        dataset_name_list = get_datasets_in_collection(dataset_collection_name)
 
         df_all_timepoints, df_ss = get_merged_feature_df(
             dataset_name_list,
@@ -375,8 +379,10 @@ def main():
                 y_cols,
             ) in itertools.combinations_with_replacement(label_column_tuples, 2):
                 logger.debug(
-                    f"Processing correlation between {x_axis_label} and {y_axis_label} "
-                    f"for dataset {dataset_name}"
+                    "Processing correlation between %s and %s for dataset %s",
+                    x_axis_label,
+                    y_axis_label,
+                    dataset_name,
                 )
                 # loop over all combinations
                 x_filename = x_axis_label.replace(" ", "_").lower()
@@ -452,9 +458,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-
-    # ipython_cli_flexecute(main)
     from src.endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

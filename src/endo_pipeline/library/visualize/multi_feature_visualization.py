@@ -1,9 +1,12 @@
-"""Methods to visualize multi-feature correlations"""
+"""
+Methods to visualize multi-feature correlations
 
-# Creates an n_features X n_features grid of plots with:
-# 1) Scatter plots of features on the lower triangle
-# 2) Feature histograms on the diagonal
-# 3) Correlation values on the upper triangle
+Creates an n_features X n_features grid of plots with:
+
+1) Scatter plots of features on the lower triangle
+2) Feature histograms on the diagonal
+3) Correlation values on the upper triangle
+"""
 
 from pathlib import Path
 

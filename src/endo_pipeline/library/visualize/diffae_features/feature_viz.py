@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -392,7 +392,7 @@ def pc_loading_heatmap_workflow(
 
 def get_label_for_column(
     column_name: str,
-    mapping_dict: Dict[str, dict[str, Any]] | None = None,
+    mapping_dict: dict[str, dict[str, Any]] | None = None,
     capitalize: bool = False,
 ) -> str:
     """

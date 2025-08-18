@@ -710,18 +710,12 @@ def adjust_crop_bounds_to_0th_bin_level(
         The DataFrame with the crop bounds adjusted to the 0th level of resolution.
     """
     # adjust the crop bounds to the 0th level of resolution
-    merged_feats_df["start_y"] = (
-        merged_feats_df["start_y"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    merged_feats_df["end_y"] = (
-        merged_feats_df["end_y"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    merged_feats_df["start_x"] = (
-        merged_feats_df["start_x"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
-    merged_feats_df["end_x"] = (
-        merged_feats_df["end_x"] * (merged_feats_df["resolution_level"] + 1)
-    ).astype(int)
+    resolution_level = merged_feats_df["resolution_level"] + 1
+
+    merged_feats_df["start_y"] = (merged_feats_df["start_y"] * resolution_level).astype(int)
+    merged_feats_df["end_y"] = (merged_feats_df["end_y"] * resolution_level).astype(int)
+    merged_feats_df["start_x"] = (merged_feats_df["start_x"] * resolution_level).astype(int)
+    merged_feats_df["end_x"] = (merged_feats_df["end_x"] * resolution_level).astype(int)
     return merged_feats_df
 
 
