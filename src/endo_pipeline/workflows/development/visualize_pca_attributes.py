@@ -12,6 +12,9 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
         get_pca_loadings,
         get_timepoints_for_plotting_pcs,
     )
+    from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import (
+        get_pca_loadings_as_df,
+    )
     from src.endo_pipeline.library.visualize.diffae_features import feature_viz
     from src.endo_pipeline.manifests import load_dataframe_manifest
 
@@ -73,6 +76,15 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
         dataset_names, manifest, pca, timepoints_to_use=timepoints_refs
     )
     save_plot_to_path(fig, fig_savedir, "pca_scatter_ref")
+
+    # heatmap and clustemap of PC loadings
+    pca_loadings_df = get_pca_loadings_as_df(pca, df_format="wide")
+    fig_heatmap = feature_viz.pc_loading_heatmap_workflow(pca_loadings_df)
+    save_plot_to_path(
+        figure=fig_heatmap,
+        output_path=fig_savedir,
+        figure_name="pca_loadings_heatmap",
+    )
 
     logger.info("PCA visualization complete. Figures saved to [ %s ]", fig_savedir)
 

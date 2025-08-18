@@ -347,7 +347,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "label": "Centroid Velocity Orientation (deg)",
             "lims": (-180, 181),
             "bin_width": 5,
-            "ticks": range(0, 181, 90),
+            "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
         "cell_nuc_orientation_deg": {
@@ -381,6 +381,30 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": True,
+        },
+        "num_nuclei_in_crop": {
+            "column_name": "num_nuclei_in_crop",
+            "label": "Number of Nuclei in Crop",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": True,
+        },
+        "cell_fluorescence_mean": {
+            "column_name": "cell_fluorescence_mean (a.u.)",
+            "label": "Mean Cell Fluorescence",
+            "lims": (0, "max"),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
+        },
+        "cell_solidity": {
+            "column_name": "cell_solidity",
+            "label": "Cell Solidity",
+            "lims": (0, 1),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
         },
     }
 
