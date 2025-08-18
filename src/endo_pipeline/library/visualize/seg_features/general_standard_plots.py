@@ -347,7 +347,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "label": "Centroid Velocity Orientation (deg)",
             "lims": (-180, 181),
             "bin_width": 5,
-            "ticks": range(0, 181, 90),
+            "ticks": range(-180, 181, 90),
             "discrete_ticks": False,
         },
         "cell_nuc_orientation_deg": {
