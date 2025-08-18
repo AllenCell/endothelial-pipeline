@@ -1,8 +1,8 @@
 """Methods for working with dataset configs."""
 
 import logging
+import re
 from pathlib import Path
-from typing import Literal
 
 from src.endo_pipeline.configs import (
     DatasetCollectionConfig,
@@ -41,6 +41,30 @@ def get_zarr_file_for_position(dataset: DatasetConfig, position: int) -> Path:
         logger.warning("Zarr file [ %s ] does not exist", zarr_file)
 
     return zarr_file
+
+
+def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
+    """Extract position as 'P[x]' from the file path, if found."""
+
+    position = re.findall(r"(P[0-9]+)", Path(zarr_file_path).stem)
+
+    if not position:
+        logger.error("No position found in path [ %s ]", zarr_file_path)
+        raise ValueError(f"Path '{zarr_file_path}' does not contain a valid position")
+
+    return position[0]
+
+
+def get_position_integer_from_zarr_file_path(zarr_file_path: str | Path) -> int:
+    """Extract position as integer from the file path, if found."""
+
+    position_str = get_position_string_from_zarr_file_path(zarr_file_path)
+
+    if not position_str.startswith("P"):
+        logger.error("Position string [ %s ] does not start with 'P'", position_str)
+        raise ValueError(f"Position string '{position_str}' is not valid")
+
+    return int(position_str.replace("P", ""))  # Convert 'P[x]' to x
 
 
 def get_available_channels_for_all_positions(dataset: DatasetConfig) -> dict[int, list[str]]:

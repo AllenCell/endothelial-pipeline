@@ -290,7 +290,7 @@ callbacks:
     _target_: lightning.pytorch.callbacks.LearningRateMonitor
   prediction_saver:
     _target_: cyto_dl.callbacks.tabular_saver.SaveTabularData
-    save_dir: /allen/aics/users/benjamin.morris/cyto_dev/cyto-dl/outputs/2025-04-10/14-03-17
+    save_dir: null
     meta_keys:
     - T
     - start_x
