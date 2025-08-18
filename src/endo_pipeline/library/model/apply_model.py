@@ -461,6 +461,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
+    elif torch.cuda.device_count() < 1:
+        logger.error(
+            "CUDA available, but no GPU devices found. "
+            "Please set `CUDA_VISIBLE_DEVICES` to a valid GPU device "
+            "or run workflow with GPU setup enabled (-g flag)."
+        )
+        raise RuntimeError("CUDA available, but no GPU devices found.")
 
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
