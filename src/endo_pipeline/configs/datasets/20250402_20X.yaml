@@ -34,3 +34,13 @@ center_z_plane:
   3: 10
   4: 10
   5: 9
+exclude_timepoints:
+  transmitted_light_temporary_artifact:
+    0: [46, 495, 541]
+    1: [556]
+    2: []
+    3: []
+    4: [308]
+    5: [1]
+exclude_positions:
+  dust_artifact: [5]

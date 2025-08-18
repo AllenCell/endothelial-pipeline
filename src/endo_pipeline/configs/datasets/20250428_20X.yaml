@@ -28,8 +28,8 @@ valid_timepoints:
   start: [217]
   stop: [351]
 include_scenes: null
-notes: This is an intermediate flow dataset. There cells are very crowded by the end
-  of the movie.
+notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the end
+  of the movie. No other artifacts noted.
 center_z_plane:
   0: 11
   1: 12

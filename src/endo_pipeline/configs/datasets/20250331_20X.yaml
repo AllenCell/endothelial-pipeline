@@ -29,7 +29,7 @@ channel_561_index: null
 channel_640_index: null
 valid_timepoints: null
 include_scenes: null
-notes: Frame of flow switch was ~275.
+notes: All positions have dust artifacts
 center_z_plane:
   0: 10
   1: 9
@@ -37,3 +37,17 @@ center_z_plane:
   3: 9
   4: 9
   5: 10
+exclude_timepoints:
+  transmitted_light_mircroscope_error:
+    0: [315]
+    1: [316]
+    2: [0]
+  transmitted_light_temporary_artifact:
+    0: [522]
+    1: [413]
+    2: [451]
+    3: [413, 522]
+    4: [451]
+    5: [413]
+exclude_positions:
+  dust_artifact: [0, 1, 2, 3, 4, 5]

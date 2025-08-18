@@ -35,3 +35,11 @@ center_z_plane:
   3: 11
   4: 11
   5: 12
+exclude_timepoints:
+  xy_shift: # more exclusion from analysis then training?
+    0: [4,5]
+    1: [4,5]
+    2: [4,5]
+    3: [4,5]
+    4: [4,5]
+    5: [4,5]
