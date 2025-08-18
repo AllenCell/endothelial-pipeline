@@ -66,7 +66,9 @@ for dataset_name in dataset_list:
     ]
 
     datasets_for_bounds = [f"{dataset_name}-{index}" for index in range(4)]
-    bounds = get_3d_bounds_from_data(datasets_for_bounds, combined_manifest, pca)
+    bounds = get_3d_bounds_from_data(
+        datasets_for_bounds, combined_manifest, pca, filter_to_valid=False
+    )
 
     for target_frame in TIMEPOINTS:
         for df, info in zip(df_list, df_info, strict=True):
