@@ -1,7 +1,6 @@
 import logging
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,13 +9,7 @@ import seaborn as sns
 from bioio import BioImage
 from scipy.ndimage import gaussian_filter1d
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import (
-    get_dataset_info,
-    get_original_path,
-    get_zarr_name,
-    get_zarr_path,
-)
+from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from src.endo_pipeline.manifests import (
     get_segmentation_location_for_dataset,
     load_segmentation_manifest,
@@ -49,6 +42,18 @@ def merge_measured_segmentation_features_tables(
         left_on=["dataset_name", "position", "T", "label"],
         right_on=["dataset_name", "position", "T", "cdh5_segmentation_label"],
     )
+    # the following columns are redundant with another in the table and
+    # can be dropped:
+    duplicate_cols = [
+        "cell_label",
+        "cdh5_segmentation_label",
+        "cell_centroid",
+        "cell_area (px**2)",
+        "cell_perimeter (px)",
+        "touches_border",
+    ]
+    big_table.drop(columns=duplicate_cols, inplace=True)
+
     return big_table
 
 
@@ -92,7 +97,7 @@ def save_filter_validation_plots(
                 "num_unique_tracks_after_filtering_at_T",
             ]
         ].agg("median")
-        timelapse_duration = get_dataset_info(dataset_nm)["duration"]
+        timelapse_duration = load_dataset_config(dataset_nm).duration
         # QUESTION: are the number of cell labels after filtering roughly equally distributed over time?
         out_dir_plots = out_dir / "num_tracks_plots" / dataset_nm
         out_dir_plots.mkdir(parents=True, exist_ok=True)
@@ -254,18 +259,17 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     - the centroid velocity magnitude and angle
     - the number of neighbors touching each region
     """
-    um_per_px_map = {
-        dataset_name: get_dataset_info(dataset_name)["pixel_size_xy_in_um"]
-        for dataset_name in big_table["dataset_name"].unique()
-    }
-    time_res_map = {
-        dataset_name: get_dataset_info(dataset_name)["time_interval_in_minutes"]
-        for dataset_name in big_table["dataset_name"].unique()
-    }
-    shear_stress_regime_map = {
-        dataset_name: get_dataset_info(dataset_name)["shear_stress_regime"]
-        for dataset_name in big_table["dataset_name"].unique()
-    }
+    big_table.rename(columns={"filepath_raw_image": "zarr_path"}, inplace=True)
+
+    um_per_px_map = {}
+    time_res_map = {}
+    shear_stress_regime_map = {}
+
+    for dataset_name in big_table["dataset_name"].unique():
+        data_config = load_dataset_config(dataset_name)
+        um_per_px_map[dataset_name] = data_config.pixel_size_xy_in_um
+        time_res_map[dataset_name] = data_config.time_interval_in_minutes
+        shear_stress_regime_map[dataset_name] = data_config.shear_stress_regime
 
     # add the shear stress regime to the data table
     logger.info("Adding shear stress regime...")
@@ -341,8 +345,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["aspect_ratio"] = big_table["eccentricity"].transform(get_aspect_ratio)
 
-    # dimensionalize the area
-    logger.info("Dimensionalizing area and perimeter...")
+    # add pixel sizes
     big_table["pixel_size_xy_in_um"] = big_table["dataset_name"].transform(
         lambda dataset_name: um_per_px_map[dataset_name]
     )
@@ -352,9 +355,6 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add a column for the number of neighbors
     # touching each region that is being tracked
     logger.info("Calculating number of neighbors...")
-    big_table["neighboring_cell_labels"] = big_table["neighboring_cell_labels"].transform(
-        lambda x: stringified_floatlist_to_floatlist(x)
-    )
     big_table["number_of_neighbors"] = big_table["neighboring_cell_labels"].transform(
         lambda x: len(x)
     )
@@ -362,32 +362,21 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add the image size to the data table
     new_cols = {}
     for (ds_nm, pos), grp in big_table.groupby(["dataset_name", "position"]):
+        data_config = load_dataset_config(ds_nm)
 
-        zarr_name = get_zarr_name(ds_nm, pos)
-        zarr_path = Path(get_zarr_path(ds_nm, zarr_name)[zarr_name])
+        zarr_path = get_zarr_file_for_position(data_config, pos)
+        assert (grp["zarr_path"].transform(Path) == zarr_path).all(), "Zarr path mismatch in group."
 
         logger.info(f"getting image size for {ds_nm} position {pos}...")
-        # NOTE the zarr paths are not working for 20241203_9db6173b3da7452b91756b6e86b0da61_P3
-        try:
-            img = BioImage(zarr_path)
-            img.set_resolution_level(0)
-            channel_index = dict(
-                zip(img.channel_names, range(len(img.channel_names)), strict=False)
-            )
-        except:
-            logger.error("loading zarr failed, falling back to original path...")
-            og_path = get_original_path(ds_nm)
-            img = BioImage(og_path)
-            channel_index = dict(zip(["EGFP", "BF"], range(len(img.channel_names)), strict=False))
-
+        img = BioImage(zarr_path)
+        img.set_resolution_level(0)
         image_size_y, image_size_x = img.dims.Y, img.dims.X
 
         new_cols[(ds_nm, pos)] = {
-            "zarr_path": zarr_path.as_posix(),
             "image_size_x": image_size_x,
             "image_size_y": image_size_y,
-            "EGFP_channel_index_zarr": channel_index["EGFP"],
-            "brightfield_channel_index_zarr": channel_index["BF"],
+            "EGFP_channel_index_zarr": data_config.channel_488_index,
+            "brightfield_channel_index_zarr": data_config.brightfield_channel_index,
         }
     big_table = big_table.merge(
         big_table.groupby(["dataset_name", "position"])
@@ -407,9 +396,6 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add the number of nuclei that overlap the most with each cell
     # (this can be used as a filter later so we only measure cells
     # with a single clearly distinguishable nuclei)
-    big_table["nuclei_seg_in_cdh5_seg_frac"] = big_table["nuclei_seg_in_cdh5_seg_frac"].transform(
-        lambda x: stringified_floatlist_to_floatlist(x, to_tuple=True)
-    )
     big_table["num_nuclei_with_most_overlap"] = big_table["nuclei_seg_in_cdh5_seg_frac"].transform(
         len
     )
@@ -457,11 +443,8 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
     # recalculate the centroid speeds of each track
     # after filtering
     logger.info("Calculating centroid velocities...")
-    big_table[["centroid_y", "centroid_x"]] = (
-        big_table["centroid"].transform(lambda c: stringified_floatlist_to_floatlist(c)).tolist()
-    )
-    big_table["centroid_x_um"] = big_table["centroid_x"] * big_table["pixel_size_xy_in_um"]
-    big_table["centroid_y_um"] = big_table["centroid_y"] * big_table["pixel_size_xy_in_um"]
+    big_table["centroid_x_um"] = big_table["centroid_X"] * big_table["pixel_size_xy_in_um"]
+    big_table["centroid_y_um"] = big_table["centroid_Y"] * big_table["pixel_size_xy_in_um"]
     big_table[["centroid_dx_dt", "centroid_dy_dt"]] = (
         big_table.groupby(["dataset_name", "position", "track_id"], as_index=True)[
             ["centroid_x_um", "centroid_y_um", "time_minutes"]
@@ -527,34 +510,6 @@ def get_aspect_ratio(eccentricity: float) -> float:
     return aspect_ratio
 
 
-def stringified_floatlist_to_floatlist(ls: str, to_tuple: bool = False) -> list | tuple:
-    """Converts a list that is saved as a string back to a list object.
-    Assumes that there is only one set of brackets (either '[]' or '()').
-    """
-    # if 'ls' is already a list of floats then return the input
-    if isinstance(ls, list) and all([isinstance(x, float) for x in ls]):
-        return tuple(ls) if to_tuple else ls
-    # otherwise procede with the conversion
-    else:
-        strfloats = ls.strip("[]")
-        strfloats = strfloats.strip("()")
-        float_list: list[Any] = []
-        for x in strfloats.split(","):
-            try:
-                float_list.append(float(x))
-            # handle allowed special cases or raise an error
-            except ValueError:
-                if "masked" in x:
-                    float_list.append(np.ma.masked)
-                elif "nan" in x:
-                    float_list.append(np.nan)
-                elif x == "":
-                    pass
-                else:
-                    raise ValueError(f'Could not convert "{x}" to float.')
-        return tuple(float_list) if to_tuple else float_list
-
-
 def get_centroid_velocity(
     centroid_xs: float, centroid_ys: float, timepoints: float
 ) -> tuple[float, float]:
@@ -570,52 +525,6 @@ def calculate_smoothed_normd_area(
     smoothed_area = gaussian_filter1d(area, sigma=smoothing_sigma)
     area_normd = area / smoothed_area
     return area_normd
-
-
-def filter_and_save_track_data_for_landscape_integration(
-    big_table: pd.DataFrame,
-    out_filename: str | Path | None = None,
-    crop_size: int = 256,
-    min_num_points_per_track: int = 0,
-    return_df: bool = False,
-) -> pd.DataFrame | None:
-
-    big_table = big_table[
-        big_table.groupby(["dataset_name", "position", "track_id"])["track_id"].transform(
-            lambda x: x.count() > min_num_points_per_track
-        )
-    ]
-
-    integration_table = big_table[
-        [
-            "zarr_path",
-            "image_index",
-            "track_id",
-            "label",
-            "centroid_x",
-            "centroid_y",
-            "image_size_x",
-            "image_size_y",
-        ]
-    ].copy()
-    integration_table["crop_size"] = crop_size
-
-    # remove all the centroids that are closer than 128 pixels
-    # to the image border
-    integration_table = integration_table[integration_table["centroid_x"] > crop_size // 2]
-    integration_table = integration_table[integration_table["centroid_y"] > crop_size // 2]
-    integration_table = integration_table[
-        integration_table["centroid_x"] < integration_table["image_size_x"] - crop_size // 2
-    ]
-    integration_table = integration_table[
-        integration_table["centroid_y"] < integration_table["image_size_y"] - crop_size // 2
-    ]
-
-    if out_filename:
-        # save the filtered data to a file
-        integration_table.to_csv(out_filename, index=False)
-
-    return integration_table if return_df else None
 
 
 # restrict orientation to be between 0 and pi/2 instead of between -pi/2 and pi/2 so that
@@ -655,18 +564,6 @@ def get_nuclei_rel_to_cell_position(
     dy = cell_centroid_y - nuclei_centroid_y
 
     return dx, dy
-
-
-def add_cell_segmentation_path_column(
-    big_table: pd.DataFrame,
-) -> pd.DataFrame:
-    seg_path_per_pos_dict = dict()
-    for ds_nm, pos in big_table.groupby(["dataset_name", "position"]).groups.keys():  # type: ignore[arg-type, misc]
-        seg_path_per_pos_dict[pos] = get_segmentation_path_dict(ds_nm, pos)  # type: ignore[has-type]
-    big_table["cdh5_classic_segmentation_path"] = big_table.apply(
-        lambda df: (seg_path_per_pos_dict[df["position"]][df["T"]].as_posix()), axis=1
-    )
-    return big_table
 
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
