@@ -11,7 +11,6 @@ from cyto_dl.api import CytoDLModel
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
-    add_model_manifest,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
@@ -637,10 +636,25 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             file_type="parquet",
         )
 
-        # add new manifest to model config
-        model_config = add_model_manifest(
-            model_config, dataset_config.name, file_id, z_stack_offsets=z_stack_offsets
-        )
+        # Store FMS ID in dataframe manifest
+        manifest_name = model_config.name
+        workflow_name = "apply_diffae_grid"
+
+        if z_stack_offsets is not None:
+            manifest_name = f"{manifest_name}_z_stack_{z_stack_offsets[0]}_{z_stack_offsets[1]}"
+            parameters = {"z_stack_offsets": z_stack_offsets}
+        else:
+            parameters = {}
+
+        try:
+            manifest = load_dataframe_manifest(manifest_name)
+        except FileNotFoundError:
+            manifest = DataframeManifest(
+                name=manifest_name, workflow=workflow_name, parameters=parameters
+            )
+
+        manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+        save_dataframe_manifest(manifest)
 
     return model_config
 

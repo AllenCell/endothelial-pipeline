@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
+from src.endo_pipeline.manifests import DataframeManifest
 
 
 def _ddd_model_analysis(
@@ -90,7 +90,8 @@ def _ddd_model_analysis(
 
 
 def _get_and_analyze_ddd(
-    model_manifest: ModelManifest,
+    dataset_name: str,
+    manifest: DataframeManifest,
     pca: PCA,
     kernel_params: dict | None,
     fig_savedir: Path,
@@ -101,8 +102,8 @@ def _get_and_analyze_ddd(
     Wrapper function for _ddd_model_analysis, called by main.
 
     Inputs:
-    - model_manifest (ModelManifest): model manifest object
-        for a given dataset and deep learning model
+    - dataset_name: name of dataset
+    - manifest: manifest of model feature dataframes
     - pca: fit PCA object
         Used to project data into PCA space
     - kernel_params (dict): parameters for kernel method
@@ -125,7 +126,7 @@ def _get_and_analyze_ddd(
         get_callable_vector_field,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import (
-        get_manifest_for_dynamics_workflows,
+        get_dataframe_for_dynamics_workflows,
         get_pc_column_names,
         get_traj_and_diff,
         split_dataset_by_flow,
@@ -150,15 +151,13 @@ def _get_and_analyze_ddd(
     # load DiffAE feature data from this one dataset
     # projected onto principal component axes as defined
     # by fit PCA object pca. Restrict to stationary frames if provided
-    df_proj = get_manifest_for_dynamics_workflows(model_manifest, pca=pca)
+    df_proj = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
 
     # get pc columns for axes of interest
     pc_column_names = get_pc_column_names(df_proj, pc_axes)
 
     # split out data by flow condition
-    df_by_flow, shear_list = split_dataset_by_flow(
-        df_proj, load_dataset_config(model_manifest.dataset_name)
-    )
+    df_by_flow, shear_list = split_dataset_by_flow(df_proj, load_dataset_config(dataset_name))
     num_flow = len(shear_list)
 
     # get drift and diffusion estimates
@@ -197,7 +196,7 @@ def _get_and_analyze_ddd(
         # call main model analysis function
         # for the data driven dynamics workflow
         _ddd_model_analysis(
-            model_manifest.dataset_name,
+            dataset_name,
             [drift_, diffusion_],
             df_by_flow[j],
             shear_list[j],
@@ -215,13 +214,10 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     Includes model summary and comparison to data as used in, e.g.,
     the `summarize_sde_model` workflow.
     """
-    from src.endo_pipeline.configs import (
-        dynamics_io,
-        get_timelapse_model_manifests,
-        load_model_config,
-    )
+    from src.endo_pipeline.configs import dynamics_io, get_datasets_in_collection, load_model_config
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     #### Load manifest data and fit PCA ####
     # make save directory for workflow outputs
@@ -251,15 +247,16 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     # get model config from model name
     model_config = load_model_config(model_name)
 
-    # filter out datasets that are not timelapse
-    # and load model manifests
-    model_manifest_list = get_timelapse_model_manifests(model_config)
+    # filter out datasets that are not timelapse and load model manifests
+    dataset_names = get_datasets_in_collection("timelapse")
+    manifest = load_dataframe_manifest(model_name)
 
-    for model_manifest in model_manifest_list:
-        print(f"Computing drift and diffusion fields for dataset {model_manifest.dataset_name}")
+    for dataset_name in dataset_names:
+        print(f"Computing drift and diffusion fields for dataset {dataset_name}")
 
         _get_and_analyze_ddd(
-            model_manifest,
+            dataset_name,
+            manifest,
             pca,
             kernel_params,
             fig_savedir,
