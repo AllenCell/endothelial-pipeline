@@ -1,19 +1,18 @@
 DESCRIPTION = "Run correlation analysis on DiffAE feature time series data."
 
 TAGS = ["diffae_features"]
+
 # %%
 import logging
 import sys
-from typing import cast
 
 import numpy as np
 
-from src.endo_pipeline.configs import CytoDLModelConfig, get_model_manifest, load_model_config
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
     fit_pca,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.analyze.numerics import (
@@ -23,6 +22,7 @@ from src.endo_pipeline.library.analyze.numerics import (
     fit_exponential_decay,
 )
 from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.manifests import load_dataframe_manifest
 
 # if being run as a script, use logging
 # instead of print statements
@@ -48,17 +48,17 @@ list_of_datasets = [
     "20241120_20X",
 ]
 
-# load model config to get model manifest objects
-model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+# load dataframe manifest to get model feature dataframes
+manifest = load_dataframe_manifest(model_name)
 
 figure_save_path = get_output_path("correlations")
 
 # %%
 for dataset_name in list_of_datasets:
     logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
+
     # load dataframe and get top 3 PCs
-    model_manifest = get_model_manifest(dataset_name, model_config)
-    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+    df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
     feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
     # get feature data

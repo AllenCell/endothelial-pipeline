@@ -1,0 +1,17 @@
+name: diffae_04_10_z_stack_5_10
+workflow: '----'
+parameters:
+  z_stack_offsets: [5, 10]
+locations:
+  20241016_20X:
+    fmsid: 27587ca373db448c9645036b50acefa0
+    s3uri: null
+  20250331_20X:
+    fmsid: 4ffcc8fa04204dc28c9e9fe33330678c
+    s3uri: null
+  20250402_20X:
+    fmsid: 989580783fc64beb81ddb17f13e806ec
+    s3uri: null
+  20250409_20X:
+    fmsid: f4cb3a8809ed44cd9c040623f1f00bc0
+    s3uri: null

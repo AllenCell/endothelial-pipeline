@@ -11,7 +11,7 @@ microscope: 3i
 objective: 20X
 shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
-duration: 542
+duration: 543
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 12.2]]
 n_total_positions: 6
