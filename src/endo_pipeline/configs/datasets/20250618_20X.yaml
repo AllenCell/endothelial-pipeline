@@ -36,14 +36,14 @@ center_z_plane:
   4: 13
   5: 14
 exclude_timepoints:
-  transmitted_light_mircroscope_error:
+  bf_scope_error:
     0: [6, 529, 557]
     1: [6, 529, 540, 563]
     2: [540]
     3: [0, 529, 540]
     4: [529, 540]
     5: [528, 540]
-  transmitted_light_temporary_artifact:
+  bf_temp_artifact:
     0: [52, 273, 337, 379]
     1: [36, 69, 114, 171, 192, 272, 332]
     2: [304]

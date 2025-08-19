@@ -36,7 +36,7 @@ center_z_plane:
   4: 12
   5: 12
 exclude_timepoints:
-  transmitted_light_mircroscope_error:
+  bf_scope_error:
     0: [467, 485, 486, 525, 542]
     1: [485, 486, 489, 500, 531, 547, 549, 550]
     2: [418, 440, 510, 531, 563]

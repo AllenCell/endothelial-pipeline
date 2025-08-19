@@ -38,11 +38,11 @@ center_z_plane:
   4: 9
   5: 10
 exclude_timepoints:
-  transmitted_light_mircroscope_error:
+  bf_scope_error:
     0: [315]
     1: [316]
     2: [0]
-  transmitted_light_temporary_artifact:
+  bf_temp_artifact:
     0: [522]
     1: [413]
     2: [451]
