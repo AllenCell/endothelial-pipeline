@@ -127,7 +127,7 @@ def main(
         for dataset_name in tqdm(
             dataset_name_list,
             total=len(dataset_name_list),
-            desc="Processing datasets (1P)",
+            desc="Processing datasets",
             unit="datasets",
         ):
             create_segmentation_measured_feature_manifest(dataset_name, out_dir)

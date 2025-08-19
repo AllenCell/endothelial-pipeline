@@ -436,27 +436,10 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     big_table = add_DiffAE_model_eval_crop_columns(big_table)
 
     # compute the number of nuclei found in a defined crop size
-    # take a subset using only the required columns to reduce memory usage
-    required_columns = [
-        "dataset_name",
-        "position",
-        "image_index",
-        "centroid_Y",
-        "centroid_X",
-        "image_size_y",
-        "image_size_x",
-        "crop_size",
-        "start_y",
-        "end_y",
-        "start_x",
-        "end_x",
-        "DiffAE_img_bin_level_used",
-    ]
-    num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
-        big_table[required_columns], use_precomputed=False, max_cores=None
-    )
-    crop_ids = ["dataset_name", "position", "image_index", "start_y", "end_y", "start_x", "end_x"]
-    big_table = big_table.merge(right=num_nuclei_in_crop_df, on=crop_ids, how="left")
+    num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(big_table, use_precomputed=False)
+    crops = ["dataset_name", "position", "image_index", "start_y", "end_y", "start_x", "end_x"]
+    added_cols = list(set(num_nuclei_in_crop_df.columns) - set(big_table.columns))
+    big_table = big_table.merge(num_nuclei_in_crop_df[crops + added_cols], on=crops, how="left")
 
     return big_table
 
@@ -903,7 +886,23 @@ def add_num_nuclei_in_crop_column(
     nuclei coordinates to a file locally so that it does not have to
     be computed each time this function is called.
     """
-
+    # take a subset using only the required columns to reduce memory usage
+    required_columns = [
+        "dataset_name",
+        "position",
+        "image_index",
+        "centroid_Y",
+        "centroid_X",
+        "image_size_y",
+        "image_size_x",
+        "crop_size",
+        "start_y",
+        "end_y",
+        "start_x",
+        "end_x",
+        "DiffAE_img_bin_level_used",
+    ]
+    merged_feats_df = merged_feats_df[required_columns].copy()
     # adjust the crop coordinates back to the native resolution since
     # the label-free nuclei predictions are saved at that resolution
     merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
