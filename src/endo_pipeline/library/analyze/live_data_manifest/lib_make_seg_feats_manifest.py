@@ -922,7 +922,7 @@ def add_num_nuclei_in_crop_column(
         groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
         args = groups.groups.keys()
         if max_cores == 1:
-            results = [
+            results = [  # type:ignore[misc]
                 compute_nuclei_centroids(dataset_name, position, timeframe)  # type:ignore[has-type]
                 for dataset_name, position, timeframe in tqdm(
                     args,
