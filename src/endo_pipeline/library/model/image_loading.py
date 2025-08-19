@@ -402,7 +402,12 @@ def build_zarr_image_loading_dataframe(
 
     df = pd.DataFrame({"path": zarr_file_paths})
     df["resolution"] = resolution_level
-    df["channel"] = channel
+    if isinstance(channel, int):
+        df["channel"] = channel
+    else:
+        # need to make sure list is not split
+        # across multiple rows
+        df["channel"] = df["path"].apply(lambda x: channel)
 
     # add temporary column with position index for filtering
     df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))

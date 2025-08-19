@@ -1,4 +1,5 @@
 # %%
+import numpy as np
 import pandas as pd
 
 from src.endo_pipeline.io import get_output_path
@@ -12,11 +13,11 @@ zarr_file_path = (
 )
 
 resolution = 1
-start = "0"
-stop = "-1"
-step = "50"
-channel = "0,1"
-exclude_frames = "5,400"
+start = 0
+stop = -1
+step = 50
+channel = [0, 1]
+exclude_frames = [5, 400]
 
 df = pd.DataFrame(
     {
@@ -35,12 +36,5 @@ file_path = output_path / "image_loading_test.parquet"
 
 df.to_parquet(file_path, index=False)
 # %%
-image_dataset = MultiDimImageDataset(
-    dataframe_path=file_path,
-    transform=BioIOImageLoaderd(
-        path_key="original_path",
-        out_key="raw",
-        dask_load=True,
-    ),
-)
+image_dataset = MultiDimImageDataset(dataframe_path=file_path)
 # %%
