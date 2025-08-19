@@ -1,15 +1,26 @@
+import concurrent
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any, Literal
 
+import dask.array as dd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from bioio import BioImage
 from scipy.ndimage import gaussian_filter1d
+from skimage.measure import regionprops
+from tqdm import tqdm
 
 from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.io.input import load_segmentation
+from src.endo_pipeline.library.process.general_image_preprocessing import (
+    get_default_dim_order,
+    sequence_to_scalar,
+)
 from src.endo_pipeline.manifests import (
     get_segmentation_location_for_dataset,
     load_segmentation_manifest,
@@ -575,3 +586,344 @@ def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
         )
         for timepoint in range(dataset.duration)
     }
+
+
+def adjust_crop_bounds_to_0th_bin_level(
+    merged_feats_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Adjust the crop bounds to the 0th level of resolution for the imaging data.
+    Context: the start_y, end_y, start_x, end_x columns that are used to define
+    a crop in the merged_feats_df DataFrame are recorded for the image at bin
+    level 1 since that is what the DiffAE model was learning at the time.
+
+    Parameters
+    ----------
+    merged_feats_df : pd.DataFrame
+        The DataFrame containing crop bound columns in the form of
+        (starty, end_y, start_x, end_x) and a column "resolution_level"
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the crop bounds adjusted to the 0th level of resolution.
+    """
+    # adjust the crop bounds to the 0th level of resolution
+    resolution_level = merged_feats_df["resolution_level"] + 1
+
+    merged_feats_df["start_y"] = (merged_feats_df["start_y"] * resolution_level).astype(int)
+    merged_feats_df["end_y"] = (merged_feats_df["end_y"] * resolution_level).astype(int)
+    merged_feats_df["start_x"] = (merged_feats_df["start_x"] * resolution_level).astype(int)
+    merged_feats_df["end_x"] = (merged_feats_df["end_x"] * resolution_level).astype(int)
+    return merged_feats_df
+
+
+def get_nuclei_coords(
+    props: regionprops,  # type:ignore
+    props_dim_order: str,
+    kind: Literal["centroid", "all"] = "centroid",
+) -> dict[str, np.ndarray]:
+    """
+    Get the coordinates of the nuclei in the image.
+    Parameters
+    ----------
+    props : regionprops
+        The properties of the labeled nuclei in the image.
+    props_dim_order : str
+        The dimension order of the properties, e.g. "YX" or "ZYX".
+        NOTE: this has only been tested with dim_order = "YX".
+    kind : Literal["centroid", "all"]
+        The kind of coordinates to return.
+        "centroid" will return only the centroids of the labeled nuclei,
+        while "all" will return all the coordinates of the nuclei.
+    Returns
+    -------
+    dict[str, np.ndarray]
+        A dictionary with the coordinates of the nuclei in the image.
+        The keys are "coords_Y", "coords_X", etc. depending on props_dim_order.
+    """
+
+    if kind == "all":
+        # find the largest nuclei in the image because we
+        # will need it for padding the coordinates later
+        biggest_nuc_mask = max([p.num_pixels for p in props])  # type:ignore
+
+    nuclei_coords: dict = {f"coords_{d}": [] for d in props_dim_order}
+    for p in props:  # type:ignore
+        match kind:
+            case "centroid":
+                # get only nuclei centroids
+                # the ndmin=2 is so that the p.centroid shape is the same as p.coords
+                # and will work in the function `get_num_nuclei_in_crops` correctly
+                coords = np.array(p.centroid, ndmin=2).astype(float)
+            case "all":
+                # get all the nuclei coordinates
+                coords = p.coords.astype(float)
+                # define how much padding you need to add to these nuclei coordinates
+                pad_width = ((0, biggest_nuc_mask - p.coords.shape[0]), (0, 0))
+                # do the padding
+                coords = np.pad(coords, pad_width, mode="constant", constant_values=np.nan)
+        for dim in props_dim_order:
+            nuclei_coords[f"coords_{dim}"].append(coords[..., props_dim_order.index(dim)])
+    nuclei_coords_arrs = {dim: np.stack(coords).squeeze() for dim, coords in nuclei_coords.items()}
+
+    return nuclei_coords_arrs
+
+
+def get_num_unique_values_in_bounds_from_df(
+    nuclei_coords_Y: pd.Series,
+    nuclei_coords_X: pd.Series,
+    crop_bounds_Y: tuple[pd.Series, pd.Series],
+    crop_bounds_X: tuple[pd.Series, pd.Series],
+) -> np.ndarray:
+    """
+    Returns the number of uniquely labeled coordinates within some crop bounds.
+    This is used to count the number of nuclei in each crop.
+
+    Parameters
+    ----------
+    nuclei_coords_Y : pd.Series
+        The Y coordinates of the nuclei centroids.
+    nuclei_coords_X : pd.Series
+        The X coordinates of the nuclei centroids.
+    crop_bounds_Y : tuple[pd.Series, pd.Series]
+        The start and end Y coordinates of the crop bounds.
+    crop_bounds_X : tuple[pd.Series, pd.Series]
+        The start and end X coordinates of the crop bounds.
+
+    Returns
+    -------
+    np.ndarray
+        An array with the number of unique nuclei in each crop.
+
+    Notes
+    -----
+    nuclei_coords_Y and nuclei_coords_X have the shape:
+    (n_crops x n_unique_labels)
+    crop_bounds_Y has the shape (n_crops, 2)
+    """
+    start_y, end_y = crop_bounds_Y
+    start_x, end_x = crop_bounds_X
+
+    coord_in_Y_bounds = np.logical_and(
+        nuclei_coords_Y >= np.reshape(start_y, (len(start_y), 1)),  # type:ignore[arg-type]
+        nuclei_coords_Y <= np.reshape(end_y, (len(end_y), 1)),  # type:ignore[arg-type]
+    )
+    coord_in_X_bounds = np.logical_and(
+        nuclei_coords_X >= np.reshape(start_x, (len(start_x), 1)),  # type:ignore[arg-type]
+        nuclei_coords_X <= np.reshape(end_x, (len(end_x), 1)),  # type:ignore[arg-type]
+    )
+    num_nuclei_in_crop = np.logical_and(coord_in_Y_bounds, coord_in_X_bounds).sum(axis=1)
+
+    return num_nuclei_in_crop
+
+
+def get_num_nuclei_in_array(img_arr: np.ndarray | dd.Array, crop: tuple[slice, ...] | None) -> int:
+    """
+    Get the number of labeled nuclei in an array or dask array.
+    Array will be cropped before counting nuclei if crop is provided.
+    If there is even 1 pixel of a labeled nuclei then it will be counted,
+    therefore you may want to create an image of the centroids or cleaned
+    up nuclei before counting.
+    Parameters
+    ----------
+    img_arr : np.ndarray or dd.Array
+        The array containing the labeled nuclei.
+    crop : tuple[slice, ...] or None
+        The crop to apply to the array before counting nuclei.
+
+    Returns
+    -------
+    int
+        The number of unique labeled nuclei in the array.
+
+    Notes
+    -----
+    This function is not currently used but is still included for convenience.
+    """
+    if crop is not None:
+        img_arr = img_arr[crop]
+
+    if isinstance(img_arr, dd.Array):
+        num_nuclei = np.unique(img_arr.compute()).size
+        return num_nuclei
+    elif isinstance(img_arr, np.ndarray):
+        num_nuclei = np.unique(img_arr).size
+        return num_nuclei
+    else:
+        raise TypeError(f"Unsupported type: {type(img_arr)}")
+
+
+def compute_nuclei_centroids(
+    dataset_name: str,
+    position: int,
+    timeframe: int,
+) -> dict:
+    """
+    Compute the nuclei centroids for a given dataset, position, and timeframe.
+
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the dataset to compute the nuclei centroids for.
+    position : int
+        The position of the dataset to compute the nuclei centroids for.
+    timeframe : int
+        The timeframe of the dataset to compute the nuclei centroids for.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the centroids of the nuclei in the image.
+        The keys include "coords_Y", "coords_X", etc. depending on the
+        dimension order as well as "dataset_name", "position", and
+        "image_index" (i.e. the timeframe).
+    """
+
+    # get the nuclei prediction
+    dim_order = get_default_dim_order()
+    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
+    seg_location = get_segmentation_location_for_dataset(
+        manifest=seg_manifest,
+        dataset_name=dataset_name,
+        position=position,
+        timepoint=timeframe,
+    )
+    nuc_seg = load_segmentation(seg_location)
+
+    # get nuclei segmentation properties and dimension order of those properties
+    props = regionprops(nuc_seg)
+    dim_shapes = dict(zip(dim_order, nuc_seg.shape))
+    dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
+
+    centroids: dict[str, Any] = get_nuclei_coords(
+        props=props,
+        props_dim_order=dim_order_squeezed,
+        kind="centroid",
+    )
+    centroids["dataset_name"] = dataset_name
+    centroids["position"] = position
+    centroids["image_index"] = timeframe
+
+    return centroids
+
+
+def compute_nuclei_centroids_multiproc(args: tuple[str, int, int]) -> dict:
+    """
+    Wrapper function to compute nuclei centroids for multiprocessing.
+    This function is used to unpack the arguments for multiprocessing.
+
+    Parameters
+    ----------
+    args : tuple[str, int, int]
+        A tuple containing the dataset name, position, and timeframe.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the centroids of the nuclei in the image.
+        The keys include "coords_Y", "coords_X", etc. depending on the
+        dimension order as well as "dataset_name", "position", and
+        "image_index" (i.e. the timeframe).
+    """
+    return compute_nuclei_centroids(*args)
+
+
+def add_num_nuclei_in_crop_column(
+    merged_feats_df: pd.DataFrame,
+    use_precomputed: bool = False,
+) -> pd.DataFrame:
+    """
+    Add the number of nuclei in each crop to the merged features DataFrame.
+    This function computes the number of nuclei in each crop by
+    computing the nuclei centroids and then counting the number of
+    unique nuclei coordinates that fall within the crop bounds.
+
+    Parameters
+    ----------
+    merged_feats_df : pd.DataFrame
+        The DataFrame containing the merged features, which includes
+        the crop bounds and the nuclei coordinates.
+    use_precomputed : bool, optional
+        If True, the function will use precomputed nuclei centroids
+        if they are available. If False, the function will always
+        compute the nuclei centroids. Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with an additional column "num_nuclei_in_crop"
+        that contains the number of nuclei in each crop.
+
+    Notes
+    -----
+    The merged_feats_df DataFrame should contain the following columns:
+    - "dataset_name": the name of the dataset to analyze
+    - "position": the position in the dataset to analyze
+    - "image_index": the timeframe in the dataset to analyze
+    - "coords_Y": the Y coordinates of the nuclei centroids
+    - "coords_X": the X coordinates of the nuclei centroids
+    - "start_y": the start Y coordinate of the crop
+    - "end_y": the end Y coordinate of the crop
+    - "start_x": the start X coordinate of the crop
+    - "end_x": the end X coordinate of the crop
+    This function will take a long time to run, so it will save the
+    nuclei coordinates to a file locally so that it does not have to
+    be computed each time this function is called.
+    """
+
+    # adjust the crop coordinates back to the native resolution since
+    # the label-free nuclei predictions are saved at that resolution
+    merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
+
+    # get the nuclei coordinates
+    nuclei_centroids_dir = get_output_path(__file__, "nuclei_coords", include_timestamp=False)
+    dataset_name = sequence_to_scalar(merged_feats_df["dataset_name"])
+    nuclei_centroids_path = nuclei_centroids_dir / f"{dataset_name}_nuclei_centroids.parquet"
+
+    # if the nuclei coordinates are already computed, load them
+    if use_precomputed and nuclei_centroids_path.exists():
+        nuc_centroid_indices = pd.read_parquet(nuclei_centroids_path)
+    # otherwise, compute and save them
+    # (this will take about 60 minutes divided by n_cores used)
+    else:
+        # compute the nuclei prediction centroids
+        max_cores = None
+        groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
+        args = groups.groups.keys()
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
+            results = list(
+                tqdm(
+                    executor.map(compute_nuclei_centroids_multiproc, args),
+                    total=len(groups),
+                    desc=f"Computing nuclei centroids: {dataset_name}",
+                )
+            )
+        # convert results to DataFrame
+        nuc_centroid_indices = pd.DataFrame(results)
+        # save results for so this step doesn't have to be rerun each time
+        nuc_centroid_indices.to_parquet(nuclei_centroids_path, index=False)
+
+    # combine the nuclei centroids with the merged features DataFrames
+    merged_feats_df = pd.merge(
+        merged_feats_df,
+        nuc_centroid_indices,
+        on=["dataset_name", "position", "image_index"],
+        how="left",
+    )
+    groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
+
+    num_nuclei_in_crop = []
+    for nm, df in tqdm(groups, desc=f"Counting nuclei in crops: {dataset_name}"):
+        # get the number of nuclei in the crops at each timepoint
+        num_nuc_centroids = get_num_unique_values_in_bounds_from_df(
+            nuclei_coords_Y=np.stack(list(df["coords_Y"])),
+            nuclei_coords_X=np.stack(list(df["coords_X"])),
+            crop_bounds_Y=(df["start_y"], df["end_y"]),
+            crop_bounds_X=(df["start_x"], df["end_x"]),
+        )
+        num_nuclei_in_crop.append(pd.Series(num_nuc_centroids, index=df.index))
+
+    merged_feats_df["num_nuclei_in_crop"] = pd.concat(
+        num_nuclei_in_crop, axis=0, ignore_index=False
+    )
+    return merged_feats_df

@@ -78,7 +78,9 @@ def fit_pca(
     return pca
 
 
-def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) -> np.ndarray:
+def get_pca_loadings(
+    pca: PCA, scaled: bool = False, magnitude: bool = False, squared_norm: bool = False
+) -> np.ndarray:
     """
     Get the PCA loading matrix, which contains the contribution of each feature to each
     principal component.
@@ -94,6 +96,9 @@ def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) ->
         Default is False (i.e. return unscaled loadings).
     magnitude : bool, optional
         Whether to return the absolute values of the loadings. Default is False.
+    squared_norm : bool, optional
+        Whether to return the squared norm of the loadings. Default is False.
+        If True, the loading matrix will be squared element-wise.
 
     Returns
     -------
@@ -109,6 +114,9 @@ def get_pca_loadings(pca: PCA, scaled: bool = False, magnitude: bool = False) ->
     if magnitude:
         loading_matrix = np.abs(loading_matrix)
 
+    if squared_norm:
+        loading_matrix = loading_matrix**2
+
     return loading_matrix
 
 
@@ -116,6 +124,7 @@ def get_pca_loadings_as_df(
     pca: PCA,
     scaled: bool = False,
     magnitude: bool = False,
+    squared_norm: bool = False,
     df_format: Literal["long", "wide"] = "long",
 ) -> pd.DataFrame:
     """
@@ -144,7 +153,7 @@ def get_pca_loadings_as_df(
         The PCA loading matrix as a DataFrame.
 
     """
-    loading_matrix = get_pca_loadings(pca, scaled, magnitude)
+    loading_matrix = get_pca_loadings(pca, scaled, magnitude, squared_norm)
 
     num_features, num_pcs = loading_matrix.shape
     feat_col_names = [f"feat_{i}" for i in range(num_features)]
