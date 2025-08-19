@@ -130,13 +130,25 @@ class DatasetConfig:
     notes: str = ""
     """"Additional notes about dataset."""
 
-    exclude_timepoints: dict[str, dict[int, list[int]]] = None
-    """For each zarr position, manually annotated tps that should be dropped due to BF artifacts."""
+    exclude_timepoints: dict[str, dict[int, list[int]]] | None = None
+    """
+    For each zarr position, manually annotated tps that should be dropped due to BF artifacts.
+    Annotations include:
+    - transmitted_light_mircroscope_error
+    - transmitted_light_temporary_artifact
+    - air_bubbles
+    - misc
+    - xy_shift
+    """
 
-    exclude_positions: dict[str, list[int]] = None
-    """Manually annotated positions that should be excluded from analysis."""
+    exclude_positions: dict[str, list[int]] | None = None
+    """
+    Manually annotated positions that should be excluded from analysis.
+    Annoations include:
+    - dust_artifact
+    """
 
-    center_z_plane: dict[int, int] = None
+    center_z_plane: dict[int, int] | None = None
     """For each zarr position, the calculated and visually validated center Z-plane"""
 
     class Config(BaseConfig):
