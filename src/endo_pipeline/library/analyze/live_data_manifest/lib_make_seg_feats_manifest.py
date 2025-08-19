@@ -452,10 +452,11 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         "end_x",
         "DiffAE_img_bin_level_used",
     ]
-    num_nuclei_in_drop_df = add_num_nuclei_in_crop_column(
+    num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
         big_table[required_columns], use_precomputed=False, max_cores=None
     )
-    big_table = big_table.merge(num_nuclei_in_drop_df, on=required_columns, how="left")
+    crop_ids = ["dataset_name", "position", "image_index", "start_y", "end_y", "start_x", "end_x"]
+    big_table = big_table.merge(right=num_nuclei_in_crop_df, on=crop_ids, how="left")
 
     return big_table
 
@@ -641,10 +642,10 @@ def adjust_crop_bounds_to_0th_bin_level(
     # adjust the crop bounds to the 0th level of resolution
     sampling_factor = 2 ** merged_feats_df["DiffAE_img_bin_level_used"]
 
-    merged_feats_df["start_y"] = (merged_feats_df["start_y"] * sampling_factor).astype(int)
-    merged_feats_df["end_y"] = (merged_feats_df["end_y"] * sampling_factor).astype(int)
-    merged_feats_df["start_x"] = (merged_feats_df["start_x"] * sampling_factor).astype(int)
-    merged_feats_df["end_x"] = (merged_feats_df["end_x"] * sampling_factor).astype(int)
+    merged_feats_df["start_y_native"] = (merged_feats_df["start_y"] * sampling_factor).astype(int)
+    merged_feats_df["end_y_native"] = (merged_feats_df["end_y"] * sampling_factor).astype(int)
+    merged_feats_df["start_x_native"] = (merged_feats_df["start_x"] * sampling_factor).astype(int)
+    merged_feats_df["end_x_native"] = (merged_feats_df["end_x"] * sampling_factor).astype(int)
     return merged_feats_df
 
 
@@ -958,8 +959,8 @@ def add_num_nuclei_in_crop_column(
         num_nuc_centroids = get_num_unique_values_in_bounds_from_df(
             nuclei_coords_Y=np.stack(list(df["coords_Y"])),
             nuclei_coords_X=np.stack(list(df["coords_X"])),
-            crop_bounds_Y=(df["start_y"], df["end_y"]),
-            crop_bounds_X=(df["start_x"], df["end_x"]),
+            crop_bounds_Y=(df["start_y_native"], df["end_y_native"]),
+            crop_bounds_X=(df["start_x_native"], df["end_x_native"]),
         )
         num_nuclei_in_crop.append(pd.Series(num_nuc_centroids, index=df.index))
 

@@ -291,8 +291,8 @@ def preprocess_tracking_manifest_for_model_eval(
     # NOTE "resolution" below determines what resolution the images will
     # be loaded at, and currently the model loads at native resolution
     # and downsamples in the transforms; therefore this value must be 0
-    # The "start" and "end" column values determine the crop locations
-    # after downsampling, thus they were adjusted by downsample_factor
+    # The "start_" and "end_" columns above determine the crop locations
+    # after downsampling, thus they were adjusted by image_binning_level
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
@@ -319,8 +319,9 @@ def _centroid_to_bbox(df: pd.DataFrame, image_binning_level: int = 1) -> pd.Data
     return df
 
 
-def _bbox_in_image_bounds(df: pd.DataFrame, downsample_factor: int = 2) -> pd.Series:
+def _bbox_in_image_bounds(df: pd.DataFrame, image_binning_level: int = 1) -> pd.Series:
     # adjust the image size according to the desired downsample factor
+    downsample_factor = 2**image_binning_level
     df["image_size_x"] = df["image_size_x"] // downsample_factor
     df["image_size_y"] = df["image_size_y"] // downsample_factor
 
