@@ -135,9 +135,8 @@ class DatasetConfig:
     For each zarr position, manually annotated tps that should be dropped due to BF artifacts.
     Annotations include:
     - bf_scope_error
+    - gfp_scope_error
     - bf_temp_artifact
-    - air_bubbles
-    - misc
     - xy_shift
     """
 

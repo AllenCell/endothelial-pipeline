@@ -44,5 +44,7 @@ exclude_timepoints:
     3: [5, 8]
     4: [8, 240]
     5: []
+  gfp_scope_error:
+    0: [490]
 exclude_positions:
   dust_artifact: [4, 5]

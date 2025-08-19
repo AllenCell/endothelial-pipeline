@@ -37,7 +37,7 @@ center_z_plane:
   4: 10
   5: 10
 exclude_timepoints:
-  bf_temp_artifact:
+  bf_scope_error:
     0: [527]
     1: [527]
     2: [527]
