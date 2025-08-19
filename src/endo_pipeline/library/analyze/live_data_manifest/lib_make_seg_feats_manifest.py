@@ -17,6 +17,7 @@ from tqdm import tqdm
 from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.io.input import load_segmentation
+from src.endo_pipeline.library.model.apply_model import add_DiffAE_model_eval_crop_columns
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
@@ -430,6 +431,32 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
 
+    # add the DiffAE crop locations and binning level; these can be used to load
+    # a crop from the zarr files and compute the number of nuclei in that crop
+    big_table = add_DiffAE_model_eval_crop_columns(big_table)
+
+    # compute the number of nuclei found in a defined crop size
+    # take a subset using only the required columns to reduce memory usage
+    required_columns = [
+        "dataset_name",
+        "position",
+        "image_index",
+        "centroid_Y",
+        "centroid_X",
+        "image_size_y",
+        "image_size_x",
+        "crop_size",
+        "start_y",
+        "end_y",
+        "start_x",
+        "end_x",
+        "DiffAE_img_bin_level_used",
+    ]
+    num_nuclei_in_drop_df = add_num_nuclei_in_crop_column(
+        big_table[required_columns], use_precomputed=False, max_cores=None
+    )
+    big_table = big_table.merge(num_nuclei_in_drop_df, on=required_columns, how="left")
+
     return big_table
 
 
@@ -488,6 +515,10 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
 
     big_table["dalignment_dt_deg_rel_to_flow"] = (
         big_table["alignment_deg_rel_to_flow"].diff() / big_table["time_minutes"].diff()
+    )
+
+    big_table["cell_nuc_orientation_deg_rel_to_migration"] = (
+        big_table["nuc_pos_rel_cell_angle_deg"] - big_table["centroid_velocity_angle_deg"]
     )
 
     # add column for the number of tracks at a given
@@ -601,19 +632,19 @@ def adjust_crop_bounds_to_0th_bin_level(
     ----------
     merged_feats_df : pd.DataFrame
         The DataFrame containing crop bound columns in the form of
-        (starty, end_y, start_x, end_x) and a column "resolution_level"
+        (starty, end_y, start_x, end_x) and a column "DiffAE_img_bin_level_used"
     Returns
     -------
     pd.DataFrame
         The DataFrame with the crop bounds adjusted to the 0th level of resolution.
     """
     # adjust the crop bounds to the 0th level of resolution
-    resolution_level = merged_feats_df["resolution_level"] + 1
+    sampling_factor = 2 ** merged_feats_df["DiffAE_img_bin_level_used"]
 
-    merged_feats_df["start_y"] = (merged_feats_df["start_y"] * resolution_level).astype(int)
-    merged_feats_df["end_y"] = (merged_feats_df["end_y"] * resolution_level).astype(int)
-    merged_feats_df["start_x"] = (merged_feats_df["start_x"] * resolution_level).astype(int)
-    merged_feats_df["end_x"] = (merged_feats_df["end_x"] * resolution_level).astype(int)
+    merged_feats_df["start_y"] = (merged_feats_df["start_y"] * sampling_factor).astype(int)
+    merged_feats_df["end_y"] = (merged_feats_df["end_y"] * sampling_factor).astype(int)
+    merged_feats_df["start_x"] = (merged_feats_df["start_x"] * sampling_factor).astype(int)
+    merged_feats_df["end_x"] = (merged_feats_df["end_x"] * sampling_factor).astype(int)
     return merged_feats_df
 
 
@@ -788,10 +819,10 @@ def compute_nuclei_centroids(
         position=position,
         timepoint=timeframe,
     )
-    nuc_seg = load_segmentation(seg_location)
+    nuc_seg = load_segmentation(seg_location, squeezed=False)
 
     # get nuclei segmentation properties and dimension order of those properties
-    props = regionprops(nuc_seg)
+    props = regionprops(nuc_seg.squeeze())
     dim_shapes = dict(zip(dim_order, nuc_seg.shape))
     dim_order_squeezed = "".join([d for d in dim_order if dim_shapes[d] > 1])
 
@@ -831,6 +862,7 @@ def compute_nuclei_centroids_multiproc(args: tuple[str, int, int]) -> dict:
 def add_num_nuclei_in_crop_column(
     merged_feats_df: pd.DataFrame,
     use_precomputed: bool = False,
+    max_cores: int | None = None,
 ) -> pd.DataFrame:
     """
     Add the number of nuclei in each crop to the merged features DataFrame.
@@ -887,17 +919,25 @@ def add_num_nuclei_in_crop_column(
     # (this will take about 60 minutes divided by n_cores used)
     else:
         # compute the nuclei prediction centroids
-        max_cores = None
         groups = merged_feats_df.groupby(["dataset_name", "position", "image_index"])
         args = groups.groups.keys()
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
-            results = list(
-                tqdm(
-                    executor.map(compute_nuclei_centroids_multiproc, args),
-                    total=len(groups),
-                    desc=f"Computing nuclei centroids: {dataset_name}",
+        if max_cores == 1:
+            results = [
+                compute_nuclei_centroids(dataset_name, position, timeframe)  # type:ignore[has-type]
+                for dataset_name, position, timeframe in tqdm(
+                    args,
+                    desc=f"Computing nuclei centroids (SP): {dataset_name}",
                 )
-            )
+            ]
+        else:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_cores) as executor:
+                results = list(
+                    tqdm(
+                        executor.map(compute_nuclei_centroids_multiproc, args),
+                        total=len(groups),
+                        desc=f"Computing nuclei centroids (MP): {dataset_name}",
+                    )
+                )
         # convert results to DataFrame
         nuc_centroid_indices = pd.DataFrame(results)
         # save results for so this step doesn't have to be rerun each time
@@ -926,4 +966,7 @@ def add_num_nuclei_in_crop_column(
     merged_feats_df["num_nuclei_in_crop"] = pd.concat(
         num_nuclei_in_crop, axis=0, ignore_index=False
     )
+    merged_feats_df.drop(
+        columns=["coords_Y", "coords_X"], inplace=True
+    )  # drop the coordinates since they are not needed anymore
     return merged_feats_df

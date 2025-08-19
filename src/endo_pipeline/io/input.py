@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 
+from src.endo_pipeline.library.process.general_image_preprocessing import get_default_dim_order
 from src.endo_pipeline.manifests import DataframeLocation, SegmentationLocation
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_segmentation_from_path(path: Path) -> np.ndarray:
+def load_segmentation_from_path(path: Path, squeezed: bool = True) -> np.ndarray:
     """
     Load segmentation from path.
 
@@ -90,6 +91,7 @@ def load_segmentation_from_path(path: Path) -> np.ndarray:
     :
         File loaded as dask array.
     """
+    dim_order = get_default_dim_order()
 
     if not path.exists():
         logger.error("Path [ %s ] could not be loaded", path)
@@ -97,13 +99,14 @@ def load_segmentation_from_path(path: Path) -> np.ndarray:
 
     if path.suffixes == [".ome", ".tiff"]:
         logger.info("Loading path [ %s ] as OME TIFF file", path)
-        return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
+        img = BioImage(path).get_image_dask_data(dim_order)
+        return img.compute().squeeze() if squeezed else img.compute()
 
     logger.error("Path [ %s ] cannot be loaded as segmentation", path)
     raise ValueError(f"Invalid segmentation file format '{path.suffix}'")
 
 
-def load_segmentation(location: SegmentationLocation) -> np.ndarray:
+def load_segmentation(location: SegmentationLocation, squeezed: bool = True) -> np.ndarray:
     """
     Load segmentation from location.
 
@@ -114,7 +117,7 @@ def load_segmentation(location: SegmentationLocation) -> np.ndarray:
     """
 
     if location.path is not None:
-        return load_segmentation_from_path(location.path)
+        return load_segmentation_from_path(location.path, squeezed)
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load segmentation; no available locations.")

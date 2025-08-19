@@ -26,9 +26,6 @@ from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils imp
 from src.endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    add_num_nuclei_in_crop_column,
-)
 from src.endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 
 
@@ -493,9 +490,6 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df, _, _ = get_preprocessed_manifests_and_km_bounds(
             dataset_name, datasets_for_bounds=dataset_name_list
         )
-
-        # add the number of nuclei columns
-        merged_feats_df = add_num_nuclei_in_crop_column(merged_feats_df, use_precomputed=True)
 
         # check that the chosen measurement column names
         # are actually in the DataFrame

@@ -195,10 +195,54 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
+def add_DiffAE_model_eval_crop_columns(
+    df: pd.DataFrame, image_binning_level: int = 1
+) -> pd.DataFrame:
+    """
+    Add columns to the dataframe for DiffAE model evaluation crops.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe to operate on. Requires the following columns:
+        - centroid_X: x-coordinate of the centroid
+        - centroid_Y: y-coordinate of the centroid
+        - crop_size: size of the crop (assumed to be square)
+        - image_size_x: width of the image
+        - image_size_y: height of the image
+    image_binning_level: level of binning to use for the crops (default is 1)
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with additional columns for DiffAE model evaluation crops.
+        The columns added are:
+        - start_x: x-coordinate of the top-left corner of the crop
+        - start_y: y-coordinate of the top-left corner of the crop
+        - end_x: x-coordinate of the bottom-right corner of the crop
+        - end_y: y-coordinate of the bottom-right corner of the crop
+        - bbox_is_in_bounds: boolean indicating if the bounding box is within image bounds
+
+    """
+    # convert centroids to bounding boxes and downsample
+    # by half to match currently used model binning level
+    # this is currently always 1
+    df = _centroid_to_bbox(df, image_binning_level)
+
+    # add a column indicating if the size of the bounding box does
+    # not match the downsampled crop size (because the model expects
+    # identically sized square crops)
+    # check if bounding boxes fit in image bounds without being clipped
+    bbox_size_is_correct = _bbox_in_image_bounds(df, image_binning_level)
+    df["bbox_is_in_bounds"] = bbox_size_is_correct
+    df["DiffAE_img_bin_level_used"] = image_binning_level
+    return df
+
+
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
     save_dir: Path,
-    downsample_factor: int = 2,
+    image_binning_level: int = 1,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
@@ -207,7 +251,7 @@ def preprocess_tracking_manifest_for_model_eval(
     df = load_dataframe(location)
 
     # keep only rows that were not filtered out by filter_global
-    df = df[~df["filter_global"]]
+    df = df[df["bbox_is_in_bounds"]]
 
     # filter the dataframe to include only the relevant columns
     colums_to_keep = [
@@ -223,18 +267,11 @@ def preprocess_tracking_manifest_for_model_eval(
     ]
     df = df[colums_to_keep]
 
-    # convert centroids to bounding boxes and downsample
-    # by half to match currently used model resolution
-    # this is currently always 2
-    df = _centroid_to_bbox(df, downsample_factor)
+    # add the crop columns
+    df = add_DiffAE_model_eval_crop_columns(df, image_binning_level)
 
-    # filter the dataframe to exclude anything where the size of
-    # the bounding box does not match the downsampled crop size
-    # (because the model expects identically sized square crops)
-    # check if bounding boxes fit in image bounds without being clipped
-    bbox_size_is_correct = _bbox_in_image_bounds(df, downsample_factor)
     # filter the dataframe in-place to remove clipped bounding boxess
-    df = df[bbox_size_is_correct]
+    df = df[~df["bbox_size_is_clipped"]]
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -267,13 +304,14 @@ def preprocess_tracking_manifest_for_model_eval(
     return save_path
 
 
-def _centroid_to_bbox(df: pd.DataFrame, downsample_factor: int = 2) -> pd.DataFrame:
+def _centroid_to_bbox(df: pd.DataFrame, image_binning_level: int = 1) -> pd.DataFrame:
     """
     Convert centroids to bounding boxes.
 
     Note: coordinates are downsampled by half (downsample_factor = 2)
     to match current model resolution.
     """
+    downsample_factor = 2**image_binning_level
     df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / downsample_factor).astype(int)
     df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / downsample_factor).astype(int)
     df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)

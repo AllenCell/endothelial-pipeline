@@ -66,6 +66,7 @@ def plot_seg_manifest_data(
         "centroid_velocity_orientation_deg",
         "cell_nuc_dist",
         "cell_nuc_orientation_deg",
+        "cell_nuc_orientation_deg_rel_to_migration",
     ]
     feats_to_plot_y_lineplot_only = [
         "num_nuclei",
