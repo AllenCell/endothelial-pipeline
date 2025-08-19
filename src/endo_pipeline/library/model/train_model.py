@@ -489,13 +489,19 @@ def get_dataset_names_used_for_training(
     train_dataframe_path: Path, val_dataframe_path: Path, dataset_collection_name: str
 ) -> list[str]:
     """
-    Pull list of dataset names used for model training
-    from train.csv and val.csv files that are passed
-    into the model training script.
+    Pull list of dataset names used for model training from training
+    and validation image loading dataframes.
     """
     # load train.csv and val.csv files as dataframes
-    train_df = pd.read_csv(train_dataframe_path)
-    val_df = pd.read_csv(val_dataframe_path)
+    if train_dataframe_path.suffix == ".parquet":
+        train_df = pd.read_parquet(train_dataframe_path)
+    else:
+        train_df = pd.read_csv(train_dataframe_path)
+
+    if val_dataframe_path.suffix == ".parquet":
+        val_df = pd.read_parquet(val_dataframe_path)
+    else:
+        val_df = pd.read_csv(val_dataframe_path)
 
     # get date part of dataset name from zarr path
     # note: this might be something that
