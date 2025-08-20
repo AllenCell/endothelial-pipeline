@@ -32,6 +32,15 @@ def get_available_dataset_names() -> list[str]:
     return dataset_names
 
 
+def get_available_dataset_collection_names() -> list[str]:
+    """Get list of available dataset collection names."""
+
+    collection_names = [path.stem for path in get_dataset_collection_config_dir().iterdir()]
+    logger.info("Available dataset collections [ %s ]", " | ".join(collection_names))
+
+    return collection_names
+
+
 def validate_all_dataset_configs() -> None:
     """Validate all dataset configs against defined schema."""
 
@@ -173,8 +182,15 @@ def save_dataset_collection_config(collection: DatasetCollectionConfig) -> None:
         raise
 
 
-def get_datasets_in_collection(collection_name: str) -> list[str]:
+def get_datasets_in_collection(collection_name: str, subset: list[str] | None = None) -> list[str]:
     """Get list of dataset names in given collection."""
 
     collection = load_dataset_collection_config(collection_name)
-    return collection.datasets
+    datasets = collection.datasets
+
+    # Optional filtering of dataset names based on provided subset. Only dataset
+    # names in both the collection and the subset are returned.
+    if subset is not None:
+        datasets = [name for name in datasets if name in subset]
+
+    return datasets

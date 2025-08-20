@@ -1,16 +1,15 @@
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Literal
 
 import cv2
-import fire
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
-from cyto_dl.api import CytoDLModel
 from monai.inferers import SlidingWindowSplitter
 from skimage import transform as tf
 from skimage.exposure import rescale_intensity
@@ -18,18 +17,11 @@ from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
 from tqdm import tqdm, trange
 
-from cellsmap.util.manifest_io import load_pca_model
-from cellsmap.util.manifest_preprocessing import save_file_to_fms
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import add_model_manifest, load_model_config, save_model_config
-from src.endo_pipeline.configs.dataset_io import get_zarr_path
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
-from src.endo_pipeline.library.model.apply_model import (
-    generate_overrides_for_model_eval,
-    get_cytodl_commit_hash,
+from src.endo_pipeline.configs import (
+    get_available_zarr_files,
+    get_datasets_in_collection,
+    load_dataset_config,
 )
-from src.endo_pipeline.library.model.mlflow_utils import download_model
 from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
@@ -38,7 +30,7 @@ BF_CHANNEL = 1
 
 def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str) -> None:
     """
-    Visualizes the detected keypoints on the image.
+    Visualize the detected keypoints on the image.
 
     Parameters
     ----------
@@ -46,6 +38,8 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
         The input image.
     keypoints : np.ndarray
         The coordinates of the detected keypoints.
+    savepath : str
+        The path where the visualization will be saved.
     """
     import matplotlib.pyplot as plt
 
@@ -58,11 +52,14 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
 
 def sift_preprocess(img: np.ndarray) -> np.ndarray:
     """
-    Preprocess the image for SIFT feature detection with percentile clipping and 0-1 normalization
+    Preprocess the image for SIFT feature detection with percentile clipping
+    and 0-1 normalization.
+
     Parameters
     ----------
     img : np.ndarray
         The input image.
+
     Returns
     -------
     img : np.ndarray
@@ -77,7 +74,8 @@ def template_matching(
     image: np.ndarray, template: np.ndarray, scale: int = 3
 ) -> tuple[np.ndarray, float]:
     """
-    Register a small moving image to a larger fixed image using a multi-scale sliding window correlation. NOTE that the moving image is assumed to be smaller than the fixed image.
+    Register a small moving image to a larger fixed image using a multi-scale sliding
+    window correlation. Note that the moving image is assumed to be smaller than the fixed image.
     """
     # Resize image to current scale
     downsampled_image = block_reduce(image, (scale, scale), np.max)
@@ -92,7 +90,8 @@ def template_matching(
         or downsampled_image.shape[1] < downsampled_template.shape[1]
     ):
         raise ValueError(
-            f"Fixed image is smaller than moving image. Resized fixed shape: {downsampled_image.shape}, moving shape: {downsampled_template.shape}"
+            "Fixed image is smaller than moving image. Resized fixed shape:",
+            f"{downsampled_image.shape}, moving shape: {downsampled_template.shape}",
         )
     # Perform template matching
     result = cv2.matchTemplate(downsampled_image, downsampled_template, cv2.TM_CCOEFF_NORMED)
@@ -109,7 +108,8 @@ def template_registration(
     template_shape: None | Sequence[int] = None,
 ) -> tf.SimilarityTransform:
     """
-    Registers a moving image to a fixed image using template matching
+    Register a moving image to a fixed image using template matching.
+
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -119,7 +119,8 @@ def template_registration(
     scale : int
         The scale factor for downsampling the images before registration.
     template_shape : tuple
-        The shape of the template used for registration. If None, the shape of the moving image will be used.
+        The shape of the template used for registration.
+        If None, the shape of the moving image will be used.
     """
     template_shape = template_shape or image_moving.shape[-2:]
     splitter = SlidingWindowSplitter(patch_size=template_shape, overlap=0.1, pad_mode=None)
@@ -143,7 +144,8 @@ def _get_sift(
     image: np.ndarray, upsampling: int = 1, sigma_min: int = 2
 ) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
     """
-    Detects SIFT keypoints and descriptors in the given image.
+    Detect SIFT keypoints and descriptors in the given image.
+
     Parameters
     ----------
     image : np.ndarray
@@ -152,6 +154,7 @@ def _get_sift(
         The number of times to upsample the image before detecting keypoints.
     sigma_min : int
         The minimum standard deviation for Gaussian smoothing.
+
     Returns
     -------
     keypoints : np.ndarray
@@ -173,7 +176,9 @@ def sift_registration(
     visualize_keypoints_dir: str | None = None,
 ) -> tf.SimilarityTransform | None:
     """
-    Registers a moving image to a fixed image using SIFT keypoint matching and RANSAC. Returns a similarity transform if successful, otherwise None.
+    Register a moving image to a fixed image using SIFT keypoint matching and RANSAC.
+    Return a similarity transform if successful, otherwise None.
+
     Parameters
     ----------
     image_fixed : np.ndarray
@@ -186,8 +191,8 @@ def sift_registration(
         Max distance for RANSAC inliers. Adjust based on image resolution/expected error.
     max_trials : int
         Maximum RANSAC iterations.
-    visualize_keypoints : bool
-        Whether to visualize the detected keypoints.
+    visualize_keypoints_dir : bool
+        Directory to save visualizations of keypoints. If None, no visualizations are saved.
     """
     image_fixed = sift_preprocess(image_fixed)
     image_moving = sift_preprocess(image_moving)
@@ -223,7 +228,8 @@ def sift_registration(
 
         if model_robust is None or sum(inliers) < 1:
             print(
-                f"RANSAC failed to find a robust model. Inliers: {sum(inliers) if inliers is not None else 0}"
+                "RANSAC failed to find a robust model.",
+                f"Inliers: {sum(inliers) if inliers is not None else 0}",
             )
             return None
 
@@ -244,10 +250,21 @@ def warp(
     model: tf.ProjectiveTransform, image_fixed: np.ndarray, image_moving: np.ndarray
 ) -> np.ndarray:
     """
-    Warps the moving image to align with the fixed image using the provided transformation model.
+    Warp the moving image to align with the fixed image using the provided transformation model.
+
     Parameters
     ----------
-    model (skimage.transform.SimilarityTransform): The transformation model.
+    model
+        The transformation model.
+    image_fixed
+        The fixed image to which the moving image will be aligned.
+    image_moving
+        The moving image to be warped.
+
+    Returns
+    -------
+    np.ndarray
+        The warped moving image aligned to the fixed image.
     """
     print("Warping image...")
     warp_transform = partial(
@@ -270,14 +287,19 @@ def warp(
 
 def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[float]) -> np.ndarray:
     """
-    Resizes the moving image to match the fixed image dimensions.
+    Resize the moving image to match the fixed image dimensions.
 
-    Args:
-        image_moving (np.ndarray): The moving image to be resized.
-        resize_factor (float): The factor by which to resize the moving image.
+    Parameters
+    ----------
+    image_moving
+        The moving image to be resized.
+    resize_factor
+        The factor by which to resize the moving image.
 
-    Returns:
-        np.ndarray: Resized moving image.
+    Returns
+    -------
+    np.ndarray
+        Resized moving image.
     """
     if np.all(resize_factor == 1.0):
         return image_moving
@@ -302,9 +324,7 @@ def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, n
 
 
 def overlay_normalize(img: np.ndarray) -> np.ndarray:
-    """
-    Project and normalize the image for overlay visualization.
-    """
+    """Project and normalize the image for overlay visualization."""
     proj = img.max(0)
     proj = np.clip(proj, np.percentile(proj, 10), np.percentile(proj, 99))
     proj = rescale_intensity(proj, out_range="uint8")
@@ -312,9 +332,7 @@ def overlay_normalize(img: np.ndarray) -> np.ndarray:
 
 
 def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) -> None:
-    """
-    Save overlay of aligned moving and fixed fluorescent images.
-    """
+    """Save overlay of aligned moving and fixed fluorescent images."""
     moving_proj = overlay_normalize(moving)
     fixed_proj = overlay_normalize(fixed)
     overlay = np.stack([moving_proj, fixed_proj, fixed_proj], axis=-1)
@@ -322,22 +340,6 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
     plt.axis("off")
     plt.savefig(savepath, dpi=300)
     plt.close()
-
-
-def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Remove NaN values present in the XY border of either of the passed images. It is assumed that
-    the XY locations of the NaN values are the same across all Z slices if the images are 3D.
-    """
-    slices_to_check = [crop1[0], crop2[0]] if len(crop1.shape) == 3 else [crop1, crop2]
-    valid_mask = ~np.isnan(np.stack(slices_to_check, axis=0)).any(axis=0)
-    overlap = np.where(valid_mask)
-    y_start, y_end = overlap[0].min(), overlap[0].max()
-    x_start, x_end = overlap[1].min(), overlap[1].max()
-    return (
-        crop1[..., y_start:y_end, x_start:x_end],
-        crop2[..., y_start:y_end, x_start:x_end],
-    )
 
 
 def align(
@@ -349,26 +351,29 @@ def align(
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Aligns a moving image to a fixed image using blob detection and registration.
+    Align a moving image to a fixed image using blob detection and registration.
 
     Parameters
     ----------
-    moving_image_path (str):
+    moving_image_path
         Path to the moving image.
-    fixed_image_path (str):
+    fixed_image_path
         Path to the fixed image.
-    savedir (Path):
+    savedir
         Directory to save the aligned images.
-    alignment_method (str):
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
-    align_fluo (bool):
+    alignment_method
+        The method used for alignment. Options are "sift" or "template". "sift" is
+        recommended for the 20x pre/post fixation datasets, while "template" is
+        recommended for the 20x/40x datasets.
+    align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    **alignment_kwargs (Dict[str, Any]):
+    **alignment_kwargs
         Additional arguments for the alignment function.
 
-    Returns:
-    --------
-    pd.DataFrame: DataFrame containing the paths to the aligned images.
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the paths to the aligned images.
     """
     print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
     image_fixed = BioImage(fixed_image_path)
@@ -464,31 +469,32 @@ def align_all_positions(
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Aligns all positions of the moving dataset to the fixed dataset.
+    Align all positions of the moving dataset to the fixed dataset.
 
     Parameters
     ----------
-    fixed_dataset_name : str
+    fixed_dataset_name
         The name of the fixed dataset.
-    moving_dataset_name : str
+    moving_dataset_name
         The name of the moving dataset.
-    savedir : Path
+    savedir
         The directory where the aligned images will be saved.
-    alignment_method : str
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
-    align_fluo : bool
+    alignment_method
+        The method used for alignment. Options are "sift" or "template". "sift" is
+        recommended for the 20x pre/post fixation datasets, while "template" is
+        recommended for the 20x/40x datasets.
+    align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    **alignment_kwargs : Dict[str, Any]
+    **alignment_kwargs
         Additional arguments for the alignment function.
 
     Returns
     -------
-    pd.DataFrame
+    data
         DataFrame containing the paths to the aligned images.
     """
-    savedir.mkdir(parents=True, exist_ok=True)
-    moving_zarr_files = sorted(get_zarr_path(moving_dataset_name).values())
-    fixed_zarr_files = sorted(get_zarr_path(fixed_dataset_name).values())
+    moving_zarr_files = sorted(get_available_zarr_files(load_dataset_config(moving_dataset_name)))
+    fixed_zarr_files = sorted(get_available_zarr_files(load_dataset_config(fixed_dataset_name)))
     data = pd.concat(
         [
             align(
@@ -505,257 +511,112 @@ def align_all_positions(
     return data
 
 
-def plot_paired_features(
-    fixed_features: pd.DataFrame,
-    fixed_name: str,
-    moving_features: pd.DataFrame,
-    moving_name: str,
+def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
+    return savedir / f"{str(Path(row.fixed).stem).replace('_fixed', '')}.ome.tiff"
+
+
+def _get_paired_dataset_dict(
+    dataset_pair_type: Literal["live_fixed", "20X_40X"],
+) -> dict[str, list[str]]:
+
+    # Get the list of datasets of the specified pair type.
+    dataset_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
+
+    # Set dataset name flags for setting
+    # "fixed" and "moving" images for alignment.
+    if dataset_pair_type == "live_fixed":
+        # for live/fixed pairs, the "fixed" image
+        # for alignment is the pre-fixation (live) image
+        # and the "moving" image is the post-fixation (fixed) image.
+        fixed_flag = "PreFixation"
+        moving_flag = "PostFixation"
+    else:
+        # for 20x/40x pairs, the "fixed" image is the 20x image
+        # and the "moving" image is the 40x image.
+        fixed_flag = "20X"
+        moving_flag = "40X"
+    dataset_pairs = {
+        "fixed": [dataset_name for dataset_name in dataset_list if fixed_flag in dataset_name],
+        "moving": [dataset_name for dataset_name in dataset_list if moving_flag in dataset_name],
+    }
+    return dataset_pairs
+
+
+def align_and_save_paired_images(
+    dataset_pair_type: Literal["live_fixed", "20x_40x"],
     save_path: Path,
-    pca_dir: None | str | Path,
-) -> None:
+) -> pd.DataFrame:
     """
-    Plot the PCA features of the fixed and moving images
-    """
-    pca = load_pca_model(str(pca_dir)) if pca_dir else fit_pca()
-
-    fixed_features = project_manifest_to_pcs(fixed_features, pca, overwrite_feature_columns=False)
-    moving_features = project_manifest_to_pcs(moving_features, pca, overwrite_feature_columns=False)
-
-    n_pcs = len([c for c in fixed_features.columns if c.startswith("pc")])
-
-    fig, ax = plt.subplots(1, n_pcs, figsize=(n_pcs * 4, 4))
-    for i in range(n_pcs):
-        r = np.corrcoef(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"])[0, 1]
-        ax[i].scatter(fixed_features[f"pc{i+1}"], moving_features[f"pc{i+1}"], alpha=0.1, s=3)
-        ax[i].set_xlabel(fixed_name)
-        ax[i].set_ylabel(moving_name)
-        ax[i].set_title(f"PC{i+1} r^2: {r**2:.2f}", fontsize=6)
-        min_ = min(fixed_features[f"pc{i+1}"].min(), moving_features[f"pc{i+1}"].min())
-        max_ = max(fixed_features[f"pc{i+1}"].max(), moving_features[f"pc{i+1}"].max())
-        ax[i].plot([min_, max_], [min_, max_], "r--")
-        ax[i].set_xlim(min_, max_)
-        ax[i].set_ylim(min_, max_)
-        ax[i].set_aspect("equal", adjustable="box")
-    fig.tight_layout()
-    fig.savefig(save_path / "paired_features.png", dpi=300)
-    fig.clf()
-    plt.close(fig)
-
-
-def add_fmsid_to_model_config(
-    prediction_path: str, dataset_name: str, model_name: str, mlflow_id: str, model_path: Path
-) -> None:
-    """
-    Upload path to FMS and add the FMS ID to the dataset config file for the given dataset.
+    Align and saves all paired images from the specified dataset pair type.
 
     Parameters
     ----------
-    prediction_path : str
-        Path to the prediction file.
-    dataset_name : str
-        Name of the dataset to update in config
-    mlflow_id : str
-        MLflow ID of the model used for prediction.
-    model_path : Path
-        Path to the model directory. Used for extracting the commit hash.
+    dataset_pair_type
+        The type of dataset pair to align. Options are "live_fixed" for live/fixed
+        pairs and "20x_40x" for 20x/40x pairs.
+    save_path
+        The directory where the aligned images will be saved.
+
+    Returns
+    -------
+    df
+        DataFrame containing the paths to the aligned images.
     """
-    file_id = save_file_to_fms(
-        prediction_path,
-        dataset_name,
-        get_cytodl_commit_hash(mlflow_id, model_path),
-        misc_notes="",
-        mlflow_run_id=mlflow_id,
-    )
 
-    # add new manifest to model config
-    model_config = add_model_manifest(
-        load_model_config(model_name),
-        dataset_name,
-        file_id,
-    )
+    dataset_pairs = _get_paired_dataset_dict(dataset_pair_type)
 
-    # save the updated model config
-    save_model_config(model_config)
+    # Note that the "fixed" key refers to the image being used as
+    # the reference image for alignment, and the "moving" key
+    # refers to the image being aligned to the fixed image.
+    # That is, "fixed" here does not refer to the image being fixed.
+    fixed_datasets = dataset_pairs["fixed"]
+    moving_datasets = dataset_pairs["moving"]
+
+    alignment_method = "sift" if dataset_pair_type == "live_fixed" else "template"
+
+    df = []
+    for fixed, moving in zip(fixed_datasets, moving_datasets, strict=False):
+        df.append(
+            align_all_positions(
+                fixed,
+                moving,
+                save_path,
+                alignment_method=alignment_method,
+            )
+        )
+    df = pd.concat(df, ignore_index=True)
+    df = df.dropna(subset=["fixed", "moving"])
+    print(f"Found {len(df)} pairs of images to save")
+    return df
 
 
-def compare_paired_features(
-    model_name: str,
-    fixed_dataset_name: str,
-    moving_dataset_name: str,
-    alignment_method: str,
-    pca_dir: str | None,
-    align_fluo: bool = True,
-    align_only: bool = False,
-    overrides: dict[str, Any] = {},
-    **alignment_kwargs: dict[str, Any],
-) -> None:
+def concat_and_save_aligned_image_pairs(row: tuple[Any, ...], savedir: Path) -> Path:
     """
-    Compare the features of two paired datasets using a trained model through registration, crop extraction, and PCA
+    Concatenate the aligned fixed and moving images into a single OME-TIFF file
+    and save it to the specified directory.
 
     Parameters
     ----------
-    model_name : str
-        The name of the trained model.
-    fixed_dataset_name : str
-        Dataset name to use as the fixed images (i.e. the reference against which the moving images are registered)
-    moving_dataset_name : str
-        Dataset name to use as the moving images (i.e. the images to be registered to the fixed images)
-    alignment_method : str
-        The method used for alignment. Options are "sift" or "template". "sift" is recommended for the 20x pre/post fixation datasets, while "template" is recommended for the 20x/40x datasets.
-    align_fluo : bool
-        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
-    pca_dir : str | None
-        Path to the PCA model directory. If None, PCA will be calculated from existing features
-    overrides : Union[str, Dict], optional
-        Overrides for the model configuration, by default {}. One relevant override is `model.spatial_inferer.splitter.overlap`, which determines the percent overlap of patches extracted during sliding window inference and can increase the number of samples used for the dataset comparison.
-    **alignment_kwargs : Dict[str, Any]
-        Additional arguments for the alignment function.
+    row
+        A row from the DataFrame containing paths to the fixed and moving images.
+        Generated by the `itertuples()` method of a DataFrame.
+    savedir
+        The directory where the concatenated image will be saved.
+
+    Returns
+    -------
+    save_path
+        The path to the saved concatenated image.
     """
-    mlflow_id = load_model_config(model_name).mlflow_run_id
-    model_path = Path(get_output_path(f"models/{model_name}"))
-    path_dict = download_model(mlflow_id, model_path)
+    save_path = _get_concat_path(row, savedir)
+    if save_path.exists():
+        print(f"Skipping {save_path} as it already exists.")
+        return save_path
+    # take standard deviation projection here to allow concatenation with different z-axis sizes
+    fixed = BioImage(row.fixed).data.squeeze().max(0)
+    moving = BioImage(row.moving).data.squeeze().max(0)
 
-    save_path = model_path / f"{fixed_dataset_name}_vs_{moving_dataset_name}"
-    save_path.mkdir(parents=True, exist_ok=True)
-    data_save_path = save_path / f"aligned_{fixed_dataset_name}_vs_{moving_dataset_name}.csv"
+    out = np.stack([fixed, moving], axis=0)[:, None]
 
-    if not data_save_path.exists():
-        data = align_all_positions(
-            fixed_dataset_name,
-            moving_dataset_name,
-            save_path,
-            alignment_method,
-            align_fluo,
-            **alignment_kwargs,
-        )
-        # channel used for inference is in the aligned images, which are single channel
-        data["channel"] = 0
-        data.to_csv(data_save_path, index=False)
-
-    if align_only:
-        print(
-            f"Aligned images saved to {save_path}. Skipping feature extraction and PCA projection."
-        )
-        return
-
-    # apply on fixed images
-    fixed_overrides = overrides.copy()  # copy to avoid overriding the original
-    fixed_overrides.update({"data.predict_dataloaders.dataset.img_path_column": "fixed"})
-    fixed_overrides = generate_overrides_for_model_eval(
-        fixed_overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=fixed_dataset_name,
-        model_name=model_name,
-    )
-
-    # load model
-    model = CytoDLModel()
-    model.load_config_from_file(path_dict["config_path"])
-    model.override_config(fixed_overrides)
-    model.predict()
-
-    # apply on moving images
-    overrides.update({"data.predict_dataloaders.dataset.img_path_column": "moving"})
-    overrides = generate_overrides_for_model_eval(
-        overrides,
-        save_path=str(save_path),
-        data_path=str(data_save_path),
-        ckpt_path=path_dict["checkpoint_path"],
-        dataset_name=moving_dataset_name,
-        model_name=model_name,
-    )
-    model.override_config(overrides)
-    model.predict()
-
-    # compare paired features
-    fixed_features_path = str(
-        save_path / f"predict_{fixed_dataset_name}_{model_name}_features.parquet"
-    )
-    add_fmsid_to_model_config(
-        fixed_features_path,
-        fixed_dataset_name,
-        model_name,
-        mlflow_id,
-        model_path,
-    )
-    moving_features_path = str(
-        save_path / f"predict_{moving_dataset_name}_{model_name}_features.parquet"
-    )
-    add_fmsid_to_config(
-        moving_features_path,
-        moving_dataset_name,
-        mlflow_id,
-        model_path,
-    )
-
-    # load features for comparison
-    fixed_features = pd.read_parquet(fixed_features_path)
-    moving_features = pd.read_parquet(moving_features_path)
-
-    plot_paired_features(
-        fixed_features,
-        fixed_dataset_name,
-        moving_features,
-        moving_dataset_name,
-        save_path,
-        pca_dir,
-    )
-
-
-def main(
-    pca_dir: str | None = None,
-    fixed_finetuned_model_name: str = "diffae_finetuned_for_fixed",
-    model_name: str = "diffae_04_10",
-    align_only: bool = False,
-) -> None:
-    """ "
-    Main function to compare paired features of fixed and moving images using a trained model.
-    Parameters
-    ----------"
-    pca_dir : str | None
-        Path to the PCA model directory. If None, PCA will be calculated from existing features"
-    """
-    overrides = {"model.spatial_inferer.splitter.overlap": 0.9}
-
-    datasets_live_fixed = {
-        "fixed": [
-            "20250214_pairedPreFixation",
-        ],
-        "moving": [
-            "20250214_pairedPostFixation",
-        ],
-    }
-    for fixed, moving in zip(
-        datasets_live_fixed["fixed"], datasets_live_fixed["moving"], strict=True
-    ):
-        compare_paired_features(
-            # use model finetuned for fixation
-            fixed_finetuned_model_name,
-            fixed,
-            moving,
-            alignment_method="sift",
-            pca_dir=pca_dir,
-            overrides=overrides,
-            align_only=align_only,
-        )
-
-    datasets_20x_40x = {
-        "fixed": ["20250110_paired20X", "20250227_paired20X", "20250228_paired20X"],
-        "moving": ["20250110_paired40X", "20250227_paired40X", "20250228_paired40X"],
-    }
-    for fixed, moving in zip(datasets_20x_40x["fixed"], datasets_20x_40x["moving"], strict=True):
-        compare_paired_features(
-            model_name,
-            fixed,
-            moving,
-            alignment_method="template",
-            pca_dir=pca_dir,
-            overrides=overrides,
-            align_only=align_only,
-        )
-
-
-if __name__ == "__main__":
-    fire.Fire(main)
+    OmeTiffWriter.save(uri=save_path, data=out)
+    return save_path

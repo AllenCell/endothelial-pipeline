@@ -8,11 +8,9 @@ from tqdm import tqdm
 
 from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
-    get_live_segmentation_features_manifest,
     ipython_cli_flexecute,
-    load_dataset_config,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path
+from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
 from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
@@ -23,6 +21,7 @@ from src.endo_pipeline.library.visualize.seg_features.general_standard_plots imp
     mark_parallel,
     mark_perpendicular,
 )
+from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -143,20 +142,21 @@ def process_dataset(dataset_name: str, out_dir: Path) -> None:
     """
 
     # load the segmentation features table
-    segprops_manifest = get_live_segmentation_features_manifest([dataset_name])
+    segprops_manifest = load_dataframe_manifest("live_merged_seg_features")
+    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
+    segprops_dataframe = load_dataframe(segprops_location)
 
     # get the FMS ID for the live merged segmentation features
     # and add it to the log
-    fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
-    logger.info(f"Dataset {dataset_name} FMS ID: {fmsid}")
+    logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
 
     # apply the data filter
-    segprops_manifest = segprops_manifest[~segprops_manifest["filter_global"]]
+    segprops_dataframe = segprops_dataframe[~segprops_dataframe["filter_global"]]
 
     # iterate over each position in each dataset
     for (dataset_nm, pos), df_group in tqdm(
-        segprops_manifest.groupby(["dataset_name", "position"]),
-        total=len(segprops_manifest.groupby(["dataset_name", "position"])),
+        segprops_dataframe.groupby(["dataset_name", "position"]),
+        total=len(segprops_dataframe.groupby(["dataset_name", "position"])),
         desc=f"Plotting features: {dataset_name}",
         unit="position",
     ):

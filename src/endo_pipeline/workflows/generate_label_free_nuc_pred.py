@@ -2,13 +2,14 @@ import logging
 import warnings
 from multiprocessing import Pool
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import load_dataset_config, load_model_config
+from src.endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
 from src.endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
 from src.endo_pipeline.io import configure_logging, get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
@@ -58,12 +59,14 @@ def generate_results(args: dict) -> None:
             img.set_scene(args["scene_index"])
 
         data_config = load_dataset_config(dataset_name)
-        brightfield_index = data_config.brightfield_channel_index
+        brightfield_index = data_config.original_channel_indices.brightfield
         img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
         # Load the model configuration
-        nuclei_model_config = load_model_config("nuc_pred_labelfree_finetuned_20250419")
+        nuclei_model_config = cast(
+            CellposeModelConfig, load_model_config("nuc_pred_labelfree_finetuned_20250419")
+        )
 
         gpu = core.use_gpu()
         global device_used_printed_global
@@ -71,7 +74,7 @@ def generate_results(args: dict) -> None:
             logger.info(f" - using device: {'GPU' if gpu else 'CPU'}")
             device_used_printed_global = True
 
-        model_path = Path(nuclei_model_config.mlflow_run_id)
+        model_path = Path(nuclei_model_config.model_path)
         model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=str(model_path))
 
         # Calculate the brightfield standard deviation and the brightfield image with the best contrast

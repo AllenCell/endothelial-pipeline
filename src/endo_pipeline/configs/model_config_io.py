@@ -83,11 +83,16 @@ def save_model_config(model: ModelConfig) -> None:
     config_dir = get_model_config_dir()
     config_file = config_dir / f"{model.name}.yaml"
 
-    def yaml_encoder(data):
+    def yaml_encoder(data):  # type: ignore[no-untyped-def]
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
-    content = YAMLEncoder(ModelConfig, post_encoder_func=yaml_encoder).encode(model)
-    config_file.write_text(content)
+    try:
+        content = str(YAMLEncoder(type(model), post_encoder_func=yaml_encoder).encode(model))
+        config_file.write_text(content)
+        logger.debug("Saved model config [ %s ] to [ %s ]", model.name, config_file)
+    except:
+        logger.error("Model config [ %s ] could not be saved", model.name)
+        raise
 
 
 if __name__ == "__main__":

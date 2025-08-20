@@ -3,11 +3,8 @@ from typing import Any
 import dask.array as da
 from bioio import BioImage
 
-from src.endo_pipeline.configs.dataset_io import (
-    get_dataset_info,
-    get_original_path,
-    get_specific_channel_order,
-)
+from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.configs.dataset_io import get_dataset_info, get_original_path
 
 
 def get_included_scenes(dataset_name: str) -> list | range:
@@ -81,15 +78,16 @@ def get_delayed_array_for_position(
     t_final = img.dims.T  #  the total number of timepoints in "img"; if testing set low t_final
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
-    index_488, bf_index, index_405, index_561, index_640 = get_specific_channel_order(dataset_name)
 
-    channels = [index_488, bf_index]
-    if index_405 is not None:
-        channels.append(index_405)
-    if index_561 is not None:
-        channels.append(index_561)
-    if index_640 is not None:
-        channels.append(index_640)
+    indices = load_dataset_config(dataset_name).original_channel_indices
+    channels = [indices.channel_488, indices.brightfield]
+
+    if indices.channel_405 is not None:
+        channels.append(indices.channel_405)
+    if indices.channel_561 is not None:
+        channels.append(indices.channel_561)
+    if indices.channel_640 is not None:
+        channels.append(indices.channel_640)
 
     assert len(channels) == len(
         channel_names

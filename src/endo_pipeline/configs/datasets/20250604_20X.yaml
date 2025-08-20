@@ -8,34 +8,30 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
+objective: 20X
 shear_stress_regime: 48hr_intermediate
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 12.32]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -40
   stop: 576
   shear_stress: 12.32
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250604_20X
-nuclear_stain_seg_path: null
-nuclear_seg_manifest_fmsid: null
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250604_20X
-tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: 3f59d2da192941bba979727adf3b6dee
-immunofluorescence_manifest_fmsid: null
-cdh5_classic_seg_tracking_manifest_fmsid: ec0650fb760541f2a7a6026eac45ae21
-cdh5_classic_seg_manifest_fmsid: d377ced196fc4c92a342bf2871eff6e8
-nuclei_label_free_seg_manifest_fmsid: 2fcf929538b744d7ae74e753d94fbe07
-live_merged_seg_features_manifest_fmsid: 858a349ab9b449e1bff114d0fd10b3f7
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: Flow history. Cells exposed to flow for 3h 20min prior to start of imaging.
   Cells show mixed alignment leaning towards more parallel

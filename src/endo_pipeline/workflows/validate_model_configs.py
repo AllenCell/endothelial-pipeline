@@ -17,8 +17,6 @@ For each dataset config in the `configs/models` directory, confirm:
 
 - All dataset configs follow the schema defined by `ModelConfig`.
 - All MLflow run IDs exist and can be opened (load checkpoint).
-- All datasets in the `ModelManifest` are valid (have a `DatasetConfig`)
-    and can be loaded (load manifest from the model via FMS).
 - All datasets in the `training_datasets` list have a `DatasetConfig`.
 """  # noqa: D415, D400
 # %%
@@ -30,6 +28,7 @@ if __name__ != "__main__":
 import logging
 
 from src.endo_pipeline.configs import (
+    CytoDLModelConfig,
     get_available_model_names,
     load_dataset_config,
     load_model_config,
@@ -41,7 +40,7 @@ from src.endo_pipeline.io import load_dataframe_from_fms
 # the ml_workflows extra dependencies
 # if this fails, raise an ImportError with a helpful message
 try:
-    from src.endo_pipeline.library.model.mlflow_utils import get_ckpt_path
+    from src.endo_pipeline.library.model import get_ckpt_path
 except ImportError as e:
     raise ImportError(
         "This notebook requires the `ml_workflows` extra dependencies to run. "
@@ -67,6 +66,11 @@ for name in get_available_model_names():
     # Load dataset config.
     model_config = load_model_config(name)
 
+    # Skip remaining validation if model not a CytoDL model
+    if not isinstance(model_config, CytoDLModelConfig):
+        logger.info("Skipping remaining validation for non-CytoDL model [ %s ]", name)
+        continue
+
     # Check if model exists in MLFlow.
     try:
         model_ckpt = get_ckpt_path(model_config.mlflow_run_id, DEFAULT_TRACKING_URI)
@@ -84,19 +88,6 @@ for name in get_available_model_names():
             model_config.mlflow_run_id,
         )
         raise
-
-    # Check if all datasets with manifests for this model
-    # Have a DatasetConfig and can be loaded from FMS
-    manifest_fmsids = model_config.manifest_fmsids
-    logger.info("Validating manifests...")
-    for dataset_manifest in manifest_fmsids:
-        dataset_name = dataset_manifest.dataset_name
-
-        # Load dataset config
-        dataset_config = load_dataset_config(dataset_name)
-
-        # load dataframe from FMS
-        df = load_dataframe_from_fms(dataset_manifest.fmsid)
 
     # Check if all training datasets have a DatasetConfig
     # catch raised error and log a warning instead:

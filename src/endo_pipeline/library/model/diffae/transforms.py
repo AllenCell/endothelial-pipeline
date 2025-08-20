@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Hashable, Mapping, Sequence
 from copy import deepcopy
 
 import numpy as np
@@ -105,7 +105,9 @@ class RotateRanged(Transform):
                 new_data[i][k] = deepcopy(elem)
         return new_data
 
-    def __call__(self, input_dict: dict[str, torch.Tensor]) -> list[dict[str, torch.Tensor]]:
+    def __call__(
+        self, input_dict: Mapping[Hashable, torch.Tensor]
+    ) -> list[dict[str, torch.Tensor]]:
         """
         Parameters
         ----------
@@ -113,7 +115,7 @@ class RotateRanged(Transform):
             dict of CZYX tensors/metadata
         """
         new_data = []
-        for theta in np.linspace(*self.rotation_range, self.n_steps):
+        for theta in np.linspace(self.rotation_range[0], self.rotation_range[1], self.n_steps):
             rotations = Rotated(keys=self.keys, angle=theta, keep_size=False, padding_mode="zeros")(
                 input_dict
             )

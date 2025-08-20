@@ -3,20 +3,25 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from cellsmap.util.manifest_io import get_manifest
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import get_nuclear_prediction_path
+from src.endo_pipeline.io import load_dataframe
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
     generate_backdrops,
 )
-
-NUC_SEG_TYPE = "nuclear_stain_seg_path"
+from src.endo_pipeline.manifests import (
+    DataframeManifest,
+    get_dataframe_location_for_dataset,
+    get_segmentation_location_for_dataset,
+    load_dataframe_manifest,
+    load_segmentation_manifest,
+)
 
 
 # %%
 def generate_tfe_dataset(
     dataset: str,
+    dataframe_manifest: DataframeManifest,
     position: int,
     output_dir: Path,
     source_dir: Path,
@@ -39,7 +44,7 @@ def generate_tfe_dataset(
     output_dir = output_dir / f"{dataset}_P{position}{output_dir_suffix}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df = get_manifest([dataset], "immunofluorescence_manifest_fmsid")
+    df = load_dataframe(get_dataframe_location_for_dataset(dataframe_manifest, dataset))
     df["track_id"] = df["label"]
     df["tid"] = df["track_id"]
     df["image_index"] = 0
@@ -121,18 +126,28 @@ IF_SMAD_DATASETS = [
     "20250509_20X_IF9",
 ]
 POSITIONS = [0, 1]
+
+IF_DATAFRAME_MANIFEST = load_dataframe_manifest("immunofluorescence")
+SEG_MANIFEST = load_segmentation_manifest("nuclear_stain")
+
 # %%
 output_dir = get_output_path("tfe_immunofluorescence")
 for dataset_name in IF_SMAD_DATASETS:
     for position in POSITIONS:
         print(f"Processing dataset: {dataset_name}, position: {position}")
-        seg_path = get_nuclear_prediction_path(dataset_name, position, nuc_seg_type=NUC_SEG_TYPE)
+
+        seg_file = get_segmentation_location_for_dataset(SEG_MANIFEST, dataset_name, position, 0)
+        if seg_file.path is not None:
+            seg_path = seg_file.path.parent
+        else:
+            continue
 
         generate_tfe_dataset(
             dataset=dataset_name,
+            dataframe_manifest=IF_DATAFRAME_MANIFEST,
             position=position,
             output_dir=Path(output_dir),
-            source_dir=Path(seg_path),
+            source_dir=seg_path,
             backdrops=True,
         )
 # %%

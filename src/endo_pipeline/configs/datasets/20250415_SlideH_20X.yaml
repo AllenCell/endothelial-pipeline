@@ -10,33 +10,29 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
+objective: 20X
 shear_stress_regime: low
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
 flow: [[0, 0, 5.47]]
 n_total_positions: 50
-channel_488_index: 1
-brightfield_channel_index: 2
+original_channel_indices:
+  brightfield: 2
+  channel_488: 1
+  channel_405: 0
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -576
   stop: 0
   shear_stress: 5.47
-channel_405_index: 0
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: null
-nuclear_stain_seg_path: null
-nuclear_seg_manifest_fmsid: ''
-cdh5_seg_path: null
-tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: null
-immunofluorescence_manifest_fmsid: null
-cdh5_classic_seg_tracking_manifest_fmsid: null
-cdh5_classic_seg_manifest_fmsid: null
-nuclei_label_free_seg_manifest_fmsid: null
-live_merged_seg_features_manifest_fmsid: null
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: ''

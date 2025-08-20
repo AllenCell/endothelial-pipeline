@@ -1,12 +1,18 @@
 import argparse
+from pathlib import Path
 
 import pandas as pd
 
 from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
 from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs import load_dataset_config, save_dataset_config
 from src.endo_pipeline.configs.dataset_io import get_git_versioning_info
 from src.endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
+)
 
 """
 Workflow to generate an immunofluorescence manifest for a given dataset.
@@ -34,7 +40,7 @@ def save_manifest_to_csv(dataset: str, df: pd.DataFrame) -> str:
     Returns:
         str: The path to the saved CSV file.
     """
-    output_dir = get_output_path("immunoflouresence_manifest", verbose=True)
+    output_dir = get_output_path("immunofluorescence_manifest", verbose=True)
     save_path = output_dir + f"{dataset}_if_manifest.csv"
     df.to_csv(save_path, index=False)
     return save_path
@@ -55,19 +61,17 @@ def upload_manifest_to_fms(save_path: str, dataset: str) -> str:
         file_path=save_path,
         dataset=dataset,
         commit_hash=commit_info["git_commit_hash"],
-        misc_notes=f"This immunoflourescence manifest was produced by the cellsmap repository. \
+        misc_notes=f"This immunofluorescence manifest was produced by the cellsmap repository. \
                 Made on branch {commit_info['git_branch_name']} at {commit_info['timestamp']}.",
         file_type="csv",
         model_version="",
         mlflow_run_id=None,
-        effort="Core",
-        env="prod",
     )
     return fms_id
 
 
-def update_dataset_config(dataset: str, fms_id: str) -> None:
-    """Update the dataset configuration with the FMS ID.
+def update_dataframe_manifest(dataset: str, fms_id: str) -> None:
+    """Update the dataframe manifest with the FMS ID.
 
     Args:
         dataset (str): The name of the dataset.
@@ -76,9 +80,14 @@ def update_dataset_config(dataset: str, fms_id: str) -> None:
     Raises:
         ValueError: If the dataset configuration cannot be loaded.
     """
-    dataset_config = load_dataset_config(dataset)
-    dataset_config.immunofluorescence_manifest_fmsid = fms_id
-    save_dataset_config(dataset_config)
+
+    try:
+        manifest = load_dataframe_manifest("immunofluorescence")
+    except FileNotFoundError:
+        manifest = DataframeManifest(name="immunofluorescence", workflow=Path(__file__).stem)
+
+    manifest.locations[dataset] = DataframeLocation(fmsid=fms_id)
+    save_dataframe_manifest(manifest)
 
 
 def main(datasets: list[str], testing: bool = False) -> None:
@@ -105,7 +114,7 @@ def main(datasets: list[str], testing: bool = False) -> None:
         fms_id = upload_manifest_to_fms(save_path, dataset)
 
         # Step 4: Update dataset configuration
-        update_dataset_config(dataset, fms_id)
+        update_dataframe_manifest(dataset, fms_id)
 
 
 if __name__ == "__main__":

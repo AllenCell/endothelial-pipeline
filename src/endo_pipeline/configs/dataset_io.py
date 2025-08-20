@@ -19,14 +19,12 @@ import re
 from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
-import fire
-
+from src.endo_pipeline.__main__ import workflow_cli
 from src.endo_pipeline.configs import get_datasets_in_collection
 from src.endo_pipeline.configs.dataset_config_io import (
     get_available_dataset_names,
     load_dataset_config,
 )
-from src.endo_pipeline.io import load_dataframe_from_fms
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +35,17 @@ def get_config_dir() -> Path:
     return Path(__file__).resolve().parents[0]
 
 
-def save_to_yaml(object: dict, path: Path) -> None:
+def save_to_yaml(object: dict, path: Path, list_representer: bool = True) -> None:
     """Save dictionary object to YAML at given path."""
 
-    yaml.SafeDumper.add_representer(
-        list,
-        lambda dumper, data: dumper.represent_sequence(
-            "tag:yaml.org,2002:seq", data, flow_style=True
-        ),
-    )
+    if list_representer:
+        yaml.SafeDumper.add_representer(
+            list,
+            lambda dumper, data: dumper.represent_sequence(
+                "tag:yaml.org,2002:seq", data, flow_style=True
+            ),
+        )
+
     yaml_content = yaml.safe_dump(
         object, default_flow_style=False, sort_keys=False, width=80, indent=2
     )
@@ -60,11 +60,26 @@ def separate_data_config() -> None:
 
     combined_data_config = yaml.safe_load(combined_path.open())
 
-    for index, (dataset, contents) in enumerate(combined_data_config.items()):
-        data_config_path = separated_path / f"{index:02d}_{dataset}.yaml"
+    for dataset, contents in combined_data_config.items():
+        data_config_path = separated_path / f"{dataset}.yaml"
         single_data_config = {"name": dataset}
         single_data_config.update(contents)
         save_to_yaml(single_data_config, data_config_path)
+
+
+def separate_model_config() -> None:
+    """Separate combined model configs into individual model configs."""
+
+    separated_path = get_config_dir() / "models"
+    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
+
+    combined_model_config = yaml.safe_load(combined_path.open())
+
+    for model, contents in combined_model_config.items():
+        data_config_path = separated_path / f"{model}.yaml"
+        single_model_config = {"name": model}
+        single_model_config.update(contents)
+        save_to_yaml(single_model_config, data_config_path, False)
 
 
 def combine_data_config(save: bool = False) -> dict:
@@ -84,12 +99,29 @@ def combine_data_config(save: bool = False) -> dict:
     return combined_data_config
 
 
+def combine_model_config(save: bool = False) -> dict:
+    """Combine individual model configs into combined config keyed by name."""
+
+    separated_path = get_config_dir() / "models"
+    combined_path = Path(__file__).resolve().parents[1] / "model_config.yaml"
+
+    separate_data_configs = [
+        yaml.safe_load(config.open()) for config in sorted(separated_path.glob("*.yaml"))
+    ]
+    combined_model_config = {config["name"]: config for config in separate_data_configs}
+
+    if save:
+        save_to_yaml(combined_model_config, combined_path)
+
+    return combined_model_config
+
+
 # model methods
 
 
 @deprecated(
     """
-NOTE: you can ignore this warning when loading "model" or "dynamics" configs.
+NOTE: you can ignore this warning when loading "dynamics" configs.
 
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for accessing dataset
@@ -105,6 +137,18 @@ If you need the config for a single dataset, use:
 If you need only need dataset names, use:
 
         configs.get_available_dataset_names
+
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing model
+configs is to use one of the following replacement methods.
+
+If you need the config for a single model, use:
+
+        configs.load_model_config(model_name)
+
+If you need only need dataset names, use:
+
+        configs.get_available_model_names
 """
 )
 def load_config(config_type: str = "data") -> dict[Any, Any]:
@@ -117,6 +161,11 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
     if config_type == "data":
         return combine_data_config()
 
+    # If loading the model config, load combined from all individual model
+    # configs. This is part of a change to manage models with dataclasses.
+    if config_type == "model":
+        return combine_model_config()
+
     config_dir = get_config_dir()
     config_file = config_dir / f"{config_type}_config.yaml"
     with open(config_file) as file:
@@ -126,7 +175,7 @@ def load_config(config_type: str = "data") -> dict[Any, Any]:
 
 @deprecated(
     """
-NOTE: you can ignore this warning when writing "model" or "dynamics" configs.
+NOTE: you can ignore this warning when writing "dynamics" configs.
 
 With the switch to loading dataset configs using the DatasetConfig dataclass
 (instead of as dictionaries) the recommended pattern for saving updated dataset
@@ -137,6 +186,16 @@ configs is to directly adjust values in the config:
 The dataset config can then be saved using:
 
         configs.save_dataset_config(dataset)
+
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for saving updated model
+configs is to directly adjust values in the config:
+
+        model.field = (new value)
+
+The model config can then be saved using:
+
+        configs.save_model_config(model)
 """
 )
 def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -> None:
@@ -161,6 +220,10 @@ def write_config(config: dict[str, dict[str, Any]], config_type: str = "data") -
     # config file).
     if config_type == "data":
         separate_data_config()
+        config_file.unlink()
+
+    if config_type == "model":
+        separate_model_config()
         config_file.unlink()
 
 
@@ -444,30 +507,6 @@ Use one of the following methods to load the dataset config:
         configs.load_all_dataset_configs
         configs.load_dataset_config(dataset_name)
 
-Then use this replacement method:
-
-        configs.get_specific_channel_order(dataset)
-"""
-)
-def get_specific_channel_order(dataset_name: str) -> tuple:
-    """Get the specific channel order for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("channel_488_index")
-    bf_index = dataset_info.get("brightfield_channel_index")
-    index_405 = dataset_info.get("channel_405_index", None)
-    index_561 = dataset_info.get("channel_561_index", None)
-    index_640 = dataset_info.get("channel_640_index", None)
-
-    return gfp_index, bf_index, index_405, index_561, index_640
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
 The field can then be accessed using:
 
         dataset.n_total_positions
@@ -483,6 +522,29 @@ def get_total_number_of_positions(dataset_name: str) -> int:
     return dataset_info["n_total_positions"]
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. The new pattern for loading Zarr
+datasets is:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from src.endo_pipeline.io import load_zarr_as_dask_array
+
+    dataset_config = load_dataset_config(dataset_name)
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+    zarr = load_zarr_as_dask_array(zarr_file)
+
+To recreate the behavior of this specific method (loading Zarrs for all positions
+of a dataset into a dictionary, use:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_available_zarr_files
+    from src.endo_pipeline.io import load_zarr_as_dask_array
+
+    dataset_config = load_dataset_config(dataset_name)
+    zarr_files = get_available_zarr_files(dataset_config)
+    zarrs = {zarr_file.name: load_zarr_as_dask_array(zarr_file) for zarr_file in zarr_files}
+"""
+)
 def load_dataset(
     dataset_name: str,
     channels: list = ["EGFP", "BF"],
@@ -512,6 +574,19 @@ def load_dataset(
     return dataset
 
 
+@deprecated(
+    """
+This method is deprecated and will be removed. The new pattern for loading Zarr
+datasets is:
+
+    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from src.endo_pipeline.io import load_zarr_as_dask_array
+
+    dataset_config = load_dataset_config(dataset_name)
+    zarr_file = get_zarr_file_for_position(dataset_config, position)
+    zarr = load_zarr_as_dask_array(zarr_file)
+"""
+)
 def load_dataset_position_as_dask_array(
     dataset_name: str,
     position: int | str,
@@ -619,6 +694,14 @@ def get_flow_info(dataset_name: str) -> list:
     return dataset_info["flow"]
 
 
+@deprecated(
+    """
+This method will be removed. Use one of these alternative methods:
+
+        configs.get_frame_before_flow_change
+        configs.get_frame_after_flow_change
+"""
+)
 def get_flow_change_frame(dataset_name: str) -> int:
     """
     Get frame number at which flow changes in dataset ds_name.
@@ -639,6 +722,13 @@ def get_flow_change_frame(dataset_name: str) -> int:
     return change_frame
 
 
+@deprecated(
+    """
+This method will be removed. Use one of these alternative methods:
+
+        configs.get_flow_at_frame
+"""
+)
 def get_flow_for_frame(dataset_name: str, frame: int) -> float:
     """
     Retrieve the flow value for a specific frame in a dataset.
@@ -665,33 +755,6 @@ def get_flow_for_frame(dataset_name: str, frame: int) -> float:
         if t_start <= frame <= t_stop:
             return flow
     raise ValueError(f"Frame {frame} not found in flow list for dataset '{dataset_name}'.")
-
-
-def add_flow_to_dataframe(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Add flow in dyn/cm^2 to a DataFrame containing dataset information.
-    Currently does not work for datasets with -1 as the timepoint.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing dataset information, including 'dataset_name' and 'frame'.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with an additional 'flow' column containing flow values for each frame.
-    """
-    # Group by dataset_name and image_index, calculate flow once per group
-    flow_mapping = df.groupby(["dataset_name", "image_index"]).apply(
-        lambda group: get_flow_for_frame(group.name[0], group.name[1])
-    )
-
-    # Map the calculated flow values back to the original DataFrame
-    df["sheer_stress"] = df.set_index(["dataset_name", "image_index"]).index.map(flow_mapping)
-    return df
 
 
 @deprecated(
@@ -799,208 +862,6 @@ def get_fmsid(dataset_name: str) -> str:
 
 @deprecated(
     """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
-Then use this replacement method:
-
-        configs.get_nuclear_prediction_path(dataset, channel, nuc_seg_type)
-"""
-)
-def get_nuclear_prediction_path(
-    dataset_name: str, position: int, nuc_seg_type: str = "nuclear_label_free_seg_path"
-) -> str:
-    """
-    Get the file path for the nuclear prediction data for a specific dataset and position.
-
-    Args:
-        dataset_name (str): The name of the dataset.
-        position (int): The position index within the dataset.
-        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
-            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
-
-    Returns:
-        str: The file path to the nuclear prediction data for the specified dataset and position.
-    """
-    dataset_info = get_dataset_info(dataset_name)
-    base_path = dataset_info[nuc_seg_type]
-    position_path = f"{base_path}/P{position}/"
-    return position_path
-
-
-def load_nuclei_prediction(
-    dataset_name: str,
-    position: int,
-    T: int,
-    dim_order: str = "ZYX",
-    nuc_seg_type: str = "nuclear_label_free_seg_path",
-) -> dask.array.Array:
-    """
-    Load the nuclei prediction data as a Dask array for a given dataset, position, and timepoint.
-
-    Args:
-        dataset_name (str): The name of the dataset.
-        position (int): The position index within the dataset.
-        T (int): The timepoint index to load.
-        dim_order (str, optional): The dimension order of the data (e.g., "ZYX").
-            Defaults to "ZYX".
-        nuc_seg_type (str, optional): The type of nuclear segmentation path to retrieve.
-            ie. "nuclear_label_free_seg_path", "nuclear_stain_seg_path"
-
-    Returns:
-        dask.array.Array: A Dask array containing the nuclei prediction data for the specified
-        dataset, position, and timepoint. If the file is not found, an empty Dask array is returned.
-    """
-    nuc_dir = Path(get_nuclear_prediction_path(dataset_name, position, nuc_seg_type))
-    nuc_path_dict = {extract_T(fp.stem): fp for fp in nuc_dir.glob("*.ome.tif*")}
-    nuc_path = nuc_path_dict[T]
-
-    if nuc_path.exists():
-        # Load the nuclei prediction as a Dask array
-        nuc_dask_arr = BioImage(nuc_path).get_image_dask_data(dim_order, T=0)
-        return nuc_dask_arr
-    else:
-        print(
-            f"Nuclei prediction file not found for T={T} in {nuc_dir}, returning empty dask array."
-        )
-        return dask.array.empty(shape=[0] * len(dim_order))
-
-
-def get_cdh5_classic_segmentation_path(
-    dataset_name: str,
-    position: int,
-    T: int | None = None,
-    missing_file_exception: Literal["raise", "warn"] = "warn",
-) -> Path | None:
-    """
-    Get the path to the CDH5 classic segmentation file for a given dataset, position, and timepoint.
-    If T is None, it returns the directory for the position.
-    If T is provided, it returns the specific file for that timepoint.
-    If the file is not found, it raises a FileNotFoundError or logs a warning based on the
-    `missing_file_exception` parameter.
-    """
-
-    cdh5_seg_dir = load_dataset_config(dataset_name).cdh5_seg_path
-
-    if cdh5_seg_dir is None:
-        logger.warn(f"No Cdh5 segmentations for {dataset_name}.")
-        return None
-    else:
-        position_path = Path(cdh5_seg_dir) / f"P{position}"
-
-    if T is None:
-        return position_path
-    else:
-        cdh5_seg_path_dict = {
-            extract_T(fp.stem): fp
-            for fp in position_path.glob("*.ome.tif*")
-            if extract_T(fp.name) == T
-        }
-        cdh5_seg_path = cdh5_seg_path_dict.get(T, None)
-        if cdh5_seg_path is not None:
-            return cdh5_seg_path
-
-        match missing_file_exception:
-            case "raise":
-                logger.error(f"CDH5 segmentation for T={T} not found in {position_path}.")
-                raise FileNotFoundError()
-            case "warn":
-                logger.warn(
-                    f"CDH5 segmentation for T={T} not found in {position_path}. Skipping..."
-                )
-                return None
-
-
-def load_cdh5_classic_segmentation(
-    dataset_name: str,
-    position: int,
-    T: int,
-    dim_order: str = "ZYX",
-) -> dask.array.Array:
-    """
-    Load the CDH5 classic segmentation for a given dataset, position, and timepoint.
-    """
-    cdh5_seg_path = get_cdh5_classic_segmentation_path(dataset_name, position, T)
-    if cdh5_seg_path is not None and cdh5_seg_path.exists():
-        # Load the CDH5 classic segmentation as a Dask array
-        cdh5_dask_arr = BioImage(cdh5_seg_path).get_image_dask_data(dim_order, T=0)
-        return cdh5_dask_arr
-    else:
-        print(
-            f"CDH5 classic segmentation file not found for T={T} in {cdh5_seg_path}, returning empty dask array."
-        )
-        return dask.array.empty(shape=[0] * len(dim_order))
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_tracking_data_paths(
-    dataset_name: str,
-    position: int,
-) -> Path:
-    # NOTE the tracking paths should probably be added to some
-    # sort of config file at some point, but in the interest of
-    # going fast they are hardcoded here for now
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/cdh5_classic_seg_tracking"
-    )
-    base_path = base_path / f"{dataset_name}/P{position}"
-    data_path = base_path / f"{dataset_name}_P{position}_tracking.tsv"
-    return data_path
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_tracking_data_raws(
-    dataset_name_list: list,
-    position: int | None = None,
-    as_dask: bool = True,
-) -> pd.DataFrame:
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    table_reader = dd if as_dask else pd
-    tracking_data_list = []
-    for dataset_name in dataset_name_list:
-        position_list = (
-            range(get_total_number_of_positions(dataset_name)) if position == None else [position]
-        )
-        for pos in position_list:
-            data_path = Path(get_tracking_data_paths(dataset_name, pos))
-            if not data_path.exists():
-                print(f"No tracking data found for {dataset_name} P{pos}. Skipping...")
-                continue
-            else:
-                # open the data tables
-                tracking_data = table_reader.read_csv(data_path, sep="\t")
-                # the tracking data by default does not have the
-                # dataset name or the position, so add those in
-                tracking_data["dataset_name"] = dataset_name
-                tracking_data["position"] = pos
-                # also include the path to the table that this
-                # part of the dataframe was loaded from
-                tracking_data["source_tracking_table_path"] = data_path.as_posix()
-                tracking_data_list.append(tracking_data)
-    # concatenate the dataframes into a single dataframe and return it
-    if tracking_data_list:
-        tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
-    else:  # create an empty dataframe
-        tracking_dataframe = table_reader.DataFrame.from_dict({})
-    return tracking_dataframe
-
-
-@deprecated(
-    """
     This function was replaced by the function get_measured_segmentation_table
     in the same location as this one.
     """
@@ -1032,143 +893,6 @@ def get_tracking_data_filtered(dataset_name_list: list, as_dask: bool = False) -
     # concatenate the dataframes into a single dataframe and return it
     tracking_dataframe = table_reader.concat(tracking_data_list, axis=0, ignore_index=True)
     return tracking_dataframe
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_measurement_data_paths(
-    dataset_name: str, kind: Literal["alignments", "segmentation_properties"]
-) -> Path:
-    # NOTE the tracking paths should probably be added to some
-    # sort of config file at some point, but in the interest of
-    # going fast they are hardcoded here for now
-    base_path = Path(
-        "//allen/aics/endothelial/morphological_features/analysis/cdh5_nodes_and_edges"
-    )
-    base_path = base_path / dataset_name
-    data_path = base_path / f"{dataset_name}_{kind}.csv"
-    return data_path
-
-
-@deprecated(
-    """
-    This function was replaced by the function get_measured_segmentation_table
-    in the same location as this one.
-    """
-)
-def get_measurement_data_raws(
-    dataset_name_list: list,
-    kind: Literal["alignments", "segmentation_properties"],
-    as_dask: bool = True,
-) -> pd.DataFrame:
-    table_reader = dd if as_dask else pd
-    measurement_data_list = []
-    # get all the filepaths and check that none of the requested
-    # datasets-position-kind combinations are missing data paths
-    # first before opening them
-    for dataset_name in dataset_name_list:
-        data_path = Path(get_measurement_data_paths(dataset_name, kind))
-        if not data_path.exists():
-            print(f"No {kind} tracking data found for {dataset_name}. Skipping...")
-            continue
-        else:
-            measurement_data = table_reader.read_csv(data_path)
-            measurement_data["source_measurement_table_path"] = data_path.as_posix()
-            measurement_data_list.append(measurement_data)
-    # open the files and concatenate them into a single dataframe
-    if measurement_data_list:
-        measurement_dataframe = table_reader.concat(
-            measurement_data_list, axis=0, ignore_index=True
-        )
-    else:  # create an empty dataframe
-        measurement_dataframe = table_reader.DataFrame.from_dict({})
-    return measurement_dataframe
-
-
-def get_measured_segmentation_table(
-    dataset_name_list: list,
-    kind: Literal["cdh5_segmentations", "nuclei_labelfree", "cdh5_tracking"],
-) -> pd.DataFrame:
-    """
-    Loads one of the available kinds of segmentation features tables
-    for a given dataset.
-    Different kinds of segmentation features tables include:
-    - cdh5_segmentations: properties for segmentations based on cdh5
-        - includes cell segmentation centroids, orientations, number of neighbors,
-            neighbor information, elongation, and other properties
-        - does not contain dynamics-dependent features such as velocities
-            (those can be computed from this dataset with
-            src.endo_pipeline.workflows.make_seg_feats_manifest.calculate_derived_data_dynamics_dependent
-    - nuclei_labelfree: properties for segmentations based on nuclei label-free
-        - primarily predicted nuclei centroids
-    - cdh5_tracking: properties for segmentations based on cdh5 tracking
-        - primarily contains tracking IDs mapped to segmentations label IDs
-    """
-    match kind:
-        case "cdh5_segmentations":
-            fmsid_field = "cdh5_classic_seg_manifest_fmsid"
-        case "nuclei_labelfree":
-            fmsid_field = "nuclei_label_free_seg_manifest_fmsid"
-        case "cdh5_tracking":
-            fmsid_field = "cdh5_classic_seg_tracking_manifest_fmsid"
-        case _:
-            raise ValueError(
-                f"Invalid kind {kind}. Must be one of 'cdh5_segmentations', 'nuclei_labelfree', or 'cdh5_tracking'."
-            )
-    measured_data_list = []
-    for dataset_name in dataset_name_list:
-        fmsid = getattr(load_dataset_config(dataset_name), fmsid_field)
-        if fmsid is not None:
-            measured_data = load_dataframe_from_fms(fmsid)
-        else:
-            logger.info(f"No {kind} data found for {dataset_name}. Skipping...")
-            continue
-        # add the fmsid name to the dataframe
-        measured_data[f"fmsid_{kind}_measurements_table"] = fmsid
-        # add the dataframe to the list of datasets
-        measured_data_list.append(measured_data)
-    # concatenate the dataframes into a single dataframe and return it
-    if measured_data_list:
-        measured_dataframe = pd.concat(measured_data_list, axis=0, ignore_index=True)
-    else:  # create an empty dataframe
-        measured_dataframe = pd.DataFrame.from_dict({})
-
-    return measured_dataframe
-
-
-def get_live_segmentation_features_manifest(
-    dataset_name_list: list,
-) -> pd.DataFrame:
-    """
-    Get the segmentation features manifest for a given dataset.
-    The manifest is a TSV file that contains the measurements
-    from the tracked segmentations of a dataset.
-    These datasets are raw / unfiltered.
-    """
-
-    seg_feat_data_list = []
-    for dataset_name in dataset_name_list:
-        # get the fmsid of the live data segmentation
-        # features manifest for the dataset
-        fmsid = load_dataset_config(dataset_name).live_merged_seg_features_manifest_fmsid
-        # load the manifest associated with this fmsid as a dataframe
-        if fmsid is not None:
-            seg_feat_data = load_dataframe_from_fms(fmsid)
-        else:
-            logger.info(f"No segmentation features manifest found for {dataset_name}. Skipping...")
-            continue
-        # add the fmsid name to the dataframe
-        seg_feat_data["live_merged_seg_features_manifest_fmsid"] = fmsid
-        # add the dataframe to the list of datasets
-        seg_feat_data_list.append(seg_feat_data)
-    # concatenate the dataframes into a single dataframe and return it
-    seg_feat_dataframe = pd.concat(seg_feat_data_list, axis=0, ignore_index=True)
-
-    return seg_feat_dataframe
 
 
 # fire argparsing methods
@@ -1211,7 +935,30 @@ def fire_parse_generate_dataset_name_list(
     return dataset_name_list
 
 
-# add deprecated decorator to this function
+@deprecated(
+    """
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing models is:
+
+1. If you need a list of available models by name, before selecting specific
+   dataset(s) to load, use the following replacement method:
+
+        configs.get_available_model_names
+
+   instead of:
+
+        configs.dataset_io.get_available_models
+
+   Individual models(s) can then be loaded with:
+
+        configs.load_model_config(model_name)
+
+2. If you want to load all available models, use the following method to load
+   configs for all available models:
+
+        configs.load_all_model_configs
+"""
+)
 def get_available_models() -> list[str]:
     model_info = load_config("model")
     model_names = list(model_info.keys())
@@ -1220,7 +967,24 @@ def get_available_models() -> list[str]:
     return model_names
 
 
-# add deprecated decorator to this function
+@deprecated(
+    """
+With the switch to loading model configs using the ModelConfig dataclass
+(instead of as dictionaries) the recommended pattern for accessing model info is
+directly from loaded ModelConfig objects. These configs can be loaded using
+one of the following:
+
+        configs.load_all_model_configs
+        configs.load_model_config(model_name)
+
+Fields can then be accessed using dot notation:
+
+        model.field
+
+Available fields and descriptions for each field for ModelConfig objects are
+provided in configs.model_config.
+"""
+)
 def get_model_info(model_name: str) -> dict[str, Any]:
     config = load_config("model")
     if model_name not in config:
@@ -1256,6 +1020,8 @@ def ipython_cli_flexecute(
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
+        import fire
+
         results = fire.Fire(function)
 
     return results if return_results else None
@@ -1309,11 +1075,6 @@ def extract_T(
     return t_value if int_only else f"T{t_value}"
 
 
-@deprecated(
-    """
-    Use extract_position_from_filepath in library.process.image_filepath_utils instead
-    """
-)
 def extract_P(
     fp_as_string: str | Path,
     int_only: bool = True,
@@ -1450,8 +1211,6 @@ def concatenate_and_save_feature_tables(
     out_dir/dataset_name/position/*filename_contains*.file_extension.
     """
     out_subdir = out_dir / dataset_name
-    feats_dfs = []
-    sep = "\t" if file_extension == ".tsv" else ","
 
     file_extension = f".{file_extension}" if not file_extension.startswith(".") else file_extension
     if input_filename_contains and not input_filename_contains.endswith("*"):
@@ -1459,7 +1218,23 @@ def concatenate_and_save_feature_tables(
     feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
     if sort_by_T:
         feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
-    feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
+
+    if file_extension == ".tsv":
+        sep = "\t"
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".csv":
+        sep = ","
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".parquet":
+        table_reader = lambda fp: pd.read_parquet(fp)
+        table_writer = lambda df, fp: df.to_parquet(fp, index=False)
+    else:
+        raise ValueError(
+            f"Invalid file extension {file_extension}. Must be .csv, .tsv., or .parquet."
+        )
+    feats_dfs = [table_reader(fp) for fp in feats_filepaths]
 
     # define the output path for the concatenated dataframe
     if out_file_suffix:
@@ -1470,14 +1245,14 @@ def concatenate_and_save_feature_tables(
 
     if feats_dfs:
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
-        concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
+        table_writer(concatenated_df, concatenated_df_out_path)
     else:
         print(f"No feature tables found for {dataset_name}.")
 
     if check_saved_dataframe:
         # check that the concatenated dataframe at least has the same shape
         # and column names as a proxy for checking if it was saved correctly
-        saved_df = pd.read_csv(concatenated_df_out_path, sep=sep)
+        saved_df = table_reader(concatenated_df_out_path)
         same_shape = saved_df.shape == concatenated_df.shape
         same_column_names = all(saved_df.columns == concatenated_df.columns)
         if not (same_shape and same_column_names):

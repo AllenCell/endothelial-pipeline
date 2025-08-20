@@ -8,14 +8,25 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
+objective: 20X
 shear_stress_regime: 24hr_low-to-24hr_high
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 262, 5.83], [263, 576, 22.0]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -29
   stop: 262
@@ -23,21 +34,6 @@ flow_conditions:
 - start: 263
   stop: 576
   shear_stress: 22.0
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250224_20X
-nuclear_stain_seg_path: null
-nuclear_seg_manifest_fmsid: dd80c432b37e4268a4dc44d96fb3e475
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250224_20X
-tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: b3bbae92039e43da99d4de3a01916614
-immunofluorescence_manifest_fmsid: null
-cdh5_classic_seg_tracking_manifest_fmsid: e100a4e126b2436f94907e94a4e747cb
-cdh5_classic_seg_manifest_fmsid: 373c001b7bbc4eb3a3d688d65494111b
-nuclei_label_free_seg_manifest_fmsid: 9f631215b2734f578b596fa5219e11e1
-live_merged_seg_features_manifest_fmsid: fb916d0772724065bdb0a27df3765472
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: ''

@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
-from src.endo_pipeline.io import load_dataframe_from_fms
+from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.io import load_dataframe
+from src.endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 
 from .diffae_manifest_utils import (
     get_dataset_descriptions,
@@ -78,9 +79,30 @@ def add_crop_index(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_zarr_path(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract zarr path from data config and add it
+    as its own column to the dataframe.
+    Note that df must be a DataFrame containing
+    manifest data from a single dataset.
+
+    This is needed for the current manifests loaded
+    via manifest_io.load_manifest_to_df().
+    """
+    # load config for the dataset
+    ds_config = load_dataset_config(df["dataset"].iloc[0])
+    # get zarr path for the dataset from config
+    zarr_path = ds_config.zarr_path
+    # get last part of the zarr path (date_fmsid)
+    name_fmsid = zarr_path.split("/")[-1]
+    # add zarr path for each FOV as column
+    df["zarr_path"] = df.position.apply(lambda x: f"{zarr_path}/{name_fmsid}_{x}.ome.zarr")
+    return df
+
+
 def project_manifest_to_pcs(
     df: pd.DataFrame,
-    pca: Pipeline,
+    pca: PCA,
     feat_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
@@ -90,8 +112,7 @@ def project_manifest_to_pcs(
     Inputs:
     - df: pd.DataFrame, DataFrame of feature data with metadata columns
         for dataset_name, T, FOV_ID, start_x, start_y
-    - pca: Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
-        - can include any preprocessing steps before PCA, e.g., scaling
+    - pca: PCA model fit to feature data
     - feature_cols: list, custom list of feature columns to project onto PCA axes
         - default is None, in which case all feature columns are used
 
@@ -106,39 +127,48 @@ def project_manifest_to_pcs(
     df_ = df.copy()  # make copy of DataFrame to avoid modifying original DataFrame
 
     # project feature data onto PCA axes, add new columns for each PC
-    num_pcs = len(pca.named_steps["pca"].components_)
+    num_pcs = pca.components_.shape[0]  # number of principal components
     pc_cols = [f"pc{pc+1}" for pc in range(num_pcs)]
     df_.loc[:, pc_cols] = pca.transform(df_[feat_cols].values)
 
     return df_
 
 
-def get_manifest_for_dynamics_workflows(
-    model_manifest: ModelManifest, pca: Pipeline | None = None
+def get_dataframe_for_dynamics_workflows(
+    dataset_name: str,
+    manifest: DataframeManifest,
+    pca: PCA | None = None,
+    filter_to_valid: bool = True,
 ) -> pd.DataFrame:
     """
-    Load DiffAE manifest data projected onto given PC axes for downstream analysis
-    in the stochastic dynamics workflow. Adds crop index column to DataFrame,
-    and projects feature data onto PC axes.
+    Load DiffAE dataframe data projected onto given PC axes for downstream
+    analysis in the stochastic dynamics workflow. Adds crop index column to
+    DataFrame, and projects feature data onto PC axes.
 
-    Inputs:
-    - model_manifest: ModelManifest, manifest information for loading feature from
-        a given model for a give dataset
-    - pca: Pipeline or None
-        - if Pipeline, PCA model fit to feature data (using sklearn.pipeline.Pipeline)
-        - if None, do not project feature data onto PCA axes
+    Parameters
+    ----------
+    dataset_name
+        Name of dataset
+    manifest
+        Dataframe manifest for loading model features.
+    pca
+        PCA model to fit to feature data. If None, do not project feature data.
+    filter_to_valid
+        True to filter dataframe to valid timepoints, False otherwise.
 
-    Outputs:
-    - pd.DataFrame of feature data for crops
-        from input model_manifest
-        - projected onto PC axes if pca is not None
-        - restricted to stationary frames if
-            stationary_frames is not None
+    Returns
+    -------
+    :
+        Dataframe of feature data.
     """
-    # load manifest data from FMS
-    # and filter to only valid timepoints
-    df = load_dataframe_from_fms(model_manifest.fmsid)
-    df_valid = get_valid_subset(df, model_manifest.dataset_name, verbose=False)
+
+    location = get_dataframe_location_for_dataset(manifest, dataset_name)
+    df = load_dataframe(location)
+
+    if filter_to_valid:
+        df_valid = get_valid_subset(df, dataset_name, verbose=False)
+    else:
+        df_valid = df.copy()
 
     # add crop index column
     df_with_crop = add_crop_index(df_valid)

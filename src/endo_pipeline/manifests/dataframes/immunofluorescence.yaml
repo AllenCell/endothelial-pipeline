@@ -1,0 +1,40 @@
+name: immunofluorescence
+workflow: generate_if_manifest
+parameters: {}
+locations:
+  20250509_20X_IF1:
+    fmsid: 59ac02ab805c4e50b54cb633072a9dea
+    s3uri: null
+  20250509_20X_IF2:
+    fmsid: cd1e43f0ef744cb7be42d271de3c0055
+    s3uri: null
+  20250509_20X_IF3:
+    fmsid: 03fed0bd0a4b45ec95549f0f2adcf274
+    s3uri: null
+  20250509_20X_IF4:
+    fmsid: b24bab59d7404a47a89525507c05584f
+    s3uri: null
+  20250509_20X_IF5:
+    fmsid: 41301d1162124276a0c3658435a928b8
+    s3uri: null
+  20250509_20X_IF6:
+    fmsid: 68f6af2a56d543a08cb4ec34538fb122
+    s3uri: null
+  20250509_20X_IF7:
+    fmsid: 6c7106af434f41a89ef749cc2a82bad5
+    s3uri: null
+  20250509_20X_IF8:
+    fmsid: adb1631cc19b42fb9e01112bc0feea76
+    s3uri: null
+  20250509_20X_IF9:
+    fmsid: 30fb34b868fd493eab7f8cc8bebdcb7c
+    s3uri: null
+  20250509_20X_IF10:
+    fmsid: 6ffdd784c8544cbdba6c60c6b0f027e5
+    s3uri: null
+  20250509_20X_IF11:
+    fmsid: 8a7a2faa1a3046689a4c7d896f5557e3
+    s3uri: null
+  20250509_20X_IF12:
+    fmsid: ffc57b1e300746c896685012904d0659
+    s3uri: null

@@ -3,8 +3,7 @@ from pathlib import Path
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.diffae_manifest.preprocessing import project_manifest_to_pcs
+from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
 from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
@@ -62,6 +61,10 @@ def add_intensity_mean_pcs(df: pd.DataFrame) -> pd.DataFrame:
     """
     Perform PCA on the intensity mean features and add the projected features
     to the DataFrame.
+
+    Note:
+        If the associated workflow make_spatial_pc_movie.py is deleted, 
+        this function should also be removed.  
 
     Args:
         df (pd.DataFrame): The input DataFrame.

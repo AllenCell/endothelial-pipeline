@@ -2,14 +2,12 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-import fire
 from tqdm import tqdm
 
 from src.endo_pipeline.configs import (
     load_all_dataset_configs,
     load_dataset_config,
     load_model_config,
-    save_dataset_config,
 )
 from src.endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
 from src.endo_pipeline.io import (
@@ -17,6 +15,12 @@ from src.endo_pipeline.io import (
     configure_logging,
     get_output_path,
     upload_file_to_fms,
+)
+from src.endo_pipeline.manifests import (
+    DataframeLocation,
+    DataframeManifest,
+    load_dataframe_manifest,
+    save_dataframe_manifest,
 )
 
 """
@@ -31,9 +35,7 @@ out_dir = get_output_path(Path(__file__).stem, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 
-def fms_upload_cdh5_classic_seg_tracking(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_cdh5_classic_seg_tracking(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -45,23 +47,29 @@ def fms_upload_cdh5_classic_seg_tracking(
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.cdh5_classic_seg_tracking_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+    manifest_name = "cdh5_classic_segmentation_tracking"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def fms_upload_cdh5_get_measured_features(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_cdh5_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -73,23 +81,29 @@ def fms_upload_cdh5_get_measured_features(
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.cdh5_classic_seg_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+    manifest_name = "cdh5_classic_segmentation"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def fms_upload_nuc_get_measured_features(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_nuc_get_measured_features(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -101,23 +115,29 @@ def fms_upload_nuc_get_measured_features(
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.nuclei_label_free_seg_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+    manifest_name = "nuclei_label_free_segmentation"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def fms_upload_make_seg_feats_manifest(
-    dataset_name: str, path_to_file: Path, fms_env: Literal["stg", "prod"] = "stg"
-) -> str:
+def fms_upload_make_seg_feats_manifest(dataset_name: str, path_to_file: Path) -> str:
     # Define the metadata associated with the file being uploaded to FMS
     # The segmentations make use of label-free nuclei predictions
     # to improve segmentation quality, so we include model config
@@ -129,21 +149,29 @@ def fms_upload_make_seg_feats_manifest(
 
     # Upload the file to FMS
     file_id = upload_file_to_fms(
-        file_path=path_to_file, annotations=annotations, file_type="tsv", env=fms_env
+        file_path=path_to_file, annotations=annotations, file_type="parquet"
     )
 
-    # Update the dataset config with the FMS file ID
-    dataset_config.live_merged_seg_features_manifest_fmsid = file_id  # type: ignore[attr-defined]
-    save_dataset_config(dataset_config)
+    # Store FMS ID in dataframe manifest
+    manifest_name = "live_merged_seg_features"
+    workflow_name = "live_feat_workflows_to_fms"
+
+    try:
+        manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        manifest = DataframeManifest(name=manifest_name, workflow=workflow_name)
+
+    manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
+    save_dataframe_manifest(manifest)
 
     logger.info(
-        f"[Environment: {fms_env}] Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
+        f"Dataset {dataset_name} with FMS ID {file_id} uploaded to FMS from {path_to_file}."
     )
 
     return file_id
 
 
-def upload_multiple_datasets(
+def main(
     manifest_kind: Literal[
         "cdh5_seg_tracking",
         "cdh5_seg_measurements",
@@ -151,7 +179,6 @@ def upload_multiple_datasets(
         "merged_live_data_manifests",
     ],
     dataset_name_list: list | None = None,
-    fms_env: Literal["stg", "prod"] = "prod",
     endo_project_analysis_dir: (
         str | Path
     ) = "//allen/aics/endothelial/morphological_features/analysis",
@@ -176,7 +203,6 @@ def upload_multiple_datasets(
     if dataset_name_list is None:
         # This is the current list of all analyzed datasets
         dataset_name_list = [
-            "20241016_20X",
             "20241120_20X",
             "20241217_20X",
             "20250224_20X",
@@ -198,18 +224,18 @@ def upload_multiple_datasets(
             available_live_datasets.append(ds_cfg.name)
 
     path_modifiers = {
-        "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.tsv"},
+        "cdh5_seg_tracking": {"subdir": "cdh5_classic_seg_tracking", "suffix": "_tracking.parquet"},
         "cdh5_seg_measurements": {
             "subdir": "cdh5_get_measured_features",
-            "suffix": "_cdh5_segprops.tsv",
+            "suffix": "_cdh5_segprops.parquet",
         },
         "nuclei_labelfree": {
             "subdir": "nuc_labelfree_get_measured_features",
-            "suffix": "_nuclei_labelfree_features.tsv",
+            "suffix": "_nuclei_labelfree_features.parquet",
         },
         "merged_live_data_manifests": {
             "subdir": "segmentation_features",
-            "suffix": "_live_segmentation_features.tsv",
+            "suffix": "_live_segmentation_features.parquet",
         },
     }
 
@@ -227,8 +253,10 @@ def upload_multiple_datasets(
             f"Manifest file {manifest_filepath} does not exist. "
             "Please double check the file location."
         )
-        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath, fms_env)
+        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath)
 
 
 if __name__ == "__main__":
-    fire.Fire()
+    from src.endo_pipeline.__main__ import workflow_cli
+
+    workflow_cli(main)

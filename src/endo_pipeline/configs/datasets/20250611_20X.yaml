@@ -8,34 +8,30 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: live
 is_timelapse: true
 microscope: 3i
+objective: 20X
 shear_stress_regime: 48hr_high
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
 flow: [[0, 576, 21.35]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -15
   stop: 576
   shear_stress: 21.35
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
-nuclear_label_free_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250611_20X
-nuclear_stain_seg_path: null
-nuclear_seg_manifest_fmsid: null
-cdh5_seg_path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg/20250611_20X
-tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: 3a69bbcd8ab244d9b2d3eb9ee7eacde3
-immunofluorescence_manifest_fmsid: null
-cdh5_classic_seg_tracking_manifest_fmsid: 24a4907b6a0643649402cca23ed63537
-cdh5_classic_seg_manifest_fmsid: e9313febe6c343ccaa860da7e44c8a41
-nuclei_label_free_seg_manifest_fmsid: 0d166ccc19a94eb394a6104c76f6a864
-live_merged_seg_features_manifest_fmsid: df21821c570e48828a7d36b192f7d460
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become
   overgrown earlier than in previous timelapse experiments (~25h)

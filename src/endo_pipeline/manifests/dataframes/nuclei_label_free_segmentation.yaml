@@ -1,0 +1,34 @@
+name: nuclei_label_free_segmentation
+workflow: live_feat_workflows_to_fms
+parameters: {}
+locations:
+  20241120_20X:
+    fmsid: d76185570ad24399b97fb380492b4ed9
+    s3uri: null
+  20241217_20X:
+    fmsid: e322dfea9ade4def90618e9ef0cff2c6
+    s3uri: null
+  20250224_20X:
+    fmsid: da7714a478c243848b1eeb0645367848
+    s3uri: null
+  20250319_20X:
+    fmsid: acd8ee71960e4190b3b1554d6bbc1fcb
+    s3uri: null
+  20250326_20X:
+    fmsid: 193cf373fcfe45bcafafa02475c0d9e1
+    s3uri: null
+  20250331_20X:
+    fmsid: fd192672f6034b28b49e956be608cd75
+    s3uri: null
+  20250409_20X:
+    fmsid: 95cda1f7c2e94d9db761f59a63c935fc
+    s3uri: null
+  20250428_20X:
+    fmsid: c57e555dc452436ea8c46e1b8a97f911
+    s3uri: null
+  20250604_20X:
+    fmsid: 9d6e7330a6d1474499269d986ce56abe
+    s3uri: null
+  20250611_20X:
+    fmsid: d3837f49c4a2416b8310612262d13651
+    s3uri: null

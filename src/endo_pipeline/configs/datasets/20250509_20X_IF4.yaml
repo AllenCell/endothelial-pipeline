@@ -8,33 +8,29 @@ cell_lines: [AICS-126]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
+objective: 20X
 shear_stress_regime: 24hr_no_flow
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
 flow: [[0, 0, 0.0]]
 n_total_positions: 2
-channel_488_index: 1
-brightfield_channel_index: 4
+original_channel_indices:
+  brightfield: 4
+  channel_488: 1
+  channel_405: 0
+  channel_561: 2
+  channel_640: 3
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: 3
+  channel_640: 4
 flow_conditions:
 - start: -288
   stop: 0
   shear_stress: 0.0
-channel_405_index: 0
-channel_561_index: 2
-channel_640_index: 3
-nuclear_label_free_seg_path: null
-nuclear_stain_seg_path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_stain_seg/20250509_20X_IF4
-nuclear_seg_manifest_fmsid: ''
-cdh5_seg_path: null
-tracking_integration_fmsid: null
-diffae_tracking_integration_fmsid: ''
-immunofluorescence_manifest_fmsid: b24bab59d7404a47a89525507c05584f
-cdh5_classic_seg_tracking_manifest_fmsid: null
-cdh5_classic_seg_manifest_fmsid: null
-nuclei_label_free_seg_manifest_fmsid: null
-live_merged_seg_features_manifest_fmsid: null
 valid_timepoints: null
-cell_mean_features: null
 include_scenes: null
 notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
