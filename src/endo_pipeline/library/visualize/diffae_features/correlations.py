@@ -78,6 +78,31 @@ def _parse_dataset_description(dataset_description: str) -> str:
     return description_parsed
 
 
+def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> str:
+    """Build a string for printing relaxation timescales on plot of ACFs."""
+    # using unicode because slurm nodes and A100s do not support LaTeX rendering
+    tau_str = chr(964)  # Greek letter tau (τ)
+    strings_per_pc = [
+        rf"PC{i+1}: {tau_str} = {tau:.2f} hrs" for i, tau in enumerate(relaxation_timescales)
+    ]
+
+    for i, string in enumerate(strings_per_pc):
+        x_loc = 0.05
+        # decrement y_loc for each PC to avoid overlap
+        y_loc = -0.15 + 0.075 * (len(strings_per_pc) - 1 - i)
+        ax.text(
+            x_loc,
+            y_loc,
+            string,
+            fontsize=10,
+            bbox={"facecolor": "white", "alpha": 0.8},
+            color=list(TABLEAU_COLORS.keys())[i],  # use same color as ACF curve,
+            weight="bold",
+        )
+
+    return ax
+
+
 def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
@@ -128,21 +153,20 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             xlabel="Lag (hours)",
             linewidth=2.75,
         )
+        relaxation_timescales = []
         for i in range(3):
             acf_where_positive = acf_[:, i] > 0
             lags_pos = lags_as_hours[acf_where_positive]
             acf_pos = acf_[acf_where_positive, i]
             exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
             relaxation_time = 1 / exp_fit[1]
-            logger.info(
-                "PC %d relaxation timescale (exponential): %.2f hrs.",
-                i + 1,
-                relaxation_time,
-            )
+            relaxation_timescales.append(relaxation_time)
             acf_fit = exponential_decay(lags_as_hours, *exp_fit)
             ax.plot(lags_as_hours, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
         ax.legend()
         ax.set_ylim(-0.25, 1.05)
+        # add relaxation timescale to plot
+        ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
         save_plot_to_path(
             fig,
             output_path,
@@ -158,6 +182,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             xlabel="Lag (hours)",
             linewidth=2.75,
         )
+        relaxation_timescales = []
         for i in range(3):
             # only fit power law to positive lags
             acf_where_positive = acf_[:, i] > 0
@@ -166,11 +191,13 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             # fit power law decay by fitting linear decay to log-log transformed data
             power_fit, _ = curve_fit(power_law_decay, lags_pos, acf_pos)
             relaxation_time = 1 / power_fit[1]
-            logger.info("PC %d relaxation timescale (power law): %.2f hrs.", i + 1, relaxation_time)
+            relaxation_timescales.append(relaxation_time)
             acf_fit = power_law_decay(lags_as_hours, *power_fit)
             ax.plot(lags_as_hours, acf_fit, "k:", linewidth=2.5, label="")
         ax.legend()
         ax.set_ylim(-0.25, 1.05)
+        # add relaxation timescale to plot
+        ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
         save_plot_to_path(
             fig,
             output_path,
@@ -211,11 +238,4 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
             output_path,
             f"cross_correlation_diff_{dataset_name}",
         )
-        # log summary statistics
-        logger.info(
-            "Minimum, maximum, and mean of delta CCF for dataset [ %s ]:" " [ %s, %s, %s ]",
-            dataset_name,
-            np.min(delta_ccf, axis=0),
-            np.max(delta_ccf, axis=0),
-            np.mean(delta_ccf, axis=0),
-        )
+        # TO DO in a future PR: integrate delta CCF near lag 0, add to plot
