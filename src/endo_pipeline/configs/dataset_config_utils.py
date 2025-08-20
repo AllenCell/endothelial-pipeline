@@ -9,7 +9,9 @@ from src.endo_pipeline.configs import (
     DatasetConfig,
     MicroscopeType,
     ObjectiveType,
+    PositionAnnotation,
     SampleType,
+    TimepointAnnotation,
     load_all_dataset_configs,
     load_dataset_collection_config,
     load_dataset_config,
@@ -163,6 +165,42 @@ def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
             duration = duration + (condition.stop - condition.start)
 
     return duration
+
+
+def get_annotated_positions(
+    dataset: DatasetConfig, annotations: list[PositionAnnotation] | None = None
+) -> list[int]:
+    """Get all positions for given annotations."""
+
+    annotated_positions: list[int] = []
+
+    if dataset.position_annotations is None:
+        logger.warning("Dataset [ %s ] does not have any annotated positions", dataset.name)
+        return annotated_positions
+
+    for annotation, positions in dataset.position_annotations.items():
+        if annotations is None or annotation in annotations:
+            annotated_positions.extend(positions)
+
+    return annotated_positions
+
+
+def get_annotated_timepoints_for_position(
+    dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
+) -> list[int]:
+    """Get all timepoints for given annotations at the given position."""
+
+    annotated_timepoints: list[int] = []
+
+    if dataset.timepoint_annotations is None:
+        logger.warning("Dataset [ %s ] does not have any annotated timepoints", dataset.name)
+        return annotated_timepoints
+
+    for annotation, positions in dataset.timepoint_annotations.items():
+        if annotations is None or annotation in annotations:
+            annotated_timepoints.extend(positions[position])
+
+    return annotated_timepoints
 
 
 def get_filtered_dataset_collection_name(

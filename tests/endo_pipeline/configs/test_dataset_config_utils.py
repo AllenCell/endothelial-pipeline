@@ -7,9 +7,13 @@ from src.endo_pipeline.configs import (
     ChannelIndices,
     DatasetConfig,
     FlowCondition,
+    PositionAnnotation,
+    TimepointAnnotation,
     load_dataset_config,
 )
 from src.endo_pipeline.configs.dataset_config_utils import (
+    get_annotated_positions,
+    get_annotated_timepoints_for_position,
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
     get_available_zarr_files,
@@ -211,6 +215,56 @@ def test_get_duration_at_flow(dataset, flow, expected_duration):
     ]
 
     assert get_duration_at_flow(dataset, flow) == expected_duration
+
+
+@pytest.mark.parametrize(
+    "annotations,positions",
+    [(None, [1, 2, 3]), ([PositionAnnotation.DUST_ARTIFACT], [1, 2, 3]), ([], [])],
+)
+def test_get_annotated_positions_with_annotations(dataset, annotations, positions):
+    dataset.position_annotations = {PositionAnnotation.DUST_ARTIFACT: [1, 2, 3]}
+
+    assert get_annotated_positions(dataset, annotations) == positions
+
+
+@pytest.mark.parametrize(
+    "position,annotations,timepoints",
+    [
+        (0, None, [1, 2, 3, 7, 8, 9, 13, 14, 15]),
+        (1, None, [4, 5, 6, 10, 11, 12]),
+        (0, [TimepointAnnotation.BF_SCOPE_ERROR], [1, 2, 3]),
+        (1, [TimepointAnnotation.BF_SCOPE_ERROR], [4, 5, 6]),
+        (0, [TimepointAnnotation.GFP_SCOPE_ERROR], [7, 8, 9]),
+        (1, [TimepointAnnotation.GFP_SCOPE_ERROR], [10, 11, 12]),
+        (0, [TimepointAnnotation.XY_SHIFT], [13, 14, 15]),
+        (1, [TimepointAnnotation.XY_SHIFT], []),
+        (0, [], []),
+        (1, [], []),
+    ],
+)
+def test_get_annotated_timepoints_for_position_with_annotations(
+    dataset, position, annotations, timepoints
+):
+    dataset.timepoint_annotations = {
+        TimepointAnnotation.BF_SCOPE_ERROR: {
+            0: [1, 2, 3],
+            1: [4, 5, 6],
+        },
+        TimepointAnnotation.GFP_SCOPE_ERROR: {
+            0: [7, 8, 9],
+            1: [10, 11, 12],
+        },
+        TimepointAnnotation.XY_SHIFT: {
+            0: [13, 14, 15],
+            1: [],
+        },
+    }
+
+    assert get_annotated_timepoints_for_position(dataset, position, annotations) == timepoints
+
+
+def test_get_annotated_timepoints_for_position_no_annotations(dataset):
+    assert get_annotated_timepoints_for_position(dataset, 0, None) == []
 
 
 @pytest.mark.parametrize(
