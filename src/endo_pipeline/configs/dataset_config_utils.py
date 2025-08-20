@@ -112,20 +112,6 @@ def get_channel_indices_for_position(
     ]
 
 
-def get_specific_channel_order(
-    dataset: DatasetConfig,
-) -> tuple[int | None, int, int | None, int | None, int | None]:
-    """Get the specific channel order for given dataset."""
-
-    return (
-        dataset.channel_488_index,
-        dataset.brightfield_channel_index,
-        dataset.channel_405_index,
-        dataset.channel_561_index,
-        dataset.channel_640_index,
-    )
-
-
 def get_frame_before_flow_change(dataset: DatasetConfig) -> int | None:
     """Get frame number immediately before the flow changes."""
 

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from src.endo_pipeline.configs import DatasetConfig
+from src.endo_pipeline.configs import ChannelIndices, DatasetConfig
 from src.endo_pipeline.manifests.segmentation_manifest import (
     SegmentationLocation,
     SegmentationManifest,
@@ -42,8 +42,8 @@ def dataset_config():
         time_interval_in_minutes=0.0,
         flow=[],
         n_total_positions=0,
-        brightfield_channel_index=0,
-        channel_488_index=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
     )
 
 
