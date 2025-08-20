@@ -171,7 +171,6 @@ get_T_from_path = lambda x: int(re.findall("T_[0-9]+", x.stem)[-1].split("T_")[-
 get_S_from_path = lambda x: int(re.findall("S[0-9]+", x.stem)[-1].split("S")[-1])
 
 out_dir = get_output_path(__file__)
-Path.mkdir(out_dir, exist_ok=True, parents=True)
 
 # CellPose label-free nuclear prediction model that Goutham trained:
 model_config = dataset_io.load_config(config_type="model")
