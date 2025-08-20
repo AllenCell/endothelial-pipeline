@@ -38,7 +38,7 @@ include_scenes: null
 notes: This dataset seems to be missing a metadata file... No flow with 1 feed only.
   Calculated center plane was 8, Adjusted to 13.
 timepoint_annotations: null
-exclude_positions: null
+position_annotations: null
 center_z_plane:
   0: 13
   1: 13

@@ -38,7 +38,7 @@ valid_timepoints: null
 include_scenes: null
 notes: This is a high-to-low flow dataset. There is some cell debris in the CDH5 channel.
 timepoint_annotations: null
-exclude_positions: null
+position_annotations: null
 center_z_plane:
   0: 11
   1: 9

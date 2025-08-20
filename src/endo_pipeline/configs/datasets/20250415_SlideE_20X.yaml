@@ -40,5 +40,5 @@ valid_timepoints: null
 include_scenes: null
 notes: ''
 timepoint_annotations: null
-exclude_positions: null
+position_annotations: null
 center_z_plane: null

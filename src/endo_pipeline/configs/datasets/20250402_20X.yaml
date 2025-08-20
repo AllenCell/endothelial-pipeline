@@ -42,7 +42,7 @@ timepoint_annotations:
     3: []
     4: [308]
     5: [1]
-exclude_positions:
+position_annotations:
   dust_artifact: [5]
 center_z_plane:
   0: 11

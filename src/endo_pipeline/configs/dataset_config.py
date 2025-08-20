@@ -21,16 +21,23 @@ class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
     BF_SCOPE_ERROR = "bf_scope_error"
-    """The transmitted light """
+    """Error with brightfield scope."""
 
     GFP_SCOPE_ERROR = "gfp_scope_error"
-    """docstring"""
+    """Error with GFP scope."""
 
     BF_TEMP_ARTIFACT = "bf_temp_artifact"
-    """docstring"""
+    """Temporary brightfield artifact."""
 
-    XY_SHIFT = "xy_shift"  # int of timepoints
-    """docstring"""
+    XY_SHIFT = "xy_shift"
+    """Shift in the XY position."""
+
+
+class PositionAnnotation(StrEnum):
+    """Annotations for positions that should be excluded from model training and/or analysis."""
+
+    DUST_ARTIFACT = "dust_artifact"
+    """Position includes a dust artifact."""
 
 
 @dataclass
@@ -161,12 +168,8 @@ class DatasetConfig:
     timepoint_annotations: dict[TimepointAnnotation, dict[int, list[int]]] | None = None
     """Manually annotated timepoints for each position."""
 
-    exclude_positions: dict[str, list[int]] | None = None
-    """
-    Manually annotated positions that should be excluded from analysis.
-    Annoations include:
-    - dust_artifact
-    """
+    position_annotations: dict[PositionAnnotation, list[int]] | None = None
+    """Manually annotated positions."""
 
     center_z_plane: dict[int, int] | None = None
     """For each zarr position, the calculated and visually validated center Z-plane"""

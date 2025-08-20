@@ -44,7 +44,7 @@ timepoint_annotations:
     3: [11, 20]
     4: [11, 27, 532, 539]
     5: [11, 27, 227, 532, 535, 539]
-exclude_positions: null
+position_annotations: null
 center_z_plane:
   0: 14
   1: 14

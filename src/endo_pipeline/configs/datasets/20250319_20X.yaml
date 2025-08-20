@@ -46,7 +46,7 @@ timepoint_annotations:
     5: []
   gfp_scope_error:
     0: [490]
-exclude_positions:
+position_annotations:
   dust_artifact: [4, 5]
 center_z_plane:
   0: 11
