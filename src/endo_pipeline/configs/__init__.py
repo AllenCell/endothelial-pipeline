@@ -1,4 +1,5 @@
 from .dataset_config import (
+    ChannelIndices,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -34,7 +35,6 @@ from .dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
-    get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
     validate_3d_flow_field_dataset_collection,
@@ -54,6 +54,7 @@ from .model_config_utils import get_labelfree_nuclei_prediction_model_name
 
 __all__ = [
     "CellposeModelConfig",
+    "ChannelIndices",
     "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",
@@ -83,7 +84,6 @@ __all__ = [
     "get_model_config_dir",
     "get_position_integer_from_zarr_file_path",
     "get_position_string_from_zarr_file_path",
-    "get_specific_channel_order",
     "get_zarr_file_for_position",
     "load_all_dataset_configs",
     "load_all_model_configs",
