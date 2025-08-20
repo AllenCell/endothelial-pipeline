@@ -1,0 +1,26 @@
+name: 20250806_20X
+original_path: //allen/programs/allencell/data/proj0/fe8/47c/553/072/dfe/969/f40/d53/9de/445/99/20250806_GE00008653_20X_SLDY/20250806_GE00008653_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250806_994459ded53f40969dfe07255347cfe8
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 994459ded53f40969dfe07255347cfe8
+barcode: GE00008653
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: high_to_low
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[-31, -1, 0.0], [0, 257, 20.54], [258, 577, 7.13]]
+n_total_positions: 6
+channel_488_index: 0
+brightfield_channel_index: 1
+flow_conditions: []
+channel_405_index: null
+channel_561_index: null
+channel_640_index: null
+valid_timepoints: null
+include_scenes: null
+notes: ''
