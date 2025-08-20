@@ -96,7 +96,7 @@ def main(
 ) -> None:
 
     # set the directory where the output will be saved
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
     # create a list of datasets to analyze if not provided

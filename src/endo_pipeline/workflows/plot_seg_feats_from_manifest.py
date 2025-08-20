@@ -177,7 +177,7 @@ def main(dataset_name: str | None = None, n_proc: int = 1, is_test: bool = False
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
     print(f"Processing: {dataset_name_list}")
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     configure_logging(out_dir, logger, verbose=True)
