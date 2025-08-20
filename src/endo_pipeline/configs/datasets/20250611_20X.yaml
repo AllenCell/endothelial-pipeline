@@ -28,14 +28,7 @@ valid_timepoints: null
 include_scenes: null
 notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become
   overgrown earlier than in previous timelapse experiments (~25h)
-center_z_plane:
-  0: 12
-  1: 11
-  2: 11
-  3: 11
-  4: 12
-  5: 12
-exclude_timepoints:
+timepoint_annotations:
   bf_scope_error:
     0: [467, 485, 486, 525, 542]
     1: [485, 486, 489, 500, 531, 547, 549, 550]
@@ -43,3 +36,11 @@ exclude_timepoints:
     3: [344, 465, 492, 509, 516, 552]
     4: [226, 465, 496, 515, 516, 552, 561]
     5: [226, 492, 496, 519, 537, 561]
+exclude_positions: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 11
+  4: 12
+  5: 12

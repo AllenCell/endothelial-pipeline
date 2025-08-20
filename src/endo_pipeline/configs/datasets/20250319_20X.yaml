@@ -29,14 +29,7 @@ valid_timepoints:
   stop: [336]
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
-center_z_plane:
-  0: 11
-  1: 10
-  2: 10
-  3: 10
-  4: 10
-  5: 10
-exclude_timepoints:
+timepoint_annotations:
   bf_scope_error:
     0: []
     1: []
@@ -48,3 +41,10 @@ exclude_timepoints:
     0: [490]
 exclude_positions:
   dust_artifact: [4, 5]
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 10
+  4: 10
+  5: 10

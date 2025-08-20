@@ -28,8 +28,10 @@ valid_timepoints:
   start: [217]
   stop: [351]
 include_scenes: null
-notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the end
-  of the movie. No other artifacts noted.
+notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
+  end of the movie. No other artifacts noted.
+timepoint_annotations: null
+exclude_positions: null
 center_z_plane:
   0: 11
   1: 12

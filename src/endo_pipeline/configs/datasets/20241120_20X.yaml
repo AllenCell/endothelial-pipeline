@@ -29,14 +29,7 @@ valid_timepoints:
   stop: [450]
 include_scenes: null
 notes: This is a nice 48hr high flow dataset.
-center_z_plane:
-  0: 14
-  1: 14
-  2: 14
-  3: 13
-  4: 14
-  5: 14
-exclude_timepoints:
+timepoint_annotations:
   bf_scope_error:
     0: [9, 543]
     1: [161, 533]
@@ -44,3 +37,11 @@ exclude_timepoints:
     3: [11, 20]
     4: [11, 27, 532, 539]
     5: [11, 27, 227, 532, 535, 539]
+exclude_positions: null
+center_z_plane:
+  0: 14
+  1: 14
+  2: 14
+  3: 13
+  4: 14
+  5: 14

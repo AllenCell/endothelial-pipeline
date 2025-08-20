@@ -27,3 +27,6 @@ channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: These cells were fixed with methanol (PFA is for most other datasets if fixed).
+timepoint_annotations: null
+exclude_positions: null
+center_z_plane: null

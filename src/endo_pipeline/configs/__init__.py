@@ -5,6 +5,7 @@ from .dataset_config import (
     MicroscopeType,
     ObjectiveType,
     SampleType,
+    TimepointAnnotation,
     ValidTimepoints,
 )
 from .dataset_config_io import (
@@ -59,6 +60,7 @@ from .model_config_utils import (
 __all__ = [
     "CellposeModelConfig",
     "CytoDLModelConfig",
+    "TimepointAnnotation",
     "DatasetCollectionConfig",
     "DatasetConfig",
     "FlowCondition",

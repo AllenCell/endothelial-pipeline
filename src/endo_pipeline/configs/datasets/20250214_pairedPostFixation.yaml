@@ -30,3 +30,6 @@ notes: These cells were fed about 2 hours before fixation (previously the cells 
   not been fed prior to fixation). This sample was imaged at a later date than the
   pre-fix sample due to blobs / bubbles appearing in the sample after fixation which
   had to be washed out first. Was permeabilized which is why it looked better on 20250219.
+timepoint_annotations: null
+exclude_positions: null
+center_z_plane: null

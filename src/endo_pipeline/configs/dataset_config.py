@@ -1,6 +1,7 @@
 """Data structures for dataset configs."""
 
 from dataclasses import field
+from enum import StrEnum
 from typing import Literal
 
 from mashumaro.config import BaseConfig
@@ -14,6 +15,22 @@ SampleType = Literal["live", "fixed", "fixed-methanol"]
 
 ObjectiveType = Literal["20X", "40X"]
 """Valid objective types."""
+
+
+class TimepointAnnotation(StrEnum):
+    """Annotations for timepoints that should be excluded from model training and/or analysis."""
+
+    BF_SCOPE_ERROR = "bf_scope_error"
+    """The transmitted light """
+
+    GFP_SCOPE_ERROR = "gfp_scope_error"
+    """docstring"""
+
+    BF_TEMP_ARTIFACT = "bf_temp_artifact"
+    """docstring"""
+
+    XY_SHIFT = "xy_shift"  # int of timepoints
+    """docstring"""
 
 
 @dataclass
@@ -130,15 +147,8 @@ class DatasetConfig:
     notes: str = ""
     """"Additional notes about dataset."""
 
-    exclude_timepoints: dict[str, dict[int, list[int]]] | None = None
-    """
-    For each zarr position, manually annotated tps that should be dropped due to BF artifacts.
-    Annotations include:
-    - bf_scope_error
-    - gfp_scope_error
-    - bf_temp_artifact
-    - xy_shift
-    """
+    timepoint_annotations: dict[TimepointAnnotation, dict[int, list[int]]] | None = None
+    """Manually annotated timepoints for each position."""
 
     exclude_positions: dict[str, list[int]] | None = None
     """

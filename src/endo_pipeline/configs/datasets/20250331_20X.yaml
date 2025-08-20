@@ -30,14 +30,7 @@ channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: All positions have dust artifacts
-center_z_plane:
-  0: 10
-  1: 9
-  2: 9
-  3: 9
-  4: 9
-  5: 10
-exclude_timepoints:
+timepoint_annotations:
   bf_scope_error:
     0: [315]
     1: [316]
@@ -51,3 +44,10 @@ exclude_timepoints:
     5: [413]
 exclude_positions:
   dust_artifact: [0, 1, 2, 3, 4, 5]
+center_z_plane:
+  0: 10
+  1: 9
+  2: 9
+  3: 9
+  4: 9
+  5: 10

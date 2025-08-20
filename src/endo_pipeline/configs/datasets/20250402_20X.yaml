@@ -27,14 +27,7 @@ channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: cells become extremely crowded at end of video
-center_z_plane:
-  0: 11
-  1: 10
-  2: 10
-  3: 10
-  4: 10
-  5: 9
-exclude_timepoints:
+timepoint_annotations:
   bf_temp_artifact:
     0: [46, 495, 541]
     1: [556]
@@ -44,3 +37,10 @@ exclude_timepoints:
     5: [1]
 exclude_positions:
   dust_artifact: [5]
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 10
+  4: 10
+  5: 9

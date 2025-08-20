@@ -29,14 +29,7 @@ valid_timepoints:
   stop: [410]
 include_scenes: null
 notes: cells become very crowded near end of timelapse
-center_z_plane:
-  0: 10
-  1: 10
-  2: 10
-  3: 11
-  4: 12
-  5: 12
-exclude_timepoints:
+timepoint_annotations:
   bf_scope_error:
     3: [524]
   bf_temp_artifact:
@@ -46,3 +39,11 @@ exclude_timepoints:
     3: [4, 524, 271, 326, 20, 21, 22, 23, 58, 140, 173, 209, 240]
     4: [3, 231, 48, 112, 20, 21, 22, 23, 44, 50, 222]
     5: [0, 51, 271, 287, 20, 21, 22, 23, 280, 60, 121]
+exclude_positions: null
+center_z_plane:
+  0: 10
+  1: 10
+  2: 10
+  3: 11
+  4: 12
+  5: 12

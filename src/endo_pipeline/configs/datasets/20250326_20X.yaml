@@ -29,14 +29,7 @@ valid_timepoints:
   stop: [345]
 include_scenes: null
 notes: ''
-center_z_plane:
-  0: 11
-  1: 10
-  2: 10
-  3: 11
-  4: 10
-  5: 10
-exclude_timepoints:
+timepoint_annotations:
   bf_scope_error:
     0: [527]
     1: [527]
@@ -44,3 +37,11 @@ exclude_timepoints:
     3: [527]
     4: [527]
     5: [527]
+exclude_positions: null
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 11
+  4: 10
+  5: 10
