@@ -31,7 +31,6 @@ __all__ = [
     "cross_correlation_function",
     "entropy_production",
     "exponential_decay",
-    "fit_exponential_decay",
     "get_3d_bounds_from_data",
     "get_3d_index_combinations",
     "get_bins",
