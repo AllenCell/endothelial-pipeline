@@ -8,11 +8,8 @@ from scipy.optimize import curve_fit
 
 from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
-from src.endo_pipeline.library.analyze.numerics import (
-    exponential_decay,
-    get_3d_index_combinations,
-    power_law_decay,
-)
+from src.endo_pipeline.library.analyze.numerics import exponential_decay, power_law_decay
+from src.endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
 from src.endo_pipeline.library.visualize.viz_base import init_plot
 
 logger = logging.getLogger(__name__)
@@ -181,9 +178,8 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
         )
 
         # plot ccf
-        index_combinations = get_3d_index_combinations()
         fig, ax = init_plot(figsize=(12, 6))
-        for i, (j, k) in enumerate(index_combinations):
+        for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
             lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
             ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
 
@@ -200,7 +196,7 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None
 
         # plot delta ccf
         fig, ax = init_plot(figsize=(12, 6))
-        for i, (j, k) in enumerate(index_combinations):
+        for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
             # delta ccf is symmetric around zero
             lags_symmetric = lags[1 + num_lags // 2 :]
             lags_symmetric_as_hours = 5 * lags_symmetric / 60

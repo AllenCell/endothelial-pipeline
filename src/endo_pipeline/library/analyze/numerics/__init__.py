@@ -11,7 +11,6 @@ from .correlations import (
     compute_correlation_dict,
     cross_correlation_function,
     exponential_decay,
-    get_3d_index_combinations,
     power_law_decay,
 )
 from .fp_solvers import SteadyFP

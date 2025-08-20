@@ -12,6 +12,8 @@ from src.endo_pipeline.library.analyze.diffae_manifest import (
 
 logger = logging.getLogger(__name__)
 
+CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
+
 
 def cross_correlation_function(
     data: np.ndarray, component_1: int, component_2: int, lag: int
@@ -136,11 +138,6 @@ def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -
     return cross_correlation_function(data, component_index, component_index, lag)
 
 
-def get_3d_index_combinations() -> list[tuple[int, int]]:
-    """Get fixed combinations of indices for 3D data."""
-    return [(0, 1), (0, 2), (1, 2)]
-
-
 def _compute_correlations_for_one_dataset(
     model_manifest: ModelManifest, pca: PCA, correlation_dict: dict
 ) -> dict[str, dict]:
@@ -168,8 +165,7 @@ def _compute_correlations_for_one_dataset(
             acf[k, i] = autocorrelation_function(feats, i, lags[k])
 
     ccf = np.zeros((num_lags, 3))
-    index_combinations = get_3d_index_combinations()
-    for i, (j, k) in enumerate(index_combinations):
+    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         for lag_index in range(num_lags):
             ccf[lag_index, i] = cross_correlation_function(feats, j, k, lags[lag_index])
 
@@ -177,7 +173,7 @@ def _compute_correlations_for_one_dataset(
     # forward and backward lags
     # leave out zero
     delta_ccf = np.zeros((num_lags // 2, 3))
-    for i, _ in enumerate(index_combinations):
+    for i, _ in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
 
     # store results in dict of dicts and return updated dict
