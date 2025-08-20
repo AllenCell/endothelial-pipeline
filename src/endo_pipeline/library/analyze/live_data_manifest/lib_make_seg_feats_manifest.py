@@ -437,9 +437,15 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
     # compute the number of nuclei found in a defined crop size
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(big_table, use_precomputed=False)
-    crops = ["dataset_name", "position", "image_index", "start_y", "end_y", "start_x", "end_x"]
+    crops = ["dataset_name", "position", "image_index", "track_id"]
     added_cols = list(set(num_nuclei_in_crop_df.columns) - set(big_table.columns))
-    big_table = big_table.merge(num_nuclei_in_crop_df[crops + added_cols], on=crops, how="left")
+    big_table = pd.merge(
+        left=big_table,
+        right=num_nuclei_in_crop_df[crops + added_cols],
+        on=crops,
+        how="left",
+        validate="one_to_one",
+    )
 
     return big_table
 
@@ -891,6 +897,8 @@ def add_num_nuclei_in_crop_column(
         "dataset_name",
         "position",
         "image_index",
+        "track_id",
+        "label",
         "centroid_Y",
         "centroid_X",
         "image_size_y",
