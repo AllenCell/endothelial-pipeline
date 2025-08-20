@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +24,7 @@ def plot_single_acf_curve(
     plot_title: str | None = None,
     xlabel: str | None = None,
     ylabel: str | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot the autocorrelation function (ACF) curves for given lags and ACF values."""
     if fig_ax is not None:
@@ -45,7 +46,7 @@ def plot_acf_curves_together(
     component_labels: list[str] | None = None,
     component_colors: list[str] | None = None,
     plot_title: str | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot multiple ACF curves together for comparison."""
     fig, ax = init_plot(figsize=figsize)
@@ -78,7 +79,7 @@ def _parse_dataset_description(dataset_description: str) -> str:
     return description_parsed
 
 
-def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> str:
+def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> plt.Axes:
     """Build a string for printing relaxation timescales on plot of ACFs."""
     # using unicode because slurm nodes and A100s do not support LaTeX rendering
     tau_str = chr(964)  # Greek letter tau (τ)
@@ -103,7 +104,7 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
     return ax
 
 
-def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict]) -> None:
+def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.ndarray]]) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
     dataset_descriptions = get_dataset_descriptions(

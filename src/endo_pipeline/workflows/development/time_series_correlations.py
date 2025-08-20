@@ -4,19 +4,24 @@ TAGS = ["diffae_features"]
 def main(
     dataset_name: str = "3d_flow_field_analysis",
     model_name: str = "diffae_04_10",
-    manifest_name: str | None = None,
 ) -> None:
-    """Run correlation analysis on DiffAE feature time series data."""
+    """
+    Run auto and cross correlation analysis on DiffAE feature time series data.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset or dataset collection to analyze.
+    model_name
+        Name of the DiffAE model to use for feature analysis.
+    """
     import logging
-    from typing import cast
 
     from src.endo_pipeline.configs import (
-        CytoDLModelConfig,
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
         load_dataset_config,
-        load_model_config,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
     from src.endo_pipeline.library.analyze.numerics import compute_correlation_dict
@@ -57,11 +62,8 @@ def main(
             )
             dataset_names.remove(dataset_name)
 
-    # load dataframe manifest: if no manifest name is provided,
-    # default to the one with name == model_name
-    if manifest_name is None:
-        manifest_name = model_name
-    dataframe_manifest = load_dataframe_manifest(manifest_name)
+    # load dataframe manifest = "{model_name}.yaml"
+    dataframe_manifest = load_dataframe_manifest(model_name)
 
     # fit PCA object for the given model that generates the model manifests
     pca = fit_pca(model_name=model_name)

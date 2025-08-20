@@ -198,7 +198,7 @@ def compute_correlation_dict(
     dataset_names: list[str], dataframe_manifest: DataframeManifest, pca: PCA
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
-    correlation_dict = {
+    correlation_dict: dict[str, dict[str, np.ndarray]] = {
         "lags": {},
         "acf": {},
         "ccf": {},
