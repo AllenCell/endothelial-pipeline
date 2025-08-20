@@ -1,0 +1,11 @@
+name: diffae_resolution_1_patch_128x128_2025-08-19_22-37-48_test_workflow
+mlflow_run_id: d40629fa19c04bcd98a30c19d50ef8d6
+training_datasets:
+- 20241016_20X
+- 20241120_20X
+- 20241217_20X
+- 20250224_20X
+- 20250319_20X
+- 20250326_20X
+- 20250409_20X
+- 20250428_20X
