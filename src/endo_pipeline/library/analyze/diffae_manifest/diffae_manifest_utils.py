@@ -62,8 +62,9 @@ def get_dataset_descriptions(
             for i, shear in enumerate(shear_rate):
                 shear_rate_str = f"{int(shear)}_dyncm2"
                 if include_duration:
-                    duration = int((flow_conditions[i][1] - flow_conditions[i][0]) * 5 / 60)
-                    shear_rate_str = f"{duration}hr_{shear_rate_str}"
+                    duration = flow_conditions[i][1] - flow_conditions[i][0]
+                    duration_in_hours = int(duration * 5 / 60)  # convert to hours
+                    shear_rate_str = f"{duration_in_hours}hr_{shear_rate_str}"
                 shear_rate_strings.append(shear_rate_str)
 
         description = "_".join(
