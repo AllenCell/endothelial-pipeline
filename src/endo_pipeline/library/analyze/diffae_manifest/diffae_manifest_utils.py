@@ -37,7 +37,7 @@ def get_dataset_descriptions(
         # get shear rate for each flow condition,
         # last element in each list in flow_config
         shear_rate = [int(flow_conditions[i][-1]) for i in range(num_flows)]
-        shear_rate_strings = []
+        shear_rate_strings: list[str] = []
         if simple:  # if simple description, use qualitative description of shear stress level
             shear_rate_strings = []
             for i, shear in enumerate(shear_rate):

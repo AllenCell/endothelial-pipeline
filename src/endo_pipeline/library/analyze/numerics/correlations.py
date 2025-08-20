@@ -3,12 +3,12 @@ import logging
 import numpy as np
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
+from src.endo_pipeline.manifests import DataframeManifest
 
 logger = logging.getLogger(__name__)
 
@@ -139,10 +139,20 @@ def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -
 
 
 def _compute_correlations_for_one_dataset(
-    model_manifest: ModelManifest, pca: PCA, correlation_dict: dict
+    dataset_name: str, dataframe_manifest: DataframeManifest, pca: PCA, correlation_dict: dict
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
-    df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+
+    # try to get dataframe for the given dataset
+    # if it does not exist, skip this dataset, return dict as is
+    try:
+        df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+    except KeyError:
+        logger.warning(
+            "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
+        )
+        return correlation_dict
+
     feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
 
     # get feature data
@@ -177,15 +187,15 @@ def _compute_correlations_for_one_dataset(
         delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
 
     # store results in dict of dicts and return updated dict
-    correlation_dict["lags"][model_manifest.dataset_name] = lags
-    correlation_dict["acf"][model_manifest.dataset_name] = acf
-    correlation_dict["ccf"][model_manifest.dataset_name] = ccf
-    correlation_dict["delta_ccf"][model_manifest.dataset_name] = delta_ccf
+    correlation_dict["lags"][dataset_name] = lags
+    correlation_dict["acf"][dataset_name] = acf
+    correlation_dict["ccf"][dataset_name] = ccf
+    correlation_dict["delta_ccf"][dataset_name] = delta_ccf
     return correlation_dict
 
 
 def compute_correlation_dict(
-    list_of_model_manifests: list[ModelManifest], pca: PCA
+    dataset_names: list[str], dataframe_manifest: DataframeManifest, pca: PCA
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
     correlation_dict = {
@@ -195,12 +205,10 @@ def compute_correlation_dict(
         "delta_ccf": {},
     }
     # update dict with correlation functions for each dataset in a loop
-    for model_manifest in list_of_model_manifests:
-        logger.info(
-            "Processing dataset [ %s ] for correlation analysis", model_manifest.dataset_name
-        )
+    for dataset_name in dataset_names:
+        logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
         correlation_dict = _compute_correlations_for_one_dataset(
-            model_manifest, pca, correlation_dict
+            dataset_name, dataframe_manifest, pca, correlation_dict
         )
     return correlation_dict
 
