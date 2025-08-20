@@ -6,6 +6,12 @@ from .binning import (
     get_normalization_constant,
     histogramdd,
 )
+from .correlations import (
+    autocorrelation_function,
+    cross_correlation_function,
+    exponential_decay,
+    fit_exponential_decay,
+)
 from .fp_solvers import SteadyFP
 from .gen_potential import (
     compute_flux_terms,
@@ -18,8 +24,12 @@ from .sde_model_eval import mesh_grid_function, vector_field_component, vector_f
 
 __all__ = [
     "SteadyFP",
+    "autocorrelation_function",
     "compute_flux_terms",
+    "cross_correlation_function",
     "entropy_production",
+    "exponential_decay",
+    "fit_exponential_decay",
     "get_3d_bounds_from_data",
     "get_bins",
     "get_df_by_bin_value",

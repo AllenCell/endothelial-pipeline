@@ -1,4 +1,5 @@
 from .dataset_config import (
+    ChannelIndices,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -33,13 +34,14 @@ from .dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
-    get_specific_channel_order,
+    get_position_integer_from_zarr_file_path,
+    get_position_string_from_zarr_file_path,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
     validate_3d_flow_field_dataset_collection,
     validate_filtered_dataset_collection,
 )
-from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig, ModelManifest
+from .model_config import CellposeModelConfig, CytoDLModelConfig, ModelConfig
 from .model_config_io import (
     get_available_model_names,
     get_model_config_dir,
@@ -49,16 +51,11 @@ from .model_config_io import (
     validate_all_model_configs,
     validate_model_config,
 )
-from .model_config_utils import (
-    add_model_manifest,
-    get_labelfree_nuclei_prediction_model_name,
-    get_model_manifest,
-    get_pca_reference_model_manifests,
-    get_timelapse_model_manifests,
-)
+from .model_config_utils import get_labelfree_nuclei_prediction_model_name
 
 __all__ = [
     "CellposeModelConfig",
+    "ChannelIndices",
     "CytoDLModelConfig",
     "TimepointAnnotation",
     "DatasetCollectionConfig",
@@ -66,11 +63,9 @@ __all__ = [
     "FlowCondition",
     "MicroscopeType",
     "ModelConfig",
-    "ModelManifest",
     "ObjectiveType",
     "SampleType",
     "ValidTimepoints",
-    "add_model_manifest",
     "get_available_channels_for_all_positions",
     "get_available_channels_for_position",
     "get_available_dataset_collection_names",
@@ -89,10 +84,8 @@ __all__ = [
     "get_frame_before_flow_change",
     "get_labelfree_nuclei_prediction_model_name",
     "get_model_config_dir",
-    "get_model_manifest",
-    "get_pca_reference_model_manifests",
-    "get_specific_channel_order",
-    "get_timelapse_model_manifests",
+    "get_position_integer_from_zarr_file_path",
+    "get_position_string_from_zarr_file_path",
     "get_zarr_file_for_position",
     "load_all_dataset_configs",
     "load_all_model_configs",

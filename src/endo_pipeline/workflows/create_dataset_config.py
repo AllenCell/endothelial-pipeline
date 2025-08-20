@@ -28,7 +28,12 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from src.endo_pipeline.configs import DatasetConfig, ValidTimepoints, save_dataset_config
+from src.endo_pipeline.configs import (
+    ChannelIndices,
+    DatasetConfig,
+    ValidTimepoints,
+    save_dataset_config,
+)
 
 # %%
 dataset = DatasetConfig(
@@ -54,13 +59,16 @@ dataset = DatasetConfig(
     time_interval_in_minutes=0.0,
     flow=[(0, 0, 0.0)],
     n_total_positions=0,
-    channel_488_index=0,
-    brightfield_channel_index=1,
+    original_channels=ChannelIndices(
+        brightfield=1,
+        channel_488=0,
+    ),
+    zarr_channels=ChannelIndices(
+        brightfield=1,
+        channel_488=0,
+    ),
     # ============================ OPTIONAL FIELDS =============================
     # flow_conditions=[[0,0,0.0]],
-    # channel_405_index=0,
-    # channel_561_index=0,
-    # channel_640_index=0,
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",

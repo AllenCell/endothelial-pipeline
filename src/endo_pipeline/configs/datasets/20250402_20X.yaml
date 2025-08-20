@@ -15,15 +15,22 @@ duration: 571
 time_interval_in_minutes: 5.0
 flow: [[0, 570, 5.85]]
 n_total_positions: 6
-channel_488_index: 0
-brightfield_channel_index: 1
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -22
   stop: 570
   shear_stress: 5.85
-channel_405_index: null
-channel_561_index: null
-channel_640_index: null
 valid_timepoints: null
 include_scenes: null
 notes: cells become extremely crowded at end of video

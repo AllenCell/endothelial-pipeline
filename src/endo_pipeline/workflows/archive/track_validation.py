@@ -55,6 +55,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     from bioio import BioImage
     from skimage import measure
 
+    from src.endo_pipeline.configs import load_dataset_config
     from src.endo_pipeline.configs.dataset_io import get_dataset_info
     from src.endo_pipeline.io import load_segmentation
     from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
@@ -92,7 +93,8 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
         # print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
-        cdh5_channel = int(get_dataset_info(dataset_name)["channel_488_index"])
+        dataset_config = load_dataset_config(dataset_name)
+        cdh5_channel = dataset_config.original_channel_indices.channel_488
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
         img_arr = img_dask.max(axis=dim_map["Z"], keepdims=True).squeeze().compute()
 

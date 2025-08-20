@@ -59,7 +59,7 @@ def generate_results(args: dict) -> None:
             img.set_scene(args["scene_index"])
 
         data_config = load_dataset_config(dataset_name)
-        brightfield_index = data_config.brightfield_channel_index
+        brightfield_index = data_config.original_channel_indices.brightfield
         img_arr = img.get_image_dask_data(dim_order, T=args["T"], C=brightfield_index)
 
         # Load the retrained CellPose label-free nuclear prediction model
