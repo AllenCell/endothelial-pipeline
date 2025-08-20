@@ -1,9 +1,8 @@
 # %%
-import numpy as np
 import pandas as pd
 
 from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.model import BioIOImageLoaderd, MultiDimImageDataset
+from src.endo_pipeline.library.model import MultiDimImageDataset
 
 # %%
 
@@ -13,11 +12,11 @@ zarr_file_path = (
 )
 
 resolution = 1
-start = 0
-stop = -1
+start = 300
+stop = 500
 step = 50
 channel = [0, 1]
-exclude_frames = [5, 400]
+exclude_frames = [350, 400]
 
 df = pd.DataFrame(
     {

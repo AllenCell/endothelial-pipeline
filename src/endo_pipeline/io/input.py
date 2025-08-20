@@ -183,7 +183,9 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     record = list(FMS.find(annotations=annotations))
 
     if not record:
-        logger.error("Record for FMS ID [ %s ] in FMS [ %s ] not found", fmsid, FILE_ENV)
+        logger.error(
+            "Record for FMS ID [ %s ] in FMS [ %s ] environment not found", fmsid, FILE_ENV
+        )
         raise LookupError(f"cannot find file id '{fmsid}' in FMS [ {FILE_ENV} ] environment")
 
     local_path = Path(record[0].path.replace(FMS_BUCKET_NAME, FMS_LOCAL_PATH))
