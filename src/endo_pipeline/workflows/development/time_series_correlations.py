@@ -12,6 +12,7 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name="diffae_04_10"
         get_available_dataset_names,
         get_datasets_in_collection,
         get_model_manifest,
+        load_dataset_config,
         load_model_config,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
@@ -46,7 +47,9 @@ def main(dataset_name: str = "3d_flow_field_analysis", model_name="diffae_04_10"
     # get model manifests for each dataset in the list of datasets
     # as long as the dataset exists in the model config
     for dataset_name in dataset_names:
-        if "20241217" in dataset_name:
+        dataset_config = load_dataset_config(dataset_name)
+        flow_conditions = dataset_config.flow_conditions
+        if int(flow_conditions[0].shear_stress) == 0:
             # skip no flow dataset
             continue
         try:
