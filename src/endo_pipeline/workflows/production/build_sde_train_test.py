@@ -22,20 +22,15 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
         at the points X and shear stress u.
     """
     import logging
-    from typing import cast
 
-    from src.endo_pipeline.configs import (
-        CytoDLModelConfig,
-        dynamics_io,
-        get_timelapse_model_manifests,
-        load_model_config,
-    )
+    from src.endo_pipeline.configs import dynamics_io, get_datasets_in_collection
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.analyze.diffae_features import (
         build_kramers_moyal_train_test,
         save_train_test,
     )
     from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
 
@@ -71,16 +66,14 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     if "kernel_params" in kramers_moyal_config:
         kernel_params = kramers_moyal_config["kernel_params"]
 
-    # get model config from model name
-    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-
-    # filter out datasets that are not timelapse
-    # and load model manifests
-    model_manifest_list = get_timelapse_model_manifests(model_config)
+    # load dataset collection and dataframe manifest for model
+    manifest = load_dataframe_manifest(model_name)
+    dataset_names = get_datasets_in_collection("timelapse", list(manifest.locations.keys()))
 
     # build train-test data for regression
     train_test_dict = build_kramers_moyal_train_test(
-        model_manifest_list,
+        dataset_names,
+        manifest,
         pca,
         pcs,
         num_bins,

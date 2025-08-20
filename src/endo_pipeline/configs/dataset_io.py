@@ -507,30 +507,6 @@ Use one of the following methods to load the dataset config:
         configs.load_all_dataset_configs
         configs.load_dataset_config(dataset_name)
 
-Then use this replacement method:
-
-        configs.get_specific_channel_order(dataset)
-"""
-)
-def get_specific_channel_order(dataset_name: str) -> tuple:
-    """Get the specific channel order for a given dataset."""
-    dataset_info = get_dataset_info(dataset_name)
-    gfp_index = dataset_info.get("channel_488_index")
-    bf_index = dataset_info.get("brightfield_channel_index")
-    index_405 = dataset_info.get("channel_405_index", None)
-    index_561 = dataset_info.get("channel_561_index", None)
-    index_640 = dataset_info.get("channel_640_index", None)
-
-    return gfp_index, bf_index, index_405, index_561, index_640
-
-
-@deprecated(
-    """
-Use one of the following methods to load the dataset config:
-
-        configs.load_all_dataset_configs
-        configs.load_dataset_config(dataset_name)
-
 The field can then be accessed using:
 
         dataset.n_total_positions
@@ -1044,7 +1020,9 @@ def ipython_cli_flexecute(
             raise NameError
     except NameError:
         print("Using non-interactive shell.")
-        results = workflow_cli(function)
+        import fire
+
+        results = fire.Fire(function)
 
     return results if return_results else None
 
@@ -1233,8 +1211,6 @@ def concatenate_and_save_feature_tables(
     out_dir/dataset_name/position/*filename_contains*.file_extension.
     """
     out_subdir = out_dir / dataset_name
-    feats_dfs = []
-    sep = "\t" if file_extension == ".tsv" else ","
 
     file_extension = f".{file_extension}" if not file_extension.startswith(".") else file_extension
     if input_filename_contains and not input_filename_contains.endswith("*"):
@@ -1242,7 +1218,23 @@ def concatenate_and_save_feature_tables(
     feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
     if sort_by_T:
         feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_T(fp.stem))
-    feats_dfs = [pd.read_csv(fp, sep=sep) for fp in feats_filepaths]
+
+    if file_extension == ".tsv":
+        sep = "\t"
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".csv":
+        sep = ","
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".parquet":
+        table_reader = lambda fp: pd.read_parquet(fp)
+        table_writer = lambda df, fp: df.to_parquet(fp, index=False)
+    else:
+        raise ValueError(
+            f"Invalid file extension {file_extension}. Must be .csv, .tsv., or .parquet."
+        )
+    feats_dfs = [table_reader(fp) for fp in feats_filepaths]
 
     # define the output path for the concatenated dataframe
     if out_file_suffix:
@@ -1253,14 +1245,14 @@ def concatenate_and_save_feature_tables(
 
     if feats_dfs:
         concatenated_df = pd.concat(feats_dfs, ignore_index=True)
-        concatenated_df.to_csv(concatenated_df_out_path, sep=sep, index=False)
+        table_writer(concatenated_df, concatenated_df_out_path)
     else:
         print(f"No feature tables found for {dataset_name}.")
 
     if check_saved_dataframe:
         # check that the concatenated dataframe at least has the same shape
         # and column names as a proxy for checking if it was saved correctly
-        saved_df = pd.read_csv(concatenated_df_out_path, sep=sep)
+        saved_df = table_reader(concatenated_df_out_path)
         same_shape = saved_df.shape == concatenated_df.shape
         same_column_names = all(saved_df.columns == concatenated_df.columns)
         if not (same_shape and same_column_names):
