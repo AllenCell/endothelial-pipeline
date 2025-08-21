@@ -355,6 +355,20 @@ class MultiDimImageDataset(CacheDataset):
         logger.debug("Loading image with Z slices: [ %s ]", list(z_slices))
         return list(z_slices)
 
+    def _get_channel(self, row: dict) -> int | list[int]:
+        """Get channel(s) from the row data."""
+        channel = row.get(self.channel_column, ZARR_BF_CHANNEL)
+        if isinstance(channel, list | tuple):
+            logger.debug("Loading image with channels: [ %s ]", channel)
+        else:
+            logger.debug("Loading image with channel: [ %s ]", channel)
+        if isinstance(channel, np.ndarray):
+            # convert numpy array to list
+            # otherwise this results in UserWarnings
+            # from monai.data.MetaTensor
+            channel = channel.tolist()
+        return channel
+
     def get_per_file_args(self, df: pd.DataFrame) -> list[dict]:
         """Get image loading arguments for each file in the dataframe."""
         img_data = []
@@ -363,6 +377,7 @@ class MultiDimImageDataset(CacheDataset):
             row_dict: dict = row._asdict()  # type: ignore[operator]
             img = BioImage(row_dict[self.img_path_column])
             scenes = self._get_scenes(row_dict, img)
+            channel = self._get_channel(row_dict)
             for scene in scenes:
                 img.set_scene(scene)
                 timepoints = self._get_timepoints(row_dict, img)
@@ -370,7 +385,7 @@ class MultiDimImageDataset(CacheDataset):
                     z_slices = self._get_z_slices(row_dict, img)
                     image_loading_args = {
                         "dimension_order_out": "C" + "ZYX"[-self.spatial_dims :],
-                        "C": row_dict[self.channel_column],
+                        "C": channel,
                         "scene": scene,
                         "T": timepoint,
                         "Z": z_slices,
