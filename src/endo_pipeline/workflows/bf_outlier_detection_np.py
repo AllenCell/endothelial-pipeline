@@ -8,13 +8,13 @@ from src.endo_pipeline.configs import get_available_zarr_files, load_dataset_con
 from src.endo_pipeline.io.input import load_zarr_as_dask_array
 
 # %% SET PARAMS
-LOWER_THRESH = 0.005  # Percentage to use for thresholding
+LOWER_THRESH = 0.004  # Percentage to use for thresholding
 UPPER_THRESH = 0.01  # Percentage to use for thresholding
 ROLLING_WINDOW = 100  # Size of the rolling window for mean calculation (4 timepoints)
 NUM_ZSLICES = 25  # Number of z-slices per timepoint
 
 # %% LOAD DATA
-dataset_name = "20250224_20X"
+dataset_name = "20250611_20X"
 # dataset_name = "20250618_20X"
 dataset_config = load_dataset_config(dataset_name)
 

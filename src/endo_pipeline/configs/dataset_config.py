@@ -29,8 +29,11 @@ class TimepointAnnotation(StrEnum):
     BF_TEMP_ARTIFACT = "bf_temp_artifact"
     """Temporary brightfield artifact."""
 
-    XYZ_SHIFT = "xyz_shift"
-    """Shift in the XYZ position."""
+    XY_SHIFT = "xy_shift"
+    """Shift in the XY position."""
+
+    Z_SHIFT = "z_shift"
+    """Shift in the Z focus."""
 
 
 class PositionAnnotation(StrEnum):
