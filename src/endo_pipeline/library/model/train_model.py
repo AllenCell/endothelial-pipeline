@@ -106,37 +106,34 @@ def _generate_overrides_for_finetuning(
 
     Parameters
     ----------
-    model_name: str
+    model_name
         The name of the model to finetune. This should correspond to a
         directory in `results/models/` and match the model name used during the
         `paired_data_validation` step.
-    dataset_pair_type: Literal['live_fixed', '20x_40x']
+    dataset_pair_type
         The type of dataset to use for finetuning. This should match the dataset
         type used during the `paired_data_validation` step.
-    train_csv_path: Path
+    train_csv_path
         The path to the training CSV file containing paired data.
-    val_csv_path: Path
+    val_csv_path
         The path to the validation CSV file containing paired data.
-    ckpt_path: Path
+    ckpt_path
         The path to the DiffAE checkpoint to finetune.
     """
     # create output directories if they do not exist
     save_path = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
-        include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
         "checkpoints",
-        include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
         "logs",
-        include_timestamp=False,
     )
 
     overrides = {
@@ -148,10 +145,10 @@ def _generate_overrides_for_finetuning(
         "checkpoint.weights_only": True,
         "checkpoint.strict": False,
         # save to user-specified directory
-        "model.save_dir": (save_path / "logs").as_posix(),
+        "model.save_dir": str(save_path / "logs"),
         "trainer.default_root_dir": save_path,
-        "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
-        "paths.output_dir": (save_path / "logs").as_posix(),
+        "callbacks.model_checkpoint.dirpath": str(save_path / "checkpoints"),
+        "paths.output_dir": str(save_path / "logs"),
         # do training
         "train": True,
         # # make sure that last ckpt is saved

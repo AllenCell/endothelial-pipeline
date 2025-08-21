@@ -53,7 +53,6 @@ def main(
     model_save_path = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
-        include_timestamp=False,
     )
 
     # download model to finetune
