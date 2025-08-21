@@ -72,7 +72,6 @@ def main(
         get_datasets_in_collection,
         load_dataset_config,
         load_model_config,
-        save_model_config,
     )
     from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
