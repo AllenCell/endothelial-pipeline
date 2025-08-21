@@ -51,7 +51,7 @@ timepoint_annotations:
     2: [22, 34, 42, 188]
     3: [23, 28, 39, 45, 176, 306]
     4: [67, 68, 77, 88, 124, 130, 219]
-    5: [9, 43, 57, 66, 180, 211]
+    5: [9, 43, 57, 66, 180, 211, 262] # 262 is a ghost
 position_annotations: null
 center_z_plane:
   0: 13
