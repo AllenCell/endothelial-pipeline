@@ -548,17 +548,26 @@ def _get_paired_dataset_dict(
 def align_and_save_paired_images(
     dataset_pair_type: Literal["live_fixed", "20x_40x"],
     save_path: Path,
+    testing_mode: bool = False,
 ) -> pd.DataFrame:
     """
     Align and save all paired images from the specified dataset pair type.
 
+    **Workflow testing**
+
+    If ``testing_mode`` is set to True, the function will only align the first pair of images
+    and save them to the specified `save_path`. This is useful for testing the basic function
+    of this method without processing the entire dataset.
+
     Parameters
     ----------
     dataset_pair_type
-        The type of dataset pair to align. Options are "live_fixed" for live/fixed
-        pairs and "20x_40x" for 20x/40x pairs.
+        The type of dataset pair to align.
     save_path
         The directory where the aligned images will be saved.
+    testing_mode
+        If True, only the first pair of images will be aligned and saved.
+
 
     Returns
     -------
@@ -577,9 +586,9 @@ def align_and_save_paired_images(
 
     alignment_method = "sift" if dataset_pair_type == "live_fixed" else "template"
 
-    df = []
+    df_list = []
     for fixed, moving in zip(fixed_datasets, moving_datasets, strict=False):
-        df.append(
+        df_list.append(
             align_all_positions(
                 fixed,
                 moving,
@@ -587,7 +596,12 @@ def align_and_save_paired_images(
                 alignment_method=alignment_method,
             )
         )
-    df = pd.concat(df, ignore_index=True)
+        if testing_mode:
+            logger.warning(
+                "Testing mode is enabled. Only the first pair of images will be aligned and saved."
+            )
+            break
+    df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
     logger.debug("Found %d pairs of images to save", len(df))
     return df
