@@ -335,9 +335,7 @@ class MultiDimImageDataset(CacheDataset):
                 timepoints_to_exclude,
                 timepoints_as_list,
             )
-            timepoints_as_list = [
-                tp for tp in timepoints_as_list if tp not in timepoints_to_exclude
-            ]
+            timepoints_as_list = list(set(timepoints) - set(timepoints_to_exclude))
         logger.debug("Loading image with timepoints: [ %s ]", timepoints_as_list)
         return timepoints_as_list
 
@@ -404,9 +402,9 @@ def build_zarr_image_loading_dataframe(
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    z_slice_info_per_position: dict[str, dict[str, int]] | None = None,
+    z_slice_info_per_position: dict[int, dict[str, int]] | None = None,
     only_positions: list[int] | None = None,
-    exclude_frames: dict[str, list[int]] | None = None,
+    exclude_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
     # generate csv with paths to zarr files for each position in the dataset
@@ -442,22 +440,20 @@ def build_zarr_image_loading_dataframe(
     # add column for excluding frames, if specified
     if exclude_frames is not None:
         # if position has no frames to exclude, set to None
-        df["exclude_frames"] = df["position_index"].apply(
-            lambda x: exclude_frames.get(str(x), None)
-        )
+        df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
 
     # if start and stop for loading z slices are specified, add to dataframe
     if z_slice_info_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
         df["z_start"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(str(x), {}).get("z_start", 0)
+            lambda x: z_slice_info_per_position.get(x, {}).get("z_start", 0)
         )
         df["z_stop"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(str(x), {}).get("z_stop", -1)
+            lambda x: z_slice_info_per_position.get(x, {}).get("z_stop", -1)
         )
         df["z_step"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(str(x), {}).get("z_step", 1)
+            lambda x: z_slice_info_per_position.get(x, {}).get("z_step", 1)
         )
 
     # remove temporary column with position index

@@ -370,7 +370,7 @@ def _get_z_offset_information(
     dataset_config: DatasetConfig,
     z_stack_offsets: tuple[int, int],
     slice_by_global_center: bool = True,
-) -> dict[str, dict[str, int]]:
+) -> dict[int, dict[str, int]]:
     """
     Get a dataframe with zarr loading metadata when z-slice selection is based
     on the center slice for each position in the dataset.
@@ -392,7 +392,7 @@ def _get_z_offset_information(
                 upper_offset=z_stack_offsets[1],
                 slice_by_global_center=slice_by_global_center,
             )
-            z_slice_by_position[str(position_as_int)] = {
+            z_slice_by_position[position_as_int] = {
                 "z_start": z_slices[0],
                 "z_stop": z_slices[-1],
             }
