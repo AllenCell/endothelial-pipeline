@@ -36,7 +36,7 @@ include_scenes: null
 notes: Flow history. Cells exposed to flow for 3h 20min prior to start of imaging.
   Cells show mixed alignment leaning towards more parallel
 timepoint_annotations:
-  xy_shift:
+  xyz_shift:
     0: [4, 5]
     1: [4, 5]
     2: [4, 5]

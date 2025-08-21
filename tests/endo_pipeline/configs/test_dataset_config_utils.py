@@ -236,8 +236,8 @@ def test_get_annotated_positions_with_annotations(dataset, annotations, position
         (1, [TimepointAnnotation.BF_SCOPE_ERROR], [4, 5, 6]),
         (0, [TimepointAnnotation.GFP_SCOPE_ERROR], [7, 8, 9]),
         (1, [TimepointAnnotation.GFP_SCOPE_ERROR], [10, 11, 12]),
-        (0, [TimepointAnnotation.XY_SHIFT], [13, 14, 15]),
-        (1, [TimepointAnnotation.XY_SHIFT], []),
+        (0, [TimepointAnnotation.XYZ_SHIFT], [13, 14, 15]),
+        (1, [TimepointAnnotation.XYZ_SHIFT], []),
         (0, [], []),
         (1, [], []),
     ],
@@ -254,7 +254,7 @@ def test_get_annotated_timepoints_for_position_with_annotations(
             0: [7, 8, 9],
             1: [10, 11, 12],
         },
-        TimepointAnnotation.XY_SHIFT: {
+        TimepointAnnotation.XYZ_SHIFT: {
             0: [13, 14, 15],
             1: [],
         },

@@ -100,7 +100,7 @@ for position in dataset_config.zarr_positions:
     # Plot
     plt.figure(figsize=(12, 10))
     plt.plot(data_np, label="Intensity", color="black", alpha=0.5)
-    plt.plot(rolling_median_np, label="Rolling Mean", color="gray", alpha=0.5)
+    plt.plot(rolling_median_np, label="Rolling Mean", color="black", alpha=1, zorder=4)
     plt.plot(dark_threshold, label="Lower Threshold", color="red", linestyle="--")
     plt.plot(partial_dark_threshold, label="Partial Dark Threshold", color="purple", linestyle="--")
     plt.plot(bright_threshold, label="Upper Threshold", color="orange", linestyle="--")

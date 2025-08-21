@@ -31,6 +31,33 @@ flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-valid_timepoints: null
+valid_timepoints:
 include_scenes: null
 notes: no SS w/ feeding every 3 hours during working hours
+timepoint_annotations:
+  bf_scope_error:
+    0: [0]
+    5: [0]
+  bf_temp_artifact:
+    0: [52, 273, 337, 379]
+    1: [36, 69, 114, 171, 192, 272, 332]
+    2: [304]
+    3: [292]
+    4: [14, 191, 241, 294]
+    5: [89, 356, 554]
+  xyz_shift:
+    0: [33, 34, 65, 66, 67, 246, 247, 286, 320, 321, 322, 647]
+    1: [33, 34, 65, 66, 67, 246, 247, 286, 320, 321, 322, 647]
+    2: [33, 34, 65, 66, 67, 246, 247, 286, 320, 321, 322, 647]
+    3: [33, 34, 65, 66, 67, 246, 247, 286, 320, 321, 322, 647]
+    4: [33, 34, 65, 66, 67, 246, 247, 286, 320, 321, 322, 647]
+    5: [33, 34, 65, 66, 67, 246, 247, 286, 320, 321, 322, 647]
+position_annotations:
+  dust_artifact: [3]
+center_z_plane:
+  0: 13
+  1: 13
+  2: 13
+  3: 13
+  4: 13
+  5: 13

@@ -40,3 +40,25 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: ''
+timepoint_annotations:
+  bf_scope_error:
+    0: [0]
+    1: [0, 8, 14]
+    2: [0, 13, 14]
+    3: [0, 13]
+    4: [0, 14]
+    5: []
+  bf_temp_artifact:
+    0: [276, 291, 370, 562]
+    1: [297, 354, 401]
+    2: [301, 322]
+    3: [316, 368]
+    4: [347, 413, 439, 444, 574]
+    5: [322]
+center_z_plane:
+  0: 10
+  1: 9
+  2: 10
+  3: 10
+  4: 10
+  5: 10
