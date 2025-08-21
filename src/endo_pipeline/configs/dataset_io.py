@@ -918,7 +918,7 @@ def fire_parse_generate_dataset_name_list(
     If it is a list of strings, it will be returned as is.
 
     To enter a list of datasets to analyze, use the following format:
-    '\"20241016_20X\",\"20241120_20X\"'
+    '\"20241217_20X\",\"20241120_20X\"'
     """
     if fire_dataset_name_input is None:
         dataset_name_list = get_datasets_in_collection("pca_reference")

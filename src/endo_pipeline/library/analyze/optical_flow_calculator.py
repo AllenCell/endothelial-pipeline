@@ -945,11 +945,3 @@ def get_divergence_curl_example(
         "divergence": divergence,
         "curl": curl,
     }
-
-
-# The following checks that the last image is the same when loaded as it was when being saved:
-# import numpy as np
-# test_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic_state\cellsmap\cellsmap\results\flow_calculator\20241016_20X_vector_field.ome.tiff')
-# test_img = BioImage(test_path)
-# img = test_img.get_image_data("TCYX")
-# np.all(flowc.vx == img[:,0,...])

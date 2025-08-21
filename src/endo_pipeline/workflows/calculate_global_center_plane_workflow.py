@@ -71,7 +71,7 @@ if __name__ == "__main__":
         logging.info(f"Results saved to: {save_dir / f'{dataset}_global_center_plane.csv'}")
 
     # One example to show how slice selection for a specific dataset and position is done
-    dataset, position, frame = "20241016_20X", 0, 0
+    dataset, position, frame = datasets[0], 0, 0
     save_dir = get_output_path(__file__, dataset)
     config = load_dataset_config(dataset)
 
