@@ -409,7 +409,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
     testing_mode: bool = False,
-) -> CytoDLModelConfig:
+) -> None:
     """
     Apply a DiffAE model to a single dataset.
 
@@ -631,8 +631,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
         manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
         save_dataframe_manifest(manifest)
-
-    return model_config
 
 
 def apply_model_on_tracked_crops_from_one_dataset(
