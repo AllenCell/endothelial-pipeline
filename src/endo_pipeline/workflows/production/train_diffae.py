@@ -107,8 +107,8 @@ def main(
     # get list of datasets used for training
     # based on content of train and val dataframes
     list_of_training_datasets = get_dataset_names_used_for_training(
-        train_dataframe_path,
-        val_dataframe_path,
+        train_dataframe_location,
+        val_dataframe_location,
         "live_20X_objective_3i_microscope",
     )
     # add run ID and training datasets to model config

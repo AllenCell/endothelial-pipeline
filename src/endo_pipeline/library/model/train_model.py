@@ -13,6 +13,7 @@ from src.endo_pipeline.io import (
     build_fms_annotations,
     get_local_path_from_fmsid,
     get_output_path,
+    load_dataframe,
     upload_file_to_fms,
 )
 from src.endo_pipeline.manifests import (
@@ -486,22 +487,16 @@ def get_valid_csv_path_for_finetuning(
 
 
 def get_dataset_names_used_for_training(
-    train_dataframe_path: Path, val_dataframe_path: Path, dataset_collection_name: str
+    train_dataframe_location: DataframeLocation,
+    val_dataframe_location: DataframeLocation,
+    dataset_collection_name: str,
 ) -> list[str]:
     """
     Pull list of dataset names used for model training from training
     and validation image loading dataframes.
     """
-    # load train.csv and val.csv files as dataframes
-    if train_dataframe_path.suffix == ".parquet":
-        train_df = pd.read_parquet(train_dataframe_path)
-    else:
-        train_df = pd.read_csv(train_dataframe_path)
-
-    if val_dataframe_path.suffix == ".parquet":
-        val_df = pd.read_parquet(val_dataframe_path)
-    else:
-        val_df = pd.read_csv(val_dataframe_path)
+    train_df = load_dataframe(train_dataframe_location)
+    val_df = load_dataframe(val_dataframe_location)
 
     # get date part of dataset name from zarr path
     # note: this might be something that
