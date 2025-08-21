@@ -6,9 +6,9 @@ from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
 from cellsmap.util.set_output import get_output_path
+from src.endo_pipeline.configs import load_dataset_config
 from src.endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
-    get_dataset_info,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
@@ -82,7 +82,9 @@ def generate_results(
         original_path = Path(get_original_path(dataset_name))
         img_path = original_path
         img = BioImage(img_path)
-        egfp_index = get_dataset_info(dataset_name)["channel_488_index"]
+        dataset_config = load_dataset_config(dataset_name)
+        egfp_index = dataset_config.original_channel_indices.channel_488
+
         if scene_index is not None or scene_name is not None:
             scene = scene_index or scene_name or 0  #  the "or 0" is here to silence mypy
             img.set_scene(scene)

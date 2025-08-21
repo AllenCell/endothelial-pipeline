@@ -1,15 +1,24 @@
+from typing import Any
+
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import ModelManifest
 from src.endo_pipeline.library.analyze.diffae_manifest import (
-    get_manifest_for_dynamics_workflows,
+    get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
 from src.endo_pipeline.library.visualize import viz_base
+from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    get_seg_feat_plot_args,
+)
+from src.endo_pipeline.manifests import DataframeManifest
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
@@ -21,8 +30,8 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
         ratio of PCA components
 
     Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    - fig: Figure
+    - ax: Axes
     """
     fig, ax = viz_base.init_plot()  # initialize figure and axes
 
@@ -39,7 +48,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
     return fig, ax
 
 
-def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[plt.Figure, plt.Axes]:
+def plot_component_loadings(loading_matrix: np.ndarray) -> tuple[Figure, Axes]:
     """
     Plot component loadings of PCA model.
 
@@ -97,23 +106,26 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
+    dataset_names: list[str],
+    manifest: DataframeManifest,
     pca: PCA,
-    model_manifest_list: list[ModelManifest],
     timepoints_to_use: dict[str, list[list]] | None = None,
+    alpha: float = 0.75,
+    scatter_size: float = 0.01,
 ) -> tuple:
     """
     Plot scatter plot of PCA components for a list of datasets.
 
     Input:
+    - dataset_names: list of dataset names to use for plotting
+    - manifest: manifest of model feature dataframes
     - pca: the PCA model used to project the
         feature data onto the PCA space
-    - model_manifest_list: list[str], list of dataset names to plot
-        - each dataset should have a DiffAE manifest file
     - timepoints_to_use: dict[list[list]] | None, optional
         - dictionary of lists of timepoint ranges to use for each dataset
     Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    - fig: Figure
+    - ax: Axes
     """
 
     # initialize figure and axes
@@ -121,15 +133,14 @@ def plot_pc_scatter(
     # initialize color list for legend
     patch_list_for_legend = []
 
-    for model_manifest in model_manifest_list:
-        dataset_name = model_manifest.dataset_name
+    for dataset_name in dataset_names:
         # load dataframe and get top 3 PCs
-        df = get_manifest_for_dynamics_workflows(model_manifest, pca)
+        df = get_dataframe_for_dynamics_workflows(dataset_name, manifest, pca)
         pc_column_names = get_pc_column_names(df, [0, 1, 2])
 
         # if timepoints_to_use is provided, restrict to those timepoints
         if timepoints_to_use is not None:
-            frame_ranges = timepoints_to_use[model_manifest.dataset_name]
+            frame_ranges = timepoints_to_use[dataset_name]
             timepoints = []
             for frame_range in frame_ranges:
                 timepoints.extend(list(range(frame_range[0], frame_range[1] + 1)))
@@ -138,15 +149,15 @@ def plot_pc_scatter(
             df = df[df["valid"]]
 
         # get color for the dataset
-        color = get_dataset_color(model_manifest.dataset_name)
+        color = get_dataset_color(dataset_name)
         patch_list_for_legend.append(mpatches.Patch(color=color, label=dataset_name))
 
         # first plot: PC1 v PC2
         ax[0].scatter(
             df[pc_column_names[0]],
             df[pc_column_names[1]],
-            alpha=0.75,
-            s=0.01,
+            alpha=alpha,
+            s=scatter_size,
             color=color,
             label=dataset_name,
         )
@@ -157,8 +168,8 @@ def plot_pc_scatter(
         ax[1].scatter(
             df[pc_column_names[0]],
             df[pc_column_names[2]],
-            alpha=0.75,
-            s=0.01,
+            alpha=alpha,
+            s=scatter_size,
             color=color,
             label=dataset_name,
         )
@@ -170,33 +181,37 @@ def plot_pc_scatter(
 
 
 def plot_principal_component_histogram(
-    hist_array,
+    hist_array: np.ndarray,
     bin_edges: list[np.ndarray],
     time_tick_step: int = 100,
     bin_tick_step: int = 5,
-) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[Figure, Axes]:
     """
-    Plot histogram of latent components for a given dataset.
-    At each frame in the dataset, computes the histogram of the
-    crops for each latent component. Then plots the histogram
-    for each latent component as a function of time.
+    Plot histogram of each principal component over time for a given dataset.
 
-    Input:
-    - hist_array: np.ndarray, histogram values for each component as a function of time
-        - generated by get_histogram_by_component() function in
-            cellsmap.analyses.utils.numerics.latent_heatmaps.py
-        - shape (num_features, num_bins, num_frames)
-    - bin_edges: list[np.ndarray], bin edges for each component
-        - also generated by get_histogram_by_component() function
-        - all have same number of bins (num_bins)
-    - time_tick_step: int, step size for x-axis ticks (time points)
-        - optional, default is 100
-    - bin_tick_step: int, step size for y-axis ticks (bin edges)
-        - optional, default is 5
+    ** Histogram and bins **
+    The histogram is computed for each latent component at each time point (frame).
+    The histogram values are stored in a 3D array, where the shape is
+    (num_features, num_bins, num_frames). Both the histogram values and the bin
+    edges for each dimension are returned by the get_histogram_by_component() function.
 
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    Parameters
+    ----------
+    hist_array
+        Histogram values for each component as a function of time; (num_dims, num_bins, num_time).
+    bin_edges
+        List of bin edges for each component, generated by get_histogram_by_component() function.
+    time_tick_step
+        Optional, step size for x-axis ticks (time points).
+    bin_tick_step
+        Optional, step size for y-axis ticks (bin edges).
+
+    Returns
+    -------
+    :
+        Figure object for the histogram plots
+    :
+        Array of Axes objects for each principal component histogram plot
     """
 
     # get shape of histogram array
@@ -207,7 +222,7 @@ def plot_principal_component_histogram(
     # initialize figure and axes
     fig, ax = viz_base.init_subplots(3, 1, figsize=(15, 15))
 
-    # loop over latent components, plot histogram of feature data projected onto each PC
+    # loop over components, plot histogram of feature data projected onto each PC
     for col, ax_ in enumerate(ax.flatten()):
         # plot histogram values - time on x-axis, histogram values on y-axis
         ax_.imshow(
@@ -319,3 +334,103 @@ def plot_km_drift_2d(
     ax[1].set_ylabel(f"PC{pcs[1]+1}")
     fig.suptitle(f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
     return fig, ax
+
+
+def pc_loading_heatmap_workflow(
+    pca_loadings_df: pd.DataFrame,
+    diffae_feature_columns: list[str] | None = None,
+    pc_columns: list[str] | None = None,
+) -> Figure:
+    """
+    Workflow to visualize PCA loadings as a heatmap.
+
+    Parameters
+    ----------
+    pca_loadings_df
+        DataFrame containing PCA loadings.
+    diffae_feature_columns
+        List of DiffAE feature column names to include in the heatmap.
+        Defaults to None.
+    pc_columns
+        List of PCA column names to include in the heatmap.
+        Defaults to None.
+
+    Returns
+    -------
+    fig_heatmap
+        Figure object for the heatmap
+
+    """
+    if diffae_feature_columns is None:
+        diffae_feature_columns = [f"feat_{i}" for i in range(8)]
+
+    if pc_columns is None:
+        pc_columns = [f"pc{i+1}" for i in range(8)]
+
+    # only use the features and PCs specified
+    pca_loadings_df = pca_loadings_df.loc[pca_loadings_df.index.isin(diffae_feature_columns)]
+    pca_loadings_df = pca_loadings_df[pca_loadings_df.columns.intersection(pc_columns)]
+
+    # label the rows and columns
+    pca_loadings_df.index = pca_loadings_df.index.map(get_label_for_column)
+    pca_loadings_df.columns = pca_loadings_df.columns.map(get_label_for_column)
+
+    fig_heatmap, ax_heatmap = plt.subplots(figsize=(10, 10))
+    ax_heatmap = sns.heatmap(
+        pca_loadings_df,
+        annot=True,
+        cmap="RdBu",
+        center=0,
+        ax=ax_heatmap,
+        cbar_kws={"label": "Loading Value"},
+    )
+    ax_heatmap.set_xlabel("PC")
+    ax_heatmap.set_ylabel("Latent Feature")
+
+    return fig_heatmap
+
+
+def get_label_for_column(
+    column_name: str,
+    mapping_dict: dict[str, dict[str, Any]] | None = None,
+    capitalize: bool = False,
+) -> str:
+    """
+    Convert dataframe column names to human-readable labels.
+
+    Parameters
+    ----------
+    column_name
+        Column name to convert.
+        Expects diffae feature names to have the form "feat_0", "feat_1", etc.,
+        Expects PC names to have the form "pc1", "pc2", etc.
+    mapping_dict
+        Optional dictionary mapping column names to human-readable labels.
+        If provided, it will be used to map the column names to labels.
+    capitalize
+        If True, the returned label will be capitalized.
+        If False, the label will be returned as is.
+
+    Returns
+    -------
+    :
+        Human-readable label for the column name.
+    """
+    if mapping_dict is None:
+        mapping_dict = get_seg_feat_plot_args()
+
+    if column_name in mapping_dict:
+        return mapping_dict[column_name]["label"]
+
+    if column_name.startswith("feat_"):
+        feature_number = column_name.split("_")[1]
+        return f"Feature {feature_number}"
+    elif column_name.startswith("pc"):
+        pc_number = column_name.split("pc")[1]
+        return f"PC {pc_number}"
+    else:
+        for _, info_dict in mapping_dict.items():
+            if column_name == info_dict["column_name"]:
+                return info_dict["label"]
+
+    return column_name.replace("_", " ").capitalize() if capitalize else column_name

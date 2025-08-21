@@ -3,7 +3,12 @@ from pathlib import Path
 import bioio
 import pytest
 
-from src.endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
+from src.endo_pipeline.configs import (
+    ChannelIndices,
+    DatasetConfig,
+    FlowCondition,
+    load_dataset_config,
+)
 from src.endo_pipeline.configs.dataset_config_utils import (
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
@@ -14,7 +19,8 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_flow_at_frame,
     get_frame_after_flow_change,
     get_frame_before_flow_change,
-    get_specific_channel_order,
+    get_position_integer_from_zarr_file_path,
+    get_position_string_from_zarr_file_path,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
@@ -40,8 +46,8 @@ def dataset():
         time_interval_in_minutes=0.0,
         flow=[(0, 0, 0.0)],
         n_total_positions=0,
-        brightfield_channel_index=0,
-        channel_488_index=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
     )
 
 
@@ -141,30 +147,6 @@ def test_get_channel_indices_for_position(dataset, position, expected):
     indices = get_channel_indices_for_position(dataset, position, channel_names)
 
     assert indices == expected
-
-
-def test_get_specific_channel_order_no_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = 3
-    dataset.channel_561_index = 4
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, 3, 4, 5)
-
-
-def test_get_specific_channel_order_with_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = None
-    dataset.channel_561_index = None
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, None, None, 5)
 
 
 def test_get_frame_before_flow_change_valid_flow_condition(dataset):
@@ -269,3 +251,59 @@ def test_make_filtered_dataset_collection(sample_type, objective, microscope):
 
     if microscope is not None:
         assert all(config.microscope == microscope for config in dataset_configs)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", "P1"),
+        ("/path/to/file/before_P2.ome.zarr", "P2"),
+        ("/path/to/file/P3_after.ome.zarr", "P3"),
+        ("/path/to/file/before_P4_after.ome.zarr", "P4"),
+    ],
+)
+def test_get_position_string_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_string_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_string_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_string_from_zarr_file_path(path)
+
+
+@pytest.mark.parametrize(
+    "path,expected_position",
+    [
+        ("/path/to/file/P1.ome.zarr", 1),
+        ("/path/to/file/before_P2.ome.zarr", 2),
+        ("/path/to/file/P3_after.ome.zarr", 3),
+        ("/path/to/file/before_P14_after.ome.zarr", 14),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_valid_position(path, expected_position):
+    position = get_position_integer_from_zarr_file_path(path)
+
+    assert position == expected_position
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("/path/to/file/no_position.ome.zarr"),
+        ("/path/to/file/P1/position_only_in_path.ome.zarr"),
+        ("/path/to/file/lowercase_position_p1.ome.zarr"),
+    ],
+)
+def test_get_position_integer_from_zarr_file_path_invalid_position(path):
+    with pytest.raises(ValueError):
+        get_position_integer_from_zarr_file_path(path)
