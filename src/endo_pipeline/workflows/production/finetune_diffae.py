@@ -7,8 +7,7 @@ TAGS = ["diffae_model_finetuning"]
 def main(
     model_name: str = "diffae_04_10",
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
-    train_csv_path: Path | None = None,
-    val_csv_path: Path | None = None,
+    resolution_level: int = 1,
 ) -> None:
     """
     Finetune a DiffAE model to align features for paired datasets.
@@ -20,10 +19,8 @@ def main(
         config in :code:`results/models/`).
     dataset_pair_type
         The type of dataset pairs to use for finetuning ("live_fixed" or "20x_40x").
-    train_csv_path
-        Optional user-specified path to the training dataset CSV file.
-    val_csv_path
-        Optional user-specified path to the validation dataset CSV file.
+    resolution_level
+        The resolution level of the zarr files to be used for training.
 
     Returns
     -------
@@ -31,10 +28,12 @@ def main(
         The function creates and save a :code:`ModelConfig` object with the finetuned model's
         MLflow run ID and the list of datasets used for training.
     """
+    import logging
     from typing import cast
 
     from omegaconf import OmegaConf
 
+    from src.endo_pipeline import TESTING_MODE
     from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
     from src.endo_pipeline.io import get_output_path
     from src.endo_pipeline.library.model import (
@@ -42,13 +41,38 @@ def main(
         get_ckpt_path,
         get_dataset_names_used_for_training,
         get_model_dir,
-        get_valid_csv_path_for_finetuning,
+        get_valid_dataframe_path_for_training,
         initialize_diffae_model_for_finetuning,
     )
+    from src.endo_pipeline.manifests import load_dataframe_manifest
 
-    # get valid CSV paths for training and validation datasets
-    train_csv_path = get_valid_csv_path_for_finetuning(train_csv_path, "train", dataset_pair_type)
-    val_csv_path = get_valid_csv_path_for_finetuning(val_csv_path, "val", dataset_pair_type)
+    logger = logging.getLogger(__name__)
+
+    # get training and validation datasets based on zarr resolution
+    # by loading the DataframeManifest from the model directory
+    # and using the DatasetLocation objects to get the paths
+    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}"
+    if TESTING_MODE:
+        manifest_name += "_test_workflow"
+    try:
+        dataframe_manifest = load_dataframe_manifest(manifest_name)
+    except FileNotFoundError:
+        logger.error(
+            "Dataframe manifest [ %s ] for resolution_level [ %s ] not found. "
+            "Please run the create_diffae_finetuning_dataframe script first "
+            "with the appropriate resolution_level.",
+            manifest_name,
+            resolution_level,
+        )
+        raise
+    train_dataframe_location = dataframe_manifest.locations["training"]
+    val_dataframe_location = dataframe_manifest.locations["validation"]
+
+    # get paths from the DataframeLocation objects
+    # to pass into the DiffAE model training script
+    # (need for training config setup and CytoDL dataloaders)
+    train_dataframe_path = get_valid_dataframe_path_for_training(train_dataframe_location)
+    val_dataframe_path = get_valid_dataframe_path_for_training(val_dataframe_location)
 
     model_save_path = get_output_path(
         "finetune_paired_dataset",
@@ -69,8 +93,8 @@ def main(
         template_finetune_config=template_finetune_config,
         model_name=model_name,
         dataset_pair_type=dataset_pair_type,
-        train_csv_path=train_csv_path,
-        val_csv_path=val_csv_path,
+        train_dataframe_path=train_dataframe_path,
+        val_dataframe_path=val_dataframe_path,
         model_save_path=model_save_path,
         diffae_ckpt_path=diffae_ckpt_path,
     )
@@ -82,7 +106,7 @@ def main(
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
     list_of_training_datasets = get_dataset_names_used_for_training(
-        train_csv_path, val_csv_path, f"{dataset_pair_type}_paired_datasets"
+        train_dataframe_location, val_dataframe_location, f"{dataset_pair_type}_paired_datasets"
     )
     # add run ID and training datasets to model config
     model_config = CytoDLModelConfig(

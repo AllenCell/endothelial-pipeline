@@ -98,8 +98,8 @@ def _generate_overrides_for_model_training(
 def _generate_overrides_for_finetuning(
     model_name: str,
     dataset_pair_type: Literal["live_fixed", "20x_40x"],
-    train_csv_path: Path,
-    val_csv_path: Path,
+    train_dataframe_path: str,
+    val_dataframe_path: str,
     ckpt_path: Path,
 ) -> dict:
     """
@@ -107,17 +107,14 @@ def _generate_overrides_for_finetuning(
 
     Parameters
     ----------
-    model_name: str
-        The name of the model to finetune. This should correspond to a
-        directory in `results/models/` and match the model name used during the
-        `paired_data_validation` step.
-    dataset_pair_type: Literal['live_fixed', '20x_40x']
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-    train_csv_path: Path
-        The path to the training CSV file containing paired data.
-    val_csv_path: Path
-        The path to the validation CSV file containing paired data.
+    model_name
+        The name of the model to finetune.
+    dataset_pair_type
+        The type of dataset pairing to use for finetuning.
+    train_dataframe_path
+        The path to the image loading metadata file for the training dataset.
+    val_dataframe_path
+        The path to the image loading metadata file for the validation dataset.
     ckpt_path: Path
         The path to the DiffAE checkpoint to finetune.
     """
@@ -125,25 +122,22 @@ def _generate_overrides_for_finetuning(
     save_path = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
-        include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
         "checkpoints",
-        include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
         f"finetune_{model_name}_on_{dataset_pair_type}",
         "logs",
-        include_timestamp=False,
     )
 
     overrides = {
         # point to already projected paired dataset
-        "data.train_dataloaders.dataset.csv_path": str(train_csv_path),
-        "data.val_dataloaders.dataset.csv_path": str(val_csv_path),
+        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # load diffae checkpoint to finetune
         "checkpoint.ckpt_path": str(ckpt_path),
         "checkpoint.weights_only": True,
@@ -388,8 +382,8 @@ def initialize_diffae_model_for_finetuning(
     template_finetune_config: DictConfig | ListConfig,
     model_name: str,
     dataset_pair_type: Literal["live_fixed", "20x_40x"],
-    train_csv_path: Path,
-    val_csv_path: Path,
+    train_dataframe_path: str,
+    val_dataframe_path: str,
     model_save_path: Path,
     diffae_ckpt_path: Path,
 ) -> CytoDLModel:
@@ -405,12 +399,10 @@ def initialize_diffae_model_for_finetuning(
     dataset_pair_type
         The type of dataset to use for finetuning ("live_fixed" or "20X_40X").
         This should match the input used during the `paired_data_validation` step.
-    train_csv_path
-        The path to the training dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
-    val_csv_path
-        The path to the validation dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
+    train_dataframe_path
+        The path to the image loading metadata dataframe for the training dataset.
+    val_dataframe_path
+        The path to the image loading metadata dataframe for the validation dataset.
     model_save_path
         The path to the directory where the checkpoints and logs will be saved.
     diffae_ckpt_path
@@ -426,8 +418,8 @@ def initialize_diffae_model_for_finetuning(
     overrides = _generate_overrides_for_finetuning(
         model_name=model_name,
         dataset_pair_type=dataset_pair_type,
-        train_csv_path=train_csv_path,
-        val_csv_path=val_csv_path,
+        train_dataframe_path=train_dataframe_path,
+        val_dataframe_path=val_dataframe_path,
         ckpt_path=model_save_path / diffae_ckpt_path,
     )
 
@@ -437,49 +429,6 @@ def initialize_diffae_model_for_finetuning(
     cytodl_model.override_config(overrides)
 
     return cytodl_model
-
-
-def get_valid_csv_path_for_finetuning(
-    csv_path: Path | str | None,
-    csv_name: Literal["train", "val"],
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
-) -> Path:
-    """
-    Get a valid CSV path for training or validation datasets.
-
-    Parameters
-    ----------
-    csv_path: Path | str | None
-        The path to the CSV file. If None, the default path for the output of
-        generate_csv_for_training_diffae will be used.
-    csv_name: Literal["train", "val"]
-        The name of the CSV file to validate. If csv_path is not None,
-        csv_name will not be used in the path generation.
-        This input is mainly for the default case where csv_path is None,
-        and the path will be generated based on the csv_name (train or val).
-    dataset_pair_type: Literal["live_fixed", "20x_40x"]
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-
-
-    Returns
-    -------
-    Path
-        A valid Path object pointing to the CSV file.
-    """
-    if csv_path is None:
-        csv_path = (
-            get_output_path("finetune_paired_dataset", dataset_pair_type, include_timestamp=False)
-            / f"{csv_name}.csv"
-        )
-
-    if isinstance(csv_path, str):
-        csv_path = Path(csv_path)
-
-    if not csv_path.exists():
-        raise FileNotFoundError(f"CSV file not found at {csv_path}. Please provide a valid path.")
-
-    return csv_path
 
 
 def get_dataset_names_used_for_training(
