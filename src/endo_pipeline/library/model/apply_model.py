@@ -15,6 +15,8 @@ from src.endo_pipeline.configs import (
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
+    load_dataset_config,
+    load_model_config,
 )
 from src.endo_pipeline.io import (
     build_fms_annotations,
@@ -764,6 +766,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
 def apply_model_on_array(
     # dataset_name: str,
     image_array: np.ndarray,
+    # model_name: str = "diffae_04_10_eval_on_array",
+    # model_name: str = "diffae_04_10_eval",
     model_name: str = "diffae_04_10",
 ) -> np.ndarray:
 
@@ -775,14 +779,13 @@ def apply_model_on_array(
 
     path_dict = download_model(mlflow_id, model_path)
 
-    overrides = load_overrides(None)  # (overrides)
-
     # create zarr dataset
     dataset_config = load_dataset_config("20241120_20X")
     resolution_level = 1
     save_path = get_output_path(Path(__file__).stem, include_timestamp=False)
     # data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
 
+    overrides = load_overrides(None)  # (overrides)
     # apply overrides
     overrides = generate_overrides_for_model_eval(
         overrides,
@@ -802,9 +805,12 @@ def apply_model_on_array(
     model = CytoDLModel()
     # cfg_path = Path(path_dict["config_path"]).parent / "eval_test.yaml"
     cfg_path = Path(path_dict["config_path"])
+    # cfg_path = Path(__file__).parent.resolve() / "diffae_04_10_eval_on_array.yaml"
     model.load_config_from_file(cfg_path.as_posix())
 
     model.override_config(overrides)
+
+    # model.override_config(overrides)
 
     # make prediction
     # output is a list with the form
@@ -814,21 +820,103 @@ def apply_model_on_array(
     return cytodl_output
 
 
-from matplotlib import pyplot as plt
+def apply_model_on_array_test() -> np.ndarray:
+    from matplotlib import pyplot as plt
 
-## example:
-from src.endo_pipeline.configs import load_dataset_config, load_model_config
-from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+    ## example:
+    from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 
-dataset_name = "20241120_20X"
-model_name = "diffae_04_10"
-img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
-img.get_image_dask_data("TCZYX", T=0)
-dataset_config = load_dataset_config(dataset_name)
-dim_order = "TCZYX"
-img_arr = img.get_image_dask_data(dim_order, T=0).max(dim_order.index("Z"), keepdims=True).compute()
-img_arr_crop_cdh5 = img_arr[0, 0:1, 0, 0:128, 0:128]  # Example crop
-img_arr_crop_bf = img_arr[0, 1:2, 0, 0:128, 0:128]  # Example crop
-data = {"test": img_arr_crop_bf, "val": img_arr_crop_bf, "train": img_arr_crop_bf}
-apply_model_on_array(data)
-# apply_model_on_crop(img_arr_crop_bf)
+    dataset_name = "20241120_20X"
+    model_name = "diffae_04_10"
+    img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
+    dim_order = "TCZYX"
+    img.get_image_dask_data(dim_order, T=0)
+
+    # img_arr = img.get_image_dask_data(dim_order, T=0).max(dim_order.index("Z"), keepdims=True).compute()
+    # img_arr_crop_cdh5 = img_arr[0, 0:1, 0, 0:128, 0:128]  # Example crop
+    # img_arr_crop_bf = img_arr[0, 1:2, 0, 0:128, 0:128]  # Example crop
+    # data = {"test": img_arr_crop_bf, "val": img_arr_crop_bf, "train": img_arr_crop_bf}
+    # apply_model_on_array(data)
+    # apply_model_on_crop(img_arr_crop_bf)
+
+    img_arr = img.get_image_dask_data(dim_order, T=0)
+    img_arr_crop_cdh5 = img_arr.max(dim_order.index("Z"), keepdims=True)
+    img_arr_crop_bf = img_arr.std(dim_order.index("Z"), keepdims=True)
+
+    crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
+    img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
+    img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
+
+    # get the model checkpoint path
+    model_config = load_model_config(model_name)
+    # download model from mlflow
+    mlflow_id = cast(CytoDLModelConfig, load_model_config(model_name)).mlflow_run_id
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
+
+    path_dict = download_model(mlflow_id, model_path)
+    ckpt_path = path_dict["checkpoint_path"]
+
+    # overrides = load_overrides(None)  # (overrides)
+
+    # create zarr dataset
+    # dataset_config = load_dataset_config("20241120_20X")
+    # dataset_config = load_dataset_config(dataset_name)
+    # resolution_level = 1
+    # save_path = get_output_path(__file__)
+    # data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
+
+    # # apply overrides
+    # overrides = generate_overrides_for_model_eval(
+    #     overrides,
+    #     save_path=str(save_path),
+    #     data_path=str(save_path),
+    #     # data_path=str(data_path),
+    #     ckpt_path=ckpt_path,
+    #     dataset_name=dataset_config.name,
+    #     model_name=model_config.name,
+    # )
+    # overrides = {
+    #     "data.train_dataloaders": None,
+    #     "data.val_dataloaders": None,
+    #     "checkpoint.ckpt_path": ckpt_path,
+    # }
+    overrides = {
+        "checkpoint.ckpt_path": ckpt_path,
+    }
+
+    # load model
+    # model = CytoDLModel()
+    # cfg_path = Path(path_dict["config_path"]).parent / "eval_test.yaml"
+    # cfg_path = Path(path_dict["config_path"])
+    # cfg_path = Path(__file__).parent.resolve() / "diffae_04_10_eval_on_array.yaml"
+    # model.load_config_from_file(cfg_path.as_posix())
+
+    model = CytoDLModel()
+    cfg_array_path = Path(__file__).parent.resolve() / "diffae_04_10_eval_on_array.yaml"
+    model.load_config_from_file(cfg_array_path.as_posix())
+    model.override_config(overrides)
+    local_config_save_path = get_output_path("models", "evaluation_configs")
+    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+
+    test = model.predict(data=img_arr_crop_bf)  # , run_async=False)
+
+    return test
+
+
+# from cyto_dl.datamodules.array import make_array_dataloader
+
+# data = OmegaConf.create(img_arr_crop_bf)
+# make_array_dataloader(img_arr_crop_bf, transforms=np.clip)
+
+# from omegaconf import ListConfig, OmegaConf
+
+# OmegaConf.to_object(img_arr_crop_bf)
+
+# from cyto_dl.eval import evaluate
+
+# evaluate(model.cfg, data=img_arr_crop_bf)
+
+
+# from lightning import Trainer
+
+# %%

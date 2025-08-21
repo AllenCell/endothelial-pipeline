@@ -1,0 +1,8 @@
+name: diffae_04_10_eval_on_array
+mlflow_run_id: ae7f25b4109c47809d3e2ed1b7120e50
+training_datasets:
+- 20241210_20X
+- 20241016_20X
+- 20241005_20X
+- 20241120_20X
+- 20241203_20X
