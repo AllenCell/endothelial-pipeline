@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 def _generate_overrides_for_model_training(
     model_name: str,
     crop_size: int,
-    train_dataframe_path: Path,
-    val_dataframe_path: Path,
+    train_dataframe_path: str,
+    val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
 ) -> dict:
@@ -71,16 +71,16 @@ def _generate_overrides_for_model_training(
 
     overrides = {
         # set path to train and val datasets
-        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path.as_posix(),
-        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path.as_posix(),
-        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path.as_posix(),
+        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
+        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # get repo root directory and current working directory
         "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
-        "paths.output_dir": (train_output_path / "logs").as_posix(),
+        "paths.output_dir": train_output_path / "logs",
         "paths.log_dir": "${paths.output_dir}",
-        "callbacks.model_checkpoint.dirpath": (train_output_path / "checkpoints").as_posix(),
+        "callbacks.model_checkpoint.dirpath": train_output_path / "checkpoints",
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
@@ -175,8 +175,8 @@ def initialize_diffae_model(
     template_training_config: DictConfig | ListConfig,
     crop_size: int,
     model_name: str,
-    train_dataframe_path: Path,
-    val_dataframe_path: Path,
+    train_dataframe_path: str,
+    val_dataframe_path: str,
     max_num_epochs: int = 1000,
     log_every_n_steps: int = 50,
 ) -> CytoDLModel:
@@ -347,7 +347,7 @@ def build_and_save_dataframe_manifest_for_training(
     save_dataframe_manifest(dataframe_manifest)
 
 
-def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation) -> Path:
+def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation) -> str:
     """
     Get a valid path for training or validation dataframes.
 
@@ -364,14 +364,14 @@ def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation)
     Returns
     -------
     :
-        A valid Path object pointing to the .parquet file for training or validation sets.
+        The path to the .parquet file for training or validation sets, rendered as a string.
 
         If the DataframeLocation object has an S3 URI, it will be used. Else, this
         function downloads the file from FMS using the FMS ID and returns the local path.
     """
     if dataframe_location.s3uri is not None:
         # if s3uri is provided, use that for loading
-        dataframe_path = Path(dataframe_location.s3uri)
+        dataframe_path = dataframe_location.s3uri
     else:
         # get local path from FMS ID
         if dataframe_location.fmsid is None:
@@ -383,7 +383,7 @@ def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation)
                 "DataframeLocation does not have a FMS ID or S3 URI. "
                 "Please provide a valid DataframeLocation object."
             )
-        dataframe_path = get_local_path_from_fmsid(dataframe_location.fmsid)
+        dataframe_path = str(get_local_path_from_fmsid(dataframe_location.fmsid))
 
     return dataframe_path
 

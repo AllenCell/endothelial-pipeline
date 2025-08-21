@@ -337,7 +337,7 @@ class MultiDimImageDataset(CacheDataset):
             )
             timepoints_as_list = list(set(timepoints) - set(timepoints_to_exclude))
         logger.debug("Loading image with timepoints: [ %s ]", timepoints_as_list)
-        return timepoints_as_list
+        return sorted(timepoints_as_list)
 
     def _get_z_slices(self, row: dict, img: BioImage) -> list:
         """Get Z slices from the row data."""
