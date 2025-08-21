@@ -234,7 +234,7 @@ def main(
             "suffix": "_nuclei_labelfree_features.parquet",
         },
         "merged_live_data_manifests": {
-            "subdir": "segmentation_features",
+            "subdir": "cdh5_live_seg_features",
             "suffix": "_live_segmentation_features.parquet",
         },
     }
