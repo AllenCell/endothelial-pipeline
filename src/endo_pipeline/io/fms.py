@@ -15,15 +15,15 @@ except ImportError:
     raise
 
 if TESTING_MODE:
-    FILE_ENV = "stg"
+    FMS_ENV = "stg"
     FMS_BUCKET_NAME = "staging.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/aics/fms/staging/fss"
 else:
-    FILE_ENV = "prod"
+    FMS_ENV = "prod"
     FMS_BUCKET_NAME = "production.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/programs/allencell/data/proj0/"
 
-FMS = FileManagementSystem.from_env(FILE_ENV)
+FMS = FileManagementSystem.from_env(FMS_ENV)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
 
-logger.info("Initialized FMS environment [ %s ]", FILE_ENV)
+logger.info("Initialized FMS environment [ %s ]", FMS_ENV)
