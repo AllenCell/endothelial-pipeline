@@ -57,7 +57,6 @@ dataset = DatasetConfig(
     pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
     time_interval_in_minutes=0.0,
-    flow=[(0, 0, 0.0)],
     n_total_positions=0,
     original_channels=ChannelIndices(
         brightfield=1,
@@ -67,8 +66,8 @@ dataset = DatasetConfig(
         brightfield=1,
         channel_488=0,
     ),
+    flow_conditions=[[0,0,0.0]],
     # ============================ OPTIONAL FIELDS =============================
-    # flow_conditions=[[0,0,0.0]],
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
