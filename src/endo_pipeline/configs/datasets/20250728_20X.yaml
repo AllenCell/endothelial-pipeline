@@ -1,0 +1,36 @@
+name: 20250728_20X
+original_path: //allen/programs/allencell/data/proj0/95b/d7b/4ab/c70/f4b/178/b43/4b1/273/765/b0/20250728_GE00008553_20X_sldy/20250728_GE00008553_20X_sldy.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250728_b07652734b1b43178f4bc704abd7b95b
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: b07652734b1b43178f4bc704abd7b95b
+barcode: GE00008553
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: no_flow
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[0, 576, 0.0]]
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: 0
+  stop: 576
+  shear_stress: 0.0
+valid_timepoints: null
+include_scenes: null
+notes: no SS w/ feeding every 3 hours during working hours
