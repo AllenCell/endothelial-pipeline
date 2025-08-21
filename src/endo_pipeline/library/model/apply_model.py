@@ -251,11 +251,15 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = ZARR_BF_CHANNEL
-    # NOTE "resolution" below determines what resolution the images will
+    # Note "resolution" below determines what resolution the images will
     # be loaded at, and currently the model loads at native resolution
     # and downsamples in the transforms; therefore this value must be 0
     # The "start" and "end" column values determine the crop locations
     # after downsampling, thus they were adjusted by downsample_factor
+
+    # Note from Erin 8/21/25: this has updated now that we have resolution level 1
+    # zarr files, removed downsample transform from the model config
+    # This needs to change if we want to produce new feature tables
     grouped_df["resolution"] = 0
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
@@ -547,7 +551,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     df = build_zarr_image_loading_dataframe(
         dataset_config,
         resolution_level=resolution_level,
-        channel=ZARR_BF_CHANNEL,
+        channel=dataset_config.zarr_channel_indices.brightfield,
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,

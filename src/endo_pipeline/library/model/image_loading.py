@@ -19,8 +19,6 @@ from src.endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
 )
 
-ZARR_BF_CHANNEL = 1  # Brightfield channel index for Zarr files
-
 logger = logging.getLogger(__name__)
 
 
@@ -357,7 +355,7 @@ class MultiDimImageDataset(CacheDataset):
 
     def _get_channel(self, row: dict) -> int | list[int]:
         """Get channel(s) from the row data."""
-        channel = row.get(self.channel_column, ZARR_BF_CHANNEL)
+        channel = row[self.channel_column]
         if isinstance(channel, list | tuple):
             logger.debug("Loading image with channels: [ %s ]", channel)
         else:
@@ -402,7 +400,7 @@ class MultiDimImageDataset(CacheDataset):
 def build_zarr_image_loading_dataframe(
     dataset_config: DatasetConfig,
     resolution_level: int = 1,
-    channel: int | list[int] = ZARR_BF_CHANNEL,
+    channel: int | list[int] = 0,
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,

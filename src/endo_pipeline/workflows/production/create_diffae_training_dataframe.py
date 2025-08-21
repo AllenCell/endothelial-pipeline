@@ -1,8 +1,5 @@
 TAGS = ["diffae_model_training"]
 
-ZARR_CDH5_CHANNEL = 0
-ZARR_BF_CHANNEL = 1
-
 
 def main(resolution_level: int = 1) -> None:
     """
@@ -86,7 +83,10 @@ def main(resolution_level: int = 1) -> None:
             build_zarr_image_loading_dataframe(
                 dataset_config=dataset_config,
                 resolution_level=resolution_level,
-                channel=[ZARR_CDH5_CHANNEL, ZARR_BF_CHANNEL],
+                channel=[
+                    dataset_config.zarr_channel_indices.channel_488,
+                    dataset_config.zarr_channel_indices.brightfield,
+                ],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
                 only_positions=only_positions,
