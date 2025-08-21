@@ -111,13 +111,11 @@ def main(
         val_dataframe_path,
         "live_20X_objective_3i_microscope",
     )
-    # add run ID to model config
+    # add run ID and training datasets to model config
     model_config = CytoDLModelConfig(
         name=model_name if not TESTING_MODE else f"{model_name}_test_workflow",
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
-        train_dataframe=train_dataframe_location,
-        test_dataframe=val_dataframe_location,
     )
     # save the model config
     save_model_config(model_config)
