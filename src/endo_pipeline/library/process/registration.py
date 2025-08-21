@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
@@ -26,6 +27,8 @@ from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1
+
+logger = logging.getLogger(__name__)
 
 
 def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str) -> None:
@@ -547,7 +550,7 @@ def align_and_save_paired_images(
     save_path: Path,
 ) -> pd.DataFrame:
     """
-    Align and saves all paired images from the specified dataset pair type.
+    Align and save all paired images from the specified dataset pair type.
 
     Parameters
     ----------
@@ -559,7 +562,7 @@ def align_and_save_paired_images(
 
     Returns
     -------
-    df
+    :
         DataFrame containing the paths to the aligned images.
     """
 
@@ -586,7 +589,7 @@ def align_and_save_paired_images(
         )
     df = pd.concat(df, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
-    print(f"Found {len(df)} pairs of images to save")
+    logger.debug("Found %d pairs of images to save", len(df))
     return df
 
 
@@ -605,12 +608,12 @@ def concat_and_save_aligned_image_pairs(row: tuple[Any, ...], savedir: Path) -> 
 
     Returns
     -------
-    save_path
+    :
         The path to the saved concatenated image.
     """
     save_path = _get_concat_path(row, savedir)
     if save_path.exists():
-        print(f"Skipping {save_path} as it already exists.")
+        logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
     # take standard deviation projection here to allow concatenation with different z-axis sizes
     fixed = BioImage(row.fixed).data.squeeze().max(0)
@@ -619,4 +622,5 @@ def concat_and_save_aligned_image_pairs(row: tuple[Any, ...], savedir: Path) -> 
     out = np.stack([fixed, moving], axis=0)[:, None]
 
     OmeTiffWriter.save(uri=save_path, data=out)
+    logger.debug("Saving concatenated image to: [ %s ]", save_path)
     return save_path

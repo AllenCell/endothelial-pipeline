@@ -273,16 +273,10 @@ def build_and_save_dataframe_manifest_for_training(
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
+    workflow_name: str,
 ) -> None:
     """
     Upload training and validation image loading dataframes to FMS.
-
-    **Workflow testing**
-
-    If the dataframe building workflow is being run in testing mode, the training and validation
-    datasets will only keep one entry each. This is useful for testing the workflow without needing
-    to load large datasets. The dataframes will be uploaded to the staging environment of FMS,
-    and the resulting DataframeManifest will be saved with ``_test_workflow`` appended to the name.
 
     Parameters
     ----------
@@ -298,6 +292,8 @@ def build_and_save_dataframe_manifest_for_training(
         The directory where the output dataframes will be saved as intermediates.
     manifest_name
         The name of the DataframeManifest to be created.
+    workflow_name
+        The name of the workflow that is creating the dataframe manifest.
 
     Returns
     -------
@@ -329,7 +325,7 @@ def build_and_save_dataframe_manifest_for_training(
     # (intended behavior)
     dataframe_manifest = DataframeManifest(
         name=manifest_name,
-        workflow="create_diffae_training_dataframe",
+        workflow=workflow_name,
         parameters={"resolution_level": resolution_level},
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
