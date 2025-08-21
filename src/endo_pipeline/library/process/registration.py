@@ -205,10 +205,10 @@ def sift_registration(
 
     # brute force matching
     matches = match_descriptors(descriptors_moving, descriptors_fixed)
-    print(f"Matches found: {len(matches)}")
+    logger.debug("Matches found: [ %d ]", len(matches))
 
     if len(matches) < min_samples:
-        print("Error: Not enough matches found after cross-checking.")
+        logger.warning("Not enough matches found for RANSAC after cross-checking.")
         return None
 
     # Prepare data for RANSAC
@@ -219,7 +219,7 @@ def sift_registration(
         visualize_keypoints(image_moving, src[:, ::-1], "moving_matched")
         visualize_keypoints(image_fixed, dst[:, ::-1], "fixed_matched")
 
-    print("Estimating transformation using RANSAC...")
+    logger.info("Estimating transformation using RANSAC...")
     try:
         model_robust, inliers = ransac(
             (src, dst),
@@ -230,21 +230,27 @@ def sift_registration(
         )
 
         if model_robust is None or sum(inliers) < 1:
-            print(
-                "RANSAC failed to find a robust model.",
-                f"Inliers: {sum(inliers) if inliers is not None else 0}",
+            logger.warning(
+                "RANSAC failed to find a robust model. Inliers: [ %d ]",
+                sum(inliers) if inliers is not None else 0,
             )
             return None
 
-        print(f"RANSAC successful. Inliers: {sum(inliers)}/{len(matches)}")
-        print(model_robust.params)
+        logger.info(
+            "RANSAC transformation estimated successfully. Inliers: [ %d/%d ]",
+            sum(inliers),
+            len(matches),
+        )
+        logger.debug("RANSAC model parameters: %s", model_robust.params)
 
         model_robust.params[:2, :2] = np.eye(2)  # Set rotation and scaling to identity
-        print("Estimated Transform:")
-        print(model_robust.params)
+        logger.debug(
+            "Estimated model parameters after setting rotation and scaling to identity: %s",
+            model_robust.params,
+        )
 
     except Exception as e:
-        print(f"Error during RANSAC transformation estimation: {e}")
+        logger.warning("Error during RANSAC transformation estimation: [ %s ]", e)
         return None
     return model_robust
 
@@ -378,11 +384,22 @@ def align(
     pd.DataFrame
         DataFrame containing the paths to the aligned images.
     """
-    print(f"Registering {moving_image_path} to {fixed_image_path} using {alignment_method}")
+    logger.debug(
+        "Registering [ %s ] to [ %s ] using [ %s ]",
+        moving_image_path,
+        fixed_image_path,
+        alignment_method,
+    )
     image_fixed = BioImage(fixed_image_path)
     image_moving = BioImage(moving_image_path)
 
     if image_fixed.shape[:-3] != image_moving.shape[:-3]:
+        logger.error(
+            "The moving and fixed image must have the same non-spatial dimensions. "
+            "Fixed shape: [ %s ], Moving shape: [ %s ]",
+            image_fixed.shape[:-3],
+            image_moving.shape[:-3],
+        )
         raise ValueError("The moving and fixed image must have the same non-spatial dimensions.")
 
     alignment_func = {
@@ -411,7 +428,9 @@ def align(
             rescale_factor: float = (
                 image_moving.physical_pixel_sizes.X / image_fixed.physical_pixel_sizes.X
             )
-            print(f"Rescale factor: {rescale_factor}")
+            logger.debug(
+                "Rescale factor for scene [ %d ], time [ %d ]: [ %f ]", scene, t, rescale_factor
+            )
             moving_fluo = resize_moving(moving_fluo, rescale_factor)
 
             fixed_projection = fixed_fluo.std(0) if align_fluo else fixed_fluo
@@ -587,7 +606,7 @@ def align_and_save_paired_images(
     alignment_method = "sift" if dataset_pair_type == "live_fixed" else "template"
 
     df_list = []
-    for fixed, moving in zip(fixed_datasets, moving_datasets, strict=False):
+    for fixed, moving in zip(fixed_datasets, moving_datasets, strict=True):
         df_list.append(
             align_all_positions(
                 fixed,
