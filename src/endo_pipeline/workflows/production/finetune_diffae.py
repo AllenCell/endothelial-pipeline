@@ -98,6 +98,10 @@ def main(
         model_save_path=model_save_path,
         diffae_ckpt_path=diffae_ckpt_path,
     )
+    # save the model config locally instead of printing
+    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
+    local_config_save_path = get_output_path("models", "training_configs")
+    model.save_config(local_config_save_path / f"{finetuned_model_name}_train.yaml")
     # call train method to start finetuning
     _, object_dict = model.train()
 
@@ -110,7 +114,7 @@ def main(
     )
     # add run ID and training datasets to model config
     model_config = CytoDLModelConfig(
-        name=f"{model_name}_finetuned_for_{dataset_pair_type}",
+        name=finetuned_model_name,
         mlflow_run_id=run_id,
         training_datasets=list_of_training_datasets,
     )

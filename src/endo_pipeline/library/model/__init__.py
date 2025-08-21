@@ -60,6 +60,7 @@ __all__ = [
     "get_latent_coords",
     "get_model_dir",
     "get_pca_coords",
+    "get_valid_csv_path_for_finetuning",
     "get_valid_dataframe_path_for_training",
     "get_walk",
     "initialize_diffae_model",

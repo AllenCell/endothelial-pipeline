@@ -149,8 +149,8 @@ def _generate_overrides_for_finetuning(
         "paths.output_dir": str(save_path / "logs"),
         # do training
         "train": True,
-        # # make sure that last ckpt is saved
-        # "callbacks.model_checkpoint.monitor": None,
+        # turn off config printing, will get saved locally instead
+        "extras.print_config": False,
         # updated mlflow logger
         "logger": {
             "mlflow": {
