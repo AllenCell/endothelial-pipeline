@@ -117,9 +117,6 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list
-    """Flow conditions for the dataset."""
-
     n_total_positions: int
     """Total number of positions captured."""
 
