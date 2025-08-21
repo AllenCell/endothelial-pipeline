@@ -82,7 +82,7 @@ data:
     dataset:
       _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
       num_workers: 64
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 2
       transform:
         _target_: monai.transforms.Compose
@@ -166,7 +166,7 @@ data:
       _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
       cache_num: 0
       num_workers: 8
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 3
       transform:
         _target_: monai.transforms.Compose
@@ -201,7 +201,7 @@ data:
     dataset:
       _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
       num_workers: 8
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 2
       transform:
         _target_: monai.transforms.Compose
