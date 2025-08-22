@@ -5,19 +5,19 @@ import logging
 from pathlib import Path
 
 from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.manifests import SegmentationLocation, SegmentationManifest
+from src.endo_pipeline.manifests import ImageManifest, SegmentationLocation
 
 logger = logging.getLogger(__name__)
 
 
-def list_datasets_with_segmentations(manifest: SegmentationManifest) -> list[str]:
+def list_datasets_with_segmentations(manifest: ImageManifest) -> list[str]:
     """Get list of dataset names that have valid segmentation locations in the given manifest."""
 
     return [name for name, location in manifest.locations.items() if location.path is not None]
 
 
 def get_segmentation_location_for_dataset(
-    manifest: SegmentationManifest,
+    manifest: ImageManifest,
     dataset_name: str,
     position: int | None = None,
     timepoint: int | None = None,

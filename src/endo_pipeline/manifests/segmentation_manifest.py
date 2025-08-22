@@ -37,7 +37,7 @@ class SegmentationLocation:
 
 
 @dataclass
-class SegmentationManifest:
+class ImageManifest:
     """Segmentation manifest for pipeline."""
 
     name: str

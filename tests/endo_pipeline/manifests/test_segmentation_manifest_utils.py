@@ -3,10 +3,7 @@ from pathlib import Path
 import pytest
 
 from src.endo_pipeline.configs import ChannelIndices, DatasetConfig
-from src.endo_pipeline.manifests.segmentation_manifest import (
-    SegmentationLocation,
-    SegmentationManifest,
-)
+from src.endo_pipeline.manifests.segmentation_manifest import ImageManifest, SegmentationLocation
 from src.endo_pipeline.manifests.segmentation_manifest_utils import (
     get_segmentation_location_for_dataset,
     list_datasets_with_segmentations,
@@ -15,7 +12,7 @@ from src.endo_pipeline.manifests.segmentation_manifest_utils import (
 
 @pytest.fixture
 def manifest():
-    return SegmentationManifest(
+    return ImageManifest(
         name="unique_segmentation_manifest_name",
         workflow="workflow_name",
         locations={},

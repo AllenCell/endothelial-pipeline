@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from src.endo_pipeline.manifests import SegmentationManifest
+from src.endo_pipeline.manifests import ImageManifest
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def get_segmentation_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "segmentations"
 
 
-def load_segmentation_manifest(manifest_name: str) -> SegmentationManifest:
+def load_segmentation_manifest(manifest_name: str) -> ImageManifest:
     """Load segmentation manifest by name."""
 
     manifest_dir = get_segmentation_manifest_dir()
@@ -27,14 +27,14 @@ def load_segmentation_manifest(manifest_name: str) -> SegmentationManifest:
         logger.error("Segmentation manifest [ %s ] could not be loaded", manifest_name)
         raise FileNotFoundError(f"No such file '{manifest_file}'")
     else:
-        manifest = YAMLDecoder(SegmentationManifest).decode(manifest_file.read_text())
+        manifest = YAMLDecoder(ImageManifest).decode(manifest_file.read_text())
         logger.debug(
             "Loaded segmentation manifest [ %s ] from [ %s ]", manifest_name, manifest_file
         )
         return manifest
 
 
-def save_segmentation_manifest(manifest: SegmentationManifest) -> None:
+def save_segmentation_manifest(manifest: ImageManifest) -> None:
     """Save segmentation manifest to manifest directory."""
 
     manifest_dir = get_segmentation_manifest_dir()
@@ -50,9 +50,7 @@ def save_segmentation_manifest(manifest: SegmentationManifest) -> None:
         return yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
     try:
-        content = str(
-            YAMLEncoder(SegmentationManifest, post_encoder_func=yaml_encoder).encode(manifest)
-        )
+        content = str(YAMLEncoder(ImageManifest, post_encoder_func=yaml_encoder).encode(manifest))
         manifest_file.write_text(content)
         logger.debug("Saved segmentation manifest [ %s ] to [ %s ]", manifest.name, manifest_file)
     except:
