@@ -31,7 +31,7 @@ in a Linux or MacOS environment through the CLI.
 """
 
 logger = logging.getLogger(__name__)
-out_dir = get_output_path(Path(__file__).stem, include_timestamp=False)
+out_dir = get_output_path(__file__, include_timestamp=False)
 configure_logging(out_dir, logger, verbose=True)
 
 

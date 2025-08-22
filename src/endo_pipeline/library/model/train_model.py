@@ -65,9 +65,9 @@ def _generate_overrides_for_model_training(
         A dictionary of configuration overrides for the DiffAE model training.
     """
     # create output directories if they do not exist
-    train_output_path = get_output_path("models", model_name, "train", include_timestamp=False)
-    _ = get_output_path("models", model_name, "train", "logs", include_timestamp=False)
-    _ = get_output_path("models", model_name, "train", "checkpoints", include_timestamp=False)
+    training_run_output_path = get_output_path("models", model_name, "train")
+    _ = get_output_path("models", model_name, "train", "logs")
+    _ = get_output_path("models", model_name, "train", "checkpoints")
 
     overrides = {
         # set path to train and val datasets
@@ -78,9 +78,9 @@ def _generate_overrides_for_model_training(
         "paths.root_dir": Path(__file__).resolve().parents[3],
         "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
-        "paths.output_dir": train_output_path / "logs",
+        "paths.output_dir": training_run_output_path / "logs",
         "paths.log_dir": "${paths.output_dir}",
-        "callbacks.model_checkpoint.dirpath": train_output_path / "checkpoints",
+        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
@@ -373,7 +373,7 @@ def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation)
                 "DataframeLocation does not have a FMS ID or S3 URI. "
                 "Please provide a valid DataframeLocation object."
             )
-        dataframe_path = str(get_local_path_from_fmsid(dataframe_location.fmsid))
+        dataframe_path = get_local_path_from_fmsid(dataframe_location.fmsid).as_posix()
 
     return dataframe_path
 

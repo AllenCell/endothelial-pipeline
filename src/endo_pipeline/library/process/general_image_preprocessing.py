@@ -8,13 +8,13 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     get_original_path,
     get_total_number_of_positions,
     get_zarr_name,
     get_zarr_path,
 )
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 
 
@@ -53,11 +53,7 @@ def build_analysis_queue(
 ) -> list:
     print(f"Building analysis queue for the following datasets: {dataset_name_list}")
     analysis_queue: list = []
-    out_dir = (
-        Path(out_dir)
-        if out_dir != None
-        else Path(get_output_path("analysis_queue_output_temp", verbose=False))
-    )
+    out_dir = Path(out_dir) if out_dir != None else get_output_path("analysis_queue_output_temp")
     for dataset_name in tqdm(
         dataset_name_list,
         total=len(dataset_name_list),
