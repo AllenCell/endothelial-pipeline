@@ -6,7 +6,7 @@ from src.endo_pipeline.configs import ChannelIndices, DatasetConfig
 from src.endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
 from src.endo_pipeline.manifests.image_manifest_utils import (
     get_segmentation_location_for_dataset,
-    list_datasets_with_segmentations,
+    list_datasets_with_images,
 )
 
 
@@ -62,7 +62,7 @@ def test_list_datasets_with_segmentations_with_valid_locations(manifest):
         "dataset_three": ImageLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
     }
 
-    datasets = list_datasets_with_segmentations(manifest)
+    datasets = list_datasets_with_images(manifest)
 
     assert datasets == ["dataset_one", "dataset_two", "dataset_three"]
 
@@ -74,7 +74,7 @@ def test_list_datasets_with_segmentations_with_invalid_location(manifest):
         "dataset_three": ImageLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
     }
 
-    datasets = list_datasets_with_segmentations(manifest)
+    datasets = list_datasets_with_images(manifest)
 
     assert datasets == ["dataset_one", "dataset_three"]
 

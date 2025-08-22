@@ -10,7 +10,7 @@ from src.endo_pipeline.manifests import ImageLocation, ImageManifest
 logger = logging.getLogger(__name__)
 
 
-def list_datasets_with_segmentations(manifest: ImageManifest) -> list[str]:
+def list_datasets_with_images(manifest: ImageManifest) -> list[str]:
     """Get list of dataset names that have valid segmentation locations in the given manifest."""
 
     return [name for name, location in manifest.locations.items() if location.path is not None]
