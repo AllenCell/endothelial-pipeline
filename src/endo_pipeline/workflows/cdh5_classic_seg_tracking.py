@@ -23,10 +23,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     sequence_to_scalar,
 )
 from src.endo_pipeline.library.process.lib_tracking import run_tracking
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +41,9 @@ def run_workflow(queue: Sequence) -> None:
 
     # get the segmentation images
     dataset = load_dataset_config(dataset_name)
-    manifest = load_segmentation_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     seg_locations = [
-        get_segmentation_location_for_dataset(manifest, dataset_name, position, timepoint)
+        get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
         for timepoint in range(dataset.duration)
     ]
     seg_filepaths = [location.path for location in seg_locations if location.path is not None]

@@ -11,9 +11,9 @@ from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_ima
 from src.endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
-    get_segmentation_location_for_dataset,
+    get_image_location_for_dataset,
     load_dataframe_manifest,
-    load_segmentation_manifest,
+    load_image_manifest,
 )
 
 
@@ -127,7 +127,7 @@ IF_SMAD_DATASETS = [
 POSITIONS = [0, 1]
 
 IF_DATAFRAME_MANIFEST = load_dataframe_manifest("immunofluorescence")
-SEG_MANIFEST = load_segmentation_manifest("nuclear_stain")
+SEG_MANIFEST = load_image_manifest("nuclear_stain_seg")
 
 # %%
 output_dir = get_output_path("tfe_immunofluorescence")
@@ -135,7 +135,7 @@ for dataset_name in IF_SMAD_DATASETS:
     for position in POSITIONS:
         print(f"Processing dataset: {dataset_name}, position: {position}")
 
-        seg_file = get_segmentation_location_for_dataset(SEG_MANIFEST, dataset_name, position, 0)
+        seg_file = get_image_location_for_dataset(SEG_MANIFEST, dataset_name, position, 0)
         if seg_file.path is not None:
             seg_path = seg_file.path.parent
         else:

@@ -14,7 +14,7 @@ from src.endo_pipeline.configs.dataset_io import (
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
 )
-from src.endo_pipeline.io import get_output_path, load_segmentation
+from src.endo_pipeline.io import get_output_path, load_image
 from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
@@ -22,10 +22,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_dim_map,
     save_image_output,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -120,9 +117,9 @@ def generate_results(
     )
 
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
-    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
-    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
-    nuc_pred = load_segmentation(seg_location)
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
+    nuc_pred = load_image(seg_location)
 
     (
         print(f"T={T} -- splitting RAG-based segmentations using nuclei predictions")
