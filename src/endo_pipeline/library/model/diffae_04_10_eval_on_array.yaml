@@ -85,7 +85,6 @@ data:
   num_workers: 1
   batch_size: 1
   source_key: raw_bf
-
   transforms:
     _target_: monai.transforms.Compose
     transforms:

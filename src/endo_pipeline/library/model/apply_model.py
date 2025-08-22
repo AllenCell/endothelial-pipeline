@@ -763,6 +763,196 @@ def apply_model_on_tracked_crops_from_one_dataset(
         save_dataframe_manifest(manifest)
 
 
+### BELOW HERE IS TEST CODE, NOT USED IN PRODUCTION ###
+def generate_overrides_for_array_inputs(
+    user_overrides: dict[str, Any],
+    # save_path: str,
+    # data_path: str,
+    ckpt_path: str,
+    # dataset_name: str,
+    # model_name: str,
+    # prediction_filename_suffix: str | None = None,
+    data: np.ndarray | list[np.ndarray],
+    transforms: dict | None = None,
+    num_workers: int = 1,  # 128,
+    batch_size: int = 1,
+) -> dict[str, Any]:
+    # """
+    # Generate overrides for the CytoDLModel configuration
+    # to evaluate model `model_name` on crops of
+    # tracked objects in dataset `dataset_name`.
+    # """
+    # if prediction_filename_suffix is None:
+    #     prediction_filename_suffix = f"{dataset_name}_{model_name}_tracked_crop_features"
+
+    # overrides = generate_overrides_for_model_eval(
+    #     user_overrides,
+    #     save_path=save_path,
+    #     data_path=data_path,
+    #     ckpt_path=ckpt_path,
+    #     dataset_name=dataset_name,
+    #     model_name=model_name,
+    # )
+
+    # additional overrides specific to track-based crops
+    # track_specific_overrides = {
+    #     "callbacks.prediction_saver": {
+    #         "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
+    #         "save_dir": save_path,
+    #         "meta_keys": [
+    #             "T",
+    #             "start_y",
+    #             "start_x",
+    #             "end_y",
+    #             "end_x",
+    #             "filename_or_obj",
+    #             "track_id",
+    #         ],
+    #         "save_suffix": prediction_filename_suffix,
+    #     },
+    # # add cropping transform
+    # "data.predict_dataloaders.dataset.transform.transforms[6]": {
+    #     "_target_": "cyto_dl.image.transforms.coordinate_crop.CropToCoordsd",
+    #     "keys": ["raw_bf"],
+    #     "start_keys": ["start_y", "start_x"],
+    #     "end_keys": ["end_y", "end_x"],
+    #     "meta_keys": ["track_id"],
+    # },
+    # # persist coordinate data through MultiDimImageDataset
+    # "data.predict_dataloaders.dataset.extra_columns": [
+    #     "start_y",
+    #     "start_x",
+    #     "end_y",
+    #     "end_x",
+    #     "track_id",
+    # ],
+    """
+    Generate overrides for the CytoDLModel configuration
+    for evaluating model `model_name` on crops of
+    images from dataset `dataset_name`.
+    """
+    overrides = {
+        # train and val dataloaders are unnecessary for prediction
+        # and might be slow to instantiate (e.g. if they cache data)
+        "data.train_dataloaders": None,
+        "data.val_dataloaders": None,
+        "data.predict_dataloaders._target_": "monai.data.DataLoader",
+        # "data.predict_dataloaders._target_": "cyto_dl.datamodules.array.make_array_dataloader",
+        # "data.predict_dataloaders.data": data,
+        "data.predict_dataloaders.data": None,
+        "data.predict.dataloaders.source_key": "raw_bf",
+        "data.predict_dataloaders.transform": transforms or {},
+        "data.predict_dataloaders.num_workers": num_workers,
+        "data.predict_dataloaders.batch_size": batch_size,
+        # "data.predict_dataloaders.dataset._target_": "cyto_dl.data.datasets.ArrayDataset",
+        # "data.predict_dataloaders.dataset._target_": "cyto_dl.datamodules.array.make_array_dataloader",
+        # "data.predict_dataloaders.dataset.csv_path": data_path,
+        # "paths.output_dir": save_path,
+        # change checkpoint path to the one downloaded from mlflow
+        "checkpoint.ckpt_path": ckpt_path,
+        "checkpoint.strict": True,
+        "checkpoint.weights_only": None,  # maybe?
+        "callbacks": None,
+        # "callbacks.prediction_saver": {
+        #     "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
+        #     "save_dir": save_path,
+        #     "meta_keys": [
+        #         "T",
+        #         "start_y",
+        #         "start_x",
+        #         "filename_or_obj",
+        #     ],
+        #     "save_suffix": prediction_filename_suffix or f"{dataset_name}_{model_name}_features",
+        # },
+        "extras.print_config": False,
+        # no spatial inferer needed
+        "model.spatial_inferer": None,
+        "model.diffusion_key": None,  # diffusion image is not needed
+        "model.save_dir": r"${paths.output_dir}",
+        "trainer": None,
+    }
+    overrides.update(user_overrides)
+    return overrides
+
+
+def apply_model_on_array2(
+    # model_config: CytoDLModelConfig,
+    # dataset_config: DatasetConfig,
+    data: np.ndarray | list[np.ndarray],
+    model_name: str = "diffae_04_10",
+    # save_path: str | Path | None = None,
+    # upload_to_fms: bool = True,
+    user_overrides: str | dict | None = None,
+) -> None:  # np.ndarray:
+
+    from omegaconf import ListConfig, OmegaConf
+
+    # load model config
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+
+    # if not torch.cuda.is_available():
+    #     raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
+    overrides = load_overrides(user_overrides)
+    # download model from mlflow
+    mlflow_id = model_config.mlflow_run_id
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
+    path_dict = download_model(mlflow_id, model_path)
+
+    # if save_path is None:
+    #     # if no save path is provided, use the default path
+    #     save_path = get_output_path(
+    #         "models", model_config.name, dataset_config.name, include_timestamp=False
+    #     )
+    # elif isinstance(save_path, str):
+    #     save_path = Path(save_path)
+
+    # load model
+    model = CytoDLModel()
+    model.load_config_from_file(path_dict["config_path"])
+
+    transforms = model.cfg["data"]["predict_dataloaders"]["dataset"]["transform"]
+
+    # data_path = preprocess_tracking_manifest_for_model_eval(dataset_config, save_path)
+
+    # # use timestamp to get unique file name for FMS upload later
+    # timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+    # prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_tracked_crop_features"
+    # prediction_filename_suffix = f"{prediction_filename_suffix}_{timestamp}"
+    # apply overrides
+    # overrides = generate_overrides_for_track_based_crops(
+    #     overrides,
+    #     save_path=str(save_path),
+    #     data_path=str(data_path),
+    #     ckpt_path=path_dict["checkpoint_path"],
+    #     dataset_name=dataset_config.name,
+    #     model_name=model_config.name,
+    #     prediction_filename_suffix=prediction_filename_suffix,
+    # )
+
+    overrides = generate_overrides_for_array_inputs(
+        overrides,
+        # save_path=str(save_path),
+        # data_path=str(save_path),
+        ckpt_path=path_dict["checkpoint_path"].as_posix(),
+        data=data,
+        transforms=transforms,
+        # dataset_name=model_config.dataset_name,
+        # model_name=model_config.name,
+        # prediction_filename_suffix=None,  # not needed for array inputs
+    )
+
+    model.override_config(overrides)
+    del model.cfg["ckpt_path"]
+    del model.cfg["data"]["predict_dataloaders"]["dataset"]
+    del model.cfg["data"]["predict_dataloaders"]["transform"]["transforms"][:2]
+    local_config_save_path = get_output_path("models", "evaluation_configs")
+    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+
+    model.predict(data=data)
+
+    # return
+
+
 def apply_model_on_array(
     # dataset_name: str,
     image_array: np.ndarray,
@@ -846,6 +1036,8 @@ def apply_model_on_array_test() -> np.ndarray:
     img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
     img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
 
+    data = img_arr_crop_bf
+
     # get the model checkpoint path
     model_config = load_model_config(model_name)
     # download model from mlflow
@@ -899,24 +1091,21 @@ def apply_model_on_array_test() -> np.ndarray:
 
     test = model.predict(data=img_arr_crop_bf)  # , run_async=False)
 
-    # from cyto_dl.datamodules.array import make_array_dataloader
+    from cyto_dl.datamodules.array import make_array_dataloader
+
     # from monai.transforms import Compose
     # from cyto_dl.image.transforms.clip import Clipd
     # from monai.transforms import NormalizeIntensityd
     # from monai.transforms import ToTensord
-
     # # # data = OmegaConf.create(img_arr_crop_bf)
     # transforms = Compose([Clipd, NormalizeIntensityd, ToTensord])
-    # make_array_dataloader(img_arr_crop_bf, transforms=np.clip, source_key="raw_bf")
+    make_array_dataloader(img_arr_crop_bf, transforms=np.clip, source_key="raw_bf")
 
-    # from omegaconf import ListConfig, OmegaConf
+    from omegaconf import ListConfig, OmegaConf
 
     # OmegaConf.to_object(img_arr_crop_bf)
-
     # from cyto_dl.eval import evaluate
-
     # evaluate(model.cfg, data=img_arr_crop_bf)
-
     # from lightning import Trainer
 
     return test
