@@ -632,7 +632,7 @@ def align_and_save_paired_images(
 
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
-    print(df.head())
+    print(df.columns)
     logger.debug("Found %d pairs of images to save", len(df))
     return df
 

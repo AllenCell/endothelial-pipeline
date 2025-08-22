@@ -7,12 +7,14 @@ def main(
     dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed", resolution_level: int = 1
 ) -> None:
     """
-    Generate a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
+    Generate a dataset of paired and aligned images for finetuning a DiffAE model.
 
     Parameters
     ----------
     dataset_pair_type
         Whether paired datasets are live/fixed or 20x/40x.
+    resolution_level
+        The resolution level of the zarr files to be used for training.
 
     Returns
     -------
@@ -56,6 +58,8 @@ def main(
             "resolution": [resolution_level] * len(out_paths),
         }
     )
+    # need path to be a string to be able to write to parquet
+    out_df["path"] = out_df["path"].astype(str)
 
     # Split the dataframe into training and validation sets
     train_val_tuple: tuple[pd.DataFrame, pd.DataFrame] = train_test_split(
