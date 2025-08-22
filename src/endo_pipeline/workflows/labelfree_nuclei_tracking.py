@@ -10,7 +10,7 @@ out_dir = get_output_path("tracking_output")
 dataset_name = "20241120_20X"
 
 dataset = load_dataset_config(dataset_name)
-manifest = load_image_manifest("nuclear_labelfree")
+manifest = load_image_manifest("nuclear_labelfree_seg")
 nuclei_locations = [
     get_image_location_for_dataset(manifest, dataset_name, 0, timepoint)
     for timepoint in range(dataset.duration)

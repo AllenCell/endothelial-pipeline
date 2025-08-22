@@ -26,7 +26,7 @@ def _evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256,
     # deprecated method. It has been replaced with a partial refactor using
     # newer methods, but has not been fully tested because this workflow is
     # archived. Use with caution!
-    manifest = load_image_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
     region_seg = load_segmentation(location)
     # --------------------------------------------------------------------------

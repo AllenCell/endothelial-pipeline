@@ -76,7 +76,7 @@ def _get_per_cell_features(
         (len(feat_cols), movie_shape_y, movie_shape_x), data, feat_cols
     ).compute()
 
-    manifest = load_image_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     segmentation_path = get_image_location_for_dataset(
         manifest, dataset_name, int(position[1:]), int(timepoint) // 6
     )

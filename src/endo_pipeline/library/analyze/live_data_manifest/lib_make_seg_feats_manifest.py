@@ -576,7 +576,7 @@ def get_nuclei_rel_to_cell_position(
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     dataset = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     return {
         timepoint: get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
         for timepoint in range(dataset.duration)
@@ -776,7 +776,7 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = get_default_dim_order()
-    seg_manifest = load_image_manifest("nuclear_labelfree")
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(
         manifest=seg_manifest,
         dataset_name=dataset_name,

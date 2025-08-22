@@ -201,7 +201,7 @@ def build_measured_features_tables(
 
     logger.debug(f"T={T} -- loading classic segmentation")
 
-    seg_manifest = load_image_manifest("cdh5_classic")
+    seg_manifest = load_image_manifest("cdh5_classic_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
     seg_arr = load_segmentation(seg_location)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""

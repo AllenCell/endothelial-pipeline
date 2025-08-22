@@ -147,7 +147,7 @@ def get_density_map_from_segmentations(
     # deprecated method. It has been replaced with a partial refactor using
     # newer methods, but has not been fully tested because this workflow is
     # archived. Use with caution!
-    manifest = load_image_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
     seg = load_segmentation(location)
     # --------------------------------------------------------------------------

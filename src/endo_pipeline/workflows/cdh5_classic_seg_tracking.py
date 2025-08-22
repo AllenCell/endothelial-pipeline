@@ -41,7 +41,7 @@ def run_workflow(queue: Sequence) -> None:
 
     # get the segmentation images
     dataset = load_dataset_config(dataset_name)
-    manifest = load_image_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     seg_locations = [
         get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
         for timepoint in range(dataset.duration)

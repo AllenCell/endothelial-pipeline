@@ -127,7 +127,7 @@ IF_SMAD_DATASETS = [
 POSITIONS = [0, 1]
 
 IF_DATAFRAME_MANIFEST = load_dataframe_manifest("immunofluorescence")
-SEG_MANIFEST = load_image_manifest("nuclear_stain")
+SEG_MANIFEST = load_image_manifest("nuclear_stain_seg")
 
 # %%
 output_dir = get_output_path("tfe_immunofluorescence")

@@ -16,7 +16,7 @@ from src.endo_pipeline.library.process.image_processing import (
 from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
-NUC_SEG_TYPE = "nuclear_stain"
+NUC_SEG_TYPE = "nuclear_stain_seg"
 
 
 def get_labeled_nuclei(
@@ -257,7 +257,7 @@ def run_nuclei_feature_extraction(
         timepoint (int): The timepoint index for the dataset.
             Default is 0, as IF data is only at timepoint 0.
         nuc_seg_type (str): The type of nuclear segmentation to use.
-            Default is "nuclear_stain", IF data uses the segmentations
+            Default is "nuclear_stain_seg", IF data uses the segmentations
             generated from the nuclear stain.
 
     Returns:

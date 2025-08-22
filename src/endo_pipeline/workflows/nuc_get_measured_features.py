@@ -187,11 +187,11 @@ def get_nuclei_features_from_dataset_at_T(
     # Load segmentations and image
     dim_order = get_default_dim_order()
 
-    nuc_manifest = load_image_manifest("nuclear_labelfree")
+    nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
     nuc_seg = load_segmentation(nuc_location)
 
-    cdh5_manifest = load_image_manifest("cdh5_classic")
+    cdh5_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
     cdh5_seg = load_segmentation(cdh5_location)
 

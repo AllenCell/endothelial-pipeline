@@ -90,7 +90,7 @@ def main() -> None:
     for dataset in args.datasets:
         for position in args.positions:
             if args.segmentation == "CDH5":
-                manifest = load_image_manifest("cdh5_classic")
+                manifest = load_image_manifest("cdh5_classic_seg")
                 location = get_image_location_for_dataset(manifest, dataset, position, 0)
 
                 if location.path is not None:

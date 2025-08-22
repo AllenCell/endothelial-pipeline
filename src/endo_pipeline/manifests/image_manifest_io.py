@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def get_image_manifest_dir() -> Path:
     """Get path to segmentation manifest directory."""
 
-    return Path(__file__).resolve().parents[1] / "manifests" / "segmentations"
+    return Path(__file__).resolve().parents[1] / "manifests" / "images"
 
 
 def load_image_manifest(manifest_name: str) -> ImageManifest:

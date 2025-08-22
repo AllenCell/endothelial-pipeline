@@ -72,7 +72,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     raw_path = Path(get_dataset_info(dataset_name)["original_path"])
 
     # Load classic segmentation for position and timepoint
-    seg_manifest = load_image_manifest("cdh5_classic")
+    seg_manifest = load_image_manifest("cdh5_classic_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
 
     # NOTE: leaving this conditional as close to the original as possible, but

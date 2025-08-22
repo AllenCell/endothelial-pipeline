@@ -117,7 +117,7 @@ def generate_results(
     )
 
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
-    seg_manifest = load_image_manifest("nuclear_labelfree")
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
     nuc_pred = load_segmentation(seg_location)
 
