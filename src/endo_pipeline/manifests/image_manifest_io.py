@@ -34,7 +34,7 @@ def load_image_manifest(manifest_name: str) -> ImageManifest:
         return manifest
 
 
-def save_segmentation_manifest(manifest: ImageManifest) -> None:
+def save_image_manifest(manifest: ImageManifest) -> None:
     """Save segmentation manifest to manifest directory."""
 
     manifest_dir = get_image_manifest_dir()
