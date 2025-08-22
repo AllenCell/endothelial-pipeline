@@ -27,6 +27,7 @@ def main(
         The function creates and save a :code:`ModelConfig` object with the finetuned model's
         MLflow run ID and the list of datasets used for training.
     """
+    import datetime
     import logging
     from typing import cast
 
@@ -88,12 +89,11 @@ def main(
     template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
 
     # initialize model for finetuning
-    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
+    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}_{timestamp}"
     model = initialize_diffae_model_for_finetuning(
         template_finetune_config=template_finetune_config,
-        model_name=model_name,
         finetuned_model_name=finetuned_model_name,
-        dataset_pair_type=dataset_pair_type,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
         model_save_path=model_save_path,

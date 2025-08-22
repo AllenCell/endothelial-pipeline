@@ -1,0 +1,5 @@
+name: diffae_04_10_finetuned_for_live_fixed_2025-08-22_20-40-38
+mlflow_run_id: 13e911b5688547928d67de3aab8ccc82
+training_datasets:
+- 20250214_pairedPostFixation
+- 20250214_pairedPreFixation
