@@ -6,7 +6,7 @@ from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
 from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.io import load_segmentation
+from src.endo_pipeline.io import load_image
 from src.endo_pipeline.library.process.image_processing import (
     background_subtract,
     max_proj,
@@ -37,7 +37,7 @@ def get_labeled_nuclei(
 
     seg_manifest = load_image_manifest(nuc_seg_type)
     seg_location = get_image_location_for_dataset(seg_manifest, dataset, position, timepoint)
-    seg_image = load_segmentation(seg_location)
+    seg_image = load_image(seg_location)
 
     return label(seg_image)
 

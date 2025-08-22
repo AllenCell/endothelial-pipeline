@@ -17,7 +17,7 @@ from src.endo_pipeline.configs.dataset_io import (
 from src.endo_pipeline.io import (
     configure_logging,
     get_output_path,
-    load_segmentation,
+    load_image,
     load_zarr_as_dask_array,
 )
 from src.endo_pipeline.library.process.general_image_preprocessing import (
@@ -189,11 +189,11 @@ def get_nuclei_features_from_dataset_at_T(
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_name, position, T)
-    nuc_seg = load_segmentation(nuc_location)
+    nuc_seg = load_image(nuc_location)
 
     cdh5_manifest = load_image_manifest("cdh5_classic_seg")
     cdh5_location = get_image_location_for_dataset(cdh5_manifest, dataset_name, position, T)
-    cdh5_seg = load_segmentation(cdh5_location)
+    cdh5_seg = load_image(cdh5_location)
 
     dataset_config = load_dataset_config(dataset_name)
     img_path = get_zarr_file_for_position(dataset_config, position)

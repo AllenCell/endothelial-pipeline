@@ -18,7 +18,7 @@ from src.endo_pipeline.configs.dataset_io import (
 from src.endo_pipeline.io import (
     configure_logging,
     get_output_path,
-    load_segmentation,
+    load_image,
     load_zarr_as_dask_array,
 )
 from src.endo_pipeline.library.analyze import shape_features as feat
@@ -203,7 +203,7 @@ def build_measured_features_tables(
 
     seg_manifest = load_image_manifest("cdh5_classic_seg")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
-    seg_arr = load_segmentation(seg_location)
+    seg_arr = load_image(seg_location)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint

@@ -129,7 +129,7 @@ def get_density_map_from_segmentations(
     from skimage.transform import pyramid_reduce
 
     from src.endo_pipeline.configs.dataset_io import get_zarr_path, load_config
-    from src.endo_pipeline.io import load_segmentation
+    from src.endo_pipeline.io import load_image
     from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
@@ -149,7 +149,7 @@ def get_density_map_from_segmentations(
     # archived. Use with caution!
     manifest = load_image_manifest("cdh5_classic_seg")
     location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
-    seg = load_segmentation(location)
+    seg = load_image(location)
     # --------------------------------------------------------------------------
 
     print(f"T={T} -- getting density map of image") if VERBOSE else None

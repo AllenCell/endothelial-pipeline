@@ -74,7 +74,7 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_segmentation_from_path(path: Path) -> np.ndarray:
+def load_image_from_path(path: Path) -> np.ndarray:
     """
     Load segmentation from path.
 
@@ -103,7 +103,7 @@ def load_segmentation_from_path(path: Path) -> np.ndarray:
     raise ValueError(f"Invalid segmentation file format '{path.suffix}'")
 
 
-def load_segmentation(location: ImageLocation) -> np.ndarray:
+def load_image(location: ImageLocation) -> np.ndarray:
     """
     Load segmentation from location.
 
@@ -114,7 +114,7 @@ def load_segmentation(location: ImageLocation) -> np.ndarray:
     """
 
     if location.path is not None:
-        return load_segmentation_from_path(location.path)
+        return load_image_from_path(location.path)
 
     logger.error("Location does not have a path.")
     raise FileNotFoundError("Unable to load segmentation; no available locations.")
