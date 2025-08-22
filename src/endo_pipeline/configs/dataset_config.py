@@ -34,9 +34,9 @@ class TimepointAnnotation(StrEnum):
 
     Z_SHIFT = "z_shift"
     """Shift in the Z focus."""
-    
+
     UNFED = "unfed"
-    """Timepoint where cells are more than 3hrs since last feeding.""" 
+    """Timepoint where cells are more than 3hrs since last feeding."""
 
 
 class PositionAnnotation(StrEnum):
@@ -171,7 +171,9 @@ class DatasetConfig:
     notes: str = ""
     """"Additional notes about dataset."""
 
-    timepoint_annotations: dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None = None
+    timepoint_annotations: (
+        dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
+    ) = None
     """Manually annotated timepoints for each position. Individual tps (int) or start, stops (tuple)."""
 
     position_annotations: dict[PositionAnnotation, list[int]] | None = None
