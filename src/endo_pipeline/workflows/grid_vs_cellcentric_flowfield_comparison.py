@@ -382,7 +382,7 @@ def main() -> None:
     # create a test flow field and test set of vectors
     # to check that the angular deviation calculation
     # works as expected
-    out_dir = get_output_path(Path(__file__).stem, include_timestamp=False)
+    out_dir = get_output_path(__file__, include_timestamp=False)
     make_angular_deviation_test(out_dir)
 
 

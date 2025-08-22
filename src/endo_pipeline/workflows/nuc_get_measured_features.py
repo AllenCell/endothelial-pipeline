@@ -247,7 +247,7 @@ def main(
     concatenate_tables_only: bool = False,
 ) -> None:
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 

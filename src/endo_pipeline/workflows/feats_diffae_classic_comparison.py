@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    out_dir = get_output_path(Path(__file__).stem)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = get_output_path(__file__)
     dataset_name_list = get_datasets_in_collection("pca_reference")
 
     # create subdirectory to save track-based trajectories to

@@ -5,11 +5,11 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
 from src.endo_pipeline.configs.dataset_io import (
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
 )
+from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     save_image_output,
@@ -154,7 +154,7 @@ def generate_crop_outline_images(
     # create the output directories
     dim_order = get_default_dim_order()
 
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(__file__)
 
     out_dir_seg_and_box, out_dir_box_only = get_out_subdirs(out_dir, dataset_name, position)
 
@@ -320,7 +320,7 @@ def generate_tfe_dataset_of_single_track(
     This function will take about 20 minutes to complete.
     """
     if out_dir is None:
-        out_dir = Path(get_output_path(Path(__file__).stem, verbose=verbose))
+        out_dir = get_output_path(__file__)
 
     generate_crop_outline_images(out_dir, dataset_name, position, track_id, crop_size)
 
