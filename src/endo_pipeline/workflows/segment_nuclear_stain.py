@@ -1,14 +1,14 @@
 import argparse
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import tifffile
 from cellpose import models
 from skimage.color import label2rgb
 
-from cellsmap.analyses.utils.viz import viz_base as vb
-from cellsmap.util import set_output
 from src.endo_pipeline.configs import dataset_io
+from src.endo_pipeline.io import get_output_path, save_plot_to_path
 from src.endo_pipeline.library.process import get_images, image_processing
 
 """
@@ -104,11 +104,11 @@ def visualize_results(max_int_projections: list, masks: list, dataset: str) -> N
 
         plt.tight_layout()
         plt.show()
-        output_path = set_output.get_output_path("nuclear_stain_segmentation")
-        vb.save_plot(fig, output_path + f"{dataset}_segmentation_overlay")
+        output_path = get_output_path("nuclear_stain_segmentation")
+        save_plot_to_path(fig, output_path, f"{dataset}_segmentation_overlay")
 
 
-def save_segmentation_masks(masks: list, dataset: str, output_dir: str) -> None:
+def save_segmentation_masks(masks: list, dataset: str, output_dir: Path) -> None:
     """
     Save segmentation masks as TIFF files.
 
@@ -120,9 +120,9 @@ def save_segmentation_masks(masks: list, dataset: str, output_dir: str) -> None:
     print("Saving segmentation masks...")
     n_positions = dataset_io.get_total_number_of_positions(dataset)
     for mask, position in zip(masks, range(n_positions), strict=True):
-        save_path = f"{output_dir}/{dataset}/P{position}/"
+        save_path = output_dir / dataset / f"P{position}"
         os.makedirs(save_path, exist_ok=True)  # Ensure the directory exists
-        tifffile.imwrite(save_path + f"{dataset}_P{position}_T0.ome.tiff", mask)
+        tifffile.imwrite(save_path / f"{dataset}_P{position}_T0.ome.tiff", mask)
 
 
 def process_dataset(
@@ -151,11 +151,12 @@ def process_dataset(
 
     # Step 4: Save segmentation masks
     if output_dir is None:
-        output_dir = set_output.get_output_path("nuclear_stain_segmentation")
+        output_path = get_output_path("nuclear_stain_segmentation")
     else:
+        output_path = Path(output_dir)
         print(f"Outputs saved to {output_dir}")
 
-    save_segmentation_masks(masks, dataset, output_dir)
+    save_segmentation_masks(masks, dataset, output_path)
 
 
 if __name__ == "__main__":

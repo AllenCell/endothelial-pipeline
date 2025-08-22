@@ -113,7 +113,7 @@ def feature_density(
     per_dataset: bool, optional
         If True, plot densities for each dataset separately. Default is False.
     """
-    plt.rcParams.update({'font.size': 14})
+    plt.rcParams.update({"font.size": 14})
     fig = plt.figure(figsize=(6, 6))
 
     def calc_stats(df: pd.DataFrame, feature: str) -> tuple:

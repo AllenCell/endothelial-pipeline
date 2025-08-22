@@ -82,6 +82,7 @@ def main(
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
+    # THIS NEEDS TO BE REFACTORED TO USE THE DATAFRAME MANIFEST
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_csv_path, val_csv_path, f"{dataset_pair_type}_paired_datasets"
     )

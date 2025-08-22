@@ -145,7 +145,7 @@ def main(
     '\"20241217_20X\",\"20241120_20X\"'
     """
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
     # Build a list of datasets to analyze

@@ -283,7 +283,7 @@ def measure_per_cell_features(
         n_pcs=n_pcs,
     )
     spatial_pc_info = []
-    # tracking_manifest = read_file_to_dataframe(tracking_manifest_path)
+
     for position_name, position_data in data.groupby("position"):
         for t, timepoint_data in position_data.groupby("frame_number"):
             spatial_pc_info.append(
