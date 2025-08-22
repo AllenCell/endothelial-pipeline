@@ -830,7 +830,6 @@ def apply_model_on_array_test() -> np.ndarray:
     model_name = "diffae_04_10"
     img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
     dim_order = "TCZYX"
-    img.get_image_dask_data(dim_order, T=0)
 
     # img_arr = img.get_image_dask_data(dim_order, T=0).max(dim_order.index("Z"), keepdims=True).compute()
     # img_arr_crop_cdh5 = img_arr[0, 0:1, 0, 0:128, 0:128]  # Example crop
@@ -905,7 +904,7 @@ def apply_model_on_array_test() -> np.ndarray:
 
 # from cyto_dl.datamodules.array import make_array_dataloader
 
-# data = OmegaConf.create(img_arr_crop_bf)
+# # data = OmegaConf.create(img_arr_crop_bf)
 # make_array_dataloader(img_arr_crop_bf, transforms=np.clip)
 
 # from omegaconf import ListConfig, OmegaConf

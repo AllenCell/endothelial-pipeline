@@ -9,14 +9,14 @@ seed: 12345
 model:
   _target_: cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder
   save_images_every_n_epochs: 10
-  save_dir: /allen/aics/users/benjamin.morris/cyto_dev/cyto-dl/outputs/2025-04-10/14-03-17
+  save_dir: ${paths.output_dir}
   image_shape:
   - 1
   - 128
   - 128
   n_noise_samples: 1
   condition_key: raw_bf
-  diffusion_key: raw_cdh5
+  # diffusion_key: raw_cdh5
   gamma: 5.0
   loss:
     _target_: torch.nn.MSELoss
@@ -63,42 +63,42 @@ model:
   diffusion_inferer:
     _target_: monai.inferers.DiffusionInferer
     _partial_: true
-  spatial_inferer:
-    _target_: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchInferer
-    splitter:
-      _target_: monai.inferers.SlidingWindowSplitter
-      patch_size:
-      - 128
-      - 128
-      pad_mode: null
-      overlap: 0
-    merger_cls: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchMerger
-    spatial_dims: 2
-    batch_size: 1000
-model/params/total: 31865609
-model/params/trainable: 4042401
-model/params/non_trainable: 27823208
+  spatial_inferer: null
+    # _target_: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchInferer
+    # splitter:
+    #   _target_: monai.inferers.SlidingWindowSplitter
+    #   patch_size:
+    #   - 128
+    #   - 128
+    #   pad_mode: null
+    #   overlap: 0
+    # merger_cls: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchMerger
+    # spatial_dims: 2
+    # batch_size: 1000
+# model/params/total: 31865609
+# model/params/trainable: 4042401
+# model/params/non_trainable: 27823208
 data:
   _target_: cyto_dl.datamodules.array.make_array_dataloader
   data:
   num_workers: 1
   batch_size: 1
-  source_key: input
+  source_key: raw_bf
 
   transforms:
     _target_: monai.transforms.Compose
     transforms:
     - _target_: cyto_dl.image.transforms.clip.Clipd
       keys:
-      - input
+      - raw_bf
       low: 0.1
       high: 99.9
     - _target_: monai.transforms.NormalizeIntensityd
       keys:
-      - input
+      - raw_bf
     - _target_: monai.transforms.ToTensord
       keys:
-      - input
+      - raw_bf
       dtype: float16
 callbacks:
   # model_checkpoint:
@@ -141,7 +141,7 @@ callbacks:
   #   _target_: cyto_dl.callbacks.grad_monitor.GradientLoggingCallback
 trainer:
   _target_: lightning.Trainer
-  default_root_dir: /allen/aics/users/benjamin.morris/cyto_dev/cyto-dl/outputs/2025-04-10/14-03-17
+  default_root_dir: ${paths.output_dir}
   min_epochs: 1
   max_epochs: 1
   # accelerator: gpu
@@ -150,7 +150,7 @@ trainer:
   # - 0
   devices: auto
   precision: 16-mixed
-  check_val_every_n_epoch: 1
+  check_val_every_n_epoch: 10
   deterministic: false
   detect_anomaly: false
   max_time: null
