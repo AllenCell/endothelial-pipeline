@@ -96,6 +96,7 @@ def main(
         val_dataframe_path=val_dataframe_path,
         model_save_path=model_save_path,
         diffae_ckpt_path=diffae_ckpt_path,
+        max_num_epochs=100 if not TESTING_MODE else 1,
     )
     # save the model config locally instead of printing
     finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"

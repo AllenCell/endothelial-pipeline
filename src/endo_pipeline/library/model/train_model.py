@@ -101,9 +101,16 @@ def _generate_overrides_for_finetuning(
     train_dataframe_path: str,
     val_dataframe_path: str,
     ckpt_path: Path,
+    max_num_epochs: int = 100,
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
+
+    **Workflow testing**
+
+    If the finetuning workflow is being run in testing mode, the model will be trained for
+    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
+    the configuration value of ``trainer.max_epochs`` in the finetuning config.
 
     Parameters
     ----------
@@ -117,6 +124,8 @@ def _generate_overrides_for_finetuning(
         The path to the image loading metadata file for the validation dataset.
     ckpt_path: Path
         The path to the DiffAE checkpoint to finetune.
+    max_num_epochs
+        The maximum number of epochs to train the model for.
     """
     # create output directories if they do not exist
     save_path = get_output_path(
@@ -137,6 +146,7 @@ def _generate_overrides_for_finetuning(
     overrides = {
         # point to already projected paired dataset
         "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # load diffae checkpoint to finetune
         "checkpoint.ckpt_path": str(ckpt_path),
@@ -151,6 +161,8 @@ def _generate_overrides_for_finetuning(
         "train": True,
         # turn off config printing, will get saved locally instead
         "extras.print_config": False,
+        # set the max number of epochs for training
+        "trainer.max_epochs": max_num_epochs,
         # updated mlflow logger
         "logger": {
             "mlflow": {
@@ -386,9 +398,16 @@ def initialize_diffae_model_for_finetuning(
     val_dataframe_path: str,
     model_save_path: Path,
     diffae_ckpt_path: Path,
+    max_num_epochs: int = 100,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
+
+    **Workflow testing**
+
+    If the finetuning workflow is being run in testing mode, the model will be trained for
+    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
+    the configuration value of ``trainer.max_epochs`` in the finetuning config.
 
     Parameters
     ----------
@@ -398,7 +417,6 @@ def initialize_diffae_model_for_finetuning(
         The name of the model to train.
     dataset_pair_type
         The type of dataset to use for finetuning ("live_fixed" or "20X_40X").
-        This should match the input used during the `paired_data_validation` step.
     train_dataframe_path
         The path to the image loading metadata dataframe for the training dataset.
     val_dataframe_path
@@ -406,8 +424,9 @@ def initialize_diffae_model_for_finetuning(
     model_save_path
         The path to the directory where the checkpoints and logs will be saved.
     diffae_ckpt_path
-        The path to the DiffAE checkpoint to finetune. This should be a path
-        to the checkpoint downloaded from MLflow artifacts.
+        The path to the DiffAE checkpoint to finetune.
+    max_num_epochs
+        The maximum number of epochs to train the model for
 
     Returns
     -------
@@ -421,6 +440,7 @@ def initialize_diffae_model_for_finetuning(
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
         ckpt_path=model_save_path / diffae_ckpt_path,
+        max_num_epochs=max_num_epochs,
     )
 
     # init model
