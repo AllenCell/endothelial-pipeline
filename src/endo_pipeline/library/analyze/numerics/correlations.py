@@ -94,7 +94,7 @@ def bootstrap_cross_correlation_confidence_interval(
     data_feat1: np.ndarray,
     data_feat2: np.ndarray,
     lag: int,
-    n_bootstraps: int = 10,
+    n_bootstraps: int = 200,
     confidence_level: float = 0.95,
 ) -> tuple[float, float]:
     """
@@ -184,7 +184,7 @@ def _compute_correlations_for_one_dataset(
     dataframe_manifest: DataframeManifest,
     pca: PCA,
     correlation_dict: dict,
-    bootstrap_confidence_interval: bool = False,
+    bootstrap_samples: int = 0,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
@@ -230,13 +230,14 @@ def _compute_correlations_for_one_dataset(
 
             # calculate CCF for lag
             ccf[lag_index, i] = cross_correlation_function(data_feat1, data_feat2, lags[lag_index])
-            if bootstrap_confidence_interval:
+            if bootstrap_samples > 0:
                 # calculate bootstrap confidence intervals
                 ccf_lb[lag_index, i], ccf_ub[lag_index, i] = (
                     bootstrap_cross_correlation_confidence_interval(
                         data_feat1,
                         data_feat2,
                         lags[lag_index],
+                        n_bootstraps=bootstrap_samples,
                     )
                 )
 
@@ -261,7 +262,7 @@ def compute_correlation_dict(
     dataset_names: list[str],
     dataframe_manifest: DataframeManifest,
     pca: PCA,
-    bootstrap_confidence_interval: bool = False,
+    bootstrap_samples: int = 0,
 ) -> dict[str, dict]:
     """Compute cross-correlation and autocorrelation for features from each dataset."""
     correlation_dict: dict[str, dict[str, np.ndarray]] = {
@@ -276,7 +277,7 @@ def compute_correlation_dict(
     for dataset_name in dataset_names:
         logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
         correlation_dict = _compute_correlations_for_one_dataset(
-            dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_confidence_interval
+            dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
         )
     return correlation_dict
 

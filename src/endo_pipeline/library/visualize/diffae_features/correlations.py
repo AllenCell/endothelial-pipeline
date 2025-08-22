@@ -105,7 +105,7 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
 
 
 def plot_correlation_workflow_outputs(
-    correlation_dict: dict[str, dict[str, np.ndarray]], bootstrap_confidence_interval: bool = False
+    correlation_dict: dict[str, dict[str, np.ndarray]], bootstrap_samples: int = 0
 ) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
@@ -214,7 +214,7 @@ def plot_correlation_workflow_outputs(
         for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
             lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
             ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-            if bootstrap_confidence_interval:
+            if bootstrap_samples > 0:
                 ax.fill_between(
                     lags_all_as_hours,
                     ccf_ci_lower[:, i],
