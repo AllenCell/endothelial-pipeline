@@ -19,7 +19,7 @@ def initialize_workflow(
 ) -> tuple[Path, dict]:
     from bioio import BioImage
 
-    from src.endo_pipeline.configs.dataset_io import get_time_interval_in_minutes, get_zarr_path
+    from endo_pipeline.configs.dataset_io import get_time_interval_in_minutes, get_zarr_path
 
     # NOTE: this function is unique to each script
     SCT_NAME = Path(__file__).stem
@@ -68,13 +68,13 @@ def get_density_map_from_thresholds(
     from skimage.filters import gaussian
     from skimage.morphology import skeletonize
 
-    from src.endo_pipeline.configs.dataset_io import (
+    from endo_pipeline.configs.dataset_io import (
         get_available_channels,
         get_zarr_path,
         load_config,
         load_dataset,
     )
-    from src.endo_pipeline.library.process.cdh5_preprocessing import get_thresholds, preprocess
+    from endo_pipeline.library.process.cdh5_preprocessing import get_thresholds, preprocess
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
@@ -128,9 +128,9 @@ def get_density_map_from_segmentations(
     from skimage.segmentation import find_boundaries
     from skimage.transform import pyramid_reduce
 
-    from src.endo_pipeline.configs.dataset_io import get_zarr_path, load_config
-    from src.endo_pipeline.io import load_image
-    from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.configs.dataset_io import get_zarr_path, load_config
+    from endo_pipeline.io import load_image
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
     assert (
@@ -172,7 +172,7 @@ def run_density_workflow(
     VERBOSE: bool = False,
 ) -> None:
 
-    from src.endo_pipeline.library.process.general_image_preprocessing import save_image_output
+    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 
     print(f"Working on {dataset_name}, T={T}...")
     print("- getting density map...") if VERBOSE else None
@@ -226,7 +226,7 @@ def main(
 
     mpl.rc("image", cmap="gray")
 
-    from src.endo_pipeline.configs.dataset_io import (
+    from endo_pipeline.configs.dataset_io import (
         fire_parse_generate_dataset_name_list,
         get_dataset_duration_in_frames,
     )
@@ -285,6 +285,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

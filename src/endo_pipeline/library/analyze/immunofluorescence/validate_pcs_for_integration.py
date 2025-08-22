@@ -7,24 +7,24 @@ from cyto_dl.api import CytoDLModel
 from matplotlib.patches import Ellipse
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
     load_dataset_config,
     load_model_config,
 )
-from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.model import (
+from endo_pipeline.library.model import (
     download_model,
     generate_overrides_for_model_eval,
     get_cytodl_commit_hash,
 )
-from src.endo_pipeline.library.process.registration import align_all_positions
-from src.endo_pipeline.manifests import (
+from endo_pipeline.library.process.registration import align_all_positions
+from endo_pipeline.manifests import (
     DataframeLocation,
     load_dataframe_manifest,
     save_dataframe_manifest,

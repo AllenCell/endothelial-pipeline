@@ -5,8 +5,8 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     get_original_path,
     get_zarr_name,
@@ -14,15 +14,15 @@ from src.endo_pipeline.configs.dataset_io import (
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
 )
-from src.endo_pipeline.io import get_output_path, load_image
-from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.library.process import cdh5_preprocessing as preproc
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
-from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:

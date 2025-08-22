@@ -64,8 +64,8 @@ def main(
     import logging
     from typing import cast
 
-    from src.endo_pipeline import TESTING_MODE
-    from src.endo_pipeline.configs import (
+    from endo_pipeline import TESTING_MODE
+    from endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
         get_available_dataset_names,
@@ -73,7 +73,7 @@ def main(
         load_dataset_config,
         load_model_config,
     )
-    from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+    from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
     logger = logging.getLogger(__name__)
 
@@ -125,6 +125,6 @@ def main(
 
 if __name__ == "__main__":
 
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

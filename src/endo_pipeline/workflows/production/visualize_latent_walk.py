@@ -43,21 +43,21 @@ def main(
     import pandas as pd
     from bioio.writers import OmeTiffWriter
 
-    from src.endo_pipeline.configs import get_datasets_in_collection
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.analyze.diffae_manifest import (
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_manifest import (
         fit_pca,
         get_dataframe_for_dynamics_workflows,
         get_feature_column_names,
         get_pc_column_names,
     )
-    from src.endo_pipeline.library.model import (
+    from endo_pipeline.library.model import (
         generate_from_coords,
         get_latent_coords,
         get_pca_coords,
         write_pc_vals,
     )
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     # set up output directory
     save_dir = get_output_path("models", model_name, include_timestamp=False)
@@ -106,6 +106,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

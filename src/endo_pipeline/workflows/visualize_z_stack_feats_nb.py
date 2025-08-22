@@ -1,15 +1,15 @@
 # %%
-from src.endo_pipeline.io.output import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.io.output import get_output_path, save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
 )
-from src.endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data
-from src.endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
+from endo_pipeline.library.analyze.numerics import get_3d_bounds_from_data
+from endo_pipeline.library.analyze.z_slice_feats.compare_feats import (
     feature_density,
     plot_scatter_by_position_and_frame,
 )
-from src.endo_pipeline.manifests import DataframeManifest, load_dataframe_manifest
+from endo_pipeline.manifests import DataframeManifest, load_dataframe_manifest
 
 # %%
 TIMEPOINTS = [0, 250, 500]

@@ -15,15 +15,11 @@ from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import (
-    get_original_path,
-    ipython_cli_flexecute,
-    load_config,
-)
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import get_original_path, ipython_cli_flexecute, load_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process import get_sldy_metadata as sldmd
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,

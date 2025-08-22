@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from src.endo_pipeline.configs import ChannelIndices, DatasetConfig
-from src.endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
-from src.endo_pipeline.manifests.image_manifest_utils import (
+from endo_pipeline.configs import ChannelIndices, DatasetConfig
+from endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
+from endo_pipeline.manifests.image_manifest_utils import (
     get_image_location_for_dataset,
     list_datasets_with_images,
 )
@@ -48,7 +48,7 @@ def dataset_config():
 def mock_load_dataset_config(mocker):
     def _mocker(dataset_config):
         config_mock = mocker.patch(
-            "src.endo_pipeline.manifests.image_manifest_utils.load_dataset_config"
+            "endo_pipeline.manifests.image_manifest_utils.load_dataset_config"
         )
         config_mock.return_value = dataset_config
 

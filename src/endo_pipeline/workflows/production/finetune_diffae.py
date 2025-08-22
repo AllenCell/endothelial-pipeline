@@ -35,9 +35,9 @@ def main(
 
     from omegaconf import OmegaConf
 
-    from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.model import (
+    from endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.model import (
         download_mlflow_artifact,
         get_ckpt_path,
         get_dataset_names_used_for_training,
@@ -97,6 +97,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

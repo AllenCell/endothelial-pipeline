@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib.patches import Ellipse
 from numpy.typing import ArrayLike
 
-from src.endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import save_plot_to_path
 
 
 def get_common_plot_range(

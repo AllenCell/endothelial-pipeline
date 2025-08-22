@@ -3,12 +3,12 @@ from pathlib import Path
 
 from colorizer_data import convert_colorizer_data
 
-from src.endo_pipeline.io import get_output_path, load_dataframe
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
     generate_backdrops,
 )
-from src.endo_pipeline.manifests import (
+from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
     get_image_location_for_dataset,

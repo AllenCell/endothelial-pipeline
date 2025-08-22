@@ -1,14 +1,14 @@
 import pytest
 
-from src.endo_pipeline.configs import DatasetCollectionConfig
-from src.endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
+from endo_pipeline.configs import DatasetCollectionConfig
+from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
 
 
 @pytest.fixture
 def mock_load_dataset_collection_config(mocker):
     def _mocker(name, datasets):
         mock = mocker.patch(
-            "src.endo_pipeline.configs.dataset_config_io.load_dataset_collection_config"
+            "endo_pipeline.configs.dataset_config_io.load_dataset_collection_config"
         )
         mock.return_value = DatasetCollectionConfig(name=name, description="", datasets=datasets)
 

@@ -8,7 +8,7 @@ from typing import Literal
 from git import Repo
 from matplotlib.figure import Figure
 
-from src.endo_pipeline.configs import DatasetConfig, ModelConfig
+from endo_pipeline.configs import DatasetConfig, ModelConfig
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ def build_fms_annotations(
         Additional relevant notes to append to notes annotation.
     """
 
-    from src.endo_pipeline.io.fms import FMS
+    from endo_pipeline.io.fms import FMS
 
     metadata_builder = FMS.create_file_metadata_builder("Endothelial")
 
@@ -195,7 +195,7 @@ def upload_file_to_fms(
         logger.error("File [ %s ] could not be found", file_path)
         raise FileNotFoundError(f"No such file '{file_path}'")
 
-    from src.endo_pipeline.io.fms import FMS
+    from endo_pipeline.io.fms import FMS
 
     logger.debug("Starting upload of [ %s ] to FMS", file_path)
     fms_file = FMS.upload_file(str(file_path), file_type, annotations, should_be_in_local=True)

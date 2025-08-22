@@ -7,9 +7,9 @@ import tifffile
 from cellpose import models
 from skimage.color import label2rgb
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.process import get_images, image_processing
+from endo_pipeline.configs import dataset_io
+from endo_pipeline.io import get_output_path, save_plot_to_path
+from endo_pipeline.library.process import get_images, image_processing
 
 """
 Segment nuclear stain channel using Cellpose for immunofluorescence datasets.

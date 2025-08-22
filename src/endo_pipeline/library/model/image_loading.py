@@ -13,7 +13,7 @@ from monai.data import CacheDataset, MetaTensor
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     DatasetConfig,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,

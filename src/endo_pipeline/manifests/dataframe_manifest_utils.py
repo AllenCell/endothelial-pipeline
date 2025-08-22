@@ -2,7 +2,7 @@
 
 import logging
 
-from src.endo_pipeline.manifests import DataframeLocation, DataframeManifest
+from endo_pipeline.manifests import DataframeLocation, DataframeManifest
 
 logger = logging.getLogger(__name__)
 

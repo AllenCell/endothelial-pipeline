@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from src.endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.manifests import DataframeManifest
 
 logger = logging.getLogger(__name__)
 

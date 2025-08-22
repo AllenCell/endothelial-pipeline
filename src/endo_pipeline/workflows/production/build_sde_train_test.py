@@ -23,14 +23,14 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
     """
     import logging
 
-    from src.endo_pipeline.configs import dynamics_io, get_datasets_in_collection
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_features import (
         build_kramers_moyal_train_test,
         save_train_test,
     )
-    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
 
@@ -87,6 +87,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

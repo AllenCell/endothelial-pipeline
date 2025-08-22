@@ -5,17 +5,17 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     save_image_output,
     sequence_to_scalar,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
+from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
 

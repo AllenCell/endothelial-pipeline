@@ -10,12 +10,9 @@ from skimage.measure import regionprops
 from skimage.segmentation import clear_border
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import extract_T
-from src.endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
-from src.endo_pipeline.library.process.general_image_preprocessing import (
-    get_dim_map,
-    save_image_output,
-)
+from endo_pipeline.configs.dataset_io import extract_T
+from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
+from endo_pipeline.library.process.general_image_preprocessing import get_dim_map, save_image_output
 
 
 ## NOTE THIS BLOCK SHOULD MAYBE BE MOVED TO A "MISCELLANEOUS UTILITIES" FILE

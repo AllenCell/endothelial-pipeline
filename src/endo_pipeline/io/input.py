@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 
-from src.endo_pipeline.manifests import DataframeLocation, ImageLocation
+from endo_pipeline.manifests import DataframeLocation, ImageLocation
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
         logger.error("Workflow unable to access [ /allen ] drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
-    from src.endo_pipeline.io.fms import FMS, FMS_BUCKET_NAME, FMS_ENV, FMS_FILE_ID, FMS_LOCAL_PATH
+    from endo_pipeline.io.fms import FMS, FMS_BUCKET_NAME, FMS_ENV, FMS_FILE_ID, FMS_LOCAL_PATH
 
     annotations = {FMS_FILE_ID: fmsid}
     record = list(FMS.find(annotations=annotations))

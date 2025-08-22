@@ -19,12 +19,9 @@ import re
 from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
-from src.endo_pipeline.__main__ import workflow_cli
-from src.endo_pipeline.configs import get_datasets_in_collection
-from src.endo_pipeline.configs.dataset_config_io import (
-    get_available_dataset_names,
-    load_dataset_config,
-)
+from endo_pipeline.__main__ import workflow_cli
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_config_io import get_available_dataset_names, load_dataset_config
 
 logger = logging.getLogger(__name__)
 
@@ -360,7 +357,7 @@ def get_zarr_dir(dataset_name: str) -> str:
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from src.endo_pipeline.configs import get_available_zarr_files
+    from endo_pipeline.configs import get_available_zarr_files
 
 This method will return a list of Path objects to Zarr files for all positions
 in the given dataset config. If you need the name of the Zarr file, use .name on
@@ -395,7 +392,7 @@ This method is deprecated and will be removed. Instead use:
 
 The recommended pattern is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
 
     dataset_config = load_dataset_config(dataset_name)
     channels = get_available_channels_for_all_positions(dataset_config)
@@ -421,7 +418,7 @@ This method is deprecated and will be removed. Instead use:
 
 To recreate the behavior of this method, use:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
+    from endo_pipeline.configs import load_dataset_config, get_available_channels_for_all_positions
 
     dataset_config = load_dataset_config(dataset_name)
     channels = get_available_channels_for_position(dataset_config, 0)
@@ -451,7 +448,7 @@ def get_channel_names(dataset_name: str) -> list[str]:
     """
 This method is deprecated and will be removed. Instead use:
 
-    from src.endo_pipeline.configs import get_channel_indices_for_all_positions
+    from endo_pipeline.configs import get_channel_indices_for_all_positions
     get_channel_indices_for_all_positions(dataset_config, position, channel_names)
 """
 )
@@ -479,7 +476,7 @@ def get_channel_index(
     """
 This method is deprecated and will be removed. Use the following replacement:
 
-    from src.endo_pipeline.configs import get_zarr_file_for_position
+    from endo_pipeline.configs import get_zarr_file_for_position
 
 This method will a Path to the Zarr file for the given dataset and position. If
 you need the name of the Zarr file, use .name on the returned Path object.
@@ -527,8 +524,8 @@ def get_total_number_of_positions(dataset_name: str) -> int:
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)
@@ -537,8 +534,8 @@ datasets is:
 To recreate the behavior of this specific method (loading Zarrs for all positions
 of a dataset into a dictionary, use:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_available_zarr_files
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_available_zarr_files
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_files = get_available_zarr_files(dataset_config)
@@ -579,8 +576,8 @@ def load_dataset(
 This method is deprecated and will be removed. The new pattern for loading Zarr
 datasets is:
 
-    from src.endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
-    from src.endo_pipeline.io import load_zarr_as_dask_array
+    from endo_pipeline.configs import load_dataset_config, get_zarr_file_for_position
+    from endo_pipeline.io import load_zarr_as_dask_array
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_file = get_zarr_file_for_position(dataset_config, position)

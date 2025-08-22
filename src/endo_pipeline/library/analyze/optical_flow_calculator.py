@@ -18,7 +18,7 @@ from skimage.filters import gaussian
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import dataset_io
 
 
 def expand_crop_region(crop_region: tuple[slice, ...], padding: int) -> tuple:
@@ -42,7 +42,7 @@ class FlowCalculator:
 
     Example using multiprocessing:
     --------
-    from src.endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
+    from endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
     import concurrent.futures
     from pathlib import Path
 
@@ -60,7 +60,7 @@ class FlowCalculator:
 
     Example using single processing:
     --------
-    from src.endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
+    from endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
     from pathlib import Path
 
     # Define a location to save the output to:

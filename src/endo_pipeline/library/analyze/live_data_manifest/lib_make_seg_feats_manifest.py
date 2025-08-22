@@ -14,14 +14,14 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.io.input import load_image
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.io.input import load_image
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
 )
-from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 

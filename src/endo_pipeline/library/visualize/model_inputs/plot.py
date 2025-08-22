@@ -3,7 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.io.output import save_plot_to_path
 
 
 def visualize_images_with_histograms(

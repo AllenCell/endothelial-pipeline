@@ -5,15 +5,15 @@ import pandas as pd
 from skimage.feature import graycomatrix, graycoprops
 from skimage.measure import label, regionprops, shannon_entropy
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.io import load_image
-from src.endo_pipeline.library.process.image_processing import (
+from endo_pipeline.configs import dataset_io
+from endo_pipeline.io import load_image
+from endo_pipeline.library.process.image_processing import (
     background_subtract,
     max_proj,
     normalize_image,
     sum_proj,
 )
-from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain_seg"

@@ -5,18 +5,16 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
     """Visualize key attributes of a fit PCA model."""
     import logging
 
-    from src.endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from src.endo_pipeline.io import get_output_path, save_plot_to_path
-    from src.endo_pipeline.library.analyze.diffae_manifest import (
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.library.analyze.diffae_manifest import (
         fit_pca,
         get_pca_loadings,
         get_timepoints_for_plotting_pcs,
     )
-    from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import (
-        get_pca_loadings_as_df,
-    )
-    from src.endo_pipeline.library.visualize.diffae_features import feature_viz
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.library.analyze.diffae_manifest.manifest_pca import get_pca_loadings_as_df
+    from endo_pipeline.library.visualize.diffae_features import feature_viz
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     # set up logger
     logger = logging.getLogger(__name__)
@@ -90,6 +88,6 @@ def main(dataset_collection_name: str = "pca_reference", model_name: str = "diff
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

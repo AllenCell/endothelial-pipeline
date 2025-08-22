@@ -6,11 +6,11 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.projections.polar import PolarAxes
 from pandas import DataFrame
 
-from src.endo_pipeline.configs import get_datasets_in_collection
-from src.endo_pipeline.configs.dataset_io import load_dataset_position_as_dask_array
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze import optical_flow_calculator
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_io import load_dataset_position_as_dask_array
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.analyze import optical_flow_calculator
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     get_dim_map,
 )
