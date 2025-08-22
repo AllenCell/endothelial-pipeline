@@ -383,7 +383,7 @@ def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation)
                 "DataframeLocation does not have a FMS ID or S3 URI. "
                 "Please provide a valid DataframeLocation object."
             )
-        dataframe_path = str(get_local_path_from_fmsid(dataframe_location.fmsid))
+        dataframe_path = get_local_path_from_fmsid(dataframe_location.fmsid).as_posix()
 
     return dataframe_path
 
