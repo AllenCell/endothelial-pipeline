@@ -241,11 +241,11 @@ def sift_registration(
             sum(inliers),
             len(matches),
         )
-        logger.debug("RANSAC model parameters: %s", model_robust.params)
+        logger.debug("RANSAC model parameters: \n%s", model_robust.params)
 
         model_robust.params[:2, :2] = np.eye(2)  # Set rotation and scaling to identity
         logger.debug(
-            "Estimated model parameters after setting rotation and scaling to identity: %s",
+            "Estimated model parameters after setting rotation and scaling to identity: \n%s",
             model_robust.params,
         )
 
@@ -384,12 +384,6 @@ def align(
     pd.DataFrame
         DataFrame containing the paths to the aligned images.
     """
-    logger.debug(
-        "Registering [ %s ] to [ %s ] using [ %s ]",
-        moving_image_path,
-        fixed_image_path,
-        alignment_method,
-    )
     image_fixed = BioImage(fixed_image_path)
     image_moving = BioImage(moving_image_path)
 
@@ -520,7 +514,7 @@ def align_all_positions(
     data_list = []
     position_counter = 0
     for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True):
-        logger.info(
+        logger.debug(
             "Aligning moving image [ %s ] to fixed image [ %s ]",
             moving,
             fixed,
@@ -617,21 +611,25 @@ def align_and_save_paired_images(
 
     df_list = []
     for fixed, moving in zip(fixed_datasets, moving_datasets, strict=True):
+        if testing_mode:
+            logger.warning(
+                "Testing mode is enabled. Only the first two pairs of images "
+                "from the first dataset pair will be aligned and saved."
+            )
+
         df_list.append(
             align_all_positions(
                 fixed,
                 moving,
                 save_path,
                 alignment_method=alignment_method,
-                num_positions_to_align=1 if testing_mode else None,
+                num_positions_to_align=2 if testing_mode else None,
             )
         )
+
         if testing_mode:
-            logger.warning(
-                "Testing mode is enabled. "
-                "Only the first pair of images from first dataset pair will be aligned and saved."
-            )
             break
+
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
     print(df.head())
