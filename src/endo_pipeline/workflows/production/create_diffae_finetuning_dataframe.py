@@ -44,7 +44,9 @@ def main(
     save_path = get_output_path("finetune_paired_dataset", dataset_pair_type)
     logger.info("Saving aligned images to [ %s ]", save_path)
 
-    df = align_and_save_paired_images(dataset_pair_type, save_path, testing_mode=TESTING_MODE)
+    df = align_and_save_paired_images(
+        dataset_pair_type, resolution_level, save_path, testing_mode=TESTING_MODE
+    )
 
     out_paths = [
         concat_and_save_aligned_image_pairs(row, save_path) for row in tqdm.tqdm(df.itertuples())
@@ -55,7 +57,6 @@ def main(
         {
             "path": out_paths,
             "channel": ["0,1"] * len(out_paths),
-            "resolution": [resolution_level] * len(out_paths),
         }
     )
     # need path to be a string to be able to write to parquet

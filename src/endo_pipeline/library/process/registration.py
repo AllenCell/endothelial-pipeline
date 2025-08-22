@@ -354,6 +354,7 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
 def align(
     moving_image_path: str | Path,
     fixed_image_path: str | Path,
+    resolution_level: int,
     savedir: Path,
     alignment_method: str,
     align_fluo: bool = True,
@@ -368,6 +369,8 @@ def align(
         Path to the moving image.
     fixed_image_path
         Path to the fixed image.
+    resolution_level
+        The resolution level of the zarr files to load for alignment.
     savedir
         Directory to save the aligned images.
     alignment_method
@@ -411,8 +414,12 @@ def align(
         image_fixed.set_scene(scene)
         image_moving.set_scene(scene)
         for t in range(image_fixed.dims["T"][0]):
-            fixed_fluo = image_fixed.get_image_dask_data("ZYX", C=FLUOR_CHANNEL, T=t).compute()
-            moving_fluo = image_moving.get_image_dask_data("ZYX", C=FLUOR_CHANNEL, T=t).compute()
+            fixed_fluo = image_fixed.get_image_dask_data(
+                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level
+            ).compute()
+            moving_fluo = image_moving.get_image_dask_data(
+                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level
+            ).compute()
 
             if not align_fluo:
                 fixed_fluo = fixed_fluo.std(0)
@@ -476,6 +483,7 @@ def align(
 def align_all_positions(
     fixed_dataset_name: str,
     moving_dataset_name: str,
+    resolution_level: int,
     savedir: Path,
     alignment_method: str,
     align_fluo: bool = True,
@@ -491,6 +499,8 @@ def align_all_positions(
         The name of the fixed dataset.
     moving_dataset_name
         The name of the moving dataset.
+    resolution_level
+        The resolution level of the zarr files to load for alignment.
     savedir
         The directory where the aligned images will be saved.
     alignment_method
@@ -523,6 +533,7 @@ def align_all_positions(
             align(
                 moving,
                 fixed,
+                resolution_level,
                 savedir,
                 align_fluo=align_fluo,
                 alignment_method=alignment_method,
@@ -570,6 +581,7 @@ def _get_paired_dataset_dict(
 
 def align_and_save_paired_images(
     dataset_pair_type: Literal["live_fixed", "20x_40x"],
+    resolution_level: int,
     save_path: Path,
     testing_mode: bool = False,
 ) -> pd.DataFrame:
@@ -586,6 +598,8 @@ def align_and_save_paired_images(
     ----------
     dataset_pair_type
         The type of dataset pair to align.
+    resolution_level
+        The resolution level of the zarr files to load for alignment.
     save_path
         The directory where the aligned images will be saved.
     testing_mode
@@ -621,6 +635,7 @@ def align_and_save_paired_images(
             align_all_positions(
                 fixed,
                 moving,
+                resolution_level,
                 save_path,
                 alignment_method=alignment_method,
                 num_positions_to_align=2 if testing_mode else None,
