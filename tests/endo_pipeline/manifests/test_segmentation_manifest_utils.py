@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 
 from src.endo_pipeline.configs import ChannelIndices, DatasetConfig
-from src.endo_pipeline.manifests.segmentation_manifest import ImageLocation, ImageManifest
-from src.endo_pipeline.manifests.segmentation_manifest_utils import (
+from src.endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
+from src.endo_pipeline.manifests.image_manifest_utils import (
     get_segmentation_location_for_dataset,
     list_datasets_with_segmentations,
 )

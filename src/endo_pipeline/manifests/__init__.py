@@ -8,13 +8,13 @@ from .dataframe_manifest_utils import (
     get_dataframe_location_for_dataset,
     list_datasets_with_dataframes,
 )
-from .segmentation_manifest import ImageLocation, ImageManifest
-from .segmentation_manifest_io import (
+from .image_manifest import ImageLocation, ImageManifest
+from .image_manifest_io import (
     get_segmentation_manifest_dir,
     load_segmentation_manifest,
     save_segmentation_manifest,
 )
-from .segmentation_manifest_utils import (
+from .image_manifest_utils import (
     get_segmentation_location_for_dataset,
     list_datasets_with_segmentations,
 )
