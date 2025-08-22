@@ -33,16 +33,16 @@ def main(
 
     from omegaconf import OmegaConf
 
-    from src.endo_pipeline import TESTING_MODE
-    from src.endo_pipeline.configs import CytoDLModelConfig, save_model_config
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.model import (
+    from endo_pipeline import TESTING_MODE
+    from endo_pipeline.configs import CytoDLModelConfig, save_model_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.model import (
         get_dataset_names_used_for_training,
         get_model_dir,
         get_valid_dataframe_path_for_training,
         initialize_diffae_model,
     )
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
 
@@ -122,6 +122,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

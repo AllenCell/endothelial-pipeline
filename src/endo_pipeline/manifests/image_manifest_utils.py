@@ -4,8 +4,8 @@ import dataclasses
 import logging
 from pathlib import Path
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.manifests import ImageLocation, ImageManifest
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.manifests import ImageLocation, ImageManifest
 
 logger = logging.getLogger(__name__)
 

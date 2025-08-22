@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.io import load_dataframe
-from src.endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 
 from .diffae_manifest_utils import (
     get_dataset_descriptions,

@@ -9,14 +9,14 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.io import save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
     split_dataset_by_flow,
 )
-from src.endo_pipeline.library.analyze.numerics import (
+from endo_pipeline.library.analyze.numerics import (
     SteadyFP,
     entropy_production,
     get_normalization_constant,
@@ -24,8 +24,8 @@ from src.endo_pipeline.library.analyze.numerics import (
     mesh_grid_function,
     vector_field_component,
 )
-from src.endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
-from src.endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
+from endo_pipeline.manifests import DataframeManifest
 
 
 def get_stationary_probability(

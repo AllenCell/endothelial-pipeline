@@ -6,12 +6,12 @@ import pandas as pd
 from bioio import BioImage
 from bioio.writers.timeseries_writer import TimeseriesWriter
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
-from src.endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
+from endo_pipeline.library.process import cdh5_preprocessing as preproc
+from endo_pipeline.library.visualize import vis_cdh5_nodes_and_edges_analysis as vis
 
 try:
     from IPython import get_ipython

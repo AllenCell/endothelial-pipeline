@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from dask.array import Array
 
-from src.endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
-from src.endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
-from src.endo_pipeline.library.process.image_processing import contrast_stretching
+from endo_pipeline.configs import DatasetConfig, get_zarr_file_for_position
+from endo_pipeline.io import load_zarr_as_dask_array, save_plot_to_path
+from endo_pipeline.library.process.image_processing import contrast_stretching
 
 
 def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) -> int:

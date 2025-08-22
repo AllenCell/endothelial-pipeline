@@ -17,9 +17,9 @@ from skimage.measure import label
 from skimage.morphology import dilation, disk
 from skimage.segmentation import watershed
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process import get_sldy_metadata as sldmd
+from endo_pipeline.configs import dataset_io
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process import get_sldy_metadata as sldmd
 
 # NOTE
 # because we don't have zarr files for the datasets in the

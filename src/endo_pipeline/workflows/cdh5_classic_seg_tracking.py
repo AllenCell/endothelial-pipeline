@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import (
     concatenate_and_save_feature_tables,
     extract_T,
     fire_parse_generate_dataset_name_list,
@@ -17,13 +17,13 @@ from src.endo_pipeline.configs.dataset_io import (
     get_zarr_path,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import configure_logging, get_output_path
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     sequence_to_scalar,
 )
-from src.endo_pipeline.library.process.lib_tracking import run_tracking
-from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+from endo_pipeline.library.process.lib_tracking import run_tracking
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 

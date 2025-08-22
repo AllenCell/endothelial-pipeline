@@ -37,8 +37,8 @@ def main(
     :
         Saves the montage images to the output directory.
     """
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.visualize.crop_montage import (
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.visualize.crop_montage import (
         filter_dataframe,
         generate_contact_sheet,
         load_data_for_montage,
@@ -72,6 +72,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

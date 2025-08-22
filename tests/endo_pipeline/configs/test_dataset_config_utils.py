@@ -3,13 +3,8 @@ from pathlib import Path
 import bioio
 import pytest
 
-from src.endo_pipeline.configs import (
-    ChannelIndices,
-    DatasetConfig,
-    FlowCondition,
-    load_dataset_config,
-)
-from src.endo_pipeline.configs.dataset_config_utils import (
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, load_dataset_config
+from endo_pipeline.configs.dataset_config_utils import (
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
     get_available_zarr_files,

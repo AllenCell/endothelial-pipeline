@@ -68,7 +68,7 @@ def _get_per_cell_features(
     from bioio import BioImage
     from skimage.measure import regionprops_table
 
-    from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     movie_shape_y, movie_shape_x = data.end_y.max(), data.end_x.max()
 
@@ -133,13 +133,13 @@ def get_feats(
 
     If PCA is used, apply PCA to the features.
     """
-    from src.endo_pipeline.library.analyze.diffae_manifest import (
+    from endo_pipeline.library.analyze.diffae_manifest import (
         fit_pca,
         get_feature_column_names,
         get_pc_column_names,
         project_manifest_to_pcs,
     )
-    from src.endo_pipeline.library.model import (
+    from endo_pipeline.library.model import (
         apply_model_on_grid_of_crops_from_one_dataset,
         load_overrides,
     )
@@ -187,8 +187,8 @@ def generate_spatial_feature_movie(
     import dask.array as da
     import numpy as np
 
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.convert_to_zarr.write_zarr import write_scene
 
     save_dir = get_output_path(
         "models", model_name, "spatial_pcs", dataset_name, include_timestamp=False
@@ -258,9 +258,9 @@ def measure_per_cell_features(
     use_pca: bool = False,
 ):
     """Take within-mask mean of each feature for each cell in the segmentation."""
-    from src.endo_pipeline.configs import load_dataset_config, load_model_config
-    from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-    from src.endo_pipeline.manifests import (
+    from endo_pipeline.configs import load_dataset_config, load_model_config
+    from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+    from endo_pipeline.manifests import (
         DataframeLocation,
         DataframeManifest,
         load_dataframe_manifest,
@@ -380,6 +380,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

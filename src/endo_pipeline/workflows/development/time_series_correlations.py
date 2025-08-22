@@ -17,18 +17,18 @@ def main(
     """
     import logging
 
-    from src.endo_pipeline.configs import (
+    from endo_pipeline.configs import (
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
         load_dataset_config,
     )
-    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.library.analyze.numerics import compute_correlation_dict
-    from src.endo_pipeline.library.visualize.diffae_features.correlations import (
+    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.library.analyze.numerics import compute_correlation_dict
+    from endo_pipeline.library.visualize.diffae_features.correlations import (
         plot_correlation_workflow_outputs,
     )
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     # initialize logger
     logger = logging.getLogger(__name__)
@@ -80,6 +80,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

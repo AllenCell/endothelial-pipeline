@@ -55,11 +55,11 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     from bioio import BioImage
     from skimage import measure
 
-    from src.endo_pipeline.configs import load_dataset_config
-    from src.endo_pipeline.configs.dataset_io import get_dataset_info
-    from src.endo_pipeline.io import load_image
-    from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
-    from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs.dataset_io import get_dataset_info
+    from endo_pipeline.io import load_image
+    from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -143,12 +143,12 @@ def main(
 
     from tqdm import tqdm
 
-    from src.endo_pipeline.configs.dataset_io import (
+    from endo_pipeline.configs.dataset_io import (
         fire_parse_generate_dataset_name_list,
         get_tracking_data_filtered,
     )
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
     out_dir = get_output_path(__file__)
 
@@ -232,6 +232,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)
