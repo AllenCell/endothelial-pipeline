@@ -272,9 +272,7 @@ callbacks:
     train_time_interval: null
     every_n_epochs: 1
     save_on_train_epoch_end: null
-  model_summary:
-    _target_: lightning.pytorch.callbacks.RichModelSummary
-    max_depth: -1
+  model_summary: null
   rich_progress_bar:
     _target_: lightning.pytorch.callbacks.RichProgressBar
   prediction_saver:

@@ -102,6 +102,7 @@ def _generate_overrides_for_finetuning(
     val_dataframe_path: str,
     ckpt_path: Path,
     max_num_epochs: int = 100,
+    log_every_n_steps: int = 50,
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
@@ -110,7 +111,8 @@ def _generate_overrides_for_finetuning(
 
     If the finetuning workflow is being run in testing mode, the model will be trained for
     only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the finetuning config.
+    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
+    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -126,6 +128,8 @@ def _generate_overrides_for_finetuning(
         The path to the DiffAE checkpoint to finetune.
     max_num_epochs
         The maximum number of epochs to train the model for.
+    log_every_n_steps
+        The interval at which to log training metrics.
     """
     # create output directories if they do not exist
     save_path = get_output_path(
@@ -163,6 +167,7 @@ def _generate_overrides_for_finetuning(
         "extras.print_config": False,
         # set the max number of epochs for training
         "trainer.max_epochs": max_num_epochs,
+        "trainer.log_every_n_steps": log_every_n_steps,
         # updated mlflow logger
         "logger": {
             "mlflow": {
@@ -399,6 +404,7 @@ def initialize_diffae_model_for_finetuning(
     model_save_path: Path,
     diffae_ckpt_path: Path,
     max_num_epochs: int = 100,
+    log_every_n_steps: int = 50,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
@@ -407,7 +413,8 @@ def initialize_diffae_model_for_finetuning(
 
     If the finetuning workflow is being run in testing mode, the model will be trained for
     only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
-    the configuration value of ``trainer.max_epochs`` in the finetuning config.
+    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
+    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
@@ -426,7 +433,9 @@ def initialize_diffae_model_for_finetuning(
     diffae_ckpt_path
         The path to the DiffAE checkpoint to finetune.
     max_num_epochs
-        The maximum number of epochs to train the model for
+        The maximum number of epochs for which to train the model.
+    log_every_n_steps
+        The interval at which to log training metrics.
 
     Returns
     -------
@@ -441,6 +450,7 @@ def initialize_diffae_model_for_finetuning(
         val_dataframe_path=val_dataframe_path,
         ckpt_path=model_save_path / diffae_ckpt_path,
         max_num_epochs=max_num_epochs,
+        log_every_n_steps=log_every_n_steps,
     )
 
     # init model
