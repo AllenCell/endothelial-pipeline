@@ -378,16 +378,19 @@ class MultiDimImageDataset(CacheDataset):
                 img.set_scene(scene)
                 timepoints = self._get_timepoints(row_dict, img)
                 for timepoint in timepoints:
-                    z_slices = self._get_z_slices(row_dict, img)
                     image_loading_args = {
                         "dimension_order_out": "C" + "ZYX"[-self.spatial_dims :],
                         "C": channel,
                         "scene": scene,
                         "T": timepoint,
-                        "Z": z_slices,
                         "original_path": row_dict[self.img_path_column],
                         "resolution": row_dict.get(self.resolution_column, 0),
                     }
+                    # only get Z slices if spatial_dims is 3
+                    if self.spatial_dims == 3:
+                        z_slices = self._get_z_slices(row_dict, img)
+                        image_loading_args["Z"] = z_slices
+                    # get and add extra columns if specified
                     extra_columns = {col: row_dict.get(col) for col in self.extra_columns}
                     extra_columns.update(image_loading_args)
                     row_data.append(extra_columns)

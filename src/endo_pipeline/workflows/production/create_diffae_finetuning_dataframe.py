@@ -59,7 +59,6 @@ def main(
         {
             "path": out_paths,
             "channel": ["0,1"] * len(out_paths),
-            "resolution": 0 * len(out_paths),
         }
     )
     # need path to be a string to be able to write to parquet

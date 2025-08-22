@@ -550,7 +550,6 @@ def align_all_positions(
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
-    logger.debug("Path stem for fixed image: [ %s ]", Path(row.fixed).stem)
     base_image_path = Path(row.fixed).stem.replace(".ome", "")
     return savedir / f"{base_image_path.replace('_fixed', '')}.ome.tiff"
 
@@ -641,7 +640,7 @@ def align_and_save_paired_images(
                 resolution_level,
                 save_path,
                 alignment_method=alignment_method,
-                num_positions_to_align=2 if testing_mode else None,
+                num_positions_to_align=4 if testing_mode else None,
             )
         )
 
