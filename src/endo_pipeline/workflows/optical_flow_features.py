@@ -72,7 +72,7 @@ dim_order = get_default_dim_order()
 dim_map = get_dim_map(dim_order)
 # %%
 # Get the paths to the vector field images
-dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[0]
+dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[:1]
 
 for dataset_name in dataset_name_list:
     # Load vector field image for a dataset
