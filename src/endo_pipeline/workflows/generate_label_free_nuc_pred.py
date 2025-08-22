@@ -142,7 +142,7 @@ def main(
 ) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
-    '\"20241016_20X\",\"20241120_20X\"'
+    '\"20241217_20X\",\"20241120_20X\"'
     """
 
     out_dir = get_output_path(__file__)

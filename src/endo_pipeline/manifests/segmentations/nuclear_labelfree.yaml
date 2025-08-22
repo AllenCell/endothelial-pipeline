@@ -2,8 +2,6 @@ name: nuclear_labelfree
 workflow: generate_label_free_nuc_pred (manifest updated manually)
 parameters: {}
 locations:
-  20241016_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241016_20X/P{{position}}/20241016_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20241120_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20241120_20X/P{{position}}/20241120_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20241217_20X:
