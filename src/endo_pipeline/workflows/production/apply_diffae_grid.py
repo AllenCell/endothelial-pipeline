@@ -72,7 +72,6 @@ def main(
         get_datasets_in_collection,
         load_dataset_config,
         load_model_config,
-        save_model_config,
     )
     from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
@@ -105,7 +104,7 @@ def main(
     # and then just loop through datasets...
     # out of scope for this PR but worth doing in a separate PR
     for dataset_config in dataset_config_list:
-        model_config = apply_model_on_grid_of_crops_from_one_dataset(
+        apply_model_on_grid_of_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
@@ -122,9 +121,6 @@ def main(
                 dataset_config.name,
             )
             break
-
-    # save out updated model config
-    save_model_config(model_config)
 
 
 if __name__ == "__main__":
