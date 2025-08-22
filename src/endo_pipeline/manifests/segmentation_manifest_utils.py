@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.manifests import ImageManifest, SegmentationLocation
+from src.endo_pipeline.manifests import ImageLocation, ImageManifest
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def get_segmentation_location_for_dataset(
     dataset_name: str,
     position: int | None = None,
     timepoint: int | None = None,
-) -> SegmentationLocation:
+) -> ImageLocation:
     """Get the segmentation location for the given dataset from the manifest, if it exists."""
 
     if dataset_name not in manifest.locations:

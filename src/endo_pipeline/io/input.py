@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 
-from src.endo_pipeline.manifests import DataframeLocation, SegmentationLocation
+from src.endo_pipeline.manifests import DataframeLocation, ImageLocation
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def load_segmentation_from_path(path: Path) -> np.ndarray:
     raise ValueError(f"Invalid segmentation file format '{path.suffix}'")
 
 
-def load_segmentation(location: SegmentationLocation) -> np.ndarray:
+def load_segmentation(location: ImageLocation) -> np.ndarray:
     """
     Load segmentation from location.
 

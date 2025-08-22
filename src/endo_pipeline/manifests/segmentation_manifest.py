@@ -8,7 +8,7 @@ from pydantic.dataclasses import dataclass
 
 
 @dataclass
-class SegmentationLocation:
+class ImageLocation:
     """Storage locations for segmentations."""
 
     path: Path | None = None
@@ -49,7 +49,7 @@ class ImageManifest:
     parameters: dict = field(default_factory=dict)
     """Specific workflow parameters used to produce the segmentations."""
 
-    locations: dict[str, SegmentationLocation] = field(default_factory=dict)
+    locations: dict[str, ImageLocation] = field(default_factory=dict)
     """Locations of individual segmentations."""
 
     class Config(BaseConfig):
