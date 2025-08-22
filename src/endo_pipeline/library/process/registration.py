@@ -469,12 +469,9 @@ def align(
             aligned_moving = warp(model, fixed_bf, moving_bf)
             aligned_moving, fixed_bf = crop_to_overlap(aligned_moving, fixed_bf)
             # Save the aligned images
-            moving_save_path = str(
-                savedir / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_bf.ome.tiff"
-            )
-            fixed_save_path = str(
-                savedir / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_bf.ome.tiff"
-            )
+            base_image_path = Path(moving_image_path).stem.replace(".ome", "")
+            moving_save_path = str(savedir / f"{base_image_path}_{scene}_{t}_moving_bf.ome.tiff")
+            fixed_save_path = str(savedir / f"{base_image_path}_{scene}_{t}_fixed_bf.ome.tiff")
             OmeTiffWriter.save(uri=moving_save_path, data=aligned_moving)
             OmeTiffWriter.save(uri=fixed_save_path, data=fixed_bf)
             aligned_files["moving"].append(moving_save_path)
@@ -488,6 +485,7 @@ def align_all_positions(
     savedir: Path,
     alignment_method: str,
     align_fluo: bool = True,
+    num_positions_to_align: int | None = None,
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
     """
@@ -507,6 +505,8 @@ def align_all_positions(
         recommended for the 20x/40x datasets.
     align_fluo
         Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
+    num_positions_to_align
+        The number of positions in the dataset to process for alignment. If None, process all.
     **alignment_kwargs
         Additional arguments for the alignment function.
 
@@ -517,8 +517,15 @@ def align_all_positions(
     """
     moving_zarr_files = sorted(get_available_zarr_files(load_dataset_config(moving_dataset_name)))
     fixed_zarr_files = sorted(get_available_zarr_files(load_dataset_config(fixed_dataset_name)))
-    data = pd.concat(
-        [
+    data_list = []
+    position_counter = 0
+    for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True):
+        logger.info(
+            "Aligning moving image [ %s ] to fixed image [ %s ]",
+            moving,
+            fixed,
+        )
+        data_list.append(
             align(
                 moving,
                 fixed,
@@ -527,14 +534,17 @@ def align_all_positions(
                 alignment_method=alignment_method,
                 **alignment_kwargs,
             )
-            for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True)
-        ]
-    )
+        )
+        position_counter += 1
+        if num_positions_to_align is not None and position_counter >= num_positions_to_align:
+            break
+    data = pd.concat(data_list, ignore_index=True)
     return data
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
-    return savedir / f"{str(Path(row.fixed).stem).replace('_fixed', '')}.ome.tiff"
+    base_image_path = Path(row.fixed).stem.replace(".ome", "")
+    return savedir / f"{base_image_path.replace('_fixed', '')}.ome.tiff"
 
 
 def _get_paired_dataset_dict(
@@ -613,15 +623,18 @@ def align_and_save_paired_images(
                 moving,
                 save_path,
                 alignment_method=alignment_method,
+                num_positions_to_align=1 if testing_mode else None,
             )
         )
         if testing_mode:
             logger.warning(
-                "Testing mode is enabled. Only the first pair of images will be aligned and saved."
+                "Testing mode is enabled. "
+                "Only the first pair of images from first dataset pair will be aligned and saved."
             )
             break
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
+    print(df.head())
     logger.debug("Found %d pairs of images to save", len(df))
     return df
 
