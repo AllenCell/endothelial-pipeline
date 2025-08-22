@@ -53,10 +53,13 @@ def main(
     ]
 
     # build dataframe with loading metadata for the aligned images
+    # note that "resolution" here is set to 0, as the images
+    # are already aligned and saved at the desired resolution level
     out_df = pd.DataFrame(
         {
             "path": out_paths,
             "channel": ["0,1"] * len(out_paths),
+            "resolution": 0 * len(out_paths),
         }
     )
     # need path to be a string to be able to write to parquet
