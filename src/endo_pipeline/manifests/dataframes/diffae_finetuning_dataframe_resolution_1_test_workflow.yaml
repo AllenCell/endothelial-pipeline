@@ -4,8 +4,8 @@ parameters:
   resolution_level: 1
 locations:
   training:
-    fmsid: 403e3dc322074c7aa2402f6e5ac875bb
+    fmsid: d2a95af8cc85426d9a6d8d08c05970ea
     s3uri: null
   validation:
-    fmsid: 7b2d6f35a00848f994e3fd2067272e35
+    fmsid: 6b01dbf6cd7e4430a15c46541f5f78e3
     s3uri: null

@@ -445,16 +445,19 @@ def align(
             moving_bf = image_moving.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
             moving_bf = resize_moving(moving_bf, (1, rescale_factor, rescale_factor))
 
+            base_moving_path = Path(moving_image_path).stem.replace(".ome", "")
+            base_fixed_path = Path(fixed_image_path).stem.replace(".ome", "")
+
             if align_fluo:
                 moving_fluo = warp(model, fixed_fluo, moving_fluo)
                 moving_fluo, fixed_fluo = crop_to_overlap(moving_fluo, fixed_fluo)
 
                 # Save the aligned images
                 moving_save_path = str(
-                    savedir / f"{Path(moving_image_path).stem}_{scene}_{t}_moving_fluo.ome.tiff"
+                    savedir / f"{base_moving_path}_{scene}_{t}_moving_fluo.ome.tiff"
                 )
                 fixed_save_path = str(
-                    savedir / f"{Path(fixed_image_path).stem}_{scene}_{t}_fixed_fluo.ome.tiff"
+                    savedir / f"{base_fixed_path}_{scene}_{t}_fixed_fluo.ome.tiff"
                 )
                 OmeTiffWriter.save(uri=moving_save_path, data=moving_fluo)
                 OmeTiffWriter.save(uri=fixed_save_path, data=fixed_fluo)
@@ -462,7 +465,7 @@ def align(
                 save_overlay(
                     moving_fluo,
                     fixed_fluo,
-                    savedir / f"{Path(fixed_image_path).stem}_{scene}_{t}_overlay.png",
+                    savedir / f"{base_fixed_path}_{scene}_{t}_overlay.png",
                 )
                 aligned_files["fixed_fluo"].append(fixed_save_path)
                 aligned_files["moving_fluo"].append(moving_save_path)
@@ -470,9 +473,8 @@ def align(
             aligned_moving = warp(model, fixed_bf, moving_bf)
             aligned_moving, fixed_bf = crop_to_overlap(aligned_moving, fixed_bf)
             # Save the aligned images
-            base_image_path = Path(moving_image_path).stem.replace(".ome", "")
-            moving_save_path = str(savedir / f"{base_image_path}_{scene}_{t}_moving_bf.ome.tiff")
-            fixed_save_path = str(savedir / f"{base_image_path}_{scene}_{t}_fixed_bf.ome.tiff")
+            moving_save_path = str(savedir / f"{base_moving_path}_{scene}_{t}_moving_bf.ome.tiff")
+            fixed_save_path = str(savedir / f"{base_fixed_path}_{scene}_{t}_fixed_bf.ome.tiff")
             OmeTiffWriter.save(uri=moving_save_path, data=aligned_moving)
             OmeTiffWriter.save(uri=fixed_save_path, data=fixed_bf)
             aligned_files["moving"].append(moving_save_path)
@@ -548,6 +550,7 @@ def align_all_positions(
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
+    logger.debug("Path stem for fixed image: [ %s ]", Path(row.fixed).stem)
     base_image_path = Path(row.fixed).stem.replace(".ome", "")
     return savedir / f"{base_image_path.replace('_fixed', '')}.ome.tiff"
 
