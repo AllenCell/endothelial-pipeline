@@ -88,9 +88,11 @@ def main(
     template_finetune_config = OmegaConf.load(get_model_dir() / "diffae_finetune.yaml")
 
     # initialize model for finetuning
+    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
     model = initialize_diffae_model_for_finetuning(
         template_finetune_config=template_finetune_config,
         model_name=model_name,
+        finetuned_model_name=finetuned_model_name,
         dataset_pair_type=dataset_pair_type,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
@@ -100,7 +102,6 @@ def main(
         log_every_n_steps=50 if not TESTING_MODE else 1,
     )
     # save the model config locally instead of printing
-    finetuned_model_name = f"{model_name}_finetuned_for_{dataset_pair_type}"
     local_config_save_path = get_output_path("models", "training_configs")
     model.save_config(local_config_save_path / f"{finetuned_model_name}_train.yaml")
     # call train method to start finetuning

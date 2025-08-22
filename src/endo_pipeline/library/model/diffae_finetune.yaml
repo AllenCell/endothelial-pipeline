@@ -1,3 +1,8 @@
+experiment_name: endo_diffae
+run_name: diffae_finetune
+task_name: train
+tags:
+- dev
 model:
   _target_: src.endo_pipeline.library.model.DiffAEFinetune
   save_images_every_n_epochs: 10
@@ -243,6 +248,12 @@ data:
           - raw_fixed
           - raw_moving
           dtype: float16
+logger:
+  mlflow:
+    _target_: cyto_dl.loggers.MLFlowLogger
+    tracking_uri: https://production.int.allencell.org/mlflow/
+    experiment_name: ${experiment_name}
+    run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer
   default_root_dir: null
@@ -256,6 +267,7 @@ trainer:
   max_time: null
   num_sanity_val_steps: 1
   gradient_clip_val: 5
+  enable_model_summary: False
 callbacks:
   model_checkpoint:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
@@ -297,9 +309,6 @@ extras:
   precision:
     _target_: torch.set_float32_matmul_precision
     precision: medium
-task_name: train
-tags:
-- dev
 checkpoint:
   ckpt_path: null
   weights_only: null

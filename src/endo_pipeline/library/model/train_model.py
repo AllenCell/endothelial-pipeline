@@ -96,8 +96,7 @@ def _generate_overrides_for_model_training(
 
 
 def _generate_overrides_for_finetuning(
-    model_name: str,
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
+    finetuned_model_name: str,
     train_dataframe_path: str,
     val_dataframe_path: str,
     ckpt_path: Path,
@@ -116,10 +115,8 @@ def _generate_overrides_for_finetuning(
 
     Parameters
     ----------
-    model_name
-        The name of the model to finetune.
-    dataset_pair_type
-        The type of dataset pairing to use for finetuning.
+    finetuned_model_name
+        The name of the finetuned model to save.
     train_dataframe_path
         The path to the image loading metadata file for the training dataset.
     val_dataframe_path
@@ -132,18 +129,18 @@ def _generate_overrides_for_finetuning(
         The interval at which to log training metrics.
     """
     # create output directories if they do not exist
-    save_path = get_output_path(
+    training_run_output_path = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
+        finetuned_model_name,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
+        finetuned_model_name,
         "checkpoints",
     )
     _ = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
+        finetuned_model_name,
         "logs",
     )
 
@@ -153,14 +150,14 @@ def _generate_overrides_for_finetuning(
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # load diffae checkpoint to finetune
-        "checkpoint.ckpt_path": str(ckpt_path),
+        "checkpoint.ckpt_path": ckpt_path,
         "checkpoint.weights_only": True,
         "checkpoint.strict": False,
         # save to user-specified directory
-        "model.save_dir": str(save_path / "logs"),
-        "trainer.default_root_dir": save_path,
-        "callbacks.model_checkpoint.dirpath": str(save_path / "checkpoints"),
-        "paths.output_dir": str(save_path / "logs"),
+        "model.save_dir": training_run_output_path / "logs",
+        "trainer.default_root_dir": training_run_output_path,
+        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
+        "paths.output_dir": training_run_output_path / "logs",
         # do training
         "train": True,
         # turn off config printing, will get saved locally instead
@@ -168,15 +165,8 @@ def _generate_overrides_for_finetuning(
         # set the max number of epochs for training
         "trainer.max_epochs": max_num_epochs,
         "trainer.log_every_n_steps": log_every_n_steps,
-        # updated mlflow logger
-        "logger": {
-            "mlflow": {
-                "_target_": "cyto_dl.loggers.MLFlowLogger",
-                "tracking_uri": "https://production.int.allencell.org/mlflow/",
-                "experiment_name": "endo_diffae",
-                "run_name": "fixed_finetune_separate_encoder",
-            }
-        },
+        # updated the run name
+        "run_name": finetuned_model_name,
     }
 
     return overrides
@@ -397,8 +387,7 @@ def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation)
 
 def initialize_diffae_model_for_finetuning(
     template_finetune_config: DictConfig | ListConfig,
-    model_name: str,
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
+    finetuned_model_name: str,
     train_dataframe_path: str,
     val_dataframe_path: str,
     model_save_path: Path,
@@ -420,10 +409,8 @@ def initialize_diffae_model_for_finetuning(
     ----------
     template_finetune_config
         The template configuration for finetuning the DiffAE model.
-    model_name
-        The name of the model to train.
-    dataset_pair_type
-        The type of dataset to use for finetuning ("live_fixed" or "20X_40X").
+    finetuned_model_name
+        The name of the finetuned model to save.
     train_dataframe_path
         The path to the image loading metadata dataframe for the training dataset.
     val_dataframe_path
@@ -444,8 +431,7 @@ def initialize_diffae_model_for_finetuning(
     """
     # generate overrides for train.yaml for finetuning
     overrides = _generate_overrides_for_finetuning(
-        model_name=model_name,
-        dataset_pair_type=dataset_pair_type,
+        finetuned_model_name=finetuned_model_name,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
         ckpt_path=model_save_path / diffae_ckpt_path,
