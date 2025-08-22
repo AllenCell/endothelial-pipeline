@@ -1,9 +1,18 @@
 import logging
 
 import numpy as np
-from scipy.optimize import curve_fit
+from sklearn.decomposition import PCA
+
+from src.endo_pipeline.library.analyze.diffae_manifest import (
+    df_to_array,
+    get_dataframe_for_dynamics_workflows,
+    get_pc_column_names,
+)
+from src.endo_pipeline.manifests import DataframeManifest
 
 logger = logging.getLogger(__name__)
+
+CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 
 
 def cross_correlation_function(
@@ -129,25 +138,86 @@ def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -
     return cross_correlation_function(data, component_index, component_index, lag)
 
 
+def _compute_correlations_for_one_dataset(
+    dataset_name: str, dataframe_manifest: DataframeManifest, pca: PCA, correlation_dict: dict
+) -> dict[str, dict]:
+    """Compute cross-correlation and autocorrelation for features from one dataset."""
+
+    # try to get dataframe for the given dataset
+    # if it does not exist, skip this dataset, return dict as is
+    try:
+        df = get_dataframe_for_dynamics_workflows(dataset_name, dataframe_manifest, pca)
+    except KeyError:
+        logger.warning(
+            "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
+        )
+        return correlation_dict
+
+    feat_cols = get_pc_column_names(df, pc_axes=[0, 1, 2])
+
+    # get feature data
+    feats = df_to_array(df, feat_cols)
+
+    num_timepoints = feats.shape[1]
+    # make sure lags are symmetric around zero
+    if num_timepoints % 2 == 0:
+        # even number of timepoints
+        lags = np.arange(-num_timepoints // 4 + 1, num_timepoints // 4)
+    else:
+        # odd number of timepoints
+        lags = np.arange(-num_timepoints // 4 + 2, num_timepoints // 4)
+
+    num_lags = len(lags)
+    # autocorrelation
+    acf = np.zeros((num_lags, 3))
+    for i in range(3):
+        for k in range(num_lags):
+            acf[k, i] = autocorrelation_function(feats, i, lags[k])
+
+    ccf = np.zeros((num_lags, 3))
+    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
+        for lag_index in range(num_lags):
+            ccf[lag_index, i] = cross_correlation_function(feats, j, k, lags[lag_index])
+
+    # get difference between
+    # forward and backward lags
+    # leave out zero
+    delta_ccf = np.zeros((num_lags // 2, 3))
+    for i, _ in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
+        delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
+
+    # store results in dict of dicts and return updated dict
+    correlation_dict["lags"][dataset_name] = lags
+    correlation_dict["acf"][dataset_name] = acf
+    correlation_dict["ccf"][dataset_name] = ccf
+    correlation_dict["delta_ccf"][dataset_name] = delta_ccf
+    return correlation_dict
+
+
+def compute_correlation_dict(
+    dataset_names: list[str], dataframe_manifest: DataframeManifest, pca: PCA
+) -> dict[str, dict]:
+    """Compute cross-correlation and autocorrelation for features from each dataset."""
+    correlation_dict: dict[str, dict[str, np.ndarray]] = {
+        "lags": {},
+        "acf": {},
+        "ccf": {},
+        "delta_ccf": {},
+    }
+    # update dict with correlation functions for each dataset in a loop
+    for dataset_name in dataset_names:
+        logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
+        correlation_dict = _compute_correlations_for_one_dataset(
+            dataset_name, dataframe_manifest, pca, correlation_dict
+        )
+    return correlation_dict
+
+
 def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
     """Define exponential decay function for curve fitting."""
     return a * np.exp(-b * x)
 
 
-def fit_exponential_decay(lags: np.ndarray, acf: np.ndarray) -> np.ndarray:
-    """
-    Fit an exponential decay function to the autocorrelation data.
-
-    Parameters
-    ----------
-    lags
-        Array of lag values (positive only).
-    acf
-        Array of autocorrelation values corresponding to the lags.
-    """
-
-    # Fit the exponential decay function to the data
-    exp_fit, _ = curve_fit(exponential_decay, lags, acf)
-
-    # Return the fit parameters
-    return exp_fit
+def power_law_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
+    """Define power law decay function for curve fitting."""
+    return a * np.power(x, -b)

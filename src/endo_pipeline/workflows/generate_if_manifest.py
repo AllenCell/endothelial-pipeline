@@ -3,9 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from cellsmap.util.manifest_preprocessing.fms_upload import save_file_to_fms
-from src.endo_pipeline.configs.dataset_io import get_git_versioning_info
-from src.endo_pipeline.io import get_output_path
+from src.endo_pipeline.configs import load_dataset_config
+from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
 from src.endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
 from src.endo_pipeline.manifests import (
     DataframeLocation,
@@ -56,17 +55,11 @@ def upload_manifest_to_fms(save_path: str, dataset: str) -> str:
     Returns:
         str: The FMS ID of the uploaded file.
     """
-    commit_info = get_git_versioning_info()
-    fms_id = save_file_to_fms(
-        file_path=save_path,
-        dataset=dataset,
-        commit_hash=commit_info["git_commit_hash"],
-        misc_notes=f"This immunofluorescence manifest was produced by the cellsmap repository. \
-                Made on branch {commit_info['git_branch_name']} at {commit_info['timestamp']}.",
-        file_type="csv",
-        model_version="",
-        mlflow_run_id=None,
-    )
+
+    dataset_config = load_dataset_config(dataset)
+    annotations = build_fms_annotations(dataset_config)
+    fms_id = upload_file_to_fms(save_path, annotations, "csv")
+
     return fms_id
 
 
