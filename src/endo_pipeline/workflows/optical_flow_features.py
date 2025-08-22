@@ -19,7 +19,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
 )
 
 # %% Make list of datasets to analzye
-dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[0]
+dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[:1]
 position = 0  # NOTE PLACEHOLDER. WORKFLOW SHOULD BECOME MAIN() WITH position AS AN ARGUMENT
 
 debug = True
