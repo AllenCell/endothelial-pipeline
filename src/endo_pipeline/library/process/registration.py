@@ -2,7 +2,7 @@ import logging
 from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import cv2
 import matplotlib.pyplot as plt
@@ -11,6 +11,7 @@ import pandas as pd
 import torch
 from bioio import BioImage
 from bioio.writers import OmeTiffWriter
+from bioio_base.types import PhysicalPixelSizes
 from monai.inferers import SlidingWindowSplitter
 from skimage import transform as tf
 from skimage.exposure import rescale_intensity
@@ -37,11 +38,11 @@ def visualize_keypoints(image: np.ndarray, keypoints: np.ndarray, savepath: str)
 
     Parameters
     ----------
-    image : np.ndarray
+    image
         The input image.
-    keypoints : np.ndarray
+    keypoints
         The coordinates of the detected keypoints.
-    savepath : str
+    savepath
         The path where the visualization will be saved.
     """
     import matplotlib.pyplot as plt
@@ -60,12 +61,12 @@ def sift_preprocess(img: np.ndarray) -> np.ndarray:
 
     Parameters
     ----------
-    img : np.ndarray
+    img
         The input image.
 
     Returns
     -------
-    img : np.ndarray
+    :
         The preprocessed image.
     """
     img = np.clip(img, np.percentile(img, 10), np.percentile(img, 99))
@@ -77,8 +78,18 @@ def template_matching(
     image: np.ndarray, template: np.ndarray, scale: int = 3
 ) -> tuple[np.ndarray, float]:
     """
-    Register a small moving image to a larger fixed image using a multi-scale sliding
-    window correlation. Note that the moving image is assumed to be smaller than the fixed image.
+    Register a small moving image to a larger fixed image via sliding window correlation.
+
+    Note that the moving image is assumed to be smaller than the fixed image.
+
+    Parameters
+    ----------
+    image
+        The fixed image used for registration.
+    template
+        The moving image that will be registered to the fixed image.
+    scale
+        The scale factor for downsampling the images before registration.
     """
     # Resize image to current scale
     downsampled_image = block_reduce(image, (scale, scale), np.max)
@@ -115,15 +126,14 @@ def template_registration(
 
     Parameters
     ----------
-    image_fixed : np.ndarray
+    image_fixed
         The reference image used for registration.
-    image_moving : np.ndarray
+    image_moving
         The image that will be registered to the fixed image.
-    scale : int
+    scale
         The scale factor for downsampling the images before registration.
-    template_shape : tuple
-        The shape of the template used for registration.
-        If None, the shape of the moving image will be used.
+    template_shape
+        Optional, the shape of the template used for registration.
     """
     template_shape = template_shape or image_moving.shape[-2:]
     splitter = SlidingWindowSplitter(patch_size=template_shape, overlap=0.1, pad_mode=None)
@@ -145,29 +155,31 @@ def template_registration(
 
 def _get_sift(
     image: np.ndarray, upsampling: int = 1, sigma_min: int = 2
-) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Detect SIFT keypoints and descriptors in the given image.
 
     Parameters
     ----------
-    image : np.ndarray
+    image
         The input image.
-    upsampling : int
+    upsampling
         The number of times to upsample the image before detecting keypoints.
-    sigma_min : int
+    sigma_min
         The minimum standard deviation for Gaussian smoothing.
 
     Returns
     -------
-    keypoints : np.ndarray
+    :
         The detected keypoints.
-    descriptors : np.ndarray
+    :
         The descriptors for the detected keypoints.
     """
     extractor = SIFT(upsampling=upsampling, sigma_min=sigma_min)
     extractor.detect_and_extract(image)
-    return extractor.keypoints, extractor.descriptors
+    keypoints = cast(np.ndarray, extractor.keypoints)
+    descriptors = cast(np.ndarray, extractor.descriptors)
+    return keypoints, descriptors
 
 
 def sift_registration(
@@ -180,21 +192,20 @@ def sift_registration(
 ) -> tf.SimilarityTransform | None:
     """
     Register a moving image to a fixed image using SIFT keypoint matching and RANSAC.
-    Return a similarity transform if successful, otherwise None.
 
     Parameters
     ----------
-    image_fixed : np.ndarray
+    image_fixed
         The reference image used for registration.
-    image_moving : np.ndarray
+    image_moving
         The image that will be registered to the fixed image.
-    min_samples : int
+    min_samples
         Minimum number of samples for RANSAC.
-    residual_threshold : int
+    residual_threshold
         Max distance for RANSAC inliers. Adjust based on image resolution/expected error.
-    max_trials : int
+    max_trials
         Maximum RANSAC iterations.
-    visualize_keypoints_dir : bool
+    visualize_keypoints_dir
         Directory to save visualizations of keypoints. If None, no visualizations are saved.
     """
     image_fixed = sift_preprocess(image_fixed)
@@ -272,7 +283,7 @@ def warp(
 
     Returns
     -------
-    np.ndarray
+    :
         The warped moving image aligned to the fixed image.
     """
     print("Warping image...")
@@ -307,7 +318,7 @@ def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[floa
 
     Returns
     -------
-    np.ndarray
+    :
         Resized moving image.
     """
     if np.all(resize_factor == 1.0):
@@ -318,8 +329,22 @@ def resize_moving(image_moving: np.ndarray, resize_factor: float | Sequence[floa
 
 def crop_to_overlap(crop1: np.ndarray, crop2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
-    Remove NaN values present in the XY border of either of the passed images. It is assumed that
-    the XY locations of the NaN values are the same across all Z slices if the images are 3D.
+    Remove NaN values present in the XY border of either of the passed images.
+
+    It is assumed that the XY locations of the NaN values are the same across all
+    Z slices if the images are 3D.
+
+    Parameters
+    ----------
+    crop1
+        The first image crop.
+    crop2
+        The second image crop.
+
+    Returns
+    -------
+    :
+        Tuple of the cropped images with NaN values removed.
     """
     slices_to_check = [crop1[0], crop2[0]] if len(crop1.shape) == 3 else [crop1, crop2]
     valid_mask = ~np.isnan(np.stack(slices_to_check, axis=0)).any(axis=0)
@@ -363,6 +388,12 @@ def align(
     """
     Align a moving image to a fixed image using blob detection and registration.
 
+    **Alignment methods**
+
+    Options for alignment methods are "sift" or "template", passed in via the ``alignment_method``
+    input. The method "sift" is recommended for the 20x pre/post fixation datasets, while the
+    method "template" is recommended for the 20X/40X datasets.
+
     Parameters
     ----------
     moving_image_path
@@ -374,17 +405,15 @@ def align(
     savedir
         Directory to save the aligned images.
     alignment_method
-        The method used for alignment. Options are "sift" or "template". "sift" is
-        recommended for the 20x pre/post fixation datasets, while "template" is
-        recommended for the 20x/40x datasets.
+        The method used for alignment.
     align_fluo
-        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
+        If True, align the fluorescent channel. If False, do not align the fluorescent channel.
     **alignment_kwargs
         Additional arguments for the alignment function.
 
     Returns
     -------
-    pd.DataFrame
+    :
         DataFrame containing the paths to the aligned images.
     """
     image_fixed = BioImage(fixed_image_path)
@@ -398,11 +427,6 @@ def align(
             image_moving.shape[:-3],
         )
         raise ValueError("The moving and fixed image must have the same non-spatial dimensions.")
-
-    alignment_func = {
-        "sift": sift_registration,
-        "template": template_registration,
-    }[alignment_method]
 
     aligned_files: dict[str, list[str]] = {"fixed": [], "moving": []}
 
@@ -426,9 +450,19 @@ def align(
                 moving_fluo = moving_fluo.std(0)
 
             # assume isotropic in xy
-            rescale_factor: float = (
-                image_moving.physical_pixel_sizes.X / image_fixed.physical_pixel_sizes.X
-            )
+            img_moving_physical_size: PhysicalPixelSizes = image_moving.physical_pixel_sizes
+            img_fixed_physical_size: PhysicalPixelSizes = image_fixed.physical_pixel_sizes
+            # to deal with type error with .X being float or None
+            if img_moving_physical_size.X is None or img_fixed_physical_size.X is None:
+                logger.error(
+                    "Physical pixel sizes for moving or fixed image are not set. "
+                    "Moving size: [ %s ], Fixed size: [ %s ]",
+                    img_moving_physical_size,
+                    img_fixed_physical_size,
+                )
+                raise ValueError("Physical pixel sizes for moving or fixed image are not set.")
+            # will only continue if the physical pixel sizes are set
+            rescale_factor = img_fixed_physical_size.X / img_moving_physical_size.X
             logger.debug(
                 "Rescale factor for scene [ %d ], time [ %d ]: [ %f ]", scene, t, rescale_factor
             )
@@ -437,7 +471,20 @@ def align(
             fixed_projection = fixed_fluo.std(0) if align_fluo else fixed_fluo
             moving_projection = moving_fluo.std(0) if align_fluo else moving_fluo
 
-            model = alignment_func(fixed_projection, moving_projection, **alignment_kwargs)
+            # apply alignment method
+            # add type: ignore[arg-type] to avoid type errors with the kwargs
+            if alignment_method == "sift":
+                model = sift_registration(
+                    fixed_projection,
+                    moving_projection,
+                    **alignment_kwargs,  # type: ignore[arg-type]
+                )
+            elif alignment_method == "template":
+                model = template_registration(
+                    fixed_projection,
+                    moving_projection,
+                    **alignment_kwargs,  # type: ignore[arg-type]
+                )
             if model is None:
                 continue
 
@@ -495,6 +542,12 @@ def align_all_positions(
     """
     Align all positions of the moving dataset to the fixed dataset.
 
+    **Alignment methods**
+
+    Options for alignment methods are "sift" or "template", passed in via the ``alignment_method``
+    input. The method "sift" is recommended for the 20x pre/post fixation datasets, while the
+    method "template" is recommended for the 20X/40X datasets.
+
     Parameters
     ----------
     fixed_dataset_name
@@ -506,13 +559,11 @@ def align_all_positions(
     savedir
         The directory where the aligned images will be saved.
     alignment_method
-        The method used for alignment. Options are "sift" or "template". "sift" is
-        recommended for the 20x pre/post fixation datasets, while "template" is
-        recommended for the 20x/40x datasets.
+        The method used for alignment.
     align_fluo
-        Whether to align the fluorescent channel. If False, the fluorescent channel is not aligned.
+        If True, align the fluorescent channel. If False, do not align the fluorescent channel.
     num_positions_to_align
-        The number of positions in the dataset to process for alignment. If None, process all.
+        Optional, the number of positions in the dataset to process for alignment.
     **alignment_kwargs
         Additional arguments for the alignment function.
 
@@ -582,7 +633,7 @@ def _get_paired_dataset_dict(
 
 
 def align_and_save_paired_images(
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
+    dataset_pair_type: Literal["live_fixed", "20X_40X"],
     resolution_level: int,
     save_path: Path,
     testing_mode: bool = False,
@@ -654,7 +705,7 @@ def align_and_save_paired_images(
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: tuple[Any, ...], savedir: Path) -> Path:
+def concat_and_save_aligned_image_pairs(row: pd.Series[Any], savedir: Path) -> Path:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.
