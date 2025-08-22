@@ -1,4 +1,4 @@
-"""Methods for segmentation manifest I/O."""
+"""Methods for image manifest I/O."""
 
 import logging
 from pathlib import Path
@@ -12,30 +12,28 @@ logger = logging.getLogger(__name__)
 
 
 def get_image_manifest_dir() -> Path:
-    """Get path to segmentation manifest directory."""
+    """Get path to image manifest directory."""
 
     return Path(__file__).resolve().parents[1] / "manifests" / "images"
 
 
 def load_image_manifest(manifest_name: str) -> ImageManifest:
-    """Load segmentation manifest by name."""
+    """Load image manifest by name."""
 
     manifest_dir = get_image_manifest_dir()
     manifest_file = manifest_dir / f"{manifest_name}.yaml"
 
     if not manifest_file.exists():
-        logger.error("Segmentation manifest [ %s ] could not be loaded", manifest_name)
+        logger.error("Image manifest [ %s ] could not be loaded", manifest_name)
         raise FileNotFoundError(f"No such file '{manifest_file}'")
     else:
         manifest = YAMLDecoder(ImageManifest).decode(manifest_file.read_text())
-        logger.debug(
-            "Loaded segmentation manifest [ %s ] from [ %s ]", manifest_name, manifest_file
-        )
+        logger.debug("Loaded image manifest [ %s ] from [ %s ]", manifest_name, manifest_file)
         return manifest
 
 
 def save_image_manifest(manifest: ImageManifest) -> None:
-    """Save segmentation manifest to manifest directory."""
+    """Save image manifest to manifest directory."""
 
     manifest_dir = get_image_manifest_dir()
     manifest_file = manifest_dir / f"{manifest.name}.yaml"
@@ -52,7 +50,7 @@ def save_image_manifest(manifest: ImageManifest) -> None:
     try:
         content = str(YAMLEncoder(ImageManifest, post_encoder_func=yaml_encoder).encode(manifest))
         manifest_file.write_text(content)
-        logger.debug("Saved segmentation manifest [ %s ] to [ %s ]", manifest.name, manifest_file)
+        logger.debug("Saved image manifest [ %s ] to [ %s ]", manifest.name, manifest_file)
     except:
-        logger.error("Segmentation manifest [ %s ] could not be saved", manifest.name)
+        logger.error("Image manifest [ %s ] could not be saved", manifest.name)
         raise

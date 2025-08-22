@@ -1,4 +1,4 @@
-"""Methods for working with segmentation manifests."""
+"""Methods for working with image manifests."""
 
 import dataclasses
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def list_datasets_with_images(manifest: ImageManifest) -> list[str]:
-    """Get list of dataset names that have valid segmentation locations in the given manifest."""
+    """Get list of dataset names that have valid image locations in the given manifest."""
 
     return [name for name, location in manifest.locations.items() if location.path is not None]
 
@@ -22,15 +22,15 @@ def get_image_location_for_dataset(
     position: int | None = None,
     timepoint: int | None = None,
 ) -> ImageLocation:
-    """Get the segmentation location for the given dataset from the manifest, if it exists."""
+    """Get the image location for the given dataset from the manifest, if it exists."""
 
     if dataset_name not in manifest.locations:
         logger.error(
-            "Dataset [ %s ] does not have a location in segmentation manifest [ %s ]",
+            "Dataset [ %s ] does not have a location in image manifest [ %s ]",
             dataset_name,
             manifest.name,
         )
-        raise KeyError(f"Unable to find dataset {dataset_name} in segmentation manifest.")
+        raise KeyError(f"Unable to find dataset {dataset_name} in image manifest.")
 
     dataset = load_dataset_config(dataset_name)
     location = dataclasses.replace(manifest.locations[dataset_name])
