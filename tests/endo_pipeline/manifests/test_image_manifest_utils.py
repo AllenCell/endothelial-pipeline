@@ -13,7 +13,7 @@ from src.endo_pipeline.manifests.image_manifest_utils import (
 @pytest.fixture
 def manifest():
     return ImageManifest(
-        name="unique_segmentation_manifest_name",
+        name="unique_image_manifest_name",
         workflow="workflow_name",
         locations={},
     )
@@ -48,14 +48,14 @@ def dataset_config():
 def mock_load_dataset_config(mocker):
     def _mocker(dataset_config):
         config_mock = mocker.patch(
-            "src.endo_pipeline.manifests.segmentation_manifest_utils.load_dataset_config"
+            "src.endo_pipeline.manifests.image_manifest_utils.load_dataset_config"
         )
         config_mock.return_value = dataset_config
 
     return _mocker
 
 
-def test_list_datasets_with_segmentations_with_valid_locations(manifest):
+def test_list_datasets_with_images_with_valid_locations(manifest):
     manifest.locations = {
         "dataset_one": ImageLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
         "dataset_two": ImageLocation(path=Path("/path/to/dataset_two/seg.ome.tiff")),
@@ -67,7 +67,7 @@ def test_list_datasets_with_segmentations_with_valid_locations(manifest):
     assert datasets == ["dataset_one", "dataset_two", "dataset_three"]
 
 
-def test_list_datasets_with_segmentations_with_invalid_location(manifest):
+def test_list_datasets_with_images_with_invalid_location(manifest):
     manifest.locations = {
         "dataset_one": ImageLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
         "dataset_two": ImageLocation(),
@@ -126,7 +126,7 @@ def test_list_datasets_with_segmentations_with_invalid_location(manifest):
         ),
     ],
 )
-def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
+def test_get_image_location_for_dataset_valid_dataset_valid_arguments(
     mock_load_dataset_config,
     dataset_config,
     manifest,
@@ -183,7 +183,7 @@ def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
         ),
     ],
 )
-def test_get_segmentation_location_for_dataset_valid_dataset_invalid_arguments(
+def test_get_image_location_for_dataset_valid_dataset_invalid_arguments(
     mock_load_dataset_config,
     dataset_config,
     manifest,
@@ -203,7 +203,7 @@ def test_get_segmentation_location_for_dataset_valid_dataset_invalid_arguments(
         get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
 
 
-def test_get_segmentation_location_for_dataset_valid_dataset_no_path(
+def test_get_image_location_for_dataset_valid_dataset_no_path(
     mock_load_dataset_config, dataset_config, manifest
 ):
     dataset_config.name = "no_seg_path"
@@ -218,6 +218,6 @@ def test_get_segmentation_location_for_dataset_valid_dataset_no_path(
     assert location.path is None
 
 
-def test_get_segmentation_location_for_dataset_invalid_dataset(manifest):
+def test_get_image_location_for_dataset_invalid_dataset(manifest):
     with pytest.raises(KeyError):
         get_image_location_for_dataset(manifest, "invalid_dataset")
