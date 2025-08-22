@@ -4,6 +4,7 @@ TAGS = ["diffae_features"]
 def main(
     dataset_name: str = "3d_flow_field_analysis",
     model_name: str = "diffae_04_10",
+    bootstrap_confidence_interval=False,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -71,12 +72,10 @@ def main(
     # get cross and autocorrelation for pc features for each dataset
     # in the list of model manifests
     correlation_dict = compute_correlation_dict(
-        dataset_names,
-        dataframe_manifest,
-        pca,
+        dataset_names, dataframe_manifest, pca, bootstrap_confidence_interval
     )
 
-    plot_correlation_workflow_outputs(correlation_dict)
+    plot_correlation_workflow_outputs(correlation_dict, bootstrap_confidence_interval)
 
 
 if __name__ == "__main__":
