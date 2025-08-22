@@ -70,7 +70,7 @@ def _get_per_cell_features(
 
     from src.endo_pipeline.manifests import (
         get_segmentation_location_for_dataset,
-        load_segmentation_manifest,
+        load_image_manifest,
     )
 
     movie_shape_y, movie_shape_x = data.end_y.max(), data.end_x.max()
@@ -79,7 +79,7 @@ def _get_per_cell_features(
         (len(feat_cols), movie_shape_y, movie_shape_x), data, feat_cols
     ).compute()
 
-    manifest = load_segmentation_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic")
     segmentation_path = get_segmentation_location_for_dataset(
         manifest, dataset_name, int(position[1:]), int(timepoint) // 6
     )

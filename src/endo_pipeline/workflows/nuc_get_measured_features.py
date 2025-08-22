@@ -24,10 +24,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from src.endo_pipeline.manifests import get_segmentation_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -190,11 +187,11 @@ def get_nuclei_features_from_dataset_at_T(
     # Load segmentations and image
     dim_order = get_default_dim_order()
 
-    nuc_manifest = load_segmentation_manifest("nuclear_labelfree")
+    nuc_manifest = load_image_manifest("nuclear_labelfree")
     nuc_location = get_segmentation_location_for_dataset(nuc_manifest, dataset_name, position, T)
     nuc_seg = load_segmentation(nuc_location)
 
-    cdh5_manifest = load_segmentation_manifest("cdh5_classic")
+    cdh5_manifest = load_image_manifest("cdh5_classic")
     cdh5_location = get_segmentation_location_for_dataset(cdh5_manifest, dataset_name, position, T)
     cdh5_seg = load_segmentation(cdh5_location)
 

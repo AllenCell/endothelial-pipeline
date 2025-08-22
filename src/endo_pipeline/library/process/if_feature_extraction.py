@@ -13,10 +13,7 @@ from src.endo_pipeline.library.process.image_processing import (
     normalize_image,
     sum_proj,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from src.endo_pipeline.manifests import get_segmentation_location_for_dataset, load_image_manifest
 
 IF_CHANNELS = ["NucViolet", "SOX17", "SMAD1", "NR2F2"]
 NUC_SEG_TYPE = "nuclear_stain"
@@ -38,7 +35,7 @@ def get_labeled_nuclei(
         np.ndarray: A labeled image where each connected component is assigned a unique integer label.
     """
 
-    seg_manifest = load_segmentation_manifest(nuc_seg_type)
+    seg_manifest = load_image_manifest(nuc_seg_type)
     seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset, position, timepoint)
     seg_image = load_segmentation(seg_location)
 

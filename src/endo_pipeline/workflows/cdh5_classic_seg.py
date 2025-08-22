@@ -22,10 +22,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_dim_map,
     save_image_output,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from src.endo_pipeline.manifests import get_segmentation_location_for_dataset, load_image_manifest
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -120,7 +117,7 @@ def generate_results(
     )
 
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
-    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
+    seg_manifest = load_image_manifest("nuclear_labelfree")
     seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
     nuc_pred = load_segmentation(seg_location)
 

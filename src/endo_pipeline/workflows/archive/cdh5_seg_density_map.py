@@ -132,7 +132,7 @@ def get_density_map_from_segmentations(
     from src.endo_pipeline.io import load_segmentation
     from src.endo_pipeline.manifests import (
         get_segmentation_location_for_dataset,
-        load_segmentation_manifest,
+        load_image_manifest,
     )
 
     DATASET_NAME_LIST = [config_data["name"] for config_data in load_config(config_type="data")]
@@ -150,7 +150,7 @@ def get_density_map_from_segmentations(
     # deprecated method. It has been replaced with a partial refactor using
     # newer methods, but has not been fully tested because this workflow is
     # archived. Use with caution!
-    manifest = load_segmentation_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic")
     location = get_segmentation_location_for_dataset(manifest, dataset_name, 0, T)
     seg = load_segmentation(location)
     # --------------------------------------------------------------------------

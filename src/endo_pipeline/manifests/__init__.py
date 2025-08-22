@@ -11,7 +11,7 @@ from .dataframe_manifest_utils import (
 from .image_manifest import ImageLocation, ImageManifest
 from .image_manifest_io import (
     get_image_manifest_dir,
-    load_segmentation_manifest,
+    load_image_manifest,
     save_segmentation_manifest,
 )
 from .image_manifest_utils import (
@@ -31,7 +31,7 @@ __all__ = [
     "list_datasets_with_dataframes",
     "list_datasets_with_segmentations",
     "load_dataframe_manifest",
-    "load_segmentation_manifest",
+    "load_image_manifest",
     "save_dataframe_manifest",
     "save_segmentation_manifest",
 ]

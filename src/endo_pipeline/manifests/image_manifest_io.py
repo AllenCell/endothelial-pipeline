@@ -17,7 +17,7 @@ def get_image_manifest_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "manifests" / "segmentations"
 
 
-def load_segmentation_manifest(manifest_name: str) -> ImageManifest:
+def load_image_manifest(manifest_name: str) -> ImageManifest:
     """Load segmentation manifest by name."""
 
     manifest_dir = get_image_manifest_dir()

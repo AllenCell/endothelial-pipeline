@@ -61,7 +61,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
     from src.endo_pipeline.manifests import (
         get_segmentation_location_for_dataset,
-        load_segmentation_manifest,
+        load_image_manifest,
     )
 
     # unpack needed variables
@@ -75,7 +75,7 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     raw_path = Path(get_dataset_info(dataset_name)["original_path"])
 
     # Load classic segmentation for position and timepoint
-    seg_manifest = load_segmentation_manifest("cdh5_classic")
+    seg_manifest = load_image_manifest("cdh5_classic")
     seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
 
     # NOTE: leaving this conditional as close to the original as possible, but
