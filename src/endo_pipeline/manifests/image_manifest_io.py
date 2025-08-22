@@ -11,7 +11,7 @@ from src.endo_pipeline.manifests import ImageManifest
 logger = logging.getLogger(__name__)
 
 
-def get_segmentation_manifest_dir() -> Path:
+def get_image_manifest_dir() -> Path:
     """Get path to segmentation manifest directory."""
 
     return Path(__file__).resolve().parents[1] / "manifests" / "segmentations"
@@ -20,7 +20,7 @@ def get_segmentation_manifest_dir() -> Path:
 def load_segmentation_manifest(manifest_name: str) -> ImageManifest:
     """Load segmentation manifest by name."""
 
-    manifest_dir = get_segmentation_manifest_dir()
+    manifest_dir = get_image_manifest_dir()
     manifest_file = manifest_dir / f"{manifest_name}.yaml"
 
     if not manifest_file.exists():
@@ -37,7 +37,7 @@ def load_segmentation_manifest(manifest_name: str) -> ImageManifest:
 def save_segmentation_manifest(manifest: ImageManifest) -> None:
     """Save segmentation manifest to manifest directory."""
 
-    manifest_dir = get_segmentation_manifest_dir()
+    manifest_dir = get_image_manifest_dir()
     manifest_file = manifest_dir / f"{manifest.name}.yaml"
 
     def list_representer(dumper, data):
