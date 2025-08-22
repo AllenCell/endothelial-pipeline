@@ -68,10 +68,7 @@ def _get_per_cell_features(
     from bioio import BioImage
     from skimage.measure import regionprops_table
 
-    from src.endo_pipeline.manifests import (
-        get_segmentation_location_for_dataset,
-        load_image_manifest,
-    )
+    from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     movie_shape_y, movie_shape_x = data.end_y.max(), data.end_x.max()
 
@@ -80,7 +77,7 @@ def _get_per_cell_features(
     ).compute()
 
     manifest = load_image_manifest("cdh5_classic")
-    segmentation_path = get_segmentation_location_for_dataset(
+    segmentation_path = get_image_location_for_dataset(
         manifest, dataset_name, int(position[1:]), int(timepoint) // 6
     )
 

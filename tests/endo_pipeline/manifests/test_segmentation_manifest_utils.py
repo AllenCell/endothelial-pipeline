@@ -5,7 +5,7 @@ import pytest
 from src.endo_pipeline.configs import ChannelIndices, DatasetConfig
 from src.endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
 from src.endo_pipeline.manifests.image_manifest_utils import (
-    get_segmentation_location_for_dataset,
+    get_image_location_for_dataset,
     list_datasets_with_images,
 )
 
@@ -143,7 +143,7 @@ def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
     mock_load_dataset_config(dataset_config)
     manifest.locations[dataset_name] = ImageLocation(path=manifest_path)
 
-    location = get_segmentation_location_for_dataset(manifest, dataset_name, position, timepoint)
+    location = get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
 
     assert location.path.as_posix() == expected_path
 
@@ -200,7 +200,7 @@ def test_get_segmentation_location_for_dataset_valid_dataset_invalid_arguments(
     manifest.locations[dataset_name] = ImageLocation(path=manifest_path)
 
     with pytest.raises(ValueError):
-        get_segmentation_location_for_dataset(manifest, dataset_name, position, timepoint)
+        get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
 
 
 def test_get_segmentation_location_for_dataset_valid_dataset_no_path(
@@ -213,11 +213,11 @@ def test_get_segmentation_location_for_dataset_valid_dataset_no_path(
     mock_load_dataset_config(dataset_config)
     manifest.locations[dataset_config.name] = ImageLocation()
 
-    location = get_segmentation_location_for_dataset(manifest, dataset_config.name, 10, 10)
+    location = get_image_location_for_dataset(manifest, dataset_config.name, 10, 10)
 
     assert location.path is None
 
 
 def test_get_segmentation_location_for_dataset_invalid_dataset(manifest):
     with pytest.raises(KeyError):
-        get_segmentation_location_for_dataset(manifest, "invalid_dataset")
+        get_image_location_for_dataset(manifest, "invalid_dataset")

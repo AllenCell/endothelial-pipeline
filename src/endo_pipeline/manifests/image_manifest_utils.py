@@ -16,7 +16,7 @@ def list_datasets_with_images(manifest: ImageManifest) -> list[str]:
     return [name for name, location in manifest.locations.items() if location.path is not None]
 
 
-def get_segmentation_location_for_dataset(
+def get_image_location_for_dataset(
     manifest: ImageManifest,
     dataset_name: str,
     position: int | None = None,

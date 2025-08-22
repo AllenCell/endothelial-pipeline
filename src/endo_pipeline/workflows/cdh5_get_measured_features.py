@@ -26,7 +26,7 @@ from src.endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     save_image_output,
 )
-from src.endo_pipeline.manifests import get_segmentation_location_for_dataset, load_image_manifest
+from src.endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,7 @@ def build_measured_features_tables(
     logger.debug(f"T={T} -- loading classic segmentation")
 
     seg_manifest = load_image_manifest("cdh5_classic")
-    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
     seg_arr = load_segmentation(seg_location)
     seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
