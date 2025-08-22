@@ -204,10 +204,10 @@ def apply_entrypoint_settings(
         silence_external_loggers(EXTERNAL_LOGGERS)
 
     if testing_mode:
-        import src.endo_pipeline
+        import endo_pipeline
 
         logger.info("Running workflows in testing mode")
-        src.endo_pipeline.TESTING_MODE = True
+        endo_pipeline.TESTING_MODE = True
 
 
 def build_cli_group(group: Group, directory: str, show: bool) -> None:
@@ -218,7 +218,7 @@ def build_cli_group(group: Group, directory: str, show: bool) -> None:
     for module_path in workflows_path.glob("*py"):
         relative_path = module_path.relative_to(Path(__file__).resolve().parents[2])
         workflow_name = relative_path.stem.replace("_", "-")
-        module_name = ".".join(relative_path.with_suffix("").parts)
+        module_name = ".".join(relative_path.with_suffix("").parts[1:])
 
         if workflow_name.endswith("-nb"):
             register_notebook_to_cli(workflow_name, group, show, module_name, relative_path)
