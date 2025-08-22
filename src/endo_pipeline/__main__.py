@@ -190,7 +190,6 @@ def apply_entrypoint_settings(
         Run workflows in testing mode.
     """
 
-    debug = True
     if debug:
         setup_logging(logging.DEBUG)
     elif verbose:
@@ -198,14 +197,12 @@ def apply_entrypoint_settings(
     else:
         setup_logging(logging.WARNING)
 
-    run_with_gpu = True
     if run_with_gpu:
         setup_gpu()
 
     if not show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    testing_mode = True
     if testing_mode:
         import src.endo_pipeline
 
