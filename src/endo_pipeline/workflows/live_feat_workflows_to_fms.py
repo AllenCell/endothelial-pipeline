@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -253,7 +254,14 @@ def main(
             f"Manifest file {manifest_filepath} does not exist. "
             "Please double check the file location."
         )
-        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath)
+        # add timestamp to the manifest filename and rename it
+        timestamp = datetime.now(UTC).strftime("%Y%m%d")
+        manifest_filepath_timestamped = manifest_filepath.with_name(
+            f"{manifest_filepath.stem}_fms{timestamp}{manifest_filepath.suffix}"
+        )
+        manifest_filepath.rename(manifest_filepath_timestamped)
+
+        fms_upload_func_dict[manifest_kind](dataset_name, manifest_filepath_timestamped)
 
 
 if __name__ == "__main__":
