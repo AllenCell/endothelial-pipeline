@@ -3,7 +3,8 @@ tags:
 - dev
 checkpoint:
   ckpt_path: //allen/aics/assay-dev/users/Benji/CurrentProjects/im2im_dev/cyto-dl/logs/train/runs/diffae/soda_schedule_small_latent_small_unet/2025-02-07_11-02-53/checkpoints/last_mod.ckpt
-  weights_only: true
+  weights_only: null
+  strict: true
 seed: 12345
 
 model:

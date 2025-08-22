@@ -899,23 +899,24 @@ def apply_model_on_array_test() -> np.ndarray:
 
     test = model.predict(data=img_arr_crop_bf)  # , run_async=False)
 
+    # from cyto_dl.datamodules.array import make_array_dataloader
+    # from monai.transforms import Compose
+    # from cyto_dl.image.transforms.clip import Clipd
+    # from monai.transforms import NormalizeIntensityd
+    # from monai.transforms import ToTensord
+
+    # # # data = OmegaConf.create(img_arr_crop_bf)
+    # transforms = Compose([Clipd, NormalizeIntensityd, ToTensord])
+    # make_array_dataloader(img_arr_crop_bf, transforms=np.clip, source_key="raw_bf")
+
+    # from omegaconf import ListConfig, OmegaConf
+
+    # OmegaConf.to_object(img_arr_crop_bf)
+
+    # from cyto_dl.eval import evaluate
+
+    # evaluate(model.cfg, data=img_arr_crop_bf)
+
+    # from lightning import Trainer
+
     return test
-
-
-# from cyto_dl.datamodules.array import make_array_dataloader
-
-# # data = OmegaConf.create(img_arr_crop_bf)
-# make_array_dataloader(img_arr_crop_bf, transforms=np.clip)
-
-# from omegaconf import ListConfig, OmegaConf
-
-# OmegaConf.to_object(img_arr_crop_bf)
-
-# from cyto_dl.eval import evaluate
-
-# evaluate(model.cfg, data=img_arr_crop_bf)
-
-
-# from lightning import Trainer
-
-# %%
