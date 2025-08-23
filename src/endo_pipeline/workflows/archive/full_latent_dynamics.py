@@ -3,9 +3,9 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
     Run base visualization of Diff AE latent space
     feature dynamics for a specified list of datasets.
     """
-    from src.endo_pipeline.configs import get_datasets_in_collection
-    from src.endo_pipeline.io import get_output_path, save_plot_to_path
-    from src.endo_pipeline.library.analyze.diffae_manifest import (
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.library.analyze.diffae_manifest import (
         df_to_array,
         fit_pca,
         get_dataframe_for_dynamics_workflows,
@@ -13,9 +13,9 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
         get_pc_column_names,
         project_manifest_to_pcs,
     )
-    from src.endo_pipeline.library.analyze.numerics import get_bins
-    from src.endo_pipeline.library.visualize.diffae_features import feature_viz
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.library.analyze.numerics import get_bins
+    from endo_pipeline.library.visualize.diffae_features import feature_viz
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     if dataset_names is None:
         dataset_name_list = get_datasets_in_collection("timelapse")
@@ -63,6 +63,6 @@ def main(dataset_names: str | list[str] | None = None, model_name: str = "diffae
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

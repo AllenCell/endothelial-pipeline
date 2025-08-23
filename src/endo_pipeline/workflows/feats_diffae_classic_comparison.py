@@ -1,14 +1,14 @@
 import logging
 from pathlib import Path
 
-from src.endo_pipeline.configs import get_datasets_in_collection
-from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.integration.track_integration import (
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.analyze.integration.track_integration import (
     get_gridcrop_and_cellcentric_trajectories_and_flow_fields,
     get_preprocessed_manifests_and_km_bounds,
 )
-from src.endo_pipeline.library.visualize.integration.track_integration_viz import make_all_plots
+from endo_pipeline.library.visualize.integration.track_integration_viz import make_all_plots
 
 logger = logging.getLogger(__name__)
 

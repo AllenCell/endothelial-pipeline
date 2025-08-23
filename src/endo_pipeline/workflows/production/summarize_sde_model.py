@@ -25,18 +25,18 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
     import numpy as np
 
-    from src.endo_pipeline.configs import dynamics_io, get_datasets_in_collection
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.analyze.diffae_features import (
+    from endo_pipeline.configs import dynamics_io, get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_features import (
         load_sde_model,
         model_data_comparison,
         run_epr_analysis,
         run_fixed_point_analysis,
         run_gen_potential_analysis,
     )
-    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.library.analyze.numerics import get_bins, vector_field_function
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     ################### Load configs from dynamics_config ###################
     dynamics_config = dynamics_io.load_dynamics_config(dynamics_config_name)
@@ -155,6 +155,6 @@ def main(dynamics_config_name: str = "default", model_name: str = "diffae_04_10"
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

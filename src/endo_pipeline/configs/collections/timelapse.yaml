@@ -1,7 +1,6 @@
 name: timelapse
 description: All timelapse datasets
 datasets:
-- 20241016_20X
 - 20241120_20X
 - 20241217_20X
 - 20250224_20X

@@ -1,6 +1,6 @@
 import logging
 
-from src.endo_pipeline import TESTING_MODE
+from endo_pipeline import TESTING_MODE
 
 logger = logging.getLogger(__name__)
 

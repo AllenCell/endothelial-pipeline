@@ -114,8 +114,8 @@ bioio==1.5.2 \
     --hash=sha256:7ba1e191482337aba6e2aa53a83272807b4470a2d8ae137b60d5f24d45454fa3 \
     --hash=sha256:f31d5fef319e7d6f39b31011d538624db9514d56c25a3fc37311d5b7282dbb87
     # via
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
 bioio-base==1.0.7 \
     --hash=sha256:ae8f7d7cf72ac195b90d43e3f4b9f1696fd250799c456ab37ec9dd01b9e62d99 \
     --hash=sha256:dfa3c1f9d373ca3a56f66e3694286a3db20dab972d9fe455eebe0d0ddb075a7d
@@ -127,37 +127,37 @@ bioio-base==1.0.7 \
     #   bioio-ome-zarr
     #   bioio-sldy
     #   bioio-tifffile
-    #   cellsmap
+    #   endo-pipeline
 bioio-imageio==1.1.0 \
     --hash=sha256:a6a5713dbd5e514b3ea51fa6c873c0089294e70a37394bb66732b87c62fbe6c3 \
     --hash=sha256:f72a8b8354f7a01036311217073b1be16d2604e60aa8da4d4c6a1d8f8b546e15
-    # via cellsmap
+    # via endo-pipeline
 bioio-nd2==1.1.0 \
     --hash=sha256:c05b75fa4df1c1e3c03dab02ffde438b7110fe0faa33ee26e88bf96c932d4378 \
     --hash=sha256:eddcee6b345c03b304562fe18e9738087efcf425da2a4891e603d38bf282de68
-    # via cellsmap
+    # via endo-pipeline
 bioio-ome-tiff==1.1.0 \
     --hash=sha256:c25b88d77e169c19a275a5b376fcf772315395f7c37b732dc0c19c9190bd0b4d \
     --hash=sha256:fa7e5e6a112f5f7613f54281d9702e60d9bf2f95a2f8714f917a8a1e3156350e
     # via
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
 bioio-ome-zarr==1.2.0 \
     --hash=sha256:dd517effdc9b945813fa82b1a867b9a936dc3ff4706719045bab10ea5179221d \
     --hash=sha256:f4bb66ab89f8e2be5b00fbf0a1dcd7eccad527d5c8820007c94c26287558f9bb
     # via
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
 bioio-sldy==1.1.0 \
     --hash=sha256:88e6402e255903654f72468fa6bb63679d1a087963f2a37f48aa1ada8d46e3ad \
     --hash=sha256:8e20a64d1fe739c1ce2cf2699f8a8760d4832c2b1b600aa4e4e1d2651f46b7a0
-    # via cellsmap
+    # via endo-pipeline
 bioio-tifffile==1.1.0 \
     --hash=sha256:005f74cc99866066c4c4235a29aa77c52e5051819106e108968f410279abaa44 \
     --hash=sha256:bc244a0a12e4ba006156c20bddbcb67e722e891a96a0ae5cf17c7782fda4de69
     # via
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
 black==25.1.0 \
     --hash=sha256:172b1dbff09f86ce6f4eb8edf9dede08b1fce58ba194c87d7a4f1a5aa2f5b3c2 \
     --hash=sha256:33496d5cd1222ad73391352b4ae8da15253c5de89b93a80b3e2c8d9a19ec2666 \
@@ -266,9 +266,9 @@ colorama==0.4.6 ; sys_platform == 'win32' \
 colorcet==3.1.0 \
     --hash=sha256:2921b3cd81a2288aaf2d63dbc0ce3c26dcd882e8c389cc505d6886bf7aa9a4eb \
     --hash=sha256:2a7d59cc8d0f7938eeedd08aad3152b5319b4ba3bcb7a612398cc17a384cb296
-    # via cellsmap
+    # via endo-pipeline
 colorizer-data @ git+https://github.com/allen-cell-animated/colorizer-data.git@eea55fd36a84de3ed2e743feea6fecdcc986c27c
-    # via cellsmap
+    # via endo-pipeline
 comm==0.2.2 \
     --hash=sha256:3fd7a84065306e07bea1773df6eb8282de51ba82f77c72f9c85716ab11fe980e \
     --hash=sha256:e6fb86cb70ff661ee8c9c14e7d36d6de3b4066f1441be4063df9c5009f0a64d3
@@ -337,7 +337,7 @@ cycler==0.12.1 \
 cyclopts==3.22.2 \
     --hash=sha256:6681b0815fa2de2bccc364468fd25b15aa9617cb505c0b16ca62e2b18a57619e \
     --hash=sha256:d3495231af6ae86479579777d212ddf77b113200f828badeaf401162ed87227d
-    # via cellsmap
+    # via endo-pipeline
 dask==2025.4.0 \
     --hash=sha256:32a1bd6b30664c15a8edb475008ab05d1f158d957941386d573648de289ad436 \
     --hash=sha256:fe5d75fa45b4a024f7a3bb90b1cf6e12c784a526ea38e7d5a9934ab005ca3004
@@ -376,7 +376,7 @@ defusedxml==0.7.1 \
 deprecated==1.2.18 \
     --hash=sha256:422b6f6d859da6f2ef57857761bfb392480502a64c3028ca9bbe86085d72115d \
     --hash=sha256:bd5011788200372a32418f888e326a09ff80d0214bd961147cfed01b5c018eec
-    # via cellsmap
+    # via endo-pipeline
 derivative==0.6.3 \
     --hash=sha256:72e7fd56e92665f939b5449c4b9ceea88fdf02eda7378cf0a3e961ab0df58181 \
     --hash=sha256:e121926a21e13a5ab1db07e10e26a5e805494a1255eac032c2fba309547e64c9
@@ -430,7 +430,7 @@ fastparquet==2024.11.0 \
     --hash=sha256:e29ff7a367fafa57c6896fb6abc84126e2466811aefd3e4ad4070b9e18820e54 \
     --hash=sha256:e3b1fc73fd3e1b70b0de254bae7feb890436cb67e99458b88cb9bd3cc44db419 \
     --hash=sha256:f9cca4c6b5969df5561c13786f9d116300db1ec22c7941e237cfca4ce602f59b
-    # via cellsmap
+    # via endo-pipeline
 filelock==3.18.0 \
     --hash=sha256:adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2 \
     --hash=sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de
@@ -440,10 +440,10 @@ filelock==3.18.0 \
     #   virtualenv
 fipy==3.4.5 \
     --hash=sha256:0c1c046186999d876de1ff9e555fe8788b0895d03bb67436b1d896181678018a
-    # via cellsmap
+    # via endo-pipeline
 fire==0.7.0 \
     --hash=sha256:961550f07936eaf65ad1dc8360f2b2bf8408fad46abbfa4d2a3794f8d2a95cdf
-    # via cellsmap
+    # via endo-pipeline
 fonttools==4.57.0 \
     --hash=sha256:17168a4670bbe3775f3f3f72d23ee786bd965395381dfbb70111e25e81505b9d \
     --hash=sha256:3122c604a675513c68bd24c6a8f9091f1c2376d18e8f5fe5a101746c81b3e98f \
@@ -513,7 +513,7 @@ gitdb==4.0.12 \
 gitpython==3.1.44 \
     --hash=sha256:9e0e10cda9bed1ee64bc9a6de50e7e38a9c9943241cd7f585f6df3ed28011110 \
     --hash=sha256:c87e30b26253bf5418b01b0660f818967f3c503193838337fe5e573331249269
-    # via cellsmap
+    # via endo-pipeline
 h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
     --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
@@ -592,7 +592,7 @@ ipykernel==6.29.5 \
     --hash=sha256:afdb66ba5aa354b09b91379bac28ae4afebbb30e8b39510c9690afb7a10421b5 \
     --hash=sha256:f093a22c4a40f8828f8e330a9c297cb93dcab13bd9678ded6de8e5cf81c56215
     # via
-    #   cellsmap
+    #   endo-pipeline
     #   jupyter
     #   jupyter-console
     #   jupyterlab
@@ -682,7 +682,7 @@ jsonschema-specifications==2025.4.1 \
 jupyter==1.1.1 \
     --hash=sha256:7a59533c22af65439b24bbe60373a4e95af8f16ac65a6c00820ad378e3f7cc83 \
     --hash=sha256:d55467bceabdea49d7e3624af7e33d59c37fff53ed3a350e1ac957bed731de7a
-    # via cellsmap
+    # via endo-pipeline
 jupyter-client==8.6.3 \
     --hash=sha256:35b3a0947c4a6e9d589eb97d7d4cd5e90f910ee73101611f01283732bd6d9419 \
     --hash=sha256:e8a19cc986cc45905ac3362915f410f3af85424b4c0905e94fa5f2cb08e8f23f
@@ -833,7 +833,7 @@ marshmallow==3.26.1 \
 mashumaro==3.16 \
     --hash=sha256:3844137cf053bbac30c4cbd0ee9984e839a5731a0ef96fd3dd9388359af3f2e1 \
     --hash=sha256:d72782cdad5e164748ca883023bc5a214a80835cdca75826bf0bcbff827e0bd3
-    # via cellsmap
+    # via endo-pipeline
 matplotlib==3.10.1 \
     --hash=sha256:057206ff2d6ab82ff3e94ebd94463d084760ca682ed5f150817b859372ec4401 \
     --hash=sha256:0f69dc9713e4ad2fb21a1c30e37bd445d496524257dfda40ff4a8efb3604ab5c \
@@ -843,7 +843,7 @@ matplotlib==3.10.1 \
     --hash=sha256:a144867dd6bf8ba8cb5fc81a158b645037e11b3e5cf8a50bd5f9917cb863adfe \
     --hash=sha256:e8d2d0e3881b129268585bf4765ad3ee73a4591d77b9a18c214ac7e3a79fb2ba
     # via
-    #   cellsmap
+    #   endo-pipeline
     #   fipy
     #   pysindy
     #   seaborn
@@ -965,7 +965,7 @@ networkx==3.4.2 \
 ngff-zarr==0.8.2 \
     --hash=sha256:051ecb738d870cbd9aeed9b9803a8f05a7401050f0e820d404c923cfd22790d9 \
     --hash=sha256:8954c41862861324f478ee16c043143aa7ba78584908772d3d485cbf67038082
-    # via cellsmap
+    # via endo-pipeline
 nodeenv==1.9.1 \
     --hash=sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f \
     --hash=sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9
@@ -974,7 +974,7 @@ notebook==7.2.1 \
     --hash=sha256:4287b6da59740b32173d01d641f763d292f49c30e7a51b89c46ba8473126341e \
     --hash=sha256:f45489a3995746f2195a137e0773e2130960b51c9ac3ce257dbc2705aab3a6ca
     # via
-    #   cellsmap
+    #   endo-pipeline
     #   jupyter
 notebook-shim==0.2.4 \
     --hash=sha256:411a5be4e9dc882a074ccbcae671eda64cceb068767e9a3419096986560e1cef \
@@ -992,7 +992,7 @@ numcodecs==0.13.1 \
 numdifftools==0.9.41 \
     --hash=sha256:4ef705cd3c06211b3a4e9fd05ad622be916dcfda40732f0128805a2c4be389b4 \
     --hash=sha256:a8b162e06889ea73643a47b84935a63d8214d4b4b0805d36a3c28c56379b3e51
-    # via cellsmap
+    # via endo-pipeline
 numpy==1.26.4 \
     --hash=sha256:1af303d6b2210eb850fcf03064d364652b7120803a0b872f5211f5234b399f20 \
     --hash=sha256:2a02aba9ed12e4ac4eb3ea9421c420301a0c6460d9830d74a9df87efa4912010 \
@@ -1011,11 +1011,11 @@ numpy==1.26.4 \
     #   bioio-ome-tiff
     #   bioio-sldy
     #   bioio-tifffile
-    #   cellsmap
     #   colorizer-data
     #   contourpy
     #   dask
     #   derivative
+    #   endo-pipeline
     #   fastparquet
     #   fipy
     #   imagecodecs
@@ -1106,7 +1106,7 @@ opencv-python==4.11.0.86 \
     --hash=sha256:6b02611523803495003bd87362db3e1d2a0454a6a63025dc6658a9830570aa0d \
     --hash=sha256:810549cb2a4aedaa84ad9a1c92fbfdfc14090e2749cedf2c1589ad8359aa169b \
     --hash=sha256:9d05ef13d23fe97f575153558653e2d6e87103995d54e6a35db3f282fe1f9c66
-    # via cellsmap
+    # via endo-pipeline
 overrides==7.7.0 \
     --hash=sha256:55158fa3d93b98cc75299b1e67078ad9003ca27945c76162c1c0766d6f91820a \
     --hash=sha256:c7ed9d062f78b8e4c1a7b70bd8796b35ead4d9f510227ef9c5dc7626c60d7e49
@@ -1143,8 +1143,8 @@ pandas==2.2.2 \
     --hash=sha256:8e90497254aacacbc4ea6ae5e7a8cd75629d6ad2b30025a4a8b09aa4faf55151 \
     --hash=sha256:9e79019aba43cb4fda9e4d983f8e88ca0373adbb697ae9c6c43093218de28b54
     # via
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
     #   fastparquet
     #   seaborn
     #   xarray
@@ -1167,7 +1167,7 @@ partd==1.4.2 \
 pathlib==1.0.1 \
     --hash=sha256:6940718dfc3eff4258203ad5021090933e5c04707d5ca8cc9e73c94a7894ea9f \
     --hash=sha256:f35f95ab8b0f59e6d354090350b44a80a80635d22efdedfa84c7ad1cf0a74147
-    # via cellsmap
+    # via endo-pipeline
 pathspec==0.12.1 \
     --hash=sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08 \
     --hash=sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712
@@ -1284,8 +1284,8 @@ pyarrow==19.0.1 \
     --hash=sha256:cc55d71898ea30dc95900297d191377caba257612f384207fe9f8293b5850f90 \
     --hash=sha256:f24faab6ed18f216a37870d8c5623f9c044566d75ec586ef884e13a02a9d62c5
     # via
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
 pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
     --hash=sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc
@@ -1350,7 +1350,7 @@ pyparsing==3.2.3 \
 pysindy==1.7.5 \
     --hash=sha256:a99c99b7a1e032e53113e2174abcf22d04ce1f0404deb8994fc4e3b6d34c7820 \
     --hash=sha256:c93177f4ddf30b400d1a573c466540f7f027b47e92720fe4ad80527dcb8b4fe2
-    # via cellsmap
+    # via endo-pipeline
 pytest==8.3.5 \
     --hash=sha256:c69214aa47deac29fad6c2a4f590b9c4a9fdb16a403176fe154b79c0b4d4d820 \
     --hash=sha256:f4efe70cc14e511565ac476b57c279e12a855b11f48f212af1080ef2263d3845
@@ -1548,8 +1548,8 @@ scikit-image==0.22.0 \
     --hash=sha256:e87872f067444ee90a00dd49ca897208308645382e8a24bd3e76f301af2352cd
     # via
     #   bioio
-    #   cellsmap
     #   colorizer-data
+    #   endo-pipeline
     #   ome-zarr
 scikit-learn==1.5.1 \
     --hash=sha256:0ea5d40c0e3951df445721927448755d3fe1d80833b0b7308ebff5d2a45e6414 \
@@ -1559,8 +1559,8 @@ scikit-learn==1.5.1 \
     --hash=sha256:9a07f90846313a7639af6a019d849ff72baadfa4c74c778821ae0fad07b7275b \
     --hash=sha256:b5e865e9bd59396220de49cb4a57b17016256637c61b4c5cc81aaf16bc123bbe
     # via
-    #   cellsmap
     #   derivative
+    #   endo-pipeline
     #   pysindy
 scipy==1.13.1 \
     --hash=sha256:095a87a0312b08dfd6a6155cbbd310a8c51800fc931b8c0b84003014b874ed3c \
@@ -1571,8 +1571,8 @@ scipy==1.13.1 \
     --hash=sha256:a78b4b3345f1b6f68a763c6e25c0c9a23a9fd0f39f5f3d200efe8feda560a5fa \
     --hash=sha256:e89369d27f9e7b0884ae559a3a956e77c02114cc60a6058b4e5011572eea9299
     # via
-    #   cellsmap
     #   derivative
+    #   endo-pipeline
     #   fipy
     #   numdifftools
     #   pysindy
@@ -1591,7 +1591,7 @@ scs==3.2.7.post2 \
 seaborn==0.13.2 \
     --hash=sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987 \
     --hash=sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7
-    # via cellsmap
+    # via endo-pipeline
 semver==3.0.4 \
     --hash=sha256:9c824d87ba7f7ab4a1890799cec8596f15c1241cb473404ea1cb0c55e4b04746 \
     --hash=sha256:afc7d8c584a5ed0a11033af086e8af226a9c0b206f313e0301f8dd7b6b589602
@@ -1684,7 +1684,7 @@ sympy==1.13.1 \
     --hash=sha256:9cebf7e04ff162015ce31c9c6c9144daa34a93bd082f54fd8f12deca4f47515f \
     --hash=sha256:db36cdc64bf61b9b24578b6f7bab1ecdd2452cf008f34faa33776680c26d66f8
     # via
-    #   cellsmap
+    #   endo-pipeline
     #   torch
 tblib==3.1.0 \
     --hash=sha256:06404c2c9f07f66fee2d7d6ad43accc46f9c3361714d9b8426e7f47e595cd652 \
@@ -1745,7 +1745,7 @@ torch==2.0.1 \
     --hash=sha256:e617b1d0abaf6ced02dbb9486803abfef0d581609b09641b34fa315c9c40766d \
     --hash=sha256:ef654427d91600129864644e35deea761fb1fe131710180b952a6f2e2207075e
     # via
-    #   cellsmap
+    #   endo-pipeline
     #   triton
 tornado==6.4.2 \
     --hash=sha256:072ce12ada169c5b00b7d92a99ba089447ccc993ea2143c9ede887e0937aa803 \
@@ -1770,7 +1770,7 @@ tornado==6.4.2 \
 tqdm==4.67.1 \
     --hash=sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2 \
     --hash=sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2
-    # via cellsmap
+    # via endo-pipeline
 traitlets==5.14.3 \
     --hash=sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7 \
     --hash=sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f
@@ -1868,7 +1868,7 @@ vtk==9.4.2 \
     --hash=sha256:4b9db93562c9d6b39dafd65f00eccc5eb9bcc6a7c715db789c064536551368f2 \
     --hash=sha256:c378ec0a51fc690268c30484828e6ffe4b525be87bf21229c29a773f910787e1 \
     --hash=sha256:ee6013aef653aca14f881a2b4b33b13895166fad34eac340691852444848e971
-    # via cellsmap
+    # via endo-pipeline
 wasmtime==21.0.0 ; sys_platform != 'emscripten' \
     --hash=sha256:00f929d0caf58a69890df00888f9da12c2aa3ed5af4c8b7b2dca96a4996da731 \
     --hash=sha256:3e245a5c03c1de46cdafcd98da6daa381cadd7bd41aae70d8bef4c8c0ea51798 \

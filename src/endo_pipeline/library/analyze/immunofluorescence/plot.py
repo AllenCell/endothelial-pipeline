@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 
-from src.endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import save_plot_to_path
 
 
 def bootstrap_confidence_cov(

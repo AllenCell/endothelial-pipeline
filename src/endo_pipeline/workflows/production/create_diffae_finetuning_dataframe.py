@@ -30,11 +30,11 @@ def main(
     import tqdm
     from sklearn.model_selection import train_test_split
 
-    from src.endo_pipeline import TESTING_MODE
-    from src.endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
-    from src.endo_pipeline.library.process.registration import (
+    from endo_pipeline import TESTING_MODE
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
+    from endo_pipeline.library.process.registration import (
         align_and_save_paired_images,
         concat_and_save_aligned_image_pairs,
     )
@@ -90,6 +90,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

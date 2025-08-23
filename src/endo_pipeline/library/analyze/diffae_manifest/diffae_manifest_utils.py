@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from src.endo_pipeline.configs import DatasetConfig, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, load_dataset_config
 
 
 def get_dataset_descriptions(

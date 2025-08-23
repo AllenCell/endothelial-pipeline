@@ -8,23 +8,23 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
-from src.endo_pipeline.io import (
+from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
     load_dataframe,
     upload_file_to_fms,
 )
-from src.endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
-from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
-from src.endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from src.endo_pipeline.manifests import (
+from endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
+from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_model_dir() -> Path:
-    """Get the path to `src.endo_pipeline.library.model`."""
+    """Get the path to `endo_pipeline.library.model`."""
     return Path(__file__).resolve().parent
 
 

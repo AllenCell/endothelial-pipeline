@@ -19,12 +19,12 @@ from skimage.feature import SIFT, match_descriptors
 from skimage.measure import block_reduce, ransac
 from tqdm import tqdm, trange
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     get_available_zarr_files,
     get_datasets_in_collection,
     load_dataset_config,
 )
-from src.endo_pipeline.library.process.cdh5_preprocessing import preprocess
+from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
 BF_CHANNEL = 1

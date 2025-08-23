@@ -18,7 +18,7 @@ from skimage.filters import gaussian
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import dataset_io
+from endo_pipeline.configs import dataset_io
 
 
 def expand_crop_region(crop_region: tuple[slice, ...], padding: int) -> tuple:
@@ -42,7 +42,7 @@ class FlowCalculator:
 
     Example using multiprocessing:
     --------
-    from src.endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
+    from endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
     import concurrent.futures
     from pathlib import Path
 
@@ -60,7 +60,7 @@ class FlowCalculator:
 
     Example using single processing:
     --------
-    from src.endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
+    from endo_pipeline.library.analyze import optical_flow_calculator as flow_calculator
     from pathlib import Path
 
     # Define a location to save the output to:
@@ -945,11 +945,3 @@ def get_divergence_curl_example(
         "divergence": divergence,
         "curl": curl,
     }
-
-
-# The following checks that the last image is the same when loaded as it was when being saved:
-# import numpy as np
-# test_path = Path(r'C:\Users\serge.parent\OneDrive - Allen Institute\Desktop\projects\holistic_state\cellsmap\cellsmap\results\flow_calculator\20241016_20X_vector_field.ome.tiff')
-# test_img = BioImage(test_path)
-# img = test_img.get_image_data("TCYX")
-# np.all(flowc.vx == img[:,0,...])

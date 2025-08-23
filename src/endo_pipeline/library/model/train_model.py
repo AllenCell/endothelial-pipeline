@@ -8,19 +8,15 @@ import pandas as pd
 from cyto_dl.api import CytoDLModel
 from omegaconf import DictConfig, ListConfig
 
-from src.endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
-from src.endo_pipeline.io import (
+from endo_pipeline.configs import DatasetConfig, load_dataset_collection_config
+from endo_pipeline.io import (
     build_fms_annotations,
     get_local_path_from_fmsid,
     get_output_path,
     load_dataframe,
     upload_file_to_fms,
 )
-from src.endo_pipeline.manifests import (
-    DataframeLocation,
-    DataframeManifest,
-    save_dataframe_manifest,
-)
+from endo_pipeline.manifests import DataframeLocation, DataframeManifest, save_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
