@@ -4,19 +4,15 @@ from typing import Literal
 
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import (
-    load_all_dataset_configs,
-    load_dataset_config,
-    load_model_config,
-)
-from src.endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
-from src.endo_pipeline.io import (
+from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config, load_model_config
+from endo_pipeline.configs.model_config_utils import get_labelfree_nuclei_prediction_model_name
+from endo_pipeline.io import (
     build_fms_annotations,
     configure_logging,
     get_output_path,
     upload_file_to_fms,
 )
-from src.endo_pipeline.manifests import (
+from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     load_dataframe_manifest,
@@ -257,6 +253,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

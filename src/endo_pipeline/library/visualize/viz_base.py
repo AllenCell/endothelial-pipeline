@@ -59,7 +59,7 @@ def init_subplots(
 This method is deprecated and will be removed. Use the following pattern for
 saving plots:
 
-    from src.endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path, save_plot_to_path
 
     output_path = get_output_path(__file__, subfolder1, subfolder2)
     save_plot_to_path(figure, output_path, "name_of_figure")

@@ -4,13 +4,10 @@ def _evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256,
     import pandas as pd
     from skimage.measure import label, regionprops
 
-    from src.endo_pipeline.configs import dataset_io
-    from src.endo_pipeline.io import load_segmentation
-    from src.endo_pipeline.manifests import (
-        get_segmentation_location_for_dataset,
-        load_segmentation_manifest,
-    )
-    from src.endo_pipeline.workflows.archive import cdh5_seg_density_map as cellsden
+    from endo_pipeline.configs import dataset_io
+    from endo_pipeline.io import load_image
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
+    from endo_pipeline.workflows.archive import cdh5_seg_density_map as cellsden
 
     # silence the max number of plots warning
     plt.rcParams.update({"figure.max_open_warning": 0})
@@ -29,9 +26,9 @@ def _evaluate_density_against_number_of_nuclei(dataset_name, T, bbox_radius=256,
     # deprecated method. It has been replaced with a partial refactor using
     # newer methods, but has not been fully tested because this workflow is
     # archived. Use with caution!
-    manifest = load_segmentation_manifest("cdh5_classic")
-    location = get_segmentation_location_for_dataset(manifest, dataset_name, 0, T)
-    region_seg = load_segmentation(location)
+    manifest = load_image_manifest("cdh5_classic_seg")
+    location = get_image_location_for_dataset(manifest, dataset_name, 0, T)
+    region_seg = load_image(location)
     # --------------------------------------------------------------------------
 
     nuc_seg = nuc_seg.compute().astype(int)
@@ -104,7 +101,7 @@ def main(dataset_name_list: list[str] | None = None) -> None:
     import pandas as pd
     import seaborn as sns
 
-    from src.endo_pipeline.configs import dataset_io
+    from endo_pipeline.configs import dataset_io
 
     # silence the max number of plots warning
     plt.rcParams.update({"figure.max_open_warning": 0})
@@ -163,6 +160,6 @@ def main(dataset_name_list: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

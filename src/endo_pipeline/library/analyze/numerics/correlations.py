@@ -3,12 +3,12 @@ import logging
 import numpy as np
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
     df_to_array,
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.manifests import DataframeManifest
 
 logger = logging.getLogger(__name__)
 

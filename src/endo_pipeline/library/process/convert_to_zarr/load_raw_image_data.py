@@ -3,8 +3,8 @@ from typing import Any
 import dask.array as da
 from bioio import BioImage
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import get_dataset_info, get_original_path
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import get_dataset_info, get_original_path
 
 
 def get_included_scenes(dataset_name: str) -> list | range:

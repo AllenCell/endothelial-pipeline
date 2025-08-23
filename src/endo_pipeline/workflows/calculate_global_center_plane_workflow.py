@@ -7,14 +7,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     get_datasets_in_collection,
     get_zarr_file_for_position,
     load_dataset_config,
 )
-from src.endo_pipeline.io import load_zarr_as_dask_array
-from src.endo_pipeline.io.output import get_output_path
-from src.endo_pipeline.library.process.z_stack_selection import (
+from endo_pipeline.io import load_zarr_as_dask_array
+from endo_pipeline.io.output import get_output_path
+from endo_pipeline.library.process.z_stack_selection import (
     plot_global_center_plane,
     plot_standard_devs_per_slice,
     visualize_slice_selection,
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         logging.info(f"Results saved to: {save_dir / f'{dataset}_global_center_plane.csv'}")
 
     # One example to show how slice selection for a specific dataset and position is done
-    dataset, position, frame = "20241016_20X", 0, 0
+    dataset, position, frame = datasets[0], 0, 0
     save_dir = get_output_path(__file__, dataset)
     config = load_dataset_config(dataset)
 

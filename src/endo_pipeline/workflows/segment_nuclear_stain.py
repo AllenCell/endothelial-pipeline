@@ -7,10 +7,9 @@ import tifffile
 from cellpose import models
 from skimage.color import label2rgb
 
-from cellsmap.analyses.utils.viz import viz_base as vb
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process import get_images, image_processing
+from endo_pipeline.configs import dataset_io
+from endo_pipeline.io import get_output_path, save_plot_to_path
+from endo_pipeline.library.process import get_images, image_processing
 
 """
 Segment nuclear stain channel using Cellpose for immunofluorescence datasets.
@@ -106,7 +105,7 @@ def visualize_results(max_int_projections: list, masks: list, dataset: str) -> N
         plt.tight_layout()
         plt.show()
         output_path = get_output_path("nuclear_stain_segmentation")
-        vb.save_plot(fig, output_path / f"{dataset}_segmentation_overlay")
+        save_plot_to_path(fig, output_path, f"{dataset}_segmentation_overlay")
 
 
 def save_segmentation_masks(masks: list, dataset: str, output_dir: Path) -> None:

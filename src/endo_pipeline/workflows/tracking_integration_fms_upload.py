@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
-from src.endo_pipeline.io import build_fms_annotations, upload_file_to_fms
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+from endo_pipeline.io import build_fms_annotations, upload_file_to_fms
 
 """
 This is a rough script to get track integration for Benji and Erin

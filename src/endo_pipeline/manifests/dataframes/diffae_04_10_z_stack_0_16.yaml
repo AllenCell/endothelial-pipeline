@@ -3,9 +3,6 @@ workflow: '----'
 parameters:
   z_stack_offsets: [0, 16]
 locations:
-  20241016_20X:
-    fmsid: 14e9f8aff2da44e991e5b56a1bddde5a
-    s3uri: null
   20250331_20X:
     fmsid: 4095200e112942de9fdf532ec4f6c1e7
     s3uri: null

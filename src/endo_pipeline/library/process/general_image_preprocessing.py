@@ -8,14 +8,14 @@ from bioio import BioImage
 from bioio.writers import OmeTiffWriter
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     get_original_path,
     get_total_number_of_positions,
     get_zarr_name,
     get_zarr_path,
 )
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process.get_sldy_metadata import get_objective_info
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process.get_sldy_metadata import get_objective_info
 
 
 def get_default_dim_order() -> str:

@@ -1,4 +1,4 @@
-from src.endo_pipeline.configs.dataset_io import load_config
+from endo_pipeline.configs.dataset_io import load_config
 
 
 def load_dynamics_config(config_name: str = "default") -> dict:

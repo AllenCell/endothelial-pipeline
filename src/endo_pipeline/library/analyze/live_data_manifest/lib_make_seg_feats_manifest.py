@@ -14,17 +14,14 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.io.input import load_segmentation
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.io.input import load_image
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -579,11 +576,9 @@ def get_nuclei_rel_to_cell_position(
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     dataset = load_dataset_config(dataset_name)
-    manifest = load_segmentation_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     return {
-        timepoint: get_segmentation_location_for_dataset(
-            manifest, dataset_name, position, timepoint
-        )
+        timepoint: get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
         for timepoint in range(dataset.duration)
     }
 
@@ -781,14 +776,14 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = get_default_dim_order()
-    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
-    seg_location = get_segmentation_location_for_dataset(
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_location = get_image_location_for_dataset(
         manifest=seg_manifest,
         dataset_name=dataset_name,
         position=position,
         timepoint=timeframe,
     )
-    nuc_seg = load_segmentation(seg_location)
+    nuc_seg = load_image(seg_location)
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg)

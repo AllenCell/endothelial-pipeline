@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.endo_pipeline.configs import load_dataset_config
-from src.endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-from src.endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
-from src.endo_pipeline.manifests import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
+from endo_pipeline.library.process.if_feature_extraction import run_nuclei_feature_extraction
+from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     load_dataframe_manifest,

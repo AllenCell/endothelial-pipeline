@@ -1,7 +1,7 @@
 import pytest
 
-from src.endo_pipeline.manifests.dataframe_manifest import DataframeLocation, DataframeManifest
-from src.endo_pipeline.manifests.dataframe_manifest_utils import (
+from endo_pipeline.manifests.dataframe_manifest import DataframeLocation, DataframeManifest
+from endo_pipeline.manifests.dataframe_manifest_utils import (
     get_dataframe_location_for_dataset,
     list_datasets_with_dataframes,
 )

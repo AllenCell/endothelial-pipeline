@@ -38,8 +38,8 @@ def main(
     """
     from typing import cast
 
-    from src.endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
-    from src.endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
+    from endo_pipeline.configs import CytoDLModelConfig, load_dataset_config, load_model_config
+    from endo_pipeline.library.model import apply_model_on_tracked_crops_from_one_dataset
 
     if isinstance(dataset_names, str):
         dataset_names = [dataset_names]
@@ -60,6 +60,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

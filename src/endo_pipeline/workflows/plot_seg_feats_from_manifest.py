@@ -6,22 +6,22 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
-from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
     hist_2D_of_feats,
     lineplot_of_feats,
     mark_parallel,
     mark_perpendicular,
 )
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
