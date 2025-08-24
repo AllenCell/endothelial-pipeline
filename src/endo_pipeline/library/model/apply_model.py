@@ -832,27 +832,45 @@ def generate_overrides_for_array_inputs(
     images from dataset `dataset_name`.
     """
     overrides = {
+        "train": False,  # True
+        "test": False,
         # train and val dataloaders are unnecessary for prediction
         # and might be slow to instantiate (e.g. if they cache data)
-        "data.train_dataloaders": None,
-        "data.val_dataloaders": None,
-        "data.predict_dataloaders._target_": "monai.data.DataLoader",
+        # "data.train_dataloaders": None,
+        # "data.val_dataloaders": None,
+        # ##################################
+        # # "data.predict_dataloaders._target_": "monai.data.DataLoader",
         # "data.predict_dataloaders._target_": "cyto_dl.datamodules.array.make_array_dataloader",
         # "data.predict_dataloaders.data": data,
-        "data.predict_dataloaders.data": None,
-        "data.predict.dataloaders.source_key": "raw_bf",
-        "data.predict_dataloaders.transform": transforms or {},
-        "data.predict_dataloaders.num_workers": num_workers,
-        "data.predict_dataloaders.batch_size": batch_size,
-        # "data.predict_dataloaders.dataset._target_": "cyto_dl.data.datasets.ArrayDataset",
-        # "data.predict_dataloaders.dataset._target_": "cyto_dl.datamodules.array.make_array_dataloader",
-        # "data.predict_dataloaders.dataset.csv_path": data_path,
+        # # "data.predict_dataloaders.data": None,
+        # # "data.predict_dataloaders.dataset._target_": "monai.data.Dataset",
+        # "data.predict_dataloaders.source_key": "raw_bf",
+        # "data.predict_dataloaders.transforms": transforms,
+        # "data.predict_dataloaders.num_workers": num_workers,
+        # "data.predict_dataloaders.batch_size": batch_size,
+        # # "data.predict_dataloaders.dataset._target_": "cyto_dl.data.datasets.ArrayDataset",
+        # # "data.predict_dataloaders.dataset._target_": "cyto_dl.datamodules.array.make_array_dataloader",
+        # # "data.predict_dataloaders.dataset.csv_path": data_path,
+        # ##################################
         # "paths.output_dir": save_path,
+        "data._target_": "cyto_dl.datamodules.array.make_array_dataloader",
+        "data.data": data,
+        # "data.predict_dataloaders.data": None,
+        # "data.predict_dataloaders.dataset._target_": "monai.data.Dataset",
+        "data.source_key": "raw_bf",
+        "data.transforms": transforms,
+        "data.num_workers": num_workers,
+        "data.batch_size": batch_size,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
         "checkpoint.strict": True,
         "checkpoint.weights_only": None,  # maybe?
         "callbacks": None,
+        # "paths": None,
+        "paths.root_dir": r"${oc.env:PROJECT_ROOT, './'}",
+        "paths.data_dir": r"${paths.root_dir}/data/",
+        "paths.log_dir": r"${paths.root_dir}/logs/",
+        "paths.output_dir": "./",
         # "callbacks.prediction_saver": {
         #     "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
         #     "save_dir": save_path,
@@ -869,7 +887,14 @@ def generate_overrides_for_array_inputs(
         "model.spatial_inferer": None,
         "model.diffusion_key": None,  # diffusion image is not needed
         "model.save_dir": r"${paths.output_dir}",
-        "trainer": None,
+        # "trainer": None,
+        "trainer.max_epochs": 1,  # just one epoch for prediction
+        "trainer.accelerator": "auto",  # use CPU for prediction
+        # "trainer.devices": 1,  # use one device for prediction
+        "trainer.devices": "auto",  # use one device for prediction
+        "trainer.default_root_dir": r"${paths.output_dir}",
+        "extras.enforce_tags": False,
+        "persist_cache": True,
     }
     overrides.update(user_overrides)
     return overrides
@@ -1010,10 +1035,11 @@ def apply_model_on_array(
     return cytodl_output
 
 
-def apply_model_on_array_test() -> np.ndarray:
-    from matplotlib import pyplot as plt
+def apply_model_on_array_test1() -> np.ndarray:
 
     ## example:
+    from matplotlib import pyplot as plt
+
     from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 
     dataset_name = "20241120_20X"
@@ -1038,74 +1064,144 @@ def apply_model_on_array_test() -> np.ndarray:
 
     data = img_arr_crop_bf
 
-    # get the model checkpoint path
-    model_config = load_model_config(model_name)
+    # load model config
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+
+    # if not torch.cuda.is_available():
+    #     raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     # download model from mlflow
-    mlflow_id = cast(CytoDLModelConfig, load_model_config(model_name)).mlflow_run_id
+    mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
-
     path_dict = download_model(mlflow_id, model_path)
-    ckpt_path = path_dict["checkpoint_path"]
 
-    # overrides = load_overrides(None)  # (overrides)
-
-    # create zarr dataset
-    # dataset_config = load_dataset_config("20241120_20X")
-    # dataset_config = load_dataset_config(dataset_name)
-    # resolution_level = 1
-    # save_path = get_output_path(__file__)
-    # data_path = generate_zarr_csv_for_model_eval(dataset_config, save_path, resolution_level)
-
-    # # apply overrides
-    # overrides = generate_overrides_for_model_eval(
-    #     overrides,
-    #     save_path=str(save_path),
-    #     data_path=str(save_path),
-    #     # data_path=str(data_path),
-    #     ckpt_path=ckpt_path,
-    #     dataset_name=dataset_config.name,
-    #     model_name=model_config.name,
-    # )
-    # overrides = {
-    #     "data.train_dataloaders": None,
-    #     "data.val_dataloaders": None,
-    #     "checkpoint.ckpt_path": ckpt_path,
-    # }
-    overrides = {
-        "checkpoint.ckpt_path": ckpt_path,
-    }
+    # if save_path is None:
+    #     # if no save path is provided, use the default path
+    #     save_path = get_output_path(
+    #         "models", model_config.name, dataset_config.name, include_timestamp=False
+    #     )
+    # elif isinstance(save_path, str):
+    #     save_path = Path(save_path)
 
     # load model
-    # model = CytoDLModel()
-    # cfg_path = Path(path_dict["config_path"]).parent / "eval_test.yaml"
-    # cfg_path = Path(path_dict["config_path"])
-    # cfg_path = Path(__file__).parent.resolve() / "diffae_04_10_eval_on_array.yaml"
-    # model.load_config_from_file(cfg_path.as_posix())
-
     model = CytoDLModel()
-    cfg_array_path = Path(__file__).parent.resolve() / "diffae_04_10_eval_on_array.yaml"
-    model.load_config_from_file(cfg_array_path.as_posix())
+    model.load_config_from_file(path_dict["config_path"])
+
+    transforms = model.cfg["data"]["predict_dataloaders"]["dataset"]["transform"]
+    transforms["transforms"] = transforms["transforms"][2:]  # remove first two transforms
+
+    overrides = load_overrides(None)
+    overrides = generate_overrides_for_array_inputs(
+        overrides,
+        ckpt_path=path_dict["checkpoint_path"].as_posix(),
+        data=data.tolist(),  # None,
+        transforms=transforms,
+    )
+
     model.override_config(overrides)
+    del model.cfg["ckpt_path"]
+    # del model.cfg["data"]["predict_dataloaders"]["data"]
+    del model.cfg["data"]["train_dataloaders"]
+    del model.cfg["data"]["val_dataloaders"]
+    del model.cfg["data"]["predict_dataloaders"]  # ["dataset"]
+    # del model.cfg["data"]["predict_dataloaders"]["transform"]
+    # del model.cfg["data"]["predict_dataloaders"]["transforms"]["transforms"][:2]
     local_config_save_path = get_output_path("models", "evaluation_configs")
     model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
 
+    data = img_arr_crop_bf
+    # data = {"train": None, "val": None, "test": img_arr_crop_bf}  # , "raw_cdh5": img_arr_crop_cdh5}
+    # test = model.predict(data=data)  # , run_async=False)
     test = model.predict(data=img_arr_crop_bf)  # , run_async=False)
-
-    from cyto_dl.datamodules.array import make_array_dataloader
-
-    # from monai.transforms import Compose
-    # from cyto_dl.image.transforms.clip import Clipd
-    # from monai.transforms import NormalizeIntensityd
-    # from monai.transforms import ToTensord
-    # # # data = OmegaConf.create(img_arr_crop_bf)
-    # transforms = Compose([Clipd, NormalizeIntensityd, ToTensord])
-    make_array_dataloader(img_arr_crop_bf, transforms=np.clip, source_key="raw_bf")
-
-    from omegaconf import ListConfig, OmegaConf
-
-    # OmegaConf.to_object(img_arr_crop_bf)
-    # from cyto_dl.eval import evaluate
-    # evaluate(model.cfg, data=img_arr_crop_bf)
-    # from lightning import Trainer
+    # test = model.predict(data={"raw_bf": img_arr_crop_bf})  # , run_async=False)
+    # test = model.predict()  # , run_async=False)
 
     return test
+
+
+def apply_model_on_array_test2() -> np.ndarray:
+    from cyto_dl.datamodules.array import make_array_dataloader
+    from matplotlib import pyplot as plt
+
+    from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+
+    dataset_name = "20241120_20X"
+    model_name = "diffae_04_10"
+    img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
+    dim_order = "TCZYX"
+
+    # img_arr = img.get_image_dask_data(dim_order, T=0).max(dim_order.index("Z"), keepdims=True).compute()
+    # img_arr_crop_cdh5 = img_arr[0, 0:1, 0, 0:128, 0:128]  # Example crop
+    # img_arr_crop_bf = img_arr[0, 1:2, 0, 0:128, 0:128]  # Example crop
+    # data = {"test": img_arr_crop_bf, "val": img_arr_crop_bf, "train": img_arr_crop_bf}
+    # apply_model_on_array(data)
+    # apply_model_on_crop(img_arr_crop_bf)
+
+    img_arr = img.get_image_dask_data(dim_order, T=0)
+    img_arr_crop_cdh5 = img_arr.max(dim_order.index("Z"), keepdims=True)
+    img_arr_crop_bf = img_arr.std(dim_order.index("Z"), keepdims=True)
+
+    crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
+    img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
+    img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
+
+    data = img_arr_crop_bf
+
+    # load model config
+    model_config = cast(CytoDLModelConfig, load_model_config(model_name))
+
+    # if not torch.cuda.is_available():
+    #     raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
+    # download model from mlflow
+    mlflow_id = model_config.mlflow_run_id
+    model_path = get_output_path("models", model_config.name, include_timestamp=False)
+    path_dict = download_model(mlflow_id, model_path)
+
+    # TODO
+    # TRY PASSING THE make_array_dataloader FUNCTION DIRECTLY
+    # TO model.predict LIKE SO:
+    model = CytoDLModel()
+    model.load_config_from_file(path_dict["config_path"])
+
+    transforms = model.cfg["data"]["predict_dataloaders"]["dataset"]["transform"]
+    transforms["transforms"] = transforms["transforms"][2:]  # remove first two transforms
+    array_dataloader = make_array_dataloader(
+        data=img_arr_crop_bf, transforms=transforms, source_key="raw_bf"
+    )
+
+    overrides = load_overrides(None)
+    overrides = generate_overrides_for_array_inputs(
+        overrides,
+        ckpt_path=path_dict["checkpoint_path"].as_posix(),
+        data=data.tolist(),  # None,
+        transforms=transforms,
+    )
+
+    model.override_config(overrides)
+    del model.cfg["ckpt_path"]
+    del model.cfg["data"]
+    local_config_save_path = get_output_path("models", "evaluation_configs")
+    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
+    test = model.predict(data=array_dataloader)
+
+    return test
+
+    # # from monai.transforms import Compose
+    # # from cyto_dl.image.transforms.clip import Clipd
+    # # from monai.transforms import NormalizeIntensityd
+    # # from monai.transforms import ToTensord
+    # # # # data = OmegaConf.create(img_arr_crop_bf)
+    # # transforms = Compose([Clipd, NormalizeIntensityd, ToTensord])
+    # # make_array_dataloader(img_arr_crop_bf, transforms=np.clip, source_key="raw_bf")
+
+    # from omegaconf import ListConfig, OmegaConf
+
+    # # OmegaConf.to_object(img_arr_crop_bf)
+    # # from cyto_dl.eval import evaluate
+    # # evaluate(model.cfg, data=img_arr_crop_bf)
+    # # from lightning import Trainer
+
+    # from monai.data import DataLoader, Dataset
+
+    # Dataset({"raw_bf": img_arr_crop_bf})  # , "raw_cdh5": img_arr_crop_cdh5})
+
+    # return test
