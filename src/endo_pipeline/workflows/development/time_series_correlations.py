@@ -22,7 +22,6 @@ def main(
     """
     import logging
 
-    from endo_pipeline import TESTING_MODE
     from endo_pipeline.configs import (
         get_available_dataset_collection_names,
         get_available_dataset_names,
@@ -38,13 +37,6 @@ def main(
 
     # initialize logger
     logger = logging.getLogger(__name__)
-
-    # if in testing mode, reduce bootstrap samples to 10
-    if TESTING_MODE:
-        logger.warning(
-            "Testing mode is on. Setting number of bootstrap samples to 10.",
-        )
-        bootstrap_samples = 10
 
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():

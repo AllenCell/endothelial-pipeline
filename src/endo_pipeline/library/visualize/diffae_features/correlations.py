@@ -112,7 +112,7 @@ def _add_delta_ccf_integral_to_plot(
     """Print integral of delta CCF near zero on plot of delta CCFs."""
     integral_upper_bound_hrs = round(5 * num_lags_integrate / 60, 2)  # convert from frames to hours
     integral_srings = [
-        rf"$\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau$"
+        rf"$\int_{{0}}^{{{integral_upper_bound_hrs}}}|\Delta C_{{{j+1}{k+1}}}(\tau)| d\tau$"
         for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
     ]
     strings_per_pc = [
@@ -257,7 +257,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$|\Delta C_{ij}(\\tau)|$")
     # ax.legend()
-    ax.set_ylim(-0.75, 0.75)
+    ax.set_ylim(0, 0.5)
     # print integral of delta ccf near zero on plot
     ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ax)
     save_plot_to_path(
@@ -308,28 +308,39 @@ def _plot_delta_ccf_integral_vs_shear_stress(
         single_flow_condition = next(iter(flow_conditions))
         return single_flow_condition.shear_stress
 
-    list_of_values = [
+    list_of_integral_values = [
         correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
     ]
-    shear_stresses = [
-        _get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets
-    ]
+    shear_stresses = np.array(
+        [_get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets]
+    )
 
     fig, ax = init_plot(figsize=(8, 6))
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         # plot each PC combination separately
-        values = [value[i] for value in list_of_values]
+        values = np.array([value[i] for value in list_of_integral_values])
+        # sort by ascending shear stress
+        sorted_indices = np.argsort(shear_stresses)
         ax.plot(
-            shear_stresses,
-            values,
+            shear_stresses[sorted_indices],
+            values[sorted_indices],
             label=f"(PC{j+1}, PC{k+1})",
             color=list(TABLEAU_COLORS.keys())[i],
             linewidth=2.75,
             linestyle="-.",
         )
+        ax.scatter(
+            shear_stresses,
+            values,
+            color=list(TABLEAU_COLORS.keys())[i],
+            s=100,
+            edgecolor="k",
+            alpha=0.85,
+            label="",
+        )
     ax.legend()
-    ax.set_ylabel(f"$\\langle |\\Delta C_{{{j} {k}}}| \\rangle$")
-    ax.set_ylim([-0.75, 1.5])
+    ax.set_ylabel("$\\langle |\\Delta C_{ij} \\rangle$")
+    ax.set_ylim([-0.05, 1.65])
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
