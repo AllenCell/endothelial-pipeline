@@ -1,5 +1,6 @@
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
 from endo_pipeline.library.analyze.numerics import exponential_decay
 from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
-from endo_pipeline.library.visualize.viz_base import init_plot, init_subplots
+from endo_pipeline.library.visualize.viz_base import init_plot
 
 logger = logging.getLogger(__name__)
 
@@ -144,13 +145,13 @@ def _add_delta_ccf_integral_to_plot(
 
 def _make_all_acf_plots(
     dataset_name: str,
-    correlation_dict: dict[str, dict[str, np.ndarray]],
+    correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
-    output_path: str,
+    output_path: Path,
 ) -> None:
     # unpack results
-    lags = correlation_dict["lags"][dataset_name]
-    acf = correlation_dict["acf"][dataset_name]
+    lags: np.ndarray = correlation_dict["lags"][dataset_name]
+    acf: np.ndarray = correlation_dict["acf"][dataset_name]
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
@@ -206,20 +207,20 @@ def _make_all_acf_plots(
 
 def _make_all_ccf_plots(
     dataset_name: str,
-    correlation_dict: dict[str, dict[str, np.ndarray]],
+    correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
-    output_path: str,
+    output_path: Path,
     bootstrap_samples: int = 0,
 ) -> None:
     # unpack results
-    lags = correlation_dict["lags"][dataset_name]
+    lags: np.ndarray = correlation_dict["lags"][dataset_name]
     num_lags = len(lags)
-    ccf = correlation_dict["ccf"][dataset_name]
-    ccf_ci_lower = correlation_dict["ccf_ci_lower"][dataset_name]
-    ccf_ci_upper = correlation_dict["ccf_ci_upper"][dataset_name]
-    delta_ccf = correlation_dict["delta_ccf"][dataset_name]
-    delta_ccf_integral = correlation_dict["delta_ccf_integral"][dataset_name]
-    num_lags_integrate = correlation_dict["num_lags_integrate"][dataset_name]
+    ccf: np.ndarray = correlation_dict["ccf"][dataset_name]
+    ccf_ci_lower: np.ndarray = correlation_dict["ccf_ci_lower"][dataset_name]
+    ccf_ci_upper: np.ndarray = correlation_dict["ccf_ci_upper"][dataset_name]
+    delta_ccf: np.ndarray = correlation_dict["delta_ccf"][dataset_name]
+    delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"][dataset_name]
+    num_lags_integrate: int = correlation_dict["num_lags_integrate"][dataset_name]
 
     # plot ccf with confidence intervals if available
     fig, ax = init_plot(figsize=(12, 6))
@@ -269,9 +270,9 @@ def _make_all_ccf_plots(
 
 def _plot_full_correlation_curves(
     dataset_name: str,
-    correlation_dict: dict[str, dict[str, np.ndarray]],
+    correlation_dict: dict[str, dict[str, Any]],
     dataset_descriptions: dict[str, str],
-    output_path: str,
+    output_path: Path,
     bootstrap_samples: int = 0,
 ) -> None:
     """Plot full correlation curves for a single dataset."""
@@ -297,9 +298,9 @@ def _plot_full_correlation_curves(
 
 
 def _plot_delta_ccf_integral_vs_shear_stress(
-    correlation_dict: dict[str, dict[str, np.ndarray]],
+    correlation_dict: dict[str, dict[str, Any]],
     list_of_datasets: list[str],
-    output_path: str,
+    output_path: Path,
 ) -> None:
     """Plot integral of delta CCF near zero as a function of shear stress."""
 
@@ -318,6 +319,7 @@ def _plot_delta_ccf_integral_vs_shear_stress(
     fig, ax = init_plot(figsize=(8, 6))
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         # plot each PC combination separately
+        # get values for this PC combination across all datasets
         values = np.array([value[i] for value in list_of_integral_values])
         # sort by ascending shear stress
         sorted_indices = np.argsort(shear_stresses)
@@ -340,7 +342,7 @@ def _plot_delta_ccf_integral_vs_shear_stress(
         )
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} \\rangle$")
-    ax.set_ylim([-0.05, 1.65])
+    ax.set_ylim((-0.05, 1.65))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
@@ -350,7 +352,7 @@ def _plot_delta_ccf_integral_vs_shear_stress(
 
 
 def plot_correlation_workflow_outputs(
-    correlation_dict: dict[str, dict[str, np.ndarray]], bootstrap_samples: int = 0
+    correlation_dict: dict[str, dict[str, Any]], bootstrap_samples: int = 0
 ) -> None:
     """
     Plot correlation workflow outputs.
