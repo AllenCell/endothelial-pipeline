@@ -12,7 +12,7 @@ objective: 20X
 shear_stress_regime: high_to_low
 pixel_size_xy_in_um: 0.382
 duration: 577
-time_interval_in_minutes: 0.0
+time_interval_in_minutes: 5.0
 flow: [[0, 267, 6.32], [268, 577, 23.77]]
 n_total_positions: 6
 original_channel_indices:
