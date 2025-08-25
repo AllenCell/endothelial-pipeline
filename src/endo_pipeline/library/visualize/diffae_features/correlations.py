@@ -15,6 +15,8 @@ from endo_pipeline.library.visualize.viz_base import init_plot
 
 logger = logging.getLogger(__name__)
 
+TAU_STR = chr(964)  # Greek letter tau (τ)
+
 
 def plot_single_acf_curve(
     lags: np.ndarray,
@@ -80,11 +82,10 @@ def _parse_dataset_description(dataset_description: str) -> str:
 
 
 def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: plt.Axes) -> plt.Axes:
-    """Build a string for printing relaxation timescales on plot of ACFs."""
+    """Print relaxation timescales on plot of ACFs."""
     # using unicode because slurm nodes and A100s do not support LaTeX rendering
-    tau_str = chr(964)  # Greek letter tau (τ)
     strings_per_pc = [
-        rf"PC{i+1}: {tau_str} = {tau:.2f} hrs" for i, tau in enumerate(relaxation_timescales)
+        rf"PC{i+1}: {TAU_STR} = {tau:.2f} hrs" for i, tau in enumerate(relaxation_timescales)
     ]
 
     for i, string in enumerate(strings_per_pc):
@@ -104,7 +105,42 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
     return ax
 
 
-def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.ndarray]]) -> None:
+def _add_delta_ccf_integral_to_plot(
+    delta_ccf_integral: np.ndarray, num_lags_integrate: int, ax: plt.Axes
+) -> plt.Axes:
+    """Print integral of delta CCF near zero on plot of delta CCFs."""
+    integral_upper_bound_hrs = round(5 * num_lags_integrate / 60, 2)  # convert from frames to hours
+    integral_srings = [
+        rf"$\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}({TAU_STR}) d{TAU_STR}$"
+        for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
+    ]
+    strings_per_pc = [
+        rf"PC{j+1}, PC{k+1}: {string} = {integral:.2f}"
+        for (j, k), string, integral in zip(
+            CROSS_CORR_INDEX_COMBINATIONS, integral_srings, delta_ccf_integral, strict=True
+        )
+    ]
+
+    for i, string in enumerate(strings_per_pc):
+        x_loc = 0.05
+        # decrement y_loc for each PC combination to avoid overlap
+        y_loc = -0.35 - 0.15 * (len(strings_per_pc) - 1 - i)
+        ax.text(
+            x_loc,
+            y_loc,
+            string,
+            fontsize=10,
+            bbox={"facecolor": "white", "alpha": 0.8},
+            color=list(TABLEAU_COLORS.keys())[i],  # use same color as delta CCF curve,
+            weight="bold",
+        )
+
+    return ax
+
+
+def plot_correlation_workflow_outputs(
+    correlation_dict: dict[str, dict[str, np.ndarray]], bootstrap_samples: int = 0
+) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
     dataset_descriptions = get_dataset_descriptions(
@@ -118,7 +154,11 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.n
         num_lags = len(lags)
         acf = correlation_dict["acf"][dataset_name]
         ccf = correlation_dict["ccf"][dataset_name]
+        ccf_ci_lower = correlation_dict["ccf_ci_lower"][dataset_name]
+        ccf_ci_upper = correlation_dict["ccf_ci_upper"][dataset_name]
         delta_ccf = correlation_dict["delta_ccf"][dataset_name]
+        delta_ccf_integral = correlation_dict["delta_ccf_integral"][dataset_name]
+        num_lags_integrate = correlation_dict["num_lags_integrate"][dataset_name]
 
         # get string for dataset description
         dataset_description = _parse_dataset_description(dataset_descriptions[dataset_name])
@@ -210,6 +250,15 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.n
         for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
             lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
             ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+            if bootstrap_samples > 0:
+                ax.fill_between(
+                    lags_all_as_hours,
+                    ccf_ci_lower[:, i],
+                    ccf_ci_upper[:, i],
+                    alpha=0.25,
+                    color=list(TABLEAU_COLORS.keys())[i],
+                    label="95% CI",
+                )
 
         ax.set_title(f"Cross-Correlation of PCA Components ({dataset_description})")
         ax.set_xlabel("Lag (hours)")
@@ -232,11 +281,12 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.n
         ax.set_title("$C_{ij}(\\tau) - C_{ij}(-\\tau)$" + f" ({dataset_description})")
         ax.set_xlabel("Lag $\\tau$ (hours)")
         ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
-        ax.legend()
+        # ax.legend()
         ax.set_ylim(-0.75, 0.75)
+        # print integral of delta ccf near zero on plot
+        ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ax)
         save_plot_to_path(
             fig,
             output_path,
             f"cross_correlation_diff_{dataset_name}",
         )
-        # TO DO in a future PR: integrate delta CCF near lag 0, add to plot
