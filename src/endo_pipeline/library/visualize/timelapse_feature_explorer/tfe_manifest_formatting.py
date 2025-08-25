@@ -3,12 +3,12 @@ from pathlib import Path
 import pandas as pd
 from colorizer_data import FeatureInfo
 
-from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
+from endo_pipeline.library.analyze.diffae_manifest import fit_pca, project_manifest_to_pcs
+from endo_pipeline.library.visualize.timelapse_feature_explorer.backdrop_images import (
     add_backdrop_fname_to_manifest,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
-from src.endo_pipeline.workflows.make_seg_feats_manifest import (
+from endo_pipeline.library.visualize.timelapse_feature_explorer.feature_info import LABEL_MAP
+from endo_pipeline.workflows.make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
 

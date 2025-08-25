@@ -8,11 +8,11 @@ For example, suppose we have data that are 8 features for each crop of the image
 
 ## Environment variables and management
 
-Install `uv` and configure project at the root of the `cellsmap` repository.
+Install `uv` and configure project at the root of the repository.
 
 ## Running SDE model fitting and analysis
 
-Set working directory to be the head of the `cellsmap` repository.
+Set working directory to be the head of the repository.
 
 `uv run src/endo_pipeline/workflows/diffae_dynamics/build_train_and_test.py --dynamics_config_name [config_name] --model_name [diffae_model_name]`
 * Load manifest (Diffusion AE output: crop-based features for mutliple datasets), remove outliers, fit PCA to get shared low dimensional state space.

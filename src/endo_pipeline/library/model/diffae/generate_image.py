@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze.diffae_manifest import get_feature_column_names
-from src.endo_pipeline.library.model.mlflow_utils import load_mlflow_model
+from endo_pipeline.configs import CytoDLModelConfig, load_model_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.analyze.diffae_manifest import get_feature_column_names
+from endo_pipeline.library.model.mlflow_utils import load_mlflow_model
 
 logger = logging.getLogger(__name__)
 

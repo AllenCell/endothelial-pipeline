@@ -21,15 +21,15 @@ from matplotlib.ticker import MaxNLocator
 from scipy import stats as spstats
 from scipy.cluster.hierarchy import linkage
 
-from src.endo_pipeline.io.output import save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import get_valid_subset
-from src.endo_pipeline.library.analyze.integration.track_integration import (
+from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import get_valid_subset
+from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_num_nuclei_in_crop_column,
 )
-from src.endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 
 
 def add_feature_scatter_plot(

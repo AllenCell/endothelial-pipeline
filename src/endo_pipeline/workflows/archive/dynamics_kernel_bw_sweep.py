@@ -12,11 +12,11 @@ def main(
     """
     import numpy as np
 
-    from src.endo_pipeline.configs import dynamics_io
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
-    from src.endo_pipeline.library.analyze.diffae_manifest import fit_pca
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.configs import dynamics_io
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.analyze.diffae_features import get_and_analyze_ddff
+    from endo_pipeline.library.analyze.diffae_manifest import fit_pca
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     from .data_driven_dynamics_summary import _get_and_analyze_ddd
 
@@ -130,6 +130,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

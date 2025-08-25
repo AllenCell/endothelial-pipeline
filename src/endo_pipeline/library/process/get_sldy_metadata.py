@@ -7,7 +7,7 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     get_available_datasets,
     get_dataset_info,
     get_original_path,
@@ -425,11 +425,10 @@ def sldy_metadata_to_df(
 
 def all_sldy_metadata_to_tsv(save_dir: str | Path | None = None, verbose: bool = True) -> None:
     """
-    This function will save the metadata for all of our .sldy files
-    currently listed in the cellsmap repos config_data.yaml file as a
-    single tsv file.
-    If no save_dir is provided then the metadata will be saved in the
-    tests/results folder of the top-level cellsmap folder.
+    This function will save the metadata for all of our .sldy files currently
+    listed in the repos config_data.yaml file as a single tsv file. If no
+    save_dir is provided then the metadata will be saved in the tests/results
+    folder of the top-level folder.
     """
 
     # define the output directory if none was given

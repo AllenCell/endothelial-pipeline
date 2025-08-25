@@ -28,7 +28,7 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     ChannelIndices,
     DatasetConfig,
     FlowCondition,

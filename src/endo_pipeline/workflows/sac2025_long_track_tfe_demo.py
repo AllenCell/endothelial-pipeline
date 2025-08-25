@@ -5,17 +5,17 @@ from bioio import BioImage
 from skimage.morphology import dilation, disk
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     get_segmentation_features_manifest,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     save_image_output,
     sequence_to_scalar,
 )
-from src.endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
+from endo_pipeline.library.visualize.timelapse_feature_explorer.generate_tfe_dataset import (
     generate_tfe_dataset,
 )
 
@@ -294,10 +294,8 @@ def generate_tfe_dataset_of_single_track(
     Parameters
     ----------
     out_dir : Path | None
-        The output directory to save the TFE dataset. If None, uses the
-        default output path for the `cellsmap` project based on the
-        script name (`./cellsmap/results/sac2025_long_track_tfe_demo`
-        if your current working directory is the `cellsmap` repo).
+        The output directory to save the TFE dataset. If None, uses the default
+        output path for the project based on the script name.
     dataset_name : str
         The name of the dataset to generate the TFE dataset for.
     position : int

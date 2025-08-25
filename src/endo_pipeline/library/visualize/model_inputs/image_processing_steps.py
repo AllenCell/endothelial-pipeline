@@ -3,7 +3,7 @@ from typing import Any
 
 import numpy as np
 
-from src.endo_pipeline.library.process.image_processing import (
+from endo_pipeline.library.process.image_processing import (
     clip_image,
     max_proj,
     scale_intensity_range_percentiles,

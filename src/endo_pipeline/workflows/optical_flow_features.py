@@ -6,19 +6,17 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.projections.polar import PolarAxes
 from pandas import DataFrame
 
-from src.endo_pipeline.configs.dataset_io import (
-    fire_parse_generate_dataset_name_list,
-    load_dataset_position_as_dask_array,
-)
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.analyze import optical_flow_calculator
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs.dataset_io import load_dataset_position_as_dask_array
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.analyze import optical_flow_calculator
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     get_dim_map,
 )
 
 # %% Make list of datasets to analzye
-dataset_name_list = fire_parse_generate_dataset_name_list(fire_dataset_name_input="20241016_20X")
+dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[:1]
 position = 0  # NOTE PLACEHOLDER. WORKFLOW SHOULD BECOME MAIN() WITH position AS AN ARGUMENT
 
 debug = True
@@ -71,9 +69,9 @@ dim_order = get_default_dim_order()
 dim_map = get_dim_map(dim_order)
 # %%
 # Get the paths to the vector field images
-dataset_list = ["20241016_20X"]
+dataset_name_list = get_datasets_in_collection("live_20X_objective_3i_microscope")[:1]
 
-for dataset_name in dataset_list:
+for dataset_name in dataset_name_list:
     # Load vector field image for a dataset
     img = optical_flow_calculator.load_vector_field_img(out_dir, dataset_name)
 
