@@ -1,0 +1,42 @@
+name: 20250714_20X
+original_path: //allen/programs/allencell/data/proj0/87d/787/b6f/05a/261/c88/848/d33/2b7/046/0a/20250714_GE00008416_20X_SLDY/20250714_GE00008416_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250714_0a0462b7d33848c8826105ab6f78787d
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 0a0462b7d33848c8826105ab6f78787d
+barcode: GE00008416
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: high_to_low
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+flow: [[0, 267, 6.32], [268, 577, 23.77]]
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: -22
+  stop: -1
+  shear_stress: 0.0
+- start: 0
+  stop: 267
+  shear_stress: 6.32
+- start: 268
+  stop: 577
+  shear_stress: 23.77
+valid_timepoints: null
+include_scenes: null
+notes: some cell death that occurs after the switch to high SS
