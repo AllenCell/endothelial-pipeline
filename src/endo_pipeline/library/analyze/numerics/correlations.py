@@ -247,7 +247,7 @@ def _compute_correlations_for_one_dataset(
     # leave out zero
     delta_ccf = np.zeros((num_lags // 2, 3))
     for i, _ in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
+        delta_ccf[:, i] = abs(ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i])
 
     # integrate delta_ccf over first five lags
     if num_lags_integrate > delta_ccf.shape[0]:

@@ -12,7 +12,7 @@ from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
 from endo_pipeline.library.analyze.numerics import exponential_decay
 from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
-from endo_pipeline.library.visualize.viz_base import init_plot
+from endo_pipeline.library.visualize.viz_base import init_plot, init_subplots
 
 logger = logging.getLogger(__name__)
 
@@ -253,9 +253,9 @@ def _make_all_ccf_plots(
         lags_symmetric = lags[1 + num_lags // 2 :]
         lags_symmetric_as_hours = 5 * lags_symmetric / 60
         ax.plot(lags_symmetric_as_hours, delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({dataset_description})")
+    ax.set_title(f"$|C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)|$ ({dataset_description})")
     ax.set_xlabel("Lag $\\tau$ (hours)")
-    ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
+    ax.set_ylabel("$|\Delta C_{ij}(\\tau)|$")
     # ax.legend()
     ax.set_ylim(-0.75, 0.75)
     # print integral of delta ccf near zero on plot
@@ -319,19 +319,18 @@ def _plot_delta_ccf_integral_vs_shear_stress(
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
         # plot each PC combination separately
         values = [value[i] for value in list_of_values]
-        ax.scatter(
+        ax.plot(
             shear_stresses,
             values,
             label=f"(PC{j+1}, PC{k+1})",
             color=list(TABLEAU_COLORS.keys())[i],
-            s=100,
-            alpha=0.75,
-            edgecolor="k",
+            linewidth=2.75,
+            linestyle="-.",
         )
-    ax.set_title("Integral of $\Delta C_{ij}(\\tau)$ near $\\tau = 0$ vs Shear Stress")
-    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
-    ax.set_ylabel("$\\langle \\Delta C_{ij} \\rangle$")
     ax.legend()
+    ax.set_ylabel(f"$\\langle |\\Delta C_{{{j} {k}}}| \\rangle$")
+    ax.set_ylim([-0.75, 1.5])
+    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
         output_path,
