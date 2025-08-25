@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
+from cyto_dl.utils.array import extract_array_predictions
 
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
@@ -919,13 +920,10 @@ def apply_model_on_array(
     model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
     # return model
 
-    # _, _, cytodl_output = model.predict(data=img_arr_crop_bf)
-    _, _, cytodl_output = model.predict(data=bf_img_arr_4d)
+    # _, _, cytodl_output = model.predict(data=bf_img_arr_4d)
 
-    # test = model.predict(data=img_arr_crop_bf)
-    # return extract_array_predictions(*test)
-
-    return cytodl_output
+    return extract_array_predictions(*model.predict(data=bf_img_arr_4d))
+    # return cytodl_output
 
 
 def apply_model_on_array_test(
@@ -947,62 +945,3 @@ def apply_model_on_array_test(
 if __name__ == "__main__":
     test = apply_model_on_array_test()
     print(test)
-    print(test.shape)
-    print(test.dtype)
-
-
-# def apply_model_on_array_test2() -> np.ndarray:
-#     from cyto_dl.datamodules.array import make_array_dataloader
-#     from matplotlib import pyplot as plt
-
-#     from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
-
-#     dataset_name = "20241120_20X"
-#     model_name = "diffae_04_10"
-#     img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
-#     dim_order = "TCZYX"
-
-#     img_arr = img.get_image_dask_data(dim_order, T=0)
-#     img_arr_crop_cdh5 = img_arr.max(dim_order.index("Z"), keepdims=True)
-#     img_arr_crop_bf = img_arr.std(dim_order.index("Z"), keepdims=True)
-
-#     crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
-#     img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
-#     img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
-
-#     data = img_arr_crop_bf
-
-#     # load model config
-#     model_config = cast(CytoDLModelConfig, load_model_config(model_name))
-
-#     # if not torch.cuda.is_available():
-#     #     raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
-#     # download model from mlflow
-#     mlflow_id = model_config.mlflow_run_id
-#     model_path = get_output_path("models", model_config.name, include_timestamp=False)
-#     path_dict = download_model(mlflow_id, model_path)
-
-#     model = CytoDLModel()
-#     model.load_config_from_file(path_dict["config_path"])
-
-#     transforms = model.cfg["data"]["predict_dataloaders"]["dataset"]["transform"]
-#     transforms["transforms"] = transforms["transforms"][2:]  # remove first two transforms
-#     array_dataloader = make_array_dataloader(
-#         data=img_arr_crop_bf, transforms=transforms, source_key="raw_bf"
-#     )
-
-#     overrides = load_overrides(None)
-#     overrides = generate_overrides_for_array_inputs(
-#         overrides,
-#         ckpt_path=path_dict["checkpoint_path"].as_posix(),
-#         transforms=transforms,
-#     )
-
-#     model.override_config(overrides)
-#     del model.cfg["ckpt_path"]
-#     del model.cfg["data"]
-#     local_config_save_path = get_output_path("models", "evaluation_configs")
-#     model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
-#     test = model.predict(data=array_dataloader)
-
-#     return test
