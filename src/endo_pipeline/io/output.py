@@ -13,6 +13,12 @@ from endo_pipeline.configs import DatasetConfig, ModelConfig
 logger = logging.getLogger(__name__)
 
 
+def get_timestamp() -> str:
+    """Get current timestamp as YYYY-MM-DD."""
+
+    return datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
+
+
 def get_output_dir() -> Path:
     """
     Get path to output directory.
@@ -60,7 +66,7 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     output_dir = get_output_dir()
 
     if include_timestamp:
-        timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
+        timestamp = get_timestamp()
         output_path = Path(output_dir, timestamp, Path(workflow_name).stem, *subdirs)
     else:
         output_path = Path(output_dir, Path(workflow_name).stem, *subdirs)
