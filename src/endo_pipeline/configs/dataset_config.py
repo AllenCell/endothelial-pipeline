@@ -126,7 +126,7 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
-    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
 
     valid_timepoints: ValidTimepoints | None = None
