@@ -87,11 +87,11 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
     strings_per_pc = [
         rf"PC{i+1}: {TAU_STR} = {tau:.2f} hrs" for i, tau in enumerate(relaxation_timescales)
     ]
-
+    # use ax coordinates to place text in lower left corner of plot
     for i, string in enumerate(strings_per_pc):
-        x_loc = 0.05
+        x_loc = 0.025
         # decrement y_loc for each PC to avoid overlap
-        y_loc = -0.15 + 0.075 * (len(strings_per_pc) - 1 - i)
+        y_loc = 0.05 + 0.075 * (len(strings_per_pc) - 1 - i)
         ax.text(
             x_loc,
             y_loc,
@@ -100,6 +100,7 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
             bbox={"facecolor": "white", "alpha": 0.8},
             color=list(TABLEAU_COLORS.keys())[i],  # use same color as ACF curve,
             weight="bold",
+            transform=ax.transAxes,
         )
 
     return ax
@@ -122,9 +123,11 @@ def _add_delta_ccf_integral_to_plot(
     ]
 
     for i, string in enumerate(strings_per_pc):
-        x_loc = 0.05
+        # print on upper right corner of plot
+        x_loc = 0.7
         # decrement y_loc for each PC combination to avoid overlap
-        y_loc = -0.35 - 0.15 * (len(strings_per_pc) - 1 - i)
+        y_loc = 0.65 + 0.115 * (len(strings_per_pc) - 1 - i)
+        # use transform to place text in axes coordinates
         ax.text(
             x_loc,
             y_loc,
@@ -133,6 +136,7 @@ def _add_delta_ccf_integral_to_plot(
             bbox={"facecolor": "white", "alpha": 0.8},
             color=list(TABLEAU_COLORS.keys())[i],  # use same color as delta CCF curve,
             weight="bold",
+            transform=ax.transAxes,
         )
 
     return ax
