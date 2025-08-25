@@ -819,7 +819,9 @@ def generate_overrides_for_array_inputs(
     return overrides
 
 
-def apply_model_on_array(bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04_10") -> np.ndarray:
+def apply_model_on_array(
+    bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04_10", gpu: bool = True
+) -> np.ndarray:
     """
     bf_img_arr_4d must be an array with 4 dimensions in this order: CZYX
     This function applies the DiffAE model to the provided 4D array.
@@ -902,7 +904,7 @@ def apply_model_on_array(bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04
         overrides,
         ckpt_path=path_dict["checkpoint_path"].as_posix(),
         transforms=transforms,
-        gpu=False,
+        gpu=gpu,
     )
 
     model.override_config(overrides)
@@ -927,7 +929,7 @@ def apply_model_on_array(bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04
 
 
 def apply_model_on_array_test(
-    dataset_name: str = "20241120_20X", model_name: str = "diffae_04_10"
+    dataset_name: str = "20241120_20X", model_name: str = "diffae_04_10", gpu: bool = True
 ) -> np.ndarray:
     from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 
@@ -937,7 +939,7 @@ def apply_model_on_array_test(
     crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
     img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_ex)].compute()
 
-    cytodl_output = apply_model_on_array(img_arr_crop_bf, model_name)
+    cytodl_output = apply_model_on_array(img_arr_crop_bf, model_name, gpu)
 
     return cytodl_output
 
