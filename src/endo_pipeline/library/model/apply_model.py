@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
-from cyto_dl.utils.array import extract_array_predictions
 
 from src.endo_pipeline.configs import (
     CytoDLModelConfig,
@@ -16,7 +15,6 @@ from src.endo_pipeline.configs import (
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
-    load_dataset_config,
     load_model_config,
 )
 from src.endo_pipeline.io import (
@@ -764,34 +762,23 @@ def apply_model_on_tracked_crops_from_one_dataset(
         save_dataframe_manifest(manifest)
 
 
-### BELOW HERE IS TEST CODE, NOT USED IN PRODUCTION ###
 def generate_overrides_for_array_inputs(
     user_overrides: dict[str, Any],
     ckpt_path: str,
     transforms: dict | None = None,
     num_workers: int = 1,
     batch_size: int = 1,
-    gpu: bool = True,
 ) -> dict[str, Any]:
     """
     Generate overrides for the CytoDLModel configuration
     for evaluating model `model_name` on crops of
     images from dataset `dataset_name`.
     """
-    if gpu:
-        accelerator = "gpu"  # use GPU for predictions
-        # use device 0 (i.e. the first GPU); integers in a list specify which GPU(s) to use
-        device = [0]
-    else:
-        accelerator = "cpu"  # use CPU for predictions
-        # 1 = use one core for prediction
-        # the integer can be increased to specify number of cores to use
-        device = 1  # type:ignore[assignment]
     overrides = {
-        "train": False,  # True
-        "test": False,
+        "train": False,  # only doing predictions here
+        "test": False,  # only doing predictions here
         "data._target_": "cyto_dl.datamodules.array.make_array_dataloader",
-        "data.data": None,
+        "data.data": None,  # data will be passed in directly to model.predict()
         "data.source_key": "raw_bf",
         "data.transforms": transforms,
         "data.num_workers": num_workers,
@@ -809,9 +796,8 @@ def generate_overrides_for_array_inputs(
         "model.spatial_inferer": None,  # no spatial inferer needed (i.e. not taking crops/patches)
         "model.diffusion_key": None,  # diffusion image (i.e. cdh5) is not needed
         "model.save_dir": r"${paths.output_dir}",
-        # "trainer.max_epochs": 1,  # just one epoch for prediction
-        "trainer.accelerator": accelerator,  # use CPU for prediction
-        "trainer.devices": device,  # device used for prediction
+        "trainer.accelerator": "gpu",  # use GPU for prediction
+        "trainer.devices": [0],  # use first GPU in device list for prediction
         "trainer.default_root_dir": r"${paths.output_dir}",
         "extras.enforce_tags": False,
         "persist_cache": True,
@@ -820,68 +806,20 @@ def generate_overrides_for_array_inputs(
     return overrides
 
 
-def apply_model_on_array(
-    bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04_10", gpu: bool = True
-) -> np.ndarray:
+def get_model_for_array_inputs(
+    model_name: str = "diffae_04_10",
+    save_config_locally: bool = True,
+) -> CytoDLModel:
     """
-    bf_img_arr_4d must be an array with 4 dimensions in this order: CZYX
-    This function applies the DiffAE model to the provided 4D array.
-    It will transform bf_img_arr_4d according to the following ordered steps:
-    1. do a standard deviation projection along the Z axis (i.e. axis 1)
-    2. clip the array to be between the 0.1th and 99.9th percentiles to remove hot/dead pixels
-    3. normalize the clipped array to be between...?
-    4. convert the normalized, clipped array to a tensor with a float16 dtype
-    5. pass the data off to the Diffusion Autoencoder model for prediction
+    Download and modify the model config to make it suitable for array inputs.
     """
 
-    # ## example:
-    # from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
-
-    # dataset_name = "20241120_20X"
-    # model_name = "diffae_04_10"
-    # img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
-    # dim_order = "TCZYX"
-
-    # img_arr = img.get_image_dask_data(dim_order, T=0)
-    # # img_arr_crop_cdh5 = img_arr.max(dim_order.index("Z"), keepdims=True)
-    # # img_arr_crop_bf = img_arr.std(dim_order.index("Z"), keepdims=True)
-
-    # crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
-    # # img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
-    # # img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
-
-    # img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_ex)].compute()
-
-    if not bf_img_arr_4d.ndim == 4:
-        raise ValueError(
-            "Input array must have 4 dimensions in the order CZYX (i.e. Channels, Z, Y, X)."
-        )
-
-    # def modify_model_config_for_array_inputs(
-    #     model_name: str,
-    #     model_config: CytoDLModelConfig,  # get rid of this argument
-    #     save_config_locally: bool=True
-    # ) -> CytoDLModelConfig:
-    #     """
-    #     Modify the model config to make it suitable for array inputs.
-    #     """
-    # load model config
     model_config = cast(CytoDLModelConfig, load_model_config(model_name))
 
-    # if not torch.cuda.is_available():
-    #     raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
     model_path = get_output_path("models", model_config.name, include_timestamp=False)
     path_dict = download_model(mlflow_id, model_path)
-
-    # if save_path is None:
-    #     # if no save path is provided, use the default path
-    #     save_path = get_output_path(
-    #         "models", model_config.name, dataset_config.name, include_timestamp=False
-    #     )
-    # elif isinstance(save_path, str):
-    #     save_path = Path(save_path)
 
     # load model
     model = CytoDLModel()
@@ -905,43 +843,35 @@ def apply_model_on_array(
         overrides,
         ckpt_path=path_dict["checkpoint_path"].as_posix(),
         transforms=transforms,
-        gpu=gpu,
     )
 
     model.override_config(overrides)
-    # del model.cfg["ckpt_path"]
-    # del model.cfg["data"]["train_dataloaders"]
-    # del model.cfg["data"]["val_dataloaders"]
-    # del model.cfg["data"]["predict_dataloaders"]
-    # del model.cfg["data"]["predict_dataloaders"]["transform"]
-    # del model.cfg["data"]["predict_dataloaders"]["transforms"]["transforms"][:2]
-    # if save_config_locally:
-    local_config_save_path = get_output_path("models", "evaluation_configs")
-    model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
-    # return model
+    if save_config_locally:
+        local_config_save_path = get_output_path("models", "evaluation_configs")
+        model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
 
-    # _, _, cytodl_output = model.predict(data=bf_img_arr_4d)
-
-    return extract_array_predictions(*model.predict(data=bf_img_arr_4d))
-    # return cytodl_output
+    return model
 
 
-def apply_model_on_array_test(
-    dataset_name: str = "20241120_20X", model_name: str = "diffae_04_10", gpu: bool = True
-) -> np.ndarray:
-    from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+def apply_model_on_array(model: CytoDLModel, bf_img_arr_4d: np.ndarray) -> np.ndarray:
+    """
+    bf_img_arr_4d must be an array with 4 dimensions in this order: CZYX
+    This function applies the DiffAE model to the provided 4D array.
+    It will transform bf_img_arr_4d according to the following ordered steps:
+    1. do a standard deviation projection along the Z axis (i.e. axis 1)
+    2. clip the array to be between the 0.1th and 99.9th percentiles to remove hot/dead pixels
+    3. normalize the clipped array to be between...?
+    4. convert the normalized, clipped array to a tensor with a float16 dtype
+    5. pass the data off to the Diffusion Autoencoder model for prediction
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Must run on a GPU machine.")
 
-    img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
-    dim_order = "TCZYX"
-    img_arr = img.get_image_dask_data(dim_order, T=0)
-    crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
-    img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_ex)].compute()
+    if not bf_img_arr_4d.ndim == 4:
+        raise ValueError(
+            "Input array must have 4 dimensions in the order CZYX (i.e. Channels, Z, Y, X)."
+        )
 
-    cytodl_output = apply_model_on_array(img_arr_crop_bf, model_name, gpu)
+    _, _, cytodl_output = model.predict(data=bf_img_arr_4d)
 
     return cytodl_output
-
-
-if __name__ == "__main__":
-    test = apply_model_on_array_test()
-    print(test)
