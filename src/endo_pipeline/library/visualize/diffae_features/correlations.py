@@ -112,7 +112,7 @@ def _add_delta_ccf_integral_to_plot(
     """Print integral of delta CCF near zero on plot of delta CCFs."""
     integral_upper_bound_hrs = round(5 * num_lags_integrate / 60, 2)  # convert from frames to hours
     integral_srings = [
-        rf"$\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\\tau) d\\tau$"
+        rf"$\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau$"
         for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
     ]
     strings_per_pc = [
@@ -253,7 +253,7 @@ def _make_all_ccf_plots(
         lags_symmetric = lags[1 + num_lags // 2 :]
         lags_symmetric_as_hours = 5 * lags_symmetric / 60
         ax.plot(lags_symmetric_as_hours, delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
-    ax.set_title("$C_{ij}(\\tau) - C_{ij}(-\\tau)$" + f" ({dataset_description})")
+    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({dataset_description})")
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
     # ax.legend()
@@ -305,7 +305,7 @@ def _plot_delta_ccf_integral_vs_shear_stress(
 
     def _get_shear_stress_from_dataset_name(dataset_name: str) -> float:
         flow_conditions = load_dataset_config(dataset_name).flow_conditions
-        single_flow_condition = next(flow_conditions)
+        single_flow_condition = next(iter(flow_conditions))
         return single_flow_condition.shear_stress
 
     list_of_values = [
@@ -382,3 +382,8 @@ def plot_correlation_workflow_outputs(
 
     # plot integrated difference between CCF for positive and
     # negative lags as a function of shear stress
+    _plot_delta_ccf_integral_vs_shear_stress(
+        correlation_dict,
+        list_of_datasets,
+        output_path,
+    )
