@@ -29,9 +29,6 @@ zarr_channel_indices:
   channel_640: null
 flow_conditions:
 - start: -22
-  stop: -1
-  shear_stress: 0.0
-- start: 0
   stop: 267
   shear_stress: 6.32
 - start: 268
