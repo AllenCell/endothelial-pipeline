@@ -62,8 +62,9 @@ def get_dataset_descriptions(
                     shear_stress_str = "No_Shear_Stress"
 
                 if include_duration:
-                    duration = int((flow_conditions[i][1] - flow_conditions[i][0]) * 5 / 60)
-                    shear_stress_str = f"{duration}hr_{shear_stress_str}"
+                    duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
+                    duration_in_hours = int(duration_in_frames * 5 / 60)
+                    shear_stress_str = f"{duration_in_hours}hr_{shear_stress_str}"
 
                 if include_shear_stress:
                     shear_stress_str = f"{shear_stress_str}_{int(shear)}dyncm2"
@@ -73,8 +74,8 @@ def get_dataset_descriptions(
             for i, shear in enumerate(shear_stress):
                 shear_stress_str = f"{int(shear)}_dyncm2"
                 if include_duration:
-                    duration = flow_conditions[i][1] - flow_conditions[i][0]
-                    duration_in_hours = int(duration * 5 / 60)  # convert to hours
+                    duration_in_frames = flow_conditions[i].stop - flow_conditions[i].start
+                    duration_in_hours = int(duration_in_frames * 5 / 60)  # convert to hours
                     shear_stress_str = f"{duration_in_hours}hr_{shear_stress_str}"
                 shear_stress_strings.append(shear_stress_str)
 
