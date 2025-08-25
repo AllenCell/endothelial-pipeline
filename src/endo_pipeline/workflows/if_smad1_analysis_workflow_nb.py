@@ -1,9 +1,9 @@
 # %%
 import pandas as pd
 
-from src.endo_pipeline.io import get_output_path, load_dataframe
-from src.endo_pipeline.library.analyze.immunofluorescence import filter, plot
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.library.analyze.immunofluorescence import filter, plot
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 output_dir = get_output_path("immunofluorescence_analysis", "SMAD1")
 # %%
@@ -73,7 +73,7 @@ plot.feature_density(
     ylim=ylim,
     pool_positions=True,
 )
-#%%
+# %%
 plot.feature_density(
     df_all=if_manifest,
     dataset_name_list=IF_SMAD_DATASETS,

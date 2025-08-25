@@ -1,4 +1,4 @@
-name: nuclear_stain
+name: nuclear_stain_seg
 workflow: segment_nuclear_stain (manifest updated manually)
 parameters: {}
 locations:

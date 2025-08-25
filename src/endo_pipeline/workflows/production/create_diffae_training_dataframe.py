@@ -1,8 +1,5 @@
 TAGS = ["diffae_model_training"]
 
-ZARR_CDH5_CHANNEL = 0
-ZARR_BF_CHANNEL = 1
-
 
 def main(resolution_level: int = 1) -> None:
     """
@@ -50,10 +47,10 @@ def main(resolution_level: int = 1) -> None:
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
-    from src.endo_pipeline import TESTING_MODE
-    from src.endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.model import (
+    from endo_pipeline import TESTING_MODE
+    from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
     )
@@ -79,11 +76,17 @@ def main(resolution_level: int = 1) -> None:
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_positions = [0]  # only use the first position
+
+        # build zarr loading dataframe for the current dataset
+        # and append it to the list of dataframes
         zarr_dataframes.append(
             build_zarr_image_loading_dataframe(
                 dataset_config=dataset_config,
                 resolution_level=resolution_level,
-                channel=[ZARR_CDH5_CHANNEL, ZARR_BF_CHANNEL],
+                channel=[
+                    dataset_config.zarr_channel_indices.channel_488,
+                    dataset_config.zarr_channel_indices.brightfield,
+                ],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
                 only_positions=only_positions,
@@ -94,6 +97,7 @@ def main(resolution_level: int = 1) -> None:
     df = pd.concat(zarr_dataframes, ignore_index=True)
 
     # split into training and validation sets
+    # (percent split is by number of rows, i.e. positions x datasets)
     train, val = train_test_split(df, test_size=0.2, random_state=42)
 
     # Upload dataframes to FMS, then build and save out DataframeManifest
@@ -108,6 +112,6 @@ def main(resolution_level: int = 1) -> None:
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

@@ -4,7 +4,7 @@ import logging
 import re
 from pathlib import Path
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
     MicroscopeType,

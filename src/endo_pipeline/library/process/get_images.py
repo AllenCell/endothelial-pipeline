@@ -7,8 +7,8 @@ import pandas as pd
 from bioio import BioImage
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import dataset_io
-from src.endo_pipeline.library.process.image_processing import (
+from endo_pipeline.configs import dataset_io
+from endo_pipeline.library.process.image_processing import (
     contrast_stretching,
     get_global_custom_range,
     get_single_bf_plane,

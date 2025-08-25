@@ -131,13 +131,14 @@ def z_score_normalize_intensity(image: np.ndarray) -> np.ndarray:
     normalized = (image - mean) / std
     return normalized
 
+
 def scale_intensity_range_percentiles(
     img: np.ndarray,
     lower: float = 10,
     upper: float = 98,
     b_min: float = -1.0,
     b_max: float = 1.0,
-    clip: bool = True
+    clip: bool = True,
 ) -> np.ndarray:
     """
     Scale image intensities based on percentile range to a target range [b_min, b_max].
@@ -161,6 +162,7 @@ def scale_intensity_range_percentiles(
         scaled = np.clip(scaled, b_min, b_max)
 
     return scaled
+
 
 def get_global_custom_range(
     image_list: list[np.ndarray], method: Literal["min-max", "percentile"] = "percentile"

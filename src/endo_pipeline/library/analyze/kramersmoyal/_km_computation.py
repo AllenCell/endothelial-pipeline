@@ -5,7 +5,7 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.special import factorial
 
-from src.endo_pipeline.library.analyze.numerics import histogramdd
+from endo_pipeline.library.analyze.numerics import histogramdd
 
 from . import _km_kernels
 

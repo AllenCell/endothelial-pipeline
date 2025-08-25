@@ -64,17 +64,16 @@ def main(
     import logging
     from typing import cast
 
-    from src.endo_pipeline import TESTING_MODE
-    from src.endo_pipeline.configs import (
+    from endo_pipeline import TESTING_MODE
+    from endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
         load_dataset_config,
         load_model_config,
-        save_model_config,
     )
-    from src.endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+    from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
     logger = logging.getLogger(__name__)
 
@@ -105,7 +104,7 @@ def main(
     # and then just loop through datasets...
     # out of scope for this PR but worth doing in a separate PR
     for dataset_config in dataset_config_list:
-        model_config = apply_model_on_grid_of_crops_from_one_dataset(
+        apply_model_on_grid_of_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
             resolution_level=resolution_level,
@@ -123,12 +122,9 @@ def main(
             )
             break
 
-    # save out updated model config
-    save_model_config(model_config)
-
 
 if __name__ == "__main__":
 
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)
