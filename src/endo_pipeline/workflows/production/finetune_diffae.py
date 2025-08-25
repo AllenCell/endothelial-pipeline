@@ -35,9 +35,9 @@ def main(
 
     from omegaconf import OmegaConf
 
-    from src.endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.model import (
+    from endo_pipeline.configs import CytoDLModelConfig, load_model_config, save_model_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.model import (
         download_mlflow_artifact,
         get_ckpt_path,
         get_dataset_names_used_for_training,
@@ -82,6 +82,7 @@ def main(
     mlflow_logger = object_dict["logger"][0]
     run_id = mlflow_logger.run_id
     # get list of datasets used for training
+    # THIS NEEDS TO BE REFACTORED TO USE THE DATAFRAME MANIFEST
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_csv_path, val_csv_path, f"{dataset_pair_type}_paired_datasets"
     )
@@ -96,6 +97,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

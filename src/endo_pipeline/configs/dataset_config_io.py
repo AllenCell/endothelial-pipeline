@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from mashumaro.codecs.yaml import YAMLDecoder, YAMLEncoder
 
-from src.endo_pipeline.configs import DatasetCollectionConfig, DatasetConfig
+from endo_pipeline.configs import DatasetCollectionConfig, DatasetConfig
 
 logger = logging.getLogger(__name__)
 

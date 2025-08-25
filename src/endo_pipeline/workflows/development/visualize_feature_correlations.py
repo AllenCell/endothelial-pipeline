@@ -1,4 +1,4 @@
-from src.endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
     get_df_for_feature_correlation_viz,
 )
 
@@ -56,13 +56,13 @@ def main(
     import itertools
     import logging
 
-    from src.endo_pipeline.configs import get_datasets_in_collection
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.visualize.diffae_features.feature_viz import (
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
     )
-    from src.endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+    from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_correlation_matrix_df,
         plot_and_save_clustermap,
         plot_and_save_heatmap,
@@ -179,6 +179,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

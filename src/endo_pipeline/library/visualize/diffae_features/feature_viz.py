@@ -10,15 +10,15 @@ from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.visualize import viz_base
-from src.endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+from endo_pipeline.library.visualize import viz_base
+from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
-from src.endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.manifests import DataframeManifest
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:

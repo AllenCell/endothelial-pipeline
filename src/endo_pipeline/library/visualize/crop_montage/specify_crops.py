@@ -5,26 +5,26 @@ from typing import cast
 import pandas as pd
 from sklearn.decomposition import PCA
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     get_available_dataset_collection_names,
     get_available_dataset_names,
     get_datasets_in_collection,
 )
-from src.endo_pipeline.io import save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest import (
     fit_pca,
     get_dataframe_for_dynamics_workflows,
     get_pc_column_names,
 )
-from src.endo_pipeline.library.analyze.numerics import (
+from endo_pipeline.library.analyze.numerics import (
     get_3d_bounds_from_data,
     get_df_by_bin_value,
     get_histogram_by_component,
 )
-from src.endo_pipeline.library.visualize.diffae_features.feature_viz import (
+from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     plot_principal_component_histogram,
 )
-from src.endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 

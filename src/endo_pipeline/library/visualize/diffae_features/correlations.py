@@ -7,11 +7,11 @@ import numpy as np
 from matplotlib.colors import TABLEAU_COLORS
 from scipy.optimize import curve_fit
 
-from src.endo_pipeline.io import get_output_path, save_plot_to_path
-from src.endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
-from src.endo_pipeline.library.analyze.numerics import exponential_decay, power_law_decay
-from src.endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
-from src.endo_pipeline.library.visualize.viz_base import init_plot
+from endo_pipeline.io import get_output_path, save_plot_to_path
+from endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
+from endo_pipeline.library.analyze.numerics import exponential_decay, power_law_decay
+from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
+from endo_pipeline.library.visualize.viz_base import init_plot
 
 logger = logging.getLogger(__name__)
 

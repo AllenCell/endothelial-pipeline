@@ -1,9 +1,7 @@
 import argparse
 
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.library.process.convert_to_zarr.convert_dataset import (
-    convert_dataset,
-)
+from endo_pipeline.io import get_output_path
+from endo_pipeline.library.process.convert_to_zarr.convert_dataset import convert_dataset
 
 """
 This script processes images from a dataset and writes them to Zarr format.

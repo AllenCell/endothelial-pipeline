@@ -9,16 +9,16 @@ from bioio import BioImage
 from cellpose import core, models
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
-from src.endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
-from src.endo_pipeline.io import configure_logging, get_output_path
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import CellposeModelConfig, load_dataset_config, load_model_config
+from endo_pipeline.configs.dataset_io import fire_parse_generate_dataset_name_list, load_config
+from endo_pipeline.io import configure_logging, get_output_path
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
-from src.endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
+from endo_pipeline.workflows.cdh5_classic_seg_tracking import ipython_cli_flexecute
 
 logger = logging.getLogger(__name__)
 
@@ -142,10 +142,10 @@ def main(
 ) -> None:
     """
     To enter a list of datasets to analyze, use the following format:
-    '\"20241016_20X\",\"20241120_20X\"'
+    '\"20241217_20X\",\"20241120_20X\"'
     """
 
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
     # Build a list of datasets to analyze

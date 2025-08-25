@@ -5,17 +5,17 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
     ipython_cli_flexecute,
 )
-from src.endo_pipeline.io import configure_logging, get_output_path, load_dataframe
-from src.endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+from endo_pipeline.io import configure_logging, get_output_path, load_dataframe
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_filter_columns,
     calculate_derived_data_dynamics_independent,
     merge_measured_segmentation_features_tables,
 )
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def main(
 ) -> None:
 
     # set the directory where the output will be saved
-    out_dir = get_output_path(Path(__file__).stem)
+    out_dir = get_output_path(__file__)
     configure_logging(out_dir, logger, verbose)
 
     # create a list of datasets to analyze if not provided
