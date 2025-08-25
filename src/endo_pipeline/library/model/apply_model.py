@@ -783,9 +783,9 @@ def generate_overrides_for_array_inputs(
         device = [0]
     else:
         accelerator = "cpu"  # use CPU for predictions
-        # 0 = use current core for prediction
+        # 1 = use one core for prediction
         # the integer can be increased to specify number of cores to use
-        device = 0  # type:ignore[assignment]
+        device = 1  # type:ignore[assignment]
     overrides = {
         "train": False,  # True
         "test": False,
@@ -831,23 +831,23 @@ def apply_model_on_array(bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04
     5. pass the data off to the Diffusion Autoencoder model for prediction
     """
 
-    ## example:
-    from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
+    # ## example:
+    # from src.endo_pipeline.library.process.get_images import get_zarr_img_for_dataset
 
-    dataset_name = "20241120_20X"
-    model_name = "diffae_04_10"
-    img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
-    dim_order = "TCZYX"
+    # dataset_name = "20241120_20X"
+    # model_name = "diffae_04_10"
+    # img = get_zarr_img_for_dataset(dataset_name, 0, resolution_level=1)
+    # dim_order = "TCZYX"
 
-    img_arr = img.get_image_dask_data(dim_order, T=0)
-    # img_arr_crop_cdh5 = img_arr.max(dim_order.index("Z"), keepdims=True)
-    # img_arr_crop_bf = img_arr.std(dim_order.index("Z"), keepdims=True)
+    # img_arr = img.get_image_dask_data(dim_order, T=0)
+    # # img_arr_crop_cdh5 = img_arr.max(dim_order.index("Z"), keepdims=True)
+    # # img_arr_crop_bf = img_arr.std(dim_order.index("Z"), keepdims=True)
 
-    crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
-    # img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
-    # img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
+    # crop_ex = (slice(None), slice(0, 128), slice(0, 128))  # Example crop
+    # # img_arr_crop_cdh5 = img_arr_crop_cdh5[(0, 0, *crop_ex)].compute()
+    # # img_arr_crop_bf = img_arr_crop_bf[(0, 1, *crop_ex)].compute()
 
-    img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_ex)].compute()
+    # img_arr_crop_bf = img_arr[(0, slice(1, 2), *crop_ex)].compute()
 
     if not bf_img_arr_4d.ndim == 4:
         raise ValueError(
@@ -917,7 +917,8 @@ def apply_model_on_array(bf_img_arr_4d: np.ndarray, model_name: str = "diffae_04
     model.save_config(local_config_save_path / f"{model_config.name}_eval.yaml")
     # return model
 
-    _, _, cytodl_output = model.predict(data=img_arr_crop_bf)
+    # _, _, cytodl_output = model.predict(data=img_arr_crop_bf)
+    _, _, cytodl_output = model.predict(data=bf_img_arr_4d)
 
     # test = model.predict(data=img_arr_crop_bf)
     # return extract_array_predictions(*test)
@@ -939,6 +940,13 @@ def apply_model_on_array_test(
     cytodl_output = apply_model_on_array(img_arr_crop_bf, model_name)
 
     return cytodl_output
+
+
+if __name__ == "__main__":
+    test = apply_model_on_array_test()
+    print(test)
+    print(test.shape)
+    print(test.dtype)
 
 
 # def apply_model_on_array_test2() -> np.ndarray:
