@@ -195,7 +195,7 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
-def add_DiffAE_model_eval_crop_columns(
+def add_diffae_model_eval_crop_columns(
     df: pd.DataFrame, image_binning_level: int = 1
 ) -> pd.DataFrame:
     """
