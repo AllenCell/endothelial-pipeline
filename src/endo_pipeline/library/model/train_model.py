@@ -92,76 +92,77 @@ def _generate_overrides_for_model_training(
 
 
 def _generate_overrides_for_finetuning(
-    model_name: str,
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
-    train_csv_path: Path,
-    val_csv_path: Path,
+    finetuned_model_name: str,
+    train_dataframe_path: str,
+    val_dataframe_path: str,
     ckpt_path: Path,
+    max_num_epochs: int = 100,
+    log_every_n_steps: int = 50,
 ) -> dict:
     """
     Generate overrides for finetuning a DiffAE model.
 
+    **Workflow testing**
+
+    If the finetuning workflow is being run in testing mode, the model will be trained for
+    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
+    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
+    of ``log_every_n_steps`` will also be set to 1.
+
     Parameters
     ----------
-    model_name: str
-        The name of the model to finetune. This should correspond to a
-        directory in `results/models/` and match the model name used during the
-        `paired_data_validation` step.
-    dataset_pair_type: Literal['live_fixed', '20x_40x']
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-    train_csv_path: Path
-        The path to the training CSV file containing paired data.
-    val_csv_path: Path
-        The path to the validation CSV file containing paired data.
+    finetuned_model_name
+        The name of the finetuned model to save.
+    train_dataframe_path
+        The path to the image loading metadata file for the training dataset.
+    val_dataframe_path
+        The path to the image loading metadata file for the validation dataset.
     ckpt_path: Path
         The path to the DiffAE checkpoint to finetune.
+    max_num_epochs
+        The maximum number of epochs to train the model for.
+    log_every_n_steps
+        The interval at which to log training metrics.
     """
     # create output directories if they do not exist
-    save_path = get_output_path(
+    training_run_output_path = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
-        include_timestamp=False,
+        finetuned_model_name,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
+        finetuned_model_name,
         "checkpoints",
-        include_timestamp=False,
     )
     _ = get_output_path(
         "finetune_paired_dataset",
-        f"finetune_{model_name}_on_{dataset_pair_type}",
+        finetuned_model_name,
         "logs",
-        include_timestamp=False,
     )
 
     overrides = {
         # point to already projected paired dataset
-        "data.train_dataloaders.dataset.csv_path": str(train_csv_path),
-        "data.val_dataloaders.dataset.csv_path": str(val_csv_path),
+        "data.train_dataloaders.dataset.dataframe_path": train_dataframe_path,
+        "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
+        "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # load diffae checkpoint to finetune
-        "checkpoint.ckpt_path": str(ckpt_path),
+        "checkpoint.ckpt_path": ckpt_path,
         "checkpoint.weights_only": True,
         "checkpoint.strict": False,
         # save to user-specified directory
-        "model.save_dir": (save_path / "logs").as_posix(),
-        "trainer.default_root_dir": save_path,
-        "callbacks.model_checkpoint.dirpath": (save_path / "checkpoints").as_posix(),
-        "paths.output_dir": (save_path / "logs").as_posix(),
+        "model.save_dir": training_run_output_path / "logs",
+        "trainer.default_root_dir": training_run_output_path,
+        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
+        "paths.output_dir": training_run_output_path / "logs",
         # do training
         "train": True,
-        # # make sure that last ckpt is saved
-        # "callbacks.model_checkpoint.monitor": None,
-        # updated mlflow logger
-        "logger": {
-            "mlflow": {
-                "_target_": "cyto_dl.loggers.MLFlowLogger",
-                "tracking_uri": "https://production.int.allencell.org/mlflow/",
-                "experiment_name": "endo_diffae",
-                "run_name": "fixed_finetune_separate_encoder",
-            }
-        },
+        # turn off config printing, will get saved locally instead
+        "extras.print_config": False,
+        # set the max number of epochs for training
+        "trainer.max_epochs": max_num_epochs,
+        "trainer.log_every_n_steps": log_every_n_steps,
+        # updated the run name
+        "run_name": finetuned_model_name,
     }
 
     return overrides
@@ -275,16 +276,10 @@ def build_and_save_dataframe_manifest_for_training(
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
     manifest_name: str,
+    workflow_name: str,
 ) -> None:
     """
     Upload training and validation image loading dataframes to FMS.
-
-    **Workflow testing**
-
-    If the dataframe building workflow is being run in testing mode, the training and validation
-    datasets will only keep one entry each. This is useful for testing the workflow without needing
-    to load large datasets. The dataframes will be uploaded to the staging environment of FMS,
-    and the resulting DataframeManifest will be saved with ``_test_workflow`` appended to the name.
 
     Parameters
     ----------
@@ -300,6 +295,8 @@ def build_and_save_dataframe_manifest_for_training(
         The directory where the output dataframes will be saved as intermediates.
     manifest_name
         The name of the DataframeManifest to be created.
+    workflow_name
+        The name of the workflow that is creating the dataframe manifest.
 
     Returns
     -------
@@ -331,7 +328,7 @@ def build_and_save_dataframe_manifest_for_training(
     # (intended behavior)
     dataframe_manifest = DataframeManifest(
         name=manifest_name,
-        workflow="create_diffae_training_dataframe",
+        workflow=workflow_name,
         parameters={"resolution_level": resolution_level},
         locations={
             "training": DataframeLocation(fmsid=train_fmsid, s3uri=None),
@@ -386,36 +383,42 @@ def get_valid_dataframe_path_for_training(dataframe_location: DataframeLocation)
 
 def initialize_diffae_model_for_finetuning(
     template_finetune_config: DictConfig | ListConfig,
-    model_name: str,
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
-    train_csv_path: Path,
-    val_csv_path: Path,
+    finetuned_model_name: str,
+    train_dataframe_path: str,
+    val_dataframe_path: str,
     model_save_path: Path,
     diffae_ckpt_path: Path,
+    max_num_epochs: int = 100,
+    log_every_n_steps: int = 50,
 ) -> CytoDLModel:
     """
     Initialize a DiffAE model for training.
+
+    **Workflow testing**
+
+    If the finetuning workflow is being run in testing mode, the model will be trained for
+    only one epoch. That is, the ``max_num_epochs`` input will be set to 1, which overrides
+    the configuration value of ``trainer.max_epochs`` in the finetuning config. The value
+    of ``log_every_n_steps`` will also be set to 1.
 
     Parameters
     ----------
     template_finetune_config
         The template configuration for finetuning the DiffAE model.
-    model_name
-        The name of the model to train.
-    dataset_pair_type
-        The type of dataset to use for finetuning ("live_fixed" or "20X_40X").
-        This should match the input used during the `paired_data_validation` step.
-    train_csv_path
-        The path to the training dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
-    val_csv_path
-        The path to the validation dataset CSV file. If None, the default path
-        for the output of generate_csv_for_training_diffae will be used.
+    finetuned_model_name
+        The name of the finetuned model to save.
+    train_dataframe_path
+        The path to the image loading metadata dataframe for the training dataset.
+    val_dataframe_path
+        The path to the image loading metadata dataframe for the validation dataset.
     model_save_path
         The path to the directory where the checkpoints and logs will be saved.
     diffae_ckpt_path
-        The path to the DiffAE checkpoint to finetune. This should be a path
-        to the checkpoint downloaded from MLflow artifacts.
+        The path to the DiffAE checkpoint to finetune.
+    max_num_epochs
+        The maximum number of epochs for which to train the model.
+    log_every_n_steps
+        The interval at which to log training metrics.
 
     Returns
     -------
@@ -424,11 +427,12 @@ def initialize_diffae_model_for_finetuning(
     """
     # generate overrides for train.yaml for finetuning
     overrides = _generate_overrides_for_finetuning(
-        model_name=model_name,
-        dataset_pair_type=dataset_pair_type,
-        train_csv_path=train_csv_path,
-        val_csv_path=val_csv_path,
+        finetuned_model_name=finetuned_model_name,
+        train_dataframe_path=train_dataframe_path,
+        val_dataframe_path=val_dataframe_path,
         ckpt_path=model_save_path / diffae_ckpt_path,
+        max_num_epochs=max_num_epochs,
+        log_every_n_steps=log_every_n_steps,
     )
 
     # init model
@@ -437,49 +441,6 @@ def initialize_diffae_model_for_finetuning(
     cytodl_model.override_config(overrides)
 
     return cytodl_model
-
-
-def get_valid_csv_path_for_finetuning(
-    csv_path: Path | str | None,
-    csv_name: Literal["train", "val"],
-    dataset_pair_type: Literal["live_fixed", "20x_40x"],
-) -> Path:
-    """
-    Get a valid CSV path for training or validation datasets.
-
-    Parameters
-    ----------
-    csv_path: Path | str | None
-        The path to the CSV file. If None, the default path for the output of
-        generate_csv_for_training_diffae will be used.
-    csv_name: Literal["train", "val"]
-        The name of the CSV file to validate. If csv_path is not None,
-        csv_name will not be used in the path generation.
-        This input is mainly for the default case where csv_path is None,
-        and the path will be generated based on the csv_name (train or val).
-    dataset_pair_type: Literal["live_fixed", "20x_40x"]
-        The type of dataset to use for finetuning. This should match the dataset
-        type used during the `paired_data_validation` step.
-
-
-    Returns
-    -------
-    Path
-        A valid Path object pointing to the CSV file.
-    """
-    if csv_path is None:
-        csv_path = (
-            get_output_path("finetune_paired_dataset", dataset_pair_type, include_timestamp=False)
-            / f"{csv_name}.csv"
-        )
-
-    if isinstance(csv_path, str):
-        csv_path = Path(csv_path)
-
-    if not csv_path.exists():
-        raise FileNotFoundError(f"CSV file not found at {csv_path}. Please provide a valid path.")
-
-    return csv_path
 
 
 def get_dataset_names_used_for_training(

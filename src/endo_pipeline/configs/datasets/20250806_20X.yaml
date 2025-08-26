@@ -13,7 +13,6 @@ shear_stress_regime: high_to_low
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 257, 20.54], [258, 576, 7.13]]
 n_total_positions: 6
 original_channel_indices:
   brightfield: 1
@@ -29,9 +28,6 @@ zarr_channel_indices:
   channel_640: null
 flow_conditions:
 - start: -31
-  stop: -1
-  shear_stress: 0.0
-- start: 0
   stop: 257
   shear_stress: 20.54
 - start: 258

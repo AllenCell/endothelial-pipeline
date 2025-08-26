@@ -31,6 +31,7 @@ if __name__ != "__main__":
 from endo_pipeline.configs import (
     ChannelIndices,
     DatasetConfig,
+    FlowCondition,
     ValidTimepoints,
     save_dataset_config,
 )
@@ -56,19 +57,20 @@ dataset = DatasetConfig(
     shear_stress_regime="shear_stress_regime",
     pixel_size_xy_in_um=0.382,  # 3i 20X
     duration=0,
-    time_interval_in_minutes=0.0,
-    flow=[(0, 0, 0.0)],
-    n_total_positions=0,
-    original_channels=ChannelIndices(
+    time_interval_in_minutes=5.0,
+    n_total_positions=6,
+    original_channel_indices=ChannelIndices(
         brightfield=1,
         channel_488=0,
     ),
-    zarr_channels=ChannelIndices(
+    zarr_channel_indices=ChannelIndices(
         brightfield=1,
         channel_488=0,
     ),
+    flow_conditions=[
+        FlowCondition(start=0, stop=0, shear_stress=0.0),
+    ],
     # ============================ OPTIONAL FIELDS =============================
-    # flow_conditions=[[0,0,0.0]],
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
