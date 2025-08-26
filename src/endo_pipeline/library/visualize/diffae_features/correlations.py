@@ -147,6 +147,7 @@ def _fit_exp_decay_and_get_relaxation_timescale(
     acf: np.ndarray,
     lags: np.ndarray,
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
+    maxfev: int = 10000,
 ) -> tuple[np.ndarray, float]:
     """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
     # check to make sure valid function is provided
@@ -165,17 +166,12 @@ def _fit_exp_decay_and_get_relaxation_timescale(
     lags_pos = lags[acf_where_positive]
     acf_pos = acf[acf_where_positive]
     if exp_decay_func == "exponential_decay":
-        p0 = [1.0, 0.01]  # initial guess for single exponential
-        exp_decay_callable = exponential_decay
-    elif exp_decay_func == "double_exponential_decay":
-        p0 = [0.5, 0.01, 0.5, 0.025]  # initial guess for double exponential
-        exp_decay_callable = double_exponential_decay
-    exp_fit, _ = curve_fit(exp_decay_callable, lags_pos, acf_pos, maxfev=10000, p0=p0)
-
-    # compute relaxation timescale from fit parameters
-    if len(exp_fit) == 2:  # single exponential decay
+        p0 = [1.0, 0.01]
+        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         relaxation_time = 1 / exp_fit[1]
-    elif len(exp_fit) == 4:  # double exponential decay
+    else:
+        p0 = [0.5, 0.01, 0.5, 0.025]
+        exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
         relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
@@ -208,10 +204,10 @@ def _add_exp_fit_to_plot(
         relaxation_timescales.append(relaxation_time)
 
         # plot fit on top of ACF
-        exp_decay_callable = (
-            exponential_decay if exp_decay_func == "exponential_decay" else double_exponential_decay
-        )
-        acf_fit = exp_decay_callable(lags, *exp_fit)
+        if exp_decay_func == "exponential_decay":
+            acf_fit = exponential_decay(lags, *exp_fit)
+        else:
+            acf_fit = double_exponential_decay(lags, *exp_fit)
         ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
         # if using double exponential decay, log exponent with larger weight
         # might update to be print on plot, TBD
