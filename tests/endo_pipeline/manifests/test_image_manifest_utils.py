@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from endo_pipeline.configs import ChannelIndices, DatasetConfig
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition
 from endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
 from endo_pipeline.manifests.image_manifest_utils import (
     get_image_location_for_dataset,
@@ -37,7 +37,7 @@ def dataset_config():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
-        flow=[],
+        flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
         zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),

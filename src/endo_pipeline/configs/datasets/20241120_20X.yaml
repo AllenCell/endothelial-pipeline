@@ -13,7 +13,6 @@ shear_stress_regime: 48hr_high
 pixel_size_xy_in_um: 0.382
 duration: 577
 time_interval_in_minutes: 5.0
-flow: [[0, 576, 28.83]]
 n_total_positions: 6
 original_channel_indices:
   brightfield: 1

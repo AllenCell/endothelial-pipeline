@@ -117,9 +117,6 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list
-    """Flow conditions for the dataset."""
-
     n_total_positions: int
     """Total number of positions captured."""
 
@@ -129,7 +126,7 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
-    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
 
     valid_timepoints: ValidTimepoints | None = None

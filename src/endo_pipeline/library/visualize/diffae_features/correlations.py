@@ -104,7 +104,9 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
     return ax
 
 
-def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.ndarray]]) -> None:
+def plot_correlation_workflow_outputs(
+    correlation_dict: dict[str, dict[str, np.ndarray]], bootstrap_samples: int = 0
+) -> None:
     """Plot correlation workflow outputs."""
     list_of_datasets = list(correlation_dict["lags"].keys())
     dataset_descriptions = get_dataset_descriptions(
@@ -118,6 +120,8 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.n
         num_lags = len(lags)
         acf = correlation_dict["acf"][dataset_name]
         ccf = correlation_dict["ccf"][dataset_name]
+        ccf_ci_lower = correlation_dict["ccf_ci_lower"][dataset_name]
+        ccf_ci_upper = correlation_dict["ccf_ci_upper"][dataset_name]
         delta_ccf = correlation_dict["delta_ccf"][dataset_name]
 
         # get string for dataset description
@@ -210,6 +214,15 @@ def plot_correlation_workflow_outputs(correlation_dict: dict[str, dict[str, np.n
         for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
             lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
             ax.plot(lags_all_as_hours, ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+            if bootstrap_samples > 0:
+                ax.fill_between(
+                    lags_all_as_hours,
+                    ccf_ci_lower[:, i],
+                    ccf_ci_upper[:, i],
+                    alpha=0.25,
+                    color=list(TABLEAU_COLORS.keys())[i],
+                    label="95% CI",
+                )
 
         ax.set_title(f"Cross-Correlation of PCA Components ({dataset_description})")
         ax.set_xlabel("Lag (hours)")
