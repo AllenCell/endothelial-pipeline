@@ -341,7 +341,7 @@ def _plot_delta_ccf_integral_vs_shear_stress(
             label="",
         )
     ax.legend()
-    ax.set_ylabel("$\\langle |\\Delta C_{ij} \\rangle$")
+    ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
     ax.set_ylim((-0.05, 1.65))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
