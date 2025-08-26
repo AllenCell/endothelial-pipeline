@@ -692,7 +692,10 @@ def align_and_save_paired_images(
     fixed_datasets = dataset_pairs["fixed"]
     moving_datasets = dataset_pairs["moving"]
 
-    alignment_method = "sift" if dataset_pair_type == "live_fixed" else "template"
+    if dataset_pair_type == "live_fixed":
+        alignment_method: Literal["sift", "template"] = "sift"
+    else:
+        alignment_method = "template"
 
     df_list = []
     for fixed, moving in zip(fixed_datasets, moving_datasets, strict=True):
