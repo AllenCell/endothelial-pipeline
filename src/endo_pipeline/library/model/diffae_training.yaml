@@ -284,7 +284,7 @@ logger:
   mlflow:
     _target_: cyto_dl.loggers.MLFlowLogger
     tracking_uri: https://production.int.allencell.org/mlflow/
-    experiment_name: endo_diffae
+    experiment_name: ${experiment_name}
     run_name: ${run_name}
 trainer:
   _target_: lightning.Trainer

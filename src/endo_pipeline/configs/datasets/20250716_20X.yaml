@@ -1,8 +1,8 @@
 name: 20250716_20X
-original_path: //allen/programs/allencell/data/proj0/6d9/e2b/77c/208/dca/baa/64f/594/9f1/edc/c9/20250716_GE00008450_20X_SLDY/20250716_GE00008450_20X_SLDY.sldy
-zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250716_c9edc9f159464fbaadca20877ce2b6d9
+original_path: //allen/programs/allencell/data/proj0/53e/924/468/8e5/226/eab/248/c91/2ec/8c6/32/20250716_GE00008450_20X_SLDY_2/20250716_GE00008450_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250716_328c62ecc91248eab2268e546892453e
 zarr_positions: [0, 1, 2, 3, 4, 5]
-fmsid: c9edc9f159464fbaadca20877ce2b6d9
+fmsid: 328c62ecc91248eab2268e546892453e
 barcode: GE00008450
 cell_lines: [AICS-126]
 live_or_fixed_sample: live
@@ -12,7 +12,7 @@ objective: 20X
 shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 577
-time_interval_in_minutes: 0.0
+time_interval_in_minutes: 5.0
 flow: [[0, 576, 9.01]]
 n_total_positions: 6
 original_channel_indices:
