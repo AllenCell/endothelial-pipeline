@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from endo_pipeline.io.output import get_output_path
+from endo_pipeline.io.output import get_output_path, get_timestamp
 
 
 @pytest.fixture
@@ -18,6 +18,11 @@ def mock_timestamp(mocker):
     datetime_mock = mocker.patch("endo_pipeline.io.output.datetime")
     datetime_mock.datetime.now.return_value = datetime.datetime.strptime(timestamp, "%Y-%m-%d")
     yield timestamp
+
+
+def test_get_timestamp(mock_timestamp):
+    timestamp = mock_timestamp
+    assert get_timestamp() == timestamp
 
 
 def test_get_output_path_file_name(mock_output_dir, mock_timestamp):
