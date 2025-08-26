@@ -37,7 +37,7 @@ def dataset_config():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
-        flow_conditions=[FlowCondition(start=0, stop=0, shear_stress=0.0)],
+        flow_conditions=[],
         n_total_positions=0,
         original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
         zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
