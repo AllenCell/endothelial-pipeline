@@ -329,7 +329,7 @@ def _plot_delta_ccf_integral_vs_shear_stress(
             label=f"(PC{j+1}, PC{k+1})",
             color=list(TABLEAU_COLORS.keys())[i],
             linewidth=2.75,
-            linestyle="-.",
+            linestyle="-",
         )
         ax.scatter(
             shear_stresses,
