@@ -507,12 +507,12 @@ def align(
                 moving_fluo, fixed_fluo = crop_to_overlap(moving_fluo, fixed_fluo)
 
                 # Save the aligned images
-                moving_save_path = str(
+                moving_save_path = (
                     savedir / f"{base_moving_path}_{scene}_{t}_moving_fluo.ome.tiff"
-                )
-                fixed_save_path = str(
+                ).as_posix()
+                fixed_save_path = (
                     savedir / f"{base_fixed_path}_{scene}_{t}_fixed_fluo.ome.tiff"
-                )
+                ).as_posix()
                 OmeTiffWriter.save(uri=moving_save_path, data=moving_fluo)
                 OmeTiffWriter.save(uri=fixed_save_path, data=fixed_fluo)
 
@@ -527,8 +527,12 @@ def align(
             aligned_moving = warp(model, fixed_bf, moving_bf)
             aligned_moving, fixed_bf = crop_to_overlap(aligned_moving, fixed_bf)
             # Save the aligned images
-            moving_save_path = str(savedir / f"{base_moving_path}_{scene}_{t}_moving_bf.ome.tiff")
-            fixed_save_path = str(savedir / f"{base_fixed_path}_{scene}_{t}_fixed_bf.ome.tiff")
+            moving_save_path = (
+                savedir / f"{base_moving_path}_{scene}_{t}_moving_bf.ome.tiff"
+            ).as_posix()
+            fixed_save_path = (
+                savedir / f"{base_fixed_path}_{scene}_{t}_fixed_bf.ome.tiff"
+            ).as_posix()
             OmeTiffWriter.save(uri=moving_save_path, data=aligned_moving)
             OmeTiffWriter.save(uri=fixed_save_path, data=fixed_bf)
             aligned_files["moving"].append(moving_save_path)
