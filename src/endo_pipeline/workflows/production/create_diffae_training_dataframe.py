@@ -107,7 +107,13 @@ def main(resolution_level: int = 1) -> None:
     if TESTING_MODE:
         manifest_name += "_test_workflow"
     build_and_save_dataframe_manifest_for_training(
-        train, val, resolution_level, dataset_config_list, output_savedir, manifest_name
+        train,
+        val,
+        resolution_level,
+        dataset_config_list,
+        output_savedir,
+        manifest_name,
+        "create_diffae_training_dataframe",
     )
 
 
