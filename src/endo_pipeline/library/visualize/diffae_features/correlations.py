@@ -1,8 +1,7 @@
 import logging
 import re
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -145,13 +144,35 @@ def _add_delta_ccf_integral_to_plot(
 
 
 def _fit_exp_decay_and_get_relaxation_timescale(
-    acf: np.ndarray, lags: np.ndarray, exp_decay_func: Callable = exponential_decay
+    acf: np.ndarray,
+    lags: np.ndarray,
+    exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> tuple[np.ndarray, float]:
+    """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
+    # check to make sure valid function is provided
+    if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
+        logger.error(
+            "Invalid exp_decay_func provided: [ %s ]. "
+            "Must be 'exponential_decay' or 'double_exponential_decay'.",
+            exp_decay_func,
+        )
+        raise ValueError(
+            "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
+        )
+
+    # fit only to positive ACF values to avoid errors
     acf_where_positive = acf > 0
     lags_pos = lags[acf_where_positive]
     acf_pos = acf[acf_where_positive]
-    exp_fit, _ = curve_fit(exp_decay_func, lags_pos, acf_pos)
+    if exp_decay_func == "exponential_decay":
+        p0 = [1.0, 0.01]  # initial guess for single exponential
+        exp_decay_callable = exponential_decay
+    elif exp_decay_func == "double_exponential_decay":
+        p0 = [0.5, 0.01, 0.5, 0.025]  # initial guess for double exponential
+        exp_decay_callable = double_exponential_decay
+    exp_fit, _ = curve_fit(exp_decay_callable, lags_pos, acf_pos, maxfev=10000, p0=p0)
 
+    # compute relaxation timescale from fit parameters
     if len(exp_fit) == 2:  # single exponential decay
         relaxation_time = 1 / exp_fit[1]
     elif len(exp_fit) == 4:  # double exponential decay
@@ -166,15 +187,31 @@ def _add_exp_fit_to_plot(
     acf: np.ndarray,
     lags: np.ndarray,
     ax: plt.Axes,
-    exp_decay_func: Callable = exponential_decay,
+    exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> plt.Axes:
+    """Fit exponential decay to ACF and add to existing plot."""
+    # check to make sure valid function is provided
+    if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
+        logger.error(
+            "Invalid exp_decay_func provided: [ %s ]. "
+            "Must be 'exponential_decay' or 'double_exponential_decay'.",
+            exp_decay_func,
+        )
+        raise ValueError("Invalid exp_decay_func provided to _add_exp_fit_to_plot.")
+
+    # fit exponential decay to each PC's ACF and plot on existing axes
     relaxation_timescales = []
     for i in range(3):
         exp_fit, relaxation_time = _fit_exp_decay_and_get_relaxation_timescale(
             acf[:, i], lags, exp_decay_func=exp_decay_func
         )
         relaxation_timescales.append(relaxation_time)
-        acf_fit = exp_decay_func(lags, *exp_fit)
+
+        # plot fit on top of ACF
+        exp_decay_callable = (
+            exponential_decay if exp_decay_func == "exponential_decay" else double_exponential_decay
+        )
+        acf_fit = exp_decay_callable(lags, *exp_fit)
         ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
         # if using double exponential decay, log exponent with larger weight
         # might update to be print on plot, TBD
@@ -188,8 +225,10 @@ def _add_exp_fit_to_plot(
             )
     ax.legend()
     ax.set_ylim(-0.25, 1.05)
+
     # add relaxation timescale to plot
     ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
+
     return ax
 
 
@@ -234,7 +273,7 @@ def _make_all_acf_plots(
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
-    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax)
+    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, exp_decay_func="exponential_decay")
     save_plot_to_path(
         fig,
         output_path,
@@ -242,20 +281,28 @@ def _make_all_acf_plots(
     )
 
     # fit double exponential decay to ACF
-    fig, ax = _plot_acf_curves_together(
-        lags_as_hours,
-        acf_,
-        component_labels=["PC1", "PC2", "PC3"],
-        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
-        xlabel="Lag (hours)",
-        linewidth=2.75,
-    )
-    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, exp_decay_func=double_exponential_decay)
-    save_plot_to_path(
-        fig,
-        output_path,
-        f"autocorrelation_double_exp_fit_{dataset_name}",
-    )
+    try:
+        fig, ax = _plot_acf_curves_together(
+            lags_as_hours,
+            acf_,
+            component_labels=["PC1", "PC2", "PC3"],
+            plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+            xlabel="Lag (hours)",
+            linewidth=2.75,
+        )
+        ax = _add_exp_fit_to_plot(
+            acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay"
+        )
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"autocorrelation_double_exp_fit_{dataset_name}",
+        )
+    except RuntimeError:
+        logger.warning(
+            "Double exponential fit failed for dataset [ %s ]. Skipping plot.",
+            dataset_name,
+        )
 
 
 def _make_all_ccf_plots(
@@ -390,7 +437,6 @@ def _plot_delta_ccf_integral_vs_shear_stress(
             color=list(TABLEAU_COLORS.keys())[i],
             s=100,
             edgecolor="k",
-            alpha=0.85,
             label="",
         )
     ax.legend()
