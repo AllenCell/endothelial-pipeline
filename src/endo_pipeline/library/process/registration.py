@@ -499,8 +499,8 @@ def align(
             moving_bf = image_moving.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
             moving_bf = resize_moving(moving_bf, (1, rescale_factor, rescale_factor))
 
-            base_moving_path = Path(moving_image_path).stem.replace(".ome", "")
-            base_fixed_path = Path(fixed_image_path).stem.replace(".ome", "")
+            base_moving_path = Path(moving_image_path).name.split(".")[0]
+            base_fixed_path = Path(fixed_image_path).name.split(".")[0]
 
             if align_fluo:
                 moving_fluo = warp(model, fixed_fluo, moving_fluo)
@@ -615,7 +615,7 @@ def align_all_positions(
 
 
 def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
-    base_image_path = Path(row.fixed).stem.replace(".ome", "")
+    base_image_path = Path(row.fixed).name.split(".")[0]
     return savedir / f"{base_image_path.replace('_fixed', '')}.ome.tiff"
 
 
