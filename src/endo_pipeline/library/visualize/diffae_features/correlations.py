@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,7 @@ from scipy.optimize import curve_fit
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
-from endo_pipeline.library.analyze.numerics import exponential_decay
+from endo_pipeline.library.analyze.numerics import double_exponential_decay, exponential_decay
 from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
 from endo_pipeline.library.visualize.viz_base import init_plot
 
@@ -143,6 +144,55 @@ def _add_delta_ccf_integral_to_plot(
     return ax
 
 
+def _fit_exp_decay_and_get_relaxation_timescale(
+    acf: np.ndarray, lags: np.ndarray, exp_decay_func: Callable = exponential_decay
+) -> tuple[np.ndarray, float]:
+    acf_where_positive = acf > 0
+    lags_pos = lags[acf_where_positive]
+    acf_pos = acf[acf_where_positive]
+    exp_fit, _ = curve_fit(exp_decay_func, lags_pos, acf_pos)
+
+    if len(exp_fit) == 2:  # single exponential decay
+        relaxation_time = 1 / exp_fit[1]
+    elif len(exp_fit) == 4:  # double exponential decay
+        # choose the relaxation time corresponding to the larger weight
+        which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
+        relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
+
+    return exp_fit, relaxation_time
+
+
+def _add_exp_fit_to_plot(
+    acf: np.ndarray,
+    lags: np.ndarray,
+    ax: plt.Axes,
+    exp_decay_func: Callable = exponential_decay,
+) -> plt.Axes:
+    relaxation_timescales = []
+    for i in range(3):
+        exp_fit, relaxation_time = _fit_exp_decay_and_get_relaxation_timescale(
+            acf[:, i], lags, exp_decay_func=exp_decay_func
+        )
+        relaxation_timescales.append(relaxation_time)
+        acf_fit = exp_decay_func(lags, *exp_fit)
+        ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
+        # if using double exponential decay, log exponent with larger weight
+        # might update to be print on plot, TBD
+        if len(exp_fit) == 4:
+            which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
+            logger.info(
+                "Dominant exponent in multi-exponential fit for PC%s: [ %s exp(-%s tau) ]",
+                i + 1,
+                exp_fit[[0, 2][which_weight_is_larger]],
+                exp_fit[[1, 3][which_weight_is_larger]],
+            )
+    ax.legend()
+    ax.set_ylim(-0.25, 1.05)
+    # add relaxation timescale to plot
+    ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
+    return ax
+
+
 def _make_all_acf_plots(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
@@ -175,7 +225,7 @@ def _make_all_acf_plots(
         f"autocorrelation_{dataset_name}",
     )
 
-    # fit exponential decay to ACF
+    # fit single exponential decay to ACF
     fig, ax = _plot_acf_curves_together(
         lags_as_hours,
         acf_,
@@ -184,24 +234,27 @@ def _make_all_acf_plots(
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
-    relaxation_timescales = []
-    for i in range(3):
-        acf_where_positive = acf_[:, i] > 0
-        lags_pos = lags_as_hours[acf_where_positive]
-        acf_pos = acf_[acf_where_positive, i]
-        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
-        relaxation_time = 1 / exp_fit[1]
-        relaxation_timescales.append(relaxation_time)
-        acf_fit = exponential_decay(lags_as_hours, *exp_fit)
-        ax.plot(lags_as_hours, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
-    ax.legend()
-    ax.set_ylim(-0.25, 1.05)
-    # add relaxation timescale to plot
-    ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
+    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax)
     save_plot_to_path(
         fig,
         output_path,
         f"autocorrelation_exp_fit_{dataset_name}",
+    )
+
+    # fit double exponential decay to ACF
+    fig, ax = _plot_acf_curves_together(
+        lags_as_hours,
+        acf_,
+        component_labels=["PC1", "PC2", "PC3"],
+        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+        xlabel="Lag (hours)",
+        linewidth=2.75,
+    )
+    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, exp_decay_func=double_exponential_decay)
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"autocorrelation_double_exp_fit_{dataset_name}",
     )
 
 

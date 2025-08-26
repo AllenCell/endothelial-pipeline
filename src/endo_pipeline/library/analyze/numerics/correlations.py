@@ -308,6 +308,8 @@ def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
     return a * np.exp(-b * x)
 
 
-def power_law_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
-    """Define power law decay function for curve fitting."""
-    return a * np.power(x, -b)
+def double_exponential_decay(
+    x: np.ndarray, a1: float, b1: float, a2: float, b2: float
+) -> np.ndarray:
+    """Define double exponential decay function for curve fitting."""
+    return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x)
