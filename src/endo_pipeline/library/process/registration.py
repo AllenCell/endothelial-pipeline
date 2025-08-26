@@ -381,7 +381,7 @@ def align(
     fixed_image_path: str | Path,
     resolution_level: int,
     savedir: Path,
-    alignment_method: str,
+    alignment_method: Literal["sift", "template"],
     align_fluo: bool = True,
     **alignment_kwargs: dict[str, Any],
 ) -> pd.DataFrame:
@@ -416,6 +416,13 @@ def align(
     :
         DataFrame containing the paths to the aligned images.
     """
+    if alignment_method not in ["sift", "template"]:
+        logger.error(
+            "Invalid alignment method: [ %s ]. Choose 'sift' or 'template'.", alignment_method
+        )
+        raise ValueError("Invalid alignment method. Choose 'sift' or 'template'.")
+
+    # load images
     image_fixed = BioImage(fixed_image_path)
     image_moving = BioImage(moving_image_path)
 
@@ -534,7 +541,7 @@ def align_all_positions(
     moving_dataset_name: str,
     resolution_level: int,
     savedir: Path,
-    alignment_method: str,
+    alignment_method: Literal["sift", "template"],
     align_fluo: bool = True,
     num_positions_to_align: int | None = None,
     **alignment_kwargs: dict[str, Any],
@@ -572,6 +579,13 @@ def align_all_positions(
     data
         DataFrame containing the paths to the aligned images.
     """
+    if alignment_method not in ["sift", "template"]:
+        logger.error(
+            "Invalid alignment method: [ %s ]. Choose 'sift' or 'template'.", alignment_method
+        )
+        raise ValueError("Invalid alignment method. Choose 'sift' or 'template'.")
+
+    # get list of zarr files in each dataset
     moving_zarr_files = sorted(get_available_zarr_files(load_dataset_config(moving_dataset_name)))
     fixed_zarr_files = sorted(get_available_zarr_files(load_dataset_config(fixed_dataset_name)))
     data_list = []
