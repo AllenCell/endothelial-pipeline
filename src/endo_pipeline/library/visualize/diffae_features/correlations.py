@@ -240,7 +240,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag (hours)")
     ax.set_ylabel("CCF")
     ax.legend()
-    ax.set_ylim(-0.25, 0.75)
+    ax.set_ylim(-1, 1)
     save_plot_to_path(
         fig,
         output_path,
@@ -258,7 +258,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$|\Delta C_{ij}(\\tau)|$")
     # ax.legend()
-    ax.set_ylim(0, 0.5)
+    ax.set_ylim(0, 1)
     # print integral of delta ccf near zero on plot
     ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ax)
     save_plot_to_path(
