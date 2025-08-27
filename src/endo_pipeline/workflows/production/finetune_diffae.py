@@ -44,7 +44,7 @@ def main(
         get_valid_dataframe_path_for_training,
         initialize_diffae_model_for_finetuning,
     )
-    from src.endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
 

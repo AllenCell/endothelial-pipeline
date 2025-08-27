@@ -285,6 +285,7 @@ def _make_all_acf_plots(
             plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
             xlabel="Lag (hours)",
             linewidth=2.75,
+            linestyle="-",
         )
         ax = _add_exp_fit_to_plot(
             acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay"
@@ -299,6 +300,15 @@ def _make_all_acf_plots(
             "Double exponential fit failed for dataset [ %s ]. Skipping plot.",
             dataset_name,
         )
+    ax.legend()
+    ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
+    ax.set_ylim((-0.05, 1.65))
+    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    save_plot_to_path(
+        fig,
+        output_path,
+        "delta_ccf_integral_vs_shear_stress",
+    )
 
 
 def _make_all_ccf_plots(
@@ -354,7 +364,7 @@ def _make_all_ccf_plots(
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$|\Delta C_{ij}(\\tau)|$")
     # ax.legend()
-    ax.set_ylim(0, 0.5)
+    ax.set_ylim(-0.05, 0.6)
     # print integral of delta ccf near zero on plot
     ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ax)
     save_plot_to_path(
