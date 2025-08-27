@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks
 
-from src.endo_pipeline.configs import DatasetConfig, get_available_zarr_files
-from src.endo_pipeline.io.input import load_zarr_as_dask_array
-from src.endo_pipeline.io.output import get_output_path, save_plot_to_path
+from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
+from endo_pipeline.io.input import load_zarr_as_dask_array
+from endo_pipeline.io.output import get_output_path, save_plot_to_path
 
 THRESHOLD1 = 0.004  # Percentage to use for thresholding
 THRESHOLD2 = 0.01  # Percentage to use for thresholding
@@ -145,7 +145,4 @@ def detect_outliers(dataset_config: DatasetConfig, position: int, visualize: boo
             position,
         )
 
-    return {
-        "bf_scope_error": bf_scope_error,
-        "bf_temp_artifact": bf_temp_artifact,
-    }
+    return bf_scope_error, bf_temp_artifact
