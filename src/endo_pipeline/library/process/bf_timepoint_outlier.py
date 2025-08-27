@@ -94,11 +94,25 @@ def plot_outliers(
 
     mean_for_lim = np.mean(data_np)
 
-    ax.set_xlabel("Flattened Index")
+    ax.set_xlabel("Flattened Index (T, Z-slices)")
     ax.set_ylabel("Intensity")
-    ax.set_title(f"{dataset_name} - Position {position}")
-    ax.set_ylim(mean_for_lim - mean_for_lim * 0.1, mean_for_lim + mean_for_lim * 0.1)
-    ax.legend()
+
+    # Add secondary x-axis for timepoints (every 25 tps)
+    def index_to_tp(x):
+        return x // num_zslices
+
+    def tp_to_index(t):
+        return t * num_zslices
+
+    secax = ax.secondary_xaxis("top", functions=(index_to_tp, tp_to_index))
+    secax.set_xlabel("Timepoint (every 25 Z-slices)")
+    # Tick locator every 25 tps
+    max_tp = data_np.shape[0] // num_zslices
+    secax.set_xticks(np.arange(0, max_tp + 1, 25))
+
+    ax.set_title(f"{dataset_name} - Position {position}\n")
+    ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.05)
+    ax.legend(loc="lower left")
     fig.tight_layout(rect=[0, 0, 0.8, 1])  # leave space on right
     plt.show()
 
