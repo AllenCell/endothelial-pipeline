@@ -203,22 +203,33 @@ def _add_exp_fit_to_plot(
         )
         relaxation_timescales.append(relaxation_time)
 
-        # plot fit on top of ACF
+        # get curve of fit exponential decay
         if exp_decay_func == "exponential_decay":
             acf_fit = exponential_decay(lags, *exp_fit)
+            logger.info(
+                "Exponential fit for PC%s: [ %.2f exp(-%.2f tau) ]", i + 1, exp_fit[0], exp_fit[1]
+            )
         else:
             acf_fit = double_exponential_decay(lags, *exp_fit)
-        ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
-        # if using double exponential decay, log exponent with larger weight
-        # might update to be print on plot, TBD
-        if len(exp_fit) == 4:
             which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
+            # if using double exponential decay, log info about fit
+            logger.debug(
+                "Full double exponential fit for PC%s: [ %.2f exp(-%.2f tau) + %.2f exp(-%.2f tau) ]",
+                i + 1,
+                exp_fit[0],
+                exp_fit[1],
+                exp_fit[2],
+                exp_fit[3],
+            )
             logger.info(
-                "Dominant exponent in multi-exponential fit for PC%s: [ %s exp(-%s tau) ]",
+                "Dominant exponent in multi-exponential fit for PC%s: [ %.2f exp(-%.2f tau) ]",
                 i + 1,
                 exp_fit[[0, 2][which_weight_is_larger]],
                 exp_fit[[1, 3][which_weight_is_larger]],
             )
+        # plot fit curve on existing axes
+        ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
+
     ax.legend()
     ax.set_ylim(-0.25, 1.05)
 
@@ -489,6 +500,7 @@ def plot_correlation_workflow_outputs(
 
     # plot full correlation curves for each dataset
     for dataset_name in list_of_datasets:
+        logger.info("Plotting correlation curves for dataset [ %s ]", dataset_name)
         _plot_full_correlation_curves(
             dataset_name,
             correlation_dict,

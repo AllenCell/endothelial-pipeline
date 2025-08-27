@@ -296,7 +296,6 @@ def compute_correlation_dict(
     }
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
-        logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
         correlation_dict = _compute_correlations_for_one_dataset(
             dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
         )
