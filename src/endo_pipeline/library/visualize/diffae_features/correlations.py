@@ -483,7 +483,7 @@ def plot_correlation_workflow_outputs(
     """
     list_of_datasets = list(correlation_dict["lags"].keys())
     dataset_descriptions = get_dataset_descriptions(
-        list_of_datasets, simple=True, include_duration=False, include_shear_rate=True
+        list_of_datasets, simple=True, include_duration=False, include_shear_stress=True
     )
     output_path = get_output_path("correlations")
 
