@@ -198,10 +198,17 @@ def _add_exp_fit_to_plot(
     # fit exponential decay to each PC's ACF and plot on existing axes
     relaxation_timescales = []
     for i in range(3):
-        exp_fit, relaxation_time = _fit_exp_decay_and_get_relaxation_timescale(
-            acf[:, i], lags, exp_decay_func=exp_decay_func
-        )
-        relaxation_timescales.append(relaxation_time)
+        try:
+            exp_fit, relaxation_time = _fit_exp_decay_and_get_relaxation_timescale(
+                acf[:, i], lags, exp_decay_func=exp_decay_func
+            )
+            relaxation_timescales.append(relaxation_time)
+        except RuntimeError:
+            logger.warning(
+                "Could not fit [ %s ] to ACF of PC%s, skipping plot step", exp_decay_func, i + 1
+            )
+            relaxation_timescales.append(np.nan)
+            continue
 
         # get curve of fit exponential decay
         if exp_decay_func == "exponential_decay":
@@ -226,7 +233,7 @@ def _add_exp_fit_to_plot(
                 exp_fit[4],
             )
             logger.info(
-                "Dominant exponent in multi-exponential fit for PC%s: [ %.2f exp(-%.2f tau) ]",
+                "Dominant exponent in multi-exponential fit for PC%s: [ %.3f exp(-%.3f tau) ]",
                 i + 1,
                 exp_fit[[0, 2][which_weight_is_larger]],
                 exp_fit[[1, 3][which_weight_is_larger]],
@@ -292,29 +299,21 @@ def _make_all_acf_plots(
     )
 
     # fit double exponential decay to ACF
-    try:
-        fig, ax = _plot_acf_curves_together(
-            lags_as_hours,
-            acf_,
-            component_labels=["PC1", "PC2", "PC3"],
-            plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
-            xlabel="Lag (hours)",
-            linewidth=2.75,
-            linestyle="-",
-        )
-        ax = _add_exp_fit_to_plot(
-            acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay"
-        )
-        save_plot_to_path(
-            fig,
-            output_path,
-            f"autocorrelation_double_exp_fit_{dataset_name}",
-        )
-    except RuntimeError:
-        logger.warning(
-            "Double exponential fit failed for dataset [ %s ]. Skipping plot.",
-            dataset_name,
-        )
+    fig, ax = _plot_acf_curves_together(
+        lags_as_hours,
+        acf_,
+        component_labels=["PC1", "PC2", "PC3"],
+        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+        xlabel="Lag (hours)",
+        linewidth=2.75,
+        linestyle="-",
+    )
+    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay")
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"autocorrelation_double_exp_fit_{dataset_name}",
+    )
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
     ax.set_ylim((-0.05, 1.65))
