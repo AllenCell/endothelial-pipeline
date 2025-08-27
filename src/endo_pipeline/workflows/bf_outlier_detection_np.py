@@ -1,40 +1,24 @@
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from scipy.signal import find_peaks
 
 from endo_pipeline.configs import (
     DatasetConfig,
     TimepointAnnotation,
-    get_available_zarr_files,
     get_datasets_in_collection,
     load_dataset_config,
     save_dataset_config,
 )
-from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.library.process.bf_timepoint_outlier import detect_outliers
 
 # %% LOAD DATA
-# datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
-datasets = [
-    "20250402_20X",
-    "20250409_20X",
-    "20250428_20X",
-    "20250604_20X",
-    "20250611_20X",
-    "20250618_20X",
-    "20250714_20X",
-    "20250716_20X",
-    "20250728_20X",
-    "20250806_20X",
-]
+datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
 for dataset_name in datasets:
-
     dataset_config = load_dataset_config(dataset_name)
+    tp_annotations = dataset_config.timepoint_annotations
 
-    if manual_tp_annotations is None:
+    if tp_annotations is None:
         print("No manual annotations found.")
         continue
 
@@ -55,9 +39,6 @@ for dataset_name in datasets:
         auto_tp_annotations[TimepointAnnotation.BF_SCOPE_ERROR][position].extend(bf_scope_error)
         auto_tp_annotations[TimepointAnnotation.BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
 
-    # Iterate over positions in manual_tp_annotations
-    print(dataset_name)
-    manual_tp_annotations = dataset_config.timepoint_annotations
     # Initialize overall statistics
     overall_detected = 0
     overall_manual = 0
@@ -66,10 +47,10 @@ for dataset_name in datasets:
     for position in dataset_config.zarr_positions:
         # Combine manual_tp_annotations for the current position
         manual_scope_error = set(
-            manual_tp_annotations.get(TimepointAnnotation.BF_SCOPE_ERROR, {}).get(position, [])
+            tp_annotations.get(TimepointAnnotation.BF_SCOPE_ERROR, {}).get(position, [])
         )
         manual_temp_artifact = set(
-            manual_tp_annotations.get(TimepointAnnotation.BF_TEMP_ARTIFACT, {}).get(position, [])
+            tp_annotations.get(TimepointAnnotation.BF_TEMP_ARTIFACT, {}).get(position, [])
         )
         manual_tps = manual_scope_error | manual_temp_artifact
 
@@ -98,4 +79,16 @@ for dataset_name in datasets:
     print(f"Total Detected: {overall_detected}")
     print(f"Total Manual: {overall_manual}")
     print(f"Total Missed: {overall_missed}")
-    # %%
+
+# %% 0.004 Stats
+import numpy as np
+
+total_detected = np.sum([70, 70, 13, 15, 140, 57, 94, 41, 78, 94, 70, 41, 84])
+total_manual = np.sum([19, 43, 6, 6, 10, 6, 66, 0, 37, 35, 1, 22, 28])
+total_missed = np.sum([1, 5, 0, 3, 1, 2, 4, 0, 0, 0, 0, 0, 0])
+
+percent_missed = (total_missed / total_manual) * 100
+print(f"Overall: Detected {total_detected}, Manual {total_manual - 1}, Missed {total_missed}")
+print(f"Percent Missed: {percent_missed:.2f}%")
+
+# %%
