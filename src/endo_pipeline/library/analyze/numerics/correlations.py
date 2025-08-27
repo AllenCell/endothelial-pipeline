@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -17,8 +18,10 @@ CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, lag: int) -> float:
     """
-    Get the normalized cross-correlation function (CCF) between vector components of an ensemble of
-    stationary, vector-valued time series data.
+    Get the normalized cross-correlation function (CCF) between vector components.
+
+    The CCF is estimated from finite samples of an ensemble of stationary, vector-valued
+    time series data.
 
     The input data array is expected to be of shape (num_samples, num_timepoints, num_dim).
     That is, the data are assumed to be {num_samples} iid samples of a num_dim-dimensional
@@ -31,7 +34,7 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, l
 
     Parameters
     ----------
-     data_feat1
+    data_feat1
         Array of shape (num_samples, num_timepoints) containing time series data for the
         first vector component for the CCF.
     data_feat2
@@ -98,8 +101,10 @@ def bootstrap_cross_correlation_confidence_interval(
     confidence_level: float = 0.95,
 ) -> tuple[float, float]:
     """
-    Bootstrap the normalized cross-correlation function (CCF) between vector components
-    of an ensemble ofstationary, vector-valued time series data.
+    Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
+
+    The CCF is computed between between vector components of an ensemble of stationary,
+    vector-valued time series data.
 
     The input two input data arrays are each expected to be of shape (num_samples, num_timepoints).
     That is, the data are assumed to be {num_samples} iid samples, each sampled at
@@ -121,14 +126,14 @@ def bootstrap_cross_correlation_confidence_interval(
         Time lag (by index) at which to compute the CCF.
     n_bootstraps
         Number of bootstrap samples to generate for the CCF.
-    confidence_interbal
-        Confidence interval to report from the CCF.
+    confidence_level
+        Confidence interval level (e.g., 95%) to report for the CCF.
 
     Returns
     -------
-    lower_bound
+    :
         Lower bound of the confidence interval for the CCF.
-    upper_bound
+    :
         Upper bound of the confidence interval for the CCF.
     """
 
@@ -155,8 +160,10 @@ def bootstrap_cross_correlation_confidence_interval(
 
 def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -> float:
     """
-    Get the normalized autocorrelation function (ACF) for a specific component of an ensemble of
-    stationary, vector-valued time series data.
+    Get the normalized autocorrelation function (ACF) for a specific component.
+
+    The ACF is estimated from finite samples of an ensemble of stationary, vector-valued
+    time series data.
 
     The input data array is expected to be of shape (num_samples, num_timepoints, num_dim).
     That is, the data are assumed to be {num_samples} iid samples of a num_dim-dimensional
@@ -185,7 +192,8 @@ def _compute_correlations_for_one_dataset(
     pca: PCA,
     correlation_dict: dict,
     bootstrap_samples: int = 0,
-) -> dict[str, dict]:
+    num_lags_integrate: int = 5,
+) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset."""
 
     # try to get dataframe for the given dataset
@@ -246,7 +254,16 @@ def _compute_correlations_for_one_dataset(
     # leave out zero
     delta_ccf = np.zeros((num_lags // 2, 3))
     for i, _ in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
+        delta_ccf[:, i] = abs(ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i])
+
+    # integrate delta_ccf over first five lags
+    if num_lags_integrate > delta_ccf.shape[0]:
+        num_lags_integrate = delta_ccf.shape[0]
+        logger.warning(
+            "num_lags_integrate is larger than available lags, setting to [ %s ]",
+            num_lags_integrate,
+        )
+    delta_ccf_integral = np.trapz(delta_ccf[:num_lags_integrate, :], axis=0)
 
     # store results in dict of dicts and return updated dict
     correlation_dict["lags"][dataset_name] = lags
@@ -255,6 +272,8 @@ def _compute_correlations_for_one_dataset(
     correlation_dict["ccf_ci_lower"][dataset_name] = ccf_lb
     correlation_dict["ccf_ci_upper"][dataset_name] = ccf_ub
     correlation_dict["delta_ccf"][dataset_name] = delta_ccf
+    correlation_dict["delta_ccf_integral"][dataset_name] = delta_ccf_integral
+    correlation_dict["num_lags_integrate"][dataset_name] = num_lags_integrate
     return correlation_dict
 
 
@@ -272,6 +291,8 @@ def compute_correlation_dict(
         "ccf_ci_lower": {},
         "ccf_ci_upper": {},
         "delta_ccf": {},
+        "delta_ccf_integral": {},
+        "num_lags_integrate": {},
     }
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
