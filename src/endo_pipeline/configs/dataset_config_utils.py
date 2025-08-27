@@ -204,7 +204,7 @@ def get_annotated_timepoints_for_position(
                 else:
                     annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
 
-    return sorted(annotated_timepoints)
+    return sorted(set(annotated_timepoints))
 
 
 def get_filtered_dataset_collection_name(

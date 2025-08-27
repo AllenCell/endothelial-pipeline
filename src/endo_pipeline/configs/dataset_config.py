@@ -21,29 +21,35 @@ class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
     BF_SCOPE_ERROR = "bf_scope_error"
-    """Error with brightfield scope."""
-
-    GFP_SCOPE_ERROR = "gfp_scope_error"
-    """Error with GFP scope."""
+    """Manually annotated error with brightfield scope."""
 
     BF_TEMP_ARTIFACT = "bf_temp_artifact"
-    """Temporary brightfield artifact."""
+    """Manually Temporary brightfield artifact."""
+
+    GFP_SCOPE_ERROR = "gfp_scope_error"
+    """Manually annotated error with GFP scope."""
+
+    AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
+    """Auto detected error with brightfield scope."""
+
+    AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
+    """Auto detected Temporary brightfield artifact."""
 
     XY_SHIFT = "xy_shift"
-    """Shift in the XY position."""
+    """Manually annotated shift in the XY position."""
 
     Z_SHIFT = "z_shift"
-    """Shift in the Z focus."""
+    """Manually annotated shift in the Z focus."""
 
     UNFED = "unfed"
-    """Timepoint where cells are more than 3hrs since last feeding."""
+    """Manually annotated timepoint where cells are more than 3hrs since last feeding."""
 
 
 class PositionAnnotation(StrEnum):
     """Annotations for positions that should be excluded from model training and/or analysis."""
 
     DUST_ARTIFACT = "dust_artifact"
-    """Position includes a dust artifact."""
+    """Manually annotated position includes a dust artifact."""
 
 
 @dataclass
