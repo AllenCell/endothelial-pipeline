@@ -77,6 +77,13 @@ def get_output_path(workflow_name: str, *subdirs: str, include_timestamp: bool =
     return output_path
 
 
+def make_path_unique(path: Path) -> Path:
+    """Append timestamp as YYYYMMDD_HHmmss to end of given file path."""
+
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("_%Y%m%d_%H%M%S")
+    return path.with_name(f"{path.stem}{timestamp}{path.suffix}")
+
+
 def build_fms_annotations(
     dataset: DatasetConfig | list[DatasetConfig],
     include_timestamp: bool = True,
