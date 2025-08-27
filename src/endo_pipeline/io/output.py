@@ -208,10 +208,23 @@ def upload_file_to_fms(
         logger.error("File [ %s ] could not be found", file_path)
         raise FileNotFoundError(f"No such file '{file_path}'")
 
-    from endo_pipeline.io.fms import FMS
+    from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
-    logger.debug("Starting upload of [ %s ] to FMS", file_path)
-    fms_file = FMS.upload_file(str(file_path), file_type, annotations, should_be_in_local=True)
+    # FMS does not allow the same file name to be uploaded multiple times. If
+    # a file of the same name is found, we instead append a timestamp to the
+    # current file upload to create a unique name.
+    logger.debug("Checking if [ %s ] already exists in FMS", file_path)
+    record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
+    file_name = make_path_unique(file_path).name if record else file_path.name
+
+    logger.debug("Starting upload of [ %s ] to FMS as [ %s ]", file_path, file_name)
+    fms_file = FMS.upload_file(
+        file_reference=file_path,
+        file_type=file_type,
+        annotations=annotations,
+        file_name=file_name,
+        should_be_in_local=True,
+    )
     logger.debug("Finished upload of [ %s ] to FMS with file id [ %s ]", file_path, fms_file.id)
 
     return fms_file.id
