@@ -166,11 +166,11 @@ def _fit_exp_decay_and_get_relaxation_timescale(
     lags_pos = lags[acf_where_positive]
     acf_pos = acf[acf_where_positive]
     if exp_decay_func == "exponential_decay":
-        p0 = [1.0, 0.01]
+        p0 = [1.0, 0.5, 0.0]  # initial guess for a, b, c
         exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         relaxation_time = 1 / exp_fit[1]
     else:
-        p0 = [0.5, 0.01, 0.5, 0.025]
+        p0 = [0.5, 0.01, 0.5, 0.5, 0.0]  # initial guess for a1, b1, a2, b2, c
         exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
@@ -206,20 +206,24 @@ def _add_exp_fit_to_plot(
         # get curve of fit exponential decay
         if exp_decay_func == "exponential_decay":
             acf_fit = exponential_decay(lags, *exp_fit)
-            logger.info(
-                "Exponential fit for PC%s: [ %.2f exp(-%.2f tau) ]", i + 1, exp_fit[0], exp_fit[1]
+            logger.debug(
+                "Exponential fit for PC%s: [ %.3f exp(%.3f tau) + %.3f ]",
+                i + 1,
+                exp_fit[0],
+                -exp_fit[1],
+                exp_fit[2],
             )
         else:
             acf_fit = double_exponential_decay(lags, *exp_fit)
             which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
-            # if using double exponential decay, log info about fit
             logger.debug(
-                "Full double exponential fit for PC%s: [ %.2f exp(-%.2f tau) + %.2f exp(-%.2f tau) ]",
+                "Full double exponential fit for PC%s: [ %.3f exp(%.3f tau) + %.3f exp(%.3f tau) + %.3f ]",
                 i + 1,
                 exp_fit[0],
-                exp_fit[1],
+                -exp_fit[1],
                 exp_fit[2],
-                exp_fit[3],
+                -exp_fit[3],
+                exp_fit[4],
             )
             logger.info(
                 "Dominant exponent in multi-exponential fit for PC%s: [ %.2f exp(-%.2f tau) ]",

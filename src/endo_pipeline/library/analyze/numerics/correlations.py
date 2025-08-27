@@ -45,7 +45,6 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, l
     """
     # get number of trajectories
     num_traj = data_feat1.shape[0]
-    logger.debug("Processing [ %s ] trajectories.", num_traj)
 
     # check if lag is longer than the time series:
     num_timepoints = data_feat1.shape[1]
@@ -302,13 +301,13 @@ def compute_correlation_dict(
     return correlation_dict
 
 
-def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
+def exponential_decay(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
     """Define exponential decay function for curve fitting."""
-    return a * np.exp(-b * x)
+    return a * np.exp(-b * x) + c
 
 
 def double_exponential_decay(
-    x: np.ndarray, a1: float, b1: float, a2: float, b2: float
+    x: np.ndarray, a1: float, b1: float, a2: float, b2: float, c: float
 ) -> np.ndarray:
     """Define double exponential decay function for curve fitting."""
-    return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x)
+    return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x) + c
