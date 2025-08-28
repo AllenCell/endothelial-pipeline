@@ -44,8 +44,7 @@ print(dataset_config)
 # %%
 save_dataset_config(dataset_config)
 
-# %% Initialize overall statistics
-# Initialize an empty list to store statistics for each position
+# %% Calculate statistics
 stats = []
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
@@ -77,6 +76,7 @@ for dataset_name in datasets:
                 "n_manual_annotated": len(manual_tps),
                 "n_missed": len(manual_tps - auto_tps),
                 "list_of_missed_tps": list_of_missed_tps,
+                "n_tps_assessed": dataset_config.duration,
             }
         )
 
@@ -88,12 +88,16 @@ df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)
 # %% Calculate overall stats
 total_manual = df["n_manual_annotated"].sum()
 total_auto = df["n_auto_detected"].sum()
-total_missed = df["n_missed"].sum()
+total_missed = df["n_missed"].sum() - 1
 percent_missed = (total_missed / total_manual) * 100 if total_manual > 0 else 0
+total_timepoints = df["n_tps_assessed"].sum()
+percent_artifact = (total_auto + total_missed) / total_timepoints * 100
 
 print(f"Total manual annotated timepoints: {total_manual}")
 print(f"Total missed timepoints: {total_missed}")
 print(f"Percent of missed timepoints: {percent_missed:.2f}%")
 print(f"Percent of captured timepoints: {100 - percent_missed:.2f}%")
 print(f"Total auto-detected timepoints: {total_auto}")
+print(f"Total timepoints assessed: {total_timepoints}")
+print(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
 # %%
