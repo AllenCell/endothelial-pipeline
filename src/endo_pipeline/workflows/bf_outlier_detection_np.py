@@ -12,7 +12,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.bf_timepoint_outlier import detect_outliers
 
-# %% LOAD DATA
+# %% UPDATE ANNOTATIONS IN DATASET CONFIGS
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
@@ -37,7 +37,7 @@ for dataset_name in datasets:
 
     save_dataset_config(dataset_config)
 
-# %% Calculate statistics
+# %% CALCULATE STATISTICS
 stats = []
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
@@ -77,7 +77,7 @@ df = pd.DataFrame(stats)
 save_dir = get_output_path("brightfield_outlier_detection")
 df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)
 
-# %% Calculate overall stats
+# Calculate overall stats
 total_manual = df["n_manual_annotated"].sum()
 total_auto = df["n_auto_detected"].sum()
 total_missed = df["n_missed"].sum() - 1
