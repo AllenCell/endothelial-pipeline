@@ -90,7 +90,7 @@ def pipeline_entrypoint(
     config: Annotated[Path, Parameter(alias="-c")] = Path("config.yaml"),
     run_with_gpu: Annotated[bool, Parameter(alias="-g", group=OPTIONS)] = False,
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
-    testing_mode: Annotated[bool, Parameter(alias="-x", group=OPTIONS)] = False,
+    demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
 ) -> None:
     """
@@ -114,14 +114,14 @@ def pipeline_entrypoint(
         Run workflow with GPU settings.
     show_external_logs
         Show logging outputs from external libraries.
-    testing_mode
-        Run workflows in testing mode.
+    demo_mode
+        Run workflows in demo mode.
     use_staging
         Use staging environments.
     """
 
     apply_entrypoint_settings(
-        verbose, debug, run_with_gpu, show_external_logs, testing_mode, use_staging
+        verbose, debug, run_with_gpu, show_external_logs, demo_mode, use_staging
     )
 
     if config.read_text() != "":
@@ -147,7 +147,7 @@ def workflow_entrypoint(
     debug: Annotated[bool, Parameter(alias="-vv", group=LOGGING)] = False,
     run_with_gpu: Annotated[bool, Parameter(alias="-g", group=OPTIONS)] = False,
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False,
-    testing_mode: Annotated[bool, Parameter(alias="-x", group=OPTIONS)] = False,
+    demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False,
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False,
 ) -> None:
     """
@@ -163,14 +163,14 @@ def workflow_entrypoint(
         Run workflow with GPU settings.
     show_external_logs
         Show logging outputs from external libraries.
-    testing_mode
-        Run workflows in testing mode.
+    demo_mode
+        Run workflows in demo mode.
     use_staging
         Use staging environments.
     """
 
     apply_entrypoint_settings(
-        verbose, debug, run_with_gpu, show_external_logs, testing_mode, use_staging
+        verbose, debug, run_with_gpu, show_external_logs, demo_mode, use_staging
     )
 
     workflow_app(tokens)
@@ -181,7 +181,7 @@ def apply_entrypoint_settings(
     debug: bool = False,
     run_with_gpu: bool = False,
     show_external_logs: bool = False,
-    testing_mode: bool = False,
+    demo_mode: bool = False,
     use_staging: bool = False,
 ):
     """
@@ -197,8 +197,8 @@ def apply_entrypoint_settings(
         Run workflow with GPU settings.
     show_external_logs
         Show logging outputs from external libraries.
-    testing_mode
-        Run workflows in testing mode.
+    demo_mode
+        Run workflows in demo mode.
     use_staging
         Use staging environments.
     """
@@ -216,11 +216,11 @@ def apply_entrypoint_settings(
     if not show_external_logs:
         silence_external_loggers(EXTERNAL_LOGGERS)
 
-    if testing_mode:
+    if demo_mode:
         import endo_pipeline
 
         logger.info("Running workflows in testing mode")
-        endo_pipeline.TESTING_MODE = True
+        endo_pipeline.DEMO_MODE = True
 
     if use_staging:
         import endo_pipeline
