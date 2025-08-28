@@ -44,7 +44,6 @@ print(dataset_config)
 # %%
 save_dataset_config(dataset_config)
 
-
 # %% Initialize overall statistics
 # Initialize an empty list to store statistics for each position
 stats = []
@@ -68,8 +67,8 @@ for dataset_name in datasets:
             auto_tp_annotations.get(TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT, {}).get(position, [])
         )
         auto_tps = auto_scope_error | auto_temp_artifact
+        list_of_missed_tps = list(manual_tps - auto_tps) if manual_tps - auto_tps else np.NaN
 
-        # Calculate statistics
         stats.append(
             {
                 "dataset_name": dataset_name,
@@ -77,12 +76,24 @@ for dataset_name in datasets:
                 "n_auto_detected": len(auto_tps),
                 "n_manual_annotated": len(manual_tps),
                 "n_missed": len(manual_tps - auto_tps),
-                "list_of_missed_tps": list(manual_tps - auto_tps),
+                "list_of_missed_tps": list_of_missed_tps,
             }
         )
 
-# Create a DataFrame from the statistics
+# Save statistics to a DataFrame
 df = pd.DataFrame(stats)
 save_dir = get_output_path("brightfield_outlier_detection")
 df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)
+
+# %% Calculate overall stats
+total_manual = df["n_manual_annotated"].sum()
+total_auto = df["n_auto_detected"].sum()
+total_missed = df["n_missed"].sum()
+percent_missed = (total_missed / total_manual) * 100 if total_manual > 0 else 0
+
+print(f"Total manual annotated timepoints: {total_manual}")
+print(f"Total missed timepoints: {total_missed}")
+print(f"Percent of missed timepoints: {percent_missed:.2f}%")
+print(f"Percent of captured timepoints: {100 - percent_missed:.2f}%")
+print(f"Total auto-detected timepoints: {total_auto}")
 # %%
