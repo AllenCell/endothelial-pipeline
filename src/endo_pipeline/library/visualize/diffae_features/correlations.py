@@ -162,15 +162,19 @@ def _fit_exp_decay_and_get_relaxation_timescale(
         )
 
     # fit only to positive ACF values to avoid errors
-    acf_where_positive = acf > 0
-    lags_pos = lags[acf_where_positive]
-    acf_pos = acf[acf_where_positive]
+    if any(acf < 0):
+        acf_where_positive = acf > 0
+        lags_pos = lags[acf_where_positive]
+        acf_pos = acf[acf_where_positive]
+    else:
+        lags_pos = lags
+        acf_pos = acf
     if exp_decay_func == "exponential_decay":
-        p0 = [1.0, 0.5, 0.0]  # initial guess for a, b, c
+        p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, c
         exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         relaxation_time = 1 / exp_fit[1]
     else:
-        p0 = [0.5, 0.01, 0.5, 0.5, 0.0]  # initial guess for a1, b1, a2, b2, c
+        p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, c
         exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
@@ -214,29 +218,29 @@ def _add_exp_fit_to_plot(
         if exp_decay_func == "exponential_decay":
             acf_fit = exponential_decay(lags, *exp_fit)
             logger.debug(
-                "Exponential fit for PC%s: [ %.3f exp(%.3f tau) + %.3f ]",
+                "Exponential fit for PC%s: [ %.3f + %.3f exp(%.3f tau)]",
                 i + 1,
-                exp_fit[0],
-                -exp_fit[1],
                 exp_fit[2],
+                exp_fit[0],
+                -exp_fit[-1],
             )
         else:
             acf_fit = double_exponential_decay(lags, *exp_fit)
             which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
             logger.debug(
-                "Full double exponential fit for PC%s: [ %.3f exp(%.3f tau) + %.3f exp(%.3f tau) + %.3f ]",
+                "Full double exponential fit for PC%s: [ %.3f + %.3f exp(%.3f tau) + %.3f exp(%.3f tau) ]",
                 i + 1,
+                exp_fit[4],
                 exp_fit[0],
                 -exp_fit[1],
                 exp_fit[2],
                 -exp_fit[3],
-                exp_fit[4],
             )
-            logger.info(
-                "Dominant exponent in multi-exponential fit for PC%s: [ %.3f exp(-%.3f tau) ]",
+            logger.debug(
+                "Dominant exponent in multi-exponential fit for PC%s: [ %.3f exp(%.3f tau) ]",
                 i + 1,
                 exp_fit[[0, 2][which_weight_is_larger]],
-                exp_fit[[1, 3][which_weight_is_larger]],
+                -exp_fit[[1, 3][which_weight_is_larger]],
             )
         # plot fit curve on existing axes
         ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
@@ -255,6 +259,7 @@ def _make_all_acf_plots(
     correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
     output_path: Path,
+    fit_double_exp: bool = True,
 ) -> None:
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
@@ -262,10 +267,10 @@ def _make_all_acf_plots(
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
-    index_positive = lags > 0
-    lags_ = lags[index_positive]
+    index_pos = lags > 0
+    lags_ = lags[index_pos]
     lags_as_hours = 5 * lags_ / 60  # convert from frames (5 minutes) to hours
-    acf_ = acf[index_positive]
+    acf_ = acf[index_pos]
     fig, ax = _plot_acf_curves_together(
         lags_as_hours,
         acf_,
@@ -298,31 +303,25 @@ def _make_all_acf_plots(
         f"autocorrelation_exp_fit_{dataset_name}",
     )
 
-    # fit double exponential decay to ACF
-    fig, ax = _plot_acf_curves_together(
-        lags_as_hours,
-        acf_,
-        component_labels=["PC1", "PC2", "PC3"],
-        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
-        xlabel="Lag (hours)",
-        linewidth=2.75,
-        linestyle="-",
-    )
-    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay")
-    save_plot_to_path(
-        fig,
-        output_path,
-        f"autocorrelation_double_exp_fit_{dataset_name}",
-    )
-    ax.legend()
-    ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
-    ax.set_ylim((-0.05, 1.65))
-    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
-    save_plot_to_path(
-        fig,
-        output_path,
-        "delta_ccf_integral_vs_shear_stress",
-    )
+    if fit_double_exp:
+        # fit double exponential decay to ACF
+        fig, ax = _plot_acf_curves_together(
+            lags_as_hours,
+            acf_,
+            component_labels=["PC1", "PC2", "PC3"],
+            plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+            xlabel="Lag (hours)",
+            linewidth=2.75,
+            linestyle="-",
+        )
+        ax = _add_exp_fit_to_plot(
+            acf_, lags_as_hours, ax, exp_decay_func="double_exponential_decay"
+        )
+        save_plot_to_path(
+            fig,
+            output_path,
+            f"autocorrelation_double_exp_fit_{dataset_name}",
+        )
 
 
 def _make_all_ccf_plots(
@@ -417,36 +416,26 @@ def _plot_full_correlation_curves(
     )
 
 
-def _plot_delta_ccf_integral_vs_shear_stress(
-    correlation_dict: dict[str, dict[str, Any]],
-    list_of_datasets: list[str],
-    output_path: Path,
-) -> None:
-    """Plot integral of delta CCF near zero as a function of shear stress."""
-
-    def _get_shear_stress_from_dataset_name(dataset_name: str) -> float:
-        flow_conditions = load_dataset_config(dataset_name).flow_conditions
-        single_flow_condition = next(iter(flow_conditions))
-        return single_flow_condition.shear_stress
-
-    list_of_integral_values = [
-        correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
-    ]
-    shear_stresses = np.array(
-        [_get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets]
-    )
-
+def _plot_single_correlation_metric_vs_shear_stress(
+    metric_values: list[np.ndarray], shear_stresses: np.ndarray, labels: list[str] | None = None
+) -> tuple[plt.Figure, plt.Axes]:
+    # init plot
     fig, ax = init_plot(figsize=(8, 6))
-    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        # plot each PC combination separately
-        # get values for this PC combination across all datasets
-        values = np.array([value[i] for value in list_of_integral_values])
+
+    # set default labels if none provided
+    if labels is None:
+        labels = [f"(PC{j+1}, PC{k+1})" for (j, k) in CROSS_CORR_INDEX_COMBINATIONS]
+
+    # plot each metric value vs shear stress
+    for i, label in enumerate(labels):
+        # get values for this PC or PC combination across all datasets
+        values = np.array([value[i] for value in metric_values])
         # sort by ascending shear stress
         sorted_indices = np.argsort(shear_stresses)
         ax.plot(
             shear_stresses[sorted_indices],
             values[sorted_indices],
-            label=f"(PC{j+1}, PC{k+1})",
+            label=label,
             color=list(TABLEAU_COLORS.keys())[i],
             linewidth=2.75,
             linestyle="-",
@@ -459,6 +448,38 @@ def _plot_delta_ccf_integral_vs_shear_stress(
             edgecolor="k",
             label="",
         )
+    return fig, ax
+
+
+def _plot_correlation_metrics_vs_shear_stress(
+    correlation_dict: dict[str, dict[str, Any]],
+    list_of_datasets: list[str],
+    output_path: Path,
+) -> None:
+    """Plot integral of delta CCF near zero as a function of shear stress."""
+
+    def _get_shear_stress_from_dataset_name(dataset_name: str) -> float:
+        flow_conditions = load_dataset_config(dataset_name).flow_conditions
+        single_flow_condition = next(iter(flow_conditions))
+        return single_flow_condition.shear_stress
+
+    delta_ccf_integral_values = [
+        correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
+    ]
+    delta_ccf_lag_1_values = [
+        correlation_dict["delta_ccf"][dataset_name][0] for dataset_name in list_of_datasets
+    ]
+    acf_lag_1_values = [
+        correlation_dict["acf"][dataset_name][correlation_dict["lags"][dataset_name] == 1][0]
+        for dataset_name in list_of_datasets
+    ]
+    shear_stresses = np.array(
+        [_get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets]
+    )
+
+    fig, ax = _plot_single_correlation_metric_vs_shear_stress(
+        delta_ccf_integral_values, shear_stresses
+    )
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} \\rangle$")
     ax.set_ylim((-0.05, 1.65))
@@ -467,6 +488,30 @@ def _plot_delta_ccf_integral_vs_shear_stress(
         fig,
         output_path,
         "delta_ccf_integral_vs_shear_stress",
+    )
+
+    fig, ax = _plot_single_correlation_metric_vs_shear_stress(
+        delta_ccf_lag_1_values, shear_stresses
+    )
+    ax.legend()
+    ax.set_ylabel("$|\\Delta C_{ij}(0)|$")
+    ax.set_ylim((-0.05, 0.45))
+    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    save_plot_to_path(
+        fig,
+        output_path,
+        "delta_ccf_lag_1_vs_shear_stress",
+    )
+
+    fig, ax = _plot_single_correlation_metric_vs_shear_stress(acf_lag_1_values, shear_stresses)
+    ax.legend()
+    ax.set_ylabel("$C_{ii}(0)$")
+    ax.set_ylim((0.5, 1.00))
+    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    save_plot_to_path(
+        fig,
+        output_path,
+        "acf_lag_1_vs_shear_stress",
     )
 
 
@@ -514,7 +559,7 @@ def plot_correlation_workflow_outputs(
 
     # plot integrated difference between CCF for positive and
     # negative lags as a function of shear stress
-    _plot_delta_ccf_integral_vs_shear_stress(
+    _plot_correlation_metrics_vs_shear_stress(
         correlation_dict,
         list_of_datasets,
         output_path,
