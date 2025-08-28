@@ -17,7 +17,7 @@ from tqdm import tqdm
 from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from src.endo_pipeline.io import get_output_path
 from src.endo_pipeline.io.input import load_segmentation
-from src.endo_pipeline.library.model.apply_model import add_DiffAE_model_eval_crop_columns
+from src.endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
 from src.endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
@@ -431,12 +431,36 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
 
+    # add the size of the crop used to get DiffAE features at full res
+    crop_size = 256
+    big_table["crop_size"] = crop_size
+
     # add the DiffAE crop locations and binning level; these can be used to load
     # a crop from the zarr files and compute the number of nuclei in that crop
-    big_table = add_DiffAE_model_eval_crop_columns(big_table)
+    big_table = add_diffae_model_eval_crop_columns(big_table)
 
     # compute the number of nuclei found in a defined crop size
-    num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(big_table, use_precomputed=False)
+    # (first take a subset using only the required columns to reduce memory usage)
+    required_columns = [
+        "dataset_name",
+        "position",
+        "image_index",
+        "track_id",
+        "label",
+        "centroid_Y",
+        "centroid_X",
+        "image_size_y",
+        "image_size_x",
+        "crop_size",
+        "start_y",
+        "end_y",
+        "start_x",
+        "end_x",
+        "diffae_img_bin_level_used",
+    ]
+    num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
+        big_table[required_columns], use_precomputed=False
+    )
     crops = ["dataset_name", "position", "image_index", "track_id"]
     added_cols = list(set(num_nuclei_in_crop_df.columns) - set(big_table.columns))
     big_table = pd.merge(
@@ -622,14 +646,14 @@ def adjust_crop_bounds_to_0th_bin_level(
     ----------
     merged_feats_df : pd.DataFrame
         The DataFrame containing crop bound columns in the form of
-        (starty, end_y, start_x, end_x) and a column "DiffAE_img_bin_level_used"
+        (starty, end_y, start_x, end_x) and a column "diffae_img_bin_level_used"
     Returns
     -------
     pd.DataFrame
         The DataFrame with the crop bounds adjusted to the 0th level of resolution.
     """
     # adjust the crop bounds to the 0th level of resolution
-    sampling_factor = 2 ** merged_feats_df["DiffAE_img_bin_level_used"]
+    sampling_factor = 2 ** merged_feats_df["diffae_img_bin_level_used"]
 
     merged_feats_df["start_y_native"] = (merged_feats_df["start_y"] * sampling_factor).astype(int)
     merged_feats_df["end_y_native"] = (merged_feats_df["end_y"] * sampling_factor).astype(int)
@@ -892,25 +916,6 @@ def add_num_nuclei_in_crop_column(
     nuclei coordinates to a file locally so that it does not have to
     be computed each time this function is called.
     """
-    # take a subset using only the required columns to reduce memory usage
-    required_columns = [
-        "dataset_name",
-        "position",
-        "image_index",
-        "track_id",
-        "label",
-        "centroid_Y",
-        "centroid_X",
-        "image_size_y",
-        "image_size_x",
-        "crop_size",
-        "start_y",
-        "end_y",
-        "start_x",
-        "end_x",
-        "DiffAE_img_bin_level_used",
-    ]
-    merged_feats_df = merged_feats_df[required_columns].copy()
     # adjust the crop coordinates back to the native resolution since
     # the label-free nuclei predictions are saved at that resolution
     merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
@@ -974,7 +979,7 @@ def add_num_nuclei_in_crop_column(
     merged_feats_df["num_nuclei_in_crop"] = pd.concat(
         num_nuclei_in_crop, axis=0, ignore_index=False
     )
-    merged_feats_df.drop(
-        columns=["coords_Y", "coords_X"], inplace=True
+    merged_feats_df = merged_feats_df.drop(
+        columns=["coords_Y", "coords_X"]
     )  # drop the coordinates since they are not needed anymore
     return merged_feats_df

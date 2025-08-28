@@ -60,10 +60,6 @@ def create_segmentation_measured_feature_manifest(
     logger.info("Combining tracking data with segmentation properties data...")
     big_table = merge_measured_segmentation_features_tables(segprops_df, tracking_df, nucprops_df)
 
-    # add the size of the crop used to get DiffAE features at full res
-    crop_size = 256
-    big_table["crop_size"] = crop_size
-
     # add some columns to the data table that are
     # calculated from existing columns and do not
     # depend on dynamics / require clean tracks

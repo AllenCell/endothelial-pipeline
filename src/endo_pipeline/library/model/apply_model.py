@@ -195,7 +195,7 @@ def generate_overrides_for_track_based_crops(
     return overrides
 
 
-def add_DiffAE_model_eval_crop_columns(
+def add_diffae_model_eval_crop_columns(
     df: pd.DataFrame, image_binning_level: int = 1
 ) -> pd.DataFrame:
     """
@@ -235,7 +235,7 @@ def add_DiffAE_model_eval_crop_columns(
     # check if bounding boxes fit in image bounds without being clipped
     bbox_size_is_correct = _bbox_in_image_bounds(df, image_binning_level)
     df["bbox_is_in_bounds"] = bbox_size_is_correct
-    df["DiffAE_img_bin_level_used"] = image_binning_level
+    df["diffae_img_bin_level_used"] = image_binning_level
     return df
 
 
@@ -268,7 +268,7 @@ def preprocess_tracking_manifest_for_model_eval(
     df = df[colums_to_keep]
 
     # add the crop columns
-    df = add_DiffAE_model_eval_crop_columns(df, image_binning_level)
+    df = add_diffae_model_eval_crop_columns(df, image_binning_level)
 
     # filter the dataframe in-place to remove clipped bounding boxess
     df = df[~df["bbox_size_is_clipped"]]
