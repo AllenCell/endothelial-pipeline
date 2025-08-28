@@ -30,10 +30,10 @@ flow_conditions:
 - start: 0
   stop: 576
   shear_stress: 0.0
-valid_timepoints:
+valid_timepoints: null
 include_scenes: null
-notes: no SS w/ feeding every 3 hours during working hours.
-  Cells unfed during timepoint 105-248, 355-539.
+notes: no SS w/ feeding every 3 hours during working hours. Cells unfed during timepoint
+  105-248, 355-539.
 timepoint_annotations:
   bf_scope_error:
     0: [0]
@@ -59,7 +59,20 @@ timepoint_annotations:
     3: [[105, 248], [355, 539]]
     4: [[105, 248], [355, 539]]
     5: [[105, 248], [355, 539]]
-
+  auto_bf_scope_error:
+    0: [0, 247]
+    1: []
+    2: [258]
+    3: []
+    4: []
+    5: [0]
+  auto_bf_temp_artifact:
+    0: [0, 32, 65, 246, 258, 285, 320, 537]
+    1: [32, 65, 246, 285, 320, 537]
+    2: [32, 65, 246, 285, 320, 537]
+    3: [32, 65, 246, 285, 320, 537]
+    4: [32, 65, 246, 285, 320, 537]
+    5: [0, 32, 65, 246, 285, 320, 537]
 position_annotations:
   dust_artifact: [3]
 center_z_plane:

@@ -149,6 +149,7 @@ def plot_outliers(
 
     save_dir = get_output_path(f"brightfield_outliers_{THRESHOLD1}", dataset_name)
     save_plot_to_path(fig, save_dir, f"bf_outliers_P{position}")
+    plt.close(fig)
 
 
 def detect_outliers(

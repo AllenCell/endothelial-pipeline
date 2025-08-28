@@ -45,6 +45,20 @@ timepoint_annotations:
     5: []
   gfp_scope_error:
     0: [490]
+  auto_bf_scope_error:
+    0: [248, 252]
+    1: [243]
+    2: [8, 299]
+    3: []
+    4: [8, 240]
+    5: [240, 513]
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: [7, 8]
+    3: [5, 8]
+    4: [8, 240]
+    5: [532]
 position_annotations:
   dust_artifact: [4, 5]
 center_z_plane:
