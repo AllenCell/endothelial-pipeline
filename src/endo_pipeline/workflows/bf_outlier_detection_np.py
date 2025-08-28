@@ -1,15 +1,13 @@
 # %%
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import (
-    DatasetConfig,
-    TimepointAnnotation,
     get_datasets_in_collection,
     load_dataset_config,
     save_dataset_config,
 )
+from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.bf_timepoint_outlier import detect_outliers
 
