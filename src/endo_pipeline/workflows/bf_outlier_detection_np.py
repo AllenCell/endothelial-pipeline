@@ -37,6 +37,7 @@ for dataset_name in datasets:
 
     save_dataset_config(dataset_config)
 
+
 # %% CALCULATE STATISTICS
 stats = []
 for dataset_name in datasets:
@@ -72,12 +73,10 @@ for dataset_name in datasets:
             }
         )
 
-# Save statistics to a DataFrame
 df = pd.DataFrame(stats)
 save_dir = get_output_path("brightfield_outlier_detection")
 df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)
 
-# Calculate overall stats
 total_manual = df["n_manual_annotated"].sum()
 total_auto = df["n_auto_detected"].sum()
 total_missed = df["n_missed"].sum() - 1
