@@ -41,6 +41,7 @@ for dataset_name in datasets:
 
 # %% CALCULATE STATISTICS
 stats = []
+datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
     for position in dataset_config.zarr_positions:
@@ -73,7 +74,7 @@ for dataset_name in datasets:
                 "n_tps_assessed": dataset_config.duration,
             }
         )
-
+# %%
 df = pd.DataFrame(stats)
 save_dir = get_output_path("brightfield_outlier_detection")
 df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)

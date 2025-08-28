@@ -198,11 +198,18 @@ def get_annotated_timepoints_for_position(
 
     for annotation, positions in dataset.timepoint_annotations.items():
         if annotations is None or annotation in annotations:
-            for timepoint in positions[position]:
-                if isinstance(timepoint, int):
-                    annotated_timepoints.append(timepoint)
-                else:
-                    annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
+            if position in positions:
+                for timepoint in positions[position]:
+                    if isinstance(timepoint, int):
+                        annotated_timepoints.append(timepoint)
+                    else:
+                        annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
+            else:
+                logger.warning(
+                    "Dataset [ %s ] does not have any annotated timepoints for position [ %d ]",
+                    dataset.name,
+                    position,
+                )
 
     return sorted(set(annotated_timepoints))
 
