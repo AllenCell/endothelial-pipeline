@@ -3,67 +3,61 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import (
+    TimepointAnnotation,
+    get_annotated_timepoints_for_position,
     get_datasets_in_collection,
     load_dataset_config,
     save_dataset_config,
 )
-from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.process.bf_timepoint_outlier import detect_outliers
 
 # %% LOAD DATA
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
-dataset_name = datasets[0]
-# for dataset_name in datasets:
-dataset_config = load_dataset_config(dataset_name)
-tp_annotations = dataset_config.timepoint_annotations
-# %%
-auto_tp_annotations = {
-    TimepointAnnotation.AUTO_BF_SCOPE_ERROR: {
-        position: [] for position in dataset_config.zarr_positions
-    },
-    TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT: {
-        position: [] for position in dataset_config.zarr_positions
-    },
-}
-# %% Iterate over positions and detect outliers
-for position in dataset_config.zarr_positions:
-    bf_scope_error, bf_temp_artifact = detect_outliers(dataset_config, position, visualize=True)
-
-    # Append the detected outliers to the corresponding lists
-    auto_tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR][position].extend(bf_scope_error)
-    auto_tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(
-        bf_temp_artifact
+for dataset_name in datasets:
+    dataset_config = load_dataset_config(dataset_name)
+    tp_annotations = (
+        dataset_config.timepoint_annotations
+        if dataset_config.timepoint_annotations is not None
+        else {}
     )
 
-# %% Save the updated dataset configuration with auto-detected annotations
-dataset_config.timepoint_annotations = tp_annotations | auto_tp_annotations
-print(dataset_config)
-# %%
-save_dataset_config(dataset_config)
+    tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR] = {
+        position: [] for position in dataset_config.zarr_positions
+    }
+    tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT] = {
+        position: [] for position in dataset_config.zarr_positions
+    }
+
+    for position in dataset_config.zarr_positions:
+        bf_scope_error, bf_temp_artifact = detect_outliers(dataset_config, position, visualize=True)
+
+        tp_annotations[TimepointAnnotation.AUTO_BF_SCOPE_ERROR][position].extend(bf_scope_error)
+        tp_annotations[TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT][position].extend(bf_temp_artifact)
+
+    save_dataset_config(dataset_config)
 
 # %% Calculate statistics
 stats = []
 for dataset_name in datasets:
     dataset_config = load_dataset_config(dataset_name)
     for position in dataset_config.zarr_positions:
-        # Combine manual_tp_annotations for the current position
-        manual_scope_error = set(
-            tp_annotations.get(TimepointAnnotation.BF_SCOPE_ERROR, {}).get(position, [])
+        manual_annotations = [
+            TimepointAnnotation.BF_SCOPE_ERROR,
+            TimepointAnnotation.BF_TEMP_ARTIFACT,
+        ]
+        manual_tps = set(
+            get_annotated_timepoints_for_position(dataset_config, position, manual_annotations)
         )
-        manual_temp_artifact = set(
-            tp_annotations.get(TimepointAnnotation.BF_TEMP_ARTIFACT, {}).get(position, [])
-        )
-        manual_tps = manual_scope_error | manual_temp_artifact
 
-        # Combine auto_tp_annotations for the current position
-        auto_scope_error = set(
-            auto_tp_annotations.get(TimepointAnnotation.AUTO_BF_SCOPE_ERROR, {}).get(position, [])
+        auto_annotations = [
+            TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
+            TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
+        ]
+        auto_tps = set(
+            get_annotated_timepoints_for_position(dataset_config, position, auto_annotations)
         )
-        auto_temp_artifact = set(
-            auto_tp_annotations.get(TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT, {}).get(position, [])
-        )
-        auto_tps = auto_scope_error | auto_temp_artifact
+
         list_of_missed_tps = list(manual_tps - auto_tps) if manual_tps - auto_tps else np.NaN
 
         stats.append(

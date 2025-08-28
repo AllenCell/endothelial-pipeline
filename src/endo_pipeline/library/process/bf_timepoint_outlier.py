@@ -208,8 +208,10 @@ def detect_outliers(
     ]
     bright_outliers = [i for i in maxima if data_np[i] >= bright_threshold[i]]
 
-    bf_scope_error = sorted({idx // NUM_ZSLICES for idx in partial_dark_outliers})
-    bf_temp_artifact = sorted({idx // NUM_ZSLICES for idx in (dark_outliers + bright_outliers)})
+    bf_scope_error = sorted({int(idx // NUM_ZSLICES) for idx in partial_dark_outliers})
+    bf_temp_artifact = sorted(
+        {int(idx // NUM_ZSLICES) for idx in (dark_outliers + bright_outliers)}
+    )
 
     if visualize:
         plot_outliers(
