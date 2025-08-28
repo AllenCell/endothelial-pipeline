@@ -82,7 +82,8 @@ def load_overrides(overrides: str | dict | None) -> dict:
     elif isinstance(overrides, dict):
         overrides_dict = overrides
     elif not isinstance(overrides, dict):
-        raise ValueError("Overrides must be a dictionary or a string")
+        logger.error("Overrides must be a dictionary or a path to a .json file.")
+        raise ValueError("Overrides must be a dictionary or a path to a .json file.")
     return overrides_dict
 
 
@@ -570,8 +571,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     logger.debug("Using [ %d ] workers for data loading.", num_workers)
     overrides = generate_overrides_for_model_eval(
         load_overrides(user_overrides),
-        save_path=str(save_path),
-        data_path=str(dataset_save_path),
+        save_path=save_path.as_posix(),
+        data_path=dataset_save_path.as_posix(),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,
@@ -688,8 +689,8 @@ def apply_model_on_tracked_crops_from_one_dataset(
     # apply overrides
     overrides = generate_overrides_for_track_based_crops(
         overrides,
-        save_path=str(save_path),
-        data_path=str(data_path),
+        save_path=save_path.as_posix(),
+        data_path=data_path.as_posix(),
         ckpt_path=path_dict["checkpoint_path"],
         dataset_name=dataset_config.name,
         model_name=model_config.name,

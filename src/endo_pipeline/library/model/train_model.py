@@ -61,9 +61,10 @@ def _generate_overrides_for_model_training(
         A dictionary of configuration overrides for the DiffAE model training.
     """
     # create output directories if they do not exist
-    training_run_output_path = get_output_path("models", model_name, "train")
-    _ = get_output_path("models", model_name, "train", "logs")
-    _ = get_output_path("models", model_name, "train", "checkpoints")
+    training_run_checkpoint_path = get_output_path(
+        "models", model_name, "train", "checkpoints"
+    ).as_posix()
+    training_run_log_path = get_output_path("models", model_name, "train", "logs").as_posix()
 
     overrides = {
         # set path to train and val datasets
@@ -71,12 +72,12 @@ def _generate_overrides_for_model_training(
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # get repo root directory and current working directory
-        "paths.root_dir": Path(__file__).resolve().parents[3],
+        "paths.root_dir": Path(__file__).resolve().parents[3].as_posix(),
         "paths.work_dir": os.getcwd(),
         # save outputs to user-specified directory
-        "paths.output_dir": training_run_output_path / "logs",
+        "paths.output_dir": training_run_log_path,
         "paths.log_dir": "${paths.output_dir}",
-        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
+        "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path,
         # update run name
         "run_name": model_name,
         # set crop size from input via model.image_shape,
@@ -117,7 +118,7 @@ def _generate_overrides_for_finetuning(
         The path to the image loading metadata file for the training dataset.
     val_dataframe_path
         The path to the image loading metadata file for the validation dataset.
-    ckpt_path: Path
+    ckpt_path
         The path to the DiffAE checkpoint to finetune.
     max_num_epochs
         The maximum number of epochs to train the model for.
@@ -128,17 +129,17 @@ def _generate_overrides_for_finetuning(
     training_run_output_path = get_output_path(
         "finetune_paired_dataset",
         finetuned_model_name,
-    )
-    _ = get_output_path(
+    ).as_posix()
+    training_run_checkpoint_path = get_output_path(
         "finetune_paired_dataset",
         finetuned_model_name,
         "checkpoints",
-    )
-    _ = get_output_path(
+    ).as_posix()
+    training_run_log_path = get_output_path(
         "finetune_paired_dataset",
         finetuned_model_name,
         "logs",
-    )
+    ).as_posix()
 
     overrides = {
         # point to already projected paired dataset
@@ -146,14 +147,14 @@ def _generate_overrides_for_finetuning(
         "data.predict_dataloaders.dataset.dataframe_path": val_dataframe_path,
         "data.val_dataloaders.dataset.dataframe_path": val_dataframe_path,
         # load diffae checkpoint to finetune
-        "checkpoint.ckpt_path": ckpt_path,
+        "checkpoint.ckpt_path": ckpt_path.as_posix(),
         "checkpoint.weights_only": True,
         "checkpoint.strict": False,
         # save to user-specified directory
-        "model.save_dir": training_run_output_path / "logs",
+        "model.save_dir": training_run_log_path,
         "trainer.default_root_dir": training_run_output_path,
-        "callbacks.model_checkpoint.dirpath": training_run_output_path / "checkpoints",
-        "paths.output_dir": training_run_output_path / "logs",
+        "callbacks.model_checkpoint.dirpath": training_run_checkpoint_path,
+        "paths.output_dir": training_run_log_path,
         # do training
         "train": True,
         # turn off config printing, will get saved locally instead
