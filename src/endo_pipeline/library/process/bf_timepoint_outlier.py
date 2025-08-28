@@ -26,7 +26,38 @@ def plot_outliers(
     position: int,
     num_zslices: int = NUM_ZSLICES,
 ) -> None:
-    """Plot intensity data with thresholds and outliers, embedding outlier info on the plot."""
+    """
+    Plot intensity data with thresholds and outliers, embedding outlier info on the plot.
+
+    Parameters
+    ----------
+    data_np:
+        The intensity data as a 1D numpy array, representing flattened indices of timepoints and z-slices.
+    rolling_median_np:
+        The rolling median of the intensity data, used as a baseline for comparison.
+    dark_threshold:
+        The lower threshold for detecting dark outliers.
+    partial_dark_threshold:
+        The partial dark threshold for detecting less severe dark outliers.
+    bright_threshold:
+        The upper threshold for detecting bright outliers.
+    dark_outliers:
+        Indices of dark outliers in the data.
+    partial_dark_outliers:
+        Indices of partial dark outliers in the data.
+    bright_outliers:
+        Indices of bright outliers in the data.
+    dataset_name:
+        The name of the dataset being analyzed, used for labeling the plot.
+    position:
+        The position identifier within the dataset, used for labeling the plot.
+    num_zslices:
+        The number of z-slices per timepoint (default is NUM_ZSLICES).
+
+    Returns
+    -------
+    None
+    """
     fig, ax = plt.subplots(figsize=(12, 10))
     ax.plot(data_np, label="Intensity", color="black", alpha=0.5)
     ax.plot(
@@ -112,7 +143,7 @@ def plot_outliers(
 
     ax.set_title(f"{dataset_name} - Position {position}\n")
     ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.05)
-    ax.legend(loc="lower left")
+    ax.legend()
     fig.tight_layout(rect=[0, 0, 0.8, 1])  # leave space on right
     plt.show()
 
@@ -120,7 +151,27 @@ def plot_outliers(
     save_plot_to_path(fig, save_dir, f"bf_outliers_P{position}")
 
 
-def detect_outliers(dataset_config: DatasetConfig, position: int, visualize: bool = False):
+def detect_outliers(
+    dataset_config: DatasetConfig, position: int, visualize: bool = False
+) -> tuple[list[int], list[int]]:
+    """
+    Detect outliers in brightfield (BF) microscopy data based on intensity thresholds.
+
+    Parameters
+    ----------
+    dataset_config:
+        Configuration object containing metadata and paths for the dataset.
+    position:
+        The position index within the dataset to analyze.
+    visualize:
+        If True, generates and saves plots of the intensity data, thresholds, and outliers.
+
+    Returns
+    -------
+    A tuple containing two lists:
+    - `bf_scope_error`: Sorted list of timepoints with partial dark outliers.
+    - `bf_temp_artifact`: Sorted list of timepoints with dark or bright outliers.
+    """
     zarr_files = get_available_zarr_files(dataset_config)
     bf_zarr = load_zarr_as_dask_array(zarr_files[position], channels=["BF"], level=1)
     bf_zarr.squeeze()  # shape = (timepoints, z, x, y)
