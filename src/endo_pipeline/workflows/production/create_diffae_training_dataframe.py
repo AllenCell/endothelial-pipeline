@@ -48,7 +48,12 @@ def main(resolution_level: int = 1) -> None:
     from sklearn.model_selection import train_test_split
 
     from endo_pipeline import TESTING_MODE
-    from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
+    from endo_pipeline.configs import (
+        get_annotated_positions,
+        get_annotated_timepoints_for_position,
+        load_dataset_collection_config,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
@@ -67,7 +72,11 @@ def main(resolution_level: int = 1) -> None:
         # default frame start and stop values are None, i.e., load all timepoints
         frame_start = None
         frame_stop = None
-        only_positions = None  # keep all rows in the dataset CSV
+
+        # get list of positions to exclude based on annotations
+        # turn this into a list of positions to only include
+        exclude_positions = get_annotated_positions(dataset_config)
+        only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
 
         if TESTING_MODE:
             # for workflow testing, only use first position from each dataset
@@ -75,7 +84,13 @@ def main(resolution_level: int = 1) -> None:
             # (if dataset is not timelapse, then only one timepoint is used)
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
-            only_positions = [0]  # only use the first position
+            only_include_positions = only_include_positions[0:1]
+
+        # build dict of frames to exclude per position
+        exclude_frames = {
+            pos: get_annotated_timepoints_for_position(dataset_config, pos)
+            for pos in dataset_config.zarr_positions
+        }
 
         # build zarr loading dataframe for the current dataset
         # and append it to the list of dataframes
@@ -89,7 +104,7 @@ def main(resolution_level: int = 1) -> None:
                 ],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
-                only_positions=only_positions,
+                only_include_positions=only_include_positions,
             )
         )
 
