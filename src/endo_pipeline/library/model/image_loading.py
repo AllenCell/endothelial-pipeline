@@ -15,9 +15,12 @@ from numpy.typing import DTypeLike
 
 from endo_pipeline.configs import (
     DatasetConfig,
+    get_annotated_positions,
+    get_annotated_timepoints_for_position,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
 )
+from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 
 logger = logging.getLogger(__name__)
 
@@ -396,6 +399,104 @@ class MultiDimImageDataset(CacheDataset):
                     row_data.append(extra_columns)
             img_data.extend(row_data)
         return img_data
+
+
+def get_z_offset_information(
+    dataset_config: DatasetConfig,
+    z_stack_offsets: tuple[int, int],
+    slice_by_global_center: bool = True,
+) -> dict[int, dict[str, int]]:
+    """
+    Get a dataframe with zarr loading metadata when z-slice selection is based
+    on the center slice for each position in the dataset.
+    """
+    # if z_stack_offsets is not None, get z-slice ranges
+    # for each position in the dataset (i.e., zarr file)
+    z_slice_per_position = None
+    available_zarr_files = get_available_zarr_files(dataset_config)
+    if z_stack_offsets is not None:
+        z_slice_per_position = {}
+        for zarr_file_path in available_zarr_files:
+            # get position from zarr path as an integer (e.g., 'P0' -> 0)
+            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
+            # get z-slice indices for the given position
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
+            )
+            z_slice_per_position[position_as_int] = {
+                "z_start": z_slices[0],
+                "z_stop": z_slices[-1],
+            }
+
+    return z_slice_per_position
+
+
+def parse_dataset_annotations_for_image_loading(
+    dataset_config: DatasetConfig,
+    z_stack_offsets: tuple[int] | None = None,
+    slice_by_global_center: bool = True,
+) -> tuple[dict[int, dict[str, int]], list[int], dict[int, list[int]]]:
+    """
+    Parse dataset annotations to get z-slice offsets, positions to include,
+    and frames to exclude.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+    """
+
+    # get z-slice offsets per position if specified
+    if z_stack_offsets is not None:
+        logger.debug(
+            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
+            z_stack_offsets,
+            slice_by_global_center,
+        )
+
+        z_slice_per_position = get_z_offset_information(
+            dataset_config,
+            z_stack_offsets=z_stack_offsets,
+            slice_by_global_center=slice_by_global_center,
+        )
+    else:
+        # if no z-stack offsets are provided, pass in None
+        # to the dataframe builder
+        logger.debug("No z-stack offsets provided, loading all z-slices.")
+        z_slice_per_position = None
+
+    # get list of positions to exclude based on annotations
+    # turn this into a list of positions to only include
+    exclude_positions = get_annotated_positions(dataset_config)
+    only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
+
+    # build dict of frames to exclude per position
+    exclude_frames = {
+        pos: get_annotated_timepoints_for_position(dataset_config, pos)
+        for pos in dataset_config.zarr_positions
+    }
+
+    return z_slice_per_position, only_include_positions, exclude_frames
 
 
 def build_zarr_image_loading_dataframe(

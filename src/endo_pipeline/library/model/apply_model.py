@@ -11,10 +11,6 @@ from cyto_dl.api import CytoDLModel
 from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
-    get_annotated_positions,
-    get_annotated_timepoints_for_position,
-    get_available_zarr_files,
-    get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
 from endo_pipeline.io import (
@@ -23,9 +19,11 @@ from endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
-from endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
+from endo_pipeline.library.model.image_loading import (
+    build_zarr_image_loading_dataframe,
+    parse_dataset_annotations_for_image_loading,
+)
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
-from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
@@ -369,40 +367,6 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def get_z_offset_information(
-    dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int, int],
-    slice_by_global_center: bool = True,
-) -> dict[int, dict[str, int]]:
-    """
-    Get a dataframe with zarr loading metadata when z-slice selection is based
-    on the center slice for each position in the dataset.
-    """
-    # if z_stack_offsets is not None, get z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
-    z_slice_per_position = None
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    if z_stack_offsets is not None:
-        z_slice_per_position = {}
-        for zarr_file_path in available_zarr_files:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
-            # get z-slice indices for the given position
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
-            z_slice_per_position[position_as_int] = {
-                "z_start": z_slices[0],
-                "z_stop": z_slices[-1],
-            }
-
-    return z_slice_per_position
-
-
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
@@ -515,10 +479,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     frame_stop = None
     frame_step = None
 
-    # get list of positions to exclude based on annotations
-    # turn this into a list of positions to only include
-    exclude_positions = get_annotated_positions(dataset_config)
-    only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
+    # parse dataset annotations to get z-slice information,
+    # positions to include, and frames to exclude
+    z_slice_per_position, only_include_positions, exclude_frames = (
+        parse_dataset_annotations_for_image_loading(  # noqa: E501
+            dataset_config, z_stack_offsets, slice_by_global_center
+        )
+    )
 
     if testing_mode:
         # for workflow testing, only use first position from each dataset
@@ -532,35 +499,14 @@ def apply_model_on_grid_of_crops_from_one_dataset(
             "of the first valid position the dataset."
         )
 
-    # build dict of frames to exclude per position
-    exclude_frames = {
-        pos: get_annotated_timepoints_for_position(dataset_config, pos)
-        for pos in dataset_config.zarr_positions
-    }
-
     if z_stack_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary
         frame_start = 0
         frame_stop = -1
         frame_step = 250
-        logger.debug(
-            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
-            z_stack_offsets,
-            slice_by_global_center,
-        )
         logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
-        z_slice_per_position = get_z_offset_information(
-            dataset_config,
-            z_stack_offsets=z_stack_offsets,
-            slice_by_global_center=slice_by_global_center,
-        )
-    else:
-        # if no z-stack offsets are provided, pass in None
-        # to the dataframe builder
-        logger.debug("No z-stack offsets provided, loading all z-slices.")
-        z_slice_per_position = None
-
+    # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
         dataset_config,
         resolution_level=resolution_level,

@@ -5,7 +5,6 @@ from .apply_model import (
     generate_overrides_for_track_based_crops,
     get_cytodl_commit_hash,
     get_model_dir,
-    get_z_offset_information,
     load_overrides,
     preprocess_tracking_manifest_for_model_eval,
     update_prediction_from_crops_with_metadata,
@@ -22,6 +21,8 @@ from .image_loading import (
     BioIOImageLoaderd,
     MultiDimImageDataset,
     build_zarr_image_loading_dataframe,
+    get_z_offset_information,
+    parse_dataset_annotations_for_image_loading,
 )
 from .latent_walk_utils import (
     get_latent_coords,
@@ -69,6 +70,7 @@ __all__ = [
     "initialize_diffae_model_for_finetuning",
     "load_mlflow_model",
     "load_overrides",
+    "parse_dataset_annotations_for_image_loading",
     "preprocess_tracking_manifest_for_model_eval",
     "update_prediction_from_crops_with_metadata",
     "update_prediction_from_tracks_with_metadata",
