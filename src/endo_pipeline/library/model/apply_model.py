@@ -11,6 +11,8 @@ from cyto_dl.api import CytoDLModel
 from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
+    get_annotated_positions,
+    get_annotated_timepoints_for_position,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
@@ -367,7 +369,7 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def _get_z_offset_information(
+def get_z_offset_information(
     dataset_config: DatasetConfig,
     z_stack_offsets: tuple[int, int],
     slice_by_global_center: bool = True,
@@ -378,10 +380,10 @@ def _get_z_offset_information(
     """
     # if z_stack_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
-    z_slice_by_position = None
+    z_slice_per_position = None
     available_zarr_files = get_available_zarr_files(dataset_config)
     if z_stack_offsets is not None:
-        z_slice_by_position = {}
+        z_slice_per_position = {}
         for zarr_file_path in available_zarr_files:
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
             position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
@@ -393,12 +395,12 @@ def _get_z_offset_information(
                 upper_offset=z_stack_offsets[1],
                 slice_by_global_center=slice_by_global_center,
             )
-            z_slice_by_position[position_as_int] = {
+            z_slice_per_position[position_as_int] = {
                 "z_start": z_slices[0],
                 "z_stop": z_slices[-1],
             }
 
-    return z_slice_by_position
+    return z_slice_per_position
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
@@ -449,7 +451,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center: bool
+    slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
     testing_mode
         Execute method in workflow testing mode if True, run full model evaluation if False.
@@ -512,7 +514,11 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     frame_start = None
     frame_stop = None
     frame_step = None
-    only_positions = None  # keep all rows in the dataset CSV
+
+    # get list of positions to exclude based on annotations
+    # turn this into a list of positions to only include
+    exclude_positions = get_annotated_positions(dataset_config)
+    only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
 
     if testing_mode:
         # for workflow testing, only use first position from each dataset
@@ -520,11 +526,17 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         # (if dataset is not timelapse, then only one timepoint is used)
         frame_start = 0
         frame_stop = 1 if dataset_config.is_timelapse else 0
-        only_positions = [0]  # only use the first position
+        only_include_positions = only_include_positions[0:1]
         logger.debug(
             "Workflow testing is enabled, only processing the first few timepoints "
-            "of the first position the dataset."
+            "of the first valid position the dataset."
         )
+
+    # build dict of frames to exclude per position
+    exclude_frames = {
+        pos: get_annotated_timepoints_for_position(dataset_config, pos)
+        for pos in dataset_config.zarr_positions
+    }
 
     if z_stack_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary
@@ -538,7 +550,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         )
         logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
-        z_slice_by_position = _get_z_offset_information(
+        z_slice_per_position = get_z_offset_information(
             dataset_config,
             z_stack_offsets=z_stack_offsets,
             slice_by_global_center=slice_by_global_center,
@@ -547,7 +559,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         # if no z-stack offsets are provided, pass in None
         # to the dataframe builder
         logger.debug("No z-stack offsets provided, loading all z-slices.")
-        z_slice_by_position = None
+        z_slice_per_position = None
 
     df = build_zarr_image_loading_dataframe(
         dataset_config,
@@ -556,8 +568,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,
-        z_slice_info_per_position=z_slice_by_position,
-        only_positions=only_positions,
+        z_slice_per_position=z_slice_per_position,
+        only_include_positions=only_include_positions,
+        exclude_frames=exclude_frames,
     )
 
     # save the dataframe to a parquet file
