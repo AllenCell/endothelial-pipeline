@@ -482,7 +482,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_per_position, only_include_positions, exclude_frames = (
-        parse_dataset_annotations_for_image_loading(  # noqa: E501
+        parse_dataset_annotations_for_image_loading(
             dataset_config, z_stack_offsets, slice_by_global_center
         )
     )
