@@ -80,7 +80,7 @@ def main(
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
-        get_z_offset_information,
+        parse_dataset_annotations_for_image_loading,
     )
 
     logger = logging.getLogger(__name__)
@@ -98,10 +98,13 @@ def main(
         frame_start = None
         frame_stop = None
 
-        # get list of positions to exclude based on annotations
-        # turn this into a list of positions to only include
-        exclude_positions = get_annotated_positions(dataset_config)
-        only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
+        # parse dataset annotations to get z-slice information,
+        # positions to include, and frames to exclude
+        z_slice_per_position, only_include_positions, exclude_frames = (
+            parse_dataset_annotations_for_image_loading(  # noqa: E501
+                dataset_config, z_stack_offsets, slice_by_global_center
+            )
+        )
 
         if TESTING_MODE:
             # for workflow testing, only use first position from each dataset
@@ -110,30 +113,6 @@ def main(
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_include_positions = only_include_positions[0:1]
-
-        # build dict of frames to exclude per position
-        exclude_frames = {
-            pos: get_annotated_timepoints_for_position(dataset_config, pos)
-            for pos in dataset_config.zarr_positions
-        }
-
-        if z_stack_offsets is not None:
-            logger.debug(
-                "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
-                z_stack_offsets,
-                slice_by_global_center,
-            )
-
-            z_slice_per_position = get_z_offset_information(
-                dataset_config,
-                z_stack_offsets=z_stack_offsets,
-                slice_by_global_center=slice_by_global_center,
-            )
-        else:
-            # if no z-stack offsets are provided, pass in None
-            # to the dataframe builder
-            logger.debug("No z-stack offsets provided, loading all z-slices.")
-            z_slice_per_position = None
 
         # build zarr loading dataframe for the current dataset
         # and append it to the list of dataframes
