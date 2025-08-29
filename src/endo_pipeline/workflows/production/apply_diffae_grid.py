@@ -16,11 +16,10 @@ def main(
     Produces a table of latent features from a non-overlapping grid of crops for each dataset.
     The model is applied at the specified resolution level.
 
-    **Workflow testing**
+    **Workflow demo**
 
-    If testing mode is enabled, the model will only be evaluated on the first few timepoints
-    of the first position of the first dataset. Furthermore, the staging environment
-    for FMS will be used for file uploads.
+    If demo mode is enabled, the model will only be evaluated on the first few
+    timepoints of the first position of the first dataset.
 
     **Z-stack offsets**
 
@@ -64,7 +63,7 @@ def main(
     import logging
     from typing import cast
 
-    from endo_pipeline import TESTING_MODE
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
@@ -76,6 +75,20 @@ def main(
     from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
 
     logger = logging.getLogger(__name__)
+
+    # When running workflow in demo mode, only use the first position from each
+    # dataset and first two timepoints to speed up the dataloading process (if
+    # dataset is not timelapse, then only one timepoint is used). Otherwise, use
+    # default frame start and stop values (i.e. all timepoints) and keep all
+    # rows in the dataset CSV.
+    if DEMO_MODE:
+        frame_start = 0
+        frame_stop = 1 if dataset_config.is_timelapse else 0
+        only_positions = [0]
+    else:
+        frame_start = None
+        frame_stop = None
+        only_positions = None
 
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
@@ -112,12 +125,14 @@ def main(
             user_overrides=user_overrides,
             z_stack_offsets=z_stack_offsets,
             slice_by_global_center=slice_by_global_center,
-            testing_mode=TESTING_MODE,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            only_positions=only_positions,
         )
-        if TESTING_MODE:
-            # if test workflow, only process the first dataset
+
+        if DEMO_MODE:
             logger.debug(
-                "Workflow testing is enabled, only processing the first dataset: [ %s ]",
+                "Workflow demo is enabled, only processing the first dataset: [ %s ]",
                 dataset_config.name,
             )
             break

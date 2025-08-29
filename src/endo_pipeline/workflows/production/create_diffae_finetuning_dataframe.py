@@ -30,7 +30,7 @@ def main(
     import tqdm
     from sklearn.model_selection import train_test_split
 
-    from endo_pipeline import TESTING_MODE
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
@@ -41,11 +41,26 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    # When running workflow in demo mode, only the first two pairs of images
+    # from the first dataset pair will be aligned and saved.
+    if DEMO_MODE:
+        name_suffix = "_test_workflow"
+        num_datasets_to_align = 1
+        num_positions_to_align = 4
+    else:
+        name_suffix = ""
+        num_datasets_to_align = None
+        num_positions_to_align = None
+
     save_path = get_output_path("finetune_paired_dataset", dataset_pair_type)
     logger.info("Saving aligned images to [ %s ]", save_path)
 
     df = align_and_save_paired_images(
-        dataset_pair_type, resolution_level, save_path, testing_mode=TESTING_MODE
+        dataset_pair_type,
+        resolution_level,
+        save_path,
+        num_datasets_to_align=num_datasets_to_align,
+        num_positions_to_align=num_positions_to_align,
     )
 
     out_paths = [
@@ -73,9 +88,7 @@ def main(
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}"
-    if TESTING_MODE:
-        manifest_name += "_test_workflow"
+    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}{name_suffix}"
     dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
     build_and_save_dataframe_manifest_for_training(

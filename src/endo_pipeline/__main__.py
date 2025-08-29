@@ -219,7 +219,7 @@ def apply_entrypoint_settings(
     if demo_mode:
         import endo_pipeline
 
-        logger.info("Running workflows in testing mode")
+        logger.info("Running workflows in demo mode")
         endo_pipeline.DEMO_MODE = True
 
     if use_staging:

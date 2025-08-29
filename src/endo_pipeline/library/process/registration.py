@@ -654,16 +654,11 @@ def align_and_save_paired_images(
     dataset_pair_type: Literal["live_fixed", "20X_40X"],
     resolution_level: int,
     save_path: Path,
-    testing_mode: bool = False,
+    num_datasets_to_align: int | None = None,
+    num_positions_to_align: int | None = None,
 ) -> pd.DataFrame:
     """
     Align and save all paired images from the specified dataset pair type.
-
-    **Workflow testing**
-
-    If ``testing_mode`` is set to True, the function will only align the first pair of images
-    and save them to the specified `save_path`. This is useful for testing the basic function
-    of this method without processing the entire dataset.
 
     Parameters
     ----------
@@ -673,9 +668,12 @@ def align_and_save_paired_images(
         The resolution level of the zarr files to load for alignment.
     save_path
         The directory where the aligned images will be saved.
-    testing_mode
-        If True, only the first pair of images will be aligned and saved.
-
+    num_datasets_to_align
+        The number of datasets to process for alignment.
+        Use None to align all datasets.
+    num_positions_to_align
+        The number of positions in the dataset to process for alignment.
+        Use None to align all positions.
 
     Returns
     -------
@@ -698,12 +696,10 @@ def align_and_save_paired_images(
         alignment_method = "template"
 
     df_list = []
-    for fixed, moving in zip(fixed_datasets, moving_datasets, strict=True):
-        if testing_mode:
-            logger.warning(
-                "Testing mode is enabled. Only the first two pairs of images "
-                "from the first dataset pair will be aligned and saved."
-            )
+
+    for index, (fixed, moving) in enumerate(zip(fixed_datasets, moving_datasets, strict=True)):
+        if num_datasets_to_align is not None and index > num_datasets_to_align:
+            break
 
         df_list.append(
             align_all_positions(
@@ -712,12 +708,9 @@ def align_and_save_paired_images(
                 resolution_level,
                 save_path,
                 alignment_method=alignment_method,
-                num_positions_to_align=4 if testing_mode else None,
+                num_positions_to_align=num_positions_to_align,
             )
         )
-
-        if testing_mode:
-            break
 
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
