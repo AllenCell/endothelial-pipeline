@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from endo_pipeline.io.output import get_output_path, get_timestamp, make_path_unique
+from endo_pipeline.io.output import get_output_path, get_timestamp, make_path_name_unique
 
 
 @pytest.fixture
@@ -36,12 +36,20 @@ def test_get_timestamp(mock_datetime):
     assert get_timestamp() == timestamp
 
 
-def test_make_path_unique(mock_datetime):
+def test_make_path_name_unique_single_extension(mock_datetime):
     year, month, day, hour, minute, second = mock_datetime
     timestamp = f"{year}{month:02d}{day:02d}_{hour:02d}{minute:02d}{second:02d}"
     original_path = Path("test/path/to/file.ext")
     unique_path = Path(f"test/path/to/file_{timestamp}.ext")
-    assert make_path_unique(original_path) == unique_path
+    assert make_path_name_unique(original_path) == unique_path
+
+
+def test_make_path_name_unique_multiple_extensions(mock_datetime):
+    year, month, day, hour, minute, second = mock_datetime
+    timestamp = f"{year}{month:02d}{day:02d}_{hour:02d}{minute:02d}{second:02d}"
+    original_path = Path("test/path/to/file.ext1.ext2")
+    unique_path = Path(f"test/path/to/file_{timestamp}.ext1.ext2")
+    assert make_path_name_unique(original_path) == unique_path
 
 
 def test_get_output_path_file_name(mock_output_dir, mock_datetime):
