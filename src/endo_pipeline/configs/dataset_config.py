@@ -1,5 +1,6 @@
 """Data structures for dataset configs."""
 
+from dataclasses import field
 from enum import StrEnum
 from typing import Literal
 

@@ -406,7 +406,7 @@ def build_zarr_image_loading_dataframe(
     frame_stop: int | None = None,
     frame_step: int | None = None,
     z_slice_info_per_position: dict[int, dict[str, int]] | None = None,
-    only_positions: list[int] | None = None,
+    only_include_positions: list[int] | None = None,
     exclude_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
     """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
@@ -427,10 +427,12 @@ def build_zarr_image_loading_dataframe(
     df["position_index"] = df["path"].apply(lambda x: get_position_integer_from_zarr_file_path(x))
 
     # only load images for specified position indices
-    if only_positions is not None:
-        logger.debug("Filtering Zarr files to only include positions: [ %s ]", only_positions)
+    if only_include_positions is not None:
+        logger.debug(
+            "Filtering Zarr files to only include positions: [ %s ]", only_include_positions
+        )
 
-        df = df[df["position_index"].isin(only_positions)]
+        df = df[df["position_index"].isin(only_include_positions)]
 
     # if start and stop for loading timepoints are specified, add to dataframe
     if (frame_start is not None) and (frame_stop is not None):
