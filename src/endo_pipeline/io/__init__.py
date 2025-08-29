@@ -14,7 +14,7 @@ from .output import (
     get_output_dir,
     get_output_path,
     get_timestamp,
-    make_path_unique,
+    make_path_name_unique,
     save_plot_to_path,
     upload_file_to_fms,
 )
@@ -33,7 +33,7 @@ __all__ = [
     "load_image",
     "load_image_from_path",
     "load_zarr_as_dask_array",
-    "make_path_unique",
+    "make_path_name_unique",
     "save_plot_to_path",
     "upload_file_to_fms",
 ]
