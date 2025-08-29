@@ -175,7 +175,7 @@ def get_annotated_positions(
     annotated_positions: list[int] = []
 
     if dataset.position_annotations is None:
-        logger.warning("Dataset [ %s ] does not have any annotated positions", dataset.name)
+        logger.info("Dataset [ %s ] does not have any annotated positions", dataset.name)
         return annotated_positions
 
     for annotation, positions in dataset.position_annotations.items():
@@ -193,12 +193,12 @@ def get_annotated_timepoints_for_position(
     annotated_timepoints: list[int] = []
 
     if dataset.timepoint_annotations is None:
-        logger.warning("Dataset [ %s ] does not have any annotated timepoints", dataset.name)
+        logger.info("Dataset [ %s ] does not have any annotated timepoints", dataset.name)
         return annotated_timepoints
 
     for annotation, positions in dataset.timepoint_annotations.items():
         if position not in positions:
-            logger.warning(
+            logger.info(
                 "Dataset [ %s ] does not have any [ %s ] annotations for position [ %d ]",
                 dataset.name,
                 annotation.value,

@@ -81,7 +81,7 @@ df.to_parquet(save_dir / "bf_outlier_detection_stats.parquet", index=False)
 
 total_manual = df["n_manual_annotated"].sum()
 total_auto = df["n_auto_detected"].sum()
-total_missed = df["n_missed"].sum() - 1
+total_missed = df["n_missed"].sum() - 1  # -1 b/c one annotation is not expected to be detected
 percent_missed = (total_missed / total_manual) * 100 if total_manual > 0 else 0
 total_timepoints = df["n_tps_assessed"].sum()
 percent_artifact = (total_auto + total_missed) / total_timepoints * 100
@@ -93,4 +93,3 @@ print(f"Percent of captured timepoints: {100 - percent_missed:.2f}%")
 print(f"Total auto-detected timepoints: {total_auto}")
 print(f"Total timepoints assessed: {total_timepoints}")
 print(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
-# %%
