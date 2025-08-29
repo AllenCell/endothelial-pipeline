@@ -2,9 +2,6 @@ name: diffae_tracking_integration
 workflow: apply_diffae_model_on_tracked_crops
 parameters: {}
 locations:
-  20241016_20X:
-    fmsid: 59b2b9c848b14d1b9f730a6a0e875bd3
-    s3uri: null
   20241120_20X:
     fmsid: be213c4232144ac2b069b4ec52dfbab4
     s3uri: null

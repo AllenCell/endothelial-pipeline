@@ -151,15 +151,15 @@ data:
     persistent_workers: false
     shuffle: false
     dataset:
-      _target_: src.endo_pipeline.library.model.image_loading.MultiDimImageDataset
+      _target_: endo_pipeline.library.model.image_loading.MultiDimImageDataset
       cache_num: 0
       num_workers: 8
-      csv_path: null
+      dataframe_path: null
       spatial_dims: 3
       transform:
         _target_: monai.transforms.Compose
         transforms:
-        - _target_: src.endo_pipeline.library.model.image_loading.BioIOImageLoaderd
+        - _target_: endo_pipeline.library.model.image_loading.BioIOImageLoaderd
           path_key: original_path
           out_key: raw_bf
           dask_load: true

@@ -6,7 +6,7 @@ def main() -> None:
 
     import logging
 
-    from src.endo_pipeline.configs import (
+    from endo_pipeline.configs import (
         validate_3d_flow_field_dataset_collection,
         validate_filtered_dataset_collection,
     )

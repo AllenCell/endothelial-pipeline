@@ -8,8 +8,7 @@ import numpy as np
 import pandas as pd
 from bioio import BioImage
 
-from src.endo_pipeline.library.process.general_image_preprocessing import get_default_dim_order
-from src.endo_pipeline.manifests import DataframeLocation, SegmentationLocation
+from endo_pipeline.manifests import DataframeLocation, ImageLocation
 
 logger = logging.getLogger(__name__)
 
@@ -75,23 +74,22 @@ def load_zarr_as_dask_array(
     return image
 
 
-def load_segmentation_from_path(path: Path, squeezed: bool = True) -> np.ndarray:
+def load_image_from_path(path: Path, squeeze: bool = True) -> dask.array.Array:
     """
-    Load segmentation from path.
+    Load image from path.
 
     Currently supports files ending in .ome.tiff.
 
     Parameters
     ----------
     path
-        Path to segmentation file.
+        Path to image file.
 
     Returns
     -------
     :
         File loaded as dask array.
     """
-    dim_order = get_default_dim_order()
 
     if not path.exists():
         logger.error("Path [ %s ] could not be loaded", path)
@@ -99,28 +97,30 @@ def load_segmentation_from_path(path: Path, squeezed: bool = True) -> np.ndarray
 
     if path.suffixes == [".ome", ".tiff"]:
         logger.info("Loading path [ %s ] as OME TIFF file", path)
-        img = BioImage(path).get_image_dask_data(dim_order)
-        return img.compute().squeeze() if squeezed else img.compute()
+        if squeeze:
+            return BioImage(path).get_image_dask_data("TCZYX").compute().squeeze()
+        else:
+            return BioImage(path).get_image_dask_data("TCZYX").compute()
 
-    logger.error("Path [ %s ] cannot be loaded as segmentation", path)
-    raise ValueError(f"Invalid segmentation file format '{path.suffix}'")
+    logger.error("Path [ %s ] cannot be loaded as image", path)
+    raise ValueError(f"Invalid image file format '{path.suffix}'")
 
 
-def load_segmentation(location: SegmentationLocation, squeezed: bool = True) -> np.ndarray:
+def load_image(location: ImageLocation, squeeze: bool = True) -> dask.array.Array:
     """
-    Load segmentation from location.
+    Load image from location.
 
     Parameters
     ----------
     location
-        Segmentation location object.
+        Image location object.
     """
 
     if location.path is not None:
-        return load_segmentation_from_path(location.path, squeezed)
+        return load_image_from_path(location.path, squeeze)
 
     logger.error("Location does not have a path.")
-    raise FileNotFoundError("Unable to load segmentation; no available locations.")
+    raise FileNotFoundError("Unable to load image; no available locations.")
 
 
 def load_dataframe_from_path(path: Path) -> pd.DataFrame:
@@ -180,14 +180,14 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
         logger.error("Workflow unable to access [ /allen ] drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
-    from src.endo_pipeline.io.fms import FMS, FMS_BUCKET_NAME, FMS_FILE_ID, FMS_LOCAL_PATH
+    from endo_pipeline.io.fms import FMS, FMS_BUCKET_NAME, FMS_ENV, FMS_FILE_ID, FMS_LOCAL_PATH
 
     annotations = {FMS_FILE_ID: fmsid}
     record = list(FMS.find(annotations=annotations))
 
     if not record:
-        logger.error("Record for FMS ID [ %s ] not found", fmsid)
-        raise LookupError(f"cannot find file id '{fmsid}' in FMS 'prod' environment")
+        logger.error("Record for FMS ID [ %s ] in FMS [ %s ] environment not found", fmsid, FMS_ENV)
+        raise LookupError(f"cannot find file id '{fmsid}' in FMS [ {FMS_ENV} ] environment")
 
     local_path = Path(record[0].path.replace(FMS_BUCKET_NAME, FMS_LOCAL_PATH))
 

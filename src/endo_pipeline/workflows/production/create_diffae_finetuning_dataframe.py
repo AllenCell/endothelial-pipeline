@@ -4,58 +4,92 @@ TAGS = ["diffae_model_finetuning"]
 
 
 def main(
-    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
-    split: bool = True,
+    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed", resolution_level: int = 1
 ) -> None:
     """
-    Generate a dataset of paired, aligned, brightfield images for finetuning a DiffAE model.
+    Generate a dataset of paired and aligned images for finetuning a DiffAE model.
 
     Parameters
     ----------
     dataset_pair_type
         Whether paired datasets are live/fixed or 20x/40x.
-    split
-        True to split the dataset into training and validation sets,
-        False to make a single CSV file.
+    resolution_level
+        The resolution level of the zarr files to be used for training.
 
     Returns
     -------
     :
-        Saves the dataset as a CSV file in the output directory.
-        The images will be saved as multi-channel TIFF files in the same directory.
+        Creates a DataframeManifest object with the DataframeLocation objects for the
+        training and validation datasets.
+
+        The aligned images are saved locally as multi-channel TIFF files.
     """
+    import logging
+
     import pandas as pd
     import tqdm
     from sklearn.model_selection import train_test_split
 
-    from src.endo_pipeline.io import get_output_path
-    from src.endo_pipeline.library.process.registration import (
+    from endo_pipeline import TESTING_MODE
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.model import build_and_save_dataframe_manifest_for_training
+    from endo_pipeline.library.process.registration import (
         align_and_save_paired_images,
         concat_and_save_aligned_image_pairs,
     )
 
-    save_path = get_output_path(
-        "finetune_paired_dataset", dataset_pair_type, include_timestamp=False
-    )
+    logger = logging.getLogger(__name__)
 
-    df = align_and_save_paired_images(dataset_pair_type, save_path)
+    save_path = get_output_path("finetune_paired_dataset", dataset_pair_type)
+    logger.info("Saving aligned images to [ %s ]", save_path)
+
+    df = align_and_save_paired_images(
+        dataset_pair_type, resolution_level, save_path, testing_mode=TESTING_MODE
+    )
 
     out_paths = [
         concat_and_save_aligned_image_pairs(row, save_path) for row in tqdm.tqdm(df.itertuples())
     ]
 
-    out_df = pd.DataFrame({"path": out_paths, "channel": ["0,1"] * len(out_paths)})
+    # build dataframe with loading metadata for the aligned images
+    # note that "resolution" here is set to 0, as the images
+    # are already aligned and saved at the desired resolution level
+    out_df = pd.DataFrame(
+        {
+            "path": out_paths,
+            "channel": [[0, 1]] * len(out_paths),
+        }
+    )
+    # need path to be a string to be able to write to parquet
+    out_df["path"] = out_df["path"].astype(str)
 
-    if split:
-        train, test = train_test_split(out_df, test_size=0.2, random_state=42)
-        train.to_csv(save_path / "train.csv", index=False)
-        test.to_csv(save_path / "val.csv", index=False)
-    else:
-        out_df.to_csv(save_path / "dataset.csv", index=False)
-    print(f"Saved dataset to {save_path}")
+    # Split the dataframe into training and validation sets
+    train_val_tuple: tuple[pd.DataFrame, pd.DataFrame] = train_test_split(
+        out_df, test_size=0.2, random_state=42
+    )
+    train, val = train_val_tuple
+
+    # Upload dataframes to FMS, then build and save out DataframeManifest
+    # object with FMS IDs to be used in the DiffAE model training script.
+    # Note that this can be swapped out with uploading to S3 later on.
+    manifest_name = f"diffae_finetuning_dataframe_resolution_{resolution_level}"
+    if TESTING_MODE:
+        manifest_name += "_test_workflow"
+    dataset_name_list = get_datasets_in_collection(f"{dataset_pair_type}_paired_datasets")
+    dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
+    build_and_save_dataframe_manifest_for_training(
+        train,
+        val,
+        resolution_level,
+        dataset_config_list,
+        save_path,
+        manifest_name,
+        "create_diffae_finetuning_dataframe",
+    )
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.__main__ import workflow_cli
+    from endo_pipeline.__main__ import workflow_cli
 
     workflow_cli(main)

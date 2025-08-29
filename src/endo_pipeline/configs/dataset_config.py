@@ -49,6 +49,26 @@ class FlowCondition:
 
 
 @dataclass
+class ChannelIndices:
+    """Indices of individual channels."""
+
+    brightfield: int
+    """Index of the brightfield channel."""
+
+    channel_488: int
+    """Index of the 488 channel."""
+
+    channel_405: int | None = None
+    """Index of the 405 channel."""
+
+    channel_561: int | None = None
+    """Index of the 561 channel."""
+
+    channel_640: int | None = None
+    """Index of the 640 channel."""
+
+
+@dataclass
 class DatasetConfig:
     """Dataset configuration for pipeline."""
 
@@ -97,29 +117,17 @@ class DatasetConfig:
     time_interval_in_minutes: float | None
     """Time interval between frames in minutes."""
 
-    flow: list
-    """Flow conditions for the dataset."""
-
     n_total_positions: int
     """Total number of positions captured."""
 
-    channel_488_index: int
-    """Index of the 488 channel."""
+    original_channel_indices: ChannelIndices
+    """Channel indices for original dataset."""
 
-    brightfield_channel_index: int
-    """Index of the brightfield channel."""
+    zarr_channel_indices: ChannelIndices
+    """Channel indices for dataset converted to Zarr format."""
 
-    flow_conditions: list[FlowCondition] = field(default_factory=list)
+    flow_conditions: list[FlowCondition]
     """List of flow conditions for the dataset."""
-
-    channel_405_index: int | None = None
-    """Index of the 405 channel."""
-
-    channel_561_index: int | None = None
-    """Index of the 561 channel."""
-
-    channel_640_index: int | None = None
-    """Index of the 640 channel."""
 
     valid_timepoints: ValidTimepoints | None = None
     """List of valid timepoint ranges. None if all timepoints are valid."""

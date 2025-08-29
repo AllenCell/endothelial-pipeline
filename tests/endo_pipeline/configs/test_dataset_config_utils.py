@@ -3,8 +3,8 @@ from pathlib import Path
 import bioio
 import pytest
 
-from src.endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
-from src.endo_pipeline.configs.dataset_config_utils import (
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, load_dataset_config
+from endo_pipeline.configs.dataset_config_utils import (
     get_available_channels_for_all_positions,
     get_available_channels_for_position,
     get_available_zarr_files,
@@ -16,7 +16,6 @@ from src.endo_pipeline.configs.dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
-    get_specific_channel_order,
     get_zarr_file_for_position,
     make_filtered_dataset_collection,
 )
@@ -40,10 +39,10 @@ def dataset():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
-        flow=[(0, 0, 0.0)],
+        flow_conditions=[],
         n_total_positions=0,
-        brightfield_channel_index=0,
-        channel_488_index=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
     )
 
 
@@ -143,30 +142,6 @@ def test_get_channel_indices_for_position(dataset, position, expected):
     indices = get_channel_indices_for_position(dataset, position, channel_names)
 
     assert indices == expected
-
-
-def test_get_specific_channel_order_no_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = 3
-    dataset.channel_561_index = 4
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, 3, 4, 5)
-
-
-def test_get_specific_channel_order_with_null_channels(dataset):
-    dataset.brightfield_channel_index = 1
-    dataset.channel_488_index = 2
-    dataset.channel_405_index = None
-    dataset.channel_561_index = None
-    dataset.channel_640_index = 5
-
-    channel_order = get_specific_channel_order(dataset)
-
-    assert channel_order == (2, 1, None, None, 5)
 
 
 def test_get_frame_before_flow_change_valid_flow_condition(dataset):

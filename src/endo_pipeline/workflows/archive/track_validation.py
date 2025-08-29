@@ -55,13 +55,11 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     from bioio import BioImage
     from skimage import measure
 
-    from src.endo_pipeline.configs.dataset_io import get_dataset_info
-    from src.endo_pipeline.io import load_segmentation
-    from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
-    from src.endo_pipeline.manifests import (
-        get_segmentation_location_for_dataset,
-        load_segmentation_manifest,
-    )
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs.dataset_io import get_dataset_info
+    from endo_pipeline.io import load_image
+    from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
+    from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
     # unpack needed variables
     dataset_name = dframe["dataset_name"].unique()[0]
@@ -74,8 +72,8 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
     raw_path = Path(get_dataset_info(dataset_name)["original_path"])
 
     # Load classic segmentation for position and timepoint
-    seg_manifest = load_segmentation_manifest("cdh5_classic")
-    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
+    seg_manifest = load_image_manifest("cdh5_classic_seg")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
 
     # NOTE: leaving this conditional as close to the original as possible, but
     # flagging that the "load_segmentation" method handles all of these checks
@@ -92,12 +90,13 @@ def generate_and_save_validation_images(dframe: pd.DataFrame) -> None:
         # print(f'- loading raw image {dataset_name} P{position} T{T}...')
         img = BioImage(raw_path)
         img.set_scene(scene_index)
-        cdh5_channel = int(get_dataset_info(dataset_name)["channel_488_index"])
+        dataset_config = load_dataset_config(dataset_name)
+        cdh5_channel = dataset_config.original_channel_indices.channel_488
         img_dask = img.get_image_dask_data(dim_order, T=T, C=cdh5_channel)
         img_arr = img_dask.max(axis=dim_map["Z"], keepdims=True).squeeze().compute()
 
         # print(f'- loading segmentation image {dataset_name} P{position} T{T}...')
-        seg_arr = load_segmentation(seg_location)
+        seg_arr = load_image(seg_location)
 
         # get the labels and crops around each segmented region
         props = measure.regionprops(label_image=seg_arr)
@@ -144,14 +143,14 @@ def main(
 
     from tqdm import tqdm
 
-    from cellsmap.util.set_output import get_output_path
-    from src.endo_pipeline.configs.dataset_io import (
+    from endo_pipeline.configs.dataset_io import (
         fire_parse_generate_dataset_name_list,
         get_tracking_data_filtered,
     )
-    from src.endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
+    from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
 
-    out_dir = Path(get_output_path(Path(__file__).stem, verbose=False))
+    out_dir = get_output_path(__file__)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
@@ -233,6 +232,6 @@ def main(
 
 
 if __name__ == "__main__":
-    from src.endo_pipeline.configs.dataset_io import ipython_cli_flexecute
+    from endo_pipeline.configs.dataset_io import ipython_cli_flexecute
 
     ipython_cli_flexecute(main)

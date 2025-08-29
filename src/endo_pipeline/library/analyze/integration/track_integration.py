@@ -7,27 +7,25 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
-from src.endo_pipeline.configs import load_dataset_collection_config
-from src.endo_pipeline.configs.dynamics_io import load_dynamics_config
-from src.endo_pipeline.io import load_dataframe
-from src.endo_pipeline.library.analyze.diffae_features import (
+from endo_pipeline.configs import load_dataset_collection_config
+from endo_pipeline.configs.dynamics_io import load_dynamics_config
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.diffae_features import (
     compute_extrapolated_vector_field,
     solve_ddff_ode,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest import (
+from endo_pipeline.library.analyze.diffae_manifest import (
     add_description_column,
     get_dataframe_for_dynamics_workflows,
     get_traj_and_diff,
     project_manifest_to_pcs,
 )
-from src.endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
-from src.endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
-from src.endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
-from src.endo_pipeline.library.analyze.optical_flow_calculator import (
-    one_direction_vector_field_example,
-)
-from src.endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from src.endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.library.analyze.diffae_manifest.manifest_pca import fit_pca
+from endo_pipeline.library.analyze.kramersmoyal.kramers_moyal import get_kramers_moyal
+from endo_pipeline.library.analyze.numerics.binning import get_3d_bounds_from_data, get_bins
+from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
+from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
 logger = logging.getLogger(__name__)
 

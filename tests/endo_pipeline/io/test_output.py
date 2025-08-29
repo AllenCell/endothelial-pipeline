@@ -2,12 +2,12 @@ import datetime
 
 import pytest
 
-from src.endo_pipeline.io.output import get_output_path
+from endo_pipeline.io.output import get_output_path
 
 
 @pytest.fixture
 def mock_output_dir(tmp_path, mocker):
-    output_dir_mock = mocker.patch("src.endo_pipeline.io.output.get_output_dir")
+    output_dir_mock = mocker.patch("endo_pipeline.io.output.get_output_dir")
     output_dir_mock.return_value = tmp_path
     yield tmp_path
 
@@ -15,7 +15,7 @@ def mock_output_dir(tmp_path, mocker):
 @pytest.fixture
 def mock_timestamp(mocker):
     timestamp = "2025-07-05"
-    datetime_mock = mocker.patch("src.endo_pipeline.io.output.datetime")
+    datetime_mock = mocker.patch("endo_pipeline.io.output.datetime")
     datetime_mock.datetime.now.return_value = datetime.datetime.strptime(timestamp, "%Y-%m-%d")
     yield timestamp
 

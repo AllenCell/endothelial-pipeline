@@ -436,9 +436,7 @@ def generate_alignment_plots(
     ## bins are set up to be every 5 degrees
     ax.hist(angles, bins=18, facecolor="k")
     ax.set_xlim(0, np.pi / 2)
-    ax.text(
-        x=np.deg2rad(-12), y=ax.get_rmax() / 2, s="Count", horizontalalignment="center"
-    )
+    ax.text(x=np.deg2rad(-12), y=ax.get_rmax() / 2, s="Count", horizontalalignment="center")
     ax.set_title(f"{timepoint:.3f} hours", loc="right")
     plt.tight_layout()
     if SAVE_OUTPUT:
@@ -460,9 +458,7 @@ def generate_alignment_plots(
     ax.set_title(f"{timepoint:.3f} hours", loc="right", c=color)
     plt.tight_layout()
     if SAVE_OUTPUT:
-        fig.savefig(
-            angles_vs_dists_path / (filename_stem + "_dists_vs_angles_polar.tif")
-        )
+        fig.savefig(angles_vs_dists_path / (filename_stem + "_dists_vs_angles_polar.tif"))
 
     angles_vs_dists_path = out_path / "angles_vs_dists"
     Path.mkdir(angles_vs_dists_path, parents=True, exist_ok=True)

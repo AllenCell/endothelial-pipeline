@@ -8,23 +8,23 @@ import pandas as pd
 import torch
 from cyto_dl.api import CytoDLModel
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
     get_available_zarr_files,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
-from src.endo_pipeline.io import (
+from endo_pipeline.io import (
     build_fms_annotations,
     get_output_path,
     load_dataframe,
     upload_file_to_fms,
 )
-from src.endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
-from src.endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
-from src.endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from src.endo_pipeline.manifests import (
+from endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
+from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from endo_pipeline.library.process.z_stack_selection import get_plane_indices
+from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_model_dir() -> Path:
-    """Get the path to `src.endo_pipeline.library.model`."""
+    """Get the path to `endo_pipeline.library.model`."""
     return Path(__file__).resolve().parent
 
 
@@ -107,7 +107,7 @@ def generate_overrides_for_model_eval(
         "data.train_dataloaders": None,
         "data.val_dataloaders": None,
         "data.predict_dataloaders.num_workers": num_workers,
-        "data.predict_dataloaders.dataset.csv_path": data_path,
+        "data.predict_dataloaders.dataset.dataframe_path": data_path,
         "paths.output_dir": save_path,
         # change checkpoint path to the one downloaded from mlflow
         "checkpoint.ckpt_path": ckpt_path,
@@ -196,10 +196,14 @@ def generate_overrides_for_track_based_crops(
 
 
 def add_diffae_model_eval_crop_columns(
-    df: pd.DataFrame, image_binning_level: int = 1
+    df: pd.DataFrame, diffae_resolution_level: int = 1, crop_size: int = 256
 ) -> pd.DataFrame:
     """
     Add columns to the dataframe for DiffAE model evaluation crops.
+    NOTE: The centroids, image sizes, and crop sizes are for the images
+    loaded at the native resolution (i.e. a resolution level of 0).
+    The resolution_level parameter will be used to downsample those values
+    prior to being passed along to the DiffAE model for evaluation.
 
     Parameters
     ----------
@@ -207,10 +211,10 @@ def add_diffae_model_eval_crop_columns(
         Dataframe to operate on. Requires the following columns:
         - centroid_X: x-coordinate of the centroid
         - centroid_Y: y-coordinate of the centroid
-        - crop_size: size of the crop (assumed to be square)
         - image_size_x: width of the image
         - image_size_y: height of the image
-    image_binning_level: level of binning to use for the crops (default is 1)
+    resolution_level: level of binning to use when loading the images
+    crop_size: size of the square crop to extract around each centroid
 
     Returns
     -------
@@ -224,25 +228,42 @@ def add_diffae_model_eval_crop_columns(
         - bbox_is_in_bounds: boolean indicating if the bounding box is within image bounds
 
     """
-    # convert centroids to bounding boxes and downsample
-    # by half to match currently used model binning level
-    # this is currently always 1
-    df = _centroid_to_bbox(df, image_binning_level)
+    # add the size of the crop used to get DiffAE features at full res
+    df["crop_size"] = crop_size
+
+    # convert centroids to bounding box coordinates and add them as columns
+    df["start_x"] = (df["centroid_X"] - df["crop_size"] / 2).astype(int)
+    df["start_y"] = (df["centroid_Y"] - df["crop_size"] / 2).astype(int)
+    df["end_x"] = (df["centroid_X"] + df["crop_size"] / 2).astype(int)
+    df["end_y"] = (df["centroid_Y"] + df["crop_size"] / 2).astype(int)
 
     # add a column indicating if the size of the bounding box does
     # not match the downsampled crop size (because the model expects
     # identically sized square crops)
+
     # check if bounding boxes fit in image bounds without being clipped
-    bbox_size_is_correct = _bbox_in_image_bounds(df, image_binning_level)
-    df["bbox_is_in_bounds"] = bbox_size_is_correct
-    df["diffae_img_bin_level_used"] = image_binning_level
+    df["bbox_is_in_bounds"] = bbox_in_image_bounds(df, diffae_resolution_level)
+
+    # Add column for the resolution level to load images at for DiffAE model:
+    # Note "resolution" below determines what resolution the images will
+    # be loaded at
+    # The "start" and "end" column values determine the crop locations
+    # at that resolution level
+    # Example: an image of size 2048x2048 at resolution level 0 is loaded at
+    # resolution level 1 and hterefore has a size of 1024x1024. A crop is taken
+    # in the top right corner of the image with a crop size of 256x256 at
+
+    # Note from Erin 8/21/25: this has updated now that we have resolution level 1
+    # zarr files, removed downsample transform from the model config
+    df["diffae_resolution_level_to_use"] = diffae_resolution_level
+
     return df
 
 
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
     save_dir: Path,
-    image_binning_level: int = 1,
+    # resolution_level: int = 1,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
@@ -251,6 +272,9 @@ def preprocess_tracking_manifest_for_model_eval(
     df = load_dataframe(location)
 
     # keep only rows that were not filtered out by filter_global
+    df = df[df["filter_global"]]
+
+    # filter the dataframe in-place to remove clipped bounding boxes
     df = df[df["bbox_is_in_bounds"]]
 
     # filter the dataframe to include only the relevant columns
@@ -259,19 +283,20 @@ def preprocess_tracking_manifest_for_model_eval(
         "image_index",
         "track_id",
         "label",
-        "centroid_X",
-        "centroid_Y",
+        "start_x",
+        "start_y",
+        "end_x",
+        "end_y",
         "image_size_x",
         "image_size_y",
         "crop_size",
     ]
     df = df[colums_to_keep]
 
-    # add the crop columns
-    df = add_diffae_model_eval_crop_columns(df, image_binning_level)
-
-    # filter the dataframe in-place to remove clipped bounding boxess
-    df = df[~df["bbox_size_is_clipped"]]
+    # NOTE: the DiffAE model eval crop columns will now be part of the
+    # loaded dataframe
+    # # Add columns for bounding boxes (i.e. crops) to pass along to DiffAE model
+    # df = add_diffae_model_eval_crop_columns(df, resolution_level)
 
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
@@ -288,12 +313,7 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = ZARR_BF_CHANNEL
-    # NOTE "resolution" below determines what resolution the images will
-    # be loaded at, and currently the model loads at native resolution
-    # and downsamples in the transforms; therefore this value must be 0
-    # The "start_" and "end_" columns above determine the crop locations
-    # after downsampling, thus they were adjusted by image_binning_level
-    grouped_df["resolution"] = 0
+
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
@@ -304,26 +324,12 @@ def preprocess_tracking_manifest_for_model_eval(
     return save_path
 
 
-def _centroid_to_bbox(df: pd.DataFrame, image_binning_level: int = 1) -> pd.DataFrame:
-    """
-    Convert centroids to bounding boxes.
-
-    Note: coordinates are downsampled by half (downsample_factor = 2)
-    to match current model resolution.
-    """
-    downsample_factor = 2**image_binning_level
-    df["start_x"] = ((df["centroid_X"] - df["crop_size"] / 2) / downsample_factor).astype(int)
-    df["start_y"] = ((df["centroid_Y"] - df["crop_size"] / 2) / downsample_factor).astype(int)
-    df["end_x"] = ((df["centroid_X"] + df["crop_size"] / 2) / downsample_factor).astype(int)
-    df["end_y"] = ((df["centroid_Y"] + df["crop_size"] / 2) / downsample_factor).astype(int)
-    return df
-
-
-def _bbox_in_image_bounds(df: pd.DataFrame, image_binning_level: int = 1) -> pd.Series:
+def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Series:
     # adjust the image size according to the desired downsample factor
-    downsample_factor = 2**image_binning_level
-    df["image_size_x"] = df["image_size_x"] // downsample_factor
-    df["image_size_y"] = df["image_size_y"] // downsample_factor
+    downsample_factor = 2**resolution_level
+    cols_to_downsample = ["image_size_x", "image_size_y", "start_x", "start_y", "end_x", "end_y"]
+    for col in cols_to_downsample:
+        df[col] = df[col] // downsample_factor
 
     # limit start and end of x and y bboxes to be within image size limits
     df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
@@ -401,16 +407,11 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def _get_zarr_dataframe_for_z_offsets(
+def _get_z_offset_information(
     dataset_config: DatasetConfig,
-    resolution_level: int,
     z_stack_offsets: tuple[int, int],
     slice_by_global_center: bool = True,
-    frame_start: int | None = None,
-    frame_stop: int | None = None,
-    frame_step: int | None = None,
-    only_positions: list[int] | None = None,
-) -> pd.DataFrame:
+) -> dict[int, dict[str, int]]:
     """
     Get a dataframe with zarr loading metadata when z-slice selection is based
     on the center slice for each position in the dataset.
@@ -420,7 +421,7 @@ def _get_zarr_dataframe_for_z_offsets(
     z_slice_by_position = None
     available_zarr_files = get_available_zarr_files(dataset_config)
     if z_stack_offsets is not None:
-        z_slice_by_position = []
+        z_slice_by_position = {}
         for zarr_file_path in available_zarr_files:
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
             position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
@@ -432,39 +433,12 @@ def _get_zarr_dataframe_for_z_offsets(
                 upper_offset=z_stack_offsets[1],
                 slice_by_global_center=slice_by_global_center,
             )
-            z_slice_by_position.append(z_slices)
+            z_slice_by_position[position_as_int] = {
+                "z_start": z_slices[0],
+                "z_stop": z_slices[-1],
+            }
 
-    # generate dataframe with zarr loading metadata
-    # for each position in the dataset
-    # done this way because z-stack offsets are generally position-specific
-    df_per_position = []
-    for i in range(len(available_zarr_files)):
-        if only_positions is not None and i not in only_positions:
-            continue
-        else:
-            # build dataframe for position
-            # and append it to the list
-            if only_positions is None:
-                only_position = [i]
-            else:
-                only_position = [only_positions[i]]
-            logger.debug("Building zarr dataframe for position [ %s ]", only_position[0])
-            df_per_position.append(
-                build_zarr_image_loading_dataframe(
-                    dataset_config,
-                    resolution_level=resolution_level,
-                    channel=ZARR_BF_CHANNEL,
-                    frame_start=frame_start,
-                    frame_stop=frame_stop,
-                    frame_step=frame_step,
-                    z_start=z_slice_by_position[i][0] if z_stack_offsets else None,
-                    z_stop=z_slice_by_position[i][-1] if z_stack_offsets else None,
-                    only_positions=only_position,
-                )
-            )
-    # concatenate dataframes for all positions
-    df = pd.concat(df_per_position, ignore_index=True)
-    return df
+    return z_slice_by_position
 
 
 def apply_model_on_grid_of_crops_from_one_dataset(
@@ -476,7 +450,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
     testing_mode: bool = False,
-) -> CytoDLModelConfig:
+) -> None:
     """
     Apply a DiffAE model to a single dataset.
 
@@ -531,6 +505,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
+    elif torch.cuda.device_count() < 1:
+        logger.error(
+            "CUDA available, but no GPU devices found. "
+            "Please set `CUDA_VISIBLE_DEVICES` to a valid GPU device "
+            "or run workflow with GPU setup enabled (-g flag)."
+        )
+        raise RuntimeError("CUDA available, but no GPU devices found.")
 
     # download model from mlflow
     mlflow_id = model_config.mlflow_run_id
@@ -564,7 +545,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         if slice_by_global_center:
             file_name = f"{file_name}_ctr"
 
-    file_name = f"{file_name}_{timestamp}.csv"
+    file_name = f"{file_name}_{timestamp}.parquet"
     dataset_save_path = save_path / file_name
 
     # default frame start and stop values are None, i.e., load all timepoints
@@ -597,33 +578,30 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         )
         logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
-        # get the dataframe with zarr loading metadata
-        df = _get_zarr_dataframe_for_z_offsets(
+        z_slice_by_position = _get_z_offset_information(
             dataset_config,
-            resolution_level=resolution_level,
             z_stack_offsets=z_stack_offsets,
             slice_by_global_center=slice_by_global_center,
-            frame_start=frame_start,
-            frame_stop=frame_stop,
-            frame_step=frame_step,
-            only_positions=only_positions,
         )
     else:
-        # if no z-stack offsets are provided, can get the dataframe
-        # directly from the build_zarr_image_loading_dataframe function
+        # if no z-stack offsets are provided, pass in None
+        # to the dataframe builder
         logger.debug("No z-stack offsets provided, loading all z-slices.")
-        df = build_zarr_image_loading_dataframe(
-            dataset_config,
-            resolution_level=resolution_level,
-            channel=ZARR_BF_CHANNEL,
-            frame_start=frame_start,
-            frame_stop=frame_stop,
-            frame_step=frame_step,
-            only_positions=only_positions,
-        )
+        z_slice_by_position = None
 
-    # save the dataframe to a CSV file
-    df.to_csv(dataset_save_path, index=False)
+    df = build_zarr_image_loading_dataframe(
+        dataset_config,
+        resolution_level=resolution_level,
+        channel=dataset_config.zarr_channel_indices.brightfield,
+        frame_start=frame_start,
+        frame_stop=frame_stop,
+        frame_step=frame_step,
+        z_slice_info_per_position=z_slice_by_position,
+        only_positions=only_positions,
+    )
+
+    # save the dataframe to a parquet file
+    df.to_parquet(dataset_save_path, index=False)
 
     # apply overrides
     prediction_filename_suffix = f"{dataset_config.name}_{model_config.name}_features_{timestamp}"
@@ -694,8 +672,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
         manifest.locations[dataset_config.name] = DataframeLocation(fmsid=file_id)
         save_dataframe_manifest(manifest)
-
-    return model_config
 
 
 def apply_model_on_tracked_crops_from_one_dataset(

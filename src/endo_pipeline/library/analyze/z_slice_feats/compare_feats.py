@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 
-from src.endo_pipeline.library.analyze.diffae_manifest import get_pc_column_names
-from src.endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
-from src.endo_pipeline.library.visualize import viz_base
+from endo_pipeline.library.analyze.diffae_manifest import get_pc_column_names
+from endo_pipeline.library.analyze.immunofluorescence.plot import bootstrap_confidence_cov
+from endo_pipeline.library.visualize import viz_base
 
 
 def calc_stats(df: pd.DataFrame, feature: str) -> tuple:

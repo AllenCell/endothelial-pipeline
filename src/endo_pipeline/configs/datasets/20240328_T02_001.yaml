@@ -13,17 +13,23 @@ shear_stress_regime: intermediate
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
-flow: [[0, 0, 13.5]]
 n_total_positions: 10
-channel_488_index: 5
-brightfield_channel_index: 2
+original_channel_indices:
+  brightfield: 2
+  channel_488: 5
+  channel_405: 1
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: 2
+  channel_561: null
+  channel_640: null
 flow_conditions:
 - start: -288
   stop: 0
   shear_stress: 13.5
-channel_405_index: 1
-channel_561_index: null
-channel_640_index: null
 valid_timepoints: null
 include_scenes: [0, 1, 2, 4]
 notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours

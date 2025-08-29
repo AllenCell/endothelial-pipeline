@@ -27,8 +27,8 @@ from skimage.segmentation import (
     watershed,
 )
 
-from src.endo_pipeline.configs.dataset_io import extract_T
-from src.endo_pipeline.library.process.general_image_preprocessing import get_dim_map
+from endo_pipeline.configs.dataset_io import extract_T
+from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
 def preprocess(

@@ -2,21 +2,18 @@ from pathlib import Path
 
 import pytest
 
-from src.endo_pipeline.configs import DatasetConfig
-from src.endo_pipeline.manifests.segmentation_manifest import (
-    SegmentationLocation,
-    SegmentationManifest,
-)
-from src.endo_pipeline.manifests.segmentation_manifest_utils import (
-    get_segmentation_location_for_dataset,
-    list_datasets_with_segmentations,
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition
+from endo_pipeline.manifests.image_manifest import ImageLocation, ImageManifest
+from endo_pipeline.manifests.image_manifest_utils import (
+    get_image_location_for_dataset,
+    list_datasets_with_images,
 )
 
 
 @pytest.fixture
 def manifest():
-    return SegmentationManifest(
-        name="unique_segmentation_manifest_name",
+    return ImageManifest(
+        name="unique_image_manifest_name",
         workflow="workflow_name",
         locations={},
     )
@@ -40,10 +37,10 @@ def dataset_config():
         pixel_size_xy_in_um=0.0,
         duration=0,
         time_interval_in_minutes=0.0,
-        flow=[],
+        flow_conditions=[],
         n_total_positions=0,
-        brightfield_channel_index=0,
-        channel_488_index=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
     )
 
 
@@ -51,33 +48,33 @@ def dataset_config():
 def mock_load_dataset_config(mocker):
     def _mocker(dataset_config):
         config_mock = mocker.patch(
-            "src.endo_pipeline.manifests.segmentation_manifest_utils.load_dataset_config"
+            "endo_pipeline.manifests.image_manifest_utils.load_dataset_config"
         )
         config_mock.return_value = dataset_config
 
     return _mocker
 
 
-def test_list_datasets_with_segmentations_with_valid_locations(manifest):
+def test_list_datasets_with_images_with_valid_locations(manifest):
     manifest.locations = {
-        "dataset_one": SegmentationLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
-        "dataset_two": SegmentationLocation(path=Path("/path/to/dataset_two/seg.ome.tiff")),
-        "dataset_three": SegmentationLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
+        "dataset_one": ImageLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
+        "dataset_two": ImageLocation(path=Path("/path/to/dataset_two/seg.ome.tiff")),
+        "dataset_three": ImageLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
     }
 
-    datasets = list_datasets_with_segmentations(manifest)
+    datasets = list_datasets_with_images(manifest)
 
     assert datasets == ["dataset_one", "dataset_two", "dataset_three"]
 
 
-def test_list_datasets_with_segmentations_with_invalid_location(manifest):
+def test_list_datasets_with_images_with_invalid_location(manifest):
     manifest.locations = {
-        "dataset_one": SegmentationLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
-        "dataset_two": SegmentationLocation(),
-        "dataset_three": SegmentationLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
+        "dataset_one": ImageLocation(path=Path("/path/to/dataset_one/seg.ome.tiff")),
+        "dataset_two": ImageLocation(),
+        "dataset_three": ImageLocation(path=Path("/path/to/dataset_three/seg.ome.tiff")),
     }
 
-    datasets = list_datasets_with_segmentations(manifest)
+    datasets = list_datasets_with_images(manifest)
 
     assert datasets == ["dataset_one", "dataset_three"]
 
@@ -129,7 +126,7 @@ def test_list_datasets_with_segmentations_with_invalid_location(manifest):
         ),
     ],
 )
-def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
+def test_get_image_location_for_dataset_valid_dataset_valid_arguments(
     mock_load_dataset_config,
     dataset_config,
     manifest,
@@ -144,9 +141,9 @@ def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
     dataset_config.duration = 10
 
     mock_load_dataset_config(dataset_config)
-    manifest.locations[dataset_name] = SegmentationLocation(path=manifest_path)
+    manifest.locations[dataset_name] = ImageLocation(path=manifest_path)
 
-    location = get_segmentation_location_for_dataset(manifest, dataset_name, position, timepoint)
+    location = get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
 
     assert location.path.as_posix() == expected_path
 
@@ -186,7 +183,7 @@ def test_get_segmentation_location_for_dataset_valid_dataset_valid_arguments(
         ),
     ],
 )
-def test_get_segmentation_location_for_dataset_valid_dataset_invalid_arguments(
+def test_get_image_location_for_dataset_valid_dataset_invalid_arguments(
     mock_load_dataset_config,
     dataset_config,
     manifest,
@@ -200,13 +197,13 @@ def test_get_segmentation_location_for_dataset_valid_dataset_invalid_arguments(
     dataset_config.duration = 10
 
     mock_load_dataset_config(dataset_config)
-    manifest.locations[dataset_name] = SegmentationLocation(path=manifest_path)
+    manifest.locations[dataset_name] = ImageLocation(path=manifest_path)
 
     with pytest.raises(ValueError):
-        get_segmentation_location_for_dataset(manifest, dataset_name, position, timepoint)
+        get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
 
 
-def test_get_segmentation_location_for_dataset_valid_dataset_no_path(
+def test_get_image_location_for_dataset_valid_dataset_no_path(
     mock_load_dataset_config, dataset_config, manifest
 ):
     dataset_config.name = "no_seg_path"
@@ -214,13 +211,13 @@ def test_get_segmentation_location_for_dataset_valid_dataset_no_path(
     dataset_config.duration = 10
 
     mock_load_dataset_config(dataset_config)
-    manifest.locations[dataset_config.name] = SegmentationLocation()
+    manifest.locations[dataset_config.name] = ImageLocation()
 
-    location = get_segmentation_location_for_dataset(manifest, dataset_config.name, 10, 10)
+    location = get_image_location_for_dataset(manifest, dataset_config.name, 10, 10)
 
     assert location.path is None
 
 
-def test_get_segmentation_location_for_dataset_invalid_dataset(manifest):
+def test_get_image_location_for_dataset_invalid_dataset(manifest):
     with pytest.raises(KeyError):
-        get_segmentation_location_for_dataset(manifest, "invalid_dataset")
+        get_image_location_for_dataset(manifest, "invalid_dataset")

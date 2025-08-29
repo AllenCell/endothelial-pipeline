@@ -8,30 +8,23 @@ from .dataframe_manifest_utils import (
     get_dataframe_location_for_dataset,
     list_datasets_with_dataframes,
 )
-from .segmentation_manifest import SegmentationLocation, SegmentationManifest
-from .segmentation_manifest_io import (
-    get_segmentation_manifest_dir,
-    load_segmentation_manifest,
-    save_segmentation_manifest,
-)
-from .segmentation_manifest_utils import (
-    get_segmentation_location_for_dataset,
-    list_datasets_with_segmentations,
-)
+from .image_manifest import ImageLocation, ImageManifest
+from .image_manifest_io import get_image_manifest_dir, load_image_manifest, save_image_manifest
+from .image_manifest_utils import get_image_location_for_dataset, list_datasets_with_images
 
 __all__ = [
     "DataframeLocation",
     "DataframeManifest",
-    "SegmentationLocation",
-    "SegmentationManifest",
+    "ImageLocation",
+    "ImageManifest",
     "get_dataframe_location_for_dataset",
     "get_dataframe_manifest_dir",
-    "get_segmentation_location_for_dataset",
-    "get_segmentation_manifest_dir",
+    "get_image_location_for_dataset",
+    "get_image_manifest_dir",
     "list_datasets_with_dataframes",
-    "list_datasets_with_segmentations",
+    "list_datasets_with_images",
     "load_dataframe_manifest",
-    "load_segmentation_manifest",
+    "load_image_manifest",
     "save_dataframe_manifest",
-    "save_segmentation_manifest",
+    "save_image_manifest",
 ]

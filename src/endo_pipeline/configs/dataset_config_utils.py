@@ -4,7 +4,7 @@ import logging
 import re
 from pathlib import Path
 
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
     MicroscopeType,
@@ -110,20 +110,6 @@ def get_channel_indices_for_position(
         available_channels.index(channel) if channel in available_channels else None
         for channel in channel_names
     ]
-
-
-def get_specific_channel_order(
-    dataset: DatasetConfig,
-) -> tuple[int | None, int, int | None, int | None, int | None]:
-    """Get the specific channel order for given dataset."""
-
-    return (
-        dataset.channel_488_index,
-        dataset.brightfield_channel_index,
-        dataset.channel_405_index,
-        dataset.channel_561_index,
-        dataset.channel_640_index,
-    )
 
 
 def get_frame_before_flow_change(dataset: DatasetConfig) -> int | None:

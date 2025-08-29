@@ -1,23 +1,23 @@
 # %%
-from src.endo_pipeline.configs import (
+from endo_pipeline.configs import (
     get_datasets_in_collection,
     get_zarr_file_for_position,
     load_dataset_config,
 )
-from src.endo_pipeline.io import load_zarr_as_dask_array
-from src.endo_pipeline.io.output import get_output_path
-from src.endo_pipeline.library.process.z_stack_selection import (
+from endo_pipeline.io import load_zarr_as_dask_array
+from endo_pipeline.io.output import get_output_path
+from endo_pipeline.library.process.z_stack_selection import (
     append_projection_outputs,
     get_center_plane_for_position,
     plot_bottom_top_slices,
     plot_image_row,
     save_projection_image,
 )
-from src.endo_pipeline.library.visualize.model_inputs.image_processing_steps import (
+from endo_pipeline.library.visualize.model_inputs.image_processing_steps import (
     process_brightfield,
     process_cdh5,
 )
-from src.endo_pipeline.library.visualize.model_inputs.plot import visualize_images_with_histograms
+from endo_pipeline.library.visualize.model_inputs.plot import visualize_images_with_histograms
 
 # %%
 POSITION = 0

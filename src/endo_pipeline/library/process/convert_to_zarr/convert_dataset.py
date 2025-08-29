@@ -1,17 +1,17 @@
 from bioio import BioImage
 
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs.dataset_io import (
     get_fmsid,
     get_microscope,
     get_original_path,
     get_time_interval_in_minutes,
     get_total_number_of_positions,
 )
-from src.endo_pipeline.library.process.convert_to_zarr.load_raw_image_data import (
+from endo_pipeline.library.process.convert_to_zarr.load_raw_image_data import (
     get_delayed_array_for_position,
     get_included_scenes,
 )
-from src.endo_pipeline.library.process.convert_to_zarr.write_zarr import (
+from endo_pipeline.library.process.convert_to_zarr.write_zarr import (
     get_sldy_pixel_sizes,
     write_scene,
 )

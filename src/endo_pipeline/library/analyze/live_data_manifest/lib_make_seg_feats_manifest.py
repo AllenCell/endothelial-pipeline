@@ -14,18 +14,15 @@ from scipy.ndimage import gaussian_filter1d
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from src.endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
-from src.endo_pipeline.io import get_output_path
-from src.endo_pipeline.io.input import load_segmentation
-from src.endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
+from endo_pipeline.io import get_output_path
+from endo_pipeline.io.input import load_image
+from endo_pipeline.library.model.apply_model import add_diffae_model_eval_crop_columns
+from endo_pipeline.library.process.general_image_preprocessing import (
     get_default_dim_order,
     sequence_to_scalar,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -387,8 +384,8 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         new_cols[(ds_nm, pos)] = {
             "image_size_x": image_size_x,
             "image_size_y": image_size_y,
-            "EGFP_channel_index_zarr": data_config.channel_488_index,
-            "brightfield_channel_index_zarr": data_config.brightfield_channel_index,
+            "EGFP_channel_index_zarr": data_config.zarr_channel_indices.channel_488,
+            "brightfield_channel_index_zarr": data_config.zarr_channel_indices.brightfield,
         }
     big_table = big_table.merge(
         big_table.groupby(["dataset_name", "position"])
@@ -431,10 +428,6 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     )
     big_table["nuc_pos_rel_cell_angle_deg"] = np.rad2deg(big_table["nuc_pos_rel_cell_angle"])
 
-    # add the size of the crop used to get DiffAE features at full res
-    crop_size = 256
-    big_table["crop_size"] = crop_size
-
     # add the DiffAE crop locations and binning level; these can be used to load
     # a crop from the zarr files and compute the number of nuclei in that crop
     big_table = add_diffae_model_eval_crop_columns(big_table)
@@ -456,7 +449,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         "end_y",
         "start_x",
         "end_x",
-        "diffae_img_bin_level_used",
+        "diffae_resolution_level_to_use",
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
         big_table[required_columns], use_precomputed=False
@@ -624,11 +617,9 @@ def get_nuclei_rel_to_cell_position(
 
 def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     dataset = load_dataset_config(dataset_name)
-    manifest = load_segmentation_manifest("cdh5_classic")
+    manifest = load_image_manifest("cdh5_classic_seg")
     return {
-        timepoint: get_segmentation_location_for_dataset(
-            manifest, dataset_name, position, timepoint
-        )
+        timepoint: get_image_location_for_dataset(manifest, dataset_name, position, timepoint)
         for timepoint in range(dataset.duration)
     }
 
@@ -646,14 +637,14 @@ def adjust_crop_bounds_to_0th_bin_level(
     ----------
     merged_feats_df : pd.DataFrame
         The DataFrame containing crop bound columns in the form of
-        (starty, end_y, start_x, end_x) and a column "diffae_img_bin_level_used"
+        (starty, end_y, start_x, end_x) and a column "diffae_resolution_level_to_use"
     Returns
     -------
     pd.DataFrame
         The DataFrame with the crop bounds adjusted to the 0th level of resolution.
     """
     # adjust the crop bounds to the 0th level of resolution
-    sampling_factor = 2 ** merged_feats_df["diffae_img_bin_level_used"]
+    sampling_factor = 2 ** merged_feats_df["diffae_resolution_level_to_use"]
 
     merged_feats_df["start_y_native"] = (merged_feats_df["start_y"] * sampling_factor).astype(int)
     merged_feats_df["end_y_native"] = (merged_feats_df["end_y"] * sampling_factor).astype(int)
@@ -826,14 +817,14 @@ def compute_nuclei_centroids(
 
     # get the nuclei prediction
     dim_order = get_default_dim_order()
-    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
-    seg_location = get_segmentation_location_for_dataset(
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_location = get_image_location_for_dataset(
         manifest=seg_manifest,
         dataset_name=dataset_name,
         position=position,
         timepoint=timeframe,
     )
-    nuc_seg = load_segmentation(seg_location, squeezed=False)
+    nuc_seg = load_image(seg_location, squeeze=False)
 
     # get nuclei segmentation properties and dimension order of those properties
     props = regionprops(nuc_seg.squeeze())
@@ -906,8 +897,6 @@ def add_num_nuclei_in_crop_column(
     - "dataset_name": the name of the dataset to analyze
     - "position": the position in the dataset to analyze
     - "image_index": the timeframe in the dataset to analyze
-    - "coords_Y": the Y coordinates of the nuclei centroids
-    - "coords_X": the X coordinates of the nuclei centroids
     - "start_y": the start Y coordinate of the crop
     - "end_y": the end Y coordinate of the crop
     - "start_x": the start X coordinate of the crop

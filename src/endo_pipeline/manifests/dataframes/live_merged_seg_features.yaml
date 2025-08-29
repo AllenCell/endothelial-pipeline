@@ -2,9 +2,6 @@ name: live_merged_seg_features
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20241016_20X:
-    fmsid: d0d7a565c7bf470c9c277737e9d04b40
-    s3uri: null
   20241120_20X:
     fmsid: 7c266f320c204103964846f70f30ac72
     s3uri: null

@@ -5,28 +5,24 @@ from bioio import BioImage
 from skimage.segmentation import find_boundaries
 from tqdm import tqdm
 
-from cellsmap.util.set_output import get_output_path
-from src.endo_pipeline.configs.dataset_io import (
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs.dataset_io import (
     fire_parse_generate_dataset_name_list,
-    get_dataset_info,
     get_original_path,
     get_zarr_name,
     get_zarr_path,
     ipython_cli_flexecute,
     load_dataset_position_as_dask_array,
 )
-from src.endo_pipeline.io import load_segmentation
-from src.endo_pipeline.library.process import cdh5_preprocessing as preproc
-from src.endo_pipeline.library.process.general_image_preprocessing import (
+from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.library.process import cdh5_preprocessing as preproc
+from endo_pipeline.library.process.general_image_preprocessing import (
     build_analysis_queue,
     get_default_dim_order,
     get_dim_map,
     save_image_output,
 )
-from src.endo_pipeline.manifests import (
-    get_segmentation_location_for_dataset,
-    load_segmentation_manifest,
-)
+from endo_pipeline.manifests import get_image_location_for_dataset, load_image_manifest
 
 
 def generate_results_multiproc_wrapper(args: dict) -> None:
@@ -82,7 +78,9 @@ def generate_results(
         original_path = Path(get_original_path(dataset_name))
         img_path = original_path
         img = BioImage(img_path)
-        egfp_index = get_dataset_info(dataset_name)["channel_488_index"]
+        dataset_config = load_dataset_config(dataset_name)
+        egfp_index = dataset_config.original_channel_indices.channel_488
+
         if scene_index is not None or scene_name is not None:
             scene = scene_index or scene_name or 0  #  the "or 0" is here to silence mypy
             img.set_scene(scene)
@@ -119,9 +117,9 @@ def generate_results(
     )
 
     print(f"T={T} -- loading nuclei segmentations") if verbose else None
-    seg_manifest = load_segmentation_manifest("nuclear_labelfree")
-    seg_location = get_segmentation_location_for_dataset(seg_manifest, dataset_name, position, T)
-    nuc_pred = load_segmentation(seg_location)
+    seg_manifest = load_image_manifest("nuclear_labelfree_seg")
+    seg_location = get_image_location_for_dataset(seg_manifest, dataset_name, position, T)
+    nuc_pred = load_image(seg_location)
 
     (
         print(f"T={T} -- splitting RAG-based segmentations using nuclei predictions")
@@ -221,7 +219,7 @@ def main(
     verbose: bool = False,
 ) -> None:
 
-    out_dir = get_output_path(Path(__file__).stem, verbose=False)
+    out_dir = get_output_path(__file__)
 
     dataset_name_list = fire_parse_generate_dataset_name_list(dataset_name)
 
