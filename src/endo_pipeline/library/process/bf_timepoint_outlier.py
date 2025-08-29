@@ -7,10 +7,17 @@ from endo_pipeline.configs import DatasetConfig, get_available_zarr_files
 from endo_pipeline.io.input import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 
-THRESHOLD1 = 0.004  # Percentage to use for thresholding
-THRESHOLD2 = 0.01  # Percentage to use for thresholding
-ROLLING_WINDOW = 100  # Size of the rolling window for mean calculation (4 timepoints)
-NUM_ZSLICES = 25  # Number of z-slices per timepoint
+THRESHOLD1 = 0.004
+"""Percentage to use for thresholding partial dark outliers."""
+
+THRESHOLD2 = 0.01
+"""Percentage to use for thresholding dark and bright outliers."""
+
+ROLLING_WINDOW = 100
+"""Number of z-slices per to use for rolling window calculation (4 timepoints)."""
+
+NUM_ZSLICES = 25
+"""Number of z-slices per timepoint."""
 
 
 def plot_outliers(
@@ -53,10 +60,6 @@ def plot_outliers(
         The position identifier within the dataset, used for labeling the plot.
     num_zslices:
         The number of z-slices per timepoint (default is NUM_ZSLICES).
-
-    Returns
-    -------
-    None
     """
     fig, ax = plt.subplots(figsize=(12, 10))
     ax.plot(data_np, label="Intensity", color="black", alpha=0.5)
@@ -174,8 +177,7 @@ def detect_outliers(
     - `bf_temp_artifact`: Sorted list of timepoints with dark or bright outliers.
     """
     zarr_files = get_available_zarr_files(dataset_config)
-    bf_zarr = load_zarr_as_dask_array(zarr_files[position], channels=["BF"], level=1)
-    bf_zarr.squeeze()  # shape = (timepoints, z, x, y)
+    bf_zarr = load_zarr_as_dask_array(zarr_files[position], channels=["BF"], level=1, squeeze=True)
 
     # 1 Compute mean intensity over x/y axes
     intensity_array = bf_zarr.mean(axis=(-2, -1))
