@@ -64,26 +64,18 @@ def main(
         DataframeManifest with DatasetLocation objects containing the FMS IDs of
         the uploaded files.
     """
-    import logging
 
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
     from endo_pipeline import TESTING_MODE
-    from endo_pipeline.configs import (
-        get_annotated_positions,
-        get_annotated_timepoints_for_position,
-        load_dataset_collection_config,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
         parse_dataset_annotations_for_image_loading,
     )
-
-    logger = logging.getLogger(__name__)
 
     output_savedir = get_output_path("dataframes")
 
@@ -101,7 +93,7 @@ def main(
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
         z_slice_per_position, only_include_positions, exclude_frames = (
-            parse_dataset_annotations_for_image_loading(  # noqa: E501
+            parse_dataset_annotations_for_image_loading(
                 dataset_config, z_stack_offsets, slice_by_global_center
             )
         )
