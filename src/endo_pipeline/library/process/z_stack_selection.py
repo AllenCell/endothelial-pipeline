@@ -85,7 +85,7 @@ def get_plane_indices(
         A list of plane indices within the specified range, constrained between 0 and 24.
     """
     if slice_by_global_center:
-        global_center_plane = get_center_plane_for_position(dataset_config, position)
+        global_center_plane = dataset_config.center_z_plane[position]
         lower_bound = max(0, global_center_plane - lower_offset)
         upper_bound = min(24, global_center_plane + upper_offset)
     else:
