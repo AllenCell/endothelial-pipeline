@@ -61,7 +61,7 @@ def merge_measured_segmentation_features_tables(
         "cell_perimeter (px)",
         "touches_border",
     ]
-    big_table.drop(columns=duplicate_cols, inplace=True)
+    big_table = big_table.drop(columns=duplicate_cols)
 
     return big_table
 
@@ -624,35 +624,6 @@ def get_segmentation_path_dict(dataset_name: str, position: int) -> dict:
     }
 
 
-def adjust_crop_bounds_to_0th_bin_level(
-    merged_feats_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Adjust the crop bounds to the 0th level of resolution for the imaging data.
-    Context: the start_y, end_y, start_x, end_x columns that are used to define
-    a crop in the merged_feats_df DataFrame are recorded for the image at bin
-    level 1 since that is what the DiffAE model was learning at the time.
-
-    Parameters
-    ----------
-    merged_feats_df : pd.DataFrame
-        The DataFrame containing crop bound columns in the form of
-        (starty, end_y, start_x, end_x) and a column "diffae_resolution_level_to_use"
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame with the crop bounds adjusted to the 0th level of resolution.
-    """
-    # adjust the crop bounds to the 0th level of resolution
-    sampling_factor = 2 ** merged_feats_df["diffae_resolution_level_to_use"]
-
-    merged_feats_df["start_y_native"] = (merged_feats_df["start_y"] * sampling_factor).astype(int)
-    merged_feats_df["end_y_native"] = (merged_feats_df["end_y"] * sampling_factor).astype(int)
-    merged_feats_df["start_x_native"] = (merged_feats_df["start_x"] * sampling_factor).astype(int)
-    merged_feats_df["end_x_native"] = (merged_feats_df["end_x"] * sampling_factor).astype(int)
-    return merged_feats_df
-
-
 def get_nuclei_coords(
     props: regionprops,  # type:ignore
     props_dim_order: str,
@@ -905,10 +876,6 @@ def add_num_nuclei_in_crop_column(
     nuclei coordinates to a file locally so that it does not have to
     be computed each time this function is called.
     """
-    # adjust the crop coordinates back to the native resolution since
-    # the label-free nuclei predictions are saved at that resolution
-    merged_feats_df = adjust_crop_bounds_to_0th_bin_level(merged_feats_df)
-
     # get the nuclei coordinates
     nuclei_centroids_dir = get_output_path(__file__, "nuclei_coords", include_timestamp=False)
     dataset_name = sequence_to_scalar(merged_feats_df["dataset_name"])
@@ -960,15 +927,14 @@ def add_num_nuclei_in_crop_column(
         num_nuc_centroids = get_num_unique_values_in_bounds_from_df(
             nuclei_coords_Y=np.stack(list(df["coords_Y"])),
             nuclei_coords_X=np.stack(list(df["coords_X"])),
-            crop_bounds_Y=(df["start_y_native"], df["end_y_native"]),
-            crop_bounds_X=(df["start_x_native"], df["end_x_native"]),
+            crop_bounds_Y=(df["start_y"], df["end_y"]),
+            crop_bounds_X=(df["start_x"], df["end_x"]),
         )
         num_nuclei_in_crop.append(pd.Series(num_nuc_centroids, index=df.index))
 
     merged_feats_df["num_nuclei_in_crop"] = pd.concat(
         num_nuclei_in_crop, axis=0, ignore_index=False
     )
-    merged_feats_df = merged_feats_df.drop(
-        columns=["coords_Y", "coords_X"]
-    )  # drop the coordinates since they are not needed anymore
+    # drop the nuclei coordinates lists since they are not needed anymore
+    merged_feats_df = merged_feats_df.drop(columns=["coords_Y", "coords_X"])
     return merged_feats_df

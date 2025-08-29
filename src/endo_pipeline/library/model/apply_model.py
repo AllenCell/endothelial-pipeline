@@ -23,6 +23,7 @@ from endo_pipeline.io import (
 )
 from endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
+from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.manifests import (
     DataframeLocation,
@@ -202,8 +203,24 @@ def add_diffae_model_eval_crop_columns(
     Add columns to the dataframe for DiffAE model evaluation crops.
     NOTE: The centroids, image sizes, and crop sizes are for the images
     loaded at the native resolution (i.e. a resolution level of 0).
-    The resolution_level parameter will be used to downsample those values
+    The diffae_resolution_level parameter will be used to downsample those values
     prior to being passed along to the DiffAE model for evaluation.
+    The diffae_resolution_level parameter will also be passed along to the model
+    and used to load the images at the appropriate resolution level.
+    The "start" and "end" columns returned by this function will determine the
+    crop locations at the same resolution as the centroids.
+
+    Example: The dataframe has centroids from an image of size 2048x2048 at
+    resolution level 0 and diffae_resolution_level=1 and crop_size=256.
+    A crop with size 256x256 is taken around the centroid coordinates and
+    returned under the start_x, start_y, end_x, and end_y columns.
+    These start and end columns are later downsampled by diffae_resolution_level=1
+    (-> 2**1 = downsample factor of 2), resulting in crops of size 128x128.
+    The diffae_resolution_level=1, and downsampled start_x, start_y, end_x, and end_y
+    columns are passed along to the DiffAE model for evaluation.
+    The DiffAE model loads images at resolution level 1 (therefore a size of 1024x1024)
+    and extracts each crop according to the start_x, start_y, end_x, end_y columns
+    (therefore each crop has a size of 128x128).
 
     Parameters
     ----------
@@ -226,7 +243,6 @@ def add_diffae_model_eval_crop_columns(
         - end_x: x-coordinate of the bottom-right corner of the crop
         - end_y: y-coordinate of the bottom-right corner of the crop
         - bbox_is_in_bounds: boolean indicating if the bounding box is within image bounds
-
     """
     # add the size of the crop used to get DiffAE features at full res
     df["crop_size"] = crop_size
@@ -240,19 +256,10 @@ def add_diffae_model_eval_crop_columns(
     # add a column indicating if the size of the bounding box does
     # not match the downsampled crop size (because the model expects
     # identically sized square crops)
-
     # check if bounding boxes fit in image bounds without being clipped
     df["bbox_is_in_bounds"] = bbox_in_image_bounds(df, diffae_resolution_level)
 
     # Add column for the resolution level to load images at for DiffAE model:
-    # Note "resolution" below determines what resolution the images will
-    # be loaded at
-    # The "start" and "end" column values determine the crop locations
-    # at that resolution level
-    # Example: an image of size 2048x2048 at resolution level 0 is loaded at
-    # resolution level 1 and hterefore has a size of 1024x1024. A crop is taken
-    # in the top right corner of the image with a crop size of 256x256 at
-
     # Note from Erin 8/21/25: this has updated now that we have resolution level 1
     # zarr files, removed downsample transform from the model config
     df["diffae_resolution_level_to_use"] = diffae_resolution_level
@@ -272,13 +279,13 @@ def preprocess_tracking_manifest_for_model_eval(
     df = load_dataframe(location)
 
     # keep only rows that were not filtered out by filter_global
-    df = df[df["filter_global"]]
+    df = df[~df["filter_global"]]
 
     # filter the dataframe in-place to remove clipped bounding boxes
     df = df[df["bbox_is_in_bounds"]]
 
     # filter the dataframe to include only the relevant columns
-    colums_to_keep = [
+    columns_to_keep = [
         "zarr_path",
         "image_index",
         "track_id",
@@ -290,14 +297,15 @@ def preprocess_tracking_manifest_for_model_eval(
         "image_size_x",
         "image_size_y",
         "crop_size",
+        "resolution_level_to_use_for_diffae",
     ]
-    df = df[colums_to_keep]
+    df = df[columns_to_keep]
 
-    # NOTE: the DiffAE model eval crop columns will now be part of the
-    # loaded dataframe
-    # # Add columns for bounding boxes (i.e. crops) to pass along to DiffAE model
-    # df = add_diffae_model_eval_crop_columns(df, resolution_level)
-
+    # Adjust the crop coordinates to be consistent with the resolution level
+    resolution = sequence_to_scalar(df["resolution_level_to_use_for_diffae"])
+    columns_to_downsample = ["start_x", "start_y", "end_x", "end_y"]
+    for col in columns_to_downsample:
+        df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
         df.groupby(["zarr_path", "image_index"])
@@ -313,6 +321,7 @@ def preprocess_tracking_manifest_for_model_eval(
         .reset_index()
     )
     grouped_df["channel"] = ZARR_BF_CHANNEL
+    grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
@@ -327,24 +336,34 @@ def preprocess_tracking_manifest_for_model_eval(
 def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Series:
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
-    cols_to_downsample = ["image_size_x", "image_size_y", "start_x", "start_y", "end_x", "end_y"]
+    cols_to_downsample = [
+        "image_size_x",
+        "image_size_y",
+        "start_x",
+        "start_y",
+        "end_x",
+        "end_y",
+        "crop_size",
+    ]
+    df_temp = df[cols_to_downsample].copy(deep=True)
     for col in cols_to_downsample:
-        df[col] = df[col] // downsample_factor
+        df_temp[col] = df[col] // downsample_factor
 
     # limit start and end of x and y bboxes to be within image size limits
-    df["start_x"] = df["start_x"].transform(lambda x: max(0, x))
-    df["start_y"] = df["start_y"].transform(lambda y: max(0, y))
-    df["end_x"] = df[["end_x", "image_size_x"]].min(axis=1)
-    df["end_y"] = df[["end_y", "image_size_y"]].min(axis=1)
+    df_temp["start_x"] = df_temp["start_x"].transform(lambda x: max(0, x))
+    df_temp["start_y"] = df_temp["start_y"].transform(lambda y: max(0, y))
+    df_temp["end_x"] = df_temp[["end_x", "image_size_x"]].min(axis=1)
+    df_temp["end_y"] = df_temp[["end_y", "image_size_y"]].min(axis=1)
 
     # filter the dataframe to exclude anything where the size of
     # the bounding box does not match the downsampled crop size
     # (because the model expects identically sized square crops)
-    bbox_size_y = df.end_y - df.start_y
-    bbox_size_x = df.end_x - df.start_x
-    bbox_size_is_correct = (bbox_size_y == (df["crop_size"] // downsample_factor)) & (
-        bbox_size_x == (df["crop_size"] // downsample_factor)
-    )  # ask if both x and y bbox dimensions equal downsampled crop size
+    bbox_size_y = df_temp.end_y - df_temp.start_y
+    bbox_size_x = df_temp.end_x - df_temp.start_x
+    # ask if both x and y bbox dimensions equal downsampled crop size
+    bbox_size_is_correct = (bbox_size_y == df_temp["crop_size"]) & (
+        bbox_size_x == df_temp["crop_size"]
+    )
     return bbox_size_is_correct
 
 

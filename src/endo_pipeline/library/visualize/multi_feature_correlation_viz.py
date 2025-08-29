@@ -26,7 +26,7 @@ from endo_pipeline.library.analyze.diffae_manifest.diffae_manifest_utils import 
 from endo_pipeline.library.analyze.integration.track_integration import (
     get_preprocessed_manifests_and_km_bounds,
 )
-from src.endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 
 
 def add_feature_scatter_plot(
@@ -506,7 +506,6 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df_ss = get_valid_subset(
             df=merged_feats_df,
             dataset_name=dataset_name,
-            verbose=False,
         )
 
         # keep only the columns that will be used
