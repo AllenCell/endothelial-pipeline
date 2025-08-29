@@ -405,7 +405,7 @@ def build_zarr_image_loading_dataframe(
     frame_start: int | None = None,
     frame_stop: int | None = None,
     frame_step: int | None = None,
-    z_slice_info_per_position: dict[int, dict[str, int]] | None = None,
+    z_slice_per_position: dict[int, dict[str, int]] | None = None,
     only_include_positions: list[int] | None = None,
     exclude_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
@@ -448,17 +448,17 @@ def build_zarr_image_loading_dataframe(
         df["exclude_frames"] = df["position_index"].apply(lambda x: exclude_frames.get(x, None))
 
     # if start and stop for loading z slices are specified, add to dataframe
-    if z_slice_info_per_position is not None:
+    if z_slice_per_position is not None:
         # get z info dict for each position index
         # unpack the start, stop, and step values from those dictionaries
         df["z_start"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(x, {}).get("z_start", 0)
+            lambda x: z_slice_per_position.get(x, {}).get("z_start", 0)
         )
         df["z_stop"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(x, {}).get("z_stop", -1)
+            lambda x: z_slice_per_position.get(x, {}).get("z_stop", -1)
         )
         df["z_step"] = df["position_index"].apply(
-            lambda x: z_slice_info_per_position.get(x, {}).get("z_step", 1)
+            lambda x: z_slice_per_position.get(x, {}).get("z_step", 1)
         )
 
     # remove temporary column with position index
