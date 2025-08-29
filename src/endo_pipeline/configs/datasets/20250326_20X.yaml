@@ -35,3 +35,33 @@ valid_timepoints:
   stop: [345]
 include_scenes: null
 notes: ''
+timepoint_annotations:
+  bf_scope_error:
+    0: [527]
+    1: [527]
+    2: [527]
+    3: [527]
+    4: [527]
+    5: [527]
+  auto_bf_scope_error:
+    0: [529, 531]
+    1: [8]
+    2: [529, 531]
+    3: [527]
+    4: [527, 529]
+    5: [527, 529, 544]
+  auto_bf_temp_artifact:
+    0: [531]
+    1: [531, 533]
+    2: []
+    3: [8]
+    4: [527, 529, 531]
+    5: [527, 529]
+position_annotations: null
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 11
+  4: 10
+  5: 10

@@ -33,3 +33,34 @@ flow_conditions:
 valid_timepoints: null
 include_scenes: null
 notes: cells become extremely crowded at end of video
+timepoint_annotations:
+  bf_temp_artifact:
+    0: [46, 495, 541]
+    1: [556]
+    2: []
+    3: []
+    4: [308]
+    5: [1]
+  auto_bf_scope_error:
+    0: [146, 208]
+    1: [56, 179, 210, 277, 288, 537, 546, 552, 556]
+    2: [235, 330, 346, 486, 512, 552]
+    3: [0, 191, 208, 544, 552, 559]
+    4: [554]
+    5: [1, 37, 80, 136, 495, 511, 554, 559]
+  auto_bf_temp_artifact:
+    0: [3, 100, 210, 495, 541]
+    1: [8, 96, 372, 511, 556, 560]
+    2: [7, 98, 515]
+    3: [0, 11, 167, 237, 266, 272, 555]
+    4: [1, 536, 559]
+    5: [1, 7, 399, 495, 541]
+position_annotations:
+  dust_artifact: [5]
+center_z_plane:
+  0: 11
+  1: 10
+  2: 10
+  3: 10
+  4: 10
+  5: 9
