@@ -35,3 +35,6 @@ valid_timepoints: null
 include_scenes: null
 notes: 48 hour timelapse flow was 5.6 but then slowly dropped to 3 did not keep 48
   hour timelapse
+timepoint_annotations: null
+position_annotations: null
+center_z_plane: null

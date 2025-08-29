@@ -21,6 +21,7 @@ from endo_pipeline.library.process.z_stack_selection import (
 )
 
 
+# %%
 def calculate_global_center_plane(
     dataset: str, position: int, config: Any, save_dir: Path
 ) -> dict[str, Any]:
@@ -45,14 +46,13 @@ def calculate_global_center_plane(
 
     return {
         "position": position,
-        "mean_center_plane": round(mean, 2),
-        "std_dev_center_plane": round(std_dev, 2),
+        "mean_center_plane": round(mean),
+        "std_dev_center_plane": round(std_dev),
     }
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-
+# %%
 if __name__ == "__main__":
     datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
     for dataset in datasets:
@@ -70,25 +70,25 @@ if __name__ == "__main__":
         results_df.to_csv(save_dir / f"{dataset}_global_center_plane.csv", index=False)
         logging.info(f"Results saved to: {save_dir / f'{dataset}_global_center_plane.csv'}")
 
-    # One example to show how slice selection for a specific dataset and position is done
-    dataset, position, frame = datasets[0], 0, 0
-    save_dir = get_output_path(__file__, dataset)
-    config = load_dataset_config(dataset)
+        # Visualize the center plane for the first position
+        position, frame = 0, 0
+        center_plane = results_df.loc[
+            results_df["position"] == position, "mean_center_plane"
+        ].values[0]
 
-    zarr_file = get_zarr_file_for_position(config, position)
-    bf_stack = load_zarr_as_dask_array(
-        zarr_file, channels=["BF"], timepoints=frame, level=1
-    ).squeeze()
-    cdh5_stack = load_zarr_as_dask_array(
-        zarr_file, channels=["EGFP"], timepoints=frame, level=1
-    ).squeeze()
+        zarr_file = get_zarr_file_for_position(config, position)
+        bf_stack = load_zarr_as_dask_array(
+            zarr_file, channels=["BF"], timepoints=frame, level=1
+        ).squeeze()
+        cdh5_stack = load_zarr_as_dask_array(
+            zarr_file, channels=["EGFP"], timepoints=frame, level=1
+        ).squeeze()
 
-    # Calculate center plane
+        visualize_slice_selection(
+            bf_stack, cdh5_stack, center_plane, 5, 10, dataset, position, frame, save_dir
+        )
+
+    # Visualize the standard deviations per slice for the first position
     stdevs = [plane.std().compute() for plane in bf_stack]
     center_plane = max(0, np.argmin(stdevs))
-
-    # Plot and visualize
     plot_standard_devs_per_slice(stdevs, center_plane, dataset, position, frame, save_dir)
-    visualize_slice_selection(
-        bf_stack, cdh5_stack, center_plane, 5, 5, dataset, position, frame, save_dir
-    )
