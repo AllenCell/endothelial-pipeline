@@ -401,7 +401,7 @@ class MultiDimImageDataset(CacheDataset):
         return img_data
 
 
-def get_z_offset_information(
+def _get_z_offset_information(
     dataset_config: DatasetConfig,
     z_stack_offsets: tuple[int, int],
     slice_by_global_center: bool = True,
@@ -474,7 +474,7 @@ def parse_dataset_annotations_for_image_loading(
             slice_by_global_center,
         )
 
-        z_slice_per_position = get_z_offset_information(
+        z_slice_per_position = _get_z_offset_information(
             dataset_config,
             z_stack_offsets=z_stack_offsets,
             slice_by_global_center=slice_by_global_center,
