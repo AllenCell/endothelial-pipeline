@@ -4,10 +4,25 @@ TAGS = ["diffae_model_finetuning"]
 
 
 def main(
-    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed", resolution_level: int = 1
+    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
+    resolution_level: int = 1,
+    z_stack_offsets: tuple[int] | None = None,
+    slice_by_global_center: bool = True,
 ) -> None:
     """
     Generate a dataset of paired and aligned images for finetuning a DiffAE model.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
 
     Parameters
     ----------
@@ -15,6 +30,12 @@ def main(
         Whether paired datasets are live/fixed or 20x/40x.
     resolution_level
         The resolution level of the zarr files to be used for training.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+
+
 
     Returns
     -------
@@ -45,7 +66,12 @@ def main(
     logger.info("Saving aligned images to [ %s ]", save_path)
 
     df = align_and_save_paired_images(
-        dataset_pair_type, resolution_level, save_path, testing_mode=TESTING_MODE
+        dataset_pair_type,
+        resolution_level,
+        z_stack_offsets,
+        slice_by_global_center,
+        save_path,
+        testing_mode=TESTING_MODE,
     )
 
     out_paths = [

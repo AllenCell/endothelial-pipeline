@@ -24,6 +24,9 @@ from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 
 logger = logging.getLogger(__name__)
 
+MIN_Z_BOUND = 0
+MAX_Z_BOUND = 24
+
 
 class BioIOImageLoaderd(Transform):
     """
@@ -403,8 +406,8 @@ class MultiDimImageDataset(CacheDataset):
 
 def _get_z_offset_information(
     dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int, int],
-    slice_by_global_center: bool = True,
+    z_stack_offsets: tuple[int, int] | None,
+    slice_by_global_center: bool,
 ) -> dict[int, dict[str, int]]:
     """
     Get a dataframe with zarr loading metadata when z-slice selection is based
@@ -412,7 +415,7 @@ def _get_z_offset_information(
     """
     # if z_stack_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
-    z_slice_per_position = None
+    # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
     if z_stack_offsets is not None:
         z_slice_per_position = {}
@@ -420,13 +423,16 @@ def _get_z_offset_information(
             # get position from zarr path as an integer (e.g., 'P0' -> 0)
             position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
             # get z-slice indices for the given position
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
+            if z_stack_offsets is not None:
+                z_slices = get_plane_indices(
+                    dataset_config,
+                    position_as_int,
+                    lower_offset=z_stack_offsets[0],
+                    upper_offset=z_stack_offsets[1],
+                    slice_by_global_center=slice_by_global_center,
+                )
+            else:
+                z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]
             z_slice_per_position[position_as_int] = {
                 "z_start": z_slices[0],
                 "z_stop": z_slices[-1],
@@ -473,17 +479,16 @@ def parse_dataset_annotations_for_image_loading(
             z_stack_offsets,
             slice_by_global_center,
         )
-
-        z_slice_per_position = _get_z_offset_information(
-            dataset_config,
-            z_stack_offsets=z_stack_offsets,
-            slice_by_global_center=slice_by_global_center,
-        )
     else:
         # if no z-stack offsets are provided, pass in None
         # to the dataframe builder
         logger.debug("No z-stack offsets provided, loading all z-slices.")
-        z_slice_per_position = None
+
+    z_slice_per_position = _get_z_offset_information(
+        dataset_config,
+        z_stack_offsets=z_stack_offsets,
+        slice_by_global_center=slice_by_global_center,
+    )
 
     # get list of positions to exclude based on annotations
     # turn this into a list of positions to only include
