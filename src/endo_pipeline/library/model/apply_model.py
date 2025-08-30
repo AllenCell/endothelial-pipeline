@@ -270,7 +270,6 @@ def add_diffae_model_eval_crop_columns(
 def preprocess_tracking_manifest_for_model_eval(
     dataset_config: DatasetConfig,
     save_dir: Path,
-    # resolution_level: int = 1,
 ) -> Path:
     """Preprocess the manifest for a dataset to prepare it for model prediction."""
 
