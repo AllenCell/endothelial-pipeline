@@ -503,8 +503,12 @@ def align(
             if model is None:
                 continue
 
-            fixed_bf = image_fixed.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
-            moving_bf = image_moving.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
+            fixed_bf = image_fixed.get_image_dask_data(
+                "ZYX", C=BF_CHANNEL, T=t, Z=fixed_z_slices
+            ).compute()
+            moving_bf = image_moving.get_image_dask_data(
+                "ZYX", C=BF_CHANNEL, T=t, Z=moving_z_slices
+            ).compute()
             moving_bf = resize_moving(moving_bf, (1, rescale_factor, rescale_factor))
 
             base_moving_path = Path(moving_image_path).name.split(".")[0]
@@ -636,11 +640,11 @@ def align_all_positions(
                 position,
             )
             continue
-        moving_z_slices = (
-            list(range(moving_z_slice[position]["z_start"], moving_z_slice[position]["z_end"] + 1)),
+        moving_z_slices = list(
+            range(moving_z_slice[position]["z_start"], moving_z_slice[position]["z_stop"] + 1)
         )
-        fixed_z_slices = (
-            list(range(fixed_z_slice[position]["z_start"], fixed_z_slice[position]["z_end"] + 1)),
+        fixed_z_slices = list(
+            range(fixed_z_slice[position]["z_start"], fixed_z_slice[position]["z_stop"] + 1)
         )
         data_list.append(
             align(
@@ -790,7 +794,7 @@ def align_and_save_paired_images(
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: pd.Series[Any], savedir: Path) -> Path:
+def concat_and_save_aligned_image_pairs(row: pd.Series, savedir: Path) -> Path:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.

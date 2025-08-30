@@ -417,26 +417,25 @@ def _get_z_offset_information(
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
     available_zarr_files = get_available_zarr_files(dataset_config)
-    if z_stack_offsets is not None:
-        z_slice_per_position = {}
-        for zarr_file_path in available_zarr_files:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
-            # get z-slice indices for the given position
-            if z_stack_offsets is not None:
-                z_slices = get_plane_indices(
-                    dataset_config,
-                    position_as_int,
-                    lower_offset=z_stack_offsets[0],
-                    upper_offset=z_stack_offsets[1],
-                    slice_by_global_center=slice_by_global_center,
-                )
-            else:
-                z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]
-            z_slice_per_position[position_as_int] = {
-                "z_start": z_slices[0],
-                "z_stop": z_slices[-1],
-            }
+    z_slice_per_position = {}
+    for zarr_file_path in available_zarr_files:
+        # get position from zarr path as an integer (e.g., 'P0' -> 0)
+        position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
+        # get z-slice indices for the given position
+        if z_stack_offsets is not None:
+            z_slices = get_plane_indices(
+                dataset_config,
+                position_as_int,
+                lower_offset=z_stack_offsets[0],
+                upper_offset=z_stack_offsets[1],
+                slice_by_global_center=slice_by_global_center,
+            )
+        else:
+            z_slices = [MIN_Z_BOUND, MAX_Z_BOUND]
+        z_slice_per_position[position_as_int] = {
+            "z_start": z_slices[0],
+            "z_stop": z_slices[-1],
+        }
 
     return z_slice_per_position
 
