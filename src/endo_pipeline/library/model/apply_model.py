@@ -297,12 +297,12 @@ def preprocess_tracking_manifest_for_model_eval(
         "image_size_x",
         "image_size_y",
         "crop_size",
-        "resolution_level_to_use_for_diffae",
+        "diffae_resolution_level_to_use",
     ]
     df = df[columns_to_keep]
 
     # Adjust the crop coordinates to be consistent with the resolution level
-    resolution = sequence_to_scalar(df["resolution_level_to_use_for_diffae"])
+    resolution = sequence_to_scalar(df["diffae_resolution_level_to_use"])
     columns_to_downsample = ["start_x", "start_y", "end_x", "end_y"]
     for col in columns_to_downsample:
         df[col] = df[col] // (2**resolution)
@@ -320,14 +320,16 @@ def preprocess_tracking_manifest_for_model_eval(
         )
         .reset_index()
     )
+    # Add which channel to evaluate to the model and what resolution to load it at
     grouped_df["channel"] = ZARR_BF_CHANNEL
     grouped_df["resolution"] = resolution
 
     # only run a single timepoint from zarr
     grouped_df["start"] = grouped_df["image_index"]
     grouped_df["stop"] = grouped_df["image_index"]
-    grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1, inplace=True)
+    grouped_df = grouped_df.rename({"zarr_path": "path", "image_index": "T"}, axis=1)
 
+    # save the dataframe to a CSV file that the DiffAE model will use to load cropped images
     save_path = save_dir / "aggregated_crop_manifest.csv"
     grouped_df.to_csv(save_path, index=False)
     return save_path
