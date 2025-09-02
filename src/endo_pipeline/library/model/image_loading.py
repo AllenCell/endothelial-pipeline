@@ -442,7 +442,7 @@ def _get_z_offset_information(
 
 def parse_dataset_annotations_for_image_loading(
     dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int] | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
 ) -> tuple[dict[int, dict[str, int]], list[int], dict[int, list[int]]]:
     """
