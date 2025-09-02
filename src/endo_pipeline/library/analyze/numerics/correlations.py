@@ -43,6 +43,80 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, l
     lag
         Time lag (by index) at which to compute the CCF.
     """
+    num_traj = data_feat1.shape[0]
+    logger.debug("Processing [ %s ] trajectories.", num_traj)
+
+    # check if lag is longer than the time series:
+    num_timepoints = data_feat1.shape[1]
+    if lag >= num_timepoints:
+        logger.error(
+            "Input lag [ %s ] is longer than the number of time points [ %s ] in the timeseries.",
+            lag,
+            num_timepoints,
+        )
+        raise ValueError(
+            "Input lag cannot be longer than the number of time points in the timeseries."
+        )
+
+    mean_feat1 = np.mean(data_feat1)
+    mean_feat2 = np.mean(data_feat2)
+    sigma_feat1 = np.sqrt(np.sum((data_feat1 - mean_feat1) ** 2) / (num_traj * num_timepoints))
+    sigma_feat2 = np.sqrt(np.sum((data_feat2 - mean_feat2) ** 2) / (num_traj * num_timepoints))
+
+    # compute mean CCF over all timeseries
+    ccf_all = []
+    for k in range(num_traj):
+        # working with time series k and components i,j
+        x_t_i = data_feat1[k]
+        x_t_j = data_feat2[k]
+
+        # slice by lag and center
+        if lag > 0:
+            x_t_i_ctr = x_t_i[lag:] - mean_feat1
+            x_t_j_ctr = x_t_j[:-lag] - mean_feat2
+        elif lag < 0:
+            x_t_i_ctr = x_t_i[:lag] - mean_feat1
+            x_t_j_ctr = x_t_j[-lag:] - mean_feat2
+        else:
+            x_t_i_ctr = x_t_i - mean_feat1
+            x_t_j_ctr = x_t_j - mean_feat2
+
+        # take mean of product, normalize by std devs
+        ccf_ = np.sum(x_t_i_ctr * x_t_j_ctr) / (num_timepoints * sigma_feat1 * sigma_feat2)
+
+        # append to list
+        ccf_all.append(ccf_)
+
+    return sum(ccf_all) / num_traj
+
+
+def _cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, lag: int) -> float:
+    """
+    Get the normalized cross-correlation function (CCF) between vector components.
+
+    The CCF is estimated from finite samples of an ensemble of stationary, vector-valued
+    time series data.
+
+    The input data array is expected to be of shape (num_samples, num_timepoints, num_dim).
+    That is, the data are assumed to be {num_samples} iid samples of a num_dim-dimensional
+    stationary process, each sampled at the same num_timepoints.
+
+    The cross-correlation function (CCF) is computed for the specified components at the given lag.
+    That is, if X(t) is a vector-valued random process, the CCF is defined as the ensemble mean of
+    X_{component_1}(t) * X_{component_2}(t + lag). This function computes the CCF using numpy's
+    built-in ``corrcoef`` function, which computes the correlation coefficient between two arrays.
+
+    Parameters
+    ----------
+    data_feat1
+        Array of shape (num_samples, num_timepoints) containing time series data for the
+        first vector component for the CCF.
+    data_feat2
+        Array of shape (num_samples, num_timepoints) containing time series data for the
+        second vector component for the CCF.
+    lag
+        Time lag (by index) at which to compute the CCF.
+    """
     # get number of trajectories
     num_traj = data_feat1.shape[0]
     logger.debug("Processing [ %s ] trajectories.", num_traj)

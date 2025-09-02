@@ -155,7 +155,7 @@ def _make_all_acf_plots(
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
-    index_positive = lags > 0
+    index_positive = lags >= 0
     lags_ = lags[index_positive]
     lags_as_hours = 5 * lags_ / 60  # convert from frames (5 minutes) to hours
     acf_ = acf[index_positive]
@@ -186,7 +186,7 @@ def _make_all_acf_plots(
     )
     relaxation_timescales = []
     for i in range(3):
-        acf_where_positive = acf_[:, i] > 0
+        acf_where_positive = acf_[:, i] >= 0
         lags_pos = lags_as_hours[acf_where_positive]
         acf_pos = acf_[acf_where_positive, i]
         exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, p0=(1, 0.01))
@@ -378,7 +378,7 @@ def plot_correlation_workflow_outputs(
     """
     list_of_datasets = list(correlation_dict["lags"].keys())
     dataset_descriptions = get_dataset_descriptions(
-        list_of_datasets, simple=True, include_duration=False, include_shear_rate=True
+        list_of_datasets, simple=True, include_duration=False, include_shear_stress=True
     )
     output_path = get_output_path("correlations")
 
