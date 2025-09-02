@@ -231,11 +231,11 @@ for dataset in datasets:
 # datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 datasets = [
     "20241120_20X",
-    "20241217_20X",
-    # "20250110_paired20X",
-    # "20250214_pairedPreFixation",
+    # "20241217_20X",
+    "20250110_paired20X",
+    "20250214_pairedPreFixation",
     "20250224_20X",
-    # "20250227_paired20X",
+    "20250227_paired20X",
     "20250319_20X",
     "20250326_20X",
     "20250331_20X",
