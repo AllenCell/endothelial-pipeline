@@ -99,3 +99,5 @@ for image_loading_args in image_dataset.data:
     z_slice_bounds = z_slice_per_position[position]
     z_slice_list = list(range(z_slice_bounds["z_start"], z_slice_bounds["z_stop"] + 1))
     assert image_loading_args["Z"] == z_slice_list
+
+# %%
