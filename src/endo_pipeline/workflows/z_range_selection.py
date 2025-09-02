@@ -1,6 +1,7 @@
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.configs import (
@@ -31,9 +32,6 @@ Z_SLICE_LOWER_OFFSET = 4
 Z_SLICE_UPPER_OFFSET = 11
 datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
-availabe_slices_above_list = []
-dataset_list = []
-
 for dataset in datasets:
     dataset_config = load_dataset_config(dataset)
     save_dir = get_output_path(
@@ -57,7 +55,6 @@ for dataset in datasets:
 
     top_slice = 24
     available_slices_above = top_slice - center_slice
-    availabe_slices_above_list.append(available_slices_above)
 
     if Z_SLICE_UPPER_OFFSET > available_slices_above:
         print(f"Not enough slices above center for dataset {dataset_config.name}, skipping...")
@@ -231,11 +228,60 @@ for dataset in datasets:
     plt.close()
 
 # %%
+# datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+datasets = [
+    "20241120_20X",
+    "20241217_20X",
+    # "20250110_paired20X",
+    # "20250214_pairedPreFixation",
+    "20250224_20X",
+    # "20250227_paired20X",
+    "20250319_20X",
+    "20250326_20X",
+    "20250331_20X",
+    "20250402_20X",
+    "20250409_20X",
+    "20250428_20X",
+    "20250604_20X",
+    "20250611_20X",
+    "20250618_20X",
+    "20250714_20X",
+    "20250716_20X",
+    "20250728_20X",
+    "20250806_20X",
+]
+data = []
+
+for dataset in datasets:
+    dataset_config = load_dataset_config(dataset)
+    for position in dataset_config.zarr_positions:
+        center_slice = dataset_config.center_z_plane[position]
+        top_slice = 24
+        available_slices_above = top_slice - center_slice
+        data.append(
+            {
+                "dataset": dataset_config.name,
+                "position": position,
+                "available_slices_above": available_slices_above,
+            }
+        )
+
+df = pd.DataFrame(data)
+
 fig = plt.figure(figsize=(6, 6))
-plt.hist(availabe_slices_above_list, bins=range(6, 20, 1), align="left", edgecolor="black")
+plt.hist(df["available_slices_above"], bins=range(6, 20, 1), align="left", edgecolor="black")
 plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
 plt.xlabel("Available Slices Above Center Slice")
-plt.ylabel("Number of Datasets")
+plt.ylabel("Number of Positions")
 plt.show()
+save_dir = get_output_path("z_range_selection")
 save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
+
+df_10 = df[df["available_slices_above"] == 10]
+limiting_datasets = df_10.dataset.unique()
+print(f"10: {limiting_datasets}")
+
+df_11 = df[df["available_slices_above"] == 11]
+limiting_datasets = df_11.dataset.unique()
+print(f"11: {limiting_datasets}")
 # %%
