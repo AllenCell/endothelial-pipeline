@@ -28,7 +28,7 @@ if __name__ == "__main__":
         dataset_config = load_dataset_config(dataset)
 
         # Parallelize position processing
-        args = [(dataset_config, position, save_dir) for position in range(6)]
+        args = [(dataset_config, position, save_dir) for position in dataset_config.zarr_positions]
         with Pool() as pool:
             results = pool.starmap(calculate_global_center_plane, args)
 
