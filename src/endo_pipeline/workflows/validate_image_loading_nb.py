@@ -14,6 +14,7 @@ from endo_pipeline.library.model import (
 
 # %%
 dataset_config = load_dataset_config("20250319_20X")
+assert dataset_config.center_z_plane is not None
 
 resolution_level = 2
 channel = [0, 1]
@@ -23,7 +24,7 @@ z_stack_offsets = (5, 15)
 slice_by_global_center = True
 
 # %%
-z_slice_per_position, only_include_positions, exclude_frames = (
+z_slice_per_position, only_include_positions, exclude_frames_by_position = (
     parse_dataset_annotations_for_image_loading(
         dataset_config, z_stack_offsets, slice_by_global_center
     )
@@ -49,7 +50,7 @@ for position in dataset_config.zarr_positions:
 
     annotated_timepoints = get_annotated_timepoints_for_position(dataset_config, position)
 
-    assert annotated_timepoints == exclude_frames.get(position, [])
+    assert annotated_timepoints == exclude_frames_by_position.get(position, [])
 
     print("Validated position:", position)
 
@@ -63,7 +64,7 @@ df = build_zarr_image_loading_dataframe(
     frame_stop=frame_stop,
     z_slice_per_position=z_slice_per_position,
     only_include_positions=only_include_positions,
-    exclude_frames=exclude_frames,
+    exclude_frames=exclude_frames_by_position,
 )
 
 # print a few rows to get a sense of what this dataframe is
