@@ -202,14 +202,15 @@ def add_diffae_model_eval_crop_columns(
 ) -> pd.DataFrame:
     """
     Add columns to the dataframe for DiffAE model evaluation crops.
-    NOTE: The centroids, image sizes, and crop sizes are for the images
-    loaded at the native resolution (i.e. a resolution level of 0).
-    The diffae_resolution_level parameter will be used to downsample those values
-    prior to being passed along to the DiffAE model for evaluation.
-    The diffae_resolution_level parameter will also be passed along to the model
-    and used to load the images at the appropriate resolution level.
-    The "start" and "end" columns returned by this function will determine the
-    crop locations at the same resolution as the centroids.
+
+    **Note on image resolution**
+
+    The centroids, image sizes, and crop sizes are for the images loaded at the native resolution
+    (i.e. a resolution level of 0). The diffae_resolution_level parameter will be used to
+    downsample those values prior to being passed along to the DiffAE model for evaluation.
+    The diffae_resolution_level parameter will also be passed along to the model and used to load
+    the images at the appropriate resolution level. The "start" and "end" columns returned by
+    this function will determine the crop locations at the same resolution as the centroids.
 
     **Input dataframe**
 
@@ -248,7 +249,7 @@ def add_diffae_model_eval_crop_columns(
     ----------
     df
         Dataframe to operate on.
-    resolution_level
+    diffae_resolution_level
         Level of binning to use when loading the images
     crop_size
         Size of the square crop to extract around each centroid

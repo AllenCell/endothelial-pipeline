@@ -1,12 +1,12 @@
-from typing import Literal
+from typing import Literal, cast
 
 TAGS = ["diffae_model_finetuning"]
 
 
 def main(
-    dataset_pair_type: Literal["live_fixed", "20x_40x"] = "live_fixed",
+    dataset_pair_type: Literal["live_fixed", "20X_40X"] = "live_fixed",
     resolution_level: int = 1,
-    z_stack_offsets: tuple[int] | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
 ) -> None:
     """
@@ -27,7 +27,7 @@ def main(
     Parameters
     ----------
     dataset_pair_type
-        Whether paired datasets are live/fixed or 20x/40x.
+        Whether paired datasets are live/fixed or 20X/40X.
     resolution_level
         The resolution level of the zarr files to be used for training.
     z_stack_offsets
@@ -74,9 +74,11 @@ def main(
         testing_mode=TESTING_MODE,
     )
 
-    out_paths = [
-        concat_and_save_aligned_image_pairs(row, save_path) for row in tqdm.tqdm(df.itertuples())
-    ]
+    out_paths: list[str] = []
+    for row in tqdm.tqdm(df.itertuples()):
+        row_dict = row._asdict()  # type: ignore[operator]
+        out_path = concat_and_save_aligned_image_pairs(row_dict, save_path)
+        out_paths.append(out_path.as_posix())
 
     # build dataframe with loading metadata for the aligned images
     # note that "resolution" here is set to 0, as the images
@@ -87,8 +89,6 @@ def main(
             "channel": [[0, 1]] * len(out_paths),
         }
     )
-    # need path to be a string to be able to write to parquet
-    out_df["path"] = out_df["path"].astype(str)
 
     # Split the dataframe into training and validation sets
     train_val_tuple: tuple[pd.DataFrame, pd.DataFrame] = train_test_split(

@@ -3,7 +3,7 @@ TAGS = ["diffae_model_training"]
 
 def main(
     resolution_level: int = 1,
-    z_stack_offsets: tuple[int] | None = None,
+    z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
 ) -> None:
     """
