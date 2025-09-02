@@ -10,8 +10,8 @@ from .correlations import (
     autocorrelation_function,
     compute_correlation_dict,
     cross_correlation_function,
+    double_exponential_decay,
     exponential_decay,
-    power_law_decay,
 )
 from .fp_solvers import SteadyFP
 from .gen_potential import (
@@ -29,6 +29,7 @@ __all__ = [
     "compute_correlation_dict",
     "compute_flux_terms",
     "cross_correlation_function",
+    "double_exponential_decay",
     "entropy_production",
     "exponential_decay",
     "get_3d_bounds_from_data",
@@ -41,7 +42,6 @@ __all__ = [
     "gradient_flow_term",
     "histogramdd",
     "mesh_grid_function",
-    "power_law_decay",
     "probability_flux",
     "vector_field_component",
     "vector_field_function",

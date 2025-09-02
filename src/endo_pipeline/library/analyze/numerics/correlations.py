@@ -119,7 +119,6 @@ def _cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, 
     """
     # get number of trajectories
     num_traj = data_feat1.shape[0]
-    logger.debug("Processing [ %s ] trajectories.", num_traj)
 
     # check if lag is longer than the time series:
     num_timepoints = data_feat1.shape[1]
@@ -370,7 +369,6 @@ def compute_correlation_dict(
     }
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
-        logger.info("Processing dataset [ %s ] for correlation analysis", dataset_name)
         correlation_dict = _compute_correlations_for_one_dataset(
             dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
         )
@@ -382,6 +380,8 @@ def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
     return a * np.exp(-b * x)
 
 
-def power_law_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
-    """Define power law decay function for curve fitting."""
-    return a * np.power(x, -b)
+def double_exponential_decay(
+    x: np.ndarray, a1: float, b1: float, a2: float, b2: float
+) -> np.ndarray:
+    """Define double exponential decay function for curve fitting."""
+    return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x)
