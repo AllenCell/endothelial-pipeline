@@ -1,0 +1,52 @@
+name: 20250818_20X
+original_path: //allen/programs/allencell/data/proj0/79c/3a8/cf2/379/10b/e0a/f43/88d/d91/895/1f/20250818_GE00008755_20X_SLDY/20250818_GE00008755_20X_SLDY.sldy
+zarr_path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250818_1f895d9188df43e0a10b379cf23a879c
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 1f895d9188df43e0a10b379cf23a879c
+barcode: GE00008755
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: no_flow
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+flow_conditions:
+- start: 0
+  stop: 576
+  shear_stress: 0.0
+valid_timepoints: null
+include_scenes: null
+notes: 'timelapse imaging of CDH5 without shear stress, being fed every 3 hours during normal business hours'
+timepoint_annotations:
+  xy_shift:
+    0: [20, 80, 363]
+    1: [20, 80, 363]
+    2: [20, 80, 363]
+    3: [20, 80, 363]
+    4: [20, 80, 363]
+    5: [20, 80, 363]
+  unfed:
+    0: [[118, 256], [263, 363], [401, 561]]
+    1: [[118, 256], [263, 363], [401, 561]]
+    2: [[118, 256], [263, 363], [401, 561]]
+    3: [[118, 256], [263, 363], [401, 561]]
+    4: [[118, 256], [263, 363], [401, 561]]
+    5: [[118, 256], [263, 363], [401, 561]]
+position_annotations: null
+center_z_plane: null
