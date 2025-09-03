@@ -108,7 +108,7 @@ def _add_relaxation_timescale_to_plot(relaxation_timescales: list[float], ax: pl
 
 
 def _add_delta_ccf_integral_to_plot(
-    delta_ccf_integral: np.ndarray, num_lags_integrate: int, ax: plt.Axes
+    delta_ccf_integral: np.ndarray, num_lags_integrate: int, ci_bounds: tuple | None, ax: plt.Axes
 ) -> plt.Axes:
     """Print integral of delta CCF near zero on plot of delta CCFs."""
     integral_upper_bound_hrs = round(5 * num_lags_integrate / 60, 2)  # convert from frames to hours
@@ -122,10 +122,19 @@ def _add_delta_ccf_integral_to_plot(
             CROSS_CORR_INDEX_COMBINATIONS, integral_srings, delta_ccf_integral, strict=True
         )
     ]
+    x_loc = 0.7  # place on upper right corner of plot
+
+    # add confidence intervals if available
+    if ci_bounds is not None:
+        x_loc = 0.5  # need more space for CI
+        ci_lower, ci_upper = ci_bounds
+        strings_per_pc = [
+            f"{string} (95% CI: {ci_lower[i]:.2f}, {ci_upper[i]:.2f})"
+            for i, string in enumerate(strings_per_pc)
+        ]
 
     for i, string in enumerate(strings_per_pc):
         # print on upper right corner of plot
-        x_loc = 0.7
         # decrement y_loc for each PC combination to avoid overlap
         y_loc = 0.675 + 0.115 * (len(strings_per_pc) - 1 - i)
         # use transform to place text in axes coordinates
@@ -345,6 +354,8 @@ def _make_all_ccf_plots(
     ccf_ci_lower: np.ndarray = correlation_dict["ccf_ci_lower"][dataset_name]
     ccf_ci_upper: np.ndarray = correlation_dict["ccf_ci_upper"][dataset_name]
     delta_ccf: np.ndarray = correlation_dict["delta_ccf"][dataset_name]
+    delta_ccf_ci_lower: np.ndarray = correlation_dict["delta_ccf_ci_lower"][dataset_name]
+    delta_ccf_ci_upper: np.ndarray = correlation_dict["delta_ccf_ci_upper"][dataset_name]
     delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"][dataset_name]
     num_lags_integrate: int = correlation_dict["num_lags_integrate"][dataset_name]
 
@@ -380,13 +391,28 @@ def _make_all_ccf_plots(
         lags_symmetric = lags[1 + num_lags // 2 :]
         lags_symmetric_as_hours = 5 * lags_symmetric / 60
         ax.plot(lags_symmetric_as_hours, delta_ccf[:, i], label=f"(PC{j+1}, PC{k+1})")
+        if bootstrap_samples > 0:
+            ax.fill_between(
+                lags_symmetric_as_hours,
+                delta_ccf_ci_lower[:, i],
+                delta_ccf_ci_upper[:, i],
+                alpha=0.25,
+                color=list(TABLEAU_COLORS.keys())[i],
+                label="95% CI",
+            )
     ax.set_title(f"$|C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)|$ ({dataset_description})")
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$|\Delta C_{ij}(\\tau)|$")
     # ax.legend()
     ax.set_ylim(-0.05, 0.6)
     # print integral of delta ccf near zero on plot
-    ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ax)
+    ci_bounds = None
+    if bootstrap_samples > 0:
+        ci_bounds = (
+            correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
+            correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
+        )
+    ax = _add_delta_ccf_integral_to_plot(delta_ccf_integral, num_lags_integrate, ci_bounds, ax)
     save_plot_to_path(
         fig,
         output_path,
@@ -427,7 +453,10 @@ def _plot_full_correlation_curves(
 
 
 def _plot_single_correlation_metric_vs_shear_stress(
-    metric_values: list[np.ndarray], shear_stresses: np.ndarray, labels: list[str] | None = None
+    metric_values: list[np.ndarray],
+    shear_stresses: np.ndarray,
+    ci_bounds: list[tuple] | None = None,
+    labels: list[str] | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
     # init plot
     fig, ax = init_plot(figsize=(8, 6))
@@ -436,28 +465,46 @@ def _plot_single_correlation_metric_vs_shear_stress(
     if labels is None:
         labels = [f"(PC{j+1}, PC{k+1})" for (j, k) in CROSS_CORR_INDEX_COMBINATIONS]
 
+    # sort by ascending shear stress
+    sorted_indices = np.argsort(shear_stresses)
+    shear_sorted = shear_stresses[sorted_indices]
+
     # plot each metric value vs shear stress
     for i, label in enumerate(labels):
         # get values for this PC or PC combination across all datasets
-        values = np.array([value[i] for value in metric_values])
+        values = np.array([value[i] for value in metric_values])[sorted_indices]
         # sort by ascending shear stress
-        sorted_indices = np.argsort(shear_stresses)
         ax.plot(
-            shear_stresses[sorted_indices],
-            values[sorted_indices],
+            shear_sorted,
+            values,
             label=label,
             color=list(TABLEAU_COLORS.keys())[i],
             linewidth=2.75,
             linestyle="-",
         )
         ax.scatter(
-            shear_stresses,
+            shear_sorted,
             values,
             color=list(TABLEAU_COLORS.keys())[i],
             s=100,
             edgecolor="k",
             label="",
         )
+        # add error bars if ci_bounds provided
+        if ci_bounds is not None:
+            ci_lower = np.array([bounds[i][0] for bounds in ci_bounds])[sorted_indices]
+            ci_upper = np.array([bounds[i][1] for bounds in ci_bounds])[sorted_indices]
+            ax.errorbar(
+                shear_sorted,
+                values,
+                yerr=[values - ci_lower, ci_upper - values],
+                fmt="none",
+                ecolor=list(TABLEAU_COLORS.keys())[i],
+                elinewidth=1.5,
+                capsize=5,
+                label="",
+            )
+
     return fig, ax
 
 
@@ -473,27 +520,44 @@ def _plot_correlation_metrics_vs_shear_stress(
         single_flow_condition = next(iter(flow_conditions))
         return single_flow_condition.shear_stress
 
+    # plot correlation metrics vs shear stress
+    # with error bars if available
     delta_ccf_integral_values = [
         correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
     ]
+    delta_ccf_integral_ci_bounds = [
+        (
+            correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
+            correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
+        )
+        for dataset_name in list_of_datasets
+    ]
+    # also plot mean over PCs
     mean_delta_ccf_integral = [
         np.array([np.mean(correlation_dict["delta_ccf_integral"][dataset_name])])
         for dataset_name in list_of_datasets
     ]
+
+    # also plot delta CCF at lag = 1 (5 minutes)
     delta_ccf_lag_1_values = [
         correlation_dict["delta_ccf"][dataset_name][0] for dataset_name in list_of_datasets
     ]
+
+    # also plot relaxation timescales
     relaxation_timescale_values = [
         np.array(correlation_dict["relaxation_timescales"][dataset_name])
         for dataset_name in list_of_datasets
     ]
+
+    # get shear stresses for each dataset
     shear_stresses = np.array(
         [_get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets]
     )
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
-        delta_ccf_integral_values, shear_stresses
+        delta_ccf_integral_values, shear_stresses, ci_bounds=delta_ccf_integral_ci_bounds
     )
+    # TO DO: write script to add error bars for integral values
     ax.legend()
     ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
     ax.set_ylim((-0.05, 2.25))
