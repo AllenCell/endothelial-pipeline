@@ -170,14 +170,14 @@ def _fit_exp_decay_and_get_relaxation_timescale(
         lags_pos = lags
         acf_pos = acf
     if exp_decay_func == "exponential_decay":
-        p0 = [0.5, 0.5]  # initial guess for a, b
+        p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
         exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         relaxation_time = 1 / exp_fit[1]
     else:
-        p0 = [0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, c
+        p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
         exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
         # choose the relaxation time corresponding to the larger weight
-        which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
+        which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
         relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
 
     return exp_fit, relaxation_time
@@ -188,7 +188,7 @@ def _add_exp_fit_to_plot(
     lags: np.ndarray,
     ax: plt.Axes,
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
-) -> plt.Axes:
+) -> tuple[plt.Axes, list[float]]:
     """Fit exponential decay to ACF and add to existing plot."""
     # check to make sure valid function is provided
     if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
@@ -218,18 +218,20 @@ def _add_exp_fit_to_plot(
         if exp_decay_func == "exponential_decay":
             acf_fit = exponential_decay(lags, *exp_fit)
             logger.debug(
-                "Exponential fit for PC%s: [%.3f exp(%.3f tau)]",
+                "Exponential fit for PC%s: [%.3f + %.3f exp(%.3f tau)]",
                 i + 1,
+                exp_fit[2],
                 exp_fit[0],
                 -exp_fit[1],
             )
         else:
             acf_fit = double_exponential_decay(lags, *exp_fit)
-            which_weight_is_larger = np.argmax(exp_fit[[0, 2]])
+            which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
             logger.debug(
                 "Full double exponential fit for PC%s: "
-                "[%.3f exp(%.3f tau) + %.3f exp(%.3f tau) ]",
+                "[%.3f + %.3f exp(%.3f tau) + %.3f exp(%.3f tau) ]",
                 i + 1,
+                exp_fit[4],
                 exp_fit[0],
                 -exp_fit[1],
                 exp_fit[2],
@@ -250,7 +252,7 @@ def _add_exp_fit_to_plot(
     # add relaxation timescale to plot
     ax = _add_relaxation_timescale_to_plot(relaxation_timescales, ax)
 
-    return ax
+    return ax, relaxation_timescales
 
 
 def _make_all_acf_plots(
@@ -258,15 +260,15 @@ def _make_all_acf_plots(
     correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
     output_path: Path,
-    fit_double_exp: bool = True,
-) -> None:
+    fit_double_exp: bool = False,
+) -> dict[str, dict[str, Any]]:
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
     acf: np.ndarray = correlation_dict["acf"][dataset_name]
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
-    index_positive = lags >= 0
+    index_positive = lags > 0
     lags_ = lags[index_positive]
     lags_as_hours = 5 * lags_ / 60  # convert from frames (5 minutes) to hours
     acf_ = acf[index_positive]
@@ -295,7 +297,11 @@ def _make_all_acf_plots(
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
-    ax = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, exp_decay_func="exponential_decay")
+    ax, relaxation_timescales = _add_exp_fit_to_plot(
+        acf_, lags_as_hours, ax, exp_decay_func="exponential_decay"
+    )
+    # add relaxation timescales to correlation_dict for output
+    correlation_dict["relaxation_timescales"][dataset_name] = relaxation_timescales
     save_plot_to_path(
         fig,
         output_path,
@@ -321,6 +327,8 @@ def _make_all_acf_plots(
             output_path,
             f"autocorrelation_double_exp_fit_{dataset_name}",
         )
+
+    return correlation_dict
 
 
 def _make_all_ccf_plots(
@@ -392,13 +400,14 @@ def _plot_full_correlation_curves(
     dataset_descriptions: dict[str, str],
     output_path: Path,
     bootstrap_samples: int = 0,
-) -> None:
+) -> dict[str, dict[str, Any]]:
     """Plot full correlation curves for a single dataset."""
     # get string for dataset description
     dataset_description = _parse_dataset_description(dataset_descriptions[dataset_name])
 
     # plot acf and fit exponential decay
-    _make_all_acf_plots(
+    # adds relaxation timescales to correlation_dict
+    correlation_dict = _make_all_acf_plots(
         dataset_name,
         correlation_dict,
         dataset_description,
@@ -413,6 +422,8 @@ def _plot_full_correlation_curves(
         output_path,
         bootstrap_samples=bootstrap_samples,
     )
+
+    return correlation_dict
 
 
 def _plot_single_correlation_metric_vs_shear_stress(
@@ -465,11 +476,15 @@ def _plot_correlation_metrics_vs_shear_stress(
     delta_ccf_integral_values = [
         correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
     ]
+    mean_delta_ccf_integral = [
+        np.array([np.mean(correlation_dict["delta_ccf_integral"][dataset_name])])
+        for dataset_name in list_of_datasets
+    ]
     delta_ccf_lag_1_values = [
         correlation_dict["delta_ccf"][dataset_name][0] for dataset_name in list_of_datasets
     ]
-    acf_lag_1_values = [
-        correlation_dict["acf"][dataset_name][correlation_dict["lags"][dataset_name] == 1][0]
+    relaxation_timescale_values = [
+        np.array(correlation_dict["relaxation_timescales"][dataset_name])
         for dataset_name in list_of_datasets
     ]
     shear_stresses = np.array(
@@ -480,8 +495,8 @@ def _plot_correlation_metrics_vs_shear_stress(
         delta_ccf_integral_values, shear_stresses
     )
     ax.legend()
-    ax.set_ylabel("$\\langle |\\Delta C_{ij} \\rangle$")
-    ax.set_ylim((-0.05, 1.65))
+    ax.set_ylabel("$\\langle |\\Delta C_{ij} |\\rangle$")
+    ax.set_ylim((-0.05, 2.25))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
@@ -490,11 +505,24 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
+        mean_delta_ccf_integral, shear_stresses, labels=["Mean over PCs"]
+    )
+    ax.legend()
+    ax.set_ylabel("$\\overline{|\\Delta C_{ij}|}$")
+    ax.set_ylim((-0.05, 1.75))
+    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
+    save_plot_to_path(
+        fig,
+        output_path,
+        "mean_delta_ccf_integral_vs_shear_stress",
+    )
+
+    fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         delta_ccf_lag_1_values, shear_stresses
     )
     ax.legend()
     ax.set_ylabel("$|\\Delta C_{ij}(0)|$")
-    ax.set_ylim((-0.05, 0.45))
+    ax.set_ylim((-0.05, 0.6))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
@@ -502,15 +530,17 @@ def _plot_correlation_metrics_vs_shear_stress(
         "delta_ccf_lag_1_vs_shear_stress",
     )
 
-    fig, ax = _plot_single_correlation_metric_vs_shear_stress(acf_lag_1_values, shear_stresses)
+    fig, ax = _plot_single_correlation_metric_vs_shear_stress(
+        relaxation_timescale_values, shear_stresses, labels=["PC1", "PC2", "PC3"]
+    )
     ax.legend()
-    ax.set_ylabel("$C_{ii}(0)$")
-    ax.set_ylim((0.5, 1.00))
+    ax.set_ylabel("Relaxation timescale (hours)")
+    ax.set_ylim((1.0, 4.75))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
         output_path,
-        "acf_lag_1_vs_shear_stress",
+        "relaxation_time_vs_shear_stress",
     )
 
 
@@ -548,7 +578,7 @@ def plot_correlation_workflow_outputs(
     # plot full correlation curves for each dataset
     for dataset_name in list_of_datasets:
         logger.info("Plotting correlation curves for dataset [ %s ]", dataset_name)
-        _plot_full_correlation_curves(
+        correlation_dict = _plot_full_correlation_curves(
             dataset_name,
             correlation_dict,
             dataset_descriptions,

@@ -16,154 +16,60 @@ logger = logging.getLogger(__name__)
 CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 
 
-def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, lag: int) -> float:
-    """
-    Get the normalized cross-correlation function (CCF) between vector components.
-
-    The CCF is estimated from finite samples of an ensemble of stationary, vector-valued
-    time series data.
-
-    The input data array is expected to be of shape (num_samples, num_timepoints, num_dim).
-    That is, the data are assumed to be {num_samples} iid samples of a num_dim-dimensional
-    stationary process, each sampled at the same num_timepoints.
-
-    The cross-correlation function (CCF) is computed for the specified components at the given lag.
-    That is, if X(t) is a vector-valued random process, the CCF is defined as the ensemble mean of
-    X_{component_1}(t) * X_{component_2}(t + lag). This function computes the CCF using numpy's
-    built-in ``corrcoef`` function, which computes the correlation coefficient between two arrays.
-
-    Parameters
-    ----------
-    data_feat1
-        Array of shape (num_samples, num_timepoints) containing time series data for the
-        first vector component for the CCF.
-    data_feat2
-        Array of shape (num_samples, num_timepoints) containing time series data for the
-        second vector component for the CCF.
-    lag
-        Time lag (by index) at which to compute the CCF.
-    """
+def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> float:
+    """Get the normalized cross-correlation function (CCF) between two features."""
     num_traj = data_feat1.shape[0]
-    logger.debug("Processing [ %s ] trajectories.", num_traj)
-
-    # check if lag is longer than the time series:
     num_timepoints = data_feat1.shape[1]
-    if lag >= num_timepoints:
-        logger.error(
-            "Input lag [ %s ] is longer than the number of time points [ %s ] in the timeseries.",
-            lag,
-            num_timepoints,
-        )
-        raise ValueError(
-            "Input lag cannot be longer than the number of time points in the timeseries."
-        )
 
-    mean_feat1 = np.mean(data_feat1)
-    mean_feat2 = np.mean(data_feat2)
-    sigma_feat1 = np.sqrt(np.sum((data_feat1 - mean_feat1) ** 2) / (num_traj * num_timepoints))
-    sigma_feat2 = np.sqrt(np.sum((data_feat2 - mean_feat2) ** 2) / (num_traj * num_timepoints))
+    # pad 0s to nearest power of 2 to 2*num_timepoints-1
+    num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
-    # compute mean CCF over all timeseries
-    ccf_all = []
-    for k in range(num_traj):
-        # working with time series k and components i,j
-        x_t_i = data_feat1[k]
-        x_t_j = data_feat2[k]
+    corr_list = []
+    for traj_index in range(num_traj):
+        data_mean1 = np.mean(data_feat1[traj_index])
+        data_stdev1 = np.std(data_feat1[traj_index])
+        x_t_i_ctr = data_feat1[traj_index] - data_mean1
 
-        # slice by lag and center
-        if lag > 0:
-            x_t_i_ctr = x_t_i[lag:] - mean_feat1
-            x_t_j_ctr = x_t_j[:-lag] - mean_feat2
-        elif lag < 0:
-            x_t_i_ctr = x_t_i[:lag] - mean_feat1
-            x_t_j_ctr = x_t_j[-lag:] - mean_feat2
-        else:
-            x_t_i_ctr = x_t_i - mean_feat1
-            x_t_j_ctr = x_t_j - mean_feat2
+        data_mean2 = np.mean(data_feat2[traj_index])
+        data_stdev2 = np.std(data_feat2[traj_index])
+        x_t_j_ctr = data_feat2[traj_index] - data_mean2
 
-        # take mean of product, normalize by std devs
-        ccf_ = np.sum(x_t_i_ctr * x_t_j_ctr) / (num_timepoints * sigma_feat1 * sigma_feat2)
+        cf_1 = np.fft.fft(x_t_i_ctr, n=num_pad)
+        cf_2 = np.fft.fft(x_t_j_ctr, n=num_pad)
+        sf = cf_1.conjugate() * cf_2
+        corr = np.fft.ifft(sf).real / (data_stdev1 * data_stdev2 * num_timepoints)
+        corr_shifted = np.fft.fftshift(corr)[
+            num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
+        ]
+        corr_list.append(corr_shifted)
 
-        # append to list
-        ccf_all.append(ccf_)
-
-    return sum(ccf_all) / num_traj
+    return sum(corr_list) / num_traj
 
 
-def _cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray, lag: int) -> float:
-    """
-    Get the normalized cross-correlation function (CCF) between vector components.
+def autocorrelation_function(data: np.ndarray, component_index: int) -> float:
+    """Get the normalized autocorrelation function (ACF) for a specific component."""
+    x_t_j = data[..., component_index]
+    num_traj = data.shape[0]
+    num_timepoints = data.shape[1]
 
-    The CCF is estimated from finite samples of an ensemble of stationary, vector-valued
-    time series data.
+    # pad 0s to nearest power of 2 to 2*num_timepoints-1
+    num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
-    The input data array is expected to be of shape (num_samples, num_timepoints, num_dim).
-    That is, the data are assumed to be {num_samples} iid samples of a num_dim-dimensional
-    stationary process, each sampled at the same num_timepoints.
+    corr_list = []
+    for traj_index in range(num_traj):
+        data_mean = np.mean(x_t_j[traj_index])
+        data_var = np.var(x_t_j[traj_index])
+        x_t_j_ctr = x_t_j[traj_index] - data_mean
 
-    The cross-correlation function (CCF) is computed for the specified components at the given lag.
-    That is, if X(t) is a vector-valued random process, the CCF is defined as the ensemble mean of
-    X_{component_1}(t) * X_{component_2}(t + lag). This function computes the CCF using numpy's
-    built-in ``corrcoef`` function, which computes the correlation coefficient between two arrays.
+        cf = np.fft.fft(x_t_j_ctr, n=num_pad)
+        sf = cf.conjugate() * cf
+        corr = np.fft.ifft(sf).real / (data_var * num_timepoints)
+        corr_shifted = np.fft.fftshift(corr)[
+            num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
+        ]
+        corr_list.append(corr_shifted)
 
-    Parameters
-    ----------
-    data_feat1
-        Array of shape (num_samples, num_timepoints) containing time series data for the
-        first vector component for the CCF.
-    data_feat2
-        Array of shape (num_samples, num_timepoints) containing time series data for the
-        second vector component for the CCF.
-    lag
-        Time lag (by index) at which to compute the CCF.
-    """
-    # get number of trajectories
-    num_traj = data_feat1.shape[0]
-
-    # check if lag is longer than the time series:
-    num_timepoints = data_feat1.shape[1]
-    if lag >= num_timepoints:
-        logger.error(
-            "Input lag [ %s ] is longer than the number of time points [ %s ] in the timeseries.",
-            lag,
-            num_timepoints,
-        )
-        raise ValueError(
-            "Input lag cannot be longer than the number of time points in the timeseries."
-        )
-
-    # compute mean CCF over all timeseries
-    ccf_all = []
-    for k in range(num_traj):
-        # working with time series k and components i,j
-        x_t_i = data_feat1[k].flatten()
-        x_t_j = data_feat2[k].flatten()
-
-        # stack array of x_t_j from initial point to -lag
-        # and array of x_t_i from lag to end point
-        if lag > 0:
-            stacked_lag = np.array([x_t_j[:-lag], x_t_i[lag:]])
-        elif lag < 0:
-            stacked_lag = np.array([x_t_j[-lag:], x_t_i[:lag]])
-        else:
-            stacked_lag = np.array([x_t_j, x_t_i])
-
-        # pass this into np.corrcoeff to get
-        # ccf of timeseries x_t with lag time lag
-        # across components i and j
-        ccf_mat = np.corrcoef(stacked_lag)
-
-        # returns 2x2 matrix, only need the
-        # off-diagonal element, which is the
-        # correlation between the two components
-        # lag and non-lagged
-        ccf_ = ccf_mat[0, 1]
-
-        # append to list
-        ccf_all.append(ccf_)
-
-    ccf = sum(ccf_all) / len(ccf_all)
-    return ccf
+    return sum(corr_list) / num_traj
 
 
 def bootstrap_cross_correlation_confidence_interval(
@@ -211,17 +117,17 @@ def bootstrap_cross_correlation_confidence_interval(
     """
 
     # Bootstrap the CCF using resampling with replacement
-    nt = len(data_feat1)
+    num_traj = data_feat1.shape[0]
     bootstrap_correlations = []
     for _ in range(n_bootstraps):
 
         # Random sampling with replacement to generate bootstrap samples
-        inds = np.random.choice(nt, nt, replace=True)
+        inds = np.random.choice(num_traj, num_traj, replace=True)
         ds1_resampled = data_feat1[inds]
         ds2_resampled = data_feat2[inds]
 
         # Calculate cross-correlation for each iteration of resampling and append to list
-        bootstrap_correlations.append(cross_correlation_function(ds1_resampled, ds2_resampled, lag))
+        bootstrap_correlations.append(cross_correlation_function(ds1_resampled, ds2_resampled))
 
     # Calculate the lower and upper bounds of the confidence interval
     percentile = (1 - confidence_level) / 2
@@ -229,34 +135,6 @@ def bootstrap_cross_correlation_confidence_interval(
     upper_bound = np.percentile(bootstrap_correlations, 100 * (1 - percentile), axis=0)
 
     return lower_bound, upper_bound
-
-
-def autocorrelation_function(data: np.ndarray, component_index: int, lag: int) -> float:
-    """
-    Get the normalized autocorrelation function (ACF) for a specific component.
-
-    The ACF is estimated from finite samples of an ensemble of stationary, vector-valued
-    time series data.
-
-    The input data array is expected to be of shape (num_samples, num_timepoints, num_dim).
-    That is, the data are assumed to be {num_samples} iid samples of a num_dim-dimensional
-    stationary process, each sampled at the same num_timepoints.
-
-    The autocorrelation function (ACF) is computed for the specified component at the given lag.
-    That is, if X(t) is a vector-valued random process, the ACF is defined as the ensemble mean of
-    X_{component}(t) * X_{component}(t + lag). This function computes the ACF using numpy's
-    built-in ``corrcoef`` function, which computes the correlation coefficient between two arrays.
-
-    Parameters
-    ----------
-    data
-        Array of shape (num_samples, num_timepoints, num_dim) containing time series data.
-    component_index
-        Index of the vector component for the ACF.
-    lag
-        Time lag (by index) at which to compute the ACF.
-    """
-    return cross_correlation_function(data[..., component_index], data[..., component_index], lag)
 
 
 def _compute_correlations_for_one_dataset(
@@ -297,30 +175,23 @@ def _compute_correlations_for_one_dataset(
     # autocorrelation
     acf = np.zeros((num_lags, 3))
     for i in range(3):
-        for k in range(num_lags):
-            acf[k, i] = autocorrelation_function(feats, i, lags[k])
+        acf[:, i] = autocorrelation_function(feats, i)
 
     ccf = np.zeros((num_lags, 3))
     ccf_lb = np.zeros((num_lags, 3))
     ccf_ub = np.zeros((num_lags, 3))
 
     for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
-        for lag_index in range(num_lags):
-            data_feat1 = feats[..., j]
-            data_feat2 = feats[..., k]
-
-            # calculate CCF for lag
-            ccf[lag_index, i] = cross_correlation_function(data_feat1, data_feat2, lags[lag_index])
-            if bootstrap_samples > 0:
-                # calculate bootstrap confidence intervals
-                ccf_lb[lag_index, i], ccf_ub[lag_index, i] = (
-                    bootstrap_cross_correlation_confidence_interval(
-                        data_feat1,
-                        data_feat2,
-                        lags[lag_index],
-                        n_bootstraps=bootstrap_samples,
-                    )
-                )
+        data_feat1 = feats[..., j]
+        data_feat2 = feats[..., k]
+        ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
+        if bootstrap_samples > 0:
+            # calculate bootstrap confidence intervals
+            ccf_lb[:, i], ccf_ub[:, i] = bootstrap_cross_correlation_confidence_interval(
+                data_feat1,
+                data_feat2,
+                n_bootstraps=bootstrap_samples,
+            )
 
     # get difference between
     # forward and backward lags
@@ -366,6 +237,7 @@ def compute_correlation_dict(
         "delta_ccf": {},
         "delta_ccf_integral": {},
         "num_lags_integrate": {},
+        "relaxation_timescales": {},
     }
     # update dict with correlation functions for each dataset in a loop
     for dataset_name in dataset_names:
@@ -375,13 +247,13 @@ def compute_correlation_dict(
     return correlation_dict
 
 
-def exponential_decay(x: np.ndarray, a: float, b: float) -> np.ndarray:
+def exponential_decay(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
     """Define exponential decay function for curve fitting."""
-    return a * np.exp(-b * x)
+    return a * np.exp(-b * x) + c
 
 
 def double_exponential_decay(
-    x: np.ndarray, a1: float, b1: float, a2: float, b2: float
+    x: np.ndarray, a1: float, b1: float, a2: float, b2: float, c: float
 ) -> np.ndarray:
     """Define double exponential decay function for curve fitting."""
-    return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x)
+    return a1 * np.exp(-b1 * x) + a2 * np.exp(-b2 * x) + c
