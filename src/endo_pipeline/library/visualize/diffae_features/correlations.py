@@ -6,12 +6,15 @@ from typing import Any, Literal
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import TABLEAU_COLORS
-from scipy.optimize import curve_fit
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.diffae_manifest import get_dataset_descriptions
-from endo_pipeline.library.analyze.numerics import double_exponential_decay, exponential_decay
+from endo_pipeline.library.analyze.numerics import (
+    double_exponential_decay,
+    exponential_decay,
+    fit_exp_decay_and_get_relaxation_timescale,
+)
 from endo_pipeline.library.analyze.numerics.correlations import CROSS_CORR_INDEX_COMBINATIONS
 from endo_pipeline.library.visualize.viz_base import init_plot
 
@@ -152,46 +155,6 @@ def _add_delta_ccf_integral_to_plot(
     return ax
 
 
-def _fit_exp_decay_and_get_relaxation_timescale(
-    acf: np.ndarray,
-    lags: np.ndarray,
-    exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
-    maxfev: int = 10000,
-) -> tuple[np.ndarray, float]:
-    """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
-    # check to make sure valid function is provided
-    if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
-        logger.error(
-            "Invalid exp_decay_func provided: [ %s ]. "
-            "Must be 'exponential_decay' or 'double_exponential_decay'.",
-            exp_decay_func,
-        )
-        raise ValueError(
-            "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
-        )
-
-    # fit only to positive ACF values to avoid errors
-    if any(acf < 0):
-        acf_where_positive = acf > 0
-        lags_pos = lags[acf_where_positive]
-        acf_pos = acf[acf_where_positive]
-    else:
-        lags_pos = lags
-        acf_pos = acf
-    if exp_decay_func == "exponential_decay":
-        p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
-        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
-        relaxation_time = 1 / exp_fit[1]
-    else:
-        p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
-        exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
-        # choose the relaxation time corresponding to the larger weight
-        which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
-        relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
-
-    return exp_fit, relaxation_time
-
-
 def _add_exp_fit_to_plot(
     acf: np.ndarray,
     lags: np.ndarray,
@@ -212,7 +175,7 @@ def _add_exp_fit_to_plot(
     relaxation_timescales = []
     for i in range(3):
         try:
-            exp_fit, relaxation_time = _fit_exp_decay_and_get_relaxation_timescale(
+            exp_fit, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
                 acf[:, i], lags, exp_decay_func=exp_decay_func
             )
             relaxation_timescales.append(relaxation_time)

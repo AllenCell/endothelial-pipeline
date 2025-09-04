@@ -1,7 +1,8 @@
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
+from scipy.optimize import curve_fit
 from sklearn.decomposition import PCA
 
 from endo_pipeline.library.analyze.diffae_manifest import (
@@ -17,7 +18,7 @@ CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
-    """Get the cross-correlation function (CCF) between two features."""
+    """Get the normalized cross-correlation function (CCF) between two features."""
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
 
@@ -54,7 +55,7 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
 
 
 def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarray:
-    """Get the autocorrelation function (ACF) for a specific component."""
+    """Get the normalized autocorrelation function (ACF) for a specific component."""
     x_t_j = data[..., component_index]
     num_traj = data.shape[0]
     num_timepoints = data.shape[1]
@@ -86,6 +87,132 @@ def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarr
     return corr_shifted / num_traj
 
 
+def fit_exp_decay_and_get_relaxation_timescale(
+    acf: np.ndarray,
+    lags: np.ndarray,
+    exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
+    maxfev: int = 10000,
+) -> tuple[np.ndarray, float]:
+    """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
+    # check to make sure valid function is provided
+    if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
+        logger.error(
+            "Invalid exp_decay_func provided: [ %s ]. "
+            "Must be 'exponential_decay' or 'double_exponential_decay'.",
+            exp_decay_func,
+        )
+        raise ValueError(
+            "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
+        )
+
+    # fit only to positive ACF values to avoid errors
+    if any(acf < 0):
+        acf_where_positive = acf > 0
+        lags_pos = lags[acf_where_positive]
+        acf_pos = acf[acf_where_positive]
+    else:
+        lags_pos = lags
+        acf_pos = acf
+    if exp_decay_func == "exponential_decay":
+        p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
+        exp_fit, _ = curve_fit(exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
+        relaxation_time = 1 / exp_fit[1]
+    else:
+        p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
+        exp_fit, _ = curve_fit(double_exponential_decay, lags_pos, acf_pos, maxfev=maxfev, p0=p0)
+        # choose the relaxation time corresponding to the larger weight
+        which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
+        relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
+
+    return exp_fit, relaxation_time
+
+
+def bootstrap_autocorrelation_confidence_intervals(
+    data: np.ndarray,
+    component_index: int,
+    lags: np.ndarray,
+    n_bootstraps: int = 200,
+    confidence_level: float = 0.95,
+) -> dict[str, tuple]:
+    """
+    Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
+
+    The ACF is computed for a specific vector component of an ensemble of stationary,
+    vector-valued time series data.
+
+    The input data array is expected to be of shape (num_samples, num_timepoints, num_components).
+    That is, the data are assumed to be {num_samples} iid samples, each sampled at
+    the same num_timepoints and having the same num_components.
+
+    This function resamples the data with replacement to generate bootstrap samples and
+    computes the ACF for each bootstrap sample. It then calculates the confidence interval
+    for the ACF and related quantities based on the bootstrap samples.
+
+    Parameters
+    ----------
+    data
+        Array of shape (num_samples, num_timepoints, num_components) containing time series data.
+    component_index
+        Index of the vector component for which to compute the ACF.
+    lags
+        Array of lag values corresponding to the ACF.
+    n_bootstraps
+        Number of bootstrap samples to generate for the ACF.
+    confidence_level
+        Confidence interval level (e.g., 95%) to report for the ACF.
+
+    Returns
+    -------
+    :
+        Dictionary containing lower and upper bounds of the confidence intervals for:
+        - autocorrelation: ACF(tau)
+        - relaxation_timescale: Decay coefficient from exponential fit to ACF.
+    """
+
+    # Bootstrap the CCF using resampling with replacement
+    num_traj = data.shape[0]
+    bootstrap_autocorrelations = []
+    bootstrap_relaxation_timescales = []
+    for _ in range(n_bootstraps):
+        # Random sampling with replacement to generate bootstrap samples
+        inds = np.random.choice(num_traj, num_traj, replace=True)
+        data_resampled = data[inds]
+
+        # Calculate cross-correlation for each iteration of resampling and append to list
+        acf = autocorrelation_function(data_resampled, component_index)
+
+        # Fit exponential decay to ACF and get relaxation timescale
+        index_positive = lags > 0
+        positive_lags = lags[index_positive]
+        positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
+        acf_positive_lags = acf[index_positive]
+
+        _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+            acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
+        )
+
+        # store results
+        bootstrap_autocorrelations.append(acf)
+        bootstrap_relaxation_timescales.append(relaxation_time)
+
+    # Calculate the lower and upper bounds of the confidence interval
+    percentile = (1 - confidence_level) / 2
+    acf_lower_bound = np.percentile(bootstrap_autocorrelations, 100 * percentile, axis=0)
+    acf_upper_bound = np.percentile(bootstrap_autocorrelations, 100 * (1 - percentile), axis=0)
+    relaxation_time_lower_bound = np.percentile(
+        bootstrap_relaxation_timescales, 100 * percentile, axis=0
+    )
+    relaxation_time_upper_bound = np.percentile(
+        bootstrap_relaxation_timescales, 100 * (1 - percentile), axis=0
+    )
+    confidence_interval_bounds = {
+        "autocorrelation": (acf_lower_bound, acf_upper_bound),
+        "relaxation_timescale": (relaxation_time_lower_bound, relaxation_time_upper_bound),
+    }
+
+    return confidence_interval_bounds
+
+
 def bootstrap_cross_correlation_confidence_intervals(
     data_feat1: np.ndarray,
     data_feat2: np.ndarray,
@@ -105,7 +232,7 @@ def bootstrap_cross_correlation_confidence_intervals(
 
     This function resamples the data with replacement to generate bootstrap samples and
     computes the CCF for each bootstrap sample. It then calculates the confidence interval
-    for the CCF based on the bootstrap samples.
+    for the CCF and related quantities based on the bootstrap samples.
 
     Parameters
     ----------

@@ -12,6 +12,7 @@ from .correlations import (
     cross_correlation_function,
     double_exponential_decay,
     exponential_decay,
+    fit_exp_decay_and_get_relaxation_timescale,
 )
 from .fp_solvers import SteadyFP
 from .gen_potential import (
@@ -32,6 +33,7 @@ __all__ = [
     "double_exponential_decay",
     "entropy_production",
     "exponential_decay",
+    "fit_exp_decay_and_get_relaxation_timescale",
     "get_3d_bounds_from_data",
     "get_3d_index_combinations",
     "get_bins",
