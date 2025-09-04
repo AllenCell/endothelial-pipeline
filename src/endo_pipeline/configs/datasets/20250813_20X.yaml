@@ -40,6 +40,6 @@ timepoint_annotations:
     4: [24, 85, 330, 340, 349]
     5: [330, 349]
   bf_temp_artifact:
-    5: [46]
+    5: [45]
 position_annotations: null
 center_z_plane: null
