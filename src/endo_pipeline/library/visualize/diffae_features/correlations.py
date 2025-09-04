@@ -45,8 +45,9 @@ def _plot_single_acf_curve(
 
 
 def _plot_acf_curves_together(
-    lags: np.ndarray,
-    acf_array: np.ndarray,
+    dataset_name: str,
+    correlation_dict: dict[str, dict[str, Any]],
+    bootstrap_samples: int = 0,
     figsize: tuple[int, int] = (12, 6),
     component_labels: list[str] | None = None,
     component_colors: list[str] | None = None,
@@ -56,17 +57,42 @@ def _plot_acf_curves_together(
     """Plot multiple ACF curves together for comparison."""
     fig, ax = init_plot(figsize=figsize)
 
+    lags: np.ndarray = correlation_dict["lags"][dataset_name]
+    acf_array: np.ndarray = correlation_dict["acf"][dataset_name]
+
+    # plot only positive lags
+    index_positive = lags > 0
+    positive_lags = lags[index_positive]
+    positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
+    acf_positive_lags = acf_array[index_positive]
+
     num_dims = acf_array.shape[1]
+    # loop over each dimension/component and plot its ACF curve
     for i in range(num_dims):
         fig, ax = _plot_single_acf_curve(
-            lags,
-            acf_array[:, i],
+            positive_lags_as_hours,
+            acf_positive_lags[:, i],
+            bootstrap_samples=bootstrap_samples,
             fig_ax=(fig, ax),
             plot_title=plot_title,
             label=component_labels[i] if component_labels else f"Component {i + 1}",
             color=component_colors[i] if component_colors else list(TABLEAU_COLORS.keys())[i],
             **kwargs,
         )
+
+        # add confidence intervals if available
+        if bootstrap_samples > 0:
+            acf_ci_lower = correlation_dict["acf_ci_lower"][dataset_name][index_positive]
+            acf_ci_upper = correlation_dict["acf_ci_upper"][dataset_name][index_positive, i]
+            ax.fill_between(
+                positive_lags_as_hours,
+                acf_ci_lower[:, i],
+                acf_ci_upper[:, i],
+                alpha=0.25,
+                color=list(TABLEAU_COLORS.keys())[i],
+                label="95% CI",
+            )
+
     return fig, ax
 
 
@@ -233,6 +259,7 @@ def _make_all_acf_plots(
     dataset_description: str,
     output_path: Path,
     fit_double_exp: bool = True,
+    bootstrap_samples: int = 0,
 ) -> dict[str, dict[str, Any]]:
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
@@ -245,8 +272,9 @@ def _make_all_acf_plots(
     lags_as_hours = 5 * lags_ / 60  # convert from frames (5 minutes) to hours
     acf_ = acf[index_positive]
     fig, ax = _plot_acf_curves_together(
-        lags_as_hours,
-        acf_,
+        dataset_name,
+        correlation_dict,
+        bootstrap_samples=bootstrap_samples,
         component_labels=["PC1", "PC2", "PC3"],
         plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
         xlabel="Lag (hours)",
@@ -262,8 +290,9 @@ def _make_all_acf_plots(
 
     # fit single exponential decay to ACF
     fig, ax = _plot_acf_curves_together(
-        lags_as_hours,
-        acf_,
+        dataset_name,
+        correlation_dict,
+        bootstrap_samples=bootstrap_samples,
         component_labels=["PC1", "PC2", "PC3"],
         plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
         xlabel="Lag (hours)",
@@ -283,8 +312,9 @@ def _make_all_acf_plots(
     if fit_double_exp:
         # fit double exponential decay to ACF
         fig, ax = _plot_acf_curves_together(
-            lags_as_hours,
-            acf_,
+            dataset_name,
+            correlation_dict,
+            bootstrap_samples=bootstrap_samples,
             component_labels=["PC1", "PC2", "PC3"],
             plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
             xlabel="Lag (hours)",
@@ -401,6 +431,7 @@ def _plot_full_correlation_curves(
         correlation_dict,
         dataset_description,
         output_path,
+        bootstrap_samples=bootstrap_samples,
     )
 
     # plot ccf and difference between positive and negative lags
