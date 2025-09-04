@@ -21,7 +21,9 @@ from endo_pipeline.io import (
 )
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
-    parse_dataset_annotations_for_image_loading,
+    get_exclude_frames,
+    get_include_positions,
+    get_z_offset_information,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -557,11 +559,11 @@ def apply_model_on_grid_of_crops_from_one_dataset(
 
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
-    z_slice_per_position, only_include_positions, exclude_frames = (
-        parse_dataset_annotations_for_image_loading(
-            dataset_config, z_stack_offsets, slice_by_global_center
-        )
+    z_slice_per_position = get_z_offset_information(
+        dataset_config, z_stack_offsets, slice_by_global_center
     )
+    only_include_positions = get_include_positions(dataset_config)
+    exclude_frames = get_exclude_frames(dataset_config)
 
     if testing_mode:
         # for workflow testing, only use first position from each dataset

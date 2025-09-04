@@ -404,15 +404,53 @@ class MultiDimImageDataset(CacheDataset):
         return img_data
 
 
-def _get_z_offset_information(
+def get_z_offset_information(
     dataset_config: DatasetConfig,
     z_stack_offsets: tuple[int, int] | None,
     slice_by_global_center: bool,
 ) -> dict[int, dict[str, int]]:
     """
-    Get a dataframe with zarr loading metadata when z-slice selection is based
-    on the center slice for each position in the dataset.
+    Parse dataset annotations to get lower and upper z-stack
+    bounds per position for image loading and processing.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+
+    Returns
+    -------
+    :
+        Dictionary with z-slice start and stop indices per position.
     """
+    # get z-slice offsets per position if specified
+    if z_stack_offsets is not None:
+        logger.debug(
+            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
+            z_stack_offsets,
+            slice_by_global_center,
+        )
+    else:
+        # if no z-stack offsets are provided, pass in None
+        # to the dataframe builder
+        logger.debug("No z-stack offsets provided, loading all z-slices.")
+
     # if z_stack_offsets is not None, get z-slice ranges
     # for each position in the dataset (i.e., zarr file)
     # else, fixed full range is 0 to 24
@@ -440,67 +478,20 @@ def _get_z_offset_information(
     return z_slice_per_position
 
 
-def parse_dataset_annotations_for_image_loading(
-    dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int, int] | None = None,
-    slice_by_global_center: bool = True,
-) -> tuple[dict[int, dict[str, int]], list[int], dict[int, list[int]]]:
-    """
-    Parse dataset annotations to get z-slice offsets, positions to include,
-    and frames to exclude.
-
-    **Z-stack offsets**
-
-    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
-    by slicing about a global center or by using the provided offsets directly. If it
-    is ``None``, all z-slices are loaded from the raw brightfield images.
-
-    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
-    the global center plane for the given position. In this case, ``z_stack_offsets`` should
-    indicate the number of slices to include below and above the center plane. Else, the
-    ``z_stack_offsets`` are used directly as the range bounds.
-
-    Parameters
-    ----------
-    dataset_config
-        Dataset configuration object.
-    z_stack_offsets
-        Lower and upper bounds for z-slicing.
-    slice_by_global_center
-        Get global center plane per position for z-slicing if True, use offsets directly if False.
-    """
-
-    # get z-slice offsets per position if specified
-    if z_stack_offsets is not None:
-        logger.debug(
-            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
-            z_stack_offsets,
-            slice_by_global_center,
-        )
-    else:
-        # if no z-stack offsets are provided, pass in None
-        # to the dataframe builder
-        logger.debug("No z-stack offsets provided, loading all z-slices.")
-
-    z_slice_per_position = _get_z_offset_information(
-        dataset_config,
-        z_stack_offsets=z_stack_offsets,
-        slice_by_global_center=slice_by_global_center,
-    )
-
-    # get list of positions to exclude based on annotations
-    # turn this into a list of positions to only include
+def get_include_positions(dataset_config: DatasetConfig) -> list[int]:
+    """Get list of positions to include based on annotations."""
     exclude_positions = get_annotated_positions(dataset_config)
     only_include_positions = list(set(dataset_config.zarr_positions) - set(exclude_positions))
+    return only_include_positions
 
-    # build dict of frames to exclude per position
+
+def get_exclude_frames(dataset_config: DatasetConfig) -> dict[int, list[int]]:
+    """Get dict of frames to exclude per position based on annotations."""
     exclude_frames = {
         pos: get_annotated_timepoints_for_position(dataset_config, pos)
         for pos in dataset_config.zarr_positions
     }
-
-    return z_slice_per_position, only_include_positions, exclude_frames
+    return exclude_frames
 
 
 def build_zarr_image_loading_dataframe(

@@ -25,7 +25,7 @@ from endo_pipeline.configs import (
     get_position_integer_from_zarr_file_path,
     load_dataset_config,
 )
-from endo_pipeline.library.model import parse_dataset_annotations_for_image_loading
+from endo_pipeline.library.model import get_include_positions, get_z_offset_information
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
@@ -613,17 +613,15 @@ def align_all_positions(
     moving_zarr_files = sorted(get_available_zarr_files(moving_dataset_config))
     fixed_zarr_files = sorted(get_available_zarr_files(fixed_dataset_config))
 
-    # get tuple of image loading args for each position in the datasets
-    moving_z_slice, moving_include_pos, _ = parse_dataset_annotations_for_image_loading(
-        moving_dataset_config,
-        z_stack_offsets,
-        slice_by_global_center,
+    # get image loading args for moving and fixed datasets
+    moving_z_slice = get_z_offset_information(
+        moving_dataset_config, z_stack_offsets, slice_by_global_center
     )
-    fixed_z_slice, fixed_include_pos, _ = parse_dataset_annotations_for_image_loading(
-        fixed_dataset_config,
-        z_stack_offsets,
-        slice_by_global_center,
+    moving_include_pos = get_include_positions(moving_dataset_config)
+    fixed_z_slice = get_z_offset_information(
+        fixed_dataset_config, z_stack_offsets, slice_by_global_center
     )
+    fixed_include_pos = get_include_positions(fixed_dataset_config)
 
     data_list = []
     position_counter = 0
