@@ -524,9 +524,14 @@ def calculate_derived_data_dynamics_dependent(big_table: pd.DataFrame) -> pd.Dat
         big_table["alignment_deg_rel_to_flow"].diff() / big_table["time_minutes"].diff()
     )
 
-    big_table["cell_nuc_orientation_deg_rel_to_migration"] = (
+    nuc_relative_position = (
+        big_table["nuc_pos_rel_cell_angle_deg"].abs()
+        - big_table["centroid_velocity_angle_deg"].abs()
+    )
+    nuc_direction = np.sign(
         big_table["nuc_pos_rel_cell_angle_deg"] - big_table["centroid_velocity_angle_deg"]
     )
+    big_table["cell_nuc_orientation_deg_rel_to_migration"] = nuc_direction * nuc_relative_position
 
     # add column for the number of tracks at a given
     # timepoint per dataset per position
