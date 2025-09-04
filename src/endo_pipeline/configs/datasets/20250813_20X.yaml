@@ -32,7 +32,7 @@ flow_conditions:
   shear_stress: 14.65
 valid_timepoints: null
 include_scenes: null
-notes: 'Cells take on more mixed than perpendicular alignment'
+notes: Cells take on more mixed than perpendicular alignment
 timepoint_annotations:
   bf_scope_error:
     2: [289, 349]
@@ -41,5 +41,25 @@ timepoint_annotations:
     5: [330, 349]
   bf_temp_artifact:
     5: [45]
+  auto_bf_scope_error:
+    0: [17, 40, 88, 186, 259, 282, 289, 322, 343, 347, 354, 405, 432, 544, 547]
+    1: [44, 84, 85, 282, 298, 308, 544, 560]
+    2: [0, 282, 283, 289, 349, 529, 544, 547, 553]
+    3: [0, 255, 294, 309, 336, 349, 544, 547, 553, 558]
+    4: [0, 24, 84, 99, 149, 266, 336, 342, 343, 349, 547, 552, 553]
+    5: [0, 36, 331, 335, 336, 349, 510, 547, 551]
+  auto_bf_temp_artifact:
+    0: [0, 84, 354, 547]
+    1: [0, 84]
+    2: [0, 289, 349, 368]
+    3: [24, 330, 349, 544]
+    4: [24, 84, 330, 340, 349]
+    5: [330, 349]
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 9
+  1: 9
+  2: 9
+  3: 9
+  4: 9
+  5: 9
