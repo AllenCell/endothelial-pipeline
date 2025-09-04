@@ -17,7 +17,7 @@ CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> float:
-    """Get the normalized cross-correlation function (CCF) between two features."""
+    """Get the cross-correlation function (CCF) between two features."""
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
 
@@ -47,7 +47,7 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
 
 
 def autocorrelation_function(data: np.ndarray, component_index: int) -> float:
-    """Get the normalized autocorrelation function (ACF) for a specific component."""
+    """Get the autocorrelation function (ACF) for a specific component."""
     x_t_j = data[..., component_index]
     num_traj = data.shape[0]
     num_timepoints = data.shape[1]
@@ -125,7 +125,6 @@ def bootstrap_cross_correlation_confidence_intervals(
     bootstrap_correlation_diffs = []
     bootstrap_correlation_diff_integrals = []
     for _ in range(n_bootstraps):
-
         # Random sampling with replacement to generate bootstrap samples
         inds = np.random.choice(num_traj, num_traj, replace=True)
         ds1_resampled = data_feat1[inds]
@@ -134,8 +133,8 @@ def bootstrap_cross_correlation_confidence_intervals(
         # Calculate cross-correlation for each iteration of resampling and append to list
         ccf = cross_correlation_function(ds1_resampled, ds2_resampled)
         num_lags = len(ccf)
-        delta_ccf = abs(ccf[1 + num_lags // 2 :] - ccf[: num_lags // 2])
-        delta_ccf_integral = np.trapz(delta_ccf[:num_lags_integrate], axis=0)
+        delta_ccf = ccf[1 + num_lags // 2 :] - ccf[: num_lags // 2]
+        delta_ccf_integral = np.abs(np.trapz(delta_ccf[:num_lags_integrate], axis=0))
         bootstrap_correlations.append(ccf)
         bootstrap_correlation_diffs.append(delta_ccf)
         bootstrap_correlation_diff_integrals.append(delta_ccf_integral)
@@ -229,8 +228,8 @@ def _compute_correlations_for_one_dataset(
         data_feat1 = feats[..., j]
         data_feat2 = feats[..., k]
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
-        # get delta CCF = | CCF(tau>0) - CCF(tau<0) |
-        delta_ccf[:, i] = abs(ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i])
+        # get delta CCF = CCF(tau>0) - CCF(tau<0)
+        delta_ccf[:, i] = ccf[1 + num_lags // 2 :, i] - ccf[: num_lags // 2, i]
         if bootstrap_samples > 0:
             # calculate bootstrap confidence intervals
             confidence_intervals = bootstrap_cross_correlation_confidence_intervals(
@@ -246,7 +245,7 @@ def _compute_correlations_for_one_dataset(
                 delta_ccf_integral_ub[i],
             ) = confidence_intervals["delta_cross_correlation_integral"]
 
-    delta_ccf_integral = np.trapz(delta_ccf[:num_lags_integrate, :], axis=0)
+    delta_ccf_integral = np.abs(np.trapz(delta_ccf[:num_lags_integrate, :], axis=0))
 
     # store results in dict of dicts and return updated dict
     correlation_dict["lags"][dataset_name] = lags

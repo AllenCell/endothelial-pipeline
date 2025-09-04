@@ -113,7 +113,7 @@ def _add_delta_ccf_integral_to_plot(
     """Print integral of delta CCF near zero on plot of delta CCFs."""
     integral_upper_bound_hrs = round(5 * num_lags_integrate / 60, 2)  # convert from frames to hours
     integral_srings = [
-        rf"$\int_{{0}}^{{{integral_upper_bound_hrs}}}|\Delta C_{{{j+1}{k+1}}}(\tau)| d\tau$"
+        rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau|$"
         for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
     ]
     strings_per_pc = [
@@ -400,11 +400,11 @@ def _make_all_ccf_plots(
                 color=list(TABLEAU_COLORS.keys())[i],
                 label="95% CI",
             )
-    ax.set_title(f"$|C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)|$ ({dataset_description})")
+    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({dataset_description})")
     ax.set_xlabel("Lag $\\tau$ (hours)")
-    ax.set_ylabel("$|\Delta C_{ij}(\\tau)|$")
-    # ax.legend()
-    ax.set_ylim(-0.05, 0.6)
+    ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
+    ax.legend()
+    ax.set_ylim(-0.5, 0.6)
     # print integral of delta ccf near zero on plot
     ci_bounds = None
     if bootstrap_samples > 0:
@@ -492,8 +492,9 @@ def _plot_single_correlation_metric_vs_shear_stress(
         )
         # add error bars if ci_bounds provided
         if ci_bounds is not None:
-            ci_lower = np.array([bounds[i][0] for bounds in ci_bounds])[sorted_indices]
-            ci_upper = np.array([bounds[i][1] for bounds in ci_bounds])[sorted_indices]
+            ci_bounds_array = np.array(ci_bounds)[sorted_indices]
+            ci_lower = ci_bounds_array[:, 0, i]
+            ci_upper = ci_bounds_array[:, 1, i]
             ax.errorbar(
                 shear_sorted,
                 values,
