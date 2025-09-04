@@ -344,9 +344,23 @@ def _compute_correlations_for_one_dataset(
     num_lags = len(lags)
     # autocorrelation
     acf = np.zeros((num_lags, 3))
+    acf_lb = np.zeros((num_lags, 3))
+    acf_ub = np.zeros((num_lags, 3))
+    relaxation_timescale_lb = np.zeros(3)
+    relaxation_timescale_ub = np.zeros(3)
     for i in range(3):
         acf[:, i] = autocorrelation_function(feats, i)
+        if bootstrap_samples > 0:
+            # calculate bootstrap confidence intervals for ACF and relaxation timescale
+            confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
+                feats, i, lags, n_bootstraps=bootstrap_samples
+            )
+            acf_lb[:, i], acf_ub[:, i] = confidence_intervals["autocorrelation"]
+            (relaxation_timescale_lb[i], relaxation_timescale_ub[i]) = confidence_intervals[
+                "relaxation_timescale"
+            ]
 
+    # cross-correlation
     ccf = np.zeros((num_lags, 3))
     ccf_lb = np.zeros((num_lags, 3))
     ccf_ub = np.zeros((num_lags, 3))
@@ -391,6 +405,10 @@ def _compute_correlations_for_one_dataset(
     # store results in dict of dicts and return updated dict
     correlation_dict["lags"][dataset_name] = lags
     correlation_dict["acf"][dataset_name] = acf
+    correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
+    correlation_dict["acf_ci_upper"][dataset_name] = acf_ub
+    correlation_dict["relaxation_timescales_ci_lower"][dataset_name] = relaxation_timescale_lb
+    correlation_dict["relaxation_timescales_ci_upper"][dataset_name] = relaxation_timescale_ub
     correlation_dict["ccf"][dataset_name] = ccf
     correlation_dict["ccf_ci_lower"][dataset_name] = ccf_lb
     correlation_dict["ccf_ci_upper"][dataset_name] = ccf_ub
@@ -414,6 +432,10 @@ def compute_correlation_dict(
     correlation_dict: dict[str, dict[str, np.ndarray]] = {
         "lags": {},
         "acf": {},
+        "acf_ci_lower": {},
+        "acf_ci_upper": {},
+        "relaxation_timescale_ci_lower": {},
+        "relaxation_timescale_ci_upper": {},
         "ccf": {},
         "ccf_ci_lower": {},
         "ccf_ci_upper": {},
