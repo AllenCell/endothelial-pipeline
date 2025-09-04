@@ -5,26 +5,15 @@ import pandas as pd
 from matplotlib import colormaps
 from matplotlib.ticker import MaxNLocator
 
-from endo_pipeline.configs import (
-    get_datasets_in_collection,
-    get_zarr_file_for_position,
-    load_dataset_config,
-)
+from endo_pipeline.configs import get_zarr_file_for_position, load_dataset_config
 from endo_pipeline.io import load_zarr_as_dask_array
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
-from endo_pipeline.library.process.z_stack_selection import (
-    append_projection_outputs,
-    get_center_plane_for_position,
-    plot_bottom_top_slices,
-    plot_image_row,
-    save_projection_image,
-)
-from endo_pipeline.library.visualize.model_inputs.image_processing_steps import (
-    process_brightfield,
-    process_cdh5,
-)
-from endo_pipeline.library.visualize.model_inputs.plot import visualize_images_with_histograms
+
+# %%
+TIMEPOINT = 250
+Z_SLICE_LOWER_OFFSET = 4
+Z_SLICE_UPPER_OFFSET = 11
 
 
 # %%
@@ -64,19 +53,10 @@ def plot_vlines(
 
 
 # %%
-TIMEPOINT = 250
-Z_SLICE_LOWER_OFFSET = 5
-Z_SLICE_UPPER_OFFSET = 12
-
-# %%
-# datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 datasets = [
-    "20241120_20X",
-    # "20241217_20X",
-    # "20250110_paired20X",
-    # "20250214_pairedPreFixation",
+    # "20241120_20X", # To be excluded
+    # "20241217_20X", # To be excluded
     "20250224_20X",
-    # "20250227_paired20X",
     "20250319_20X",
     "20250326_20X",
     "20250331_20X",
@@ -288,22 +268,28 @@ for dataset in datasets:
 df = pd.DataFrame(data)
 
 fig = plt.figure(figsize=(6, 6))
-plt.hist(df["available_slices_above"], bins=range(6, 20, 1), align="left", edgecolor="black")
+plt.hist(df["available_slices_above"], bins=range(8, 20, 1), align="left", edgecolor="black")
 plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
 plt.xlabel("Available Slices Above Center Slice")
 plt.ylabel("Number of Positions")
-plt.show()
-save_dir = get_output_path("z_range_selection")
-save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
-
-df_10 = df[df["available_slices_above"] == 10]
-limiting_datasets = df_10.dataset.unique()
-print(f"10: {limiting_datasets}")
 
 df_11 = df[df["available_slices_above"] == 11]
 limiting_datasets = df_11.dataset.unique()
-print(f"11: {limiting_datasets}")
+text = "Datasets in 11:\n" + "\n".join(limiting_datasets)
+plt.text(
+    0.95,
+    0.95,
+    text,
+    transform=plt.gca().transAxes,
+    fontsize=10,
+    verticalalignment="top",
+    horizontalalignment="right",
+    bbox=dict(facecolor="white", alpha=0.8),
+)
 
+plt.show()
+save_dir = get_output_path("z_range_selection")
+save_plot_to_path(fig, save_dir, "available_slices_above_center_histogram")
 
 # %%
 colormap = colormaps["tab20"]
@@ -388,4 +374,10 @@ for POSITION in range(6):
         f"Position {POSITION} Timepoint {TIMEPOINT}, Offset Range: -{Z_SLICE_LOWER_OFFSET} to +{Z_SLICE_UPPER_OFFSET}"
     )
     plt.show()
+    save_dir = get_output_path(
+        "z_range_selection",
+        f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}",
+        "normalized_profiles",
+    )
+    save_plot_to_path(fig, save_dir, f"pos{POSITION}_tp{TIMEPOINT}_normalized_profiles")
 # %%
