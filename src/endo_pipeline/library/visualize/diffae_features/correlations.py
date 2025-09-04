@@ -269,7 +269,7 @@ def _make_all_acf_plots(
     correlation_dict: dict[str, dict[str, Any]],
     dataset_description: str,
     output_path: Path,
-    fit_double_exp: bool = False,
+    fit_double_exp: bool = True,
 ) -> dict[str, dict[str, Any]]:
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
@@ -539,11 +539,6 @@ def _plot_correlation_metrics_vs_shear_stress(
         for dataset_name in list_of_datasets
     ]
 
-    # also plot delta CCF at lag = 1 (5 minutes)
-    delta_ccf_lag_1_values = [
-        correlation_dict["delta_ccf"][dataset_name][0] for dataset_name in list_of_datasets
-    ]
-
     # also plot relaxation timescales
     relaxation_timescale_values = [
         np.array(correlation_dict["relaxation_timescales"][dataset_name])
@@ -580,19 +575,6 @@ def _plot_correlation_metrics_vs_shear_stress(
         fig,
         output_path,
         "mean_delta_ccf_integral_vs_shear_stress",
-    )
-
-    fig, ax = _plot_single_correlation_metric_vs_shear_stress(
-        delta_ccf_lag_1_values, shear_stresses
-    )
-    ax.legend()
-    ax.set_ylabel("$|\\Delta C_{ij}(0)|$")
-    ax.set_ylim((-0.05, 0.6))
-    ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
-    save_plot_to_path(
-        fig,
-        output_path,
-        "delta_ccf_lag_1_vs_shear_stress",
     )
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(

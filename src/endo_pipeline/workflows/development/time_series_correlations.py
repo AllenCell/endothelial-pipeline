@@ -4,7 +4,7 @@ TAGS = ["diffae_features"]
 def main(
     dataset_name: str = "3d_flow_field_analysis",
     model_name: str = "diffae_04_10",
-    bootstrap_samples: int = 50,
+    bootstrap_samples: int = 500,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
