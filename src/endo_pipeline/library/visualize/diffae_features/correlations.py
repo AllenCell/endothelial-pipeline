@@ -72,7 +72,6 @@ def _plot_acf_curves_together(
         fig, ax = _plot_single_acf_curve(
             positive_lags_as_hours,
             acf_positive_lags[:, i],
-            bootstrap_samples=bootstrap_samples,
             fig_ax=(fig, ax),
             plot_title=plot_title,
             label=component_labels[i] if component_labels else f"Component {i + 1}",
@@ -83,7 +82,7 @@ def _plot_acf_curves_together(
         # add confidence intervals if available
         if bootstrap_samples > 0:
             acf_ci_lower = correlation_dict["acf_ci_lower"][dataset_name][index_positive]
-            acf_ci_upper = correlation_dict["acf_ci_upper"][dataset_name][index_positive, i]
+            acf_ci_upper = correlation_dict["acf_ci_upper"][dataset_name][index_positive]
             ax.fill_between(
                 positive_lags_as_hours,
                 acf_ci_lower[:, i],
