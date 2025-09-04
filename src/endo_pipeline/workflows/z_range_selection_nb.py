@@ -73,6 +73,7 @@ datasets = [
 ]
 
 # %%
+# for dataset in [datasets[0]]:
 for dataset in datasets:
     dataset_config = load_dataset_config(dataset)
     for position in dataset_config.zarr_positions:
