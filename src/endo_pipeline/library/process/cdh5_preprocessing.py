@@ -1,10 +1,6 @@
-from pathlib import Path
-from typing import Any
-
 import networkx
 import numpy as np
-import yaml
-from bioio import BioImage
+from dask.array import Array
 from scipy.ndimage import distance_transform_edt
 from skimage.exposure import rescale_intensity
 from skimage.feature import peak_local_max
@@ -26,9 +22,6 @@ from skimage.segmentation import (
     relabel_sequential,
     watershed,
 )
-
-from endo_pipeline.configs.dataset_io import extract_T
-from endo_pipeline.library.process.general_image_preprocessing import get_dim_map
 
 
 def preprocess(
@@ -622,10 +615,10 @@ def generate_segmentations(
 
 
 def split_multinucleate_regions(
-    cell_segmentations: np.ndarray,
-    nuclei_segmentations: np.ndarray,
-    cell_boundary_thresh: np.ndarray,
-    cell_boundary_image: np.ndarray,
+    cell_segmentations: np.ndarray | Array,
+    nuclei_segmentations: np.ndarray | Array,
+    cell_boundary_thresh: np.ndarray | Array,
+    cell_boundary_image: np.ndarray | Array,
     min_size_filter: int = 500,
 ) -> tuple[np.ndarray, np.ndarray]:
     """

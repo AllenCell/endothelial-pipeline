@@ -1,6 +1,7 @@
 from typing import Any, Literal
 
 import numpy as np
+from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
 
 
@@ -507,8 +508,8 @@ def build_vector(stop_position: np.ndarray, start_position: np.ndarray) -> np.nd
 
 def calculate_region_border_metrics(
     binary_image: np.ndarray,
-    intensity_image: np.ndarray | None = None,
-    labeled_image: np.ndarray | None = None,
+    intensity_image: np.ndarray | Array | None = None,
+    labeled_image: np.ndarray | Array | None = None,
     verbose: bool = True,
 ) -> list:
     """
