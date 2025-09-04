@@ -537,6 +537,13 @@ def _plot_correlation_metrics_vs_shear_stress(
         np.array(correlation_dict["relaxation_timescales"][dataset_name])
         for dataset_name in list_of_datasets
     ]
+    relaxation_timescale_ci_bounds = [
+        (
+            correlation_dict["relaxation_timescales_ci_lower"][dataset_name],
+            correlation_dict["relaxation_timescales_ci_upper"][dataset_name],
+        )
+        for dataset_name in list_of_datasets
+    ]
 
     # get shear stresses for each dataset
     shear_stresses = np.array(
@@ -571,11 +578,14 @@ def _plot_correlation_metrics_vs_shear_stress(
     )
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
-        relaxation_timescale_values, shear_stresses, labels=["PC1", "PC2", "PC3"]
+        relaxation_timescale_values,
+        shear_stresses,
+        ci_bounds=relaxation_timescale_ci_bounds,
+        labels=["PC1", "PC2", "PC3"],
     )
     ax.legend()
     ax.set_ylabel("Relaxation timescale (hours)")
-    ax.set_ylim((1.0, 4.75))
+    ax.set_ylim((0.75, 4.75))
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
     save_plot_to_path(
         fig,
