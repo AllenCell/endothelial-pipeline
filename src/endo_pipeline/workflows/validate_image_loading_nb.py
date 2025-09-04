@@ -9,7 +9,9 @@ from endo_pipeline.io import get_output_path
 from endo_pipeline.library.model import (
     MultiDimImageDataset,
     build_zarr_image_loading_dataframe,
-    parse_dataset_annotations_for_image_loading,
+    get_exclude_frames,
+    get_include_positions,
+    get_z_offset_information,
 )
 
 # %%
@@ -24,11 +26,11 @@ z_stack_offsets = (5, 15)
 slice_by_global_center = True
 
 # %%
-z_slice_per_position, only_include_positions, exclude_frames_by_position = (
-    parse_dataset_annotations_for_image_loading(
-        dataset_config, z_stack_offsets, slice_by_global_center
-    )
+z_slice_per_position = get_z_offset_information(
+    dataset_config, z_stack_offsets, slice_by_global_center
 )
+only_include_positions = get_include_positions(dataset_config)
+exclude_frames_by_position = get_exclude_frames(dataset_config)
 
 # %%
 # get list of all positions with annotations for artifact detection
