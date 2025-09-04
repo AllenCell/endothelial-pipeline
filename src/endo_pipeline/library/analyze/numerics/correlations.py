@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2)]
 
 
-def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> float:
+def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
     """Get the cross-correlation function (CCF) between two features."""
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
@@ -24,7 +24,6 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     # pad 0s to nearest power of 2 to 2*num_timepoints-1
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
-    corr_list = []
     for traj_index in range(num_traj):
         data_mean1 = np.mean(data_feat1[traj_index])
         data_stdev1 = np.std(data_feat1[traj_index])
@@ -38,15 +37,23 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         cf_2 = np.fft.fft(x_t_j_ctr, n=num_pad)
         sf = cf_1.conjugate() * cf_2
         corr = np.fft.ifft(sf).real / (data_stdev1 * data_stdev2 * num_timepoints)
-        corr_shifted = np.fft.fftshift(corr)[
-            num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
-        ]
-        corr_list.append(corr_shifted)
+        # running sum over trajectories
+        if traj_index == 0:
+            corr_shifted = np.fft.fftshift(corr)[
+                num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
+            ]
+        else:
+            corr_shifted = (
+                corr_shifted
+                + np.fft.fftshift(corr)[
+                    num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
+                ]
+            )
 
-    return sum(corr_list) / num_traj
+    return corr_shifted / num_traj
 
 
-def autocorrelation_function(data: np.ndarray, component_index: int) -> float:
+def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarray:
     """Get the autocorrelation function (ACF) for a specific component."""
     x_t_j = data[..., component_index]
     num_traj = data.shape[0]
@@ -55,7 +62,6 @@ def autocorrelation_function(data: np.ndarray, component_index: int) -> float:
     # pad 0s to nearest power of 2 to 2*num_timepoints-1
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
-    corr_list = []
     for traj_index in range(num_traj):
         data_mean = np.mean(x_t_j[traj_index])
         data_var = np.var(x_t_j[traj_index])
@@ -64,12 +70,20 @@ def autocorrelation_function(data: np.ndarray, component_index: int) -> float:
         cf = np.fft.fft(x_t_j_ctr, n=num_pad)
         sf = cf.conjugate() * cf
         corr = np.fft.ifft(sf).real / (data_var * num_timepoints)
-        corr_shifted = np.fft.fftshift(corr)[
-            num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
-        ]
-        corr_list.append(corr_shifted)
+        # running sum over trajectories
+        if traj_index == 0:
+            corr_shifted = np.fft.fftshift(corr)[
+                num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
+            ]
+        else:
+            corr_shifted = (
+                corr_shifted
+                + np.fft.fftshift(corr)[
+                    num_pad // 2 - (num_timepoints // 4 - 1) : num_pad // 2 + (num_timepoints // 4)
+                ]
+            )
 
-    return sum(corr_list) / num_traj
+    return corr_shifted / num_traj
 
 
 def bootstrap_cross_correlation_confidence_intervals(
