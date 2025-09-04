@@ -1,7 +1,11 @@
 TAGS = ["diffae_model_training"]
 
 
-def main(resolution_level: int = 1) -> None:
+def main(
+    resolution_level: int = 1,
+    z_stack_offsets: tuple[int, int] | None = None,
+    slice_by_global_center: bool = True,
+) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
 
@@ -23,6 +27,17 @@ def main(resolution_level: int = 1) -> None:
     Zarr files used by training can be used as different resolutions. The
     default resolution of 1 corresponds to downsampling by half.
 
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
 
     **Workflow testing**
 
@@ -36,6 +51,11 @@ def main(resolution_level: int = 1) -> None:
     ----------
     resolution_level
         The resolution level of the zarr files to load for training.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
+
 
     Returns
     -------
@@ -44,6 +64,7 @@ def main(resolution_level: int = 1) -> None:
         DataframeManifest with DatasetLocation objects containing the FMS IDs of
         the uploaded files.
     """
+
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
@@ -53,6 +74,7 @@ def main(resolution_level: int = 1) -> None:
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
+        parse_dataset_annotations_for_image_loading,
     )
 
     output_savedir = get_output_path("dataframes")
@@ -67,7 +89,14 @@ def main(resolution_level: int = 1) -> None:
         # default frame start and stop values are None, i.e., load all timepoints
         frame_start = None
         frame_stop = None
-        only_positions = None  # keep all rows in the dataset CSV
+
+        # parse dataset annotations to get z-slice information,
+        # positions to include, and frames to exclude
+        z_slice_per_position, only_include_positions, exclude_frames = (
+            parse_dataset_annotations_for_image_loading(
+                dataset_config, z_stack_offsets, slice_by_global_center
+            )
+        )
 
         if TESTING_MODE:
             # for workflow testing, only use first position from each dataset
@@ -75,7 +104,7 @@ def main(resolution_level: int = 1) -> None:
             # (if dataset is not timelapse, then only one timepoint is used)
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
-            only_positions = [0]  # only use the first position
+            only_include_positions = only_include_positions[0:1]
 
         # build zarr loading dataframe for the current dataset
         # and append it to the list of dataframes
@@ -89,7 +118,9 @@ def main(resolution_level: int = 1) -> None:
                 ],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
-                only_positions=only_positions,
+                z_slice_per_position=z_slice_per_position,
+                only_include_positions=only_include_positions,
+                exclude_frames=exclude_frames,
             )
         )
 

@@ -22,8 +22,10 @@ from tqdm import tqdm, trange
 from endo_pipeline.configs import (
     get_available_zarr_files,
     get_datasets_in_collection,
+    get_position_integer_from_zarr_file_path,
     load_dataset_config,
 )
+from endo_pipeline.library.model import get_include_positions, get_z_offset_information
 from endo_pipeline.library.process.cdh5_preprocessing import preprocess
 
 FLUOR_CHANNEL = 0
@@ -379,6 +381,8 @@ def save_overlay(moving: np.ndarray, fixed: np.ndarray, savepath: str | Path) ->
 def align(
     moving_image_path: str | Path,
     fixed_image_path: str | Path,
+    moving_z_slices: list[int],
+    fixed_z_slices: list[int],
     resolution_level: int,
     savedir: Path,
     alignment_method: Literal["sift", "template"],
@@ -391,7 +395,7 @@ def align(
     **Alignment methods**
 
     Options for alignment methods are "sift" or "template", passed in via the ``alignment_method``
-    input. The method "sift" is recommended for the 20x pre/post fixation datasets, while the
+    input. The method "sift" is recommended for the 20X pre/post fixation datasets, while the
     method "template" is recommended for the 20X/40X datasets.
 
     Parameters
@@ -400,6 +404,10 @@ def align(
         Path to the moving image.
     fixed_image_path
         Path to the fixed image.
+    moving_z_slices
+        List of z-slices to load from the moving image.
+    fixed_z_slices
+        List of z-slices to load from the fixed image.
     resolution_level
         The resolution level of the zarr files to load for alignment.
     savedir
@@ -446,10 +454,10 @@ def align(
         image_moving.set_scene(scene)
         for t in range(image_fixed.dims["T"][0]):
             fixed_fluo = image_fixed.get_image_dask_data(
-                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level
+                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level, Z=fixed_z_slices
             ).compute()
             moving_fluo = image_moving.get_image_dask_data(
-                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level
+                "ZYX", C=FLUOR_CHANNEL, T=t, resolution=resolution_level, Z=moving_z_slices
             ).compute()
 
             if not align_fluo:
@@ -495,8 +503,12 @@ def align(
             if model is None:
                 continue
 
-            fixed_bf = image_fixed.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
-            moving_bf = image_moving.get_image_dask_data("ZYX", C=BF_CHANNEL, T=t).compute()
+            fixed_bf = image_fixed.get_image_dask_data(
+                "ZYX", C=BF_CHANNEL, T=t, Z=fixed_z_slices
+            ).compute()
+            moving_bf = image_moving.get_image_dask_data(
+                "ZYX", C=BF_CHANNEL, T=t, Z=moving_z_slices
+            ).compute()
             moving_bf = resize_moving(moving_bf, (1, rescale_factor, rescale_factor))
 
             base_moving_path = Path(moving_image_path).name.split(".")[0]
@@ -544,6 +556,8 @@ def align_all_positions(
     fixed_dataset_name: str,
     moving_dataset_name: str,
     resolution_level: int,
+    z_stack_offsets: tuple[int, int] | None,
+    slice_by_global_center: bool,
     savedir: Path,
     alignment_method: Literal["sift", "template"],
     align_fluo: bool = True,
@@ -556,7 +570,7 @@ def align_all_positions(
     **Alignment methods**
 
     Options for alignment methods are "sift" or "template", passed in via the ``alignment_method``
-    input. The method "sift" is recommended for the 20x pre/post fixation datasets, while the
+    input. The method "sift" is recommended for the 20X pre/post fixation datasets, while the
     method "template" is recommended for the 20X/40X datasets.
 
     Parameters
@@ -567,6 +581,10 @@ def align_all_positions(
         The name of the moving dataset.
     resolution_level
         The resolution level of the zarr files to load for alignment.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
     savedir
         The directory where the aligned images will be saved.
     alignment_method
@@ -590,8 +608,21 @@ def align_all_positions(
         raise ValueError("Invalid alignment method. Choose 'sift' or 'template'.")
 
     # get list of zarr files in each dataset
-    moving_zarr_files = sorted(get_available_zarr_files(load_dataset_config(moving_dataset_name)))
-    fixed_zarr_files = sorted(get_available_zarr_files(load_dataset_config(fixed_dataset_name)))
+    moving_dataset_config = load_dataset_config(moving_dataset_name)
+    fixed_dataset_config = load_dataset_config(fixed_dataset_name)
+    moving_zarr_files = sorted(get_available_zarr_files(moving_dataset_config))
+    fixed_zarr_files = sorted(get_available_zarr_files(fixed_dataset_config))
+
+    # get image loading args for moving and fixed datasets
+    moving_z_slice = get_z_offset_information(
+        moving_dataset_config, z_stack_offsets, slice_by_global_center
+    )
+    moving_include_pos = get_include_positions(moving_dataset_config)
+    fixed_z_slice = get_z_offset_information(
+        fixed_dataset_config, z_stack_offsets, slice_by_global_center
+    )
+    fixed_include_pos = get_include_positions(fixed_dataset_config)
+
     data_list = []
     position_counter = 0
     for moving, fixed in zip(moving_zarr_files, fixed_zarr_files, strict=True):
@@ -600,10 +631,25 @@ def align_all_positions(
             moving,
             fixed,
         )
+        position = get_position_integer_from_zarr_file_path(moving)
+        if position not in moving_include_pos or position not in fixed_include_pos:
+            logger.warning(
+                "Skipping position [ %d ] as it has been annotated for a known imaging artifact.",
+                position,
+            )
+            continue
+        moving_z_slices = list(
+            range(moving_z_slice[position]["z_start"], moving_z_slice[position]["z_stop"] + 1)
+        )
+        fixed_z_slices = list(
+            range(fixed_z_slice[position]["z_start"], fixed_z_slice[position]["z_stop"] + 1)
+        )
         data_list.append(
             align(
                 moving,
                 fixed,
+                moving_z_slices,
+                fixed_z_slices,
                 resolution_level,
                 savedir,
                 align_fluo=align_fluo,
@@ -618,8 +664,8 @@ def align_all_positions(
     return data
 
 
-def _get_concat_path(row: pd.Series, savedir: Path) -> Path:
-    base_image_path = Path(row.fixed).name.split(".")[0]
+def _get_concat_path(row: dict[str, str], savedir: Path) -> Path:
+    base_image_path = Path(row["fixed"]).name.split(".")[0]
     return savedir / f"{base_image_path.replace('_fixed', '')}.ome.tiff"
 
 
@@ -639,7 +685,7 @@ def _get_paired_dataset_dict(
         fixed_flag = "PreFixation"
         moving_flag = "PostFixation"
     else:
-        # for 20x/40x pairs, the "fixed" image is the 20x image
+        # for 20X/40X pairs, the "fixed" image is the 20X image
         # and the "moving" image is the 40x image.
         fixed_flag = "20X"
         moving_flag = "40X"
@@ -653,11 +699,25 @@ def _get_paired_dataset_dict(
 def align_and_save_paired_images(
     dataset_pair_type: Literal["live_fixed", "20X_40X"],
     resolution_level: int,
+    z_stack_offsets: tuple[int, int] | None,
+    slice_by_global_center: bool,
     save_path: Path,
     testing_mode: bool = False,
 ) -> pd.DataFrame:
     """
     Align and save all paired images from the specified dataset pair type.
+
+    **Z-stack offsets**
+
+    The ``z_stack_offsets`` parameter allows for flexible control over the z-slice loading.
+    If ``z_stack_offsets`` is provided, it limits the number of z-slices to load, either
+    by slicing about a global center or by using the provided offsets directly. If it
+    is ``None``, all z-slices are loaded from the raw brightfield images.
+
+    If ``slice_by_global_center`` is set to True, the z-slice range is calculated based on
+    the global center plane for the given position. In this case, ``z_stack_offsets`` should
+    indicate the number of slices to include below and above the center plane. Else, the
+    ``z_stack_offsets`` are used directly as the range bounds.
 
     **Workflow testing**
 
@@ -671,6 +731,10 @@ def align_and_save_paired_images(
         The type of dataset pair to align.
     resolution_level
         The resolution level of the zarr files to load for alignment.
+    z_stack_offsets
+        Lower and upper bounds for z-slicing.
+    slice_by_global_center
+        Get global center plane per position for z-slicing if True, use offsets directly if False.
     save_path
         The directory where the aligned images will be saved.
     testing_mode
@@ -710,6 +774,8 @@ def align_and_save_paired_images(
                 fixed,
                 moving,
                 resolution_level,
+                z_stack_offsets,
+                slice_by_global_center,
                 save_path,
                 alignment_method=alignment_method,
                 num_positions_to_align=4 if testing_mode else None,
@@ -721,12 +787,11 @@ def align_and_save_paired_images(
 
     df = pd.concat(df_list, ignore_index=True)
     df = df.dropna(subset=["fixed", "moving"])
-    print(df.columns)
-    logger.debug("Found %d pairs of images to save", len(df))
+    logger.debug("Found %d pairs of images to save.", len(df))
     return df
 
 
-def concat_and_save_aligned_image_pairs(row: pd.Series[Any], savedir: Path) -> Path:
+def concat_and_save_aligned_image_pairs(row: dict[str, str], savedir: Path) -> Path:
     """
     Concatenate the aligned fixed and moving images into a single OME-TIFF file
     and save it to the specified directory.
@@ -734,8 +799,7 @@ def concat_and_save_aligned_image_pairs(row: pd.Series[Any], savedir: Path) -> P
     Parameters
     ----------
     row
-        A row from the DataFrame containing paths to the fixed and moving images.
-        Generated by the `itertuples()` method of a DataFrame.
+        A row (in dict form) of a DataFrame containing paths to the fixed and moving images.
     savedir
         The directory where the concatenated image will be saved.
 
@@ -749,8 +813,8 @@ def concat_and_save_aligned_image_pairs(row: pd.Series[Any], savedir: Path) -> P
         logger.debug("Returning existing file at: [ %s ]", save_path)
         return save_path
     # take standard deviation projection here to allow concatenation with different z-axis sizes
-    fixed = BioImage(row.fixed).data.squeeze().max(0)
-    moving = BioImage(row.moving).data.squeeze().max(0)
+    fixed = BioImage(row["fixed"]).data.squeeze().max(0)
+    moving = BioImage(row["moving"]).data.squeeze().max(0)
 
     out = np.stack([fixed, moving], axis=0)[:, None]
 
