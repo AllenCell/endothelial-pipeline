@@ -5,7 +5,7 @@ def main(
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    include_cell_piling: bool = False,
+    exclude_cell_piling: bool = False,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
@@ -42,10 +42,10 @@ def main(
 
     **Cell piling exclusion**
 
-    By default, timepoints marked as having cell piling annotations are excluded from the training
-    and validation datasets. This behavior can be changed by setting the ``include_cell_piling``
-    parameter to True. This allows for toggling training a model that "sees" cell piling versus one
-    that does not.
+    By default, timepoints marked as having cell piling annotations are included in the training
+    and validation datasets. This behavior can be changed by setting the ``exclude_cell_piling``
+    parameter to True. This allows for toggling between training a model that "sees" cell piling
+    versus one that does not.
 
     **Workflow testing**
 
@@ -63,8 +63,8 @@ def main(
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
-    include_cell_piling
-        Include cell piling timepoints if True, exclude them if False.
+    exclude_cell_piling
+        Exclude cell piling timepoints if True, include them if False.
 
 
     Returns
@@ -108,9 +108,7 @@ def main(
             dataset_config, z_stack_offsets, slice_by_global_center
         )
         only_include_positions = get_include_positions(dataset_config)
-        exclude_frames = get_exclude_frames(
-            dataset_config, exclude_cell_piling=not include_cell_piling
-        )
+        exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
 
         if TESTING_MODE:
             # for workflow testing, only use first position from each dataset

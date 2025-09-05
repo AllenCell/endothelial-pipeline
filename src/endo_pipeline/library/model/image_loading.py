@@ -504,7 +504,7 @@ def get_exclude_frames(
                 dataset_config.name,
             )
             return exclude_frames
-        exlcude_start = valid_timepoints.stop + 1
+        exlcude_start = valid_timepoints.stop[-1] + 1
         exclude_end = dataset_config.duration
         cell_piling_frames = list(range(exlcude_start, exclude_end))
         for pos in exclude_frames.keys():
