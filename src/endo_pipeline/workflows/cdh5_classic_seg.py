@@ -159,8 +159,8 @@ def generate_results(
                     "segmentations_initial",
                     "segmentations_merged",
                     "nuclei_predictions",
-                    "cdh5_segmentations_split_by_nuclei",  # name for the augmented segmentation
-                    "cdh5_segmentations_split_by_nuclei_borders",  # name for the augmented segmentation boundaries
+                    "cdh5_segmentations_split_by_nuclei",  # name for augmented segmentation
+                    "cdh5_segmentations_split_by_nuclei_borders",  # name for aug seg boundaries
                 ],
                 "channel_colors": [
                     (255, 255, 255),
@@ -193,7 +193,7 @@ def generate_results(
             "channel_colors": [
                 (255, 255, 255),
             ],
-            "physical_pixel_sizes": img.physical_pixel_sizes,  # img_metadata['physical_pixel_sizes'],
+            "physical_pixel_sizes": img.physical_pixel_sizes,
             "dim_order": "YX",
         }
         save_image_output(out_path, images_out, images_out_metadata)
