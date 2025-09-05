@@ -30,7 +30,8 @@ z_slice_bounds_per_position = get_z_slice_bounds_per_position(
     dataset_config, z_stack_offsets, slice_by_global_center
 )
 only_include_positions = get_include_positions(dataset_config)
-exclude_frames_by_position = get_exclude_frames(dataset_config)
+exclude_cell_piling = True
+exclude_frames_by_position = get_exclude_frames(dataset_config, exclude_cell_piling=True)
 
 # %%
 # get list of all positions with annotations for artifact detection
@@ -51,8 +52,15 @@ for position in dataset_config.zarr_positions:
         assert position not in only_include_positions
 
     annotated_timepoints = get_annotated_timepoints_for_position(dataset_config, position)
+    if dataset_config.valid_timepoints is None:
+        excluded_frames = sorted(annotated_timepoints)
+    else:
+        cell_piling_timepoints = list(
+            range(dataset_config.valid_timepoints.stop[-1] + 1, dataset_config.duration)
+        )
+        excluded_frames = sorted(set(annotated_timepoints + cell_piling_timepoints))
 
-    assert annotated_timepoints == exclude_frames_by_position.get(position, [])
+    assert excluded_frames == exclude_frames_by_position.get(position, [])
 
     print("Validated position:", position)
 
