@@ -147,8 +147,10 @@ def main(
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
     manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}"
+    if exclude_cell_piling:
+        manifest_name = f"{manifest_name}_exclude_cell_piling"
     if TESTING_MODE:
-        manifest_name += "_test_workflow"
+        manifest_name = f"{manifest_name}_test_workflow"
     build_and_save_dataframe_manifest_for_training(
         train,
         val,
