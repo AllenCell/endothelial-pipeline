@@ -4,6 +4,7 @@ TAGS = ["diffae_model_training"]
 def main(
     resolution_level: int = 1,
     crop_size: int = 128,
+    include_cell_piling: bool = False,
 ) -> None:
     """
     Train a DiffAE model using the provided configuration.

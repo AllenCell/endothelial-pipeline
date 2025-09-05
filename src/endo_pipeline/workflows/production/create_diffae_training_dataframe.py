@@ -5,6 +5,7 @@ def main(
     resolution_level: int = 1,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
+    include_cell_piling: bool = False,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
@@ -39,6 +40,13 @@ def main(
     indicate the number of slices to include below and above the center plane. Else, the
     ``z_stack_offsets`` are used directly as the range bounds.
 
+    **Cell piling exclusion**
+
+    By default, timepoints marked as having cell piling annotations are excluded from the training
+    and validation datasets. This behavior can be changed by setting the ``include_cell_piling``
+    parameter to True. This allows for toggling training a model that "sees" cell piling versus one
+    that does not.
+
     **Workflow testing**
 
     The ``--testing-mode`` (aka ``-x``) flag can be used to run a simplified version of this
@@ -55,6 +63,8 @@ def main(
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
+    include_cell_piling
+        Include cell piling timepoints if True, exclude them if False.
 
 
     Returns
@@ -74,7 +84,9 @@ def main(
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
-        parse_dataset_annotations_for_image_loading,
+        get_exclude_frames,
+        get_include_positions,
+        get_z_offset_information,
     )
 
     output_savedir = get_output_path("dataframes")
@@ -92,10 +104,12 @@ def main(
 
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
-        z_slice_per_position, only_include_positions, exclude_frames = (
-            parse_dataset_annotations_for_image_loading(
-                dataset_config, z_stack_offsets, slice_by_global_center
-            )
+        z_slice_per_position = get_z_offset_information(
+            dataset_config, z_stack_offsets, slice_by_global_center
+        )
+        only_include_positions = get_include_positions(dataset_config)
+        exclude_frames = get_exclude_frames(
+            dataset_config, exclude_cell_piling=not include_cell_piling
         )
 
         if TESTING_MODE:
