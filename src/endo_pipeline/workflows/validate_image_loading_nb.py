@@ -11,7 +11,7 @@ from endo_pipeline.library.model import (
     build_zarr_image_loading_dataframe,
     get_exclude_frames,
     get_include_positions,
-    get_z_offset_information,
+    get_z_slice_bounds_per_position,
 )
 
 # %%
@@ -26,7 +26,7 @@ z_stack_offsets = (5, 15)
 slice_by_global_center = True
 
 # %%
-z_slice_per_position = get_z_offset_information(
+z_slice_bounds_per_position = get_z_slice_bounds_per_position(
     dataset_config, z_stack_offsets, slice_by_global_center
 )
 only_include_positions = get_include_positions(dataset_config)
@@ -40,7 +40,7 @@ annotated_positions = get_annotated_positions(dataset_config)
 # and that expected positions are included/excluded
 # and that excluded timepoints are correctly identified/stored
 for position in dataset_config.zarr_positions:
-    z_slice_bounds = z_slice_per_position[position]
+    z_slice_bounds = z_slice_bounds_per_position[position]
     global_center = dataset_config.center_z_plane[position]
     assert z_slice_bounds["z_start"] == max(0, global_center - z_stack_offsets[0])
     assert z_slice_bounds["z_stop"] == min(24, global_center + z_stack_offsets[1])
@@ -64,7 +64,7 @@ df = build_zarr_image_loading_dataframe(
     channel=channel,
     frame_start=frame_start,
     frame_stop=frame_stop,
-    z_slice_per_position=z_slice_per_position,
+    z_slice_bounds_per_position=z_slice_bounds_per_position,
     only_include_positions=only_include_positions,
     exclude_frames=exclude_frames_by_position,
 )
@@ -99,7 +99,7 @@ for image_loading_args in image_dataset.data:
         print(f"Validating position: {position}")
     exclude_frames = get_annotated_timepoints_for_position(dataset_config, position)
     assert image_loading_args["T"] not in exclude_frames
-    z_slice_bounds = z_slice_per_position[position]
+    z_slice_bounds = z_slice_bounds_per_position[position]
     z_slice_list = list(range(z_slice_bounds["z_start"], z_slice_bounds["z_stop"] + 1))
     assert image_loading_args["Z"] == z_slice_list
 

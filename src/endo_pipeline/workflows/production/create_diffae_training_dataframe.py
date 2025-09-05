@@ -86,7 +86,7 @@ def main(
         build_zarr_image_loading_dataframe,
         get_exclude_frames,
         get_include_positions,
-        get_z_offset_information,
+        get_z_slice_bounds_per_position,
     )
 
     output_savedir = get_output_path("dataframes")
@@ -104,7 +104,7 @@ def main(
 
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
-        z_slice_per_position = get_z_offset_information(
+        z_slice_bounds_per_position = get_z_slice_bounds_per_position(
             dataset_config, z_stack_offsets, slice_by_global_center
         )
         only_include_positions = get_include_positions(dataset_config)
@@ -130,7 +130,7 @@ def main(
                 ],
                 frame_start=frame_start,
                 frame_stop=frame_stop,
-                z_slice_per_position=z_slice_per_position,
+                z_slice_bounds_per_position=z_slice_bounds_per_position,
                 only_include_positions=only_include_positions,
                 exclude_frames=exclude_frames,
             )
