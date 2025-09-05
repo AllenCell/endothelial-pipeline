@@ -9,7 +9,7 @@ import pandas as pd
 import tqdm
 from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
-from monai.data import CacheDataset, MetaTensor
+from monai.data import CacheDataset, MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
@@ -151,7 +151,7 @@ class BioIOImageLoaderd(Transform):
         return data
 
 
-class MultiDimImageDataset(CacheDataset):
+class MultiDimImageDataset(SmartCacheDataset):
     """
     Dataset converting a `.csv` file listing multi dimensional (timelapse or
     multi-scene) files and some metadata into batches of metadata intended for the
