@@ -102,58 +102,6 @@ for dataset in datasets:
             print(f"Not enough slices above center for dataset {dataset_config.name}, skipping...")
             continue
 
-        # Calculate CDH5 histogram
-        cdh5_hist = np.array(
-            [np.sum(cdh5_stack[z, :, :].compute()) for z in range(cdh5_stack.shape[0])]
-        )
-        # Calculate the standard deviation for each Z slice in the Brightfield stack
-        bf_std = np.array([np.std(bf_stack[z, :, :].compute()) for z in range(bf_stack.shape[0])])
-
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-        # Plot Brightfield Standard Deviation
-        axes[0].plot(bf_std, label="BF Std Dev", color="blue")
-        axes[0].set_xlabel("Z Slice")
-        axes[0].set_ylabel("BF Standard Deviation")
-        plot_vlines(
-            axes[0],
-            center_slice,
-            Z_SLICE_LOWER_OFFSET,
-            Z_SLICE_UPPER_OFFSET,
-            np.min(bf_std),
-            np.max(bf_std),
-        )
-
-        # Plot CDH5 Total Intensity
-        axes[1].plot(cdh5_hist, color="green")
-        axes[1].set_xlabel("Z Slice")
-        axes[1].set_ylabel("CDH5 Total Intensity")
-        plot_vlines(
-            axes[1],
-            center_slice,
-            Z_SLICE_LOWER_OFFSET,
-            Z_SLICE_UPPER_OFFSET,
-            np.min(cdh5_hist),
-            np.max(cdh5_hist),
-        )
-
-        # Adjust legend and layout
-        axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
-        plt.suptitle(
-            f"{dataset_config.name} Position {position} Timepoint {TIMEPOINT}, Available Slices Above Center: {available_slices_above}"
-        )
-        plt.tight_layout()
-        plt.show()
-        save_dir = get_output_path(
-            "z_range_selection",
-            f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}",
-            "z_profile",
-        )
-        save_plot_to_path(
-            fig, save_dir, f"{dataset_config.name}_pos{position}_tp{TIMEPOINT}_zprofile"
-        )
-        plt.close()
-
         # Brightfield (bf) variables
         bf_center = bf_stack[center_slice, :, :].compute()
         bf_top = bf_stack[top_slice, :, :].compute()
