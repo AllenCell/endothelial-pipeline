@@ -22,7 +22,6 @@ from endo_pipeline.io import (
 from endo_pipeline.library.model.image_loading import (
     build_zarr_image_loading_dataframe,
     get_exclude_frames,
-    get_include_positions,
     get_z_slice_bounds_per_position,
 )
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model

@@ -179,7 +179,7 @@ class DatasetConfig:
     timepoint_annotations: (
         dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
     ) = None
-    """Manually annotated timepoints for each position. Individual tps (int) or start, stops (tuple)."""
+    """Manually annotated timepoints per position. Individual tps (int) or start, stops (tuple)."""
 
     position_annotations: dict[PositionAnnotation, list[int]] | None = None
     """Manually annotated positions."""

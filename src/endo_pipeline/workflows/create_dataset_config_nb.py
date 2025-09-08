@@ -28,15 +28,7 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from endo_pipeline.configs import (
-    ChannelIndices,
-    DatasetConfig,
-    FlowCondition,
-    PositionAnnotation,
-    TimepointAnnotation,
-    ValidTimepoints,
-    save_dataset_config,
-)
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, save_dataset_config
 
 # %%
 dataset = DatasetConfig(
@@ -94,12 +86,12 @@ dataset = DatasetConfig(
     #             5: []
     #         },
     #         TimepointAnnotation.CELL_PILING: {
-    #             0: [[356, 550]],
-    #             1: [[356, 550]],
-    #             2: [[356, 550]],
-    #             3: [[356, 550]],
-    #             4: [[356, 550]],
-    #             5: [[356, 550]]
+    #             0: [(356, 550)],
+    #             1: [(356, 550)],
+    #             2: [(356, 550)],
+    #             3: [(356, 550)],
+    #             4: [(356, 550)],
+    #             5: [(356, 550)]
     #         },
     #         TimepointAnnotation.XY_SHIFT: {
     #             0: [],
