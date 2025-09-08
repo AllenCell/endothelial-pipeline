@@ -67,7 +67,7 @@ def run_workflow(queue: Sequence) -> None:
         else:
             scene_index = None
             raw_filepath = None
-            raw_channel = None
+            raw_channel = 0
 
         run_tracking(
             in_dir=seg_filepaths,
