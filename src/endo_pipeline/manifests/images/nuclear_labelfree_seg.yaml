@@ -32,3 +32,7 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250728_20X/P{{position}}/20250728_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250806_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250806_20X/P{{position}}/20250806_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250813_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250813_20X/P{{position}}/20250813_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250818_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg/20250818_20X/P{{position}}/20250818_20X_P{{position}}_T{{timepoint}}.ome.tiff
