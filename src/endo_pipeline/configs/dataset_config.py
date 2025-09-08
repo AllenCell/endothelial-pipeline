@@ -25,6 +25,9 @@ class TimepointAnnotation(StrEnum):
     BF_TEMP_ARTIFACT = "bf_temp_artifact"
     """Manually Temporary brightfield artifact."""
 
+    CELL_PILING = "cell_piling"
+    """Manually annotated range of timepoints where cells pile up (> 30% of FOV)."""
+
     GFP_SCOPE_ERROR = "gfp_scope_error"
     """Manually annotated error with GFP scope."""
 

@@ -32,6 +32,7 @@ from endo_pipeline.configs import (
     ChannelIndices,
     DatasetConfig,
     FlowCondition,
+    TimepointAnnotation,
     ValidTimepoints,
     save_dataset_config,
 )
@@ -74,13 +75,25 @@ dataset = DatasetConfig(
     # valid_timepoints=ValidTimepoints(start=[0], stop=[0]),
     # include_scenes=[0, 0, 0],
     # notes="",
-    # exclude_timepoints={
-    #     0: [],
-    #     1: [],
-    #     2: [],
-    #     3: [],
-    #     4: [],
-    #     5: []
+    # timepoint_annotations={
+    #     TimepointAnnotation.BF_SCOPE_ERROR:
+    #         {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
+    #     TimepointAnnotation.CELL_PILING:
+    #         {
+    #             0: [],
+    #             1: [],
+    #             2: [],
+    #             3: [],
+    #             4: [],
+    #             5: []
+    #         },
     # },
     # center_z_plane={
     #     0: 10,
