@@ -28,14 +28,7 @@ if __name__ != "__main__":
     raise ImportError("This module is a notebook and is not meant to be imported")
 
 # %%
-from endo_pipeline.configs import (
-    ChannelIndices,
-    DatasetConfig,
-    FlowCondition,
-    TimepointAnnotation,
-    ValidTimepoints,
-    save_dataset_config,
-)
+from endo_pipeline.configs import ChannelIndices, DatasetConfig, FlowCondition, save_dataset_config
 
 # %%
 dataset = DatasetConfig(
