@@ -11,8 +11,6 @@ from cyto_dl.api import CytoDLModel
 from endo_pipeline.configs import (
     CytoDLModelConfig,
     DatasetConfig,
-    get_available_zarr_files,
-    get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
 )
 from endo_pipeline.io import (
@@ -21,10 +19,13 @@ from endo_pipeline.io import (
     load_dataframe,
     upload_file_to_fms,
 )
-from endo_pipeline.library.model.image_loading import build_zarr_image_loading_dataframe
+from endo_pipeline.library.model.image_loading import (
+    build_zarr_image_loading_dataframe,
+    get_exclude_frames,
+    get_z_offset_information,
+)
 from endo_pipeline.library.model.mlflow_utils import download_mlflow_artifact, download_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.manifests import (
     DataframeLocation,
     DataframeManifest,
@@ -202,48 +203,62 @@ def add_diffae_model_eval_crop_columns(
 ) -> pd.DataFrame:
     """
     Add columns to the dataframe for DiffAE model evaluation crops.
-    NOTE: The centroids, image sizes, and crop sizes are for the images
-    loaded at the native resolution (i.e. a resolution level of 0).
-    The diffae_resolution_level parameter will be used to downsample those values
-    prior to being passed along to the DiffAE model for evaluation.
-    The diffae_resolution_level parameter will also be passed along to the model
-    and used to load the images at the appropriate resolution level.
-    The "start" and "end" columns returned by this function will determine the
-    crop locations at the same resolution as the centroids.
 
-    Example: The dataframe has centroids from an image of size 2048x2048 at
-    resolution level 0 and diffae_resolution_level=1 and crop_size=256.
-    A crop with size 256x256 is taken around the centroid coordinates and
-    returned under the start_x, start_y, end_x, and end_y columns.
-    These start and end columns are later downsampled by diffae_resolution_level=1
-    (-> 2**1 = downsample factor of 2), resulting in crops of size 128x128.
-    The diffae_resolution_level=1, and downsampled start_x, start_y, end_x, and end_y
-    columns are passed along to the DiffAE model for evaluation.
-    The DiffAE model loads images at resolution level 1 (therefore a size of 1024x1024)
-    and extracts each crop according to the start_x, start_y, end_x, end_y columns
-    (therefore each crop has a size of 128x128).
+    **Note on image resolution**
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Dataframe to operate on. Requires the following columns:
+    The centroids, image sizes, and crop sizes are for the images loaded at the native resolution
+    (i.e. a resolution level of 0). The diffae_resolution_level parameter will be used to
+    downsample those values prior to being passed along to the DiffAE model for evaluation.
+    The diffae_resolution_level parameter will also be passed along to the model and used to load
+    the images at the appropriate resolution level. The "start" and "end" columns returned by
+    this function will determine the crop locations at the same resolution as the centroids.
+
+    **Input dataframe**
+
+    The input dataframe requires the following columns:
         - centroid_X: x-coordinate of the centroid
         - centroid_Y: y-coordinate of the centroid
         - image_size_x: width of the image
         - image_size_y: height of the image
-    resolution_level: level of binning to use when loading the images
-    crop_size: size of the square crop to extract around each centroid
 
-    Returns
-    -------
-    pd.DataFrame
-        Dataframe with additional columns for DiffAE model evaluation crops.
-        The columns added are:
+    **Output dataframe**
+
+    The output dataframe has the following additional columns:
         - start_x: x-coordinate of the top-left corner of the crop
         - start_y: y-coordinate of the top-left corner of the crop
         - end_x: x-coordinate of the bottom-right corner of the crop
         - end_y: y-coordinate of the bottom-right corner of the crop
         - bbox_is_in_bounds: boolean indicating if the bounding box is within image bounds
+
+    **Crop extraction and downsampling**
+
+    Consider and input dataframe is one that has centroids from an image of size
+    2048x2048 at resolution level 0 and ``diffae_resolution_level``=1 and ``crop_size``=256.
+    A crop with size 256x256 is taken around the centroid coordinates and returned under the
+    ``start_x``, ``start_y``, ``end_x``, and ``end_y`` columns of the output dataframe.
+
+    These start and end columns are later downsampled by ``diffae_resolution_level``=1
+    (-> 2**1 = downsample factor of 2), resulting in crops of size 128x128.
+    The ``diffae_resolution_level=1``, and downsampled ``start_x``, ``start_y``, ``end_x``,
+    and ``end_y`` columns are passed along to the DiffAE model for evaluation.
+
+    The DiffAE model loads images at resolution level 1 (therefore a size of 1024x1024)
+    and extracts each crop according to the ``start_x``, ``start_y``, ``end_x``, ``end_y``
+    columns (therefore each crop has a size of 128x128).
+
+    Parameters
+    ----------
+    df
+        Dataframe to operate on.
+    diffae_resolution_level
+        Level of binning to use when loading the images
+    crop_size
+        Size of the square crop to extract around each centroid
+
+    Returns
+    -------
+    :
+        Dataframe with additional columns for DiffAE model evaluation crops.
     """
     # add the size of the crop used to get DiffAE features at full res
     df["crop_size"] = crop_size
@@ -336,6 +351,7 @@ def preprocess_tracking_manifest_for_model_eval(
 
 
 def bbox_in_image_bounds(df: pd.DataFrame, resolution_level: int = 1) -> pd.Series:
+    """Indicate if bounding boxes fit in image bounds without being clipped."""
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
     cols_to_downsample = [
@@ -428,40 +444,6 @@ def update_prediction_from_tracks_with_metadata(
     pred_df.to_parquet(prediction_path)
 
 
-def _get_z_offset_information(
-    dataset_config: DatasetConfig,
-    z_stack_offsets: tuple[int, int],
-    slice_by_global_center: bool = True,
-) -> dict[int, dict[str, int]]:
-    """
-    Get a dataframe with zarr loading metadata when z-slice selection is based
-    on the center slice for each position in the dataset.
-    """
-    # if z_stack_offsets is not None, get z-slice ranges
-    # for each position in the dataset (i.e., zarr file)
-    z_slice_by_position = None
-    available_zarr_files = get_available_zarr_files(dataset_config)
-    if z_stack_offsets is not None:
-        z_slice_by_position = {}
-        for zarr_file_path in available_zarr_files:
-            # get position from zarr path as an integer (e.g., 'P0' -> 0)
-            position_as_int = get_position_integer_from_zarr_file_path(zarr_file_path)
-            # get z-slice indices for the given position
-            z_slices = get_plane_indices(
-                dataset_config,
-                position_as_int,
-                lower_offset=z_stack_offsets[0],
-                upper_offset=z_stack_offsets[1],
-                slice_by_global_center=slice_by_global_center,
-            )
-            z_slice_by_position[position_as_int] = {
-                "z_start": z_slices[0],
-                "z_stop": z_slices[-1],
-            }
-
-    return z_slice_by_position
-
-
 def apply_model_on_grid_of_crops_from_one_dataset(
     model_config: CytoDLModelConfig,
     dataset_config: DatasetConfig,
@@ -470,16 +452,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    testing_mode: bool = False,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    only_include_positions: list[int] | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset.
-
-    **Workflow testing**
-
-    If ``testing_mode`` is set to True, the model will only be applied to the first
-    position of the dataset and only the first two timepoints will be used. The
-    staging environment of FMS will be used for uploading the prediction file.
 
     **Z-stack offsets**
 
@@ -492,7 +471,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     the global center plane for the given position. In this case, ``z_stack_offsets`` should
     indicate the number of slices to include below and above the center plane. Else, the
     ``z_stack_offsets`` are used directly as the range bounds.
-
 
     Parameters
     ----------
@@ -510,10 +488,8 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
-    slice_by_global_center: bool
+    slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
-    testing_mode
-        Execute method in workflow testing mode if True, run full model evaluation if False.
 
     Returns
     -------
@@ -523,6 +499,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
+
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
@@ -569,47 +546,21 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     file_name = f"{file_name}_{timestamp}.parquet"
     dataset_save_path = save_path / file_name
 
-    # default frame start and stop values are None, i.e., load all timepoints
-    frame_start = None
-    frame_stop = None
-    frame_step = None
-    only_positions = None  # keep all rows in the dataset CSV
-
-    if testing_mode:
-        # for workflow testing, only use first position from each dataset
-        # and first two timepoints to speed up the dataloading process
-        # (if dataset is not timelapse, then only one timepoint is used)
-        frame_start = 0
-        frame_stop = 1 if dataset_config.is_timelapse else 0
-        only_positions = [0]  # only use the first position
-        logger.debug(
-            "Workflow testing is enabled, only processing the first few timepoints "
-            "of the first position the dataset."
-        )
+    # parse dataset annotations to get z-slice information,
+    # positions to include, and frames to exclude
+    z_slice_per_position = get_z_offset_information(
+        dataset_config, z_stack_offsets, slice_by_global_center
+    )
+    exclude_frames = get_exclude_frames(dataset_config)
 
     if z_stack_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary
         frame_start = 0
         frame_stop = -1
         frame_step = 250
-        logger.debug(
-            "Using z-stack offsets: [ %s ] with slice_by_global_center = [ %s ] ",
-            z_stack_offsets,
-            slice_by_global_center,
-        )
         logger.debug("Z-stack offsets provided, getting features only for frames 0, 250, and 500.")
 
-        z_slice_by_position = _get_z_offset_information(
-            dataset_config,
-            z_stack_offsets=z_stack_offsets,
-            slice_by_global_center=slice_by_global_center,
-        )
-    else:
-        # if no z-stack offsets are provided, pass in None
-        # to the dataframe builder
-        logger.debug("No z-stack offsets provided, loading all z-slices.")
-        z_slice_by_position = None
-
+    # build dataframe with zarr loading metadata
     df = build_zarr_image_loading_dataframe(
         dataset_config,
         resolution_level=resolution_level,
@@ -617,8 +568,9 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         frame_start=frame_start,
         frame_stop=frame_stop,
         frame_step=frame_step,
-        z_slice_info_per_position=z_slice_by_position,
-        only_positions=only_positions,
+        z_slice_per_position=z_slice_per_position,
+        only_include_positions=only_include_positions,
+        exclude_frames=exclude_frames,
     )
 
     # save the dataframe to a parquet file
