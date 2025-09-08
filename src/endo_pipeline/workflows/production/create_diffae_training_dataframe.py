@@ -74,40 +74,41 @@ def main(
     from endo_pipeline.library.model import (
         build_and_save_dataframe_manifest_for_training,
         build_zarr_image_loading_dataframe,
-        parse_dataset_annotations_for_image_loading,
+        get_exclude_frames,
+        get_include_positions,
+        get_z_offset_information,
     )
 
     output_savedir = get_output_path("dataframes")
 
-    # load data config
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
 
-    # parse dataset annotations to get z-slice information,
-    # positions to include, and frames to exclude
-    z_slice_per_position, only_include_positions, exclude_frames = (
-        parse_dataset_annotations_for_image_loading(
-            dataset_config, z_stack_offsets, slice_by_global_center
-        )
-    )
-
-    # When running workflow in demo mode, only use the first position from each
-    # dataset and first two timepoints to speed up the data loading process (if
-    # dataset is not timelapse, then only one timepoint is used). Otherwise, use
-    # default frame start and stop values (i.e. all timepoints) and keep all
-    # rows in the dataset CSV.
-    if DEMO_MODE:
-        name_suffix = "_test_workflow"
-        frame_start = 0
-        frame_stop = 1 if dataset_config.is_timelapse else 0
-        only_include_positions = only_include_positions[0:1]
-    else:
-        name_suffix = ""
-        frame_start = None
-        frame_stop = None
-
     zarr_dataframes = []
     for dataset_config in dataset_config_list:
+        # parse dataset annotations to get z-slice information,
+        # positions to include, and frames to exclude
+        z_slice_per_position = get_z_offset_information(
+            dataset_config, z_stack_offsets, slice_by_global_center
+        )
+        only_include_positions = get_include_positions(dataset_config)
+        exclude_frames = get_exclude_frames(dataset_config)
+
+        # When running workflow in demo mode, only use the first position from each
+        # dataset and first two timepoints to speed up the data loading process (if
+        # dataset is not timelapse, then only one timepoint is used). Otherwise, use
+        # default frame start and stop values (i.e. all timepoints) and keep all
+        # rows in the dataset CSV.
+        if DEMO_MODE:
+            name_suffix = "_test_workflow"
+            frame_start = 0
+            frame_stop = 1 if dataset_config.is_timelapse else 0
+            only_include_positions = only_include_positions[0:1]
+        else:
+            name_suffix = ""
+            frame_start = None
+            frame_stop = None
+
         # build zarr loading dataframe for the current dataset
         # and append it to the list of dataframes
         zarr_dataframes.append(
