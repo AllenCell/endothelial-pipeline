@@ -11,7 +11,7 @@ from endo_pipeline.io.output import get_output_path, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
 
 # %%
-TIMEPOINT = 250
+TIMEPOINT = 90
 Z_SLICE_LOWER_OFFSET = 4
 Z_SLICE_UPPER_OFFSET = 11
 
@@ -70,6 +70,8 @@ datasets = [
     "20250716_20X",
     "20250728_20X",
     "20250806_20X",
+    "20250813_20X",
+    "20250818_20X",
 ]
 
 # %%
@@ -165,40 +167,12 @@ for dataset in datasets:
         cdh5_upper_offset = cdh5_stack[center_slice + Z_SLICE_UPPER_OFFSET, :, :].compute()
 
         # Brightfield (bf) min and max calculations
-        min_bf = np.min(
-            [
-                np.percentile(bf_center, 0.2),
-                np.percentile(bf_top, 0.2),
-                np.percentile(bf_lower_offset, 0.2),
-                np.percentile(bf_upper_offset, 0.2),
-            ]
-        )
-        max_bf = np.max(
-            [
-                np.percentile(bf_center, 99.8),
-                np.percentile(bf_top, 99.8),
-                np.percentile(bf_lower_offset, 99.8),
-                np.percentile(bf_upper_offset, 99.8),
-            ]
-        )
+        min_bf = np.percentile(bf_center, 0.2)
+        max_bf = np.percentile(bf_center, 99.8)
 
         # CDH5 (cdh5) min and max calculations
-        min_cdh5 = np.min(
-            [
-                np.percentile(cdh5_center, 0.2),
-                np.percentile(cdh5_top, 0.2),
-                np.percentile(cdh5_lower_offset, 0.2),
-                np.percentile(cdh5_upper_offset, 0.2),
-            ]
-        )
-        max_cdh5 = np.max(
-            [
-                np.percentile(cdh5_center, 99.8),
-                np.percentile(cdh5_top, 99.8),
-                np.percentile(cdh5_lower_offset, 99.8),
-                np.percentile(cdh5_upper_offset, 99.8),
-            ]
-        )
+        min_cdh5 = np.percentile(cdh5_center, 0.2)
+        max_cdh5 = np.percentile(cdh5_center, 99.8)
 
         # Contrast stretching
         bf_center = contrast_stretching(bf_center, custom_range=(min_bf, max_bf))
@@ -247,7 +221,6 @@ for dataset in datasets:
             fig, save_dir, f"{dataset_config.name}_pos{position}_tp{TIMEPOINT}_im_slices"
         )
         plt.close()
-
 
 # %%
 data = []
@@ -381,4 +354,81 @@ for POSITION in range(6):
         "normalized_profiles",
     )
     save_plot_to_path(fig, save_dir, f"pos{POSITION}_tp{TIMEPOINT}_normalized_profiles")
+
+# %%
+for dataset in datasets:
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    dataset_config = load_dataset_config(dataset)
+    for POSITION in dataset_config.zarr_positions:
+        center_slice = dataset_config.center_z_plane[POSITION]
+
+        save_dir = get_output_path(
+            "z_range_selection", f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}"
+        )
+        zarr_file = get_zarr_file_for_position(dataset_config, POSITION)
+
+        bf_stack = load_zarr_as_dask_array(
+            zarr_file, channels=["BF"], timepoints=TIMEPOINT, level=1, squeeze=True
+        )
+        cdh5_stack = load_zarr_as_dask_array(
+            zarr_file, channels=["EGFP"], timepoints=TIMEPOINT, level=1, squeeze=True
+        )
+
+        # Calculate CDH5 histogram
+        cdh5_hist = np.array(
+            [np.sum(cdh5_stack[z, :, :].compute()) for z in range(cdh5_stack.shape[0])]
+        )
+        # Calculate the standard deviation for each Z slice in the Brightfield stack
+        bf_std = np.array([np.std(bf_stack[z, :, :].compute()) for z in range(bf_stack.shape[0])])
+
+        # Normalize the x-axis by subtracting the center slice
+        normalized_x = np.arange(len(bf_std)) - center_slice
+
+        # Normalize bf_std and cdh5_hist by their respective maximum values
+        # bf_std_normalized = bf_std / np.min(bf_std) if np.min(bf_std) != 0 else bf_std
+        bf_std_normalized = bf_std / bf_std[center_slice] if bf_std[center_slice] != 0 else bf_std
+        cdh5_hist_normalized = (
+            cdh5_hist / np.max(cdh5_hist) if np.max(cdh5_hist) != 0 else cdh5_hist
+        )
+        # cdh5_hist_normalized = cdh5_hist / cdh5_hist[center_slice] if cdh5_hist[center_slice] != 0 else cdh5_hist
+
+        # Plot Brightfield Standard Deviation with normalized x-axis
+        axes[0].plot(normalized_x, bf_std_normalized)
+        axes[0].set_xlabel("Normalized Z Slice (Center = 0)")
+        axes[0].set_ylabel("Normalized BF Standard Deviation")
+
+        # Plot CDH5 Total Intensity
+        axes[1].plot(
+            normalized_x, cdh5_hist_normalized, label=f"{dataset_config.name}, P{POSITION}"
+        )
+        axes[1].set_xlabel("Normalized Z Slice (Center = 0)")
+        axes[1].set_ylabel("Normalized CDH5 Total Intensity")
+
+    plot_vlines(
+        axes[0],
+        0,
+        Z_SLICE_LOWER_OFFSET,
+        Z_SLICE_UPPER_OFFSET,
+        y_min=axes[0].get_ylim()[0],
+        y_max=axes[0].get_ylim()[1],
+    )
+    plot_vlines(
+        axes[1],
+        0,
+        Z_SLICE_LOWER_OFFSET,
+        Z_SLICE_UPPER_OFFSET,
+        y_min=axes[1].get_ylim()[0],
+        y_max=axes[1].get_ylim()[1],
+    )
+    axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
+    plt.suptitle(
+        f"{dataset_config.name} TP {TIMEPOINT}, Offset Range: -{Z_SLICE_LOWER_OFFSET} to +{Z_SLICE_UPPER_OFFSET}"
+    )
+    plt.show()
+    save_dir = get_output_path(
+        "z_range_selection",
+        f"offsets_{Z_SLICE_LOWER_OFFSET}_{Z_SLICE_UPPER_OFFSET}",
+        "normalized_profiles",
+    )
+    save_plot_to_path(fig, save_dir, f"{dataset_config.name}_tp{TIMEPOINT}_normalized_profiles")
 # %%
