@@ -15,6 +15,7 @@ from numpy.typing import DTypeLike
 
 from endo_pipeline.configs import (
     DatasetConfig,
+    TimepointAnnotation,
     get_annotated_positions,
     get_annotated_timepoints_for_position,
     get_available_zarr_files,
@@ -489,28 +490,17 @@ def get_exclude_frames(
     dataset_config: DatasetConfig, exclude_cell_piling: bool = False
 ) -> dict[int, list[int]]:
     """Get dict of frames to exclude per position based on annotations."""
+    # if exclude_cell_piling is True, then get all annotated timepoints
+    # else, get timepoints for all annotations except CELL_PILING
+    annotations = None  # default to all annotations
+    if not exclude_cell_piling:
+        annotations = [ann for ann in TimepointAnnotation if "PILING" not in ann.name]
+
+    # parse dataset annotations to get timepoints to exclude per position
     exclude_frames = {
-        pos: get_annotated_timepoints_for_position(dataset_config, pos)
+        pos: get_annotated_timepoints_for_position(dataset_config, pos, annotations=annotations)
         for pos in dataset_config.zarr_positions
     }
-    if exclude_cell_piling:
-        # use `stop` value + 1 from ValidTimepoints annotation
-        # as the first frame of the "cell piling" regime
-        valid_timepoints = dataset_config.valid_timepoints
-        if valid_timepoints is None:
-            logger.warning(
-                "No ValidTimepoints annotation found in dataset [ %s ]. "
-                "Not excluding any frames based on cell piling.",
-                dataset_config.name,
-            )
-            return exclude_frames
-        exlcude_start = valid_timepoints.stop[-1] + 1
-        exclude_end = dataset_config.duration
-        cell_piling_frames = list(range(exlcude_start, exclude_end))
-        for pos in exclude_frames.keys():
-            exclude_frames[pos].extend(cell_piling_frames)
-            # make sure frames are unique and sorted
-            exclude_frames[pos] = sorted(set(exclude_frames[pos]))
 
     return exclude_frames
 
