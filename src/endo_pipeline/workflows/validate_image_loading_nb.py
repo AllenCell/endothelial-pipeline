@@ -52,14 +52,7 @@ for position in dataset_config.zarr_positions:
         assert position not in only_include_positions
 
     annotated_timepoints = get_annotated_timepoints_for_position(dataset_config, position)
-    if dataset_config.valid_timepoints is None:
-        excluded_frames = sorted(annotated_timepoints)
-    else:
-        cell_piling_timepoints = list(
-            range(dataset_config.valid_timepoints.stop[-1] + 1, dataset_config.duration)
-        )
-        excluded_frames = sorted(set(annotated_timepoints + cell_piling_timepoints))
-
+    excluded_frames = sorted(annotated_timepoints)
     assert excluded_frames == exclude_frames_by_position.get(position, [])
 
     print("Validated position:", position)
