@@ -44,5 +44,25 @@ timepoint_annotations:
     3: [271]
     4: [271]
     5: []
+  auto_bf_scope_error:
+    0: []
+    1: [345, 550]
+    2: [44, 540]
+    3: [38, 44]
+    4: [10, 271, 348]
+    5: [281]
+  auto_bf_temp_artifact:
+    0: []
+    1: [550]
+    2: [44, 314]
+    3: [271]
+    4: [271]
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 12
+  2: 12
+  3: 12
+  4: 12
+  5: 12
