@@ -73,8 +73,12 @@ def main(
         load_model_config,
     )
     from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+    from endo_pipeline.library.model.image_loading import get_include_positions
 
     logger = logging.getLogger(__name__)
+
+    # Get positions to include.
+    only_include_positions = get_include_positions(dataset_config)
 
     # When running workflow in demo mode, only use the first position from each
     # dataset and first two timepoints to speed up the dataloading process (if
@@ -84,11 +88,10 @@ def main(
     if DEMO_MODE:
         frame_start = 0
         frame_stop = 1 if dataset_config.is_timelapse else 0
-        only_positions = [0]
+        only_include_positions = only_include_positions[0:1]
     else:
         frame_start = None
         frame_stop = None
-        only_positions = None
 
     # check if input is a dataset collection or a single dataset name
     if dataset_name in get_available_dataset_collection_names():
@@ -127,7 +130,7 @@ def main(
             slice_by_global_center=slice_by_global_center,
             frame_start=frame_start,
             frame_stop=frame_stop,
-            only_positions=only_positions,
+            only_include_positions=only_include_positions,
         )
 
         if DEMO_MODE:
