@@ -16,11 +16,10 @@ def main(
     Produces a table of latent features from a non-overlapping grid of crops for each dataset.
     The model is applied at the specified resolution level.
 
-    **Workflow testing**
+    **Workflow demo**
 
-    If testing mode is enabled, the model will only be evaluated on the first few timepoints
-    of the first position of the first dataset. Furthermore, the staging environment
-    for FMS will be used for file uploads.
+    If demo mode is enabled, the model will only be evaluated on the first few
+    timepoints of the first position of the first dataset.
 
     **Z-stack offsets**
 
@@ -64,7 +63,7 @@ def main(
     import logging
     from typing import cast
 
-    from endo_pipeline import TESTING_MODE
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import (
         CytoDLModelConfig,
         get_available_dataset_collection_names,
@@ -74,6 +73,7 @@ def main(
         load_model_config,
     )
     from endo_pipeline.library.model import apply_model_on_grid_of_crops_from_one_dataset
+    from endo_pipeline.library.model.image_loading import get_include_positions
 
     logger = logging.getLogger(__name__)
 
@@ -104,6 +104,28 @@ def main(
     # and then just loop through datasets...
     # out of scope for this PR but worth doing in a separate PR
     for dataset_config in dataset_config_list:
+
+        # Get positions to include.
+        only_include_positions = get_include_positions(dataset_config)
+
+        # When running workflow in demo mode, only use the first position from each
+        # dataset and first two timepoints to speed up the dataloading process (if
+        # dataset is not timelapse, then only one timepoint is used). Otherwise, use
+        # default frame start and stop values (i.e. all timepoints) and keep all
+        # rows in the dataset CSV.
+        if DEMO_MODE:
+            frame_start = 0
+            frame_stop = 1 if dataset_config.is_timelapse else 0
+            only_include_positions = only_include_positions[0:1]
+            logger.warning(
+                "Workflow demo is enabled, only processing first few "
+                "timepoints of the first position of dataset: [ %s ]",
+                dataset_config.name,
+            )
+        else:
+            frame_start = None
+            frame_stop = None
+
         apply_model_on_grid_of_crops_from_one_dataset(
             model_config=model_config,
             dataset_config=dataset_config,
@@ -112,14 +134,13 @@ def main(
             user_overrides=user_overrides,
             z_stack_offsets=z_stack_offsets,
             slice_by_global_center=slice_by_global_center,
-            testing_mode=TESTING_MODE,
+            frame_start=frame_start,
+            frame_stop=frame_stop,
+            only_include_positions=only_include_positions,
         )
-        if TESTING_MODE:
-            # if test workflow, only process the first dataset
-            logger.debug(
-                "Workflow testing is enabled, only processing the first dataset: [ %s ]",
-                dataset_config.name,
-            )
+
+        if DEMO_MODE:
+            # only apply model to the first dataset in demo mode
             break
 
 
