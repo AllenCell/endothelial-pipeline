@@ -52,9 +52,9 @@ if __name__ == "__main__":
         ).squeeze()
 
         visualize_slice_selection(
-            bf_stack, cdh5_stack, center_plane, 5, 10, dataset, position, frame, save_dir
+            bf_stack, cdh5_stack, center_plane, 4, 11, dataset, position, frame, save_dir
         )
-        break
+
     # Visualize the standard deviations per slice for the first position
     stdevs = [plane.std().compute() for plane in bf_stack]
     center_plane = max(0, np.argmin(stdevs))

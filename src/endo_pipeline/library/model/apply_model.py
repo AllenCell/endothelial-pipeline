@@ -453,16 +453,13 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     user_overrides: str | dict | None = None,
     z_stack_offsets: tuple[int, int] | None = None,
     slice_by_global_center: bool = True,
-    testing_mode: bool = False,
+    frame_start: int | None = None,
+    frame_stop: int | None = None,
+    frame_step: int | None = None,
+    only_include_positions: list[int] | None = None,
 ) -> None:
     """
     Apply a DiffAE model to a single dataset.
-
-    **Workflow testing**
-
-    If ``testing_mode`` is set to True, the model will only be applied to the first
-    position of the dataset and only the first two timepoints will be used. The
-    staging environment of FMS will be used for uploading the prediction file.
 
     **Z-stack offsets**
 
@@ -476,7 +473,6 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     indicate the number of slices to include below and above the center plane. Else, the
     ``z_stack_offsets`` are used directly as the range bounds.
 
-
     Parameters
     ----------
     model_config
@@ -487,16 +483,20 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         Resolution level to at which to load images (zarr file format) at.
     upload_to_fms
         Whether to upload the prediction file to FMS. Default is True.
-    save_path
-        Path to save the prediction file. Default is `models/{model_name}/{dataset_name}`.
     user_overrides
         Optional user overrides to apply to the model config.
     z_stack_offsets
         Lower and upper bounds for z-slicing.
     slice_by_global_center
         Get global center plane per position for z-slicing if True, use offsets directly if False.
-    testing_mode
-        Execute method in workflow testing mode if True, run full model evaluation if False.
+    frame_start
+        First frame to include, if None, include from the start.
+    frame_stop
+        Last frame to include, if None, include to the end.
+    frame_step
+        Step size for frame inclusion, if None, include every frame.
+    only_include_positions
+        List of position indices to include, if None, include all positions.
 
     Returns
     -------
@@ -506,6 +506,7 @@ def apply_model_on_grid_of_crops_from_one_dataset(
         If ``upload_to_fms`` is True, uploads the prediction file to FMS and adds the file ID to the
         model config manifest.
     """
+
     if not torch.cuda.is_available():
         logger.error("CUDA is not available. Please run on a GPU machine.")
         raise RuntimeError("CUDA is not available. Please run on a GPU machine.")
@@ -552,30 +553,12 @@ def apply_model_on_grid_of_crops_from_one_dataset(
     file_name = f"{file_name}_{timestamp}.parquet"
     dataset_save_path = save_path / file_name
 
-    # default frame start and stop values are None, i.e., load all timepoints
-    frame_start = None
-    frame_stop = None
-    frame_step = None
-
     # parse dataset annotations to get z-slice information,
     # positions to include, and frames to exclude
     z_slice_bounds_per_position = get_z_slice_bounds_per_position(
         dataset_config, z_stack_offsets, slice_by_global_center
     )
-    only_include_positions = get_include_positions(dataset_config)
     exclude_frames = get_exclude_frames(dataset_config)
-
-    if testing_mode:
-        # for workflow testing, only use first position from each dataset
-        # and first two timepoints to speed up the dataloading process
-        # (if dataset is not timelapse, then only one timepoint is used)
-        frame_start = 0
-        frame_stop = 1 if dataset_config.is_timelapse else 0
-        only_include_positions = only_include_positions[0:1]
-        logger.debug(
-            "Workflow testing is enabled, only processing the first few timepoints "
-            "of the first valid position the dataset."
-        )
 
     if z_stack_offsets is not None:
         # load timepoints 0, 250, and 500 for z-stack offsets summary

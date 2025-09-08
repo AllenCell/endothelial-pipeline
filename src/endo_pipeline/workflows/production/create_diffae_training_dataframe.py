@@ -78,7 +78,7 @@ def main(
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
-    from endo_pipeline import TESTING_MODE
+    from endo_pipeline import DEMO_MODE
     from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model import (
@@ -91,17 +91,11 @@ def main(
 
     output_savedir = get_output_path("dataframes")
 
-    # load data config
     dataset_name_list = load_dataset_collection_config("diffae_model_training").datasets
     dataset_config_list = [load_dataset_config(dataset_name) for dataset_name in dataset_name_list]
 
     zarr_dataframes = []
     for dataset_config in dataset_config_list:
-        # generate zarr loading metadata table for each dataset
-        # default frame start and stop values are None, i.e., load all timepoints
-        frame_start = None
-        frame_stop = None
-
         # parse dataset annotations to get z-slice information,
         # positions to include, and frames to exclude
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
@@ -110,13 +104,18 @@ def main(
         only_include_positions = get_include_positions(dataset_config)
         exclude_frames = get_exclude_frames(dataset_config, exclude_cell_piling=exclude_cell_piling)
 
-        if TESTING_MODE:
-            # for workflow testing, only use first position from each dataset
-            # and first two timepoints to speed up the dataloading process
-            # (if dataset is not timelapse, then only one timepoint is used)
+        # When running workflow in demo mode, only use the first position from each
+        # dataset and first two timepoints to speed up the data loading process (if
+        # dataset is not timelapse, then only one timepoint is used). Otherwise, use
+        # default frame start and stop values (i.e. all timepoints) and keep all
+        # rows in the dataset CSV.
+        if DEMO_MODE:
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_include_positions = only_include_positions[0:1]
+        else:
+            frame_start = None
+            frame_stop = None
 
         # build zarr loading dataframe for the current dataset
         # and append it to the list of dataframes
@@ -143,14 +142,17 @@ def main(
     # (percent split is by number of rows, i.e. positions x datasets)
     train, val = train_test_split(df, test_size=0.2, random_state=42)
 
+    # add "_test_workflow" suffix to manifest name if in demo mode
+    name_suffix = "_test_workflow" if DEMO_MODE else ""
+
+    # add "_exclude_cell_piling" to manifest name if cell piling is excluded
+    if exclude_cell_piling:
+        name_suffix = f"_exclude_cell_piling{name_suffix}"
+
     # Upload dataframes to FMS, then build and save out DataframeManifest
     # object with FMS IDs to be used in the DiffAE model training script.
     # Note that this can be swapped out with uploading to S3 later on.
-    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}"
-    if exclude_cell_piling:
-        manifest_name = f"{manifest_name}_exclude_cell_piling"
-    if TESTING_MODE:
-        manifest_name = f"{manifest_name}_test_workflow"
+    manifest_name = f"diffae_training_dataframe_resolution_{resolution_level}{name_suffix}"
     build_and_save_dataframe_manifest_for_training(
         train,
         val,

@@ -93,3 +93,5 @@ print(f"Percent of captured timepoints: {100 - percent_missed:.2f}%")
 print(f"Total auto-detected timepoints: {total_auto}")
 print(f"Total timepoints assessed: {total_timepoints}")
 print(f"Percent of tps with artifacts: {percent_artifact:.2f}%")
+
+# %%
